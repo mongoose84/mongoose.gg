@@ -172,8 +172,8 @@ onMounted(() => {
 .titles {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .title {
