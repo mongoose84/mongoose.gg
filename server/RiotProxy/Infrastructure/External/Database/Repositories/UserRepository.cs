@@ -12,6 +12,29 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             _factory = factory;
         }
 
+        public async Task<List<User>> GetAllUsersAsync()
+        {
+            var users = new List<User>();
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            const string sql = "SELECT UserId, UserName FROM User";
+            await using var cmd = new MySqlCommand(sql, conn);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                users.Add(new User
+                {
+                    UserId = reader.GetInt32(0),
+                    UserName = reader.GetString(1)
+                });
+            }
+
+            return users;
+        }
+
         public async Task<User?> GetByUserNameAsync(string userName)
         {
             await using var conn = _factory.CreateConnection();

@@ -19,14 +19,14 @@ namespace RiotProxy.Infrastructure.External
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                await RunJobAsync(stoppingToken);
+                
 
                 var nextRun = DateTime.UtcNow.AddDays(1); // Run daily
                 var delay = nextRun - DateTime.UtcNow;
                 if (delay > TimeSpan.Zero)
                     await Task.Delay(delay, stoppingToken);
 
-                
+                await RunJobAsync(stoppingToken);
             }
         }
 

@@ -20,8 +20,11 @@ namespace RiotProxy.Application
             var metricsEndpoint = new MetricsEndpoint(_basePath);
             _endpoints.Add(metricsEndpoint);
 
-            var personEndpoint = new UserEndpoint(_basePath);
-            _endpoints.Add(personEndpoint);
+            var userEndpoint = new UserEndpoint(_basePath);
+            _endpoints.Add(userEndpoint);
+
+            var usersEndpoint = new UsersEndpoint(_basePath);
+            _endpoints.Add(usersEndpoint);
         }
 
         public void ConfigureEndpoints()

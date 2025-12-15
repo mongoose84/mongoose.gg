@@ -25,7 +25,6 @@ namespace RiotProxy.Application.Endpoints
         {
             app.MapGet(Route, async (
                 string userName,
-                [FromBody] CreateUserRequest body,
                 [FromServices] UserRepository userRepo
                 ) =>
             {
@@ -36,8 +35,6 @@ namespace RiotProxy.Application.Endpoints
                     {
                         return Results.NotFound("User not found");
                     }
-
-                    Console.WriteLine($"Created user: {user.UserName} with ID: {user.UserId} ");
 
                     return Results.Content(user.ToJson(), "application/json");
                 }
