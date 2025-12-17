@@ -25,6 +25,9 @@ namespace RiotProxy.Application
 
             var usersEndpoint = new UsersEndpoint(_basePath);
             _endpoints.Add(usersEndpoint);
+
+            var gamersEndpoint = new GamersEndpoint(_basePath);
+            _endpoints.Add(gamersEndpoint);
         }
 
         public void ConfigureEndpoints()

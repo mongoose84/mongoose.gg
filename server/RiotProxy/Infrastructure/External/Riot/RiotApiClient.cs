@@ -18,31 +18,6 @@ namespace RiotProxy.Infrastructure.External.Riot
             _http = httpClientFactory.CreateClient("RiotApi");
         }
 
-        public async Task<string> GetSummonerAsync(string gameName, string tagLine, CancellationToken ct = default)
-        {
-            // Encode each component so special characters are safe in the URL path.
-            var encodedGameName = Uri.EscapeDataString(gameName);
-            var encodedTagLine = Uri.EscapeDataString(tagLine);
-
-            var puuid = await GetPuuidAsync(encodedGameName, encodedTagLine);
-            string encodedPuuid = HttpUtility.UrlEncode(puuid);
-            var summonerUrl = RiotUrlBuilder.GetSummonerUrl(encodedTagLine, $"/summoner/v4/summoners/by-puuid/{encodedPuuid}");
-            Metrics.SetLastUrlCalled("RiotServices.cs ln 19" + summonerUrl);
-            
-            // Perform the GET request.
-            
-            await _perSecondBucket.WaitAsync(ct);
-            await _perTwoMinuteBucket.WaitAsync(ct);
-
-            var response = await _http.GetAsync(summonerUrl, ct);
-            response.EnsureSuccessStatusCode();   // Throws if the status is not 2xx.
-
-            // Read the JSON payload.
-            var json = await response.Content.ReadAsStringAsync();
-            return json;
-        }
-
-
         public async Task<double> GetWinrateAsync(string puuid)
         {
             var wins = 0;
@@ -132,6 +107,49 @@ namespace RiotProxy.Infrastructure.External.Riot
             var json = await response.Content.ReadAsStringAsync();
             var matchDoc = JsonDocument.Parse(json);
             return matchDoc;
+        }
+
+        public async Task<Summoner?> GetSummonerByPuuidAsync(string tagline, string puuid, CancellationToken ct = default)
+        {
+            var summonerUrl = RiotUrlBuilder.GetSummonerUrl(tagline, puuid);
+            Metrics.SetLastUrlCalled("RiotServices.cs ln 134" + summonerUrl);
+
+            await _perSecondBucket.WaitAsync(ct);
+            await _perTwoMinuteBucket.WaitAsync(ct);
+
+            var response = await _http.GetAsync(summonerUrl, ct);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null; // Summoner not found
+            }
+            
+            response.EnsureSuccessStatusCode();   // Throws if the status is not 2xx.
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var summoner = JsonSerializer.Deserialize<Summoner>(json, options);
+            return summoner;
+        }
+
+        public async Task<string> GetLolVersionAsync(CancellationToken ct = default)
+        {
+            var url = "https://ddragon.leagueoflegends.com/api/versions.json";
+            try
+            {
+                var response = await _http.GetAsync(url, ct);
+                response.EnsureSuccessStatusCode();
+                var json = await response.Content.ReadAsStringAsync(ct);
+                var versions = JsonSerializer.Deserialize<List<string>>(json);
+                if (versions != null && versions.Count > 0)
+                {
+                    return versions[0]; // Return the latest version
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching LoL version: {ex.Message}");
+            }
+            return string.Empty;
         }
     }
 }

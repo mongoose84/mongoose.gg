@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <!-- 1️⃣ Target runtime for a self‑contained Windows‑x86 build -->
-    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <!-- <RuntimeIdentifier>win-x86</RuntimeIdentifier> -->
 
     <!-- 2️⃣ Force Out‑of‑Process hosting (required on Simply.com) -->
     <AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>

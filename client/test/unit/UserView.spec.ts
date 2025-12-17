@@ -10,19 +10,24 @@ describe('UserView', () => {
 
     expect(wrapper.text()).toContain('Missing user details')
     expect(wrapper.text()).toContain('Please navigate via the Users list.')
-    // Should not show the user header
-    expect(wrapper.text()).not.toMatch(/User:\s+/)
+    // Header should show the missing details message
+    const heading = wrapper.find('.user-container h2')
+    expect(heading.exists()).toBe(true)
+    expect(heading.text()).toBe('Missing user details')
   })
 
-  it('renders the user header when props are valid and updates on change', async () => {
+  it('renders the user name header when props are valid and updates on change', async () => {
     const wrapper = mount(UserView, {
       props: { userName: 'Alice', userId: 1 }
     })
 
-    expect(wrapper.text()).toContain('User: Alice (ID: 1)')
-    expect(wrapper.text()).not.toContain('Missing user details')
+    // Header should be just the name (no ID)
+    expect(wrapper.find('.user-container h2').text()).toBe('Alice')
+    expect(wrapper.text()).not.toContain('(ID:')
+    expect(wrapper.text()).not.toMatch(/^User:\s/)
 
+    // Update props and verify
     await wrapper.setProps({ userName: 'Bob', userId: 2 })
-    expect(wrapper.text()).toContain('User: Bob (ID: 2)')
+    expect(wrapper.find('.user-container h2').text()).toBe('Bob')
   })
 })

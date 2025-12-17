@@ -31,12 +31,13 @@ namespace RiotProxy.Infrastructure.External.Riot
             return $"https://europe.api.riotgames.com/lol{path}?api_key={Secrets.ApiKey}";
         }
 
-        public static string GetSummonerUrl(string region, string path)
+        public static string GetSummonerUrl(string tagline, string puuid)
         {
-            var regionUpper = region.ToUpper();
-            var regionCode = _regionMapping.ContainsKey(regionUpper) ? _regionMapping[regionUpper] : throw new ArgumentException($"Invalid region code: {region}");
-
-            return $"https://{regionCode}.api.riotgames.com/lol{path}?api_key={Secrets.ApiKey}";
+            if (!_regionMapping.TryGetValue(tagline.ToUpper(), out var regionCode))
+            {
+                throw new ArgumentException($"Invalid region tagline: {tagline}. Supported regions: {string.Join(", ", _regionMapping.Keys)}");
+            }
+            return $"https://{regionCode}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}?api_key={Secrets.ApiKey}";
         }
     }
 }
