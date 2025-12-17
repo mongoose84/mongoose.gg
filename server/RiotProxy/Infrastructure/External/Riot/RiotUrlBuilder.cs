@@ -31,9 +31,9 @@ namespace RiotProxy.Infrastructure.External.Riot
             return $"https://europe.api.riotgames.com/lol{path}?api_key={Secrets.ApiKey}";
         }
 
-        public static string GetSummonerUrl(string region,string puuid)
+        public static string GetSummonerUrl(string tagline,string puuid)
         {
-            if (!_regionMapping.TryGetValue(region.ToUpper(), out var regionCode))
+            if (!_regionMapping.TryGetValue(tagline.ToUpper(), out var regionCode))
             {
                 regionCode = "eun1"; // Default to EUNE if region not found
             }

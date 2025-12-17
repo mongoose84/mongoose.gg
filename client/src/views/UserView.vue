@@ -142,7 +142,7 @@ defineExpose({ load });
   display: flex;
   flex-wrap: wrap;
   justify-content: center; /* center cards in the middle */
-  gap: 3cm;
+  gap: 7rem;
   margin: 0;
   padding: 0;
 }
