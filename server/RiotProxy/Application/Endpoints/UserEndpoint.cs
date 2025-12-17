@@ -91,8 +91,9 @@ namespace RiotProxy.Application.Endpoints
                     {
                         var puuid = await riotApiClient.GetPuuidAsync(account.GameName, account.TagLine);
 
+                        var summoner =
                         // Create Gamer entry
-                        var gamerCreated = await gamerRepo.CreateGamerAsync(user.UserId, puuid, account.GameName, account.TagLine);
+                        var gamerCreated = await gamerRepo.CreateGamerAsync(user.UserId, puuid, account.GameName, account.TagLine, account.IconId, account.Level);
                         if (!gamerCreated)
                         {
                             // Log error but continue
