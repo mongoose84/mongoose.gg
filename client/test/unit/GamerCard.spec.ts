@@ -20,8 +20,7 @@ describe('GamerCard', () => {
     const wrapper = mount(GamerCard, { props: { gamer: sampleGamer } })
 
     // Icon image
-    const img = wrapper.find('img.icon')
-    expect(img.exists()).toBe(true)
+    const img = wrapper.get('img.icon')
     expect(img.attributes('src')).toBe(sampleGamer.iconUrl)
     expect(img.attributes('alt')).toContain(sampleGamer.gamerName)
 
@@ -36,11 +35,10 @@ describe('GamerCard', () => {
   it('shows wins/losses label and aria on chart', () => {
     const wrapper = mount(GamerCard, { props: { gamer: sampleGamer } })
 
-    const label = wrapper.find('.chart-label')
-    expect(label.exists()).toBe(true)
+    const label = wrapper.get('.chart-label')
     expect(label.text()).toBe(`${sampleGamer.wins} | ${sampleGamer.losses}`)
 
-    const chart = wrapper.find('.chart')
+    const chart = wrapper.get('.chart')
     expect(chart.attributes('role')).toBe('img')
     expect(chart.attributes('aria-label')).toBe(`Wins ${sampleGamer.wins}, Losses ${sampleGamer.losses}`)
   })

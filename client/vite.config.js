@@ -9,7 +9,12 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      // Force VTU ESM build to ensure BaseWrapper.find exists in tests
+      '@vue/test-utils': path.resolve(
+        __dirname,
+        './node_modules/@vue/test-utils/dist/vue-test-utils.esm-bundler.mjs'
+      )
     }
   },
   test: {
