@@ -37,11 +37,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();
 
-            const string sql = "UPDATE LolMatch SET InfoFetched = @infoFetched, GameMode = @gameMode, GameEndTimestamp = @gameEndTimestamp WHERE MatchId = @matchId";
+            const string sql = "UPDATE LolMatch SET InfoFetched = @infoFetched, DurationSeconds = @durationSeconds, GameMode = @gameMode,  GameEndTimestamp = @gameEndTimestamp WHERE MatchId = @matchId";
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@infoFetched", match.InfoFetched);
+    
             cmd.Parameters.AddWithValue("@matchId", match.MatchId);
+            cmd.Parameters.AddWithValue("@infoFetched", match.InfoFetched);
+            cmd.Parameters.AddWithValue("@durationSeconds", match.DurationSeconds);
             cmd.Parameters.AddWithValue("@gameMode", match.GameMode);
+            
             cmd.Parameters.AddWithValue("@gameEndTimestamp", match.GameEndTimestamp == DateTime.MinValue ? DBNull.Value : match.GameEndTimestamp);
             await cmd.ExecuteNonQueryAsync();
         }
