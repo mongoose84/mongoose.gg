@@ -109,9 +109,10 @@ namespace RiotProxy.Infrastructure.External.Riot
             return matchDoc;
         }
 
-        public async Task<Summoner?> GetSummonerByPuuidAsync(string tagline, string puuid, CancellationToken ct = default)
+        public async Task<Summoner?> GetSummonerByPuuidAsync(string region, string puuid, CancellationToken ct = default)
         {
-            var summonerUrl = RiotUrlBuilder.GetSummonerUrl(tagline, puuid);
+            var encodedPuuid = HttpUtility.UrlEncode(puuid);
+            var summonerUrl = RiotUrlBuilder.GetSummonerUrl(region, encodedPuuid);
             Metrics.SetLastUrlCalled("RiotServices.cs ln 134" + summonerUrl);
 
             await _perSecondBucket.WaitAsync(ct);
@@ -125,31 +126,31 @@ namespace RiotProxy.Infrastructure.External.Riot
             
             response.EnsureSuccessStatusCode();   // Throws if the status is not 2xx.
 
-            var json = await response.Content.ReadAsStringAsync(ct);
+            var json = await response.Content.ReadAsStringAsync();
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var summoner = JsonSerializer.Deserialize<Summoner>(json, options);
             return summoner;
         }
 
-        public async Task<string> GetLolVersionAsync(CancellationToken ct = default)
+        public Task<string> GetLolVersionAsync(CancellationToken ct = default)
         {
             var url = "https://ddragon.leagueoflegends.com/api/versions.json";
             try
             {
-                var response = await _http.GetAsync(url, ct);
+                var response = _http.GetAsync(url, ct).Result;
                 response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync(ct);
+                var json = response.Content.ReadAsStringAsync().Result;
                 var versions = JsonSerializer.Deserialize<List<string>>(json);
                 if (versions != null && versions.Count > 0)
                 {
-                    return versions[0]; // Return the latest version
+                    return Task.FromResult(versions[0]);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching LoL version: {ex.Message}");
             }
-            return string.Empty;
+            return Task.FromResult(string.Empty);
         }
     }
 }

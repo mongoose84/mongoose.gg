@@ -28,6 +28,7 @@ namespace RiotProxy.Infrastructure.External
 
                 await RunJobAsync(stoppingToken);
             }
+            throw new InvalidOperationException("ExcecuteAync has been cancelled.");
         }
 
         public async Task RunJobAsync(CancellationToken ct = default)
@@ -51,7 +52,7 @@ namespace RiotProxy.Infrastructure.External
                 Console.WriteLine($"Found {gamers.Count} gamers.");
 
                 // Fetch only NEW match IDs incrementally
-                var newMatches = await GetNewMatchHistoryFromRiotApi(gamers, riotApiClient, matchRepository, ct);
+                var newMatches = await GetNewMatchHistoryFromRiotApi(gamers, riotApiClient, participantRepository, ct);
                 Console.WriteLine($"Fetched {newMatches.Count} NEW matches.");
 
                 if (newMatches.Count > 0)
@@ -78,7 +79,7 @@ namespace RiotProxy.Infrastructure.External
         private async Task<IList<LolMatch>> GetNewMatchHistoryFromRiotApi(
             IList<Gamer> gamers,
             IRiotApiClient riotApiClient,
-            LolMatchRepository matchRepository,
+            LolMatchParticipantRepository participantRepository,
             CancellationToken ct)
         {
             var allNewMatches = new List<LolMatch>();
@@ -87,7 +88,7 @@ namespace RiotProxy.Infrastructure.External
             {
                 // Get existing match IDs for this gamer
                 Console.WriteLine($"Fetching match history for gamer: {gamer.GamerName}");
-                var existingMatchIds = await matchRepository.GetMatchIdsForPuuidAsync(gamer.Puuid);
+                var existingMatchIds = await participantRepository.GetMatchIdsForPuuidAsync(gamer.Puuid);
                 var existingSet = new HashSet<string>(existingMatchIds);
 
                 int start = 0;
@@ -160,19 +161,25 @@ namespace RiotProxy.Infrastructure.External
                         GamerRepository gamerRepository,
                         CancellationToken ct)
         {
+            var participantsAdded = 0;
             foreach (var match in matches)
             {
                 try
                 {
+                    // Fetch match info from Riot API
                     var matchInfoJson = await riotApiClient.GetMatchInfoAsync(match.MatchId);
-                    var participant = MapToParticipantEntity(matchInfoJson, match);
-
-                    await participantRepository.AddParticipantIfNotExistsAsync(participant);
-
-                    match.GameMode = GetGameMode(matchInfoJson);
-                    match.InfoFetched = true;
+                    
+                    // Map and update match entity and add to database
+                    MapToLolMatchEntity(matchInfoJson, match);
                     await matchRepository.UpdateMatchAsync(match);
 
+                    // Map and add participants to database
+                    var participants = MapToParticipantEntity(matchInfoJson, match.MatchId);
+                    participantsAdded += participants.Count;
+                    foreach (var participant in participants)
+                        await participantRepository.AddParticipantIfNotExistsAsync(participant);
+
+                    // Update that a gamers info has been updated
                     var gamer = gamers.FirstOrDefault(g => g.Puuid == match.Puuid);
                     if (gamer != null && (gamer.LastChecked == DateTime.MinValue || gamer.LastChecked < match.GameEndTimestamp))
                     {
@@ -185,7 +192,7 @@ namespace RiotProxy.Infrastructure.External
                     Console.WriteLine($"Error adding match info to DB for match {match.MatchId}: {ex.Message}");
                 }
             }
-            Console.WriteLine($"{matches.Count} match participants added to DB.");
+            Console.WriteLine($"{participantsAdded} match participants added to DB.");
         }
 
         private string GetGameMode(JsonDocument matchInfo)
@@ -215,10 +222,9 @@ namespace RiotProxy.Infrastructure.External
             };
         }
 
-        private LolMatchParticipant MapToParticipantEntity(JsonDocument matchInfo, LolMatch match)
+        private void MapToLolMatchEntity(JsonDocument matchInfo, LolMatch match)
         {
-            if (matchInfo.RootElement.TryGetProperty("info", out var infoElement) &&
-                infoElement.TryGetProperty("participants", out var participantsElement))
+            if (matchInfo.RootElement.TryGetProperty("info", out var infoElement))
             {
                 // gameEndTimestamp is epoch ms; fall back to gameCreation if needed
                 var endMs = GetEpochMilliseconds(infoElement, "gameEndTimestamp")
@@ -230,59 +236,102 @@ namespace RiotProxy.Infrastructure.External
                 else
                     match.GameEndTimestamp = DateTime.MinValue;
 
+                if (!matchInfo.RootElement.TryGetProperty("metadata", out var metadataElement))
+                    throw new InvalidOperationException("Missing 'metadata' object in match info.");
+                
+                // Map match ID and other properties
+                match.GameMode = GetGameMode(matchInfo);
+                match.InfoFetched = true;
+                var gameDuration = Require<long>(infoElement, "gameDuration", e => e.GetInt64(), JsonValueKind.Number);
+                match.DurationSeconds = gameDuration;
+            }
+        }
+
+        private IList<LolMatchParticipant> MapToParticipantEntity(JsonDocument matchInfo, string matchId)
+        {
+            var list = new List<LolMatchParticipant>();
+
+            if (matchInfo.RootElement.TryGetProperty("info", out var infoElement) &&
+                infoElement.TryGetProperty("participants", out var participantsElement))
+            {
                 foreach (var participant in participantsElement.EnumerateArray())
                 {
-                    if (participant.TryGetProperty("puuid", out var puuidElement) &&
-                        puuidElement.GetString() == match.Puuid)
+                    try
                     {
-                        if (!matchInfo.RootElement.TryGetProperty("metadata", out var metadataElement) ||
-                            !metadataElement.TryGetProperty("matchId", out var matchIdElement) ||
-                            matchIdElement.ValueKind != JsonValueKind.String)
-                            throw new InvalidOperationException("Missing or invalid 'metadata.matchId' property.");
-                        if (!participant.TryGetProperty("championName", out var championNameElement) ||
-                            championNameElement.ValueKind != JsonValueKind.String)
-                            throw new InvalidOperationException("Missing or invalid 'championName' property in participant.");
-                        if (!participant.TryGetProperty("win", out var winElement) ||
-                            winElement.ValueKind != JsonValueKind.True && winElement.ValueKind != JsonValueKind.False)
-                            throw new InvalidOperationException("Missing or invalid 'win' property in participant.");
-                        if (!participant.TryGetProperty("role", out var roleElement) ||
-                            roleElement.ValueKind != JsonValueKind.String)
-                            throw new InvalidOperationException("Missing or invalid 'role' property in participant.");
-                        if (!participant.TryGetProperty("kills", out var killsElement) ||
-                            killsElement.ValueKind != JsonValueKind.Number)
-                            throw new InvalidOperationException("Missing or invalid 'kills' property in participant.");
-                        if (!participant.TryGetProperty("deaths", out var deathsElement) ||
-                            deathsElement.ValueKind != JsonValueKind.Number)
-                            throw new InvalidOperationException("Missing or invalid 'deaths' property in participant.");
-                        if (!participant.TryGetProperty("assists", out var assistsElement) ||
-                            assistsElement.ValueKind != JsonValueKind.Number)
-                            throw new InvalidOperationException("Missing or invalid 'assists' property in participant.");
+                        var puuid = Require<string>(participant, "puuid", e => e.GetString()!, JsonValueKind.String);
+                        var teamId = Require<int>(participant, "teamId", e => e.GetInt32(), JsonValueKind.Number);
+                        var championId = Require<int>(participant, "championId", e => e.GetInt32(), JsonValueKind.Number);
+                        var lane = Require<string>(participant, "lane", e => e.GetString()!, JsonValueKind.String);
+                        var teamPosition = Require<string>(participant, "teamPosition", e => e.GetString()!, JsonValueKind.String);
+                        var championName = Require<string>(participant, "championName", e => e.GetString()!, JsonValueKind.String);
+                        var win = Require<bool>(participant, "win", e => e.GetBoolean(), JsonValueKind.True, JsonValueKind.False);
+                        var role = Require<string>(participant, "role", e => e.GetString()!, JsonValueKind.String);
+                        var kills = Require<int>(participant, "kills", e => e.GetInt32(), JsonValueKind.Number);
+                        var deaths = Require<int>(participant, "deaths", e => e.GetInt32(), JsonValueKind.Number);
+                        var assists = Require<int>(participant, "assists", e => e.GetInt32(), JsonValueKind.Number);
+                        var doubleKills = Require<int>(participant, "doubleKills", e => e.GetInt32(), JsonValueKind.Number);
+                        var tripleKills = Require<int>(participant, "tripleKills", e => e.GetInt32(), JsonValueKind.Number);
+                        var quadraKills = Require<int>(participant, "quadraKills", e => e.GetInt32(), JsonValueKind.Number);
+                        var pentaKills = Require<int>(participant, "pentaKills", e => e.GetInt32(), JsonValueKind.Number);
+                        var goldEarned = Require<int>(participant, "goldEarned", e => e.GetInt32(), JsonValueKind.Number);
+                        var creepScore = Require<int>(participant, "totalMinionsKilled", e => e.GetInt32(), JsonValueKind.Number);
 
-                        var matchId = matchIdElement.GetString() ??
-                            throw new InvalidOperationException("Missing or invalid 'MatchId' property in participant.");
-                        var puuidValue = puuidElement.GetString() ??
-                            throw new InvalidOperationException("Missing or invalid 'Puuid' property in participant.");
-                        var championName = championNameElement.GetString() ??
-                            throw new InvalidOperationException("Missing or invalid 'ChampionName' property in participant.");
-                        var role = roleElement.GetString() ??
-                            throw new InvalidOperationException("Missing or invalid 'Role' property in participant.");
-
-                        return new LolMatchParticipant
+                        var participantEntity = new LolMatchParticipant
                         {
                             MatchId = matchId,
-                            Puuid = puuidValue,
+                            Puuid = puuid,
+                            TeamId = teamId,
+                            Lane = lane,
+                            TeamPosition = teamPosition,
+                            ChampionId = championId,
                             ChampionName = championName,
-                            Win = winElement.GetBoolean(),
+                            Win = win,
                             Role = role,
-                            Kills = killsElement.GetInt32(),
-                            Deaths = deathsElement.GetInt32(),
-                            Assists = assistsElement.GetInt32(),
+                            Kills = kills,
+                            Deaths = deaths,
+                            Assists = assists,
+                            DoubleKills = doubleKills,
+                            TripleKills = tripleKills,
+                            QuadraKills = quadraKills,
+                            PentaKills = pentaKills,
+                            GoldEarned = goldEarned,
+                            CreepScore = creepScore
                         };
+                        list.Add(participantEntity);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        Console.WriteLine($"Skipping participant due to error: {ex.Message}");
+                        continue;
                     }
                 }
+
+                return list;
+            }
+            throw new InvalidOperationException("Participant not found.");
+        }
+
+        private static T Require<T>(JsonElement element, string propertyName, Func<JsonElement, T> read, params JsonValueKind[] allowedKinds)
+        {
+            if (!element.TryGetProperty(propertyName, out var property))
+                throw new InvalidOperationException($"Missing required '{propertyName}' property.");
+
+            if (allowedKinds != null && allowedKinds.Length > 0)
+            {
+                var kind = property.ValueKind;
+                var ok = allowedKinds.Any(k => k == kind);
+                if (!ok)
+                    throw new InvalidOperationException($"Invalid kind for '{propertyName}': {kind}");
             }
 
-            throw new InvalidOperationException("Participant not found.");
+            try
+            {
+                return read(property);
+            }
+            catch (Exception)
+            {
+                throw new InvalidOperationException($"Failed to read '{propertyName}' as {typeof(T).Name}.");
+            }
         }
     }
 }

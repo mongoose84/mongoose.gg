@@ -17,10 +17,9 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();
 
-            const string sql = "INSERT INTO LolMatch (MatchId, Puuid, InfoFetched, GameMode, GameEndTimestamp) VALUES (@matchId, @puuid, @infoFetched, @gameMode, @endTs)";
+            const string sql = "INSERT INTO LolMatch (MatchId, InfoFetched, GameMode, GameEndTimestamp) VALUES (@matchId, @infoFetched, @gameMode, @endTs)";
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@matchId", match.MatchId);
-            cmd.Parameters.AddWithValue("@puuid", match.Puuid);
             cmd.Parameters.AddWithValue("@infoFetched", match.InfoFetched);
             cmd.Parameters.AddWithValue("@gameMode", match.GameMode ?? string.Empty);
             
@@ -53,7 +52,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();
 
-            const string sql = "SELECT MatchId, Puuid, InfoFetched, GameMode, GameEndTimestamp FROM LolMatch WHERE InfoFetched = FALSE";
+            const string sql = "SELECT MatchId, InfoFetched, GameMode, GameEndTimestamp FROM LolMatch WHERE InfoFetched = FALSE";
             await using var cmd = new MySqlCommand(sql, conn);
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -61,10 +60,9 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 matches.Add(new LolMatch
                 {
                     MatchId = reader.GetString(0),
-                    Puuid = reader.GetString(1),
-                    InfoFetched = reader.GetBoolean(2),
-                    GameMode = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
-                    GameEndTimestamp = reader.IsDBNull(4) ? DateTime.MinValue : reader.GetDateTime(4)
+                    InfoFetched = reader.GetBoolean(1),
+                    GameMode = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                    GameEndTimestamp = reader.IsDBNull(3) ? DateTime.MinValue : reader.GetDateTime(3)
                 });
             }
             return matches;
@@ -78,7 +76,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await conn.OpenAsync();
 
             var parameterNames = matchIds.Select((id, index) => $"@id{index}").ToList();
-            var sql = $"SELECT MatchId, Puuid, InfoFetched, GameMode FROM `LolMatch` WHERE MatchId IN ({string.Join(",", parameterNames)})";
+            var sql = $"SELECT MatchId, InfoFetched, GameMode FROM `LolMatch` WHERE MatchId IN ({string.Join(",", parameterNames)})";
             
             await using var cmd = new MySqlCommand(sql, conn);
             for (int i = 0; i < matchIds.Count; i++)
@@ -93,9 +91,8 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 matches.Add(new LolMatch
                 {
                     MatchId = reader.GetString(0),
-                    Puuid = reader.GetString(1),
-                    InfoFetched = reader.GetBoolean(2),
-                    GameMode = reader.IsDBNull(3) ? string.Empty : reader.GetString(3)
+                    InfoFetched = reader.GetBoolean(1),
+                    GameMode = reader.IsDBNull(2) ? string.Empty : reader.GetString(2)
                 });
             }
             
@@ -106,33 +103,15 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         {
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();
-            const string sql = "INSERT IGNORE INTO LolMatch (MatchId, Puuid, InfoFetched, GameMode, GameEndTimestamp) VALUES (@matchId, @puuid, @infoFetched, @gameMode, @gameEndTimestamp)";
+            const string sql = "INSERT IGNORE INTO LolMatch (MatchId, InfoFetched, GameMode, DurationSeconds, GameEndTimestamp) " +
+                               "VALUES (@matchId, @infoFetched, @gameMode, @durationSeconds, @gameEndTimestamp)";
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@matchId", match.MatchId);
-            cmd.Parameters.AddWithValue("@puuid", match.Puuid);
             cmd.Parameters.AddWithValue("@infoFetched", match.InfoFetched);
             cmd.Parameters.AddWithValue("@gameMode", match.GameMode ?? string.Empty);
+            cmd.Parameters.AddWithValue("@durationSeconds", match.DurationSeconds);
             cmd.Parameters.AddWithValue("@gameEndTimestamp", match.GameEndTimestamp == DateTime.MinValue ? DBNull.Value : match.GameEndTimestamp);
             await cmd.ExecuteNonQueryAsync();
-        }
-
-        public async Task<IList<string>> GetMatchIdsForPuuidAsync(string puuid)
-        {
-            var matchIds = new List<string>();
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
-            const string sql = "SELECT MatchId FROM LolMatch WHERE Puuid = @puuid";
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
-            
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                matchIds.Add(reader.GetString(0));
-            }
-            
-            return matchIds;
         }
     }
 }

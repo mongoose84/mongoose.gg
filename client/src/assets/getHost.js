@@ -1,10 +1,10 @@
 // Centralized environment + host configuration for client API calls
 
 // Edit these values in one place
-const development = false; // Set to false for production
+const development = true; // Set to false for production
 const apiVersion = '/api/v1.0';
 const host = development
-	? 'http://localhost:5164'
+	? 'http://localhost:5000'
 	: 'https://lol-api.agileastronaut.com';
 
 // Returns the base API host (no version)
