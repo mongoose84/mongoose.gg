@@ -109,10 +109,10 @@ namespace RiotProxy.Infrastructure.External.Riot
             return matchDoc;
         }
 
-        public async Task<Summoner?> GetSummonerByPuuidAsync(string region, string puuid, CancellationToken ct = default)
+        public async Task<Summoner?> GetSummonerByPuuidAsync(string tagLine, string puuid, CancellationToken ct = default)
         {
             var encodedPuuid = HttpUtility.UrlEncode(puuid);
-            var summonerUrl = RiotUrlBuilder.GetSummonerUrl(region, encodedPuuid);
+            var summonerUrl = RiotUrlBuilder.GetSummonerUrl(tagLine, encodedPuuid);
             Metrics.SetLastUrlCalled("RiotServices.cs ln 134" + summonerUrl);
 
             await _perSecondBucket.WaitAsync(ct);
@@ -132,25 +132,25 @@ namespace RiotProxy.Infrastructure.External.Riot
             return summoner;
         }
 
-        public Task<string> GetLolVersionAsync(CancellationToken ct = default)
+        public async Task<string> GetLolVersionAsync(CancellationToken ct = default)
         {
             var url = "https://ddragon.leagueoflegends.com/api/versions.json";
             try
             {
-                var response = _http.GetAsync(url, ct).Result;
+                var response = await _http.GetAsync(url, ct);
                 response.EnsureSuccessStatusCode();
-                var json = response.Content.ReadAsStringAsync().Result;
+                var json = await response.Content.ReadAsStringAsync(ct);
                 var versions = JsonSerializer.Deserialize<List<string>>(json);
                 if (versions != null && versions.Count > 0)
                 {
-                    return Task.FromResult(versions[0]);
+                    return versions[0];
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching LoL version: {ex.Message}");
             }
-            return Task.FromResult(string.Empty);
+            throw new InvalidOperationException("Could not retrieve LoL version.");
         }
     }
 }
