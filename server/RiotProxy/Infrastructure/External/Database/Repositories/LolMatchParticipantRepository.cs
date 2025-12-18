@@ -16,7 +16,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         {
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();
-            const string sql = "INSERT INTO LolMatchParticipant (MatchId, Puuid, TeamId, Win, Role, TeamPosition, Lane, ChampionId, ChampionName, Kills, Deaths, Assists, DoubleKills, TripleKills, QuadraKills, PentaKills, GoldEarned, CreepScore) " +
+            const string sql = "INSERT IGNORE INTO LolMatchParticipant (MatchId, Puuid, TeamId, Win, Role, TeamPosition, Lane, ChampionId, ChampionName, Kills, Deaths, Assists, DoubleKills, TripleKills, QuadraKills, PentaKills, GoldEarned, CreepScore) " +
                                "VALUES (@matchId, @puuid, @teamId, @win, @role, @teamPosition, @lane, @championId, @championName, @kills, @deaths, @assists, @doubleKills, @tripleKills, @quadraKills, @pentaKills, @goldEarned, @creepScore)";
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@matchId", participant.MatchId);

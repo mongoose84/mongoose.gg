@@ -106,10 +106,10 @@ namespace RiotProxy.Application.Endpoints
                             Console.WriteLine($"Could not create gamer for account: {account.GameName}#{account.TagLine}");
                             continue;
                         }
-                        
+
                         // Link Gamer to User
                         var linkCreated = await userGamerRepo.LinkGamerToUserAsync(user.UserId, puuid);
-                        if (!gamerCreated)
+                        if (!linkCreated)
                         {
                             // Log error but continue
                             Console.WriteLine($"Could not create gamer for account: {account.GameName}#{account.TagLine}");

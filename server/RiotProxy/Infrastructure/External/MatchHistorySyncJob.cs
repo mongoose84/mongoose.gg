@@ -19,8 +19,6 @@ namespace RiotProxy.Infrastructure.External
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                
-
                 var nextRun = DateTime.UtcNow.AddDays(1); // Run daily
                 var delay = nextRun - DateTime.UtcNow;
                 if (delay > TimeSpan.Zero)
@@ -28,7 +26,7 @@ namespace RiotProxy.Infrastructure.External
 
                 await RunJobAsync(stoppingToken);
             }
-            throw new InvalidOperationException("ExcecuteAync has been cancelled.");
+            throw new InvalidOperationException("ExecuteAsync has been cancelled.");
         }
 
         public async Task RunJobAsync(CancellationToken ct = default)
@@ -308,7 +306,7 @@ namespace RiotProxy.Infrastructure.External
 
                 return list;
             }
-            throw new InvalidOperationException("Participant not found.");
+             throw new InvalidOperationException("Missing or invalid participants data in match info.");
         }
 
         private static T Require<T>(JsonElement element, string propertyName, Func<JsonElement, T> read, params JsonValueKind[] allowedKinds)
@@ -328,9 +326,9 @@ namespace RiotProxy.Infrastructure.External
             {
                 return read(property);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to read '{propertyName}' as {typeof(T).Name}.");
+                throw new InvalidOperationException($"Failed to read '{propertyName}' as {typeof(T).Name}. Error: {ex.Message}");
             }
         }
     }

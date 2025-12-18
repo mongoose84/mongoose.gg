@@ -126,7 +126,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             
             response.EnsureSuccessStatusCode();   // Throws if the status is not 2xx.
 
-            var json = await response.Content.ReadAsStringAsync();
+            var json = await response.Content.ReadAsStringAsync(ct);
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var summoner = JsonSerializer.Deserialize<Summoner>(json, options);
             return summoner;

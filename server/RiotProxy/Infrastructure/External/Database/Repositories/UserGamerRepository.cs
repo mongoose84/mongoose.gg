@@ -16,12 +16,12 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();
 
-            const string sql = "INSERT INTO UserGamer (UserId, PuuId) VALUES (@userId, @puuid)";
+            const string sql = "INSERT IGNORE INTO UserGamer (UserId, PuuId) VALUES (@userId, @puuid)";
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@userId", userId);
             cmd.Parameters.AddWithValue("@puuid", puuid);
             var rowsAffected = await cmd.ExecuteNonQueryAsync();
-            return rowsAffected > 0;
+            return true; // Always return true as INSERT IGNORE won't fail on duplicates
         }
 
         public async Task<IList<string>> GetGamersPuuidByUserIdAsync(int userId)
