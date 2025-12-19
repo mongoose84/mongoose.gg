@@ -57,42 +57,68 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             return matchIds;
         }
 
+        internal async Task<long> GetTotalDurationPlayedByPuuidAsync(string puuid)
+        {
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            const string sql = "SELECT SUM(DurationSeconds) FROM LolMatch WHERE MatchId IN (SELECT MatchId FROM LolMatchParticipant WHERE Puuid = @puuid)";
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            var result = await cmd.ExecuteScalarAsync();
+            return result != DBNull.Value ? Convert.ToInt64(result) : 0L;
+        }
+
         internal async Task<int> GetWinsByPuuidAsync(string puuid)
         {
             const string sql = "SELECT COUNT(*) FROM LolMatchParticipant WHERE Puuid = @puuid AND Win = TRUE";
-            var wins = await GetIntegerValueFromDatabaseAsync(puuid, sql);
+            var wins = await GetIntegerValueFromPuuidAsync(puuid, sql);
             return wins;
         }
 
         internal async Task<int> GetMatchesCountByPuuidAsync(string puuid)
         {
             const string sql = "SELECT COUNT(*) FROM LolMatchParticipant WHERE Puuid = @puuid";
-            var totalMatches = await GetIntegerValueFromDatabaseAsync(puuid, sql);
+            var totalMatches = await GetIntegerValueFromPuuidAsync(puuid, sql);
             return totalMatches;
         }
 
         internal async Task<int> GetTotalAssistsByPuuidAsync(string puuid)
         {
             const string sql = "SELECT SUM(Assists) FROM LolMatchParticipant WHERE Puuid = @puuid";
-            var totalAssists = await GetIntegerValueFromDatabaseAsync(puuid, sql);
+            var totalAssists = await GetIntegerValueFromPuuidAsync(puuid, sql);
             return totalAssists;
         }
 
         internal async Task<int> GetTotalDeathsByPuuidAsync(string puuid)
         {
             const string sql = "SELECT SUM(Deaths) FROM LolMatchParticipant WHERE Puuid = @puuid";
-            var totalDeaths = await GetIntegerValueFromDatabaseAsync(puuid, sql);
+            var totalDeaths = await GetIntegerValueFromPuuidAsync(puuid, sql);
             return totalDeaths;
         }
 
         internal async Task<int> GetTotalKillsByPuuidAsync(string puuid)
         {
             const string sql = "SELECT SUM(Kills) FROM LolMatchParticipant WHERE Puuid = @puuid";
-            var totalKills = await GetIntegerValueFromDatabaseAsync(puuid, sql);
+            var totalKills = await GetIntegerValueFromPuuidAsync(puuid, sql);
             return totalKills;
         }
 
-        private async Task<int> GetIntegerValueFromDatabaseAsync(string puuid, string sqlQuery)
+        internal async Task<int> GetTotalCreepScoreByPuuidAsync(string puuid)
+        {
+            const string sql = "SELECT SUM(CreepScore) FROM LolMatchParticipant WHERE Puuid = @puuid";
+            var totalCreepScore = await GetIntegerValueFromPuuidAsync(puuid, sql);
+            return totalCreepScore;
+        }
+
+        internal async Task<int> GetTotalGoldEarnedByPuuidAsync(string puuid)
+        {
+            const string sql = "SELECT SUM(GoldEarned) FROM LolMatchParticipant WHERE Puuid = @puuid";
+            var totalGoldEarned = await GetIntegerValueFromPuuidAsync(puuid, sql);
+            return totalGoldEarned;
+        }
+
+        private async Task<int> GetIntegerValueFromPuuidAsync(string puuid, string sqlQuery)
         {
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();

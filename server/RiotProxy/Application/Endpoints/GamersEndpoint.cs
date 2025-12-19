@@ -40,19 +40,26 @@ namespace RiotProxy.Application.Endpoints
                         }
                         gamer.IconUrl = $"https://ddragon.leagueoflegends.com/cdn/{lolVersion}/img/profileicon/{gamer.IconId}.png";
                         
+                        // Runtime of this is a N+1 query, could be optimized if needed
                         var totalMatches = await matchParticipantRepo.GetMatchesCountByPuuidAsync(puuid);
                         var wins = await matchParticipantRepo.GetWinsByPuuidAsync(puuid);
                         var totalKills = await matchParticipantRepo.GetTotalKillsByPuuidAsync(puuid);
                         var totalDeaths = await matchParticipantRepo.GetTotalDeathsByPuuidAsync(puuid);
                         var totalAssists = await matchParticipantRepo.GetTotalAssistsByPuuidAsync(puuid);
-                         
+                        var totalCreepScore = await matchParticipantRepo.GetTotalCreepScoreByPuuidAsync(puuid);
+                        var totalGoldEarned = await matchParticipantRepo.GetTotalGoldEarnedByPuuidAsync(puuid);
+                        var totalDurationPlayedSeconds = await matchParticipantRepo.GetTotalDurationPlayedByPuuidAsync(puuid);
+                        
                         gamer.Stats = new GamerStats
                         {
                             Wins = wins,
                             TotalKills = totalKills,
                             TotalDeaths = totalDeaths,
                             TotalAssists = totalAssists,
-                            TotalMatches = totalMatches
+                            TotalMatches = totalMatches,
+                            TotalCreepScore = totalCreepScore,
+                            TotalGoldEarned = totalGoldEarned,
+                            TotalDurationPlayedSeconds = totalDurationPlayedSeconds
                         };
                         gamers.Add(gamer);
                     }

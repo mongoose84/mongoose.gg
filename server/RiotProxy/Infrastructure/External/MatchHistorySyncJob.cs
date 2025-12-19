@@ -272,8 +272,10 @@ namespace RiotProxy.Infrastructure.External
                         var quadraKills = Require<int>(participant, "quadraKills", e => e.GetInt32(), JsonValueKind.Number);
                         var pentaKills = Require<int>(participant, "pentaKills", e => e.GetInt32(), JsonValueKind.Number);
                         var goldEarned = Require<int>(participant, "goldEarned", e => e.GetInt32(), JsonValueKind.Number);
-                        var creepScore = Require<int>(participant, "totalMinionsKilled", e => e.GetInt32(), JsonValueKind.Number);
-
+                        var minions = Require<int>(participant, "totalMinionsKilled", e => e.GetInt32(), JsonValueKind.Number);
+                        var jungleMinions = Require<int>(participant, "neutralMinionsKilled", e => e.GetInt32(), JsonValueKind.Number);
+                        var creepScore = minions + jungleMinions;
+                        
                         var participantEntity = new LolMatchParticipant
                         {
                             MatchId = matchId,

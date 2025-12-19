@@ -7,5 +7,8 @@ namespace RiotProxy.External.Domain.Entities
         public int TotalKills { get; set; }
         public int TotalDeaths { get; set; }
         public int TotalAssists { get; set; }
+        public int TotalCreepScore { get; set; }
+        public int TotalGoldEarned { get; set; }
+        public long TotalDurationPlayedSeconds { get; set; }
     }
 }

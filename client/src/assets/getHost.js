@@ -1,7 +1,7 @@
 // Centralized environment + host configuration for client API calls
 
 // Edit these values in one place
-const development = false; // Set to false for production
+const development = true; // Set to false for production
 const apiVersion = '/api/v1.0';
 const host = development
 	? 'http://localhost:5000'
