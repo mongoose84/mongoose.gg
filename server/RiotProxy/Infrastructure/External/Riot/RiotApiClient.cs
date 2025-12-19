@@ -1,15 +1,14 @@
 using System.Text.Json;
 using System.Web;
 using RiotProxy.External.Domain.Entities;
+using RiotProxy.Infrastructure.External.Riot.LimitHandler;
 using RiotProxy.Utilities;
 
 namespace RiotProxy.Infrastructure.External.Riot
 {
     public class RiotApiClient : IRiotApiClient
     {
-        // Token buckets are set lower for RIOT rate limits  (20 requests/second, 100 requests/2 minutes)
-        private readonly RiotTokenBucket _perSecondBucket = new(15, TimeSpan.FromSeconds(1));
-        private readonly RiotTokenBucket _perTwoMinuteBucket = new(80, TimeSpan.FromMinutes(2));
+        private readonly IRiotLimitHandler _riotLimitHandler = new RiotLimitHandler();
 
         private readonly HttpClient _http;
 
@@ -53,8 +52,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             var url = RiotUrlBuilder.GetAccountUrl(path);
             Metrics.SetLastUrlCalled("RiotServices.cs ln 67" + url);
 
-            await _perSecondBucket.WaitAsync(ct);
-            await _perTwoMinuteBucket.WaitAsync(ct);
+            await _riotLimitHandler.WaitAsync(ct);
 
             // Perform the GET request.
             var response = await _http.GetAsync(url, ct);
@@ -81,8 +79,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             if (startTime.HasValue)
                 url += $"&startTime={startTime.Value}";
 
-            await _perSecondBucket.WaitAsync(ct);
-            await _perTwoMinuteBucket.WaitAsync(ct);
+            await _riotLimitHandler.WaitAsync(ct);
 
             var response = await _http.GetAsync(url, ct);
             response.EnsureSuccessStatusCode();
@@ -99,8 +96,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             var matchUrl = RiotUrlBuilder.GetMatchUrl($"/match/v5/matches/{matchId}");
             Metrics.SetLastUrlCalled("RiotServices.cs ln 110" + matchUrl);
 
-            await _perSecondBucket.WaitAsync(ct);
-            await _perTwoMinuteBucket.WaitAsync(ct);
+            await _riotLimitHandler.WaitAsync(ct);
 
             var response = await _http.GetAsync(matchUrl, ct);
             response.EnsureSuccessStatusCode();   // Throws if the status is not 2xx
@@ -115,8 +111,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             var summonerUrl = RiotUrlBuilder.GetSummonerUrl(tagLine, encodedPuuid);
             Metrics.SetLastUrlCalled("RiotServices.cs ln 134" + summonerUrl);
 
-            await _perSecondBucket.WaitAsync(ct);
-            await _perTwoMinuteBucket.WaitAsync(ct);
+            await _riotLimitHandler.WaitAsync(ct);
 
             var response = await _http.GetAsync(summonerUrl, ct);
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -137,6 +132,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             var url = "https://ddragon.leagueoflegends.com/api/versions.json";
             try
             {
+                await _riotLimitHandler.WaitAsync(ct);
                 var response = await _http.GetAsync(url, ct);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(ct);
