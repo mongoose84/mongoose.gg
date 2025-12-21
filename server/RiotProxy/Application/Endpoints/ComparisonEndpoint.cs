@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Infrastructure.External.Database.Repositories;
-using RiotProxy.Infrastructure.External.Riot;
-using RiotProxy.Application.DTOs;
 using static RiotProxy.Application.DTOs.ComparisionDto;
-using RiotProxy.External.Domain.Entities;
 
 namespace RiotProxy.Application.Endpoints
 {
@@ -28,215 +25,130 @@ namespace RiotProxy.Application.Endpoints
                 try
                 {
                     var emptyComparisonRequest = new ComparisonRequest(
-                            Winrate: new Winrate(0, ""),
-                            Kda: new Kda(0, ""),
-                            CsPrMin: new CsPrMin(0, ""),
-                            GoldPrMin: new GoldPrMin(0, ""),
-                            GamesPlayed: new GamesPlayed(0, "")
-                        );
+                        Winrate: new Winrate(0, ""),
+                        Kda: new Kda(0, ""),
+                        CsPrMin: new CsPrMin(0, ""),
+                        GoldPrMin: new GoldPrMin(0, ""),
+                        GamesPlayed: new GamesPlayed(0, "")
+                    );
 
                     var userIdInt = int.TryParse(userId, out var result) ? result : throw new ArgumentException($"Invalid userId: {userId}");
                     var puuids = await userGamerRepo.GetGamersPuuidByUserIdAsync(userIdInt);
-                    var distinctPuuids = (puuids ?? new List<string>()).Distinct().ToArray();
-                    if (distinctPuuids == null 
-                    || distinctPuuids.Length == 0)
+                    var distinctPuuids = (puuids ?? []).Distinct().ToArray();
+                    
+                    if (distinctPuuids.Length == 0)
                     {
-                        
                         return Results.Ok(emptyComparisonRequest);
                     }
 
-                    var winrateGamer = "";
-            var highestWinrate = -1.0;
-            var lowestWinrate = 101.0;
+                    var winrateTracker = new MetricTracker<double>();
+                    var kdaTracker = new MetricTracker<double>();
+                    var csPrMinTracker = new MetricTracker<double>();
+                    var goldPrMinTracker = new MetricTracker<double>();
+                    var gamesPlayedTracker = new MetricTracker<int>();
 
-            var kdaGamer = "";
-            var highestKda = -1.0;  
-            var lowestKda = 101.0;
+                    foreach (var puuid in distinctPuuids)
+                    {
+                        var gamer = await gamerRepo.GetByPuuidAsync(puuid);
+                        if (gamer == null)
+                        {
+                            Console.WriteLine($"Gamer with puuid {puuid} not found in database.");
+                            continue;
+                        }
 
-            var csPrMinGamer = "";
-            var highestCsPrMin = -1.0;  
-            var lowestCsPrMin = 101.0;
+                        var gamerName = $"{gamer.GamerName}#{gamer.Tagline}";
+                        var totalDurationMinutes = await matchParticipantRepo.GetTotalDurationPlayedByPuuidAsync(puuid) / 60.0;
 
-            var goldPrMinGamer = "";
-            var highestGoldPrMin = -1.0;  
-            var lowestGoldPrMin = 101.0;
+                        winrateTracker.Update(await GetWinrateAsync(matchParticipantRepo, puuid), gamerName);
+                        kdaTracker.Update(await GetKdaAsync(matchParticipantRepo, puuid), gamerName);
+                        csPrMinTracker.Update(await GetPerMinuteStatAsync(matchParticipantRepo.GetTotalCreepScoreByPuuidAsync, puuid, totalDurationMinutes), gamerName);
+                        goldPrMinTracker.Update(await GetPerMinuteStatAsync(matchParticipantRepo.GetTotalGoldEarnedByPuuidAsync, puuid, totalDurationMinutes), gamerName);
+                        gamesPlayedTracker.Update(await matchParticipantRepo.GetMatchesCountByPuuidAsync(puuid), gamerName);
+                    }
 
-            var gamesPlayedGamer = "";
-            var highestGamesPlayed = -1;  
-            var lowestGamesPlayed = int.MaxValue;
+                    var comparisonRequest = new ComparisonRequest(
+                        Winrate: new Winrate(winrateTracker.Difference, winrateTracker.HighestGamer),
+                        Kda: new Kda(kdaTracker.Difference, kdaTracker.HighestGamer),
+                        CsPrMin: new CsPrMin(csPrMinTracker.Difference, csPrMinTracker.HighestGamer),
+                        GoldPrMin: new GoldPrMin(goldPrMinTracker.Difference, goldPrMinTracker.HighestGamer),
+                        GamesPlayed: new GamesPlayed((int)gamesPlayedTracker.Difference, gamesPlayedTracker.HighestGamer)
+                    );
 
-            foreach (var puuid in distinctPuuids)
-            {
-                
-                var gamer = await gamerRepo.GetByPuuidAsync(puuid);
-                if (gamer == null)
-                {
-                    Console.WriteLine($"Gamer with puuid {puuid} not found in database.");
-                    continue;
-                }
-
-                var winrate = await GetWinrateAsync(matchParticipantRepo, puuid);
-                if (winrate > highestWinrate)
-                {
-                    highestWinrate = winrate;
-                    winrateGamer = $"{gamer.GamerName}#{gamer.Tagline}";
-                }
-                if (winrate < lowestWinrate)
-                {
-                    lowestWinrate = winrate;
-                }         
-
-                var kda = await GetKdaAsync(matchParticipantRepo, puuid);
-                if(kda > highestKda)
-                {
-                    highestKda = kda;
-                    kdaGamer = $"{gamer.GamerName}#{gamer.Tagline}";
-                }
-                if (kda < lowestKda)
-                {
-                    lowestKda = kda;
-                }
-
-                var totalDurationPlayedSeconds = await matchParticipantRepo.GetTotalDurationPlayedByPuuidAsync(puuid);
-                var csPrMin = await GetCsPrMinAsync(matchParticipantRepo, puuid, totalDurationPlayedSeconds);
-                if(csPrMin > highestCsPrMin)
-                {
-                    highestCsPrMin = csPrMin;
-                    csPrMinGamer = $"{gamer.GamerName}#{gamer.Tagline}";
-                }
-                if (csPrMin < lowestCsPrMin)
-                {
-                    lowestCsPrMin = csPrMin;
-                }
-
-                var goldPrMin = await GetGoldPrMinAsync(matchParticipantRepo, puuid, totalDurationPlayedSeconds);
-                if(goldPrMin > highestGoldPrMin)
-                {
-                    highestGoldPrMin = goldPrMin;
-                    goldPrMinGamer = $"{gamer.GamerName}#{gamer.Tagline}";         
-                }
-                if (goldPrMin < lowestGoldPrMin)
-                {
-                    lowestGoldPrMin = goldPrMin;
-                }
-
-
-                var gamesPlayed = await GetGamesPlayedAsync(matchParticipantRepo, puuid);
-                if(gamesPlayed > highestGamesPlayed)
-                {
-                    highestGamesPlayed = gamesPlayed;
-                    gamesPlayedGamer = $"{gamer.GamerName}#{gamer.Tagline}";
-                }
-                if (gamesPlayed < lowestGamesPlayed)
-                {
-                    lowestGamesPlayed = gamesPlayed;
-                }
-            }
-            var comparisonRequest = new ComparisonRequest(
-                Winrate: new Winrate(
-                    WinrateDifference: highestWinrate - lowestWinrate,
-                    GamerName: winrateGamer
-                ),
-                Kda: new Kda(
-                    KdaDifference: highestKda - lowestKda,
-                    GamerName: kdaGamer
-                ),
-                CsPrMin:  new CsPrMin(
-                    CsPrMinDifference: highestCsPrMin - lowestCsPrMin,
-                    GamerName: csPrMinGamer
-                ),
-                GoldPrMin: new GoldPrMin(
-                    GoldPrMinDifference: highestGoldPrMin - lowestGoldPrMin,
-                    GamerName: goldPrMinGamer
-                ),
-                GamesPlayed: new GamesPlayed(
-                    GamesPlayedDifference: highestGamesPlayed - lowestGamesPlayed,
-                    GamerName: gamesPlayedGamer
-                )
-            );
                     return Results.Ok(comparisonRequest);
                 }
-                catch (InvalidOperationException ex)
+                catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
                 {
-                    Console.WriteLine(ex.Message);
-                    Console.WriteLine(ex.StackTrace);
-                    return Results.BadRequest("Invalid operation when getting gamers");
+                    Console.WriteLine($"{ex.Message}\n{ex.StackTrace}");
+                    return Results.BadRequest(ex is ArgumentException 
+                        ? "Invalid argument when getting gamers" 
+                        : "Invalid operation when getting gamers");
                 }
-                catch (ArgumentException ex)
+                catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
                 {
-                    Console.WriteLine(ex.Message);
-                    Console.WriteLine(ex.StackTrace);
-                    return Results.BadRequest("Invalid argument when getting gamers");
-                }
-                catch (Exception ex) when (
-                    !(ex is OutOfMemoryException) &&
-                    !(ex is StackOverflowException) &&
-                    !(ex is ThreadAbortException)
-                )
-                {
-                    Console.WriteLine(ex.Message);
-                    Console.WriteLine(ex.StackTrace);
+                    Console.WriteLine($"{ex.Message}\n{ex.StackTrace}");
                     return Results.BadRequest("Error when getting gamers");
                 }
             });
         }
 
-
-        private async Task<double> GetWinrateAsync(LolMatchParticipantRepository repo, string puuId)
+        private static async Task<double> GetWinrateAsync(LolMatchParticipantRepository repo, string puuId)
         {
             var totalMatches = await repo.GetMatchesCountByPuuidAsync(puuId);
+            if (totalMatches == 0) return 0;
+            
             var wins = await repo.GetWinsByPuuidAsync(puuId);
-            if (totalMatches == 0)
-            {
-                return 0;
-            }
-
             return (double)wins / totalMatches * 100;
         }
 
-        private async Task<double> GetKdaAsync(LolMatchParticipantRepository repo, string puuId)
+        private static async Task<double> GetKdaAsync(LolMatchParticipantRepository repo, string puuId)
         {
-            var totalKills = await repo.GetTotalKillsByPuuidAsync(puuId);
-            var totalDeaths = await repo.GetTotalDeathsByPuuidAsync(puuId);
-            var totalAssists = await repo.GetTotalAssistsByPuuidAsync(puuId);
-            if (totalDeaths == 0)
-            {
-                return 0;
-            }
-
-            return (double)(totalKills + totalAssists) / totalDeaths;
-        }
-
-        private async Task<double> GetCsPrMinAsync(LolMatchParticipantRepository repo, string puuId, long totalDurationPlayedSeconds)
-        {
-            var totalCreepScore = await repo.GetTotalCreepScoreByPuuidAsync(puuId);
+            var (kills, deaths, assists) = (
+                await repo.GetTotalKillsByPuuidAsync(puuId),
+                await repo.GetTotalDeathsByPuuidAsync(puuId),
+                await repo.GetTotalAssistsByPuuidAsync(puuId)
+            );
             
-            if (totalDurationPlayedSeconds == 0)
-            {
-                return 0;
-            }
-
-            var csPrMinValue = (double)totalCreepScore / (totalDurationPlayedSeconds / 60);
-            return csPrMinValue;
+            return deaths == 0 ? 0 : (double)(kills + assists) / deaths;
         }
 
-        private async Task<double> GetGoldPrMinAsync(LolMatchParticipantRepository repo, string puuId, long totalDurationPlayedSeconds)
+        private static async Task<double> GetPerMinuteStatAsync(
+            Func<string, Task<int>> getStatAsync, 
+            string puuId, 
+            double totalDurationMinutes)
         {
-            var totalGoldEarned = await repo.GetTotalGoldEarnedByPuuidAsync(puuId);
+            if (totalDurationMinutes == 0) return 0;
             
-            if (totalDurationPlayedSeconds == 0)
-            {
-                return 0;
-            }
-
-            var csPrMinValue = (double)totalGoldEarned / (totalDurationPlayedSeconds / 60);
-            return csPrMinValue;
+            var totalStat = await getStatAsync(puuId);
+            return totalStat / totalDurationMinutes;
         }
 
-        private async Task<int> GetGamesPlayedAsync(LolMatchParticipantRepository repo, string puuId)
+        /// <summary>
+        /// Generic tracker for finding highest/lowest values with associated gamer names.
+        /// </summary>
+        private sealed class MetricTracker<T> where T : struct, IComparable<T>
         {
-            var totalMatches = await repo.GetMatchesCountByPuuidAsync(puuId);
-            return totalMatches;    
+            private T? _highest;
+            private T? _lowest;
+            
+            public string HighestGamer { get; private set; } = "";
+            
+            public double Difference => _highest.HasValue && _lowest.HasValue
+                ? Convert.ToDouble(_highest.Value) - Convert.ToDouble(_lowest.Value)
+                : 0;
+
+            public void Update(T value, string gamerName)
+            {
+                if (!_highest.HasValue || value.CompareTo(_highest.Value) > 0)
+                {
+                    _highest = value;
+                    HighestGamer = gamerName;
+                }
+                
+                if (!_lowest.HasValue || value.CompareTo(_lowest.Value) < 0)
+                {
+                    _lowest = value;
+                }
+            }
         }
     }
 }
