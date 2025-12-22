@@ -88,9 +88,6 @@ const userGroups = computed(() => {
     { name: 'Team', value: 3 }
   ];
   
-  // Debug: log users to verify userType is present
-  console.log('Users for grouping:', users.value.map(u => ({ userName: u.userName, userType: u.userType })));
-  
   return types
     .map(type => ({
       type: type.name,
@@ -104,11 +101,6 @@ const userGroups = computed(() => {
 });
 
 // ----- Methods --------------------------------------------------------
-function getUserTypeName(userType) {
-  const names = { 1: 'Solo', 2: 'Duo', 3: 'Team' };
-  return names[userType] || 'Unknown';
-}
-
 function goToUserView(user) {
   const id = user?.userId ?? user?.UserId;
   const name = (user?.userName ?? user?.UserName ?? '').trim();
