@@ -1,25 +1,23 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace RiotProxy.Infrastructure.External.Riot
+namespace RiotProxy.Infrastructure.External.Riot.LimitHandler
 {
-    public sealed class RiotTokenBucket : IDisposable
+    public sealed class TokenBucket : IDisposable
     {
         private readonly int _capacity;
-        private readonly TimeSpan _refillPeriod;
         private int _tokens;
         private readonly SemaphoreSlim _semaphore;
         private readonly Timer _timer;
         private bool _disposed;
 
-        public RiotTokenBucket(int capacity, TimeSpan refillPeriod)
+        // Raised when a caller is about to block waiting for a token.
+        // Subscribe to observe backpressure (e.g., for logging/metrics).
+        public event EventHandler? WaitingStartedEvent;
+
+        public TokenBucket(int capacity, TimeSpan refillPeriod)
         {
             if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
             if (refillPeriod <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(refillPeriod));
 
             _capacity = capacity;
-            _refillPeriod = refillPeriod;
             _tokens = capacity;
             _semaphore = new SemaphoreSlim(capacity, capacity);
 
@@ -50,11 +48,35 @@ namespace RiotProxy.Infrastructure.External.Riot
 
         public async Task WaitAsync(CancellationToken ct)
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(RiotTokenBucket));
+            if (_disposed) throw new ObjectDisposedException(nameof(TokenBucket));
             
-            // Acquire a permit; this will block until a token is available
+            // Fast path: try to acquire immediately without waiting
+            if (await _semaphore.WaitAsync(0, ct).ConfigureAwait(false))
+            {
+                Interlocked.Decrement(ref _tokens);
+                return;
+            }
+
+            // We could not acquire immediately; notify observers that we're about to wait
+            RaiseWaitingStarted();
+
+            // Now wait until a token becomes available
             await _semaphore.WaitAsync(ct).ConfigureAwait(false);
             Interlocked.Decrement(ref _tokens);
+        }
+
+        private void RaiseWaitingStarted()
+        {
+            var handler = WaitingStartedEvent;
+            if (handler == null) return;
+            try
+            {
+                handler(this, EventArgs.Empty);
+            }
+            catch
+            {
+                // Swallow to avoid impacting rate limiter behavior
+            }
         }
 
         public void Dispose()

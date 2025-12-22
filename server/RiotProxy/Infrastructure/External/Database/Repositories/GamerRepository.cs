@@ -80,7 +80,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             return rows > 0;
         }
 
-        public async Task<Gamer?> GetByPuuidAsync(string puuid)
+        public async Task<Gamer?> GetByPuuIdAsync(string puuid)
         {
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();

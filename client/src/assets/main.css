@@ -10,8 +10,8 @@
   --color-primary: #7c3aed;     /* accent/button */
   --color-primary-hover: #6d28d9;
   /* semantic accents */
-  --color-success: #157037;     /* wins / positive */
-  --color-danger: #762525;      /* losses / negative */
+  --color-success: #219c4e;     /* wins / positive */
+  --color-danger: #a84242;      /* losses / negative */
 }
 
 html, body {

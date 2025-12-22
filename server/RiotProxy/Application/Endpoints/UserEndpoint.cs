@@ -90,16 +90,16 @@ namespace RiotProxy.Application.Endpoints
                     // Get Puuid from Riot API
                     foreach (var account in body.Accounts)
                     {
-                        var puuid = await riotApiClient.GetPuuidAsync(account.GameName, account.TagLine);
+                        var puuId = await riotApiClient.GetPuuIdAsync(account.GameName, account.TagLine);
 
-                        var summoner = await riotApiClient.GetSummonerByPuuidAsync(account.TagLine, puuid);
+                        var summoner = await riotApiClient.GetSummonerByPuuIdAsync(account.TagLine, puuId);
                         if (summoner is null)
                         {
                             Console.WriteLine($"Could not find summoner for account: {account.GameName}#{account.TagLine}");
                             continue;
                         }
                         // Create Gamer entry
-                        var gamerCreated = await gamerRepo.CreateGamerAsync(puuid, account.GameName, account.TagLine, summoner.ProfileIconId, summoner.SummonerLevel);
+                        var gamerCreated = await gamerRepo.CreateGamerAsync(puuId, account.GameName, account.TagLine, summoner.ProfileIconId, summoner.SummonerLevel);
                         if (!gamerCreated)
                         {
                             // Log error but continue
@@ -108,7 +108,7 @@ namespace RiotProxy.Application.Endpoints
                         }
 
                         // Link Gamer to User
-                        var linkCreated = await userGamerRepo.LinkGamerToUserAsync(user.UserId, puuid);
+                        var linkCreated = await userGamerRepo.LinkGamerToUserAsync(user.UserId, puuId);
                         if (!linkCreated)
                         {
                             // Log error but continue

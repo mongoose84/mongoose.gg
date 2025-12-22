@@ -24,7 +24,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             return true; // Always return true as INSERT IGNORE won't fail on duplicates
         }
 
-        public async Task<IList<string>> GetGamersPuuidByUserIdAsync(int userId)
+        public async Task<IList<string>> GetGamersPuuIdByUserIdAsync(int userId)
         {
             var puuids = new List<string>();
             await using var conn = _factory.CreateConnection();

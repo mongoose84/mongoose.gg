@@ -1,21 +1,21 @@
 using System.Text.Json;
 using System.Web;
 using RiotProxy.External.Domain.Entities;
+using RiotProxy.Infrastructure.External.Riot.LimitHandler;
 using RiotProxy.Utilities;
 
 namespace RiotProxy.Infrastructure.External.Riot
 {
     public class RiotApiClient : IRiotApiClient
     {
-        // Token buckets are set lower for RIOT rate limits  (20 requests/second, 100 requests/2 minutes)
-        private readonly RiotTokenBucket _perSecondBucket = new(15, TimeSpan.FromSeconds(1));
-        private readonly RiotTokenBucket _perTwoMinuteBucket = new(80, TimeSpan.FromMinutes(2));
-
+        private bool _disposed = false;
         private readonly HttpClient _http;
+        private readonly IRiotLimitHandler _riotLimitHandler;
 
         public RiotApiClient(IHttpClientFactory httpClientFactory)
         {
             _http = httpClientFactory.CreateClient("RiotApi");
+            _riotLimitHandler = new RiotLimitHandler();
         }
 
         public async Task<double> GetWinrateAsync(string puuid)
@@ -46,15 +46,14 @@ namespace RiotProxy.Infrastructure.External.Riot
             return winrate; // Placeholder value
         }
 
-        public async Task<string> GetPuuidAsync(string gameName, string tagLine, CancellationToken ct = default)
+        public async Task<string> GetPuuIdAsync(string gameName, string tagLine, CancellationToken ct = default)
         {
             // Build the full request URI.
             var path = $"/account/v1/accounts/by-riot-id/{gameName}/{tagLine}";
             var url = RiotUrlBuilder.GetAccountUrl(path);
             Metrics.SetLastUrlCalled("RiotServices.cs ln 67" + url);
 
-            await _perSecondBucket.WaitAsync(ct);
-            await _perTwoMinuteBucket.WaitAsync(ct);
+            await _riotLimitHandler.WaitAsync(ct);
 
             // Perform the GET request.
             var response = await _http.GetAsync(url, ct);
@@ -81,8 +80,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             if (startTime.HasValue)
                 url += $"&startTime={startTime.Value}";
 
-            await _perSecondBucket.WaitAsync(ct);
-            await _perTwoMinuteBucket.WaitAsync(ct);
+            await _riotLimitHandler.WaitAsync(ct);
 
             var response = await _http.GetAsync(url, ct);
             response.EnsureSuccessStatusCode();
@@ -99,8 +97,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             var matchUrl = RiotUrlBuilder.GetMatchUrl($"/match/v5/matches/{matchId}");
             Metrics.SetLastUrlCalled("RiotServices.cs ln 110" + matchUrl);
 
-            await _perSecondBucket.WaitAsync(ct);
-            await _perTwoMinuteBucket.WaitAsync(ct);
+            await _riotLimitHandler.WaitAsync(ct);
 
             var response = await _http.GetAsync(matchUrl, ct);
             response.EnsureSuccessStatusCode();   // Throws if the status is not 2xx
@@ -109,14 +106,13 @@ namespace RiotProxy.Infrastructure.External.Riot
             return matchDoc;
         }
 
-        public async Task<Summoner?> GetSummonerByPuuidAsync(string tagLine, string puuid, CancellationToken ct = default)
+        public async Task<Summoner?> GetSummonerByPuuIdAsync(string tagLine, string puuid, CancellationToken ct = default)
         {
             var encodedPuuid = HttpUtility.UrlEncode(puuid);
             var summonerUrl = RiotUrlBuilder.GetSummonerUrl(tagLine, encodedPuuid);
             Metrics.SetLastUrlCalled("RiotServices.cs ln 134" + summonerUrl);
 
-            await _perSecondBucket.WaitAsync(ct);
-            await _perTwoMinuteBucket.WaitAsync(ct);
+            await _riotLimitHandler.WaitAsync(ct);
 
             var response = await _http.GetAsync(summonerUrl, ct);
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -137,6 +133,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             var url = "https://ddragon.leagueoflegends.com/api/versions.json";
             try
             {
+                await _riotLimitHandler.WaitAsync(ct);
                 var response = await _http.GetAsync(url, ct);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(ct);
@@ -151,6 +148,15 @@ namespace RiotProxy.Infrastructure.External.Riot
                 Console.WriteLine($"Error fetching LoL version: {ex.Message}");
             }
             throw new InvalidOperationException("Could not retrieve LoL version.");
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            _http.Dispose();
+            _riotLimitHandler.Dispose();
         }
     }
 }

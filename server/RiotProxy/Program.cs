@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using RiotProxy.Infrastructure;
 using RiotProxy.Application;
 using RiotProxy.Infrastructure.External.Database;
@@ -53,6 +54,11 @@ builder.Services.AddCors(options =>
         // policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
     });
 });
+
+// Reduce HttpClient request logging noise (toggle via appsettings or here)
+builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
+builder.Logging.AddFilter("System.Net.Http.HttpClient.RiotApi.LogicalHandler", LogLevel.Warning);
+builder.Logging.AddFilter("System.Net.Http.HttpClient.RiotApi.ClientHandler", LogLevel.Warning);
 
 var app = builder.Build();
 

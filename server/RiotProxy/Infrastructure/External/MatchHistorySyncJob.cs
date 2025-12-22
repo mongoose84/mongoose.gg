@@ -45,13 +45,18 @@ namespace RiotProxy.Infrastructure.External
                 var matchRepository = scope.ServiceProvider.GetRequiredService<LolMatchRepository>();
                 var participantRepository = scope.ServiceProvider.GetRequiredService<LolMatchParticipantRepository>();
 
-                Console.WriteLine("RiotRateLimitedJob started.");
+                Console.WriteLine("MatchHistorySyncJob started.");
                 var gamers = await gamerRepository.GetAllGamersAsync();
                 Console.WriteLine($"Found {gamers.Count} gamers.");
 
                 // Fetch only NEW match IDs incrementally
                 var newMatches = await GetNewMatchHistoryFromRiotApi(gamers, riotApiClient, participantRepository, ct);
-                Console.WriteLine($"Fetched {newMatches.Count} NEW matches.");
+                // De-duplicate by MatchId to avoid processing the same match multiple times across gamers
+                newMatches = newMatches
+                    .GroupBy(m => m.MatchId)
+                    .Select(g => g.First())
+                    .ToList();
+                Console.WriteLine($"Fetched {newMatches.Count} NEW unique matches.");
 
                 if (newMatches.Count > 0)
                 {
@@ -62,7 +67,7 @@ namespace RiotProxy.Infrastructure.External
                     await AddMatchInfoToDb(newMatches, gamers, riotApiClient, participantRepository, matchRepository, gamerRepository, ct);
                 }
 
-                Console.WriteLine("RiotRateLimitedJob completed.");
+                Console.WriteLine("MatchHistorySyncJob completed.");
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
@@ -81,6 +86,8 @@ namespace RiotProxy.Infrastructure.External
             CancellationToken ct)
         {
             var allNewMatches = new List<LolMatch>();
+            // Track unique matchIds across ALL gamers in this run to avoid duplicates
+            var seenMatchIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var gamer in gamers)
             {
@@ -120,8 +127,11 @@ namespace RiotProxy.Infrastructure.External
                             break;
                         }
 
-                        allNewMatches.Add(match);
-                        newMatchesForGamer++;
+                        if (seenMatchIds.Add(match.MatchId))
+                        {
+                            allNewMatches.Add(match);
+                            newMatchesForGamer++;
+                        }
                     }
 
                     if (matchHistory.Count < pageSize)
@@ -272,12 +282,15 @@ namespace RiotProxy.Infrastructure.External
                         var quadraKills = Require<int>(participant, "quadraKills", e => e.GetInt32(), JsonValueKind.Number);
                         var pentaKills = Require<int>(participant, "pentaKills", e => e.GetInt32(), JsonValueKind.Number);
                         var goldEarned = Require<int>(participant, "goldEarned", e => e.GetInt32(), JsonValueKind.Number);
-                        var creepScore = Require<int>(participant, "totalMinionsKilled", e => e.GetInt32(), JsonValueKind.Number);
-
+                        var timeBeingDeadSeconds = Require<int>(participant, "totalTimeSpentDead", e => e.GetInt32(), JsonValueKind.Number);
+                        var minions = Require<int>(participant, "totalMinionsKilled", e => e.GetInt32(), JsonValueKind.Number);
+                        var jungleMinions = Require<int>(participant, "neutralMinionsKilled", e => e.GetInt32(), JsonValueKind.Number);
+                        var creepScore = minions + jungleMinions;
+                        
                         var participantEntity = new LolMatchParticipant
                         {
                             MatchId = matchId,
-                            Puuid = puuid,
+                            PuuId = puuid,
                             TeamId = teamId,
                             Lane = lane,
                             TeamPosition = teamPosition,
@@ -293,6 +306,7 @@ namespace RiotProxy.Infrastructure.External
                             QuadraKills = quadraKills,
                             PentaKills = pentaKills,
                             GoldEarned = goldEarned,
+                            TimeBeingDeadSeconds = timeBeingDeadSeconds,
                             CreepScore = creepScore
                         };
                         list.Add(participantEntity);
