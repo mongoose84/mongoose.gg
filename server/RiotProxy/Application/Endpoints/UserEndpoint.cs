@@ -23,7 +23,7 @@ namespace RiotProxy.Application.Endpoints
         
         private void ConfigureGet(WebApplication app)
         {
-            app.MapGet(Route, async (
+            app.MapGet(Route + "/{userName}", async (
                 string userName,
                 [FromServices] UserRepository userRepo
                 ) =>
@@ -66,7 +66,6 @@ namespace RiotProxy.Application.Endpoints
         private void ConfigurePost(WebApplication app)
         {
             app.MapPost(Route, async (
-                string userName,
                 [FromBody] CreateUserRequest body,
                 [FromServices] UserRepository userRepo,
                 [FromServices] GamerRepository gamerRepo,
@@ -153,24 +152,34 @@ namespace RiotProxy.Application.Endpoints
         {
             if (body == null)
             {
-                throw new ArgumentException("Request body is null");
+                throw new ArgumentException("Validation of CreateUserBody failed: Request body is null");
             }
 
             if (body.Gamers == null || body.Gamers.Count == 0)
             {
-                throw new ArgumentException("Gamers list is null or empty");
+                throw new ArgumentException("Validation of CreateUserBody failed: Gamers list is null or empty");
+            }
+
+            if (string.IsNullOrWhiteSpace(body.UserName))
+            {
+                throw new ArgumentException("Validation of CreateUserBody failed: UserName is null or empty");
+            }
+
+            if (string.IsNullOrWhiteSpace(body.UserType))
+            {
+                throw new ArgumentException("Validation of CreateUserBody failed: UserType is null or empty");
             }
 
             foreach (var gamer in body.Gamers)
             {
                 if (string.IsNullOrWhiteSpace(gamer.GameName))
                 {
-                    throw new ArgumentException("GameName is null or empty");
+                    throw new ArgumentException("Validation of CreateUserBody failed: GameName is null or empty");
                 }
 
                 if (string.IsNullOrWhiteSpace(gamer.TagLine))
                 {
-                    throw new ArgumentException("TagLine is null or empty");
+                    throw new ArgumentException("Validation of CreateUserBody failed: TagLine is null or empty");
                 }
             }
         }
