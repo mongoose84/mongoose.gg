@@ -12,7 +12,7 @@ namespace RiotProxy.Application.Endpoints
 
         public UserEndpoint(string basePath)
         {
-            Route = basePath + "/user/{userName}";
+            Route = basePath + "/user";
         }
 
         public void Configure(WebApplication app)
@@ -79,7 +79,8 @@ namespace RiotProxy.Application.Endpoints
 
                 try
                 {
-                    var user = await userRepo.CreateUserAsync(userName);
+                    var userType = Enum.Parse<External.Domain.Enums.UserTypeEnum>(body.UserType);
+                    var user = await userRepo.CreateUserAsync(body.UserName, userType);
                     if (user is null)
                     {
                         return Results.NotFound("Could not create user");
@@ -88,22 +89,22 @@ namespace RiotProxy.Application.Endpoints
                     Console.WriteLine($"Created user: {user.UserName} with ID: {user.UserId} ");
 
                     // Get Puuid from Riot API
-                    foreach (var account in body.Accounts)
+                    foreach (var gamer in body.Gamers)
                     {
-                        var puuId = await riotApiClient.GetPuuIdAsync(account.GameName, account.TagLine);
+                        var puuId = await riotApiClient.GetPuuIdAsync(gamer.GameName, gamer.TagLine);
 
-                        var summoner = await riotApiClient.GetSummonerByPuuIdAsync(account.TagLine, puuId);
+                        var summoner = await riotApiClient.GetSummonerByPuuIdAsync(gamer.TagLine, puuId);
                         if (summoner is null)
                         {
-                            Console.WriteLine($"Could not find summoner for account: {account.GameName}#{account.TagLine}");
+                            Console.WriteLine($"Could not find summoner for account: {gamer.GameName}#{gamer.TagLine}");
                             continue;
                         }
                         // Create Gamer entry
-                        var gamerCreated = await gamerRepo.CreateGamerAsync(puuId, account.GameName, account.TagLine, summoner.ProfileIconId, summoner.SummonerLevel);
+                        var gamerCreated = await gamerRepo.CreateGamerAsync(puuId, gamer.GameName, gamer.TagLine, summoner.ProfileIconId, summoner.SummonerLevel);
                         if (!gamerCreated)
                         {
                             // Log error but continue
-                            Console.WriteLine($"Could not create gamer for account: {account.GameName}#{account.TagLine}");
+                            Console.WriteLine($"Could not create gamer for account: {gamer.GameName}#{gamer.TagLine}");
                             continue;
                         }
 
@@ -112,7 +113,7 @@ namespace RiotProxy.Application.Endpoints
                         if (!linkCreated)
                         {
                             // Log error but continue
-                            Console.WriteLine($"Could not create gamer for account: {account.GameName}#{account.TagLine}");
+                            Console.WriteLine($"Could not create gamer for account: {gamer.GameName}#{gamer.TagLine}");
                             continue;
                         }
                     }
@@ -155,19 +156,19 @@ namespace RiotProxy.Application.Endpoints
                 throw new ArgumentException("Request body is null");
             }
 
-            if (body.Accounts == null || body.Accounts.Count == 0)
+            if (body.Gamers == null || body.Gamers.Count == 0)
             {
-                throw new ArgumentException("Accounts list is null or empty");
+                throw new ArgumentException("Gamers list is null or empty");
             }
 
-            foreach (var account in body.Accounts)
+            foreach (var gamer in body.Gamers)
             {
-                if (string.IsNullOrWhiteSpace(account.GameName))
+                if (string.IsNullOrWhiteSpace(gamer.GameName))
                 {
                     throw new ArgumentException("GameName is null or empty");
                 }
 
-                if (string.IsNullOrWhiteSpace(account.TagLine))
+                if (string.IsNullOrWhiteSpace(gamer.TagLine))
                 {
                     throw new ArgumentException("TagLine is null or empty");
                 }

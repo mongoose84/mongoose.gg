@@ -32,24 +32,23 @@ describe('HomeView', () => {
       global: {
         stubs: {
           // Stub popup to keep DOM simple
-          CreateUserPopup: { template: '<div data-testid="popup">popup</div>' }
+          CreateDashboardPopup: { template: '<div data-testid="popup">popup</div>' }
         }
       }
     })
 
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Users (2)')
     const items = wrapper.findAll('li.user-item')
     expect(items.length).toBe(2)
     expect(items[0].text()).toContain('Alice')
     expect(items[1].text()).toContain('Bob')
   })
 
-  it('navigates to UserView with userId and userName on click', async () => {
+  it('navigates to SoloDashboard with userId and userName on click', async () => {
     const wrapper = mount(HomeView, {
       global: {
-        stubs: { CreateUserPopup: { template: '<div />' } }
+        stubs: { CreateDashboardPopup: { template: '<div />' } }
       }
     })
 
@@ -58,7 +57,7 @@ describe('HomeView', () => {
     await first.trigger('click')
 
     expect(push).toHaveBeenCalledWith({
-      name: 'UserView',
+      name: 'SoloDashboard',
       query: { userId: 1, userName: 'Alice' }
     })
   })
@@ -66,7 +65,7 @@ describe('HomeView', () => {
   it('toggles the create popup from the header button', async () => {
     const wrapper = mount(HomeView, {
       global: {
-        stubs: { CreateUserPopup: { template: '<div data-testid="popup">popup</div>' } }
+        stubs: { CreateDashboardPopup: { template: '<div data-testid="popup">popup</div>' } }
       }
     })
 

@@ -4,10 +4,12 @@ namespace RiotProxy.Application.DTOs
 {
     // DTOs for request binding
     public record CreateUserRequest(
-        [property: JsonPropertyName("accounts")] List<AccountDto> Accounts
+        [property: JsonPropertyName("userName")] string UserName,
+        [property: JsonPropertyName("userType")] string UserType,
+        [property: JsonPropertyName("gamers")] List<GamerDto> Gamers
     );
 
-    public record AccountDto(
+    public record GamerDto(
         [property: JsonPropertyName("gameName")] string GameName,
         [property: JsonPropertyName("tagLine")] string TagLine
     );

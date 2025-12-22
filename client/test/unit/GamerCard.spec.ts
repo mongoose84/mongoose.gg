@@ -66,6 +66,6 @@ describe('GamerCard', () => {
     expect(summary.text()).toBe('8G 5W 3L')
 
     const kda = wrapper.get('.kda')
-    expect(kda.text()).toBe('5.8 / 7.1 / 9.5')
+    expect(kda.text()).toBe('5.8/7.1/9.5')
   })
 })

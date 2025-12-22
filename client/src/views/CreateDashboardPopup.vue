@@ -1,17 +1,34 @@
 <template>
   <div class="popup-overlay">
     <div class="popup-content">
-      <h2>Create new user</h2>
+      <h2>Create new dashboard</h2>
 
-      <!-- Single username -->
-      <div class="username-input-container">
+      <!-- Dashboard name -->
+      <div class="dashboard-input-container">
         <input
-          v-model="username"
+          v-model="dashboardName"
           type="text"
-          placeholder="Enter username…"
+          placeholder="Enter dashboard name…"
           required
-          class="username-input"
+          class="dashboard-input"
         />
+      </div>
+
+      <!-- Dashboard Type selector -->
+      <div class="dashboardtype-container">
+        <label class="dashboardtype-label">Dashboard Type</label>
+        <div class="dashboardtype-buttons">
+          <button
+            v-for="ut in dashboardTypes"
+            :key="ut.value"
+            type="button"
+            class="dashboardtype-btn"
+            :class="{ active: dashboardType === ut.value }"
+            @click="dashboardType = ut.value"
+          >
+            {{ ut.label }}
+          </button>
+        </div>
       </div>
 
       <!-- Multiple gameName/tagLine pairs -->
@@ -98,7 +115,14 @@ export default defineComponent({
       { value: 'RU', label: 'RU' },  { value: 'TR', label: 'TR' },
     ]
 
-    const username = ref<string>('')
+    const dashboardTypes = [
+      { value: 'Solo', label: 'Solo' },
+      { value: 'Duo', label: 'Duo' },
+      { value: 'Team', label: 'Team' },
+    ]
+
+    const dashboardName = ref<string>('')
+    const dashboardType = ref<string>('Solo')
     const summoners = ref<SummonerField[]>([
       { id: 1, gameName: '', tagLine: 'EUNE', showDropdown: false }
     ])
@@ -130,13 +154,13 @@ export default defineComponent({
       busy.value = true
 
       try {
-        const name = username.value.trim()
+        const name = dashboardName.value.trim()
         const accounts = summoners.value
           .map(s => ({ gameName: s.gameName.trim(), tagLine: s.tagLine.trim() }))
           .filter(s => s.gameName && s.tagLine)
 
         if (!name) {
-          error.value = 'Please enter a username.'
+          error.value = 'Please enter a dashboard name.'
           return
         }
 
@@ -146,7 +170,7 @@ export default defineComponent({
         }
 
         if (typeof props.onCreate === 'function') {
-          await Promise.resolve(props.onCreate({ username: name, accounts }))
+          await Promise.resolve(props.onCreate({ username: name, userType: dashboardType.value, accounts }))
         }
 
         success.value = 'Accounts created successfully.'
@@ -159,7 +183,7 @@ export default defineComponent({
       }
     }
 
-    return { options, username, summoners, handleAddRow, handleBlur, selectOption, handleCreate, busy, error, success }
+    return { options, dashboardTypes, dashboardName, dashboardType, summoners, handleAddRow, handleBlur, selectOption, handleCreate, busy, error, success }
   }
 })
 </script>
@@ -175,12 +199,49 @@ export default defineComponent({
   max-width: 560px; width: 92%;
 }
 .popup-content h2 { margin-bottom: 1rem; }
-.username-input-container { margin-bottom: 1rem; }
-.username-input {
+.dashboard-input-container { margin-bottom: 1rem; }
+.dashboard-input {
   width: 100%; padding: 0.5rem; font-size: 1rem;
   border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg); color: var(--color-text);
 }
-.username-input::placeholder { color: var(--color-text-muted); }
+.dashboard-input::placeholder { color: var(--color-text-muted); }
+
+.dashboardtype-container {
+  margin-bottom: 1rem;
+}
+
+.dashboardtype-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.dashboardtype-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dashboardtype-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.dashboardtype-btn:hover {
+  background: var(--color-bg-hover);
+}
+
+.dashboardtype-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
 
 .username-fields { margin: 1rem 0; }
 .username-row { margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg-elev); }

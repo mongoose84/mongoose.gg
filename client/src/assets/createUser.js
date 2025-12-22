@@ -1,16 +1,14 @@
 import axios from 'axios';
 import { getBaseApi } from './getHost';
 
-var development = true;
-
-// POST /api/v1.0/user/{username} with JSON body { accounts: [{ gameName, tagLine }, ...] }
-export default async function createUser(username, accounts) {
-  var base = getBaseApi();
+// POST /api/v1.0/user with JSON body { userName, userType, gamers: [{ gameName, tagLine }, ...] }
+export default async function createUser(userName, userType, gamers) {
+  const base = getBaseApi();
 
   try {
     const response = await axios.post(
-      `${base}/user/${encodeURIComponent(username)}`,
-      { accounts },
+      `${base}/user`,
+      { userName, userType, gamers },
       { headers: { 'Content-Type': 'application/json' } }
     );
     return response.data;
