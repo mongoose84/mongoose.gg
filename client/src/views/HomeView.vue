@@ -17,13 +17,12 @@
     <!-- Users Section (always visible) -->
     <div class="users-list">
       <div class="users-header">
-        <h3>Users ({{ users ? users.length : 0 }})</h3>
         <button @click="showUserForm = !showUserForm" class="toggle-user-btn">
-          {{ showUserForm ? 'Cancel' : 'Create User' }}
+          {{ showUserForm ? 'Cancel' : 'Create Dashboard' }}
         </button>
       </div>
 
-      <CreateUserPopup
+      <CreateDashboardPopup
         v-if="showUserForm"
         :onClose="() => (showUserForm = false)"
         :onCreate="handleCreateUser"
@@ -31,7 +30,7 @@
 
       <template v-if="users && users.length">
         <div v-for="group in userGroups" :key="group.type" class="user-group">
-          <h4 class="group-title">{{ group.type }} ({{ group.users.length }})</h4>
+          <h4 class="group-title">{{ group.type }}</h4>
           <ul>
             <li
               v-for="u in group.users"
@@ -54,7 +53,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import CreateUserPopup from './CreateUserPopup.vue' // Import the CreateUserPopup component
+import CreateDashboardPopup from './CreateDashboardPopup.vue'
 import createUser  from '@/assets/createUser.js'
 import getUsers from '@/assets/getUsers.js'
 import AppLogo from '@/components/AppLogo.vue'
@@ -113,10 +112,16 @@ function getUserTypeName(userType) {
 function goToUserView(user) {
   const id = user?.userId ?? user?.UserId;
   const name = (user?.userName ?? user?.UserName ?? '').trim();
+  const userType = user?.userType ?? user?.UserType ?? 1;
   if (!id || !name) return;
 
   const queryParams = { userId: id, userName: name };
-  router.push({ name: 'UserView', query: queryParams });
+  
+  // Route to the appropriate dashboard based on user type
+  const routeNames = { 1: 'SoloDashboard', 2: 'DuoDashboard', 3: 'TeamDashboard' };
+  const routeName = routeNames[userType] || 'SoloDashboard';
+  
+  router.push({ name: routeName, query: queryParams });
 }
 
 async function handleCreateUser(payload) {
@@ -279,7 +284,7 @@ onMounted(() => {
 .users-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 1rem;
   margin-bottom: 0.75rem;
 }

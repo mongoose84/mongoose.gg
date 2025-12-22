@@ -1,30 +1,30 @@
 <template>
   <div class="popup-overlay">
     <div class="popup-content">
-      <h2>Create new user</h2>
+      <h2>Create new dashboard</h2>
 
-      <!-- Single username -->
-      <div class="username-input-container">
+      <!-- Dashboard name -->
+      <div class="dashboard-input-container">
         <input
-          v-model="username"
+          v-model="dashboardName"
           type="text"
-          placeholder="Enter username…"
+          placeholder="Enter dashboard name…"
           required
-          class="username-input"
+          class="dashboard-input"
         />
       </div>
 
-      <!-- User Type selector -->
-      <div class="usertype-container">
-        <label class="usertype-label">User Type</label>
-        <div class="usertype-buttons">
+      <!-- Dashboard Type selector -->
+      <div class="dashboardtype-container">
+        <label class="dashboardtype-label">Dashboard Type</label>
+        <div class="dashboardtype-buttons">
           <button
-            v-for="ut in userTypes"
+            v-for="ut in dashboardTypes"
             :key="ut.value"
             type="button"
-            class="usertype-btn"
-            :class="{ active: userType === ut.value }"
-            @click="userType = ut.value"
+            class="dashboardtype-btn"
+            :class="{ active: dashboardType === ut.value }"
+            @click="dashboardType = ut.value"
           >
             {{ ut.label }}
           </button>
@@ -115,14 +115,14 @@ export default defineComponent({
       { value: 'RU', label: 'RU' },  { value: 'TR', label: 'TR' },
     ]
 
-    const userTypes = [
+    const dashboardTypes = [
       { value: 'Solo', label: 'Solo' },
       { value: 'Duo', label: 'Duo' },
       { value: 'Team', label: 'Team' },
     ]
 
-    const username = ref<string>('')
-    const userType = ref<string>('Solo')
+    const dashboardName = ref<string>('')
+    const dashboardType = ref<string>('Solo')
     const summoners = ref<SummonerField[]>([
       { id: 1, gameName: '', tagLine: 'EUNE', showDropdown: false }
     ])
@@ -154,13 +154,13 @@ export default defineComponent({
       busy.value = true
 
       try {
-        const name = username.value.trim()
+        const name = dashboardName.value.trim()
         const accounts = summoners.value
           .map(s => ({ gameName: s.gameName.trim(), tagLine: s.tagLine.trim() }))
           .filter(s => s.gameName && s.tagLine)
 
         if (!name) {
-          error.value = 'Please enter a username.'
+          error.value = 'Please enter a dashboard name.'
           return
         }
 
@@ -170,7 +170,7 @@ export default defineComponent({
         }
 
         if (typeof props.onCreate === 'function') {
-          await Promise.resolve(props.onCreate({ username: name, userType: userType.value, accounts }))
+          await Promise.resolve(props.onCreate({ username: name, userType: dashboardType.value, accounts }))
         }
 
         success.value = 'Accounts created successfully.'
@@ -183,7 +183,7 @@ export default defineComponent({
       }
     }
 
-    return { options, userTypes, username, userType, summoners, handleAddRow, handleBlur, selectOption, handleCreate, busy, error, success }
+    return { options, dashboardTypes, dashboardName, dashboardType, summoners, handleAddRow, handleBlur, selectOption, handleCreate, busy, error, success }
   }
 })
 </script>
@@ -199,30 +199,30 @@ export default defineComponent({
   max-width: 560px; width: 92%;
 }
 .popup-content h2 { margin-bottom: 1rem; }
-.username-input-container { margin-bottom: 1rem; }
-.username-input {
+.dashboard-input-container { margin-bottom: 1rem; }
+.dashboard-input {
   width: 100%; padding: 0.5rem; font-size: 1rem;
   border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg); color: var(--color-text);
 }
-.username-input::placeholder { color: var(--color-text-muted); }
+.dashboard-input::placeholder { color: var(--color-text-muted); }
 
-.usertype-container {
+.dashboardtype-container {
   margin-bottom: 1rem;
 }
 
-.usertype-label {
+.dashboardtype-label {
   display: block;
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
   opacity: 0.85;
 }
 
-.usertype-buttons {
+.dashboardtype-buttons {
   display: flex;
   gap: 0.5rem;
 }
 
-.usertype-btn {
+.dashboardtype-btn {
   flex: 1;
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
@@ -234,11 +234,11 @@ export default defineComponent({
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.usertype-btn:hover {
+.dashboardtype-btn:hover {
   background: var(--color-bg-hover);
 }
 
-.usertype-btn.active {
+.dashboardtype-btn.active {
   background: var(--color-primary);
   border-color: var(--color-primary);
 }
