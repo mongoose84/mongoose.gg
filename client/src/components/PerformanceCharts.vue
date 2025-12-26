@@ -4,12 +4,12 @@
       <h3>Performance Over Time</h3>
       <div class="limit-toggle">
         <button 
-          v-for="opt in limitOptions" 
-          :key="opt"
-          :class="['limit-btn', { active: limit === opt }]"
-          @click="limit = opt"
+          v-for="opt in periodOptions" 
+          :key="opt.value"
+          :class="['limit-btn', { active: period === opt.value }]"
+          @click="period = opt.value"
         >
-          {{ opt }} games
+          {{ opt.label }}
         </button>
       </div>
     </div>
@@ -21,13 +21,20 @@
     <div v-else class="charts-grid">
       <!-- Winrate Chart -->
       <div class="chart-card">
-        <h4>Winrate Over Time</h4>
+        <h4>Winrate Over Time (7-day rolling avg)</h4>
         <svg :viewBox="`0 0 ${chartWidth} ${chartHeight}`" class="line-chart" aria-label="Winrate chart">
           <!-- Grid lines -->
           <g class="grid">
             <line v-for="y in yGridLines" :key="'wr-grid-' + y" 
               :x1="padding.left" :x2="chartWidth - padding.right"
               :y1="y" :y2="y" />
+          </g>
+          <!-- X-axis month labels -->
+          <g class="x-labels">
+            <text v-for="(label, i) in xAxisLabels" :key="'wr-x-' + i"
+              :x="label.x" :y="chartHeight - padding.bottom + 15" text-anchor="middle">
+              {{ label.text }}
+            </text>
           </g>
           <!-- Y-axis labels -->
           <g class="y-labels">
@@ -66,6 +73,13 @@
             <line v-for="y in yGridLinesEcon" :key="'econ-grid-' + y" 
               :x1="padding.left" :x2="chartWidth - padding.right"
               :y1="y" :y2="y" />
+          </g>
+          <!-- X-axis month labels -->
+          <g class="x-labels">
+            <text v-for="(label, i) in xAxisLabels" :key="'econ-x-' + i"
+              :x="label.x" :y="chartHeight - padding.bottom + 15" text-anchor="middle">
+              {{ label.text }}
+            </text>
           </g>
           <!-- Y-axis labels (left = gold, right = CS) -->
           <g class="y-labels">
@@ -123,8 +137,14 @@ const props = defineProps({
   },
 });
 
-const limitOptions = [20, 50, 100];
-const limit = ref(100);
+const periodOptions = [
+  { value: '1w', label: '1 Week' },
+  { value: '1m', label: '1 Month' },
+  { value: '3m', label: '3 Months' },
+  { value: '6m', label: '6 Months' },
+  { value: 'all', label: 'All' },
+];
+const period = ref('3m');
 const loading = ref(false);
 const error = ref(null);
 const performanceData = ref(null);
@@ -153,6 +173,57 @@ const chartData = computed(() => {
 });
 
 const hasData = computed(() => chartData.value.length > 0 && chartData.value.some(g => g.dataPoints?.length > 0));
+
+// Get date range from all data points
+const dateRange = computed(() => {
+  let minDate = null;
+  let maxDate = null;
+  chartData.value.forEach(g => {
+    g.dataPoints?.forEach(d => {
+      const date = new Date(d.gameEndTimestamp);
+      if (!minDate || date < minDate) minDate = date;
+      if (!maxDate || date > maxDate) maxDate = date;
+    });
+  });
+  return { min: minDate, max: maxDate };
+});
+
+// Generate x-axis month labels
+const xAxisLabels = computed(() => {
+  const { min, max } = dateRange.value;
+  if (!min || !max) return [];
+  
+  const labels = [];
+  const plotWidth = chartWidth - padding.left - padding.right;
+  const totalMs = max.getTime() - min.getTime();
+  
+  // Generate monthly labels
+  const current = new Date(min.getFullYear(), min.getMonth(), 1);
+  const end = new Date(max.getFullYear(), max.getMonth() + 1, 1);
+  
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  while (current <= end) {
+    const msFromStart = current.getTime() - min.getTime();
+    const x = padding.left + (msFromStart / totalMs) * plotWidth;
+    
+    if (x >= padding.left && x <= chartWidth - padding.right) {
+      labels.push({
+        x,
+        text: months[current.getMonth()]
+      });
+    }
+    current.setMonth(current.getMonth() + 1);
+  }
+  
+  // Limit to ~5 labels max to avoid crowding
+  if (labels.length > 5) {
+    const step = Math.ceil(labels.length / 5);
+    return labels.filter((_, i) => i % step === 0);
+  }
+  
+  return labels;
+});
 
 // Y-axis grid lines for winrate (0-100%)
 const yGridLines = computed(() => {
@@ -183,17 +254,21 @@ const yLabelsGold = computed(() => {
   return [max, max * 0.75, max * 0.5, max * 0.25, 0].map(v => Math.round(v));
 });
 
-// Convert data points to SVG polyline points
+// Convert data points to SVG polyline points using timestamps
 function getWinratePoints(gamer) {
   const points = gamer.dataPoints || [];
   if (points.length === 0) return '';
   
+  const { min, max } = dateRange.value;
+  if (!min || !max) return '';
+  
   const plotWidth = chartWidth - padding.left - padding.right;
   const plotHeight = chartHeight - padding.top - padding.bottom;
-  const maxGames = Math.max(...chartData.value.map(g => g.dataPoints?.length || 0));
+  const totalMs = max.getTime() - min.getTime() || 1;
   
-  return points.map((d, i) => {
-    const x = padding.left + (i / Math.max(1, maxGames - 1)) * plotWidth;
+  return points.map((d) => {
+    const date = new Date(d.gameEndTimestamp);
+    const x = padding.left + ((date.getTime() - min.getTime()) / totalMs) * plotWidth;
     const y = padding.top + plotHeight * (1 - d.winrate / 100);
     return `${x},${y}`;
   }).join(' ');
@@ -203,14 +278,18 @@ function getGoldPoints(gamer) {
   const points = gamer.dataPoints || [];
   if (points.length === 0) return '';
   
+  const { min, max } = dateRange.value;
+  if (!min || !max) return '';
+  
   const plotWidth = chartWidth - padding.left - padding.right;
   const plotHeight = chartHeight - padding.top - padding.bottom;
-  const maxGames = Math.max(...chartData.value.map(g => g.dataPoints?.length || 0));
-  const max = maxEconValue.value * 30; // Scale gold back up
+  const totalMs = max.getTime() - min.getTime() || 1;
+  const maxVal = maxEconValue.value * 30; // Scale gold back up
   
-  return points.map((d, i) => {
-    const x = padding.left + (i / Math.max(1, maxGames - 1)) * plotWidth;
-    const y = padding.top + plotHeight * (1 - Math.min(d.goldPerMin, max) / max);
+  return points.map((d) => {
+    const date = new Date(d.gameEndTimestamp);
+    const x = padding.left + ((date.getTime() - min.getTime()) / totalMs) * plotWidth;
+    const y = padding.top + plotHeight * (1 - Math.min(d.goldPerMin, maxVal) / maxVal);
     return `${x},${y}`;
   }).join(' ');
 }
@@ -219,14 +298,18 @@ function getCsPoints(gamer) {
   const points = gamer.dataPoints || [];
   if (points.length === 0) return '';
   
+  const { min, max } = dateRange.value;
+  if (!min || !max) return '';
+  
   const plotWidth = chartWidth - padding.left - padding.right;
   const plotHeight = chartHeight - padding.top - padding.bottom;
-  const maxGames = Math.max(...chartData.value.map(g => g.dataPoints?.length || 0));
-  const max = maxEconValue.value;
+  const totalMs = max.getTime() - min.getTime() || 1;
+  const maxVal = maxEconValue.value;
   
-  return points.map((d, i) => {
-    const x = padding.left + (i / Math.max(1, maxGames - 1)) * plotWidth;
-    const y = padding.top + plotHeight * (1 - Math.min(d.csPerMin, max) / max);
+  return points.map((d) => {
+    const date = new Date(d.gameEndTimestamp);
+    const x = padding.left + ((date.getTime() - min.getTime()) / totalMs) * plotWidth;
+    const y = padding.top + plotHeight * (1 - Math.min(d.csPerMin, maxVal) / maxVal);
     return `${x},${y}`;
   }).join(' ');
 }
@@ -236,7 +319,7 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    performanceData.value = await getPerformance(props.userId, limit.value);
+    performanceData.value = await getPerformance(props.userId, period.value);
   } catch (e) {
     error.value = e?.message || 'Failed to load performance data.';
     performanceData.value = null;
@@ -247,7 +330,7 @@ async function load() {
 
 onMounted(load);
 watch(() => props.userId, load);
-watch(limit, load);
+watch(period, load);
 </script>
 
 <style scoped>
@@ -347,6 +430,11 @@ watch(limit, load);
 
 .line-chart .y-labels text {
   font-size: 10px;
+  fill: var(--color-text-muted);
+}
+
+.line-chart .x-labels text {
+  font-size: 9px;
   fill: var(--color-text-muted);
 }
 

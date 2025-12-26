@@ -17,7 +17,7 @@ namespace RiotProxy.Application.Endpoints
         {
             app.MapGet(Route, async (
                 [FromRoute] string userId,
-                [FromQuery] int? limit,
+                [FromQuery] string? period,
                 [FromServices] GamerRepository gamerRepo,
                 [FromServices] UserGamerRepository userGamerRepo,
                 [FromServices] LolMatchParticipantRepository matchParticipantRepo
@@ -25,13 +25,19 @@ namespace RiotProxy.Application.Endpoints
             {
                 try
                 {
-                    var gameLimit = limit switch
+                    // Calculate date range based on period
+                    DateTime? fromDate = period switch
                     {
-                        20 => 20,
-                        50 => 50,
-                        100 => 100,
-                        _ => 100 // Default to 100 games
+                        "1w" => DateTime.UtcNow.AddDays(-7),
+                        "1m" => DateTime.UtcNow.AddMonths(-1),
+                        "3m" => DateTime.UtcNow.AddMonths(-3),
+                        "6m" => DateTime.UtcNow.AddMonths(-6),
+                        "all" => null,
+                        _ => DateTime.UtcNow.AddMonths(-3) // Default to 3 months
                     };
+                    
+                    // Rolling average window in days
+                    const int rollingWindowDays = 7;
 
                     var userIdInt = int.TryParse(userId, out var result) 
                         ? result 
@@ -57,20 +63,27 @@ namespace RiotProxy.Application.Endpoints
                         }
 
                         var gamerName = $"{gamer.GamerName}#{gamer.Tagline}";
-                        var matchRecords = await matchParticipantRepo.GetMatchPerformanceTimelineAsync(puuId, gameLimit);
-
+                        var matchRecords = await matchParticipantRepo.GetMatchPerformanceTimelineAsync(puuId, fromDate);
+                        
+                        // Records are already ordered oldest to newest from SQL
                         var dataPoints = new List<PerformanceDataPoint>();
-                        int winsAccumulated = 0;
+                        var allRecordsWithDates = matchRecords.ToList();
                         int gameNumber = 0;
 
-                        foreach (var record in matchRecords)
+                        foreach (var record in allRecordsWithDates)
                         {
                             gameNumber++;
-                            if (record.Win) winsAccumulated++;
-
-                            var runningWinrate = gameNumber > 0 
-                                ? Math.Round((winsAccumulated / (double)gameNumber) * 100, 1) 
-                                : 0;
+                            
+                            // Calculate rolling winrate over the last N days
+                            var windowStart = record.GameEndTimestamp.AddDays(-rollingWindowDays);
+                            var gamesInWindow = allRecordsWithDates
+                                .Where(r => r.GameEndTimestamp >= windowStart && r.GameEndTimestamp <= record.GameEndTimestamp)
+                                .ToList();
+                            
+                            var winsInWindow = gamesInWindow.Count(r => r.Win);
+                            var rollingWinrate = gamesInWindow.Count > 0 
+                                ? Math.Round((winsInWindow / (double)gamesInWindow.Count) * 100, 1) 
+                                : 50; // Default to 50% if no games in window
 
                             var goldPerMin = record.DurationMinutes > 0 
                                 ? Math.Round(record.GoldEarned / record.DurationMinutes, 1) 
@@ -82,7 +95,7 @@ namespace RiotProxy.Application.Endpoints
 
                             dataPoints.Add(new PerformanceDataPoint(
                                 GameNumber: gameNumber,
-                                Winrate: runningWinrate,
+                                Winrate: rollingWinrate,
                                 GoldPerMin: goldPerMin,
                                 CsPerMin: csPerMin,
                                 Win: record.Win,
