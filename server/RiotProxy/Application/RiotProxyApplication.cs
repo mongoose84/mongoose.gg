@@ -72,6 +72,22 @@ namespace RiotProxy.Application
 
             var duoImprovementSummaryEndpoint = new DuoImprovementSummaryEndpoint(_basePath);
             _endpoints.Add(duoImprovementSummaryEndpoint);
+
+            // Team endpoints (3+ players)
+            var teamStatsEndpoint = new TeamStatsEndpoint(_basePath);
+            _endpoints.Add(teamStatsEndpoint);
+
+            var teamSynergyEndpoint = new TeamSynergyEndpoint(_basePath);
+            _endpoints.Add(teamSynergyEndpoint);
+
+            var teamCompositionEndpoint = new TeamCompositionEndpoint(_basePath);
+            _endpoints.Add(teamCompositionEndpoint);
+
+            var teamPerformanceEndpoint = new TeamPerformanceEndpoint(_basePath);
+            _endpoints.Add(teamPerformanceEndpoint);
+
+            var teamImprovementSummaryEndpoint = new TeamImprovementSummaryEndpoint(_basePath);
+            _endpoints.Add(teamImprovementSummaryEndpoint);
         }
 
         public void ConfigureEndpoints()

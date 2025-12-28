@@ -1036,6 +1036,385 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
             return records;
         }
+
+        // ========================
+        // Team Statistics Methods (3+ players)
+        // ========================
+
+        /// <summary>
+        /// Get statistics for games where all specified players played together on the same team.
+        /// </summary>
+        internal async Task<TeamStatsRecord?> GetTeamStatsByPuuIdsAsync(string[] puuIds)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return null;
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build dynamic SQL to find matches where ALL players participated on the same team
+            var joinClauses = new List<string>();
+            var whereClauses = new List<string>();
+
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                if (i == 0)
+                {
+                    whereClauses.Add($"p0.Puuid = @puuid0");
+                }
+                else
+                {
+                    joinClauses.Add($@"
+                        INNER JOIN LolMatchParticipant p{i}
+                            ON p0.MatchId = p{i}.MatchId
+                            AND p0.TeamId = p{i}.TeamId
+                            AND p{i}.Puuid = @puuid{i}");
+                }
+            }
+
+            var sql = $@"
+                SELECT
+                    COUNT(DISTINCT p0.MatchId) as GamesPlayed,
+                    SUM(CASE WHEN p0.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                    SUM(p0.Kills + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Kills"))}) as TotalKills,
+                    SUM(p0.Deaths + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Deaths"))}) as TotalDeaths,
+                    SUM(p0.Assists + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Assists"))}) as TotalAssists,
+                    AVG(m.DurationSeconds) as AvgDurationSeconds,
+                    m.GameMode
+                FROM LolMatchParticipant p0
+                {string.Join("", joinClauses)}
+                INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+                WHERE {whereClauses[0]}
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0
+                GROUP BY m.GameMode
+                ORDER BY GamesPlayed DESC
+                LIMIT 1";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new TeamStatsRecord(
+                    GamesPlayed: reader.GetInt32("GamesPlayed"),
+                    Wins: reader.GetInt32("Wins"),
+                    TotalKills: reader.GetInt32("TotalKills"),
+                    TotalDeaths: reader.GetInt32("TotalDeaths"),
+                    TotalAssists: reader.GetInt32("TotalAssists"),
+                    AvgDurationSeconds: reader.GetDouble("AvgDurationSeconds"),
+                    MostCommonGameMode: reader.IsDBNull(reader.GetOrdinal("GameMode")) ? "Unknown" : reader.GetString("GameMode")
+                );
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Get pairwise synergy statistics for all player pairs in team games.
+        /// </summary>
+        internal async Task<IList<PlayerPairSynergyRecord>> GetTeamPairSynergyByPuuIdsAsync(string[] puuIds, string? gameMode = null)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return new List<PlayerPairSynergyRecord>();
+            }
+
+            var records = new List<PlayerPairSynergyRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // For each pair of players, find their games together within team games
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                for (int j = i + 1; j < puuIds.Length; j++)
+                {
+                    var sql = @"
+                        SELECT
+                            COUNT(DISTINCT p1.MatchId) as GamesPlayed,
+                            SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins
+                        FROM LolMatchParticipant p1
+                        INNER JOIN LolMatchParticipant p2
+                            ON p1.MatchId = p2.MatchId
+                            AND p1.TeamId = p2.TeamId
+                            AND p1.Puuid != p2.Puuid
+                        INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                        WHERE p1.Puuid = @puuid1
+                          AND p2.Puuid = @puuid2
+                          AND m.InfoFetched = TRUE";
+
+                    if (!string.IsNullOrWhiteSpace(gameMode))
+                    {
+                        sql += " AND m.GameMode = @gameMode";
+                    }
+
+                    await using var cmd = new MySqlCommand(sql, conn);
+                    cmd.Parameters.AddWithValue("@puuid1", puuIds[i]);
+                    cmd.Parameters.AddWithValue("@puuid2", puuIds[j]);
+                    if (!string.IsNullOrWhiteSpace(gameMode))
+                    {
+                        cmd.Parameters.AddWithValue("@gameMode", gameMode);
+                    }
+
+                    await using var reader = await cmd.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
+                    {
+                        var gamesPlayed = reader.GetInt32("GamesPlayed");
+                        if (gamesPlayed > 0)
+                        {
+                            records.Add(new PlayerPairSynergyRecord(
+                                PuuId1: puuIds[i],
+                                PuuId2: puuIds[j],
+                                GamesPlayed: gamesPlayed,
+                                Wins: reader.GetInt32("Wins")
+                            ));
+                        }
+                    }
+                }
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get role distribution for each player in team games.
+        /// </summary>
+        internal async Task<IList<TeamPlayerRoleRecord>> GetTeamRoleDistributionByPuuIdsAsync(string[] puuIds, string? gameMode = null)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return new List<TeamPlayerRoleRecord>();
+            }
+
+            var records = new List<TeamPlayerRoleRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build the team match subquery
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant tp{i}
+                        ON tp0.MatchId = tp{i}.MatchId
+                        AND tp0.TeamId = tp{i}.TeamId
+                        AND tp{i}.Puuid = @teamPuuid{i}");
+            }
+
+            var teamMatchSubquery = $@"
+                SELECT DISTINCT tp0.MatchId
+                FROM LolMatchParticipant tp0
+                {string.Join("", joinClauses)}
+                INNER JOIN LolMatch m ON tp0.MatchId = m.MatchId
+                WHERE tp0.Puuid = @teamPuuid0
+                  AND m.InfoFetched = TRUE";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                teamMatchSubquery += " AND m.GameMode = @gameMode";
+            }
+
+            // For each player, get their role distribution in team games
+            foreach (var puuId in puuIds)
+            {
+                var sql = $@"
+                    SELECT
+                        p.TeamPosition as Position,
+                        COUNT(*) as GamesPlayed,
+                        SUM(CASE WHEN p.Win = 1 THEN 1 ELSE 0 END) as Wins
+                    FROM LolMatchParticipant p
+                    WHERE p.Puuid = @puuid
+                      AND p.MatchId IN ({teamMatchSubquery})
+                      AND p.TeamPosition != ''
+                    GROUP BY p.TeamPosition
+                    ORDER BY GamesPlayed DESC";
+
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@puuid", puuId);
+                for (int i = 0; i < puuIds.Length; i++)
+                {
+                    cmd.Parameters.AddWithValue($"@teamPuuid{i}", puuIds[i]);
+                }
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    cmd.Parameters.AddWithValue("@gameMode", gameMode);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    records.Add(new TeamPlayerRoleRecord(
+                        PuuId: puuId,
+                        Position: reader.GetString("Position"),
+                        GamesPlayed: reader.GetInt32("GamesPlayed"),
+                        Wins: reader.GetInt32("Wins")
+                    ));
+                }
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get individual performance for each player in team games.
+        /// </summary>
+        internal async Task<IList<TeamPlayerPerformanceRecord>> GetTeamPlayerPerformanceByPuuIdsAsync(string[] puuIds, string? gameMode = null)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return new List<TeamPlayerPerformanceRecord>();
+            }
+
+            var records = new List<TeamPlayerPerformanceRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build the team match subquery
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant tp{i}
+                        ON tp0.MatchId = tp{i}.MatchId
+                        AND tp0.TeamId = tp{i}.TeamId
+                        AND tp{i}.Puuid = @teamPuuid{i}");
+            }
+
+            var teamMatchSubquery = $@"
+                SELECT DISTINCT tp0.MatchId
+                FROM LolMatchParticipant tp0
+                {string.Join("", joinClauses)}
+                INNER JOIN LolMatch m ON tp0.MatchId = m.MatchId
+                WHERE tp0.Puuid = @teamPuuid0
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                teamMatchSubquery += " AND m.GameMode = @gameMode";
+            }
+
+            // For each player, get their performance in team games
+            foreach (var puuId in puuIds)
+            {
+                var sql = $@"
+                    SELECT
+                        COUNT(*) as GamesPlayed,
+                        SUM(CASE WHEN p.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                        SUM(p.Kills) as TotalKills,
+                        SUM(p.Deaths) as TotalDeaths,
+                        SUM(p.Assists) as TotalAssists,
+                        SUM(p.GoldEarned) as TotalGoldEarned,
+                        SUM(p.CreepScore) as TotalCreepScore,
+                        SUM(m.DurationSeconds) as TotalDurationSeconds
+                    FROM LolMatchParticipant p
+                    INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                    WHERE p.Puuid = @puuid
+                      AND p.MatchId IN ({teamMatchSubquery})";
+
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@puuid", puuId);
+                for (int i = 0; i < puuIds.Length; i++)
+                {
+                    cmd.Parameters.AddWithValue($"@teamPuuid{i}", puuIds[i]);
+                }
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    cmd.Parameters.AddWithValue("@gameMode", gameMode);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    var gamesPlayed = reader.GetInt32("GamesPlayed");
+                    if (gamesPlayed > 0)
+                    {
+                        records.Add(new TeamPlayerPerformanceRecord(
+                            PuuId: puuId,
+                            GamesPlayed: gamesPlayed,
+                            Wins: reader.GetInt32("Wins"),
+                            TotalKills: reader.GetInt32("TotalKills"),
+                            TotalDeaths: reader.GetInt32("TotalDeaths"),
+                            TotalAssists: reader.GetInt32("TotalAssists"),
+                            TotalGoldEarned: reader.GetInt64("TotalGoldEarned"),
+                            TotalCreepScore: reader.GetInt64("TotalCreepScore"),
+                            TotalDurationSeconds: reader.GetInt64("TotalDurationSeconds")
+                        ));
+                    }
+                }
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get team kills and deaths for kill participation calculation.
+        /// </summary>
+        internal async Task<TeamKillsDeathsRecord?> GetTeamKillsDeathsByPuuIdsAsync(string[] puuIds, string? gameMode = null)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return null;
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build the team match subquery
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant tp{i}
+                        ON tp0.MatchId = tp{i}.MatchId
+                        AND tp0.TeamId = tp{i}.TeamId
+                        AND tp{i}.Puuid = @teamPuuid{i}");
+            }
+
+            var sql = $@"
+                SELECT
+                    SUM(p0.Kills + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Kills"))}) as TeamKills,
+                    SUM(p0.Deaths + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Deaths"))}) as TeamDeaths
+                FROM LolMatchParticipant p0
+                {string.Join("", joinClauses.Select((j, idx) => j.Replace($"tp{idx + 1}", $"p{idx + 1}").Replace($"@teamPuuid{idx + 1}", $"@puuid{idx + 1}")))}
+                INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+                WHERE p0.Puuid = @puuid0
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+            }
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return new TeamKillsDeathsRecord(
+                    TeamKills: reader.IsDBNull(reader.GetOrdinal("TeamKills")) ? 0 : reader.GetInt32("TeamKills"),
+                    TeamDeaths: reader.IsDBNull(reader.GetOrdinal("TeamDeaths")) ? 0 : reader.GetInt32("TeamDeaths")
+                );
+            }
+
+            return null;
+        }
     }
 
     /// <summary>
@@ -1161,5 +1540,65 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         int TeamKills,
         int DeathsInLosses,
         int TeamDeathsInLosses
+    );
+
+    // ========================
+    // Team Statistics Records (3+ players)
+    // ========================
+
+    /// <summary>
+    /// Record representing overall team statistics for games played together.
+    /// </summary>
+    public record TeamStatsRecord(
+        int GamesPlayed,
+        int Wins,
+        int TotalKills,
+        int TotalDeaths,
+        int TotalAssists,
+        double AvgDurationSeconds,
+        string MostCommonGameMode
+    );
+
+    /// <summary>
+    /// Record representing pairwise synergy for two players within team games.
+    /// </summary>
+    public record PlayerPairSynergyRecord(
+        string PuuId1,
+        string PuuId2,
+        int GamesPlayed,
+        int Wins
+    );
+
+    /// <summary>
+    /// Record representing role distribution for a player in team games.
+    /// </summary>
+    public record TeamPlayerRoleRecord(
+        string PuuId,
+        string Position,
+        int GamesPlayed,
+        int Wins
+    );
+
+    /// <summary>
+    /// Record representing individual performance for a player in team games.
+    /// </summary>
+    public record TeamPlayerPerformanceRecord(
+        string PuuId,
+        int GamesPlayed,
+        int Wins,
+        int TotalKills,
+        int TotalDeaths,
+        int TotalAssists,
+        long TotalGoldEarned,
+        long TotalCreepScore,
+        long TotalDurationSeconds
+    );
+
+    /// <summary>
+    /// Record representing team kills and deaths totals.
+    /// </summary>
+    public record TeamKillsDeathsRecord(
+        int TeamKills,
+        int TeamDeaths
     );
 }

@@ -22,18 +22,64 @@
       <div v-if="!hasUser">Please navigate via the dashboard list.</div>
       <div v-else-if="loading">Loading…</div>
       <div v-else-if="error">{{ error }}</div>
-      
-      <!-- Gamers list -->
-      <GamerCardsList v-else :gamers="gamers" />
+
+      <template v-else>
+        <!-- Team Identity Header -->
+        <div v-if="gamers.length >= 3" class="team-identity">
+          <div class="team-cards-container">
+            <GamerCard v-for="gamer in gamers" :key="gamer.puuid" :gamer="gamer" />
+          </div>
+
+          <!-- Context Stats -->
+          <div class="team-context">
+            <span class="context-stat">{{ teamStats.gamesPlayed }} games together</span>
+            <span class="context-separator">|</span>
+            <span class="context-stat" :class="winRateClass">{{ teamStats.winRate }}% WR</span>
+            <span class="context-separator">|</span>
+            <span class="context-stat">{{ teamStats.queueType }}</span>
+            <span class="context-separator">|</span>
+            <span class="context-stat">{{ teamStats.playerCount }} players</span>
+          </div>
+        </div>
+
+        <!-- Fallback: Show regular gamer cards list if less than 3 gamers -->
+        <GamerCardsList v-else :gamers="gamers" />
+
+        <!-- Team Features Container -->
+        <div v-if="gamers.length >= 3" class="team-features-container">
+          <!-- Synergy & Role Composition (Two-column layout) -->
+          <div class="team-features-grid">
+            <TeamSynergyMatrix :userId="userId" />
+            <TeamRoleComposition :userId="userId" />
+          </div>
+
+          <!-- Performance Chart (Full width) -->
+          <div class="team-performance-section">
+            <TeamPerformanceChart :userId="userId" />
+          </div>
+
+          <!-- Improvement Summary (Full width) -->
+          <div class="team-summary-section">
+            <TeamImprovementSummary :userId="userId" />
+          </div>
+        </div>
+      </template>
     </div>
   </section>
-  
+
 </template>
 
 <script setup>
+import { ref, computed, watch, onMounted } from 'vue';
 import { useGamers } from '@/composables/useGamers.js';
 import GamerCardsList from '@/components/GamerCardsList.vue';
+import GamerCard from '@/views/GamerCard.vue';
 import AppLogo from '@/components/AppLogo.vue';
+import getTeamStats from '@/assets/getTeamStats.js';
+import TeamSynergyMatrix from '@/components/TeamSynergyMatrix.vue';
+import TeamRoleComposition from '@/components/TeamRoleComposition.vue';
+import TeamPerformanceChart from '@/components/TeamPerformanceChart.vue';
+import TeamImprovementSummary from '@/components/TeamImprovementSummary.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
 const props = defineProps({
@@ -51,6 +97,65 @@ const { loading, error, gamers, hasUser, load } = useGamers(() => ({
   userName: props.userName,
   userId: props.userId,
 }));
+
+// Team statistics state
+const teamStatsData = ref(null);
+const teamStatsLoading = ref(false);
+const teamStatsError = ref(null);
+
+// Fetch team statistics
+async function loadTeamStats() {
+  if (!hasUser.value) return;
+
+  teamStatsLoading.value = true;
+  teamStatsError.value = null;
+
+  try {
+    const data = await getTeamStats(props.userId);
+    teamStatsData.value = data;
+  } catch (e) {
+    teamStatsError.value = e?.message || 'Failed to load team statistics.';
+    console.error('Error loading team stats:', e);
+  } finally {
+    teamStatsLoading.value = false;
+  }
+}
+
+// Computed team statistics with fallback
+const teamStats = computed(() => {
+  if (teamStatsData.value) {
+    return teamStatsData.value;
+  }
+
+  // Fallback while loading or on error
+  return {
+    gamesPlayed: 0,
+    winRate: 0,
+    queueType: 'Loading...',
+    playerCount: 0
+  };
+});
+
+// Win rate styling class
+const winRateClass = computed(() => {
+  const wr = teamStats.value.winRate;
+  if (wr >= 55) return 'win-rate-high';
+  if (wr >= 45) return 'win-rate-medium';
+  return 'win-rate-low';
+});
+
+// Load team stats when gamers are loaded
+watch(gamers, (newGamers) => {
+  if (newGamers?.length >= 3) {
+    loadTeamStats();
+  }
+});
+
+onMounted(() => {
+  if (gamers.value?.length >= 3) {
+    loadTeamStats();
+  }
+});
 
 // (Optional) expose `load` so a parent could call it manually
 defineExpose({ load });
@@ -115,5 +220,92 @@ defineExpose({ load });
   opacity: 0.7;
   font-weight: normal;
   margin-left: 0.5rem;
+}
+
+/* Team Identity Section */
+.team-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: var(--color-bg-elev);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.team-cards-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.team-context {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.context-stat {
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.context-separator {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.win-rate-high { color: var(--color-success); font-weight: 600; }
+.win-rate-medium { color: var(--color-warning, #f59e0b); }
+.win-rate-low { color: var(--color-danger); }
+
+/* Team Features Container */
+.team-features-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.team-features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.team-performance-section,
+.team-summary-section {
+  width: 100%;
+}
+
+.team-performance-section :deep(.chart-card),
+.team-summary-section :deep(.chart-card) {
+  max-width: 100%;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 900px) {
+  .team-features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .team-identity {
+    padding: 1rem;
+  }
+
+  .team-cards-container {
+    gap: 0.75rem;
+  }
+
+  .context-stat {
+    font-size: 0.8rem;
+  }
 }
 </style>
