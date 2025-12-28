@@ -198,13 +198,13 @@ function getChampionLabelX(championIndex, serversCount) {
 }
 
 // Get color based on gamer name (matching RadarChart color scheme)
-// First gamer (EUW) = green (var(--color-success))
-// Second gamer (EUNE) = purple (var(--color-primary))
+// First gamer (EUNE) = purple (var(--color-primary))
+// Second gamer (EUW) = green (var(--color-success))
 function getColorByGamerName(gamerName) {
   const index = gamerNames.value.indexOf(gamerName);
   const colors = [
-    'var(--color-success)',      // Green - First gamer (EUW)
-    'var(--color-primary)',      // Purple - Second gamer (EUNE)
+    'var(--color-primary)',      // Purple - First gamer (EUNE)
+    'var(--color-success)',      // Green - Second gamer (EUW)
     '#f59e0b',                   // Amber
     '#ec4899',                   // Pink
   ];

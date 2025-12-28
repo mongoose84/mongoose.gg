@@ -171,16 +171,22 @@ const gamerNames = computed(() => {
       }
     });
 
-  return Array.from(names).sort();
+  // Sort to ensure EUNE comes first, then EUW for consistent color mapping
+  return Array.from(names).sort((a, b) => {
+    // EUNE should come before EUW
+    if (a.includes('EUNE') && b.includes('EUW')) return -1;
+    if (a.includes('EUW') && b.includes('EUNE')) return 1;
+    return a.localeCompare(b);
+  });
 });
 
 // Get color for a gamer name (matching RadarChart and ChampionPerformanceSplit)
-// First gamer (EUW) = green, Second gamer (EUNE) = purple
+// First gamer (EUNE) = purple, Second gamer (EUW) = green
 function getGamerColor(gamerName) {
   const index = gamerNames.value.indexOf(gamerName);
   const colors = [
-    'var(--color-success)',      // Green - First gamer (EUW)
-    'var(--color-primary)',      // Purple - Second gamer (EUNE)
+    'var(--color-primary)',      // Purple - First gamer (EUNE)
+    'var(--color-success)',      // Green - Second gamer (EUW)
     '#f59e0b',                   // Amber
     '#ec4899',                   // Pink
   ];

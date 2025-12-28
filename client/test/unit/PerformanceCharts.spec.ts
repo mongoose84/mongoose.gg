@@ -290,8 +290,9 @@ describe('PerformanceCharts', () => {
 
       const legendTexts = svg.findAll('.legend-text')
       expect(legendTexts.length).toBe(2)
-      expect(legendTexts[0].text()).toBe('Player1#EUW')
-      expect(legendTexts[1].text()).toBe('Player1#EUNE')
+      // EUNE should come first (purple), then EUW (green)
+      expect(legendTexts[0].text()).toBe('Player1#EUNE')
+      expect(legendTexts[1].text()).toBe('Player1#EUW')
     })
   })
 

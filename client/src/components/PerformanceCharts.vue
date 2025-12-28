@@ -375,7 +375,7 @@ const getColor = (index) => colors[index % colors.length];
 // Compute win-rate and loss-rate per gamer/server, using filtered data
 const chartData = computed(() => {
   if (!filteredPerformanceData.value?.gamers) return [];
-  return filteredPerformanceData.value.gamers.map(g => {
+  const gamers = filteredPerformanceData.value.gamers.map(g => {
     const total = g.dataPoints?.length || 0;
     const wins = g.dataPoints?.filter(d => d.win).length || 0;
     const losses = total - wins;
@@ -385,6 +385,14 @@ const chartData = computed(() => {
       winRate: total > 0 ? wins / total : 0,
       lossRate: total > 0 ? losses / total : 0,
     };
+  });
+
+  // Sort to ensure EUNE comes first, then EUW for consistent color mapping
+  return gamers.sort((a, b) => {
+    // EUNE should come before EUW
+    if (a.gamerName.includes('EUNE') && b.gamerName.includes('EUW')) return -1;
+    if (a.gamerName.includes('EUW') && b.gamerName.includes('EUNE')) return 1;
+    return a.gamerName.localeCompare(b.gamerName);
   });
 });
 

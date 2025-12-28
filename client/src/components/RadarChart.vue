@@ -164,8 +164,13 @@ function getPolygonPoints(gamer) {
 const radarData = computed(() => {
   if (!comparisonData.value) return [];
 
-  // Extract gamer names from any metric array
-  const gamerNames = comparisonData.value.winrate?.map(g => g.gamerName) || [];
+  // Extract gamer names from any metric array and sort them (EUNE first, then EUW)
+  const gamerNames = (comparisonData.value.winrate?.map(g => g.gamerName) || []).sort((a, b) => {
+    // EUNE should come before EUW
+    if (a.includes('EUNE') && b.includes('EUW')) return -1;
+    if (a.includes('EUW') && b.includes('EUNE')) return 1;
+    return a.localeCompare(b);
+  });
 
   return gamerNames.map(name => {
     // Get actual data from the API
