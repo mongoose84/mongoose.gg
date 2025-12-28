@@ -42,6 +42,9 @@ namespace RiotProxy.Application
 
             var matchDurationEndpoint = new MatchDurationEndpoint(_basePath);
             _endpoints.Add(matchDurationEndpoint);
+
+            var championMatchupsEndpoint = new ChampionMatchupsEndpoint(_basePath);
+            _endpoints.Add(championMatchupsEndpoint);
         }
 
         public void ConfigureEndpoints()

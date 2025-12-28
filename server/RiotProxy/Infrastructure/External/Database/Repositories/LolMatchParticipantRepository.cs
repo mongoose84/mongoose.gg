@@ -350,6 +350,79 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
             return records;
         }
+
+        /// <summary>
+        /// Get champion matchup statistics for multiple puuids.
+        /// Returns data grouped by champion+role showing performance against each opponent champion.
+        /// </summary>
+        internal async Task<IList<ChampionMatchupRecord>> GetChampionMatchupsByPuuIdsAsync(string[] puuIds)
+        {
+            if (puuIds == null || puuIds.Length == 0)
+            {
+                return new List<ChampionMatchupRecord>();
+            }
+
+            var records = new List<ChampionMatchupRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build parameterized query for multiple puuids
+            var puuidParams = string.Join(",", puuIds.Select((_, i) => $"@puuid{i}"));
+
+            // This query finds all matches where the player played a champion in a role,
+            // then joins to find the opponent in the same role on the enemy team
+            // Filters out UNKNOWN roles (empty or null TeamPosition)
+            var sql = $@"
+                SELECT
+                    player.ChampionId,
+                    player.ChampionName,
+                    player.TeamPosition as Role,
+                    opponent.ChampionId as OpponentChampionId,
+                    opponent.ChampionName as OpponentChampionName,
+                    COUNT(*) as GamesPlayed,
+                    SUM(CASE WHEN player.Win = 1 THEN 1 ELSE 0 END) as Wins
+                FROM LolMatchParticipant player
+                INNER JOIN LolMatchParticipant opponent
+                    ON player.MatchId = opponent.MatchId
+                    AND player.TeamId != opponent.TeamId
+                    AND player.TeamPosition = opponent.TeamPosition
+                WHERE player.Puuid IN ({puuidParams})
+                    AND player.TeamPosition IS NOT NULL
+                    AND player.TeamPosition != ''
+                GROUP BY player.ChampionId, player.ChampionName, Role, opponent.ChampionId, opponent.ChampionName
+                ORDER BY player.ChampionName, Role, GamesPlayed DESC";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                var championId = reader.GetInt32("ChampionId");
+                var championName = reader.GetString("ChampionName");
+                var role = reader.GetString("Role");
+                var opponentChampionId = reader.GetInt32("OpponentChampionId");
+                var opponentChampionName = reader.GetString("OpponentChampionName");
+                var gamesPlayed = reader.GetInt32("GamesPlayed");
+                var wins = reader.GetInt32("Wins");
+
+                records.Add(new ChampionMatchupRecord(
+                    championId,
+                    championName,
+                    role,
+                    opponentChampionId,
+                    opponentChampionName,
+                    gamesPlayed,
+                    wins
+                ));
+            }
+
+            return records;
+        }
     }
 
     /// <summary>
@@ -387,6 +460,19 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
     public record DurationBucketRecord(
         int MinMinutes,
         int MaxMinutes,
+        int GamesPlayed,
+        int Wins
+    );
+
+    /// <summary>
+    /// Record representing champion matchup statistics.
+    /// </summary>
+    public record ChampionMatchupRecord(
+        int ChampionId,
+        string ChampionName,
+        string Role,
+        int OpponentChampionId,
+        string OpponentChampionName,
         int GamesPlayed,
         int Wins
     );
