@@ -1367,15 +1367,15 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();
 
-            // Build the team match subquery
+            // Build join clauses directly with p0, p1, p2, etc. aliases
             var joinClauses = new List<string>();
             for (int i = 1; i < puuIds.Length; i++)
             {
                 joinClauses.Add($@"
-                    INNER JOIN LolMatchParticipant tp{i}
-                        ON tp0.MatchId = tp{i}.MatchId
-                        AND tp0.TeamId = tp{i}.TeamId
-                        AND tp{i}.Puuid = @teamPuuid{i}");
+                    INNER JOIN LolMatchParticipant p{i}
+                        ON p0.MatchId = p{i}.MatchId
+                        AND p0.TeamId = p{i}.TeamId
+                        AND p{i}.Puuid = @puuid{i}");
             }
 
             var sql = $@"
@@ -1383,7 +1383,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                     SUM(p0.Kills + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Kills"))}) as TeamKills,
                     SUM(p0.Deaths + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Deaths"))}) as TeamDeaths
                 FROM LolMatchParticipant p0
-                {string.Join("", joinClauses.Select((j, idx) => j.Replace($"tp{idx + 1}", $"p{idx + 1}").Replace($"@teamPuuid{idx + 1}", $"@puuid{idx + 1}")))}
+                {string.Join("", joinClauses)}
                 INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
                 WHERE p0.Puuid = @puuid0
                   AND m.InfoFetched = TRUE
