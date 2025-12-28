@@ -4,12 +4,12 @@
       <h3>Performance Over Time</h3>
       <div class="limit-toggle">
         <button 
-          v-for="opt in limitOptions" 
-          :key="opt"
-          :class="['limit-btn', { active: limit === opt }]"
-          @click="limit = opt"
+          v-for="opt in periodOptions" 
+          :key="opt.value"
+          :class="['limit-btn', { active: period === opt.value }]"
+          @click="period = opt.value"
         >
-          {{ opt }} games
+          {{ opt.label }}
         </button>
       </div>
     </div>
@@ -171,8 +171,14 @@ const props = defineProps({
   },
 });
 
-const limitOptions = [20, 50, 100];
-const limit = ref(100);
+const periodOptions = [
+  { value: '1w', label: '1 Week' },
+  { value: '1m', label: '1 Month' },
+  { value: '3m', label: '3 Months' },
+  { value: '6m', label: '6 Months' },
+  { value: 'all', label: 'All' },
+];
+const period = ref('3m');
 const loading = ref(false);
 const error = ref(null);
 const performanceData = ref(null);
@@ -379,7 +385,7 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    performanceData.value = await getPerformance(props.userId, limit.value);
+    performanceData.value = await getPerformance(props.userId, period.value);
   } catch (e) {
     error.value = e?.message || 'Failed to load performance data.';
     performanceData.value = null;
@@ -390,7 +396,7 @@ async function load() {
 
 onMounted(load);
 watch(() => props.userId, load);
-watch(limit, load);
+watch(period, load);
 </script>
 
 <style scoped>
