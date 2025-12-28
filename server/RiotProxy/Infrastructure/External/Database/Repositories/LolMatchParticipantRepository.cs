@@ -423,6 +423,59 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
             return records;
         }
+
+        /// <summary>
+        /// Get statistics for games where two players played together (on the same team).
+        /// Returns total games played together, wins, and the most common queue type.
+        /// </summary>
+        internal async Task<DuoStatsRecord?> GetDuoStatsByPuuIdsAsync(string puuId1, string puuId2)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return null;
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Find matches where both players participated on the same team
+            const string sql = @"
+                SELECT
+                    COUNT(DISTINCT p1.MatchId) as GamesPlayed,
+                    SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                    m.GameMode
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2
+                    ON p1.MatchId = p2.MatchId
+                    AND p1.TeamId = p2.TeamId
+                    AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                WHERE p1.Puuid = @puuid1
+                  AND p2.Puuid = @puuid2
+                  AND m.InfoFetched = TRUE
+                GROUP BY m.GameMode
+                ORDER BY GamesPlayed DESC
+                LIMIT 1";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid1", puuId1);
+            cmd.Parameters.AddWithValue("@puuid2", puuId2);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                var gamesPlayed = reader.GetInt32("GamesPlayed");
+                var wins = reader.GetInt32("Wins");
+                var gameMode = reader.IsDBNull(reader.GetOrdinal("GameMode"))
+                    ? "Unknown"
+                    : reader.GetString("GameMode");
+
+                return new DuoStatsRecord(gamesPlayed, wins, gameMode);
+            }
+
+            return null;
+        }
     }
 
     /// <summary>
@@ -475,5 +528,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         string OpponentChampionName,
         int GamesPlayed,
         int Wins
+    );
+
+    /// <summary>
+    /// Record representing duo statistics for games played together.
+    /// </summary>
+    public record DuoStatsRecord(
+        int GamesPlayed,
+        int Wins,
+        string MostCommonQueueType
     );
 }
