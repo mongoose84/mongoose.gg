@@ -28,6 +28,8 @@ defineProps({
   --max-cols: 5;
   max-width: calc(var(--max-cols) * var(--card-width) + (var(--max-cols) - 1) * var(--card-gap));
   margin: 0.25rem auto 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .gamer-cards {

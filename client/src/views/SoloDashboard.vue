@@ -70,9 +70,12 @@ defineExpose({ load });
 <style scoped>
 .userview {
   width: 100%;
+  max-width: 100vw; /* Prevent horizontal overflow */
+  overflow-x: hidden; /* Prevent horizontal scroll */
   /* full width; keep slight page padding */
   margin: 2rem 0;
   padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 .brand--compact {
@@ -109,9 +112,17 @@ defineExpose({ load });
 
 .titles { text-align: left; }
 
+.user-container {
+  max-width: 100%;
+  overflow-x: hidden; /* Prevent child overflow */
+}
+
 .user-container h2 { text-align: left; margin-left: 1rem; }
 
 .comparison-strip-wrap {
   margin-top: 1.2rem;
+  /* Remove any side margins to align with cards */
+  margin-left: 0;
+  margin-right: 0;
 }
 </style>

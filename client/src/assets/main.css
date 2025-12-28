@@ -20,6 +20,12 @@ html, body {
   margin: 0;
   padding: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  overflow-x: hidden; /* Prevent horizontal scroll on the entire page */
+  max-width: 100vw; /* Ensure body doesn't exceed viewport width */
+}
+
+* {
+  box-sizing: border-box; /* Ensure padding/border don't add to width */
 }
 
 a { color: var(--color-primary); }

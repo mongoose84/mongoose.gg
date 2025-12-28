@@ -145,11 +145,14 @@ function getColorClass(difference) {
 <style scoped>
 .comparison-strip {
   width: 100%;
+  max-width: 100%; /* Prevent overflow */
   padding: 0.6rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background-color: var(--color-bg-elev);
   color: var(--color-text);
+  box-sizing: border-box;
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 .strip-content {

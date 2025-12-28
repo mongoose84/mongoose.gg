@@ -433,6 +433,9 @@ watch(() => props.userId, load);
   background: var(--color-bg-elev);
   border-radius: 12px;
   border: 1px solid var(--color-border);
+  max-width: 100%; /* Prevent overflow */
+  overflow-x: hidden; /* Hide any horizontal overflow */
+  box-sizing: border-box;
 }
 
 .charts-header {
@@ -493,14 +496,18 @@ watch(() => props.userId, load);
 .charts-grid {
   display: flex;
   flex-direction: row;
-  gap: 3rem;
-  justify-content: center;
+  gap: 1rem;
+  justify-content: space-between;
   align-items: flex-start;
+  max-width: 100%; /* Prevent overflow */
+  overflow-x: auto; /* Allow scrolling if charts are too wide */
+  flex-wrap: nowrap; /* Keep charts in a single row */
 }
 
 
 .line-chart {
   width: 100%;
+  max-width: 100%; /* Prevent SVG from overflowing */
   height: 220px;
   display: block;
 }

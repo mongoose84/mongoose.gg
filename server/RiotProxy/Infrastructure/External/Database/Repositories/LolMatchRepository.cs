@@ -67,7 +67,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 {
                     MatchId = reader.GetString(0),
                     InfoFetched = reader.GetBoolean(1),
-                    GameMode = reader.IsDBNull(2) ? null : reader.GetString(2),
+                    GameMode = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
                     GameEndTimestamp = reader.IsDBNull(3) ? DateTime.MinValue : reader.GetDateTime(3)
                 });
             }
@@ -107,7 +107,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 {
                     MatchId = reader.GetString(0),
                     InfoFetched = reader.GetBoolean(1),
-                    GameMode = reader.IsDBNull(2) ? null : reader.GetString(2)
+                    GameMode = reader.IsDBNull(2) ? string.Empty : reader.GetString(2)
                 });
             }
 

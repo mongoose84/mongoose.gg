@@ -24,13 +24,15 @@ defineProps({
   box-sizing: border-box;
   box-shadow: 0 2px 8px 0 rgba(44, 11, 58, 0.08);
   min-width: 0;
-  width: 520px;
+  width: 100%;
+  max-width: 520px; /* Maximum width, but can shrink */
   height: 250px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
   position: relative;
+  flex: 1 1 520px; /* Allow flexible sizing */
 }
 
 .chart-card h4 {
@@ -51,7 +53,8 @@ defineProps({
 @media (max-width: 1200px) {
   .chart-card {
     min-width: 0;
-    max-width: 100vw;
+    max-width: 100%;
+    width: 100%;
   }
 }
 </style>
