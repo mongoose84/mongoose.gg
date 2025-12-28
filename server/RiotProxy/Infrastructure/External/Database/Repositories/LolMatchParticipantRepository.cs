@@ -239,6 +239,43 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             // Both limited and unlimited queries return results in chronological order (oldest to newest)
             return records;
         }
+
+        /// <summary>
+        /// Get champion statistics (games played, wins) grouped by champion for a specific puuid.
+        /// </summary>
+        internal async Task<IList<ChampionStatsRecord>> GetChampionStatsByPuuIdAsync(string puuId)
+        {
+            var records = new List<ChampionStatsRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            const string sql = @"
+                SELECT
+                    ChampionId,
+                    ChampionName,
+                    COUNT(*) as GamesPlayed,
+                    SUM(CASE WHEN Win = 1 THEN 1 ELSE 0 END) as Wins
+                FROM LolMatchParticipant
+                WHERE Puuid = @puuid
+                GROUP BY ChampionId, ChampionName
+                ORDER BY GamesPlayed DESC";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuId);
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                var championId = reader.GetInt32("ChampionId");
+                var championName = reader.GetString("ChampionName");
+                var gamesPlayed = reader.GetInt32("GamesPlayed");
+                var wins = reader.GetInt32("Wins");
+
+                records.Add(new ChampionStatsRecord(championId, championName, gamesPlayed, wins));
+            }
+
+            return records;
+        }
     }
 
     /// <summary>
@@ -250,5 +287,15 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         int CreepScore,
         double DurationMinutes,
         DateTime GameEndTimestamp
+    );
+
+    /// <summary>
+    /// Record representing champion statistics for a specific puuid.
+    /// </summary>
+    public record ChampionStatsRecord(
+        int ChampionId,
+        string ChampionName,
+        int GamesPlayed,
+        int Wins
     );
 }

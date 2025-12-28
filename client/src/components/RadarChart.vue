@@ -343,7 +343,8 @@ onMounted(load);
 /* Override ChartCard max-width for radar chart */
 .radar-chart-container :deep(.chart-card) {
   max-width: 100%;
-  height: 400px;
+  height: auto;
+  min-height: 400px;
 }
 
 .radar-loading,
@@ -362,8 +363,8 @@ onMounted(load);
 .radar-content {
   display: flex;
   gap: 1.5rem;
-  height: 100%;
   align-items: flex-start;
+  overflow: visible;
 }
 
 .radar-svg {
