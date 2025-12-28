@@ -7,8 +7,8 @@
           <AppLogo :size="56" />
         </span>
         <div class="titles">
-          <h1 id="app-title-user" class="title compact">Do End</h1>
-          <p class="subtitle compact">Cross Account LoL Statistics</p>
+          <h1 id="app-title-user" class="title compact">{{ appTitle }}</h1>
+          <p class="subtitle compact">{{ appSubtitle }}</p>
         </div>
       </div>
     </header>
@@ -36,7 +36,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
 import { useGamers } from '@/composables/useGamers.js';
 import GamerCardsList from '@/components/GamerCardsList.vue';
 import PerformanceCharts from '@/components/PerformanceCharts.vue';
@@ -54,6 +53,10 @@ const props = defineProps({
     required: true,
   },
 });
+
+// App branding - could be moved to a config file
+const appTitle = 'Do End';
+const appSubtitle = 'Cross Account LoL Statistics';
 
 const { loading, error, gamers, hasUser, load } = useGamers(() => ({
   userName: props.userName,
