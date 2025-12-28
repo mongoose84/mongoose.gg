@@ -1,7 +1,7 @@
 // Centralized environment + host configuration for client API calls
 
-// Edit these values in one place
-const development = false; // Set to false for production
+// Automatically detect development mode using Vite's environment variables
+const development = import.meta.env.DEV; // true when running 'npm run dev', false in production build
 const apiVersion = '/api/v1.0';
 const host = development
 	? 'http://localhost:5000'
