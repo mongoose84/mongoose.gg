@@ -7,8 +7,8 @@
           <AppLogo :size="56" />
         </span>
         <div class="titles">
-          <h1 id="app-title-user" class="title compact">Do End</h1>
-          <p class="subtitle compact">Cross Account LoL Statistics</p>
+          <h1 id="app-title-user" class="title compact">{{ appTitle }}</h1>
+          <p class="subtitle compact">{{ appSubtitle }}</p>
         </div>
       </div>
     </header>
@@ -27,6 +27,7 @@
           <div class="comparison-strip-wrap">
             <ComparisonStrip :userId="userId" />
           </div>
+          <PerformanceCharts :userId="userId" />
         </template>
       </GamerCardsList>
     </div>
@@ -35,9 +36,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
 import { useGamers } from '@/composables/useGamers.js';
 import GamerCardsList from '@/components/GamerCardsList.vue';
+import PerformanceCharts from '@/components/PerformanceCharts.vue';
 import ComparisonStrip from './ComparisonStrip.vue';
 import AppLogo from '@/components/AppLogo.vue';
 
@@ -53,6 +54,10 @@ const props = defineProps({
   },
 });
 
+// App branding - could be moved to a config file
+const appTitle = 'Do End';
+const appSubtitle = 'Cross Account LoL Statistics';
+
 const { loading, error, gamers, hasUser, load } = useGamers(() => ({
   userName: props.userName,
   userId: props.userId,
@@ -65,9 +70,12 @@ defineExpose({ load });
 <style scoped>
 .userview {
   width: 100%;
+  max-width: 100vw; /* Prevent horizontal overflow */
+  overflow-x: hidden; /* Prevent horizontal scroll */
   /* full width; keep slight page padding */
   margin: 2rem 0;
   padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 .brand--compact {
@@ -104,9 +112,17 @@ defineExpose({ load });
 
 .titles { text-align: left; }
 
+.user-container {
+  max-width: 100%;
+  overflow-x: hidden; /* Prevent child overflow */
+}
+
 .user-container h2 { text-align: left; margin-left: 1rem; }
 
 .comparison-strip-wrap {
   margin-top: 1.2rem;
+  /* Remove any side margins to align with cards */
+  margin-left: 0;
+  margin-right: 0;
 }
 </style>

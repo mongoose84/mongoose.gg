@@ -14,6 +14,9 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
         public async Task AddMatchAsync(LolMatch match)
         {
+            if (string.IsNullOrWhiteSpace(match.MatchId))
+                throw new ArgumentException("MatchId cannot be null or empty", nameof(match));
+
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();
 
@@ -21,14 +24,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@matchId", match.MatchId);
             cmd.Parameters.AddWithValue("@infoFetched", match.InfoFetched);
-            cmd.Parameters.AddWithValue("@gameMode", match.GameMode ?? string.Empty);
-            
-            // Use a sentinel date instead of NULL if column is NOT NULL
-            cmd.Parameters.AddWithValue("@endTs", 
-                match.GameEndTimestamp == DateTime.MinValue 
-                    ? new DateTime(1970, 1, 1) // Or DateTime.UtcNow as placeholder
+            cmd.Parameters.AddWithValue("@gameMode", match.GameMode ?? (object)DBNull.Value);
+
+            // Consistent NULL handling - use DBNull.Value for missing timestamps
+            cmd.Parameters.AddWithValue("@endTs",
+                match.GameEndTimestamp == DateTime.MinValue
+                    ? DBNull.Value
                     : match.GameEndTimestamp);
-            
+
             await cmd.ExecuteNonQueryAsync();
         }
 
@@ -73,21 +76,30 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
         public async Task<IList<LolMatch>> GetExistingMatchesAsync(IList<string> matchIds)
         {
-            if (matchIds.Count == 0) return new List<LolMatch>();
+            if (matchIds == null || matchIds.Count == 0)
+                return new List<LolMatch>();
+
+            // Limit batch size to prevent SQL query from becoming too large
+            const int maxBatchSize = 1000;
+            if (matchIds.Count > maxBatchSize)
+            {
+                Console.WriteLine($"Warning: GetExistingMatchesAsync called with {matchIds.Count} IDs. Consider batching.");
+            }
 
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();
 
-            var parameterNames = matchIds.Select((id, index) => $"@id{index}").ToList();
+            // Build parameterized query safely
+            var parameterNames = matchIds.Select((_, index) => $"@id{index}").ToList();
             var sql = $"SELECT MatchId, InfoFetched, GameMode FROM `LolMatch` WHERE MatchId IN ({string.Join(",", parameterNames)})";
-            
+
             await using var cmd = new MySqlCommand(sql, conn);
             for (int i = 0; i < matchIds.Count; i++)
             {
                 cmd.Parameters.AddWithValue(parameterNames[i], matchIds[i]);
             }
             await using var reader = await cmd.ExecuteReaderAsync();
-            
+
             var matches = new List<LolMatch>();
             while (await reader.ReadAsync())
             {
@@ -98,12 +110,15 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                     GameMode = reader.IsDBNull(2) ? string.Empty : reader.GetString(2)
                 });
             }
-            
+
             return matches;
         }
 
         public async Task AddMatchIfNotExistsAsync(LolMatch match)
         {
+            if (string.IsNullOrWhiteSpace(match.MatchId))
+                throw new ArgumentException("MatchId cannot be null or empty", nameof(match));
+
             await using var conn = _factory.CreateConnection();
             await conn.OpenAsync();
             const string sql = "INSERT IGNORE INTO LolMatch (MatchId, InfoFetched, GameMode, DurationSeconds, GameEndTimestamp) " +
@@ -111,7 +126,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@matchId", match.MatchId);
             cmd.Parameters.AddWithValue("@infoFetched", match.InfoFetched);
-            cmd.Parameters.AddWithValue("@gameMode", match.GameMode ?? string.Empty);
+            cmd.Parameters.AddWithValue("@gameMode", match.GameMode ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@durationSeconds", match.DurationSeconds);
             cmd.Parameters.AddWithValue("@gameEndTimestamp", match.GameEndTimestamp == DateTime.MinValue ? DBNull.Value : match.GameEndTimestamp);
             await cmd.ExecuteNonQueryAsync();

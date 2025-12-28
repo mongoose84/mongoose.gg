@@ -30,6 +30,9 @@ namespace RiotProxy.Application
 
             var overallStatsEndpoint = new ComparisonEndpoint(_basePath);
             _endpoints.Add(overallStatsEndpoint);
+
+            var performanceTimelineEndpoint = new PerformanceTimelineEndpoint(_basePath);
+            _endpoints.Add(performanceTimelineEndpoint);
         }
 
         public void ConfigureEndpoints()

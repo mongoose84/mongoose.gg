@@ -1,0 +1,49 @@
+# Copilot Instructions for lol-app
+
+## Project Overview
+- **lol-app** is a full-stack project with a Vue 3 + Vite client (in `client/`) and a C# .NET server (in `server/RiotProxy`).
+- The client and server communicate via HTTP APIs. The server acts as a proxy to the Riot Games API and manages user/game data.
+- Sensitive secrets (API keys, DB connection strings) are stored in plaintext files in the server directory and are gitignored.
+
+## Key Workflows
+### Client (Vue 3 + Vite)
+- Install dependencies: `cd client && npm install`
+- Run dev server: `npm run dev`
+- Run unit tests: `npm run test:unit`, `npm run test:unit:watch`, `npm run test:unit:coverage`
+- Main entry: `client/src/main.js`, root component: `client/src/App.vue`
+- Components: `client/src/components/`, Views: `client/src/views/`
+- API logic: `client/src/assets/` (e.g., `getUsers.js`), composables in `client/src/composables/`
+
+### Server (.NET 8/9)
+- Build: `cd server/RiotProxy && dotnet build`
+- Run: `dotnet run`
+- Publish (Windows): `dotnet publish -c Release -r win-x86 --self-contained true`
+- Secrets: Place `RiotSecret.txt` and `DatabaseSecret.txt` in `server/RiotProxy/`
+- Main entry: `server/RiotProxy/Program.cs`
+- Endpoints: `server/RiotProxy/Application/Endpoints/`
+- DTOs: `server/RiotProxy/Application/DTOs/`
+- Infrastructure: `server/RiotProxy/Infrastructure/`
+
+## Conventions & Patterns
+- **Client**: Uses Vue SFCs, composition API, and composables for state/data logic. API calls are abstracted in `assets/`.
+- **Server**: Endpoints are organized by resource in `Application/Endpoints/`. DTOs are used for request/response shapes. Secrets are not checked in. Use SOLID principles for maintainability.  
+- **Testing**: Uses Vitest for client unit tests. No server-side test convention is documented.
+- **Secrets**: Never commit `RiotSecret.txt` or `DatabaseSecret.txt`.
+
+## Integration Points
+- Client <-> Server: HTTP API (see `getUsers.js`, `getGamers.js`, etc. for usage)
+- Server <-> Riot API: Proxy logic in `RiotApiClient.cs`
+- Server <-> Database: Connection via string in `DatabaseSecret.txt`, logic in `Infrastructure/External/Database/`
+
+## Examples
+- Add a new API endpoint: create a new file in `Application/Endpoints/`, update `Program.cs` to register it.
+- Add a new client view: create a `.vue` file in `src/views/`, add a route in `src/router/index.js`.
+
+## References
+- See [README.md](../README.md) for setup, build, and test commands.
+- Sensitive config: [server/RiotProxy/RiotSecret.txt], [server/RiotProxy/DatabaseSecret.txt]
+- Main server logic: [server/RiotProxy/Program.cs], [server/RiotProxy/Application/Endpoints/]
+- Main client logic: [client/src/], [client/src/assets/], [client/src/composables/]
+
+---
+For new patterns or changes, update this file to keep AI agents productive and aligned with project conventions.

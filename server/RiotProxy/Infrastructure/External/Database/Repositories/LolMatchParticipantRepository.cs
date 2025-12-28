@@ -130,5 +130,118 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 return 0;
             return Convert.ToInt32(result);
         }
+
+        /// <summary>
+        /// Gets per-match performance data for a player, ordered by game end time.
+        /// Used for performance timeline charts.
+        /// </summary>
+        /// <param name="puuId">Player's PUUID</param>
+        /// <param name="fromDate">Start date filter (null for all time)</param>
+        /// <param name="limit">Maximum number of matches to return (null for no limit). Returns the most recent matches.</param>
+        /// <returns>List of match performance records ordered oldest to newest</returns>
+        public async Task<IList<MatchPerformanceRecord>> GetMatchPerformanceTimelineAsync(string puuId, DateTime? fromDate = null, int? limit = null)
+        {
+            var records = new List<MatchPerformanceRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // If limit is specified, we need to get the most recent N matches first, then reverse them
+            // We'll use a subquery to get the latest N matches, then order them chronologically
+            string sql;
+
+            if (limit.HasValue)
+            {
+                // Get the latest N matches ordered chronologically (oldest to newest)
+                // Using a subquery to first get the most recent N matches, then order them chronologically
+                sql = @"
+                    SELECT * FROM (
+                        SELECT
+                            p.Win,
+                            p.GoldEarned,
+                            p.CreepScore,
+                            m.DurationSeconds,
+                            m.GameEndTimestamp
+                        FROM LolMatchParticipant p
+                        INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                        WHERE p.Puuid = @puuid
+                          AND m.InfoFetched = TRUE
+                          AND m.DurationSeconds > 0";
+
+                if (fromDate.HasValue)
+                {
+                    sql += " AND m.GameEndTimestamp >= @fromDate";
+                }
+
+                sql += @"
+                        ORDER BY m.GameEndTimestamp DESC
+                        LIMIT @limit
+                    ) AS recent_matches
+                    ORDER BY GameEndTimestamp ASC";
+            }
+            else
+            {
+                // No limit - get all matches
+                sql = @"
+                    SELECT
+                        p.Win,
+                        p.GoldEarned,
+                        p.CreepScore,
+                        m.DurationSeconds,
+                        m.GameEndTimestamp
+                    FROM LolMatchParticipant p
+                    INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                    WHERE p.Puuid = @puuid
+                      AND m.InfoFetched = TRUE
+                      AND m.DurationSeconds > 0";
+
+                if (fromDate.HasValue)
+                {
+                    sql += " AND m.GameEndTimestamp >= @fromDate";
+                }
+
+                sql += " ORDER BY m.GameEndTimestamp ASC";
+            }
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuId);
+            if (fromDate.HasValue)
+            {
+                cmd.Parameters.AddWithValue("@fromDate", fromDate.Value);
+            }
+            if (limit.HasValue)
+            {
+                cmd.Parameters.AddWithValue("@limit", limit.Value);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var durationSeconds = reader.GetInt64(3);
+                var durationMinutes = durationSeconds / 60.0;
+
+                records.Add(new MatchPerformanceRecord(
+                    Win: reader.GetBoolean(0),
+                    GoldEarned: reader.GetInt32(1),
+                    CreepScore: reader.GetInt32(2),
+                    DurationMinutes: durationMinutes,
+                    GameEndTimestamp: reader.IsDBNull(4) ? DateTime.MinValue : reader.GetDateTime(4)
+                ));
+            }
+
+            // No need to reverse - the SQL query now handles ordering correctly
+            // Both limited and unlimited queries return results in chronological order (oldest to newest)
+            return records;
+        }
     }
+
+    /// <summary>
+    /// Record representing per-match performance data for timeline charts.
+    /// </summary>
+    public record MatchPerformanceRecord(
+        bool Win,
+        int GoldEarned,
+        int CreepScore,
+        double DurationMinutes,
+        DateTime GameEndTimestamp
+    );
 }
