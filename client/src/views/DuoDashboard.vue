@@ -57,6 +57,23 @@
             <ChampionSynergyMatrix :userId="userId" :gamers="gamers" />
             <DuoVsEnemyMatrix :userId="userId" :gamers="gamers" />
           </div>
+
+          <!-- Role Consistency & Lane Matchup (Two-column layout) -->
+          <div class="duo-features-grid">
+            <DuoRoleConsistency :userId="userId" />
+            <DuoLaneMatchup :userId="userId" />
+          </div>
+
+          <!-- Kill Efficiency & Match Duration (Two-column layout) -->
+          <div class="duo-features-grid">
+            <DuoKillEfficiency :userId="userId" />
+            <DuoMatchDuration :userId="userId" />
+          </div>
+
+          <!-- Improvement Summary (Full width) -->
+          <div class="duo-summary-section">
+            <DuoImprovementSummary :userId="userId" />
+          </div>
         </div>
       </template>
     </div>
@@ -74,6 +91,11 @@ import getDuoStats from '@/assets/getDuoStats.js';
 import DuoVsSoloPerformance from '@/components/DuoVsSoloPerformance.vue';
 import ChampionSynergyMatrix from '@/components/ChampionSynergyMatrix.vue';
 import DuoVsEnemyMatrix from '@/components/DuoVsEnemyMatrix.vue';
+import DuoRoleConsistency from '@/components/DuoRoleConsistency.vue';
+import DuoLaneMatchup from '@/components/DuoLaneMatchup.vue';
+import DuoKillEfficiency from '@/components/DuoKillEfficiency.vue';
+import DuoMatchDuration from '@/components/DuoMatchDuration.vue';
+import DuoImprovementSummary from '@/components/DuoImprovementSummary.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
 const props = defineProps({
@@ -300,6 +322,12 @@ defineExpose({ load, loadDuoStats });
   grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
   gap: 1.5rem;
   margin-top: 1.5rem;
+}
+
+/* Duo Summary Section (Full width) */
+.duo-summary-section {
+  margin-top: 1.5rem;
+  width: 100%;
 }
 
 @media (max-width: 1100px) {
