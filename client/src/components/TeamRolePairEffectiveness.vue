@@ -129,7 +129,7 @@ onMounted(load);
 .role-loading, .role-error, .role-empty { padding: 2rem; text-align: center; color: var(--color-text-muted); }
 .role-error { color: var(--color-danger); }
 .role-empty .requirement-hint { display: block; margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.7; }
-.role-content { padding: 0.5rem 0; display: flex; flex-direction: column; gap: 1rem; }
+.role-content { padding: 2rem 0 0.5rem 0; display: flex; flex-direction: column; gap: 1rem; }
 .pair-highlights { display: flex; gap: 1rem; flex-wrap: wrap; }
 .highlight { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--color-bg-elev); border-radius: 6px; }
 .highlight-label { font-size: 0.85rem; color: var(--color-text-muted); }

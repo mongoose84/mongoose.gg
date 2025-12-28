@@ -1508,12 +1508,16 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                         AND p{i}.Puuid = @puuid{i}");
             }
 
+            // Use 5-minute intervals: <20, 20-25, 25-30, 30-35, 35-40, 40+
             var sql = $@"
                 SELECT
                     CASE
-                        WHEN m.DurationSeconds < 1500 THEN 'early'
-                        WHEN m.DurationSeconds < 2100 THEN 'mid'
-                        ELSE 'late'
+                        WHEN m.DurationSeconds < 1200 THEN 'under20'
+                        WHEN m.DurationSeconds < 1500 THEN '20-25'
+                        WHEN m.DurationSeconds < 1800 THEN '25-30'
+                        WHEN m.DurationSeconds < 2100 THEN '30-35'
+                        WHEN m.DurationSeconds < 2400 THEN '35-40'
+                        ELSE '40+'
                     END as DurationBucket,
                     COUNT(*) as GamesPlayed,
                     SUM(CASE WHEN p0.Win = 1 THEN 1 ELSE 0 END) as Wins
@@ -1529,7 +1533,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 sql += " AND m.GameMode = @gameMode";
             }
 
-            sql += " GROUP BY DurationBucket";
+            sql += " GROUP BY DurationBucket ORDER BY DurationBucket";
 
             await using var cmd = new MySqlCommand(sql, conn);
             for (int i = 0; i < puuIds.Length; i++)
@@ -1603,7 +1607,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             // Group by all champion IDs and Puuids
             var groupByColumns = Enumerable.Range(0, puuIds.Length).Select(i => $"p{i}.ChampionId, p{i}.ChampionName, p{i}.Puuid");
             sql += $" GROUP BY {string.Join(", ", groupByColumns)}";
-            sql += " HAVING COUNT(*) >= 2"; // Only show combos played at least twice
+            // Show all combos - even those played once - to provide value with smaller datasets
             sql += " ORDER BY Wins DESC, GamesPlayed DESC LIMIT @limit";
 
             await using var cmd = new MySqlCommand(sql, conn);

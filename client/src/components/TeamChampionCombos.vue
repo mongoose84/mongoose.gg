@@ -4,7 +4,7 @@
     <div v-else-if="error" class="combos-error">{{ error }}</div>
     <div v-else-if="!hasData" class="combos-empty">
       Not enough team games to show champion combinations.
-      <span class="requirement-hint">(Minimum: 2 games with the same champion combination)</span>
+      <span class="requirement-hint">(Minimum: 1 game where all team members played together)</span>
     </div>
 
     <ChartCard v-else title="🏆 Best Champion Combinations">
@@ -87,7 +87,7 @@ onMounted(load);
 .combos-loading, .combos-error, .combos-empty { padding: 2rem; text-align: center; color: var(--color-text-muted); }
 .combos-error { color: var(--color-danger); }
 .combos-empty .requirement-hint { display: block; margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.7; }
-.combos-content { padding: 0.5rem 0; }
+.combos-content { padding: 2rem 0 0.5rem 0; }
 .combos-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .combo-row { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: var(--color-bg-elev); border-radius: 6px; border-left: 3px solid var(--color-border); }
 .combo-row.wr-high { border-left-color: var(--color-success); }

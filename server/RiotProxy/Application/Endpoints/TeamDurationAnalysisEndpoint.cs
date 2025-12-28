@@ -36,20 +36,27 @@ public class TeamDurationAnalysisEndpoint : IEndpoint
 
                 var durationStats = await participantRepo.GetTeamDurationStatsByPuuIdsAsync(distinctPuuIds);
 
+                // Use 5-minute intervals matching the repository query
                 var buckets = new List<TeamDurationAnalysisDto.DurationBucket>
                 {
-                    new("Early Game (< 25 min)", 0, 25, 0, 0, 0),
-                    new("Mid Game (25-35 min)", 25, 35, 0, 0, 0),
-                    new("Late Game (35+ min)", 35, 999, 0, 0, 0)
+                    new("< 20 min", 0, 20, 0, 0, 0),
+                    new("20-25 min", 20, 25, 0, 0, 0),
+                    new("25-30 min", 25, 30, 0, 0, 0),
+                    new("30-35 min", 30, 35, 0, 0, 0),
+                    new("35-40 min", 35, 40, 0, 0, 0),
+                    new("40+ min", 40, 999, 0, 0, 0)
                 };
 
                 foreach (var stat in durationStats)
                 {
                     int idx = stat.DurationBucket switch
                     {
-                        "early" => 0,
-                        "mid" => 1,
-                        "late" => 2,
+                        "under20" => 0,
+                        "20-25" => 1,
+                        "25-30" => 2,
+                        "30-35" => 3,
+                        "35-40" => 4,
+                        "40+" => 5,
                         _ => -1
                     };
 
@@ -66,10 +73,11 @@ public class TeamDurationAnalysisEndpoint : IEndpoint
                     }
                 }
 
-                // Find best duration
+                // Find best duration (highest win rate with at least 2 games)
                 var bestBucket = buckets
-                    .Where(b => b.GamesPlayed >= 3)
+                    .Where(b => b.GamesPlayed >= 2)
                     .OrderByDescending(b => b.WinRate)
+                    .ThenByDescending(b => b.GamesPlayed)
                     .FirstOrDefault();
 
                 return Results.Ok(new TeamDurationAnalysisDto.TeamDurationAnalysisResponse(

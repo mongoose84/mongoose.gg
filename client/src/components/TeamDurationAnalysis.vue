@@ -63,9 +63,9 @@ const loading = ref(false);
 const error = ref(null);
 const durationData = ref(null);
 
-const chartWidth = 400;
+const chartWidth = 500;
 const chartHeight = 220;
-const padding = { top: 30, right: 20, bottom: 40, left: 45 };
+const padding = { top: 30, right: 15, bottom: 40, left: 40 };
 
 const hasData = computed(() => durationData.value?.buckets?.some(b => b.gamesPlayed > 0));
 
@@ -78,16 +78,19 @@ const bars = computed(() => {
   if (!durationData.value?.buckets) return [];
   const buckets = durationData.value.buckets;
   const plotWidth = chartWidth - padding.left - padding.right;
-  const barWidth = plotWidth / buckets.length - 20;
+  // Adjusted spacing for 6 bars
+  const barGap = 8;
+  const barWidth = (plotWidth - (buckets.length - 1) * barGap) / buckets.length;
   const plotHeight = chartHeight - padding.top - padding.bottom;
 
   return buckets.map((bucket, i) => {
-    const x = padding.left + (plotWidth / buckets.length) * i + 10;
+    const x = padding.left + i * (barWidth + barGap);
     const height = (bucket.winRate / 100) * plotHeight;
     return {
       x, y: getY(bucket.winRate), width: barWidth, height,
       winRate: bucket.winRate.toFixed(0),
-      shortLabel: bucket.label.split(' ')[0],
+      // Use the label directly, it's already short like "20-25 min"
+      shortLabel: bucket.label.replace(' min', ''),
       games: bucket.gamesPlayed,
       class: bucket.winRate >= 50 ? 'bar-positive' : 'bar-negative'
     };
@@ -116,12 +119,12 @@ onMounted(load);
 .duration-loading, .duration-error, .duration-empty { padding: 2rem; text-align: center; color: var(--color-text-muted); }
 .duration-error { color: var(--color-danger); }
 .duration-empty .requirement-hint { display: block; margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.7; }
-.duration-content { padding: 0.5rem 0; display: flex; flex-direction: column; gap: 1rem; }
+.duration-content { padding: 2rem 0 0.5rem 0; display: flex; flex-direction: column; gap: 1rem; }
 .best-duration { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--color-bg-elev); border-radius: 6px; }
 .best-label { color: var(--color-text-muted); font-size: 0.9rem; }
 .best-value { font-weight: 600; }
 .best-wr { color: var(--color-success); font-weight: 600; }
-.bar-chart { width: 100%; height: auto; }
+.bar-chart { width: 100%; height: auto; max-height: 240px; }
 .grid line { stroke: var(--color-border); stroke-dasharray: 2,2; }
 .y-labels text { fill: var(--color-text-muted); font-size: 10px; }
 .reference-line { stroke: var(--color-text-muted); stroke-width: 1; opacity: 0.5; }

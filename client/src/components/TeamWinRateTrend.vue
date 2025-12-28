@@ -123,7 +123,7 @@ onMounted(load);
 .trend-loading, .trend-error, .trend-empty { padding: 2rem; text-align: center; color: var(--color-text-muted); }
 .trend-error { color: var(--color-danger); }
 .trend-empty .requirement-hint { display: block; margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.7; }
-.trend-content { padding: 0.5rem 0; display: flex; flex-direction: column; gap: 1rem; }
+.trend-content { padding: 2rem 0 0.5rem 0; display: flex; flex-direction: column; gap: 1rem; }
 .trend-indicator { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
 .trend-arrow { font-size: 1.5rem; }
 .trend-indicator.improving { color: var(--color-success); }
@@ -135,7 +135,7 @@ onMounted(load);
 .stat-label { font-size: 0.8rem; color: var(--color-text-muted); }
 .win-rate-high { color: var(--color-success); }
 .win-rate-low { color: var(--color-danger); }
-.line-chart { width: 100%; height: auto; }
+.line-chart { width: 100%; height: auto; max-height: 220px; }
 .grid line { stroke: var(--color-border); stroke-dasharray: 2,2; }
 .y-labels text { fill: var(--color-text-muted); font-size: 10px; }
 .reference-line { stroke: var(--color-text-muted); stroke-width: 1; opacity: 0.5; }

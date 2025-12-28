@@ -45,11 +45,21 @@ public class TeamRolePairEffectivenessEndpoint : IEndpoint
                         Wins: r.Wins,
                         WinRate: r.GamesPlayed > 0 ? Math.Round((double)r.Wins / r.GamesPlayed * 100, 1) : 0
                     ))
+                    // Sort by win rate descending, then by games played descending as tiebreaker
                     .OrderByDescending(r => r.WinRate)
+                    .ThenByDescending(r => r.GamesPlayed)
                     .ToList();
 
-                var bestPair = rolePairs.Where(r => r.GamesPlayed >= 3).FirstOrDefault();
-                var worstPair = rolePairs.Where(r => r.GamesPlayed >= 3).LastOrDefault();
+                // Filter pairs with enough games for statistical significance
+                var significantPairs = rolePairs.Where(r => r.GamesPlayed >= 3).ToList();
+                var bestPair = significantPairs.FirstOrDefault();
+                // Only show worst pair if it's different from best pair (different win rate)
+                var worstPair = significantPairs.LastOrDefault();
+                // If best and worst have the same win rate, don't show worst as "needs work"
+                if (bestPair != null && worstPair != null && bestPair.WinRate == worstPair.WinRate)
+                {
+                    worstPair = null;
+                }
 
                 return Results.Ok(new TeamRolePairEffectivenessDto.TeamRolePairEffectivenessResponse(
                     RolePairs: rolePairs,
