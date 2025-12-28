@@ -6,53 +6,61 @@
 
     <ChartCard v-else title="Death & Efficiency Analysis">
       <div class="death-content">
-        <!-- Average Deaths Chart -->
-        <div class="chart-section">
-          <h5 class="chart-title">Avg Deaths</h5>
-          <div class="bar-chart">
-            <div 
-              v-for="record in deathData.avgDeaths" 
-              :key="record.gamerName"
-              class="bar-row"
-            >
-              <div class="bar-label">{{ getServerFromGamerName(record.gamerName) }}</div>
-              <div class="bar-container">
-                <div 
-                  class="bar"
-                  :style="{ 
-                    width: getBarWidth(record.value, maxDeaths) + '%',
-                    backgroundColor: getGamerColor(record.gamerName)
-                  }"
-                >
-                  <span class="bar-value">{{ record.value.toFixed(1) }}</span>
+        <div class="charts-wrapper">
+          <!-- Average Deaths Chart -->
+          <div class="chart-section">
+            <h5 class="chart-title">Avg Deaths</h5>
+            <div class="bar-chart">
+              <div
+                v-for="record in deathData.avgDeaths"
+                :key="record.gamerName"
+                class="bar-row"
+              >
+                <div class="bar-container">
+                  <div
+                    class="bar"
+                    :style="{
+                      width: getBarWidth(record.value, maxDeaths) + '%',
+                      backgroundColor: getGamerColor(record.gamerName)
+                    }"
+                  >
+                    <span class="bar-value">{{ record.value.toFixed(1) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Time Dead Chart -->
+          <div class="chart-section">
+            <h5 class="chart-title">Time Dead (sec)</h5>
+            <div class="bar-chart">
+              <div
+                v-for="record in deathData.avgTimeDeadSeconds"
+                :key="record.gamerName"
+                class="bar-row"
+              >
+                <div class="bar-container">
+                  <div
+                    class="bar"
+                    :style="{
+                      width: getBarWidth(record.value, maxTimeDead) + '%',
+                      backgroundColor: getGamerColor(record.gamerName)
+                    }"
+                  >
+                    <span class="bar-value">{{ record.value.toFixed(0) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Time Dead Chart -->
-        <div class="chart-section">
-          <h5 class="chart-title">Time Dead (sec)</h5>
-          <div class="bar-chart">
-            <div 
-              v-for="record in deathData.avgTimeDeadSeconds" 
-              :key="record.gamerName"
-              class="bar-row"
-            >
-              <div class="bar-label">{{ getServerFromGamerName(record.gamerName) }}</div>
-              <div class="bar-container">
-                <div 
-                  class="bar"
-                  :style="{ 
-                    width: getBarWidth(record.value, maxTimeDead) + '%',
-                    backgroundColor: getGamerColor(record.gamerName)
-                  }"
-                >
-                  <span class="bar-value">{{ record.value.toFixed(0) }}</span>
-                </div>
-              </div>
-            </div>
+        <!-- Legend -->
+        <div class="legend">
+          <div v-for="record in deathData.avgDeaths" :key="record.gamerName" class="legend-item">
+            <span class="legend-color" :style="{ backgroundColor: getGamerColor(record.gamerName) }"></span>
+            <span class="legend-label">{{ record.gamerName }}</span>
           </div>
         </div>
       </div>
@@ -96,12 +104,6 @@ const maxTimeDead = computed(() => {
 function getBarWidth(value, max) {
   if (max === 0) return 0;
   return Math.min((value / max) * 100, 100);
-}
-
-// Extract server name from gamer name (e.g., "PlayerName#EUW" -> "EUW")
-function getServerFromGamerName(gamerName) {
-  const parts = gamerName.split('#');
-  return parts.length > 1 ? parts[1] : gamerName;
 }
 
 // Get color based on gamer name (matching app color scheme)
@@ -177,10 +179,19 @@ onMounted(() => {
 
 .death-content {
   display: flex;
-  gap: 1.5rem;
+  flex-direction: column;
+  gap: 1rem;
   padding: 0.5rem 0;
   align-items: center;
   justify-content: center;
+}
+
+.charts-wrapper {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .chart-section {
@@ -209,15 +220,6 @@ onMounted(() => {
 .bar-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.bar-label {
-  min-width: 50px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text);
-  text-align: right;
 }
 
 .bar-container {
@@ -247,9 +249,37 @@ onMounted(() => {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+.legend {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+  width: 100%;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+}
+
+.legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
 /* Responsive: stack vertically on smaller screens */
 @media (max-width: 768px) {
-  .death-content {
+  .charts-wrapper {
     flex-direction: column;
   }
 }

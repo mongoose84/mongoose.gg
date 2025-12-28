@@ -42,7 +42,7 @@
         <div class="legend">
           <div v-for="gamer in durationData.gamers" :key="gamer.gamerName" class="legend-item">
             <span class="legend-color" :style="{ backgroundColor: getGamerColor(gamer.gamerName) }"></span>
-            <span class="legend-label">{{ gamer.serverName }}</span>
+            <span class="legend-label">{{ gamer.gamerName }}</span>
           </div>
         </div>
       </div>
@@ -174,6 +174,7 @@ onMounted(load);
   flex-direction: column;
   gap: 1rem;
   padding: 0.5rem 0;
+  padding-top: 1.1rem;
 }
 
 .duration-chart {
