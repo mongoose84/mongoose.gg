@@ -10,17 +10,6 @@
     <div v-else-if="!hasData" class="matrix-empty">Not enough duo games for synergy analysis yet.</div>
     
     <div v-else class="matrix-content">
-      <!-- Filter Buttons -->
-      <div class="filter-buttons">
-        <button 
-          v-for="filter in filters" 
-          :key="filter.value"
-          :class="['filter-btn', { active: selectedFilter === filter.value }]"
-          @click="selectedFilter = filter.value">
-          {{ filter.label }}
-        </button>
-      </div>
-
       <!-- Heatmap Table -->
       <div class="heatmap-container">
         <table class="heatmap-table">
@@ -71,13 +60,6 @@ const props = defineProps({
 const loading = ref(false);
 const error = ref(null);
 const synergyData = ref(null);
-const selectedFilter = ref('mostPlayed');
-
-const filters = [
-  { value: 'mostPlayed', label: 'Most Played' },
-  { value: 'highestWR', label: 'Highest WR' },
-  { value: 'biggestDelta', label: 'Biggest Δ' }
-];
 
 // Fetch synergy data
 async function loadSynergyData() {
@@ -151,17 +133,9 @@ const player2Champions = computed(() => {
 });
 
 function sortChampions(champions) {
-  // Limit to top champions based on filter
+  // Sort by most played and limit to top 5 champions for readability
   const sorted = [...champions];
-
-  if (selectedFilter.value === 'mostPlayed') {
-    sorted.sort((a, b) => b.totalGames - a.totalGames);
-  } else if (selectedFilter.value === 'highestWR') {
-    // Will implement after we have WR data
-    sorted.sort((a, b) => b.totalGames - a.totalGames);
-  }
-
-  // Limit to top 5 champions for readability
+  sorted.sort((a, b) => b.totalGames - a.totalGames);
   return sorted.slice(0, 5);
 }
 
@@ -243,35 +217,6 @@ watch(() => props.userId, () => {
 
 .matrix-error {
   color: var(--color-danger);
-}
-
-.filter-buttons {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-elev);
-  color: var(--color-text);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-.filter-btn:hover {
-  background: var(--color-bg-hover);
-  border-color: var(--color-primary);
-}
-
-.filter-btn.active {
-  background: var(--color-primary);
-  color: var(--color-text);
-  border-color: var(--color-primary);
 }
 
 .heatmap-container {
