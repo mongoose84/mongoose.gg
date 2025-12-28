@@ -56,9 +56,9 @@ const loading = ref(false);
 const error = ref(null);
 const roleData = ref(null);
 
-const pieSize = 200;
+const pieSize = 160;
 const pieCenter = pieSize / 2;
-const pieRadius = 70;
+const pieRadius = 60;
 
 const hasData = computed(() => roleData.value?.gamers?.length > 0);
 
@@ -176,10 +176,10 @@ onMounted(load);
 
 .role-content {
   display: flex;
-  gap: 2rem;
+  gap: 1rem;
   align-items: flex-start;
   justify-content: space-around;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   flex-wrap: wrap;
 }
 
@@ -187,14 +187,14 @@ onMounted(load);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   flex: 1;
-  min-width: 200px;
+  min-width: 120px;
 }
 
 .server-title {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-text);
   text-transform: uppercase;
@@ -203,7 +203,7 @@ onMounted(load);
 
 .pie-chart {
   width: 100%;
-  max-width: 200px;
+  max-width: 160px;
   height: auto;
   display: block;
 }
@@ -218,7 +218,7 @@ onMounted(load);
 }
 
 .pie-center-label {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 600;
   fill: var(--color-text);
   pointer-events: none;
@@ -227,21 +227,21 @@ onMounted(load);
 .legend {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.3rem;
   width: 100%;
-  max-width: 200px;
+  max-width: 160px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
+  gap: 0.4rem;
+  font-size: 0.75rem;
 }
 
 .legend-color {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 2px;
   flex-shrink: 0;
 }

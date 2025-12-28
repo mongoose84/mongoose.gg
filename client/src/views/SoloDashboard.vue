@@ -159,13 +159,13 @@ defineExpose({ load });
   min-width: 0; /* Allow flex items to shrink below content size */
 }
 
-/* New cards section - single row below radar and champion */
+/* New cards section - three cards per row */
 .new-cards-section {
   margin-top: 1.2rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.2rem;
   width: 100%;
-  align-items: flex-start;
 }
 
 /* Responsive: stack vertically on smaller screens */
@@ -180,7 +180,14 @@ defineExpose({ load });
   }
 
   .new-cards-section {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Medium screens: 2 cards per row */
+@media (min-width: 768px) and (max-width: 1200px) {
+  .new-cards-section {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>
