@@ -119,6 +119,13 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             return totalGoldEarned;
         }
 
+        internal async Task<int> GetTotalTimeBeingDeadSecondsByPuuIdAsync(string puuId)
+        {
+            const string sql = "SELECT SUM(TimeBeingDeadSeconds) FROM LolMatchParticipant WHERE Puuid = @puuid";
+            var totalTimeBeingDeadSeconds = await GetIntegerValueFromPuuIdAsync(puuId, sql);
+            return totalTimeBeingDeadSeconds;
+        }
+
         private async Task<int> GetIntegerValueFromPuuIdAsync(string puuId, string sqlQuery)
         {
             await using var conn = _factory.CreateConnection();

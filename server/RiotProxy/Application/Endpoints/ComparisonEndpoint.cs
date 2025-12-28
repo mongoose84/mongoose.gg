@@ -29,7 +29,11 @@ namespace RiotProxy.Application.Endpoints
                         Kda: [],
                         CsPrMin: [],
                         GoldPrMin: [],
-                        GamesPlayed: []
+                        GamesPlayed: [],
+                        AvgKills: [],
+                        AvgDeaths: [],
+                        AvgAssists: [],
+                        AvgTimeDeadSeconds: []
                     );
 
                     var userIdInt = int.TryParse(userId, out var result) ? result : throw new ArgumentException($"Invalid userId: {userId}");
@@ -45,6 +49,10 @@ namespace RiotProxy.Application.Endpoints
                     var csPrMinRecords = new List<GamerRecord>();
                     var goldPrMinRecords = new List<GamerRecord>();
                     var gamesPlayedRecords = new List<GamerRecord>();
+                    var avgKillsRecords = new List<GamerRecord>();
+                    var avgDeathsRecords = new List<GamerRecord>();
+                    var avgAssistsRecords = new List<GamerRecord>();
+                    var avgTimeDeadSecondsRecords = new List<GamerRecord>();
 
                     foreach (var puuId in distinctPuuIds)
                     {
@@ -57,6 +65,7 @@ namespace RiotProxy.Application.Endpoints
 
                         var gamerName = $"{gamer.GamerName}#{gamer.Tagline}";
                         var totalDurationMinutes = await matchParticipantRepo.GetTotalDurationPlayedByPuuidAsync(puuId) / 60.0;
+                        var gamesPlayed = await matchParticipantRepo.GetMatchesCountByPuuIdAsync(puuId);
 
                         var winrate = await GetWinrateAsync(matchParticipantRepo, puuId);
                         winrateRecords.Add(new GamerRecord(winrate, gamerName));
@@ -66,8 +75,17 @@ namespace RiotProxy.Application.Endpoints
                         csPrMinRecords.Add(new GamerRecord(csPrMin, gamerName));
                         var goldPrMin = await GetGoldPrMinAsync(matchParticipantRepo, puuId, totalDurationMinutes);
                         goldPrMinRecords.Add(new GamerRecord(goldPrMin, gamerName));
-                        var gamesPlayed = await matchParticipantRepo.GetMatchesCountByPuuIdAsync(puuId);
                         gamesPlayedRecords.Add(new GamerRecord(gamesPlayed, gamerName));
+
+                        // New metrics for radar chart
+                        var avgKills = await GetAvgKillsAsync(matchParticipantRepo, puuId, gamesPlayed);
+                        avgKillsRecords.Add(new GamerRecord(avgKills, gamerName));
+                        var avgDeaths = await GetAvgDeathsAsync(matchParticipantRepo, puuId, gamesPlayed);
+                        avgDeathsRecords.Add(new GamerRecord(avgDeaths, gamerName));
+                        var avgAssists = await GetAvgAssistsAsync(matchParticipantRepo, puuId, gamesPlayed);
+                        avgAssistsRecords.Add(new GamerRecord(avgAssists, gamerName));
+                        var avgTimeDeadSeconds = await GetAvgTimeDeadSecondsAsync(matchParticipantRepo, puuId, gamesPlayed);
+                        avgTimeDeadSecondsRecords.Add(new GamerRecord(avgTimeDeadSeconds, gamerName));
                     }
                     
                     var comparisonRequest = new ComparisonRequest(
@@ -75,7 +93,11 @@ namespace RiotProxy.Application.Endpoints
                         Kda: kdaRecords.OrderByDescending(r => r.Value).ToList(),
                         CsPrMin:  csPrMinRecords.OrderByDescending(r => r.Value).ToList(),
                         GoldPrMin: goldPrMinRecords.OrderByDescending(r => r.Value).ToList(),
-                        GamesPlayed: gamesPlayedRecords.OrderByDescending(r => r.Value).ToList()
+                        GamesPlayed: gamesPlayedRecords.OrderByDescending(r => r.Value).ToList(),
+                        AvgKills: avgKillsRecords.OrderByDescending(r => r.Value).ToList(),
+                        AvgDeaths: avgDeathsRecords.OrderBy(r => r.Value).ToList(), // Lower is better
+                        AvgAssists: avgAssistsRecords.OrderByDescending(r => r.Value).ToList(),
+                        AvgTimeDeadSeconds: avgTimeDeadSecondsRecords.OrderBy(r => r.Value).ToList() // Lower is better
                     );
 
                     return Results.Ok(comparisonRequest);
@@ -129,6 +151,34 @@ namespace RiotProxy.Application.Endpoints
             var totalGoldEarned = await repo.GetTotalGoldEarnedByPuuIdAsync(puuId);
             return totalDurationMinutes == 0 ? 0 : totalGoldEarned / totalDurationMinutes;
         }
-        
+
+        private async Task<double> GetAvgKillsAsync(LolMatchParticipantRepository repo, string puuId, int gamesPlayed)
+        {
+            if (gamesPlayed == 0) return 0;
+            var totalKills = await repo.GetTotalKillsByPuuIdAsync(puuId);
+            return Math.Round((double)totalKills / gamesPlayed, 1);
+        }
+
+        private async Task<double> GetAvgDeathsAsync(LolMatchParticipantRepository repo, string puuId, int gamesPlayed)
+        {
+            if (gamesPlayed == 0) return 0;
+            var totalDeaths = await repo.GetTotalDeathsByPuuIdAsync(puuId);
+            return Math.Round((double)totalDeaths / gamesPlayed, 1);
+        }
+
+        private async Task<double> GetAvgAssistsAsync(LolMatchParticipantRepository repo, string puuId, int gamesPlayed)
+        {
+            if (gamesPlayed == 0) return 0;
+            var totalAssists = await repo.GetTotalAssistsByPuuIdAsync(puuId);
+            return Math.Round((double)totalAssists / gamesPlayed, 1);
+        }
+
+        private async Task<double> GetAvgTimeDeadSecondsAsync(LolMatchParticipantRepository repo, string puuId, int gamesPlayed)
+        {
+            if (gamesPlayed == 0) return 0;
+            var totalTimeDeadSeconds = await repo.GetTotalTimeBeingDeadSecondsByPuuIdAsync(puuId);
+            return Math.Round((double)totalTimeDeadSeconds / gamesPlayed, 1);
+        }
+
     }
 }

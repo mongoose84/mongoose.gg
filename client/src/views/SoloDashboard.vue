@@ -27,7 +27,13 @@
           <div class="comparison-strip-wrap">
             <ComparisonStrip :userId="userId" />
           </div>
+
           <PerformanceCharts :userId="userId" />
+
+          <!-- Radar Chart Section -->
+          <div class="radar-section">
+            <RadarChart :userId="userId" />
+          </div>
         </template>
       </GamerCardsList>
     </div>
@@ -40,6 +46,7 @@ import { useGamers } from '@/composables/useGamers.js';
 import GamerCardsList from '@/components/GamerCardsList.vue';
 import PerformanceCharts from '@/components/PerformanceCharts.vue';
 import ComparisonStrip from './ComparisonStrip.vue';
+import RadarChart from '@/components/RadarChart.vue';
 import AppLogo from '@/components/AppLogo.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
@@ -124,5 +131,19 @@ defineExpose({ load });
   /* Remove any side margins to align with cards */
   margin-left: 0;
   margin-right: 0;
+}
+
+.radar-section {
+  margin-top: 1.2rem;
+  width: 50%;
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Responsive: full width on smaller screens */
+@media (max-width: 1200px) {
+  .radar-section {
+    width: 100%;
+  }
 }
 </style>
