@@ -25,21 +25,12 @@
               {{ label }}
             </text>
           </g>
-          
+
           <!-- Bars -->
           <g class="bars">
             <rect v-for="(bar, i) in winRateBars" :key="'wr-bar-' + i"
               :x="bar.x" :y="bar.y" :width="bar.width" :height="bar.height"
               :fill="bar.color" rx="3" />
-          </g>
-          
-          <!-- X-axis labels -->
-          <g class="x-labels">
-            <text v-for="(label, i) in xLabels" :key="'wr-x-' + i"
-              :x="label.x" :y="chartHeight - padding.bottom + 14" 
-              text-anchor="middle" dominant-baseline="hanging">
-              {{ label.text }}
-            </text>
           </g>
         </svg>
       </ChartCard>
@@ -59,21 +50,12 @@
               {{ Math.round(label) }}
             </text>
           </g>
-          
+
           <!-- Bars -->
           <g class="bars">
             <rect v-for="(bar, i) in goldBars" :key="'gold-bar-' + i"
               :x="bar.x" :y="bar.y" :width="bar.width" :height="bar.height"
               :fill="bar.color" rx="3" />
-          </g>
-          
-          <!-- X-axis labels -->
-          <g class="x-labels">
-            <text v-for="(label, i) in xLabels" :key="'gold-x-' + i"
-              :x="label.x" :y="chartHeight - padding.bottom + 14" 
-              text-anchor="middle" dominant-baseline="hanging">
-              {{ label.text }}
-            </text>
           </g>
         </svg>
       </ChartCard>
@@ -93,24 +75,31 @@
               {{ label.toFixed(1) }}
             </text>
           </g>
-          
+
           <!-- Bars -->
           <g class="bars">
             <rect v-for="(bar, i) in kdaBars" :key="'kda-bar-' + i"
               :x="bar.x" :y="bar.y" :width="bar.width" :height="bar.height"
               :fill="bar.color" rx="3" />
           </g>
-          
-          <!-- X-axis labels -->
-          <g class="x-labels">
-            <text v-for="(label, i) in xLabels" :key="'kda-x-' + i"
-              :x="label.x" :y="chartHeight - padding.bottom + 14" 
-              text-anchor="middle" dominant-baseline="hanging">
-              {{ label.text }}
-            </text>
-          </g>
         </svg>
       </ChartCard>
+    </div>
+
+    <!-- Legend below all charts -->
+    <div class="chart-legend">
+      <div class="legend-item">
+        <span class="legend-color" :style="{ backgroundColor: duoColor }"></span>
+        <span class="legend-label">Duo</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-color" :style="{ backgroundColor: soloAColor }"></span>
+        <span class="legend-label">{{ gamer1Name }} (solo)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-color" :style="{ backgroundColor: soloBColor }"></span>
+        <span class="legend-label">{{ gamer2Name }} (solo)</span>
+      </div>
     </div>
   </div>
 </template>
@@ -137,8 +126,8 @@ const performanceData = ref(null);
 
 // Chart dimensions
 const chartWidth = 320;
-const chartHeight = 200;
-const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+const chartHeight = 180;
+const padding = { top: 20, right: 20, bottom: 20, left: 50 };
 
 // Colors
 const duoColor = 'var(--color-primary)';  // Purple for duo
@@ -153,23 +142,9 @@ function getY(value, max = 100) {
   return padding.top + plotHeight * (1 - value / max);
 }
 
-// X-axis labels with real gamer names
-const xLabels = computed(() => {
-  const plotWidth = chartWidth - padding.left - padding.right;
-  const barWidth = 40;
-  const groupWidth = barWidth * 3 + 20; // 3 bars + spacing
-  const startX = padding.left + (plotWidth - groupWidth) / 2;
-
-  // Get gamer names, fallback to generic labels if not available
-  const gamer1Name = props.gamers?.[0]?.gamerName || 'Player 1';
-  const gamer2Name = props.gamers?.[1]?.gamerName || 'Player 2';
-
-  return [
-    { x: startX + barWidth / 2, text: 'Duo' },
-    { x: startX + barWidth + 10 + barWidth / 2, text: `${gamer1Name} (solo)` },
-    { x: startX + barWidth * 2 + 20 + barWidth / 2, text: `${gamer2Name} (solo)` }
-  ];
-});
+// Gamer names for legend
+const gamer1Name = computed(() => props.gamers?.[0]?.gamerName || 'Player 1');
+const gamer2Name = computed(() => props.gamers?.[1]?.gamerName || 'Player 2');
 
 // Win rate bars
 const winRateBars = computed(() => {
@@ -448,11 +423,46 @@ defineExpose({ load });
   opacity: 0.8;
 }
 
+/* Legend */
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.legend-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
 /* Mobile stacking */
 @media (max-width: 900px) {
   .charts-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
+  }
+
+  .chart-legend {
+    flex-direction: column;
+    gap: 0.75rem;
   }
 }
 </style>
