@@ -1755,6 +1755,239 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 );
             }).ToList();
         }
+
+        // ========================
+        // Death Analysis Methods
+        // ========================
+
+        /// <summary>
+        /// Get death timer stats per player in wins vs losses for team games.
+        /// </summary>
+        internal async Task<IList<PlayerDeathTimerRecord>> GetTeamDeathTimerStatsByPuuIdsAsync(string[] puuIds, string? gameMode = null)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return new List<PlayerDeathTimerRecord>();
+            }
+
+            var records = new List<PlayerDeathTimerRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build join clauses for all team members
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant p{i}
+                        ON p0.MatchId = p{i}.MatchId
+                        AND p0.TeamId = p{i}.TeamId
+                        AND p{i}.Puuid = @puuid{i}");
+            }
+
+            // Query for each player's death stats in wins vs losses
+            foreach (var targetPuuId in puuIds)
+            {
+                var sql = $@"
+                    SELECT
+                        SUM(CASE WHEN p.Win = 1 THEN 1 ELSE 0 END) as GamesWon,
+                        SUM(CASE WHEN p.Win = 0 THEN 1 ELSE 0 END) as GamesLost,
+                        SUM(CASE WHEN p.Win = 1 THEN p.Deaths ELSE 0 END) as TotalDeathsInWins,
+                        SUM(CASE WHEN p.Win = 0 THEN p.Deaths ELSE 0 END) as TotalDeathsInLosses,
+                        SUM(CASE WHEN p.Win = 1 THEN p.TimeBeingDeadSeconds ELSE 0 END) as TotalTimeDeadInWins,
+                        SUM(CASE WHEN p.Win = 0 THEN p.TimeBeingDeadSeconds ELSE 0 END) as TotalTimeDeadInLosses
+                    FROM LolMatchParticipant p
+                    INNER JOIN LolMatchParticipant p0 ON p.MatchId = p0.MatchId AND p.TeamId = p0.TeamId
+                    {string.Join("", joinClauses)}
+                    INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+                    WHERE p0.Puuid = @puuid0
+                      AND p.Puuid = @targetPuuid
+                      AND m.InfoFetched = TRUE";
+
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    sql += " AND m.GameMode = @gameMode";
+                }
+
+                await using var cmd = new MySqlCommand(sql, conn);
+                for (int i = 0; i < puuIds.Length; i++)
+                {
+                    cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+                }
+                cmd.Parameters.AddWithValue("@targetPuuid", targetPuuId);
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    cmd.Parameters.AddWithValue("@gameMode", gameMode);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    records.Add(new PlayerDeathTimerRecord(
+                        PuuId: targetPuuId,
+                        GamesWon: reader.IsDBNull(reader.GetOrdinal("GamesWon")) ? 0 : reader.GetInt32("GamesWon"),
+                        GamesLost: reader.IsDBNull(reader.GetOrdinal("GamesLost")) ? 0 : reader.GetInt32("GamesLost"),
+                        TotalDeathsInWins: reader.IsDBNull(reader.GetOrdinal("TotalDeathsInWins")) ? 0 : reader.GetInt32("TotalDeathsInWins"),
+                        TotalDeathsInLosses: reader.IsDBNull(reader.GetOrdinal("TotalDeathsInLosses")) ? 0 : reader.GetInt32("TotalDeathsInLosses"),
+                        TotalTimeDeadInWins: reader.IsDBNull(reader.GetOrdinal("TotalTimeDeadInWins")) ? 0 : reader.GetInt32("TotalTimeDeadInWins"),
+                        TotalTimeDeadInLosses: reader.IsDBNull(reader.GetOrdinal("TotalTimeDeadInLosses")) ? 0 : reader.GetInt32("TotalTimeDeadInLosses")
+                    ));
+                }
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get team deaths grouped by game duration buckets.
+        /// </summary>
+        internal async Task<IList<TeamDeathsByDurationRecord>> GetTeamDeathsByDurationAsync(string[] puuIds, string? gameMode = null)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return new List<TeamDeathsByDurationRecord>();
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build join clauses for all team members
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant p{i}
+                        ON p0.MatchId = p{i}.MatchId
+                        AND p0.TeamId = p{i}.TeamId
+                        AND p{i}.Puuid = @puuid{i}");
+            }
+
+            // Sum deaths for all team members
+            var deathsSum = string.Join(" + ", Enumerable.Range(0, puuIds.Length).Select(i => $"p{i}.Deaths"));
+
+            var sql = $@"
+                SELECT
+                    CASE
+                        WHEN m.DurationSeconds < 1500 THEN 'under25'
+                        WHEN m.DurationSeconds < 2100 THEN '25-35'
+                        ELSE '35+'
+                    END as DurationBucket,
+                    COUNT(DISTINCT p0.MatchId) as GamesPlayed,
+                    SUM(CASE WHEN p0.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                    SUM({deathsSum}) as TotalTeamDeaths
+                FROM LolMatchParticipant p0
+                {string.Join("", joinClauses)}
+                INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+                WHERE p0.Puuid = @puuid0
+                  AND m.InfoFetched = TRUE";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            sql += @" GROUP BY CASE
+                        WHEN m.DurationSeconds < 1500 THEN 'under25'
+                        WHEN m.DurationSeconds < 2100 THEN '25-35'
+                        ELSE '35+'
+                    END";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+            }
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            var records = new List<TeamDeathsByDurationRecord>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                records.Add(new TeamDeathsByDurationRecord(
+                    DurationBucket: reader.GetString("DurationBucket"),
+                    GamesPlayed: reader.GetInt32("GamesPlayed"),
+                    Wins: reader.GetInt32("Wins"),
+                    TotalTeamDeaths: reader.IsDBNull(reader.GetOrdinal("TotalTeamDeaths")) ? 0 : reader.GetInt32("TotalTeamDeaths")
+                ));
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get team match results with death counts for trend analysis.
+        /// </summary>
+        internal async Task<IList<TeamMatchDeathRecord>> GetTeamMatchDeathsAsync(string[] puuIds, int limit = 50, string? gameMode = null)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return new List<TeamMatchDeathRecord>();
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build join clauses for all team members
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant p{i}
+                        ON p0.MatchId = p{i}.MatchId
+                        AND p0.TeamId = p{i}.TeamId
+                        AND p{i}.Puuid = @puuid{i}");
+            }
+
+            // Sum deaths for all team members
+            var deathsSum = string.Join(" + ", Enumerable.Range(0, puuIds.Length).Select(i => $"p{i}.Deaths"));
+
+            var sql = $@"
+                SELECT
+                    p0.MatchId,
+                    p0.Win,
+                    ({deathsSum}) as TeamDeaths,
+                    m.GameEndTimestamp
+                FROM LolMatchParticipant p0
+                {string.Join("", joinClauses)}
+                INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+                WHERE p0.Puuid = @puuid0
+                  AND m.InfoFetched = TRUE";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            sql += " ORDER BY m.GameEndTimestamp ASC LIMIT @limit";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+            }
+            cmd.Parameters.AddWithValue("@limit", limit);
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            var records = new List<TeamMatchDeathRecord>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                records.Add(new TeamMatchDeathRecord(
+                    MatchId: reader.GetString("MatchId"),
+                    Win: reader.GetBoolean("Win"),
+                    TeamDeaths: reader.GetInt32("TeamDeaths"),
+                    GameEndTimestamp: reader.GetDateTime("GameEndTimestamp")
+                ));
+            }
+
+            return records;
+        }
     }
 
     /// <summary>
@@ -1977,5 +2210,42 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         string Role2,
         int GamesPlayed,
         int Wins
+    );
+
+    // ========================
+    // Death Analysis Records
+    // ========================
+
+    /// <summary>
+    /// Record for death timer stats per player (wins vs losses).
+    /// </summary>
+    public record PlayerDeathTimerRecord(
+        string PuuId,
+        int GamesWon,
+        int GamesLost,
+        int TotalDeathsInWins,
+        int TotalDeathsInLosses,
+        int TotalTimeDeadInWins,
+        int TotalTimeDeadInLosses
+    );
+
+    /// <summary>
+    /// Record for deaths by game duration bucket.
+    /// </summary>
+    public record TeamDeathsByDurationRecord(
+        string DurationBucket,
+        int GamesPlayed,
+        int Wins,
+        int TotalTeamDeaths
+    );
+
+    /// <summary>
+    /// Record for a single team match with death info for trend analysis.
+    /// </summary>
+    public record TeamMatchDeathRecord(
+        string MatchId,
+        bool Win,
+        int TeamDeaths,
+        DateTime GameEndTimestamp
     );
 }

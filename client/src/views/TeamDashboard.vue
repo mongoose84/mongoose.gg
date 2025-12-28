@@ -65,6 +65,18 @@
             <TeamChampionCombos :userId="userId" />
           </div>
 
+          <!-- Death Analysis Section (Two-column layout) -->
+          <div class="team-features-grid">
+            <TeamDeathTimerImpact :userId="userId" />
+            <TeamDeathsByDuration :userId="userId" />
+          </div>
+
+          <!-- Death Share & Trend (Two-column layout) -->
+          <div class="team-features-grid">
+            <TeamDeathShare :userId="userId" />
+            <TeamDeathsTrend :userId="userId" />
+          </div>
+
           <!-- Performance Chart (Full width) -->
           <div class="team-performance-section">
             <TeamPerformanceChart :userId="userId" />
@@ -96,6 +108,10 @@ import TeamWinRateTrend from '@/components/TeamWinRateTrend.vue';
 import TeamDurationAnalysis from '@/components/TeamDurationAnalysis.vue';
 import TeamChampionCombos from '@/components/TeamChampionCombos.vue';
 import TeamRolePairEffectiveness from '@/components/TeamRolePairEffectiveness.vue';
+import TeamDeathTimerImpact from '@/components/TeamDeathTimerImpact.vue';
+import TeamDeathsByDuration from '@/components/TeamDeathsByDuration.vue';
+import TeamDeathShare from '@/components/TeamDeathShare.vue';
+import TeamDeathsTrend from '@/components/TeamDeathsTrend.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
 const props = defineProps({

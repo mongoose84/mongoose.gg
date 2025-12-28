@@ -100,6 +100,19 @@ namespace RiotProxy.Application
 
             var teamRolePairEffectivenessEndpoint = new TeamRolePairEffectivenessEndpoint(_basePath);
             _endpoints.Add(teamRolePairEffectivenessEndpoint);
+
+            // Team Death Analysis endpoints
+            var teamDeathTimerImpactEndpoint = new TeamDeathTimerImpactEndpoint(_basePath);
+            _endpoints.Add(teamDeathTimerImpactEndpoint);
+
+            var teamDeathsByDurationEndpoint = new TeamDeathsByDurationEndpoint(_basePath);
+            _endpoints.Add(teamDeathsByDurationEndpoint);
+
+            var teamDeathShareEndpoint = new TeamDeathShareEndpoint(_basePath);
+            _endpoints.Add(teamDeathShareEndpoint);
+
+            var teamDeathsTrendEndpoint = new TeamDeathsTrendEndpoint(_basePath);
+            _endpoints.Add(teamDeathsTrendEndpoint);
         }
 
         public void ConfigureEndpoints()

@@ -42,6 +42,13 @@
               {{ label }}%
             </text>
           </g>
+          <!-- X-axis date labels -->
+          <g class="x-labels">
+            <text v-for="dateLabel in dateLabels" :key="'x-' + dateLabel.index"
+              :x="dateLabel.x" :y="chartHeight - 5" text-anchor="middle">
+              {{ dateLabel.label }}
+            </text>
+          </g>
           <!-- 50% reference line -->
           <line class="reference-line" :x1="padding.left" :x2="chartWidth - padding.right" :y1="getY(50)" :y2="getY(50)" />
           <!-- Win rate line -->
@@ -89,6 +96,43 @@ const chartPoints = computed(() => {
 });
 
 const linePoints = computed(() => chartPoints.value.map(p => `${p.x},${p.y}`).join(' '));
+
+// Generate date labels for X-axis, max 10 labels to avoid crowding
+const dateLabels = computed(() => {
+  if (!trendData.value?.dataPoints) return [];
+  const points = trendData.value.dataPoints;
+  if (points.length === 0) return [];
+
+  const plotWidth = chartWidth - padding.left - padding.right;
+  const maxLabels = 10;
+
+  // Calculate step to show at most maxLabels dates
+  const step = Math.max(1, Math.ceil(points.length / maxLabels));
+
+  const labels = [];
+  for (let i = 0; i < points.length; i += step) {
+    const p = points[i];
+    const x = padding.left + (i / (points.length - 1 || 1)) * plotWidth;
+    // Format date as D. Mon (e.g., "28. Dec")
+    const date = new Date(p.gameDate);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const label = `${date.getDate()}. ${monthNames[date.getMonth()]}`;
+    labels.push({ index: i, x, label });
+  }
+
+  // Always include the last point if not already included
+  const lastIndex = points.length - 1;
+  if (labels.length === 0 || labels[labels.length - 1].index !== lastIndex) {
+    const p = points[lastIndex];
+    const x = padding.left + plotWidth;
+    const date = new Date(p.gameDate);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const label = `${date.getDate()}. ${monthNames[date.getMonth()]}`;
+    labels.push({ index: lastIndex, x, label });
+  }
+
+  return labels;
+});
 
 function getTrendArrow(direction) {
   return { improving: '↑', declining: '↓', neutral: '→' }[direction] || '→';
@@ -138,6 +182,7 @@ onMounted(load);
 .line-chart { width: 100%; height: auto; max-height: 220px; }
 .grid line { stroke: var(--color-border); stroke-dasharray: 2,2; }
 .y-labels text { fill: var(--color-text-muted); font-size: 10px; }
+.x-labels text { fill: var(--color-text-muted); font-size: 9px; }
 .reference-line { stroke: var(--color-text-muted); stroke-width: 1; opacity: 0.5; }
 .trend-line { stroke: var(--color-primary); }
 .point-win { fill: var(--color-success); }
