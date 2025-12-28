@@ -480,7 +480,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// <summary>
         /// Get performance statistics for duo games (when two players play together).
         /// </summary>
-        internal async Task<PlayerPerformanceRecord?> GetDuoPerformanceByPuuIdsAsync(string puuId1, string puuId2, string targetPuuId)
+        internal async Task<PlayerPerformanceRecord?> GetDuoPerformanceByPuuIdsAsync(string puuId1, string puuId2, string targetPuuId, string? gameMode = null)
         {
             if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2) || string.IsNullOrWhiteSpace(targetPuuId))
             {
@@ -491,7 +491,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await conn.OpenAsync();
 
             // Get performance stats for targetPuuId in games where both players were on the same team
-            const string sql = @"
+            var sql = @"
                 SELECT
                     COUNT(DISTINCT p1.MatchId) as GamesPlayed,
                     SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins,
@@ -511,9 +511,20 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Add game mode filter if specified
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@targetPuuid", targetPuuId);
             cmd.Parameters.AddWithValue("@otherPuuid", targetPuuId == puuId1 ? puuId2 : puuId1);
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
 
             await using var reader = await cmd.ExecuteReaderAsync();
 
@@ -539,7 +550,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// <summary>
         /// Get performance statistics for solo games (when a player plays without a specific partner).
         /// </summary>
-        internal async Task<PlayerPerformanceRecord?> GetSoloPerformanceByPuuIdAsync(string puuId, string excludePuuId)
+        internal async Task<PlayerPerformanceRecord?> GetSoloPerformanceByPuuIdAsync(string puuId, string excludePuuId, string? gameMode = null)
         {
             if (string.IsNullOrWhiteSpace(puuId))
             {
@@ -550,7 +561,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await conn.OpenAsync();
 
             // Get performance stats for puuId in games where excludePuuId was NOT on the same team
-            const string sql = @"
+            var sql = @"
                 SELECT
                     COUNT(DISTINCT p.MatchId) as GamesPlayed,
                     SUM(CASE WHEN p.Win = 1 THEN 1 ELSE 0 END) as Wins,
@@ -571,9 +582,20 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                         AND p2.Puuid = @excludePuuid
                   )";
 
+            // Add game mode filter if specified
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@puuid", puuId);
             cmd.Parameters.AddWithValue("@excludePuuid", excludePuuId);
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
 
             await using var reader = await cmd.ExecuteReaderAsync();
 

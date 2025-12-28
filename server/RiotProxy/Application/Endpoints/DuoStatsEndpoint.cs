@@ -82,7 +82,7 @@ namespace RiotProxy.Application.Endpoints
         {
             return gameMode switch
             {
-                "CLASSIC" => "Ranked Solo/Duo",
+                "CLASSIC" => "Ranked",
                 "ARAM" => "ARAM",
                 "URF" => "URF",
                 "NEXUSBLITZ" => "Nexus Blitz",

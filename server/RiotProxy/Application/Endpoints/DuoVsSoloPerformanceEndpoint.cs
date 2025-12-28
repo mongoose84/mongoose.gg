@@ -36,13 +36,17 @@ namespace RiotProxy.Application.Endpoints
                     var puuId1 = distinctPuuIds[0];
                     var puuId2 = distinctPuuIds[1];
 
-                    // Get duo performance for both players
-                    var duoPerf1 = await matchParticipantRepo.GetDuoPerformanceByPuuIdsAsync(puuId1, puuId2, puuId1);
-                    var duoPerf2 = await matchParticipantRepo.GetDuoPerformanceByPuuIdsAsync(puuId1, puuId2, puuId2);
+                    // Get the most common game mode for duo games
+                    var duoStats = await matchParticipantRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
+                    var mostCommonGameMode = duoStats?.MostCommonQueueType;
 
-                    // Get solo performance for both players
-                    var soloPerf1 = await matchParticipantRepo.GetSoloPerformanceByPuuIdAsync(puuId1, puuId2);
-                    var soloPerf2 = await matchParticipantRepo.GetSoloPerformanceByPuuIdAsync(puuId2, puuId1);
+                    // Get duo performance for both players (filtered by most common game mode)
+                    var duoPerf1 = await matchParticipantRepo.GetDuoPerformanceByPuuIdsAsync(puuId1, puuId2, puuId1, mostCommonGameMode);
+                    var duoPerf2 = await matchParticipantRepo.GetDuoPerformanceByPuuIdsAsync(puuId1, puuId2, puuId2, mostCommonGameMode);
+
+                    // Get solo performance for both players (filtered by most common game mode)
+                    var soloPerf1 = await matchParticipantRepo.GetSoloPerformanceByPuuIdAsync(puuId1, puuId2, mostCommonGameMode);
+                    var soloPerf2 = await matchParticipantRepo.GetSoloPerformanceByPuuIdAsync(puuId2, puuId1, mostCommonGameMode);
 
                     // Calculate duo averages (combined performance when playing together)
                     var duoWinRate = CalculateWinRate(duoPerf1, duoPerf2);
