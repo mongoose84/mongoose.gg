@@ -51,6 +51,9 @@
 
           <!-- Summary Insights Panel -->
           <SummaryInsights :userId="userId" />
+
+          <!-- Champion Matchups -->
+          <ChampionMatchups :userId="userId" />
         </template>
       </GamerCardsList>
     </div>
@@ -69,6 +72,7 @@ import RoleDistribution from '@/components/RoleDistribution.vue';
 import DeathEfficiency from '@/components/DeathEfficiency.vue';
 import MatchDuration from '@/components/MatchDuration.vue';
 import SummaryInsights from '@/components/SummaryInsights.vue';
+import ChampionMatchups from '@/components/ChampionMatchups.vue';
 import AppLogo from '@/components/AppLogo.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
