@@ -30,9 +30,14 @@
 
           <PerformanceCharts :userId="userId" />
 
-          <!-- Radar Chart Section -->
-          <div class="radar-section">
-            <RadarChart :userId="userId" />
+          <!-- Radar Chart and Champion Performance Section -->
+          <div class="radar-champion-section">
+            <div class="radar-wrapper">
+              <RadarChart :userId="userId" />
+            </div>
+            <div class="champion-wrapper">
+              <ChampionPerformanceSplit :userId="userId" />
+            </div>
           </div>
         </template>
       </GamerCardsList>
@@ -47,6 +52,7 @@ import GamerCardsList from '@/components/GamerCardsList.vue';
 import PerformanceCharts from '@/components/PerformanceCharts.vue';
 import ComparisonStrip from './ComparisonStrip.vue';
 import RadarChart from '@/components/RadarChart.vue';
+import ChampionPerformanceSplit from '@/components/ChampionPerformanceSplit.vue';
 import AppLogo from '@/components/AppLogo.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
@@ -133,16 +139,28 @@ defineExpose({ load });
   margin-right: 0;
 }
 
-.radar-section {
+.radar-champion-section {
   margin-top: 1.2rem;
-  width: 50%;
   display: flex;
-  justify-content: flex-start;
+  gap: 1.2rem;
+  width: 100%;
+  align-items: flex-start;
 }
 
-/* Responsive: full width on smaller screens */
+.radar-wrapper,
+.champion-wrapper {
+  flex: 1;
+  min-width: 0; /* Allow flex items to shrink below content size */
+}
+
+/* Responsive: stack vertically on smaller screens */
 @media (max-width: 1200px) {
-  .radar-section {
+  .radar-champion-section {
+    flex-direction: column;
+  }
+
+  .radar-wrapper,
+  .champion-wrapper {
     width: 100%;
   }
 }

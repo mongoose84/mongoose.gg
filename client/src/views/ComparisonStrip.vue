@@ -3,57 +3,72 @@
     <div v-if="loading" class="strip-loading">Loading comparison…</div>
     <div v-else-if="error" class="strip-error">{{ error }}</div>
     <div v-else-if="hasData" class="strip-content">
-      <div 
-        class="stat-item" 
+      <div
+        class="stat-item"
         :class="getColorClass(stats.winrate.difference)"
         :title="buildTooltip('Winrate', data.winrate, '%', 1)"
       >
         <span class="stat-label">Winrate</span>
-        <span class="stat-value">{{ stats.winrate.bestGamer }} +{{ formatNumber(stats.winrate.difference, 1) }}%</span>
+        <span class="stat-value">
+          <span class="gamer-name" :style="{ color: getGamerColor(stats.winrate.bestGamer) }">{{ stats.winrate.bestGamer }}</span>
+          +{{ formatNumber(stats.winrate.difference, 1) }}%
+        </span>
       </div>
 
       <div class="separator">|</div>
 
-      <div 
+      <div
         class="stat-item"
         :class="getColorClass(stats.kda.difference)"
         :title="buildTooltip('KDA', data.kda, ' KDA', 2)"
       >
         <span class="stat-label">KDA</span>
-        <span class="stat-value">{{ stats.kda.bestGamer }} +{{ formatNumber(stats.kda.difference, 2) }} KDA</span>
+        <span class="stat-value">
+          <span class="gamer-name" :style="{ color: getGamerColor(stats.kda.bestGamer) }">{{ stats.kda.bestGamer }}</span>
+          +{{ formatNumber(stats.kda.difference, 2) }} KDA
+        </span>
       </div>
 
       <div class="separator">|</div>
 
-      <div 
+      <div
         class="stat-item"
         :class="getColorClass(stats.csPrMin.difference)"
         :title="buildTooltip('CS/min', data.csPrMin, ' CS/min', 1)"
       >
         <span class="stat-label">CS/min</span>
-        <span class="stat-value">{{ stats.csPrMin.bestGamer }} +{{ formatNumber(stats.csPrMin.difference, 1) }} CS/min</span>
+        <span class="stat-value">
+          <span class="gamer-name" :style="{ color: getGamerColor(stats.csPrMin.bestGamer) }">{{ stats.csPrMin.bestGamer }}</span>
+          +{{ formatNumber(stats.csPrMin.difference, 1) }} CS/min
+        </span>
       </div>
 
       <div class="separator">|</div>
 
-      <div 
+      <div
         class="stat-item"
         :class="getColorClass(stats.goldPrMin.difference)"
         :title="buildTooltip('Gold/min', data.goldPrMin, ' G/min', 0)"
       >
         <span class="stat-label">Gold/min</span>
-        <span class="stat-value">{{ stats.goldPrMin.bestGamer }} +{{ formatNumber(stats.goldPrMin.difference, 0) }} G/min</span>
+        <span class="stat-value">
+          <span class="gamer-name" :style="{ color: getGamerColor(stats.goldPrMin.bestGamer) }">{{ stats.goldPrMin.bestGamer }}</span>
+          +{{ formatNumber(stats.goldPrMin.difference, 0) }} G/min
+        </span>
       </div>
 
       <div class="separator">|</div>
 
-      <div 
+      <div
         class="stat-item"
         :class="getColorClass(stats.gamesPlayed.difference)"
         :title="buildTooltip('Games', data.gamesPlayed, ' games', 0)"
       >
         <span class="stat-label">Games</span>
-        <span class="stat-value">{{ stats.gamesPlayed.bestGamer }} +{{ stats.gamesPlayed.difference }} games</span>
+        <span class="stat-value">
+          <span class="gamer-name" :style="{ color: getGamerColor(stats.gamesPlayed.bestGamer) }">{{ stats.gamesPlayed.bestGamer }}</span>
+          +{{ stats.gamesPlayed.difference }} games
+        </span>
       </div>
     </div>
     <div v-else class="strip-empty">No comparison data available.</div>
@@ -140,6 +155,43 @@ function getColorClass(difference) {
   if (difference === undefined || difference === null || difference === 0) return 'neutral'
   return difference > 0 ? 'positive' : 'negative'
 }
+
+// Get all unique gamer names sorted (to match RadarChart color scheme)
+const gamerNames = computed(() => {
+  if (!data.value) return [];
+  const names = new Set();
+
+  // Collect all gamer names from all metrics
+  [data.value.winrate, data.value.kda, data.value.csPrMin, data.value.goldPrMin, data.value.gamesPlayed]
+    .forEach(arr => {
+      if (arr) {
+        arr.forEach(item => {
+          if (item.gamerName) names.add(item.gamerName);
+        });
+      }
+    });
+
+  // Sort to ensure EUNE comes first, then EUW for consistent color mapping
+  return Array.from(names).sort((a, b) => {
+    // EUNE should come before EUW
+    if (a.includes('EUNE') && b.includes('EUW')) return -1;
+    if (a.includes('EUW') && b.includes('EUNE')) return 1;
+    return a.localeCompare(b);
+  });
+});
+
+// Get color for a gamer name (matching RadarChart and ChampionPerformanceSplit)
+// First gamer (EUNE) = purple, Second gamer (EUW) = green
+function getGamerColor(gamerName) {
+  const index = gamerNames.value.indexOf(gamerName);
+  const colors = [
+    'var(--color-primary)',      // Purple - First gamer (EUNE)
+    'var(--color-success)',      // Green - Second gamer (EUW)
+    '#f59e0b',                   // Amber
+    '#ec4899',                   // Pink
+  ];
+  return colors[index] || 'var(--color-text)';
+}
 </script>
 
 <style scoped>
@@ -189,6 +241,11 @@ function getColorClass(difference) {
   font-size: 0.9rem;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.gamer-name {
+  font-weight: 700;
+  margin-right: 0.25rem;
 }
 
 .separator {
