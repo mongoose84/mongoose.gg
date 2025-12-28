@@ -53,7 +53,7 @@
             />
           </g>
           <!-- Legend -->
-          <g class="legend" :transform="`translate(${padding.left}, ${chartHeight - 10})`">
+          <g class="legend" :transform="`translate(${padding.left}, ${chartHeight + 20})`">
             <g v-for="(gamer, gi) in chartData" :key="'wr-leg-' + gi" 
               :transform="`translate(${gi * 160}, 0)`">
               <rect :fill="getColor(gi)" width="12" height="12" rx="2" />
@@ -102,7 +102,7 @@
             />
           </g>
           <!-- Legend -->
-          <g class="legend" :transform="`translate(${padding.left}, ${chartHeight - 10})`">
+          <g class="legend" :transform="`translate(${padding.left}, ${chartHeight + 20})`">
             <g v-for="(gamer, gi) in chartData" :key="'gold-leg-' + gi" 
               :transform="`translate(${gi * 160}, 0)`">
               <rect :fill="getColor(gi)" width="12" height="12" rx="2" />
@@ -147,7 +147,7 @@
             />
           </g>
           <!-- Legend -->
-          <g class="legend" :transform="`translate(${padding.left}, ${chartHeight - 10})`">
+          <g class="legend" :transform="`translate(${padding.left}, ${chartHeight + 20})`">
             <g v-for="(gamer, gi) in chartData" :key="'cs-leg-' + gi" 
               :transform="`translate(${gi * 160}, 0)`">
               <rect :fill="getColor(gi)" width="12" height="12" rx="2" />
@@ -172,16 +172,17 @@ const props = defineProps({
 });
 
 const periodOptions = [
-  { value: '1w', label: '1 Week' },
-  { value: '1m', label: '1 Month' },
-  { value: '3m', label: '3 Months' },
-  { value: '6m', label: '6 Months' },
-  { value: 'all', label: 'All' },
+  { value: '25', label: '25 Games' },
+  { value: '50', label: '50 Games' },
+  { value: '100', label: '100 Games' },
 ];
-const period = ref('3m');
+const period = ref('50');
 const loading = ref(false);
 const error = ref(null);
+
 const performanceData = ref(null);
+// This will hold the filtered data for the selected period
+const filteredPerformanceData = ref(null);
 
 // Helper: Compute win-rate over time in 10-game intervals for each gamer
 function getIntervalWinratePoints(gamer) {
@@ -317,10 +318,10 @@ const colors = [
 const getColor = (index) => colors[index % colors.length];
 
 
-// Compute win-rate and loss-rate per gamer/server
+// Compute win-rate and loss-rate per gamer/server, using filtered data
 const chartData = computed(() => {
-  if (!performanceData.value?.gamers) return [];
-  return performanceData.value.gamers.map(g => {
+  if (!filteredPerformanceData.value?.gamers) return [];
+  return filteredPerformanceData.value.gamers.map(g => {
     const total = g.dataPoints?.length || 0;
     const wins = g.dataPoints?.filter(d => d.win).length || 0;
     const losses = total - wins;
@@ -380,19 +381,45 @@ const yLabelsCs = [15, 11, 8, 4, 0];
 
 
 
+
+// Helper to filter the last N games for each gamer
+function filterLastNGames(data, n) {
+  if (!data?.gamers) return { gamers: [] };
+  // If n is not a number, return all
+  const num = parseInt(n, 10);
+  if (isNaN(num)) return data;
+  return {
+    ...data,
+    gamers: data.gamers.map(g => ({
+      ...g,
+      dataPoints: (g.dataPoints || []).slice(-num)
+    }))
+  };
+}
+
 async function load() {
   if (!props.userId) return;
   loading.value = true;
   error.value = null;
   try {
-    performanceData.value = await getPerformance(props.userId, period.value);
+    // Always fetch all data, then filter client-side
+    performanceData.value = await getPerformance(props.userId, 'all');
+    filteredPerformanceData.value = filterLastNGames(performanceData.value, period.value);
   } catch (e) {
     error.value = e?.message || 'Failed to load performance data.';
     performanceData.value = null;
+    filteredPerformanceData.value = null;
   } finally {
     loading.value = false;
   }
 }
+
+// Watch period and re-filter when changed
+watch(period, () => {
+  if (performanceData.value) {
+    filteredPerformanceData.value = filterLastNGames(performanceData.value, period.value);
+  }
+});
 
 onMounted(load);
 watch(() => props.userId, load);
@@ -463,12 +490,10 @@ watch(period, load);
   color: var(--color-danger);
 }
 
-
-
 .charts-grid {
   display: flex;
   flex-direction: row;
-  gap: 2.5rem;
+  gap: 3rem;
   justify-content: center;
   align-items: flex-start;
 }
@@ -483,7 +508,7 @@ watch(period, load);
   box-shadow: 0 2px 8px 0 rgba(44, 11, 58, 0.08);
   min-width: 0;
   width: 520px;
-  height: 300px;
+  height: 250px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
