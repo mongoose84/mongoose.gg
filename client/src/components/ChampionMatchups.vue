@@ -186,31 +186,32 @@ const searchResults = computed(() => {
   const searchTerm = opponentSearch.value.toLowerCase();
   const results = [];
 
-  console.log('Searching for:', searchTerm);
-  console.log('Total matchups:', matchupsData.value.matchups.length);
-
   matchupsData.value.matchups.forEach(matchup => {
-    console.log(`Checking matchup: ${matchup.championName} (${matchup.role}), opponents:`, matchup.opponents.length);
-    matchup.opponents.forEach(opponent => {
-      const opponentNameLower = opponent.opponentChampionName.toLowerCase();
-      console.log(`  - Opponent: ${opponent.opponentChampionName} (${opponentNameLower})`);
-      if (opponentNameLower.includes(searchTerm)) {
-        console.log(`    ✓ MATCH FOUND!`);
-        results.push({
-          championName: matchup.championName,
-          championId: matchup.championId,
-          role: matchup.role,
-          opponentName: opponent.opponentChampionName,
-          gamesPlayed: opponent.gamesPlayed,
-          wins: opponent.wins,
-          losses: opponent.losses,
-          winrate: opponent.winrate
-        });
-      }
-    });
-  });
+    // Find all opponents that match the search term for this champion+role
+    const matchingOpponents = matchup.opponents.filter(opponent =>
+      opponent.opponentChampionName.toLowerCase().includes(searchTerm)
+    );
 
-  console.log('Search results:', results.length);
+    // If this champion+role has faced the searched opponent, add it to results
+    if (matchingOpponents.length > 0) {
+      // Aggregate stats across all matching opponents (in case there are multiple with similar names)
+      const totalGames = matchingOpponents.reduce((sum, opp) => sum + opp.gamesPlayed, 0);
+      const totalWins = matchingOpponents.reduce((sum, opp) => sum + opp.wins, 0);
+      const totalLosses = matchingOpponents.reduce((sum, opp) => sum + opp.losses, 0);
+      const winrate = totalGames > 0 ? (totalWins / totalGames) * 100 : 0;
+
+      results.push({
+        championName: matchup.championName,
+        championId: matchup.championId,
+        role: matchup.role,
+        opponentName: matchingOpponents[0].opponentChampionName, // Use first match for display
+        gamesPlayed: totalGames,
+        wins: totalWins,
+        losses: totalLosses,
+        winrate: winrate
+      });
+    }
+  });
 
   // Sort by winrate descending
   return results.sort((a, b) => b.winrate - a.winrate);
