@@ -2,15 +2,17 @@
   <section class="userview">
     <!-- Smaller brand header -->
     <header class="brand brand--compact" aria-labelledby="app-title-user">
-      <div class="brand-inner">
-        <span class="logo compact" aria-hidden="true">
-          <AppLogo :size="56" />
-        </span>
-        <div class="titles">
-          <h1 id="app-title-user" class="title compact">{{ appTitle }}</h1>
-          <p class="subtitle compact">{{ appSubtitle }}</p>
+      <router-link to="/" class="brand-link">
+        <div class="brand-inner">
+          <span class="logo compact" aria-hidden="true">
+            <AppLogo :size="56" />
+          </span>
+          <div class="titles">
+            <h1 id="app-title-user" class="title compact">{{ appTitle }}</h1>
+            <p class="subtitle compact">{{ appSubtitle }}</p>
+          </div>
         </div>
-      </div>
+      </router-link>
     </header>
 
     <div class="user-container">
@@ -109,6 +111,18 @@ defineExpose({ load });
   width: 100%;
   /* keep header left-aligned, avoid auto-centering */
   margin: 0 0 0.5rem 0;
+}
+
+.brand-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: opacity 0.2s ease;
+}
+
+.brand-link:hover {
+  opacity: 0.8;
+  cursor: pointer;
 }
 
 .brand-inner {

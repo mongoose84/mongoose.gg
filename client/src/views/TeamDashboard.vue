@@ -2,15 +2,17 @@
   <section class="dashboard">
     <!-- Smaller brand header -->
     <header class="brand brand--compact" aria-labelledby="app-title-team">
-      <div class="brand-inner">
-        <span class="logo compact" aria-hidden="true">
-          <AppLogo :size="56" />
-        </span>
-        <div class="titles">
-          <h1 id="app-title-team" class="title compact">Do End</h1>
-          <p class="subtitle compact">Cross Account LoL Statistics</p>
+      <router-link to="/" class="brand-link">
+        <div class="brand-inner">
+          <span class="logo compact" aria-hidden="true">
+            <AppLogo :size="56" />
+          </span>
+          <div class="titles">
+            <h1 id="app-title-team" class="title compact">Do End</h1>
+            <p class="subtitle compact">Cross Account LoL Statistics</p>
+          </div>
         </div>
-      </div>
+      </router-link>
     </header>
 
     <div class="dashboard-container">
@@ -64,6 +66,18 @@ defineExpose({ load });
 .brand--compact {
   width: 100%;
   margin: 0 0 0.5rem 0;
+}
+
+.brand-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: opacity 0.2s ease;
+}
+
+.brand-link:hover {
+  opacity: 0.8;
+  cursor: pointer;
 }
 
 .brand-inner {
