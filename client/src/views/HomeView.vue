@@ -16,7 +16,7 @@
 
     <!-- Users Section (always visible) -->
     <div class="users-list">
-      <div class="users-header">
+      <div class="users-header" v-if="isDevelopment">
         <button @click="showUserForm = !showUserForm" class="toggle-user-btn">
           {{ showUserForm ? 'Cancel' : 'Create Dashboard' }}
         </button>
@@ -57,6 +57,7 @@ import CreateDashboardPopup from './CreateDashboardPopup.vue'
 import createUser  from '@/assets/createUser.js'
 import getUsers from '@/assets/getUsers.js'
 import AppLogo from '@/components/AppLogo.vue'
+import { isDevelopment } from '@/assets/getHost.js'
 // ----- Options for the dropdown ---------------------------------------
 const options = [
   { value: 'NA', label: 'NA' },
