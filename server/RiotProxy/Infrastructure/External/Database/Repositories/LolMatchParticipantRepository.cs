@@ -476,6 +476,125 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
             return null;
         }
+
+        /// <summary>
+        /// Get performance statistics for duo games (when two players play together).
+        /// </summary>
+        internal async Task<PlayerPerformanceRecord?> GetDuoPerformanceByPuuIdsAsync(string puuId1, string puuId2, string targetPuuId)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2) || string.IsNullOrWhiteSpace(targetPuuId))
+            {
+                return null;
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Get performance stats for targetPuuId in games where both players were on the same team
+            const string sql = @"
+                SELECT
+                    COUNT(DISTINCT p1.MatchId) as GamesPlayed,
+                    SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                    SUM(p1.Kills) as TotalKills,
+                    SUM(p1.Deaths) as TotalDeaths,
+                    SUM(p1.Assists) as TotalAssists,
+                    SUM(p1.GoldEarned) as TotalGoldEarned,
+                    SUM(m.DurationSeconds) as TotalDurationSeconds
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2
+                    ON p1.MatchId = p2.MatchId
+                    AND p1.TeamId = p2.TeamId
+                    AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                WHERE p1.Puuid = @targetPuuid
+                  AND p2.Puuid = @otherPuuid
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@targetPuuid", targetPuuId);
+            cmd.Parameters.AddWithValue("@otherPuuid", targetPuuId == puuId1 ? puuId2 : puuId1);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                var gamesPlayed = reader.GetInt32("GamesPlayed");
+                if (gamesPlayed == 0) return null;
+
+                return new PlayerPerformanceRecord(
+                    GamesPlayed: gamesPlayed,
+                    Wins: reader.GetInt32("Wins"),
+                    TotalKills: reader.GetInt32("TotalKills"),
+                    TotalDeaths: reader.GetInt32("TotalDeaths"),
+                    TotalAssists: reader.GetInt32("TotalAssists"),
+                    TotalGoldEarned: reader.GetInt64("TotalGoldEarned"),
+                    TotalDurationSeconds: reader.GetInt64("TotalDurationSeconds")
+                );
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Get performance statistics for solo games (when a player plays without a specific partner).
+        /// </summary>
+        internal async Task<PlayerPerformanceRecord?> GetSoloPerformanceByPuuIdAsync(string puuId, string excludePuuId)
+        {
+            if (string.IsNullOrWhiteSpace(puuId))
+            {
+                return null;
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Get performance stats for puuId in games where excludePuuId was NOT on the same team
+            const string sql = @"
+                SELECT
+                    COUNT(DISTINCT p.MatchId) as GamesPlayed,
+                    SUM(CASE WHEN p.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                    SUM(p.Kills) as TotalKills,
+                    SUM(p.Deaths) as TotalDeaths,
+                    SUM(p.Assists) as TotalAssists,
+                    SUM(p.GoldEarned) as TotalGoldEarned,
+                    SUM(m.DurationSeconds) as TotalDurationSeconds
+                FROM LolMatchParticipant p
+                INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                WHERE p.Puuid = @puuid
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0
+                  AND NOT EXISTS (
+                      SELECT 1 FROM LolMatchParticipant p2
+                      WHERE p2.MatchId = p.MatchId
+                        AND p2.TeamId = p.TeamId
+                        AND p2.Puuid = @excludePuuid
+                  )";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuId);
+            cmd.Parameters.AddWithValue("@excludePuuid", excludePuuId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                var gamesPlayed = reader.GetInt32("GamesPlayed");
+                if (gamesPlayed == 0) return null;
+
+                return new PlayerPerformanceRecord(
+                    GamesPlayed: gamesPlayed,
+                    Wins: reader.GetInt32("Wins"),
+                    TotalKills: reader.GetInt32("TotalKills"),
+                    TotalDeaths: reader.GetInt32("TotalDeaths"),
+                    TotalAssists: reader.GetInt32("TotalAssists"),
+                    TotalGoldEarned: reader.GetInt64("TotalGoldEarned"),
+                    TotalDurationSeconds: reader.GetInt64("TotalDurationSeconds")
+                );
+            }
+
+            return null;
+        }
     }
 
     /// <summary>
@@ -537,5 +656,18 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         int GamesPlayed,
         int Wins,
         string MostCommonQueueType
+    );
+
+    /// <summary>
+    /// Record representing performance statistics for a player (duo or solo).
+    /// </summary>
+    public record PlayerPerformanceRecord(
+        int GamesPlayed,
+        int Wins,
+        int TotalKills,
+        int TotalDeaths,
+        int TotalAssists,
+        long TotalGoldEarned,
+        long TotalDurationSeconds
     );
 }

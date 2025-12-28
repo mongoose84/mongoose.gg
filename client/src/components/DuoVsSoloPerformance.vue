@@ -2,7 +2,7 @@
   <div class="duo-vs-solo-performance">
     <div class="charts-header">
       <h3>Duo vs Solo Performance</h3>
-      <p class="subtitle">Are we stronger together?</p>
+      <p class="subtitle">Apes together strong?</p>
     </div>
 
     <div v-if="loading" class="charts-loading">Loading performance comparison…</div>
@@ -118,10 +118,15 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import ChartCard from './ChartCard.vue';
+import getDuoVsSoloPerformance from '@/assets/getDuoVsSoloPerformance.js';
 
 const props = defineProps({
   userId: {
     type: [String, Number],
+    required: true,
+  },
+  gamers: {
+    type: Array,
     required: true,
   },
 });
@@ -148,17 +153,21 @@ function getY(value, max = 100) {
   return padding.top + plotHeight * (1 - value / max);
 }
 
-// X-axis labels
+// X-axis labels with real gamer names
 const xLabels = computed(() => {
   const plotWidth = chartWidth - padding.left - padding.right;
   const barWidth = 40;
   const groupWidth = barWidth * 3 + 20; // 3 bars + spacing
   const startX = padding.left + (plotWidth - groupWidth) / 2;
 
+  // Get gamer names, fallback to generic labels if not available
+  const gamer1Name = props.gamers?.[0]?.gamerName || 'Player 1';
+  const gamer2Name = props.gamers?.[1]?.gamerName || 'Player 2';
+
   return [
     { x: startX + barWidth / 2, text: 'Duo' },
-    { x: startX + barWidth + 10 + barWidth / 2, text: 'Solo A' },
-    { x: startX + barWidth * 2 + 20 + barWidth / 2, text: 'Solo B' }
+    { x: startX + barWidth + 10 + barWidth / 2, text: `${gamer1Name} (solo)` },
+    { x: startX + barWidth * 2 + 20 + barWidth / 2, text: `${gamer2Name} (solo)` }
   ];
 });
 
@@ -334,7 +343,7 @@ const kdaBars = computed(() => {
   return bars;
 });
 
-// Load function - TODO: Replace with actual API call
+// Load function - fetches real data from API
 async function load() {
   if (!props.userId) return;
 
@@ -342,21 +351,8 @@ async function load() {
   error.value = null;
 
   try {
-    // Placeholder data - will be replaced with actual API call
-    // For now, generate some mock data
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    performanceData.value = {
-      duoWinRate: 57.3,
-      soloAWinRate: 52.1,
-      soloBWinRate: 48.5,
-      duoGoldPerMin: 385,
-      soloAGoldPerMin: 360,
-      soloBGoldPerMin: 355,
-      duoKda: 3.2,
-      soloAKda: 2.8,
-      soloBKda: 2.5
-    };
+    const data = await getDuoVsSoloPerformance(props.userId);
+    performanceData.value = data;
   } catch (e) {
     console.error('Error loading duo vs solo performance:', e);
     error.value = e?.message || 'Failed to load performance comparison.';

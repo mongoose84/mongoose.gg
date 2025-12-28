@@ -48,7 +48,7 @@
         <GamerCardsList v-else :gamers="gamers" />
 
         <!-- Duo vs Solo Performance Charts -->
-        <DuoVsSoloPerformance v-if="gamers.length === 2" :userId="userId" />
+        <DuoVsSoloPerformance v-if="gamers.length === 2" :userId="userId" :gamers="gamers" />
       </template>
     </div>
   </section>

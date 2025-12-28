@@ -48,6 +48,9 @@ namespace RiotProxy.Application
 
             var duoStatsEndpoint = new DuoStatsEndpoint(_basePath);
             _endpoints.Add(duoStatsEndpoint);
+
+            var duoVsSoloPerformanceEndpoint = new DuoVsSoloPerformanceEndpoint(_basePath);
+            _endpoints.Add(duoVsSoloPerformanceEndpoint);
         }
 
         public void ConfigureEndpoints()
