@@ -45,6 +45,18 @@ namespace RiotProxy.Application
 
             var championMatchupsEndpoint = new ChampionMatchupsEndpoint(_basePath);
             _endpoints.Add(championMatchupsEndpoint);
+
+            var duoStatsEndpoint = new DuoStatsEndpoint(_basePath);
+            _endpoints.Add(duoStatsEndpoint);
+
+            var duoVsSoloPerformanceEndpoint = new DuoVsSoloPerformanceEndpoint(_basePath);
+            _endpoints.Add(duoVsSoloPerformanceEndpoint);
+
+            var championSynergyEndpoint = new ChampionSynergyEndpoint(_basePath);
+            _endpoints.Add(championSynergyEndpoint);
+
+            var duoVsEnemyEndpoint = new DuoVsEnemyEndpoint(_basePath);
+            _endpoints.Add(duoVsEnemyEndpoint);
         }
 
         public void ConfigureEndpoints()
