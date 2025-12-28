@@ -57,6 +57,21 @@ namespace RiotProxy.Application
 
             var duoVsEnemyEndpoint = new DuoVsEnemyEndpoint(_basePath);
             _endpoints.Add(duoVsEnemyEndpoint);
+
+            var duoRoleConsistencyEndpoint = new DuoRoleConsistencyEndpoint(_basePath);
+            _endpoints.Add(duoRoleConsistencyEndpoint);
+
+            var duoLaneMatchupEndpoint = new DuoLaneMatchupEndpoint(_basePath);
+            _endpoints.Add(duoLaneMatchupEndpoint);
+
+            var duoKillEfficiencyEndpoint = new DuoKillEfficiencyEndpoint(_basePath);
+            _endpoints.Add(duoKillEfficiencyEndpoint);
+
+            var duoMatchDurationEndpoint = new DuoMatchDurationEndpoint(_basePath);
+            _endpoints.Add(duoMatchDurationEndpoint);
+
+            var duoImprovementSummaryEndpoint = new DuoImprovementSummaryEndpoint(_basePath);
+            _endpoints.Add(duoImprovementSummaryEndpoint);
         }
 
         public void ConfigureEndpoints()
