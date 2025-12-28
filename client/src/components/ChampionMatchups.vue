@@ -186,9 +186,16 @@ const searchResults = computed(() => {
   const searchTerm = opponentSearch.value.toLowerCase();
   const results = [];
 
+  console.log('Searching for:', searchTerm);
+  console.log('Total matchups:', matchupsData.value.matchups.length);
+
   matchupsData.value.matchups.forEach(matchup => {
+    console.log(`Checking matchup: ${matchup.championName} (${matchup.role}), opponents:`, matchup.opponents.length);
     matchup.opponents.forEach(opponent => {
-      if (opponent.opponentChampionName.toLowerCase().includes(searchTerm)) {
+      const opponentNameLower = opponent.opponentChampionName.toLowerCase();
+      console.log(`  - Opponent: ${opponent.opponentChampionName} (${opponentNameLower})`);
+      if (opponentNameLower.includes(searchTerm)) {
+        console.log(`    ✓ MATCH FOUND!`);
         results.push({
           championName: matchup.championName,
           championId: matchup.championId,
@@ -202,6 +209,8 @@ const searchResults = computed(() => {
       }
     });
   });
+
+  console.log('Search results:', results.length);
 
   // Sort by winrate descending
   return results.sort((a, b) => b.winrate - a.winrate);
@@ -258,6 +267,13 @@ async function load() {
   error.value = null;
   try {
     matchupsData.value = await getChampionMatchups(props.userId);
+    console.log('Loaded matchups data:', matchupsData.value);
+    if (matchupsData.value?.matchups) {
+      console.log('Total matchups loaded:', matchupsData.value.matchups.length);
+      matchupsData.value.matchups.forEach(m => {
+        console.log(`${m.championName} (${m.role}): ${m.opponents.length} opponents`);
+      });
+    }
   } catch (e) {
     console.error('Error loading champion matchups data:', e);
     error.value = e?.message || 'Failed to load champion matchups data.';
