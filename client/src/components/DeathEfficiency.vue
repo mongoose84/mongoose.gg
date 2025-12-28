@@ -147,11 +147,20 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Match RoleDistribution height */
+.death-efficiency-container {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+}
+
+/* Override ChartCard max-width for death efficiency */
 .death-efficiency-container :deep(.chart-card) {
   max-width: 100%;
-  height: auto;
+  height: 100%;
   min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .death-loading,
@@ -172,7 +181,6 @@ onMounted(() => {
   padding: 0.5rem 0;
   align-items: center;
   justify-content: center;
-  min-height: 180px;
 }
 
 .chart-section {

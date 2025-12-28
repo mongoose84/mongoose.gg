@@ -164,12 +164,13 @@ onMounted(load);
 .role-distribution-container {
   width: 100%;
   max-width: 100%;
+  height: 100%;
 }
 
 /* Override ChartCard max-width for role distribution */
 .role-distribution-container :deep(.chart-card) {
   max-width: 100%;
-  height: auto;
+  height: 100%;
   min-height: 250px;
 }
 

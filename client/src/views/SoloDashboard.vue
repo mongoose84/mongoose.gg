@@ -168,6 +168,12 @@ defineExpose({ load });
   grid-template-columns: repeat(3, 1fr);
   gap: 1.2rem;
   width: 100%;
+  align-items: stretch;
+}
+
+/* Ensure all grid items have the same height */
+.new-cards-section > * {
+  height: 100%;
 }
 
 /* Responsive: stack vertically on smaller screens */
