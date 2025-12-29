@@ -11,11 +11,14 @@ vi.mock('vue-router', async () => {
   }
 })
 
-vi.mock('@/assets/getUsers.js', () => ({
-  default: vi.fn().mockResolvedValue([
-    { userId: 1, userName: 'Alice' },
-    { userId: 2, userName: 'Bob' },
-  ])
+vi.mock('@/api/shared.js', () => ({
+  getUsers: vi.fn().mockResolvedValue([
+    { userId: 1, userName: 'Alice', userType: 1 },
+    { userId: 2, userName: 'Bob', userType: 1 },
+  ]),
+  createUser: vi.fn().mockResolvedValue({}),
+  isDevelopment: true,
+  getBaseApi: vi.fn().mockReturnValue('http://localhost:5000/api/v1.0')
 }))
 
 describe('HomeView', () => {

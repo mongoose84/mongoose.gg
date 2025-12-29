@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import RadarChart from '@/components/RadarChart.vue'
+import RadarChart from '@/components/shared/RadarChart.vue'
 
 // Mock the getComparison API call - must be defined inline to avoid hoisting issues
-vi.mock('@/assets/getComparison.js', () => ({
-  default: vi.fn().mockResolvedValue({
+vi.mock('@/api/solo.js', () => ({
+  getComparison: vi.fn().mockResolvedValue({
     winrate: [
       { value: 0.55, gamerName: 'Player1#EUW' },
       { value: 0.48, gamerName: 'Player1#EUNE' }
@@ -217,8 +217,8 @@ describe('RadarChart', () => {
   })
 
   it('handles empty data gracefully', async () => {
-    const getComparison = await import('@/assets/getComparison.js')
-    vi.mocked(getComparison.default).mockResolvedValueOnce({
+    const soloApi = await import('@/api/solo.js')
+    vi.mocked(soloApi.getComparison).mockResolvedValueOnce({
       winrate: [],
       kda: [],
       csPrMin: [],
@@ -243,8 +243,8 @@ describe('RadarChart', () => {
   })
 
   it('handles API errors gracefully', async () => {
-    const getComparison = await import('@/assets/getComparison.js')
-    vi.mocked(getComparison.default).mockRejectedValueOnce(new Error('API Error'))
+    const soloApi = await import('@/api/solo.js')
+    vi.mocked(soloApi.getComparison).mockRejectedValueOnce(new Error('API Error'))
 
     const wrapper = mount(RadarChart, {
       props: { userId: 1 },
@@ -259,7 +259,7 @@ describe('RadarChart', () => {
   })
 
   it('reloads data when userId prop changes', async () => {
-    const getComparison = await import('@/assets/getComparison.js')
+    const soloApi = await import('@/api/solo.js')
 
     const wrapper = mount(RadarChart, {
       props: { userId: 1 },
@@ -269,13 +269,13 @@ describe('RadarChart', () => {
     })
 
     await flushPromises()
-    expect(getComparison.default).toHaveBeenCalledTimes(1)
+    expect(soloApi.getComparison).toHaveBeenCalledTimes(1)
 
     // Change userId
     await wrapper.setProps({ userId: 2 })
     await flushPromises()
 
-    expect(getComparison.default).toHaveBeenCalledTimes(2)
+    expect(soloApi.getComparison).toHaveBeenCalledTimes(2)
   })
 })
 

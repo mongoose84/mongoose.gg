@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import PerformanceCharts from '@/components/PerformanceCharts.vue'
+import PerformanceCharts from '@/components/solo/PerformanceCharts.vue'
 
 // Mock performance data - must be defined inline to avoid hoisting issues
-vi.mock('@/assets/getPerformance.js', () => ({
-  default: vi.fn().mockResolvedValue({
+vi.mock('@/api/solo.js', () => ({
+  getPerformance: vi.fn().mockResolvedValue({
     gamers: [
       {
         gamerName: 'Player1#EUW',
@@ -297,7 +297,7 @@ describe('PerformanceCharts', () => {
   })
 
   it('changes period when button is clicked', async () => {
-    const getPerformance = await import('@/assets/getPerformance.js')
+    const soloApi = await import('@/api/solo.js')
 
     const wrapper = mount(PerformanceCharts, {
       props: { userId: 1 },
@@ -309,7 +309,7 @@ describe('PerformanceCharts', () => {
     await flushPromises()
 
     // Initial call with default period '50'
-    expect(getPerformance.default).toHaveBeenCalledWith(1, '50')
+    expect(soloApi.getPerformance).toHaveBeenCalledWith(1, '50')
 
     // Click on '20 Games' button
     const buttons = wrapper.findAll('.limit-btn')
@@ -317,15 +317,15 @@ describe('PerformanceCharts', () => {
     await flushPromises()
 
     // Should call API with new period
-    expect(getPerformance.default).toHaveBeenCalledWith(1, '20')
+    expect(soloApi.getPerformance).toHaveBeenCalledWith(1, '20')
 
     // Button should be active
     expect(buttons[0].classes()).toContain('active')
   })
 
   it('handles empty data gracefully', async () => {
-    const getPerformance = await import('@/assets/getPerformance.js')
-    vi.mocked(getPerformance.default).mockResolvedValueOnce({ gamers: [] })
+    const soloApi = await import('@/api/solo.js')
+    vi.mocked(soloApi.getPerformance).mockResolvedValueOnce({ gamers: [] })
 
     const wrapper = mount(PerformanceCharts, {
       props: { userId: 1 },
@@ -340,8 +340,8 @@ describe('PerformanceCharts', () => {
   })
 
   it('handles API errors gracefully', async () => {
-    const getPerformance = await import('@/assets/getPerformance.js')
-    vi.mocked(getPerformance.default).mockRejectedValueOnce(new Error('Network Error'))
+    const soloApi = await import('@/api/solo.js')
+    vi.mocked(soloApi.getPerformance).mockRejectedValueOnce(new Error('Network Error'))
 
     const wrapper = mount(PerformanceCharts, {
       props: { userId: 1 },
@@ -356,7 +356,7 @@ describe('PerformanceCharts', () => {
   })
 
   it('reloads data when userId prop changes', async () => {
-    const getPerformance = await import('@/assets/getPerformance.js')
+    const soloApi = await import('@/api/solo.js')
 
     const wrapper = mount(PerformanceCharts, {
       props: { userId: 1 },
@@ -366,14 +366,14 @@ describe('PerformanceCharts', () => {
     })
 
     await flushPromises()
-    expect(getPerformance.default).toHaveBeenCalledTimes(1)
+    expect(soloApi.getPerformance).toHaveBeenCalledTimes(1)
 
     // Change userId
     await wrapper.setProps({ userId: 2 })
     await flushPromises()
 
-    expect(getPerformance.default).toHaveBeenCalledTimes(2)
-    expect(getPerformance.default).toHaveBeenCalledWith(2, '50')
+    expect(soloApi.getPerformance).toHaveBeenCalledTimes(2)
+    expect(soloApi.getPerformance).toHaveBeenCalledWith(2, '50')
   })
 })
 

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
-import ChampionPerformanceSplit from '@/components/ChampionPerformanceSplit.vue'
+import ChampionPerformanceSplit from '@/components/solo/ChampionPerformanceSplit.vue'
 
 // Mock the getChampionPerformance API call
-vi.mock('@/assets/getChampionPerformance.js', () => ({
-  default: vi.fn().mockResolvedValue({
+vi.mock('@/api/solo.js', () => ({
+  getChampionPerformance: vi.fn().mockResolvedValue({
     champions: [
       {
         championName: 'Jinx',
@@ -86,8 +86,8 @@ describe('ChampionPerformanceSplit', () => {
       resolvePromise = resolve
     })
 
-    const getChampionPerformance = await import('@/assets/getChampionPerformance.js')
-    vi.mocked(getChampionPerformance.default).mockReturnValueOnce(promise as any)
+    const soloApi = await import('@/api/solo.js')
+    vi.mocked(soloApi.getChampionPerformance).mockReturnValueOnce(promise as any)
 
     const wrapper = mount(ChampionPerformanceSplit, {
       props: { userId: 1 },
@@ -267,8 +267,8 @@ describe('ChampionPerformanceSplit', () => {
   })
 
   it('handles empty data gracefully', async () => {
-    const getChampionPerformance = await import('@/assets/getChampionPerformance.js')
-    vi.mocked(getChampionPerformance.default).mockResolvedValueOnce({
+    const soloApi = await import('@/api/solo.js')
+    vi.mocked(soloApi.getChampionPerformance).mockResolvedValueOnce({
       champions: []
     })
 
@@ -285,8 +285,8 @@ describe('ChampionPerformanceSplit', () => {
   })
 
   it('handles API errors gracefully', async () => {
-    const getChampionPerformance = await import('@/assets/getChampionPerformance.js')
-    vi.mocked(getChampionPerformance.default).mockRejectedValueOnce(new Error('API Error'))
+    const soloApi = await import('@/api/solo.js')
+    vi.mocked(soloApi.getChampionPerformance).mockRejectedValueOnce(new Error('API Error'))
 
     const wrapper = mount(ChampionPerformanceSplit, {
       props: { userId: 1 },
@@ -301,7 +301,7 @@ describe('ChampionPerformanceSplit', () => {
   })
 
   it('reloads data when userId prop changes', async () => {
-    const getChampionPerformance = await import('@/assets/getChampionPerformance.js')
+    const soloApi = await import('@/api/solo.js')
 
     const wrapper = mount(ChampionPerformanceSplit, {
       props: { userId: 1 },
@@ -311,13 +311,13 @@ describe('ChampionPerformanceSplit', () => {
     })
 
     await flushPromises()
-    expect(getChampionPerformance.default).toHaveBeenCalledTimes(1)
+    expect(soloApi.getChampionPerformance).toHaveBeenCalledTimes(1)
 
     // Change userId
     await wrapper.setProps({ userId: 2 })
     await flushPromises()
 
-    expect(getChampionPerformance.default).toHaveBeenCalledTimes(2)
+    expect(soloApi.getChampionPerformance).toHaveBeenCalledTimes(2)
   })
 
   it('uses correct colors for servers', async () => {
