@@ -14,11 +14,8 @@
         </div>
       </router-link>
 
-      <!-- Header right section: latest game info + dev button -->
+      <!-- Header right section: dev button -->
       <div class="header-right">
-        <span v-if="latestGameDate" class="latest-game">
-          Latest game: {{ latestGameFormatted }}
-        </span>
         <!-- Dev-only refresh button -->
         <button
           v-if="isDev"
@@ -83,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useGamers } from '@/composables/useGamers.js';
 import { isDevelopment } from '@/api/shared.js';
 import { refreshGames } from '@/api/solo.js';
@@ -148,49 +145,6 @@ const { loading, error, gamers, hasUser, load } = useGamers(() => ({
   userId: props.userId,
 }));
 
-// Compute latest game date from gamers data (for header display)
-const latestGameDate = computed(() => {
-  if (!gamers.value || gamers.value.length === 0) return null;
-
-  const dates = gamers.value
-    .map(g => {
-      const game = g.latestGame || g.LatestGame;
-      if (!game) return null;
-      const timestamp = game.gameEndTimestamp || game.GameEndTimestamp;
-      return timestamp && timestamp !== '0001-01-01T00:00:00' ? new Date(timestamp) : null;
-    })
-    .filter(d => d !== null);
-
-  if (dates.length === 0) return null;
-  return new Date(Math.max(...dates));
-});
-
-// Format the latest game date for display
-const latestGameFormatted = computed(() => {
-  if (!latestGameDate.value) return '';
-
-  const now = new Date();
-  const diff = now - latestGameDate.value;
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-  if (days === 0) {
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours === 0) {
-      const minutes = Math.floor(diff / (1000 * 60));
-      return minutes <= 1 ? 'just now' : `${minutes} minutes ago`;
-    }
-    return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
-  }
-  if (days === 1) return 'yesterday';
-  if (days < 7) return `${days} days ago`;
-
-  return latestGameDate.value.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: latestGameDate.value.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-  });
-});
-
 // (Optional) expose `load` so a parent could call it manually
 defineExpose({ load });
 </script>
@@ -219,12 +173,6 @@ defineExpose({ load });
   display: flex;
   align-items: center;
   gap: 1rem;
-}
-
-.latest-game {
-  font-size: 0.85rem;
-  color: var(--color-text-muted, #888);
-  white-space: nowrap;
 }
 
 .refresh-btn {
