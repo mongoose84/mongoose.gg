@@ -117,6 +117,10 @@ namespace RiotProxy.Application
 
             var teamDeathsTrendEndpoint = new TeamDeathsTrendEndpoint(_basePath);
             _endpoints.Add(teamDeathsTrendEndpoint);
+
+            // Side stats endpoint (blue/red win rates)
+            var sideStatsEndpoint = new SideStatsEndpoint(_basePath);
+            _endpoints.Add(sideStatsEndpoint);
         }
 
         public void ConfigureEndpoints()

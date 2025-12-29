@@ -313,6 +313,135 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         }
 
         /// <summary>
+        /// Get side statistics (blue/red) for a specific puuid.
+        /// TeamId 100 = Blue side, TeamId 200 = Red side.
+        /// </summary>
+        internal async Task<SideStatsRecord> GetSideStatsByPuuIdAsync(string puuId)
+        {
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            const string sql = @"
+                SELECT
+                    SUM(CASE WHEN TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
+                    SUM(CASE WHEN TeamId = 100 AND Win = 1 THEN 1 ELSE 0 END) as BlueWins,
+                    SUM(CASE WHEN TeamId = 200 THEN 1 ELSE 0 END) as RedGames,
+                    SUM(CASE WHEN TeamId = 200 AND Win = 1 THEN 1 ELSE 0 END) as RedWins
+                FROM LolMatchParticipant
+                WHERE Puuid = @puuid";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuId);
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new SideStatsRecord(
+                    BlueGames: reader.GetInt32("BlueGames"),
+                    BlueWins: reader.GetInt32("BlueWins"),
+                    RedGames: reader.GetInt32("RedGames"),
+                    RedWins: reader.GetInt32("RedWins")
+                );
+            }
+
+            return new SideStatsRecord(0, 0, 0, 0);
+        }
+
+        /// <summary>
+        /// Get side statistics (blue/red) for duo games (where both players are on the same team).
+        /// </summary>
+        internal async Task<SideStatsRecord> GetDuoSideStatsByPuuIdsAsync(string puuId1, string puuId2)
+        {
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            const string sql = @"
+                SELECT
+                    SUM(CASE WHEN p1.TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
+                    SUM(CASE WHEN p1.TeamId = 100 AND p1.Win = 1 THEN 1 ELSE 0 END) as BlueWins,
+                    SUM(CASE WHEN p1.TeamId = 200 THEN 1 ELSE 0 END) as RedGames,
+                    SUM(CASE WHEN p1.TeamId = 200 AND p1.Win = 1 THEN 1 ELSE 0 END) as RedWins
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2
+                    ON p1.MatchId = p2.MatchId
+                    AND p1.TeamId = p2.TeamId
+                    AND p1.Puuid != p2.Puuid
+                WHERE p1.Puuid = @puuid1
+                  AND p2.Puuid = @puuid2";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid1", puuId1);
+            cmd.Parameters.AddWithValue("@puuid2", puuId2);
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new SideStatsRecord(
+                    BlueGames: reader.IsDBNull(reader.GetOrdinal("BlueGames")) ? 0 : reader.GetInt32("BlueGames"),
+                    BlueWins: reader.IsDBNull(reader.GetOrdinal("BlueWins")) ? 0 : reader.GetInt32("BlueWins"),
+                    RedGames: reader.IsDBNull(reader.GetOrdinal("RedGames")) ? 0 : reader.GetInt32("RedGames"),
+                    RedWins: reader.IsDBNull(reader.GetOrdinal("RedWins")) ? 0 : reader.GetInt32("RedWins")
+                );
+            }
+
+            return new SideStatsRecord(0, 0, 0, 0);
+        }
+
+        /// <summary>
+        /// Get side statistics (blue/red) for team games (where all specified players are on the same team).
+        /// </summary>
+        internal async Task<SideStatsRecord> GetTeamSideStatsByPuuIdsAsync(string[] puuIds)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return new SideStatsRecord(0, 0, 0, 0);
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build join clauses for all team members
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant p{i}
+                        ON p0.MatchId = p{i}.MatchId
+                        AND p0.TeamId = p{i}.TeamId
+                        AND p{i}.Puuid = @puuid{i}");
+            }
+
+            var sql = $@"
+                SELECT
+                    SUM(CASE WHEN p0.TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
+                    SUM(CASE WHEN p0.TeamId = 100 AND p0.Win = 1 THEN 1 ELSE 0 END) as BlueWins,
+                    SUM(CASE WHEN p0.TeamId = 200 THEN 1 ELSE 0 END) as RedGames,
+                    SUM(CASE WHEN p0.TeamId = 200 AND p0.Win = 1 THEN 1 ELSE 0 END) as RedWins
+                FROM LolMatchParticipant p0
+                {string.Join(" ", joinClauses)}
+                WHERE p0.Puuid = @puuid0";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+            }
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new SideStatsRecord(
+                    BlueGames: reader.IsDBNull(reader.GetOrdinal("BlueGames")) ? 0 : reader.GetInt32("BlueGames"),
+                    BlueWins: reader.IsDBNull(reader.GetOrdinal("BlueWins")) ? 0 : reader.GetInt32("BlueWins"),
+                    RedGames: reader.IsDBNull(reader.GetOrdinal("RedGames")) ? 0 : reader.GetInt32("RedGames"),
+                    RedWins: reader.IsDBNull(reader.GetOrdinal("RedWins")) ? 0 : reader.GetInt32("RedWins")
+                );
+            }
+
+            return new SideStatsRecord(0, 0, 0, 0);
+        }
+
+        /// <summary>
         /// Get match duration statistics (wins/total games) grouped by duration buckets for a specific puuid.
         /// </summary>
         internal async Task<IList<DurationBucketRecord>> GetDurationStatsByPuuIdAsync(string puuId)
@@ -2517,5 +2646,15 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         int TripleKills,
         int QuadraKills,
         int PentaKills
+    );
+
+    /// <summary>
+    /// Record for side (blue/red) statistics.
+    /// </summary>
+    public record SideStatsRecord(
+        int BlueGames,
+        int BlueWins,
+        int RedGames,
+        int RedWins
     );
 }

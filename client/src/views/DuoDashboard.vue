@@ -70,6 +70,11 @@
             <DuoMatchDuration :userId="userId" />
           </div>
 
+          <!-- Side Win Rate -->
+          <div class="side-win-rate-section">
+            <SideWinRate :userId="userId" mode="duo" />
+          </div>
+
           <!-- Improvement Summary (Full width) -->
           <div class="duo-summary-section">
             <DuoImprovementSummary :userId="userId" />
@@ -96,6 +101,7 @@ import DuoLaneMatchup from '@/components/DuoLaneMatchup.vue';
 import DuoKillEfficiency from '@/components/DuoKillEfficiency.vue';
 import DuoMatchDuration from '@/components/DuoMatchDuration.vue';
 import DuoImprovementSummary from '@/components/DuoImprovementSummary.vue';
+import SideWinRate from '@/components/SideWinRate.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
 const props = defineProps({
@@ -327,6 +333,13 @@ defineExpose({ load, loadDuoStats });
 /* Duo Summary Section (Full width) */
 .duo-summary-section {
   margin-top: 1.5rem;
+  width: 100%;
+}
+
+/* Side Win Rate section - one third width */
+.side-win-rate-section {
+  margin-top: 1.5rem;
+  display: flex;
   width: 100%;
 }
 

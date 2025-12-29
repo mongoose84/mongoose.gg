@@ -76,6 +76,11 @@
             <TeamDeathsTrend :userId="userId" />
           </div>
 
+          <!-- Side Win Rate -->
+          <div class="side-win-rate-section">
+            <SideWinRate :userId="userId" mode="team" />
+          </div>
+
         </div>
       </template>
     </div>
@@ -103,6 +108,7 @@ import TeamKillParticipation from '@/components/TeamKillParticipation.vue';
 import TeamKillsByPhase from '@/components/TeamKillsByPhase.vue';
 import TeamKillsTrend from '@/components/TeamKillsTrend.vue';
 import TeamMultiKillShowcase from '@/components/TeamMultiKillShowcase.vue';
+import SideWinRate from '@/components/SideWinRate.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
 const props = defineProps({
@@ -366,6 +372,13 @@ defineExpose({ load });
 .team-performance-section :deep(.chart-card),
 .team-summary-section :deep(.chart-card) {
   max-width: 100%;
+}
+
+/* Side Win Rate section - one third width */
+.side-win-rate-section {
+  margin-top: 1.5rem;
+  display: flex;
+  width: 100%;
 }
 
 /* Mobile responsiveness */
