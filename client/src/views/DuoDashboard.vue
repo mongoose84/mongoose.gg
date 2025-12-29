@@ -49,29 +49,15 @@
 
         <!-- Duo Features Container -->
         <div v-if="gamers.length === 2" class="duo-features-container">
-          <!-- Duo vs Solo Performance Charts -->
-          <DuoVsSoloPerformance :userId="userId" :gamers="gamers" />
-
           <!-- Champion Synergy & Duo vs Enemy (Two-column layout) -->
           <div class="duo-features-grid">
             <ChampionSynergyMatrix :userId="userId" :gamers="gamers" />
             <DuoVsEnemyMatrix :userId="userId" :gamers="gamers" />
           </div>
 
-          <!-- Role Consistency & Lane Matchup (Two-column layout) -->
+          <!-- Match Duration & Side Win Rate (Two-column layout) -->
           <div class="duo-features-grid">
-            <DuoRoleConsistency :userId="userId" />
-            <DuoLaneMatchup :userId="userId" />
-          </div>
-
-          <!-- Kill Efficiency & Match Duration (Two-column layout) -->
-          <div class="duo-features-grid">
-            <DuoKillEfficiency :userId="userId" />
             <DuoMatchDuration :userId="userId" />
-          </div>
-
-          <!-- Side Win Rate -->
-          <div class="side-win-rate-section">
             <SideWinRate :userId="userId" mode="duo" />
           </div>
 
@@ -93,12 +79,8 @@ import GamerCardsList from '@/components/GamerCardsList.vue';
 import GamerCard from '@/views/GamerCard.vue';
 import AppLogo from '@/components/AppLogo.vue';
 import getDuoStats from '@/assets/getDuoStats.js';
-import DuoVsSoloPerformance from '@/components/DuoVsSoloPerformance.vue';
 import ChampionSynergyMatrix from '@/components/ChampionSynergyMatrix.vue';
 import DuoVsEnemyMatrix from '@/components/DuoVsEnemyMatrix.vue';
-import DuoRoleConsistency from '@/components/DuoRoleConsistency.vue';
-import DuoLaneMatchup from '@/components/DuoLaneMatchup.vue';
-import DuoKillEfficiency from '@/components/DuoKillEfficiency.vue';
 import DuoMatchDuration from '@/components/DuoMatchDuration.vue';
 import DuoImprovementSummary from '@/components/DuoImprovementSummary.vue';
 import SideWinRate from '@/components/SideWinRate.vue';
@@ -333,13 +315,6 @@ defineExpose({ load, loadDuoStats });
 /* Duo Summary Section (Full width) */
 .duo-summary-section {
   margin-top: 1.5rem;
-  width: 100%;
-}
-
-/* Side Win Rate section - one third width */
-.side-win-rate-section {
-  margin-top: 1.5rem;
-  display: flex;
   width: 100%;
 }
 
