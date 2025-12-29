@@ -49,6 +49,14 @@
 
         <!-- Duo Features Container -->
         <div v-if="gamers.length === 2" class="duo-features-container">
+          <!-- Trend Analysis Section (Top, Single Row) -->
+          <h3 class="section-title">📊 Trend Analysis</h3>
+          <div class="duo-features-grid-3">
+            <DuoWinRateTrend :userId="userId" />
+            <DuoStreak :userId="userId" />
+            <DuoPerformanceRadar :userId="userId" />
+          </div>
+
           <!-- Champion Synergy & Duo vs Enemy (Two-column layout) -->
           <div class="duo-features-grid">
             <ChampionSynergyMatrix :userId="userId" :gamers="gamers" />
@@ -81,16 +89,6 @@
           <div class="duo-features-grid">
             <DuoDeathsByDuration :userId="userId" />
             <DuoDeathsTrend :userId="userId" />
-          </div>
-
-          <!-- Trend Analysis Section -->
-          <h3 class="section-title">📊 Trend Analysis</h3>
-          <div class="duo-features-grid">
-            <DuoWinRateTrend :userId="userId" />
-            <DuoStreak :userId="userId" />
-          </div>
-          <div class="duo-features-grid">
-            <DuoPerformanceRadar :userId="userId" />
           </div>
 
           <!-- Improvement Summary (Full width) -->
@@ -368,14 +366,51 @@ defineExpose({ load, loadDuoStats });
   margin-top: 1.5rem;
 }
 
+/* Duo Features Grid (Three-column layout for Trend Analysis) */
+.duo-features-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  align-items: stretch;
+}
+
+.duo-features-grid-3 > * {
+  height: 100%;
+}
+
+.duo-features-grid-3 :deep(.chart-card) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.duo-features-grid-3 :deep(.chart-card > *:last-child) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Duo Summary Section (Full width) */
 .duo-summary-section {
   margin-top: 1.5rem;
   width: 100%;
 }
 
+@media (max-width: 1400px) {
+  .duo-features-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 1100px) {
   .duo-features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .duo-features-grid-3 {
     grid-template-columns: 1fr;
   }
 }

@@ -70,11 +70,11 @@ onMounted(load);
 </script>
 
 <style scoped>
-.streak-container { width: 100%; }
+.streak-container { width: 100%; height: 100%; display: flex; flex-direction: column; }
 .loading, .error, .empty { padding: 2rem; text-align: center; color: var(--color-text-muted); }
 .error { color: var(--color-danger); }
 
-.streak-content { padding: 1rem 0; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.streak-content { padding: 1rem 0; display: flex; flex-direction: column; align-items: center; gap: 1rem; flex: 1; justify-content: center; }
 
 .current-streak {
   display: flex;
