@@ -61,6 +61,42 @@ namespace RiotProxy.Application
             var duoImprovementSummaryEndpoint = new DuoImprovementSummaryEndpoint(_basePath);
             _endpoints.Add(duoImprovementSummaryEndpoint);
 
+            // Duo Kill Analysis endpoints
+            var duoMultiKillsEndpoint = new DuoMultiKillsEndpoint(_basePath);
+            _endpoints.Add(duoMultiKillsEndpoint);
+
+            var duoKillsByPhaseEndpoint = new DuoKillsByPhaseEndpoint(_basePath);
+            _endpoints.Add(duoKillsByPhaseEndpoint);
+
+            var duoKillParticipationEndpoint = new DuoKillParticipationEndpoint(_basePath);
+            _endpoints.Add(duoKillParticipationEndpoint);
+
+            var duoKillsTrendEndpoint = new DuoKillsTrendEndpoint(_basePath);
+            _endpoints.Add(duoKillsTrendEndpoint);
+
+            // Duo Death Analysis endpoints
+            var duoDeathTimerImpactEndpoint = new DuoDeathTimerImpactEndpoint(_basePath);
+            _endpoints.Add(duoDeathTimerImpactEndpoint);
+
+            var duoDeathsByDurationEndpoint = new DuoDeathsByDurationEndpoint(_basePath);
+            _endpoints.Add(duoDeathsByDurationEndpoint);
+
+            var duoDeathShareEndpoint = new DuoDeathShareEndpoint(_basePath);
+            _endpoints.Add(duoDeathShareEndpoint);
+
+            var duoDeathsTrendEndpoint = new DuoDeathsTrendEndpoint(_basePath);
+            _endpoints.Add(duoDeathsTrendEndpoint);
+
+            // Duo Trend Analysis endpoints
+            var duoWinRateTrendEndpoint = new DuoWinRateTrendEndpoint(_basePath);
+            _endpoints.Add(duoWinRateTrendEndpoint);
+
+            var duoPerformanceRadarEndpoint = new DuoPerformanceRadarEndpoint(_basePath);
+            _endpoints.Add(duoPerformanceRadarEndpoint);
+
+            var duoStreakEndpoint = new DuoStreakEndpoint(_basePath);
+            _endpoints.Add(duoStreakEndpoint);
+
             // Team endpoints (3+ players)
             var teamStatsEndpoint = new TeamStatsEndpoint(_basePath);
             _endpoints.Add(teamStatsEndpoint);

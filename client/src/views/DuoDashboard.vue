@@ -61,6 +61,38 @@
             <SideWinRate :userId="userId" mode="duo" />
           </div>
 
+          <!-- Kill Analysis Section -->
+          <h3 class="section-title">⚔️ Kill Analysis</h3>
+          <div class="duo-features-grid">
+            <DuoMultiKillShowcase :userId="userId" />
+            <DuoKillParticipation :userId="userId" />
+          </div>
+          <div class="duo-features-grid">
+            <DuoKillsByPhase :userId="userId" />
+            <DuoKillsTrend :userId="userId" />
+          </div>
+
+          <!-- Death Analysis Section -->
+          <h3 class="section-title">💀 Death Analysis</h3>
+          <div class="duo-features-grid">
+            <DuoDeathTimerImpact :userId="userId" />
+            <DuoDeathShare :userId="userId" />
+          </div>
+          <div class="duo-features-grid">
+            <DuoDeathsByDuration :userId="userId" />
+            <DuoDeathsTrend :userId="userId" />
+          </div>
+
+          <!-- Trend Analysis Section -->
+          <h3 class="section-title">📊 Trend Analysis</h3>
+          <div class="duo-features-grid">
+            <DuoWinRateTrend :userId="userId" />
+            <DuoStreak :userId="userId" />
+          </div>
+          <div class="duo-features-grid">
+            <DuoPerformanceRadar :userId="userId" />
+          </div>
+
           <!-- Improvement Summary (Full width) -->
           <div class="duo-summary-section">
             <DuoImprovementSummary :userId="userId" />
@@ -84,6 +116,20 @@ import DuoVsEnemyMatrix from '@/components/DuoVsEnemyMatrix.vue';
 import DuoMatchDuration from '@/components/DuoMatchDuration.vue';
 import DuoImprovementSummary from '@/components/DuoImprovementSummary.vue';
 import SideWinRate from '@/components/SideWinRate.vue';
+// Kill Analysis Components
+import DuoMultiKillShowcase from '@/components/DuoMultiKillShowcase.vue';
+import DuoKillsByPhase from '@/components/DuoKillsByPhase.vue';
+import DuoKillParticipation from '@/components/DuoKillParticipation.vue';
+import DuoKillsTrend from '@/components/DuoKillsTrend.vue';
+// Death Analysis Components
+import DuoDeathTimerImpact from '@/components/DuoDeathTimerImpact.vue';
+import DuoDeathsByDuration from '@/components/DuoDeathsByDuration.vue';
+import DuoDeathShare from '@/components/DuoDeathShare.vue';
+import DuoDeathsTrend from '@/components/DuoDeathsTrend.vue';
+// Trend Analysis Components
+import DuoWinRateTrend from '@/components/DuoWinRateTrend.vue';
+import DuoPerformanceRadar from '@/components/DuoPerformanceRadar.vue';
+import DuoStreak from '@/components/DuoStreak.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
 const props = defineProps({
@@ -302,6 +348,16 @@ defineExpose({ load, loadDuoStats });
 .duo-features-container {
   max-width: 1400px;
   margin: 2rem auto 0;
+}
+
+/* Section Titles */
+.section-title {
+  margin: 2.5rem 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-border);
 }
 
 /* Duo Features Grid (Two-column layout) */

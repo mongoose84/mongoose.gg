@@ -1166,6 +1166,716 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             return records;
         }
 
+        /// <summary>
+        /// Get multi-kill statistics for each player in duo games.
+        /// </summary>
+        internal async Task<IList<DuoMultiKillRecord>> GetDuoMultiKillsAsync(string puuId1, string puuId2, string? gameMode = null)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return new List<DuoMultiKillRecord>();
+            }
+
+            var records = new List<DuoMultiKillRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            foreach (var puuId in new[] { puuId1, puuId2 })
+            {
+                var sql = @"
+                    SELECT
+                        SUM(p.DoubleKills) as DoubleKills,
+                        SUM(p.TripleKills) as TripleKills,
+                        SUM(p.QuadraKills) as QuadraKills,
+                        SUM(p.PentaKills) as PentaKills
+                    FROM LolMatchParticipant p
+                    INNER JOIN LolMatchParticipant p2 ON p.MatchId = p2.MatchId AND p.TeamId = p2.TeamId AND p.Puuid != p2.Puuid
+                    INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                    WHERE p.Puuid = @puuid
+                      AND p2.Puuid = @otherPuuid
+                      AND m.InfoFetched = TRUE
+                      AND m.DurationSeconds > 0";
+
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    sql += " AND m.GameMode = @gameMode";
+                }
+
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@puuid", puuId);
+                cmd.Parameters.AddWithValue("@otherPuuid", puuId == puuId1 ? puuId2 : puuId1);
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    cmd.Parameters.AddWithValue("@gameMode", gameMode);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    records.Add(new DuoMultiKillRecord(
+                        PuuId: puuId,
+                        DoubleKills: reader.IsDBNull(reader.GetOrdinal("DoubleKills")) ? 0 : reader.GetInt32("DoubleKills"),
+                        TripleKills: reader.IsDBNull(reader.GetOrdinal("TripleKills")) ? 0 : reader.GetInt32("TripleKills"),
+                        QuadraKills: reader.IsDBNull(reader.GetOrdinal("QuadraKills")) ? 0 : reader.GetInt32("QuadraKills"),
+                        PentaKills: reader.IsDBNull(reader.GetOrdinal("PentaKills")) ? 0 : reader.GetInt32("PentaKills")
+                    ));
+                }
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get duo kills grouped by game duration buckets.
+        /// </summary>
+        internal async Task<IList<DuoKillsByDurationRecord>> GetDuoKillsByDurationAsync(string puuId1, string puuId2, string? gameMode = null)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return new List<DuoKillsByDurationRecord>();
+            }
+
+            var records = new List<DuoKillsByDurationRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            var sql = @"
+                SELECT
+                    CASE
+                        WHEN m.DurationSeconds < 1200 THEN 'under20'
+                        WHEN m.DurationSeconds < 1500 THEN '20-25'
+                        WHEN m.DurationSeconds < 1800 THEN '25-30'
+                        WHEN m.DurationSeconds < 2100 THEN '30-35'
+                        WHEN m.DurationSeconds < 2400 THEN '35-40'
+                        ELSE '40+'
+                    END as DurationBucket,
+                    COUNT(*) as GamesPlayed,
+                    SUM(p1.Kills + p2.Kills) as TotalTeamKills,
+                    SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2 ON p1.MatchId = p2.MatchId AND p1.TeamId = p2.TeamId AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                WHERE p1.Puuid = @puuid1
+                  AND p2.Puuid = @puuid2
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            sql += " GROUP BY DurationBucket";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid1", puuId1);
+            cmd.Parameters.AddWithValue("@puuid2", puuId2);
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                records.Add(new DuoKillsByDurationRecord(
+                    DurationBucket: reader.GetString("DurationBucket"),
+                    GamesPlayed: reader.GetInt32("GamesPlayed"),
+                    TotalTeamKills: reader.IsDBNull(reader.GetOrdinal("TotalTeamKills")) ? 0 : reader.GetInt32("TotalTeamKills"),
+                    Wins: reader.GetInt32("Wins")
+                ));
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get kill participation for each player in duo games.
+        /// </summary>
+        internal async Task<IList<DuoKillParticipationRecord>> GetDuoKillParticipationAsync(string puuId1, string puuId2, string? gameMode = null)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return new List<DuoKillParticipationRecord>();
+            }
+
+            var records = new List<DuoKillParticipationRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            foreach (var puuId in new[] { puuId1, puuId2 })
+            {
+                var sql = @"
+                    SELECT
+                        SUM(p.Kills) as TotalKills,
+                        SUM(p.Assists) as TotalAssists,
+                        SUM(p.Kills + p2.Kills) as TotalTeamKills,
+                        COUNT(*) as GamesPlayed
+                    FROM LolMatchParticipant p
+                    INNER JOIN LolMatchParticipant p2 ON p.MatchId = p2.MatchId AND p.TeamId = p2.TeamId AND p.Puuid != p2.Puuid
+                    INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                    WHERE p.Puuid = @puuid
+                      AND p2.Puuid = @otherPuuid
+                      AND m.InfoFetched = TRUE
+                      AND m.DurationSeconds > 0";
+
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    sql += " AND m.GameMode = @gameMode";
+                }
+
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@puuid", puuId);
+                cmd.Parameters.AddWithValue("@otherPuuid", puuId == puuId1 ? puuId2 : puuId1);
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    cmd.Parameters.AddWithValue("@gameMode", gameMode);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    records.Add(new DuoKillParticipationRecord(
+                        PuuId: puuId,
+                        TotalKills: reader.IsDBNull(reader.GetOrdinal("TotalKills")) ? 0 : reader.GetInt32("TotalKills"),
+                        TotalAssists: reader.IsDBNull(reader.GetOrdinal("TotalAssists")) ? 0 : reader.GetInt32("TotalAssists"),
+                        TotalTeamKills: reader.IsDBNull(reader.GetOrdinal("TotalTeamKills")) ? 0 : reader.GetInt32("TotalTeamKills"),
+                        GamesPlayed: reader.GetInt32("GamesPlayed")
+                    ));
+                }
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get kills trend for duo games (per match data).
+        /// </summary>
+        internal async Task<IList<DuoKillsTrendRecord>> GetDuoKillsTrendAsync(string puuId1, string puuId2, string? gameMode = null, int limit = 50)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return new List<DuoKillsTrendRecord>();
+            }
+
+            var records = new List<DuoKillsTrendRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            var sql = @"
+                SELECT
+                    p1.MatchId,
+                    (p1.Kills + p2.Kills) as TeamKills,
+                    p1.Win,
+                    m.GameEndTimestamp
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2 ON p1.MatchId = p2.MatchId AND p1.TeamId = p2.TeamId AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                WHERE p1.Puuid = @puuid1
+                  AND p2.Puuid = @puuid2
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            sql += " ORDER BY m.GameEndTimestamp ASC LIMIT @limit";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid1", puuId1);
+            cmd.Parameters.AddWithValue("@puuid2", puuId2);
+            cmd.Parameters.AddWithValue("@limit", limit);
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                records.Add(new DuoKillsTrendRecord(
+                    MatchId: reader.GetString("MatchId"),
+                    TeamKills: reader.GetInt32("TeamKills"),
+                    Win: reader.GetBoolean("Win"),
+                    GameDate: reader.GetDateTime("GameEndTimestamp")
+                ));
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get death timer stats for duo games.
+        /// </summary>
+        internal async Task<IList<DuoDeathTimerRecord>> GetDuoDeathTimerStatsAsync(string puuId1, string puuId2, string? gameMode = null)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return new List<DuoDeathTimerRecord>();
+            }
+
+            var records = new List<DuoDeathTimerRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            foreach (var puuId in new[] { puuId1, puuId2 })
+            {
+                var sql = @"
+                    SELECT
+                        AVG(CASE WHEN p.Win = 1 THEN p.TimeBeingDeadSeconds ELSE NULL END) as AvgTimeDeadWins,
+                        AVG(CASE WHEN p.Win = 0 THEN p.TimeBeingDeadSeconds ELSE NULL END) as AvgTimeDeadLosses,
+                        SUM(CASE WHEN p.Win = 1 THEN 1 ELSE 0 END) as WinGames,
+                        SUM(CASE WHEN p.Win = 0 THEN 1 ELSE 0 END) as LossGames
+                    FROM LolMatchParticipant p
+                    INNER JOIN LolMatchParticipant p2 ON p.MatchId = p2.MatchId AND p.TeamId = p2.TeamId AND p.Puuid != p2.Puuid
+                    INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                    WHERE p.Puuid = @puuid
+                      AND p2.Puuid = @otherPuuid
+                      AND m.InfoFetched = TRUE
+                      AND m.DurationSeconds > 0";
+
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    sql += " AND m.GameMode = @gameMode";
+                }
+
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@puuid", puuId);
+                cmd.Parameters.AddWithValue("@otherPuuid", puuId == puuId1 ? puuId2 : puuId1);
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    cmd.Parameters.AddWithValue("@gameMode", gameMode);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    records.Add(new DuoDeathTimerRecord(
+                        PuuId: puuId,
+                        AvgTimeDeadWins: reader.IsDBNull(reader.GetOrdinal("AvgTimeDeadWins")) ? 0 : reader.GetDouble("AvgTimeDeadWins"),
+                        AvgTimeDeadLosses: reader.IsDBNull(reader.GetOrdinal("AvgTimeDeadLosses")) ? 0 : reader.GetDouble("AvgTimeDeadLosses"),
+                        WinGames: reader.GetInt32("WinGames"),
+                        LossGames: reader.GetInt32("LossGames")
+                    ));
+                }
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get deaths by duration for duo games.
+        /// </summary>
+        internal async Task<IList<DuoDeathsByDurationRecord>> GetDuoDeathsByDurationAsync(string puuId1, string puuId2, string? gameMode = null)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return new List<DuoDeathsByDurationRecord>();
+            }
+
+            var records = new List<DuoDeathsByDurationRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            var sql = @"
+                SELECT
+                    CASE
+                        WHEN m.DurationSeconds < 1200 THEN 'under20'
+                        WHEN m.DurationSeconds < 1500 THEN '20-25'
+                        WHEN m.DurationSeconds < 1800 THEN '25-30'
+                        WHEN m.DurationSeconds < 2100 THEN '30-35'
+                        WHEN m.DurationSeconds < 2400 THEN '35-40'
+                        ELSE '40+'
+                    END as DurationBucket,
+                    COUNT(*) as GamesPlayed,
+                    SUM(p1.Deaths + p2.Deaths) as TotalTeamDeaths,
+                    SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2 ON p1.MatchId = p2.MatchId AND p1.TeamId = p2.TeamId AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                WHERE p1.Puuid = @puuid1
+                  AND p2.Puuid = @puuid2
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            sql += " GROUP BY DurationBucket";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid1", puuId1);
+            cmd.Parameters.AddWithValue("@puuid2", puuId2);
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                records.Add(new DuoDeathsByDurationRecord(
+                    DurationBucket: reader.GetString("DurationBucket"),
+                    GamesPlayed: reader.GetInt32("GamesPlayed"),
+                    TotalTeamDeaths: reader.IsDBNull(reader.GetOrdinal("TotalTeamDeaths")) ? 0 : reader.GetInt32("TotalTeamDeaths"),
+                    Wins: reader.GetInt32("Wins")
+                ));
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get death share for each player in duo games.
+        /// </summary>
+        internal async Task<IList<DuoDeathShareRecord>> GetDuoDeathShareAsync(string puuId1, string puuId2, string? gameMode = null)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return new List<DuoDeathShareRecord>();
+            }
+
+            var records = new List<DuoDeathShareRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            foreach (var puuId in new[] { puuId1, puuId2 })
+            {
+                var sql = @"
+                    SELECT
+                        SUM(p.Deaths) as TotalDeaths,
+                        COUNT(*) as GamesPlayed
+                    FROM LolMatchParticipant p
+                    INNER JOIN LolMatchParticipant p2 ON p.MatchId = p2.MatchId AND p.TeamId = p2.TeamId AND p.Puuid != p2.Puuid
+                    INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                    WHERE p.Puuid = @puuid
+                      AND p2.Puuid = @otherPuuid
+                      AND m.InfoFetched = TRUE
+                      AND m.DurationSeconds > 0";
+
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    sql += " AND m.GameMode = @gameMode";
+                }
+
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@puuid", puuId);
+                cmd.Parameters.AddWithValue("@otherPuuid", puuId == puuId1 ? puuId2 : puuId1);
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    cmd.Parameters.AddWithValue("@gameMode", gameMode);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    records.Add(new DuoDeathShareRecord(
+                        PuuId: puuId,
+                        TotalDeaths: reader.IsDBNull(reader.GetOrdinal("TotalDeaths")) ? 0 : reader.GetInt32("TotalDeaths"),
+                        GamesPlayed: reader.GetInt32("GamesPlayed")
+                    ));
+                }
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get deaths trend for duo games (per match data).
+        /// </summary>
+        internal async Task<IList<DuoDeathsTrendRecord>> GetDuoDeathsTrendAsync(string puuId1, string puuId2, string? gameMode = null, int limit = 50)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return new List<DuoDeathsTrendRecord>();
+            }
+
+            var records = new List<DuoDeathsTrendRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            var sql = @"
+                SELECT
+                    p1.MatchId,
+                    (p1.Deaths + p2.Deaths) as TeamDeaths,
+                    p1.Win,
+                    m.GameEndTimestamp
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2 ON p1.MatchId = p2.MatchId AND p1.TeamId = p2.TeamId AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                WHERE p1.Puuid = @puuid1
+                  AND p2.Puuid = @puuid2
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            sql += " ORDER BY m.GameEndTimestamp ASC LIMIT @limit";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid1", puuId1);
+            cmd.Parameters.AddWithValue("@puuid2", puuId2);
+            cmd.Parameters.AddWithValue("@limit", limit);
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                records.Add(new DuoDeathsTrendRecord(
+                    MatchId: reader.GetString("MatchId"),
+                    TeamDeaths: reader.GetInt32("TeamDeaths"),
+                    Win: reader.GetBoolean("Win"),
+                    GameDate: reader.GetDateTime("GameEndTimestamp")
+                ));
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get win rate trend for duo games (per match data).
+        /// </summary>
+        internal async Task<IList<DuoWinRateTrendRecord>> GetDuoWinRateTrendAsync(string puuId1, string puuId2, string? gameMode = null, int limit = 50)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return new List<DuoWinRateTrendRecord>();
+            }
+
+            var records = new List<DuoWinRateTrendRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            var sql = @"
+                SELECT
+                    p1.MatchId,
+                    p1.Win,
+                    m.GameEndTimestamp
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2 ON p1.MatchId = p2.MatchId AND p1.TeamId = p2.TeamId AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                WHERE p1.Puuid = @puuid1
+                  AND p2.Puuid = @puuid2
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            sql += " ORDER BY m.GameEndTimestamp ASC LIMIT @limit";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid1", puuId1);
+            cmd.Parameters.AddWithValue("@puuid2", puuId2);
+            cmd.Parameters.AddWithValue("@limit", limit);
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                records.Add(new DuoWinRateTrendRecord(
+                    MatchId: reader.GetString("MatchId"),
+                    Win: reader.GetBoolean("Win"),
+                    GameDate: reader.GetDateTime("GameEndTimestamp")
+                ));
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get combined performance radar metrics for duo games.
+        /// </summary>
+        internal async Task<DuoPerformanceRadarRecord?> GetDuoPerformanceRadarAsync(string puuId1, string puuId2, string? gameMode = null)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return null;
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            var sql = @"
+                SELECT
+                    AVG((p1.Kills + p2.Kills) / 2.0) as AvgKills,
+                    AVG((p1.Deaths + p2.Deaths) / 2.0) as AvgDeaths,
+                    AVG((p1.Assists + p2.Assists) / 2.0) as AvgAssists,
+                    AVG((p1.CreepScore + p2.CreepScore) / 2.0) as AvgCs,
+                    AVG((p1.GoldEarned + p2.GoldEarned) / 2.0) as AvgGoldEarned,
+                    COUNT(*) as GamesPlayed,
+                    SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2 ON p1.MatchId = p2.MatchId AND p1.TeamId = p2.TeamId AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                WHERE p1.Puuid = @puuid1
+                  AND p2.Puuid = @puuid2
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid1", puuId1);
+            cmd.Parameters.AddWithValue("@puuid2", puuId2);
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var gamesPlayed = reader.GetInt32("GamesPlayed");
+                if (gamesPlayed == 0)
+                {
+                    return null;
+                }
+
+                return new DuoPerformanceRadarRecord(
+                    AvgKills: reader.IsDBNull(reader.GetOrdinal("AvgKills")) ? 0 : reader.GetDouble("AvgKills"),
+                    AvgDeaths: reader.IsDBNull(reader.GetOrdinal("AvgDeaths")) ? 0 : reader.GetDouble("AvgDeaths"),
+                    AvgAssists: reader.IsDBNull(reader.GetOrdinal("AvgAssists")) ? 0 : reader.GetDouble("AvgAssists"),
+                    AvgCs: reader.IsDBNull(reader.GetOrdinal("AvgCs")) ? 0 : reader.GetDouble("AvgCs"),
+                    AvgGoldEarned: reader.IsDBNull(reader.GetOrdinal("AvgGoldEarned")) ? 0 : reader.GetDouble("AvgGoldEarned"),
+                    GamesPlayed: gamesPlayed,
+                    Wins: reader.GetInt32("Wins")
+                );
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Get win/loss streak data for duo games.
+        /// </summary>
+        internal async Task<DuoStreakRecord?> GetDuoStreakAsync(string puuId1, string puuId2, string? gameMode = null)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+            {
+                return null;
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            var sql = @"
+                SELECT
+                    p1.Win,
+                    m.GameEndTimestamp
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2 ON p1.MatchId = p2.MatchId AND p1.TeamId = p2.TeamId AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                WHERE p1.Puuid = @puuid1
+                  AND p2.Puuid = @puuid2
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            sql += " ORDER BY m.GameEndTimestamp DESC";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid1", puuId1);
+            cmd.Parameters.AddWithValue("@puuid2", puuId2);
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            var results = new List<bool>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(reader.GetBoolean("Win"));
+            }
+
+            if (results.Count == 0)
+            {
+                return null;
+            }
+
+            // Calculate current streak
+            var currentStreak = 0;
+            var isWinStreak = results[0];
+            foreach (var win in results)
+            {
+                if (win == isWinStreak)
+                {
+                    currentStreak++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            // Calculate longest win streak and longest loss streak
+            var longestWinStreak = 0;
+            var longestLossStreak = 0;
+            var tempStreak = 0;
+            bool? lastResult = null;
+
+            foreach (var win in results.AsEnumerable().Reverse())
+            {
+                if (lastResult == null || lastResult == win)
+                {
+                    tempStreak++;
+                }
+                else
+                {
+                    if (lastResult == true)
+                    {
+                        longestWinStreak = Math.Max(longestWinStreak, tempStreak);
+                    }
+                    else
+                    {
+                        longestLossStreak = Math.Max(longestLossStreak, tempStreak);
+                    }
+                    tempStreak = 1;
+                }
+                lastResult = win;
+            }
+
+            // Handle the last streak
+            if (lastResult == true)
+            {
+                longestWinStreak = Math.Max(longestWinStreak, tempStreak);
+            }
+            else if (lastResult == false)
+            {
+                longestLossStreak = Math.Max(longestLossStreak, tempStreak);
+            }
+
+            return new DuoStreakRecord(
+                CurrentStreak: currentStreak,
+                IsWinStreak: isWinStreak,
+                LongestWinStreak: longestWinStreak,
+                LongestLossStreak: longestLossStreak
+            );
+        }
+
         // ========================
         // Team Statistics Methods (3+ players)
         // ========================
@@ -2656,5 +3366,119 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         int BlueWins,
         int RedGames,
         int RedWins
+    );
+
+    /// <summary>
+    /// Record for duo multi-kill stats per player.
+    /// </summary>
+    public record DuoMultiKillRecord(
+        string PuuId,
+        int DoubleKills,
+        int TripleKills,
+        int QuadraKills,
+        int PentaKills
+    );
+
+    /// <summary>
+    /// Record for duo kills by duration bucket.
+    /// </summary>
+    public record DuoKillsByDurationRecord(
+        string DurationBucket,
+        int GamesPlayed,
+        int TotalTeamKills,
+        int Wins
+    );
+
+    /// <summary>
+    /// Record for duo kill participation per player.
+    /// </summary>
+    public record DuoKillParticipationRecord(
+        string PuuId,
+        int TotalKills,
+        int TotalAssists,
+        int TotalTeamKills,
+        int GamesPlayed
+    );
+
+    /// <summary>
+    /// Record for duo kills trend data point.
+    /// </summary>
+    public record DuoKillsTrendRecord(
+        string MatchId,
+        int TeamKills,
+        bool Win,
+        DateTime GameDate
+    );
+
+    /// <summary>
+    /// Record for duo death timer stats per player.
+    /// </summary>
+    public record DuoDeathTimerRecord(
+        string PuuId,
+        double AvgTimeDeadWins,
+        double AvgTimeDeadLosses,
+        int WinGames,
+        int LossGames
+    );
+
+    /// <summary>
+    /// Record for duo deaths by duration bucket.
+    /// </summary>
+    public record DuoDeathsByDurationRecord(
+        string DurationBucket,
+        int GamesPlayed,
+        int TotalTeamDeaths,
+        int Wins
+    );
+
+    /// <summary>
+    /// Record for duo death share per player.
+    /// </summary>
+    public record DuoDeathShareRecord(
+        string PuuId,
+        int TotalDeaths,
+        int GamesPlayed
+    );
+
+    /// <summary>
+    /// Record for duo deaths trend data point.
+    /// </summary>
+    public record DuoDeathsTrendRecord(
+        string MatchId,
+        int TeamDeaths,
+        bool Win,
+        DateTime GameDate
+    );
+
+    /// <summary>
+    /// Record for duo win rate trend data point.
+    /// </summary>
+    public record DuoWinRateTrendRecord(
+        string MatchId,
+        bool Win,
+        DateTime GameDate
+    );
+
+    /// <summary>
+    /// Record for duo performance radar metrics.
+    /// </summary>
+    public record DuoPerformanceRadarRecord(
+        double AvgKills,
+        double AvgDeaths,
+        double AvgAssists,
+        double AvgCs,
+        double AvgGoldEarned,
+        int GamesPlayed,
+        int Wins
+    );
+
+    /// <summary>
+    /// Record for duo streak data.
+    /// </summary>
+    public record DuoStreakRecord(
+        int CurrentStreak,
+        bool IsWinStreak,
+        int LongestWinStreak,
+        int LongestLossStreak
     );
 }
