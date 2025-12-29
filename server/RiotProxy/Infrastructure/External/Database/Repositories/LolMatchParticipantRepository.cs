@@ -1988,6 +1988,241 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
             return records;
         }
+
+        // ========================
+        // Kill Analysis Methods
+        // ========================
+
+        /// <summary>
+        /// Get team match results with kill counts for trend analysis.
+        /// </summary>
+        internal async Task<IList<TeamMatchKillRecord>> GetTeamMatchKillsAsync(string[] puuIds, int limit = 50, string? gameMode = null)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return new List<TeamMatchKillRecord>();
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build join clauses for all team members
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant p{i}
+                        ON p0.MatchId = p{i}.MatchId
+                        AND p0.TeamId = p{i}.TeamId
+                        AND p{i}.Puuid = @puuid{i}");
+            }
+
+            // Sum kills for all team members
+            var killsSum = string.Join(" + ", Enumerable.Range(0, puuIds.Length).Select(i => $"p{i}.Kills"));
+
+            var sql = $@"
+                SELECT
+                    p0.MatchId,
+                    p0.Win,
+                    ({killsSum}) as TeamKills,
+                    m.GameEndTimestamp
+                FROM LolMatchParticipant p0
+                {string.Join("", joinClauses)}
+                INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+                WHERE p0.Puuid = @puuid0
+                  AND m.InfoFetched = TRUE";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            sql += " ORDER BY m.GameEndTimestamp ASC LIMIT @limit";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+            }
+            cmd.Parameters.AddWithValue("@limit", limit);
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            var records = new List<TeamMatchKillRecord>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                records.Add(new TeamMatchKillRecord(
+                    MatchId: reader.GetString("MatchId"),
+                    Win: reader.GetBoolean("Win"),
+                    TeamKills: reader.GetInt32("TeamKills"),
+                    GameEndTimestamp: reader.GetDateTime("GameEndTimestamp")
+                ));
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get team kills grouped by game duration buckets (5-minute intervals).
+        /// </summary>
+        internal async Task<IList<TeamKillsByDurationRecord>> GetTeamKillsByDurationAsync(string[] puuIds, string? gameMode = null)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return new List<TeamKillsByDurationRecord>();
+            }
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build join clauses for all team members
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant p{i}
+                        ON p0.MatchId = p{i}.MatchId
+                        AND p0.TeamId = p{i}.TeamId
+                        AND p{i}.Puuid = @puuid{i}");
+            }
+
+            // Sum kills for all team members
+            var killsSum = string.Join(" + ", Enumerable.Range(0, puuIds.Length).Select(i => $"p{i}.Kills"));
+
+            // Use 5-minute intervals: <20, 20-25, 25-30, 30-35, 35-40, 40+
+            var sql = $@"
+                SELECT
+                    CASE
+                        WHEN m.DurationSeconds < 1200 THEN 'under20'
+                        WHEN m.DurationSeconds < 1500 THEN '20-25'
+                        WHEN m.DurationSeconds < 1800 THEN '25-30'
+                        WHEN m.DurationSeconds < 2100 THEN '30-35'
+                        WHEN m.DurationSeconds < 2400 THEN '35-40'
+                        ELSE '40+'
+                    END as DurationBucket,
+                    COUNT(*) as GamesPlayed,
+                    SUM(CASE WHEN p0.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                    SUM({killsSum}) as TotalTeamKills
+                FROM LolMatchParticipant p0
+                {string.Join("", joinClauses)}
+                INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+                WHERE p0.Puuid = @puuid0
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                sql += " AND m.GameMode = @gameMode";
+            }
+
+            sql += " GROUP BY DurationBucket ORDER BY DurationBucket";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+            }
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                cmd.Parameters.AddWithValue("@gameMode", gameMode);
+            }
+
+            var records = new List<TeamKillsByDurationRecord>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                records.Add(new TeamKillsByDurationRecord(
+                    DurationBucket: reader.GetString("DurationBucket"),
+                    GamesPlayed: reader.GetInt32("GamesPlayed"),
+                    Wins: reader.GetInt32("Wins"),
+                    TotalTeamKills: reader.GetInt32("TotalTeamKills")
+                ));
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Get multi-kill statistics for each player in team games.
+        /// </summary>
+        internal async Task<IList<PlayerMultiKillRecord>> GetTeamMultiKillsAsync(string[] puuIds, string? gameMode = null)
+        {
+            if (puuIds == null || puuIds.Length < 3)
+            {
+                return new List<PlayerMultiKillRecord>();
+            }
+
+            var records = new List<PlayerMultiKillRecord>();
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build the team match subquery
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant tp{i}
+                        ON tp0.MatchId = tp{i}.MatchId
+                        AND tp0.TeamId = tp{i}.TeamId
+                        AND tp{i}.Puuid = @teamPuuid{i}");
+            }
+
+            var teamMatchSubquery = $@"
+                SELECT DISTINCT tp0.MatchId
+                FROM LolMatchParticipant tp0
+                {string.Join("", joinClauses)}
+                INNER JOIN LolMatch m ON tp0.MatchId = m.MatchId
+                WHERE tp0.Puuid = @teamPuuid0
+                  AND m.InfoFetched = TRUE
+                  AND m.DurationSeconds > 0";
+
+            if (!string.IsNullOrWhiteSpace(gameMode))
+            {
+                teamMatchSubquery += " AND m.GameMode = @gameMode";
+            }
+
+            // For each player, get their multi-kill stats in team games
+            foreach (var puuId in puuIds)
+            {
+                var sql = $@"
+                    SELECT
+                        SUM(p.DoubleKills) as DoubleKills,
+                        SUM(p.TripleKills) as TripleKills,
+                        SUM(p.QuadraKills) as QuadraKills,
+                        SUM(p.PentaKills) as PentaKills
+                    FROM LolMatchParticipant p
+                    WHERE p.Puuid = @puuid
+                      AND p.MatchId IN ({teamMatchSubquery})";
+
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@puuid", puuId);
+                for (int i = 0; i < puuIds.Length; i++)
+                {
+                    cmd.Parameters.AddWithValue($"@teamPuuid{i}", puuIds[i]);
+                }
+                if (!string.IsNullOrWhiteSpace(gameMode))
+                {
+                    cmd.Parameters.AddWithValue("@gameMode", gameMode);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    records.Add(new PlayerMultiKillRecord(
+                        PuuId: puuId,
+                        DoubleKills: reader.IsDBNull(reader.GetOrdinal("DoubleKills")) ? 0 : reader.GetInt32("DoubleKills"),
+                        TripleKills: reader.IsDBNull(reader.GetOrdinal("TripleKills")) ? 0 : reader.GetInt32("TripleKills"),
+                        QuadraKills: reader.IsDBNull(reader.GetOrdinal("QuadraKills")) ? 0 : reader.GetInt32("QuadraKills"),
+                        PentaKills: reader.IsDBNull(reader.GetOrdinal("PentaKills")) ? 0 : reader.GetInt32("PentaKills")
+                    ));
+                }
+            }
+
+            return records;
+        }
     }
 
     /// <summary>
@@ -2247,5 +2482,40 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         bool Win,
         int TeamDeaths,
         DateTime GameEndTimestamp
+    );
+
+    // ========================
+    // Kill Analysis Records
+    // ========================
+
+    /// <summary>
+    /// Record for a single team match with kill info for trend analysis.
+    /// </summary>
+    public record TeamMatchKillRecord(
+        string MatchId,
+        bool Win,
+        int TeamKills,
+        DateTime GameEndTimestamp
+    );
+
+    /// <summary>
+    /// Record for kills by game duration bucket.
+    /// </summary>
+    public record TeamKillsByDurationRecord(
+        string DurationBucket,
+        int GamesPlayed,
+        int Wins,
+        int TotalTeamKills
+    );
+
+    /// <summary>
+    /// Record for multi-kill stats per player.
+    /// </summary>
+    public record PlayerMultiKillRecord(
+        string PuuId,
+        int DoubleKills,
+        int TripleKills,
+        int QuadraKills,
+        int PentaKills
     );
 }

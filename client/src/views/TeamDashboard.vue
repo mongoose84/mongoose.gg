@@ -60,6 +60,14 @@
             <TeamChampionCombos :userId="userId" />
           </div>
 
+          <!-- Kill Analysis (Four-column layout) -->
+          <div class="team-features-grid-4">
+            <TeamKillParticipation :userId="userId" />
+            <TeamKillsByPhase :userId="userId" />
+            <TeamKillsTrend :userId="userId" />
+            <TeamMultiKillShowcase :userId="userId" />
+          </div>
+
           <!-- Death Analysis (Four-column layout) -->
           <div class="team-features-grid-4">
             <TeamDeathTimerImpact :userId="userId" />
@@ -96,6 +104,10 @@ import TeamDeathTimerImpact from '@/components/TeamDeathTimerImpact.vue';
 import TeamDeathsByDuration from '@/components/TeamDeathsByDuration.vue';
 import TeamDeathShare from '@/components/TeamDeathShare.vue';
 import TeamDeathsTrend from '@/components/TeamDeathsTrend.vue';
+import TeamKillParticipation from '@/components/TeamKillParticipation.vue';
+import TeamKillsByPhase from '@/components/TeamKillsByPhase.vue';
+import TeamKillsTrend from '@/components/TeamKillsTrend.vue';
+import TeamMultiKillShowcase from '@/components/TeamMultiKillShowcase.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
 const props = defineProps({
