@@ -4,7 +4,7 @@
 const development = import.meta.env.DEV; // true when running 'npm run dev', false in production build
 const apiVersion = '/api/v1.0';
 const host = development
-	? 'http://localhost:5000'
+	? 'http://localhost:5164'
 	: 'https://lol-api.agileastronaut.com';
 
 // Returns the base API host (no version)

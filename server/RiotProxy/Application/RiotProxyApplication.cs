@@ -72,6 +72,51 @@ namespace RiotProxy.Application
 
             var duoImprovementSummaryEndpoint = new DuoImprovementSummaryEndpoint(_basePath);
             _endpoints.Add(duoImprovementSummaryEndpoint);
+
+            // Team endpoints (3+ players)
+            var teamStatsEndpoint = new TeamStatsEndpoint(_basePath);
+            _endpoints.Add(teamStatsEndpoint);
+
+            var teamSynergyEndpoint = new TeamSynergyEndpoint(_basePath);
+            _endpoints.Add(teamSynergyEndpoint);
+
+            var teamWinRateTrendEndpoint = new TeamWinRateTrendEndpoint(_basePath);
+            _endpoints.Add(teamWinRateTrendEndpoint);
+
+            var teamDurationAnalysisEndpoint = new TeamDurationAnalysisEndpoint(_basePath);
+            _endpoints.Add(teamDurationAnalysisEndpoint);
+
+            var teamChampionCombosEndpoint = new TeamChampionCombosEndpoint(_basePath);
+            _endpoints.Add(teamChampionCombosEndpoint);
+
+            var teamRolePairEffectivenessEndpoint = new TeamRolePairEffectivenessEndpoint(_basePath);
+            _endpoints.Add(teamRolePairEffectivenessEndpoint);
+
+            // Team Kill Analysis endpoints
+            var teamKillParticipationEndpoint = new TeamKillParticipationEndpoint(_basePath);
+            _endpoints.Add(teamKillParticipationEndpoint);
+
+            var teamKillsByPhaseEndpoint = new TeamKillsByPhaseEndpoint(_basePath);
+            _endpoints.Add(teamKillsByPhaseEndpoint);
+
+            var teamKillsTrendEndpoint = new TeamKillsTrendEndpoint(_basePath);
+            _endpoints.Add(teamKillsTrendEndpoint);
+
+            var teamMultiKillsEndpoint = new TeamMultiKillsEndpoint(_basePath);
+            _endpoints.Add(teamMultiKillsEndpoint);
+
+            // Team Death Analysis endpoints
+            var teamDeathTimerImpactEndpoint = new TeamDeathTimerImpactEndpoint(_basePath);
+            _endpoints.Add(teamDeathTimerImpactEndpoint);
+
+            var teamDeathsByDurationEndpoint = new TeamDeathsByDurationEndpoint(_basePath);
+            _endpoints.Add(teamDeathsByDurationEndpoint);
+
+            var teamDeathShareEndpoint = new TeamDeathShareEndpoint(_basePath);
+            _endpoints.Add(teamDeathShareEndpoint);
+
+            var teamDeathsTrendEndpoint = new TeamDeathsTrendEndpoint(_basePath);
+            _endpoints.Add(teamDeathsTrendEndpoint);
         }
 
         public void ConfigureEndpoints()

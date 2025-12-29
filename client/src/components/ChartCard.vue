@@ -25,14 +25,15 @@ defineProps({
   box-shadow: 0 2px 8px 0 rgba(44, 11, 58, 0.08);
   min-width: 0;
   width: 100%;
-  max-width: 520px; /* Maximum width, but can shrink */
-  height: 250px;
+  max-width: 100%; /* Allow full width within grid cell */
+  min-height: 320px; /* Minimum height to accommodate charts */
+  height: auto; /* Allow height to grow with content */
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
   position: relative;
-  flex: 1 1 520px; /* Allow flexible sizing */
+  flex: 1 1 auto; /* Allow flexible sizing */
 }
 
 .chart-card h4 {
