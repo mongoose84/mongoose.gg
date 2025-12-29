@@ -10,7 +10,8 @@ vi.mock('@/api/shared.js', () => ({
     { puuid: 'def456', gamerName: 'Player1#EUNE', server: 'eun1', tier: 'PLATINUM', rank: 'IV' }
   ]),
   getBaseApi: vi.fn().mockReturnValue('http://localhost:5000/api/v1.0'),
-  getHost: vi.fn().mockReturnValue('http://localhost:5000')
+  getHost: vi.fn().mockReturnValue('http://localhost:5000'),
+  isDevelopment: false
 }))
 
 // Mock solo API calls

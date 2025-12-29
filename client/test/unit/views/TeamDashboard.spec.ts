@@ -22,6 +22,7 @@ vi.mock('@/api/team.js', () => ({
     queueType: 'Flex Queue',
     playerCount: 3
   }),
+  getTeamLatestGame: vi.fn().mockResolvedValue({ hasGame: false }),
   getTeamWinRateTrend: vi.fn().mockResolvedValue({ dataPoints: [] }),
   getTeamDurationAnalysis: vi.fn().mockResolvedValue({}),
   getTeamMultiKills: vi.fn().mockResolvedValue({}),
@@ -52,6 +53,7 @@ const stubs = {
   GamerCard: { template: '<div class="gamer-card-stub">Gamer</div>' },
   GamerCardsList: { template: '<div class="gamer-cards-stub"><slot /></div>' },
   SideWinRate: { template: '<div class="side-wr-stub">Side WR</div>' },
+  LatestGameTogether: { template: '<div class="latest-game-stub">Latest Game</div>' },
   TeamSynergyMatrix: { template: '<div class="synergy-stub">Synergy</div>' },
   TeamWinRateTrend: { template: '<div class="wr-trend-stub">WR Trend</div>' },
   TeamDurationAnalysis: { template: '<div class="dur-analysis-stub">Duration</div>' },
