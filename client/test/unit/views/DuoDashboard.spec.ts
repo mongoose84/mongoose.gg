@@ -20,6 +20,7 @@ vi.mock('@/api/duo.js', () => ({
     winRate: 58.0,
     queueType: 'Ranked Solo/Duo'
   }),
+  getDuoLatestGame: vi.fn().mockResolvedValue({ hasGame: false }),
   getDuoWinRateTrend: vi.fn().mockResolvedValue({ dataPoints: [] }),
   getDuoStreak: vi.fn().mockResolvedValue({ currentStreak: 3 }),
   getDuoPerformanceRadar: vi.fn().mockResolvedValue({ metrics: [] }),
@@ -50,6 +51,7 @@ const stubs = {
   GamerCard: { template: '<div class="gamer-card-stub">Gamer</div>' },
   GamerCardsList: { template: '<div class="gamer-cards-stub"><slot /></div>' },
   SideWinRate: { template: '<div class="side-wr-stub">Side WR</div>' },
+  LatestGameTogether: { template: '<div class="latest-game-stub">Latest Game</div>' },
   ChampionSynergyMatrix: { template: '<div class="synergy-stub">Synergy</div>' },
   DuoVsEnemyMatrix: { template: '<div class="vs-enemy-stub">Vs Enemy</div>' },
   DuoMatchDuration: { template: '<div class="match-dur-stub">Duration</div>' },

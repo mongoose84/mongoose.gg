@@ -40,6 +40,8 @@
             <span class="context-separator">|</span>
             <span class="context-stat">{{ teamStats.playerCount }} players</span>
           </div>
+          <!-- Latest Game Together -->
+          <LatestGameTogether :latestGame="latestGameData" />
         </div>
 
         <!-- Fallback: Show regular gamer cards list if less than 3 gamers -->
@@ -87,11 +89,12 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useGamers } from '@/composables/useGamers.js';
-import { getTeamStats } from '@/api/team.js';
+import { getTeamStats, getTeamLatestGame } from '@/api/team.js';
 // Shared components
 import GamerCardsList from '@/components/shared/GamerCardsList.vue';
 import SideWinRate from '@/components/shared/SideWinRate.vue';
 import AppLogo from '@/components/shared/AppLogo.vue';
+import LatestGameTogether from '@/components/shared/LatestGameTogether.vue';
 // Team components
 import TeamSynergyMatrix from '@/components/team/TeamSynergyMatrix.vue';
 import TeamWinRateTrend from '@/components/team/TeamWinRateTrend.vue';
@@ -131,6 +134,9 @@ const teamStatsData = ref(null);
 const teamStatsLoading = ref(false);
 const teamStatsError = ref(null);
 
+// Latest game together state
+const latestGameData = ref(null);
+
 // Fetch team statistics
 async function loadTeamStats() {
   if (!hasUser.value) return;
@@ -146,6 +152,18 @@ async function loadTeamStats() {
     console.error('Error loading team stats:', e);
   } finally {
     teamStatsLoading.value = false;
+  }
+}
+
+// Fetch latest game together
+async function loadLatestGame() {
+  if (!hasUser.value) return;
+
+  try {
+    const data = await getTeamLatestGame(props.userId);
+    latestGameData.value = data;
+  } catch (e) {
+    console.error('Error loading latest game together:', e);
   }
 }
 
@@ -172,21 +190,23 @@ const winRateClass = computed(() => {
   return 'win-rate-low';
 });
 
-// Load team stats when gamers are loaded
+// Load team stats and latest game when gamers are loaded
 watch(gamers, (newGamers) => {
   if (newGamers?.length >= 3) {
     loadTeamStats();
+    loadLatestGame();
   }
 });
 
 onMounted(() => {
   if (gamers.value?.length >= 3) {
     loadTeamStats();
+    loadLatestGame();
   }
 });
 
 // (Optional) expose `load` so a parent could call it manually
-defineExpose({ load });
+defineExpose({ load, loadLatestGame });
 </script>
 
 <style scoped>

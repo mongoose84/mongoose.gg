@@ -11,6 +11,12 @@ export async function getDuoStats(userId) {
   return data;
 }
 
+export async function getDuoLatestGame(userId) {
+  const base = getBaseApi();
+  const { data } = await axios.get(`${base}/duo-latest-game/${userId}`);
+  return data;
+}
+
 // ========================
 // Duo Trend Analysis
 // ========================

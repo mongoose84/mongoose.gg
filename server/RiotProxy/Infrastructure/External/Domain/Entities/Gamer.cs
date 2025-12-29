@@ -1,3 +1,5 @@
+using RiotProxy.Infrastructure.External.Database.Records;
+
 namespace RiotProxy.External.Domain.Entities
 {
     public class Gamer : EntityBase
@@ -9,6 +11,11 @@ namespace RiotProxy.External.Domain.Entities
         public string IconUrl { get; set; } = string.Empty;
         public long Level { get; set; }
         public DateTime LastChecked { get; set; }
+        /// <summary>
+        /// Details about the most recent game played by this gamer.
+        /// Populated at runtime from match data, not stored in the database.
+        /// </summary>
+        public LatestGameRecord? LatestGame { get; set; }
         public GamerStats Stats { get; set; } = new GamerStats();
     }
 }

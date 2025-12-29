@@ -13,6 +13,22 @@
           </div>
         </div>
       </router-link>
+
+      <!-- Header right section: latest game info + dev button -->
+      <div class="header-right">
+        <span v-if="latestGameDate" class="latest-game">
+          Latest game: {{ latestGameFormatted }}
+        </span>
+        <!-- Dev-only refresh button -->
+        <button
+          v-if="isDev"
+          class="refresh-btn"
+          :disabled="refreshing"
+          @click="handleRefresh"
+        >
+          {{ refreshing ? 'Refreshing...' : 'Fetch Games' }}
+        </button>
+      </div>
     </header>
 
     <div class="user-container">
@@ -67,7 +83,10 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue';
 import { useGamers } from '@/composables/useGamers.js';
+import { isDevelopment } from '@/api/shared.js';
+import { refreshGames } from '@/api/solo.js';
 // Shared components
 import GamerCardsList from '@/components/shared/GamerCardsList.vue';
 import RadarChart from '@/components/shared/RadarChart.vue';
@@ -100,10 +119,77 @@ const props = defineProps({
 const appTitle = 'Do End';
 const appSubtitle = 'Cross Account LoL Statistics';
 
+// Dev mode check
+const isDev = isDevelopment;
+
+// Refresh games functionality (dev only)
+const refreshing = ref(false);
+
+async function handleRefresh() {
+  if (refreshing.value) return;
+
+  refreshing.value = true;
+  try {
+    const result = await refreshGames(props.userId);
+    console.log('Refresh result:', result);
+    // Reload the page data after refresh
+    if (result.NewGamesAdded > 0) {
+      window.location.reload();
+    }
+  } catch (err) {
+    console.error('Failed to refresh games:', err);
+  } finally {
+    refreshing.value = false;
+  }
+}
+
 const { loading, error, gamers, hasUser, load } = useGamers(() => ({
   userName: props.userName,
   userId: props.userId,
 }));
+
+// Compute latest game date from gamers data (for header display)
+const latestGameDate = computed(() => {
+  if (!gamers.value || gamers.value.length === 0) return null;
+
+  const dates = gamers.value
+    .map(g => {
+      const game = g.latestGame || g.LatestGame;
+      if (!game) return null;
+      const timestamp = game.gameEndTimestamp || game.GameEndTimestamp;
+      return timestamp && timestamp !== '0001-01-01T00:00:00' ? new Date(timestamp) : null;
+    })
+    .filter(d => d !== null);
+
+  if (dates.length === 0) return null;
+  return new Date(Math.max(...dates));
+});
+
+// Format the latest game date for display
+const latestGameFormatted = computed(() => {
+  if (!latestGameDate.value) return '';
+
+  const now = new Date();
+  const diff = now - latestGameDate.value;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  if (days === 0) {
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours === 0) {
+      const minutes = Math.floor(diff / (1000 * 60));
+      return minutes <= 1 ? 'just now' : `${minutes} minutes ago`;
+    }
+    return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
+  }
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+
+  return latestGameDate.value.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: latestGameDate.value.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  });
+});
 
 // (Optional) expose `load` so a parent could call it manually
 defineExpose({ load });
@@ -124,6 +210,41 @@ defineExpose({ load });
   width: 100%;
   /* keep header left-aligned, avoid auto-centering */
   margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.latest-game {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #888);
+  white-space: nowrap;
+}
+
+.refresh-btn {
+  background-color: var(--color-primary);
+  color: var(--color-text);
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .brand-link {

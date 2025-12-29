@@ -11,6 +11,12 @@ export async function getTeamStats(userId) {
   return data;
 }
 
+export async function getTeamLatestGame(userId) {
+  const base = getBaseApi();
+  const { data } = await axios.get(`${base}/team-latest-game/${userId}`);
+  return data;
+}
+
 // ========================
 // Team Trend Analysis
 // ========================

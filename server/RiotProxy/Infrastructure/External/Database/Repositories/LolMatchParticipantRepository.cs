@@ -127,6 +127,268 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             return totalTimeBeingDeadSeconds;
         }
 
+        /// <summary>
+        /// Gets the timestamp of the most recent game played by a specific player.
+        /// </summary>
+        internal async Task<DateTime?> GetLatestGameTimestampByPuuIdAsync(string puuId)
+        {
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            const string sql = @"
+                SELECT MAX(m.GameEndTimestamp)
+                FROM LolMatchParticipant p
+                INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                WHERE p.Puuid = @puuid
+                  AND m.InfoFetched = TRUE
+                  AND m.GameEndTimestamp IS NOT NULL";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuId);
+            var result = await cmd.ExecuteScalarAsync();
+
+            if (result == null || result == DBNull.Value)
+                return null;
+
+            return Convert.ToDateTime(result);
+        }
+
+        /// <summary>
+        /// Gets detailed information about the most recent game played by a specific player.
+        /// </summary>
+        internal async Task<LatestGameRecord?> GetLatestGameDetailsByPuuIdAsync(string puuId)
+        {
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            const string sql = @"
+                SELECT
+                    m.GameEndTimestamp,
+                    p.Win,
+                    COALESCE(NULLIF(p.TeamPosition, ''), 'UNKNOWN') as Role,
+                    p.ChampionId,
+                    p.ChampionName,
+                    p.Kills,
+                    p.Deaths,
+                    p.Assists
+                FROM LolMatchParticipant p
+                INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                WHERE p.Puuid = @puuid
+                  AND m.InfoFetched = TRUE
+                  AND m.GameEndTimestamp IS NOT NULL
+                ORDER BY m.GameEndTimestamp DESC
+                LIMIT 1";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuId);
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new LatestGameRecord(
+                    GameEndTimestamp: reader.GetDateTime("GameEndTimestamp"),
+                    Win: reader.GetBoolean("Win"),
+                    Role: reader.GetString("Role"),
+                    ChampionId: reader.GetInt32("ChampionId"),
+                    ChampionName: reader.GetString("ChampionName"),
+                    Kills: reader.GetInt32("Kills"),
+                    Deaths: reader.GetInt32("Deaths"),
+                    Assists: reader.GetInt32("Assists")
+                );
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets detailed information about the most recent game where two players played together.
+        /// </summary>
+        internal async Task<LatestGameTogetherRecord?> GetLatestGameTogetherByDuoPuuIdsAsync(string puuId1, string puuId2)
+        {
+            if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
+                return null;
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // First, find the latest match where both players played together
+            const string matchSql = @"
+                SELECT p1.MatchId, m.GameEndTimestamp, p1.Win
+                FROM LolMatchParticipant p1
+                INNER JOIN LolMatchParticipant p2
+                    ON p1.MatchId = p2.MatchId
+                    AND p1.TeamId = p2.TeamId
+                    AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
+                WHERE p1.Puuid = @puuid1
+                  AND p2.Puuid = @puuid2
+                  AND m.InfoFetched = TRUE
+                  AND m.GameEndTimestamp IS NOT NULL
+                ORDER BY m.GameEndTimestamp DESC
+                LIMIT 1";
+
+            await using var matchCmd = new MySqlCommand(matchSql, conn);
+            matchCmd.Parameters.AddWithValue("@puuid1", puuId1);
+            matchCmd.Parameters.AddWithValue("@puuid2", puuId2);
+
+            string? matchId = null;
+            DateTime gameEndTimestamp = DateTime.MinValue;
+            bool win = false;
+
+            await using (var reader = await matchCmd.ExecuteReaderAsync())
+            {
+                if (await reader.ReadAsync())
+                {
+                    matchId = reader.GetString("MatchId");
+                    gameEndTimestamp = reader.GetDateTime("GameEndTimestamp");
+                    win = reader.GetBoolean("Win");
+                }
+            }
+
+            if (matchId == null)
+                return null;
+
+            // Now get each player's details for that match
+            const string playersSql = @"
+                SELECT
+                    p.Puuid,
+                    p.Win,
+                    COALESCE(NULLIF(p.TeamPosition, ''), 'UNKNOWN') as Role,
+                    p.ChampionId,
+                    p.ChampionName,
+                    p.Kills,
+                    p.Deaths,
+                    p.Assists
+                FROM LolMatchParticipant p
+                WHERE p.MatchId = @matchId
+                  AND p.Puuid IN (@puuid1, @puuid2)";
+
+            await using var playersCmd = new MySqlCommand(playersSql, conn);
+            playersCmd.Parameters.AddWithValue("@matchId", matchId);
+            playersCmd.Parameters.AddWithValue("@puuid1", puuId1);
+            playersCmd.Parameters.AddWithValue("@puuid2", puuId2);
+
+            var players = new List<LatestGameTogetherPlayerRecord>();
+            await using (var reader = await playersCmd.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    players.Add(new LatestGameTogetherPlayerRecord(
+                        Puuid: reader.GetString("Puuid"),
+                        Win: reader.GetBoolean("Win"),
+                        Role: reader.GetString("Role"),
+                        ChampionId: reader.GetInt32("ChampionId"),
+                        ChampionName: reader.GetString("ChampionName"),
+                        Kills: reader.GetInt32("Kills"),
+                        Deaths: reader.GetInt32("Deaths"),
+                        Assists: reader.GetInt32("Assists")
+                    ));
+                }
+            }
+
+            return new LatestGameTogetherRecord(gameEndTimestamp, win, players);
+        }
+
+        /// <summary>
+        /// Gets detailed information about the most recent game where all team members played together.
+        /// </summary>
+        internal async Task<LatestGameTogetherRecord?> GetLatestGameTogetherByTeamPuuIdsAsync(string[] puuIds)
+        {
+            if (puuIds == null || puuIds.Length < 2)
+                return null;
+
+            await using var conn = _factory.CreateConnection();
+            await conn.OpenAsync();
+
+            // Build dynamic SQL to find the latest match where ALL players participated on the same team
+            var joinClauses = new List<string>();
+            for (int i = 1; i < puuIds.Length; i++)
+            {
+                joinClauses.Add($@"
+                    INNER JOIN LolMatchParticipant p{i}
+                        ON p0.MatchId = p{i}.MatchId
+                        AND p0.TeamId = p{i}.TeamId
+                        AND p{i}.Puuid = @puuid{i}");
+            }
+
+            var sql = $@"
+                SELECT p0.MatchId, m.GameEndTimestamp, p0.Win
+                FROM LolMatchParticipant p0
+                {string.Join("", joinClauses)}
+                INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+                WHERE p0.Puuid = @puuid0
+                  AND m.InfoFetched = TRUE
+                  AND m.GameEndTimestamp IS NOT NULL
+                ORDER BY m.GameEndTimestamp DESC
+                LIMIT 1";
+
+            await using var matchCmd = new MySqlCommand(sql, conn);
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                matchCmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+            }
+
+            string? matchId = null;
+            DateTime gameEndTimestamp = DateTime.MinValue;
+            bool win = false;
+
+            await using (var reader = await matchCmd.ExecuteReaderAsync())
+            {
+                if (await reader.ReadAsync())
+                {
+                    matchId = reader.GetString("MatchId");
+                    gameEndTimestamp = reader.GetDateTime("GameEndTimestamp");
+                    win = reader.GetBoolean("Win");
+                }
+            }
+
+            if (matchId == null)
+                return null;
+
+            // Build IN clause for puuids
+            var puuidParams = string.Join(", ", puuIds.Select((_, i) => $"@playerPuuid{i}"));
+            var playersSql = $@"
+                SELECT
+                    p.Puuid,
+                    p.Win,
+                    COALESCE(NULLIF(p.TeamPosition, ''), 'UNKNOWN') as Role,
+                    p.ChampionId,
+                    p.ChampionName,
+                    p.Kills,
+                    p.Deaths,
+                    p.Assists
+                FROM LolMatchParticipant p
+                WHERE p.MatchId = @matchId
+                  AND p.Puuid IN ({puuidParams})";
+
+            await using var playersCmd = new MySqlCommand(playersSql, conn);
+            playersCmd.Parameters.AddWithValue("@matchId", matchId);
+            for (int i = 0; i < puuIds.Length; i++)
+            {
+                playersCmd.Parameters.AddWithValue($"@playerPuuid{i}", puuIds[i]);
+            }
+
+            var players = new List<LatestGameTogetherPlayerRecord>();
+            await using (var reader = await playersCmd.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    players.Add(new LatestGameTogetherPlayerRecord(
+                        Puuid: reader.GetString("Puuid"),
+                        Win: reader.GetBoolean("Win"),
+                        Role: reader.GetString("Role"),
+                        ChampionId: reader.GetInt32("ChampionId"),
+                        ChampionName: reader.GetString("ChampionName"),
+                        Kills: reader.GetInt32("Kills"),
+                        Deaths: reader.GetInt32("Deaths"),
+                        Assists: reader.GetInt32("Assists")
+                    ));
+                }
+            }
+
+            return new LatestGameTogetherRecord(gameEndTimestamp, win, players);
+        }
+
         private async Task<int> GetIntegerValueFromPuuIdAsync(string puuId, string sqlQuery)
         {
             await using var conn = _factory.CreateConnection();

@@ -42,3 +42,12 @@ export async function getChampionMatchups(userId) {
   return data;
 }
 
+// ========================
+// Dev Tools - Refresh Games
+// ========================
+
+export async function refreshGames(userId) {
+  const base = getBaseApi();
+  const { data } = await axios.post(`${base}/refresh-games/${userId}`);
+  return data;
+}

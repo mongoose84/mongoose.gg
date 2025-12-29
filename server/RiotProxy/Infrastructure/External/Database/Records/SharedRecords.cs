@@ -1,6 +1,44 @@
 namespace RiotProxy.Infrastructure.External.Database.Records;
 
 /// <summary>
+/// Record representing the latest game details for a player.
+/// </summary>
+public record LatestGameRecord(
+    DateTime GameEndTimestamp,
+    bool Win,
+    string Role,
+    int ChampionId,
+    string ChampionName,
+    int Kills,
+    int Deaths,
+    int Assists
+);
+
+/// <summary>
+/// Record representing a player's performance in a shared game (played together).
+/// Includes Puuid to identify which player this record belongs to.
+/// </summary>
+public record LatestGameTogetherPlayerRecord(
+    string Puuid,
+    bool Win,
+    string Role,
+    int ChampionId,
+    string ChampionName,
+    int Kills,
+    int Deaths,
+    int Assists
+);
+
+/// <summary>
+/// Record representing the latest game played together by multiple players.
+/// </summary>
+public record LatestGameTogetherRecord(
+    DateTime GameEndTimestamp,
+    bool Win,
+    IList<LatestGameTogetherPlayerRecord> Players
+);
+
+/// <summary>
 /// Record representing per-match performance data for timeline charts.
 /// </summary>
 public record MatchPerformanceRecord(

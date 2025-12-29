@@ -42,6 +42,8 @@
             <span class="context-separator">|</span>
             <span class="context-stat">{{ duoStats.queueType }}</span>
           </div>
+          <!-- Latest Game Together -->
+          <LatestGameTogether :latestGame="latestGameData" />
         </div>
 
         <!-- Fallback: Show regular gamer cards list if not exactly 2 gamers -->
@@ -97,11 +99,12 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useGamers } from '@/composables/useGamers.js';
-import { getDuoStats } from '@/api/duo.js';
+import { getDuoStats, getDuoLatestGame } from '@/api/duo.js';
 // Shared components
 import GamerCardsList from '@/components/shared/GamerCardsList.vue';
 import SideWinRate from '@/components/shared/SideWinRate.vue';
 import AppLogo from '@/components/shared/AppLogo.vue';
+import LatestGameTogether from '@/components/shared/LatestGameTogether.vue';
 // Duo components
 import ChampionSynergyMatrix from '@/components/duo/ChampionSynergyMatrix.vue';
 import DuoVsEnemyMatrix from '@/components/duo/DuoVsEnemyMatrix.vue';
@@ -143,6 +146,9 @@ const duoStatsData = ref(null);
 const duoStatsLoading = ref(false);
 const duoStatsError = ref(null);
 
+// Latest game together state
+const latestGameData = ref(null);
+
 // Fetch duo statistics
 async function loadDuoStats() {
   if (!hasUser.value) return;
@@ -158,6 +164,18 @@ async function loadDuoStats() {
     console.error('Error loading duo stats:', e);
   } finally {
     duoStatsLoading.value = false;
+  }
+}
+
+// Fetch latest game together
+async function loadLatestGame() {
+  if (!hasUser.value) return;
+
+  try {
+    const data = await getDuoLatestGame(props.userId);
+    latestGameData.value = data;
+  } catch (e) {
+    console.error('Error loading latest game together:', e);
   }
 }
 
@@ -183,9 +201,10 @@ const winRateClass = computed(() => {
   return 'wr-bad';
 });
 
-// Load duo stats when component mounts
+// Load duo stats and latest game when component mounts
 onMounted(() => {
   loadDuoStats();
+  loadLatestGame();
 });
 
 // Watch for userId changes and reload duo stats
@@ -193,11 +212,12 @@ watch(
   () => props.userId,
   () => {
     loadDuoStats();
+    loadLatestGame();
   }
 );
 
 // (Optional) expose `load` so a parent could call it manually
-defineExpose({ load, loadDuoStats });
+defineExpose({ load, loadDuoStats, loadLatestGame });
 </script>
 
 <style scoped>

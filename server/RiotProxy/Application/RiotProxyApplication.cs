@@ -97,6 +97,9 @@ namespace RiotProxy.Application
             var duoStreakEndpoint = new DuoStreakEndpoint(_basePath);
             _endpoints.Add(duoStreakEndpoint);
 
+            var duoLatestGameEndpoint = new DuoLatestGameEndpoint(_basePath);
+            _endpoints.Add(duoLatestGameEndpoint);
+
             // Team endpoints (3+ players)
             var teamStatsEndpoint = new TeamStatsEndpoint(_basePath);
             _endpoints.Add(teamStatsEndpoint);
@@ -142,9 +145,16 @@ namespace RiotProxy.Application
             var teamDeathsTrendEndpoint = new TeamDeathsTrendEndpoint(_basePath);
             _endpoints.Add(teamDeathsTrendEndpoint);
 
+            var teamLatestGameEndpoint = new TeamLatestGameEndpoint(_basePath);
+            _endpoints.Add(teamLatestGameEndpoint);
+
             // Side stats endpoint (blue/red win rates)
             var sideStatsEndpoint = new SideStatsEndpoint(_basePath);
             _endpoints.Add(sideStatsEndpoint);
+
+            // Dev endpoint for refreshing games
+            var refreshGamesEndpoint = new RefreshGamesEndpoint(_basePath);
+            _endpoints.Add(refreshGamesEndpoint);
         }
 
         public void ConfigureEndpoints()
