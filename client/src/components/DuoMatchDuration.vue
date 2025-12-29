@@ -7,27 +7,25 @@
     <ChartCard v-else title="Match Duration Performance">
       <div class="duration-content">
         <div class="duration-chart">
-          <div 
-            v-for="bucket in durationData.buckets" 
+          <div
+            v-for="bucket in durationData.buckets"
             :key="bucket.durationRange"
-            class="bucket-row"
+            class="bucket-col"
           >
-            <div class="bucket-label">{{ bucket.durationRange }} min</div>
             <div class="bar-container">
-              <div 
+              <div
                 class="bar"
-                :style="{ 
-                  width: bucket.winrate + '%',
+                :style="{
+                  height: bucket.winrate + '%',
                   backgroundColor: getWinRateColor(bucket.winrate)
                 }"
                 :title="`${bucket.winrate.toFixed(1)}% WR (${bucket.gamesPlayed} games)`"
               >
-                <span v-if="bucket.winrate >= 10" class="bar-value">
-                  {{ bucket.winrate.toFixed(0) }}%
-                </span>
+                <span class="bar-value">{{ bucket.winrate.toFixed(0) }}%</span>
               </div>
             </div>
-            <div class="games-count">{{ bucket.gamesPlayed }}</div>
+            <div class="bucket-label">{{ bucket.durationRange }}</div>
+            <div class="games-count">{{ bucket.gamesPlayed }} games</div>
           </div>
         </div>
       </div>
@@ -107,67 +105,75 @@ onMounted(load);
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 0.5rem 0;
-  padding-top: 1.5rem;
+  padding: 1.5rem 0 0.5rem 0;
+  height: 100%;
 }
 
 .duration-chart {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 180px;
 }
 
-.bucket-row {
+.bucket-col {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  flex: 1;
 }
 
 .bucket-label {
-  min-width: 80px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--color-text);
-  text-align: right;
+  text-align: center;
 }
 
 .bar-container {
-  flex: 1;
-  height: 28px;
-  background-color: var(--color-bg-elev);
+  width: 100%;
+  max-width: 50px;
+  height: 150px;
+  background-color: var(--color-bg);
   border-radius: 4px;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .bar {
-  height: 100%;
+  width: 100%;
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 0.5rem;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.4rem;
   transition: all 0.3s ease;
-  border-radius: 4px;
-  min-width: 30px;
+  border-radius: 4px 4px 0 0;
+  min-height: 25px;
 }
 
 .bar:hover {
   opacity: 0.8;
-  transform: scaleY(1.05);
+  transform: scaleX(1.05);
 }
 
 .bar-value {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: white;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .games-count {
-  min-width: 40px;
-  text-align: right;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--color-text-muted);
+  text-align: center;
 }
 </style>
 

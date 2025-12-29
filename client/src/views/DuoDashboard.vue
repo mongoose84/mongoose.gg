@@ -49,8 +49,12 @@
 
         <!-- Duo Features Container -->
         <div v-if="gamers.length === 2" class="duo-features-container">
-          <!-- Duo vs Solo Performance Charts -->
-          <DuoVsSoloPerformance :userId="userId" :gamers="gamers" />
+          <!-- Trend Analysis Section (Top, Single Row) -->
+          <div class="duo-features-grid-3">
+            <DuoWinRateTrend :userId="userId" />
+            <DuoStreak :userId="userId" />
+            <DuoPerformanceRadar :userId="userId" />
+          </div>
 
           <!-- Champion Synergy & Duo vs Enemy (Two-column layout) -->
           <div class="duo-features-grid">
@@ -58,16 +62,25 @@
             <DuoVsEnemyMatrix :userId="userId" :gamers="gamers" />
           </div>
 
-          <!-- Role Consistency & Lane Matchup (Two-column layout) -->
+          <!-- Match Duration & Side Win Rate (Two-column layout) -->
           <div class="duo-features-grid">
-            <DuoRoleConsistency :userId="userId" />
-            <DuoLaneMatchup :userId="userId" />
+            <DuoMatchDuration :userId="userId" />
+            <SideWinRate :userId="userId" mode="duo" />
           </div>
 
-          <!-- Kill Efficiency & Match Duration (Two-column layout) -->
-          <div class="duo-features-grid">
-            <DuoKillEfficiency :userId="userId" />
-            <DuoMatchDuration :userId="userId" />
+          <!-- Kill Analysis Section -->
+          <div class="duo-features-grid-4">
+            <DuoMultiKillShowcase :userId="userId" />
+            <DuoKillParticipation :userId="userId" />
+            <DuoKillsByPhase :userId="userId" />
+            <DuoKillsTrend :userId="userId" />
+          </div>
+
+          <!-- Death Analysis Section -->
+          <div class="duo-features-grid-3-auto">
+            <DuoDeathTimerImpact :userId="userId" />
+            <DuoDeathsByDuration :userId="userId" />
+            <DuoDeathsTrend :userId="userId" />
           </div>
 
           <!-- Improvement Summary (Full width) -->
@@ -88,14 +101,25 @@ import GamerCardsList from '@/components/GamerCardsList.vue';
 import GamerCard from '@/views/GamerCard.vue';
 import AppLogo from '@/components/AppLogo.vue';
 import getDuoStats from '@/assets/getDuoStats.js';
-import DuoVsSoloPerformance from '@/components/DuoVsSoloPerformance.vue';
 import ChampionSynergyMatrix from '@/components/ChampionSynergyMatrix.vue';
 import DuoVsEnemyMatrix from '@/components/DuoVsEnemyMatrix.vue';
-import DuoRoleConsistency from '@/components/DuoRoleConsistency.vue';
-import DuoLaneMatchup from '@/components/DuoLaneMatchup.vue';
-import DuoKillEfficiency from '@/components/DuoKillEfficiency.vue';
 import DuoMatchDuration from '@/components/DuoMatchDuration.vue';
 import DuoImprovementSummary from '@/components/DuoImprovementSummary.vue';
+import SideWinRate from '@/components/SideWinRate.vue';
+// Kill Analysis Components
+import DuoMultiKillShowcase from '@/components/DuoMultiKillShowcase.vue';
+import DuoKillsByPhase from '@/components/DuoKillsByPhase.vue';
+import DuoKillParticipation from '@/components/DuoKillParticipation.vue';
+import DuoKillsTrend from '@/components/DuoKillsTrend.vue';
+// Death Analysis Components
+import DuoDeathTimerImpact from '@/components/DuoDeathTimerImpact.vue';
+import DuoDeathsByDuration from '@/components/DuoDeathsByDuration.vue';
+import DuoDeathShare from '@/components/DuoDeathShare.vue';
+import DuoDeathsTrend from '@/components/DuoDeathsTrend.vue';
+// Trend Analysis Components
+import DuoWinRateTrend from '@/components/DuoWinRateTrend.vue';
+import DuoPerformanceRadar from '@/components/DuoPerformanceRadar.vue';
+import DuoStreak from '@/components/DuoStreak.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
 const props = defineProps({
@@ -316,10 +340,49 @@ defineExpose({ load, loadDuoStats });
   margin: 2rem auto 0;
 }
 
+/* Section Titles */
+.section-title {
+  margin: 2.5rem 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-border);
+}
+
 /* Duo Features Grid (Two-column layout) */
 .duo-features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+/* Duo Features Grid (Three-column layout for Trend Analysis - compact height) */
+.duo-features-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.duo-features-grid-3 :deep(.chart-card) {
+  min-height: 360px;
+  height: 360px;
+}
+
+/* Duo Features Grid (Four-column layout for Kill Analysis) */
+.duo-features-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+/* Duo Features Grid (Three-column layout for Death Analysis) */
+.duo-features-grid-3-auto {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   margin-top: 1.5rem;
 }
@@ -330,8 +393,35 @@ defineExpose({ load, loadDuoStats });
   width: 100%;
 }
 
+@media (max-width: 1400px) {
+  .duo-features-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .duo-features-grid-3-auto {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1400px) {
+  .duo-features-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 1100px) {
   .duo-features-grid {
+    grid-template-columns: 1fr;
+  }
+  .duo-features-grid-4 {
+    grid-template-columns: 1fr;
+  }
+  .duo-features-grid-3-auto {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .duo-features-grid-3 {
     grid-template-columns: 1fr;
   }
 }

@@ -47,9 +47,10 @@
 
         <!-- Team Features Container -->
         <div v-if="gamers.length >= 3" class="team-features-container">
-          <!-- Win Rate Trend & Duration Analysis (Two-column layout) -->
-          <div class="team-features-grid">
+          <!-- Win Rate Trend, Side Win Rate & Duration Analysis (Three-column layout) -->
+          <div class="team-features-grid-3">
             <TeamWinRateTrend :userId="userId" />
+            <SideWinRate :userId="userId" mode="team" />
             <TeamDurationAnalysis :userId="userId" />
           </div>
 
@@ -62,10 +63,10 @@
 
           <!-- Kill Analysis (Four-column layout) -->
           <div class="team-features-grid-4">
-            <TeamKillParticipation :userId="userId" />
-            <TeamKillsByPhase :userId="userId" />
-            <TeamKillsTrend :userId="userId" />
             <TeamMultiKillShowcase :userId="userId" />
+            <TeamKillsByPhase :userId="userId" />
+            <TeamKillParticipation :userId="userId" />
+            <TeamKillsTrend :userId="userId" />
           </div>
 
           <!-- Death Analysis (Four-column layout) -->
@@ -103,6 +104,7 @@ import TeamKillParticipation from '@/components/TeamKillParticipation.vue';
 import TeamKillsByPhase from '@/components/TeamKillsByPhase.vue';
 import TeamKillsTrend from '@/components/TeamKillsTrend.vue';
 import TeamMultiKillShowcase from '@/components/TeamMultiKillShowcase.vue';
+import SideWinRate from '@/components/SideWinRate.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
 const props = defineProps({

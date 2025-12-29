@@ -49,6 +49,11 @@
             <MatchDuration :userId="userId" />
           </div>
 
+          <!-- Side Win Rate -->
+          <div class="side-win-rate-section">
+            <SideWinRate :userId="userId" mode="solo" />
+          </div>
+
           <!-- Summary Insights Panel -->
           <SummaryInsights :userId="userId" />
 
@@ -73,6 +78,7 @@ import DeathEfficiency from '@/components/DeathEfficiency.vue';
 import MatchDuration from '@/components/MatchDuration.vue';
 import SummaryInsights from '@/components/SummaryInsights.vue';
 import ChampionMatchups from '@/components/ChampionMatchups.vue';
+import SideWinRate from '@/components/SideWinRate.vue';
 import AppLogo from '@/components/AppLogo.vue';
 
 // ----- Props coming from the parent (router, other component, etc.) -----
@@ -198,6 +204,13 @@ defineExpose({ load });
 /* Ensure all grid items have the same height */
 .new-cards-section > * {
   height: 100%;
+}
+
+/* Side Win Rate section - one third width */
+.side-win-rate-section {
+  margin-top: 1.2rem;
+  display: flex;
+  width: 100%;
 }
 
 /* Responsive: stack vertically on smaller screens */
