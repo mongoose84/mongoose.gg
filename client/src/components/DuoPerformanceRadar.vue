@@ -128,8 +128,8 @@ onMounted(load);
 .radar-container { width: 100%; height: 100%; display: flex; flex-direction: column; }
 .loading, .error, .empty { padding: 2rem; text-align: center; color: var(--color-text-muted); }
 .error { color: var(--color-danger); }
-.radar-content { display: flex; flex-direction: column; gap: 1rem; align-items: center; padding: 1.5rem 0; flex: 1; justify-content: center; }
-.radar-svg { width: 100%; max-width: 280px; height: auto; }
+.radar-content { display: flex; gap: 1rem; align-items: center; padding: 1rem 0; flex: 1; justify-content: center; }
+.radar-svg { flex: 0 0 200px; height: 200px; }
 .axis-label { font-size: 11px; font-weight: 600; fill: var(--color-text); }
 .metrics-list { width: 100%; display: flex; flex-direction: column; gap: 0.5rem; }
 .metric-row { display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px solid var(--color-border); }

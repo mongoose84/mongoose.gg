@@ -366,29 +366,17 @@ defineExpose({ load, loadDuoStats });
   margin-top: 1.5rem;
 }
 
-/* Duo Features Grid (Three-column layout for Trend Analysis) */
+/* Duo Features Grid (Three-column layout for Trend Analysis - compact height) */
 .duo-features-grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   margin-top: 1.5rem;
-  align-items: stretch;
-}
-
-.duo-features-grid-3 > * {
-  height: 100%;
 }
 
 .duo-features-grid-3 :deep(.chart-card) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.duo-features-grid-3 :deep(.chart-card > *:last-child) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+  min-height: 360px;
+  height: 360px;
 }
 
 /* Duo Summary Section (Full width) */

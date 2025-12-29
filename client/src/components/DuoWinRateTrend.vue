@@ -142,7 +142,7 @@ onMounted(load);
 .trend-loading, .trend-error, .trend-empty { padding: 2rem; text-align: center; color: var(--color-text-muted); }
 .trend-error { color: var(--color-danger); }
 .trend-empty .requirement-hint { display: block; margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.7; }
-.trend-content { padding: 2rem 0 0.5rem 0; display: flex; flex-direction: column; gap: 1rem; flex: 1; justify-content: space-between; }
+.trend-content { padding: 1.5rem 0 0.5rem 0; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; justify-content: center; }
 .trend-indicator { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
 .trend-arrow { font-size: 1.5rem; }
 .trend-indicator.improving { color: var(--color-success); }
