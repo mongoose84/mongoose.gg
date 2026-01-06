@@ -25,7 +25,7 @@ jobs:
     defaults:
       # Every `run:` step will start in the project folder
       run:
-        working-directory: server/RiotProxy
+        working-directory: server
 
     steps:
       # -------------------------------------------------
@@ -45,7 +45,7 @@ jobs:
         run: |
           curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
             "ftp://${{ secrets.FTP_URL }}" `
-            -Q "RNFR ${{ secrets.FTP_SERVER_PATH }}/CI-Support/app_offline.htm" `
+            -Q "RNFR $/CI-Support/app_offline.htm" `
             -Q "RNTO ${{ secrets.FTP_SERVER_PATH }}/app_offline.htm"
           
 
@@ -130,7 +130,7 @@ jobs:
           protocol: ftps
           port: 21
           # Point to the SAME folder we just verified
-          local-dir: ./server/RiotProxy/${{ env.PUBLISH_DIR }}/
+          local-dir: ./server/${{ env.PUBLISH_DIR }}/
           server-dir: ${{ secrets.FTP_SERVER_PATH }}
           # optional safety flags
           # dry-run: false
@@ -145,5 +145,5 @@ jobs:
           curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
             "ftp://${{ secrets.FTP_URL }}" `
             -Q "RNFR ${{ secrets.FTP_SERVER_PATH }}/app_offline.htm" `
-            -Q "RNTO ${{ secrets.FTP_SERVER_PATH }}/CI-Support/app_offline.htm"
+            -Q "RNTO $/CI-Support/app_offline.htm"
 

@@ -15,14 +15,14 @@
 - API logic: `client/src/assets/` (e.g., `getUsers.js`), composables in `client/src/composables/`
 
 ### Server (.NET 8/9)
-- Build: `cd server/RiotProxy && dotnet build`
+- Build: `cd server && dotnet build`
 - Run: `dotnet run`
 - Publish (Windows): `dotnet publish -c Release -r win-x86 --self-contained true`
-- Secrets: Place `RiotSecret.txt` and `DatabaseSecret.txt` in `server/RiotProxy/`
-- Main entry: `server/RiotProxy/Program.cs`
-- Endpoints: `server/RiotProxy/Application/Endpoints/`
-- DTOs: `server/RiotProxy/Application/DTOs/`
-- Infrastructure: `server/RiotProxy/Infrastructure/`
+- Secrets: Place `RiotSecret.txt` and `DatabaseSecret.txt` in `server/`
+- Main entry: `server/Program.cs`
+- Endpoints: `server/Application/Endpoints/`
+- DTOs: `server/Application/DTOs/`
+- Infrastructure: `server/Infrastructure/`
 
 ## Conventions & Patterns
 - **Client**: Uses Vue SFCs, composition API, and composables for state/data logic. API calls are abstracted in `assets/`.
@@ -41,8 +41,8 @@
 
 ## References
 - See [README.md](../README.md) for setup, build, and test commands.
-- Sensitive config: [server/RiotProxy/RiotSecret.txt], [server/RiotProxy/DatabaseSecret.txt]
-- Main server logic: [server/RiotProxy/Program.cs], [server/RiotProxy/Application/Endpoints/]
+- Sensitive config: [server/RiotSecret.txt], [server/DatabaseSecret.txt]
+- Main server logic: [server/Program.cs], [server/Application/Endpoints/]
 - Main client logic: [client/src/], [client/src/assets/], [client/src/composables/]
 
 ---

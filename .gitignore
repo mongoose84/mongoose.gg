@@ -26,12 +26,22 @@ client/dist-ssr
 client/*.local
 client/coverage
 
-# server
-server/RiotProxy/bin
-server/RiotProxy/obj
-server/RiotProxy/publish
-server/RiotProxy/RiotSecret.txt
-server/RiotProxy/DatabaseSecret.txt
+# Server build outputs and secrets (after structure change)
+server/bin
+server/obj
+server/publish
+server/RiotSecret.txt
+server/DatabaseSecret.txt
+
+# If secrets or build outputs are now directly under server/ (not in a subfolder)
+/server/bin/
+/server/obj/
+/server/publish/
+/server/RiotSecret.txt
+/server/DatabaseSecret.txt
+
+# Ignore CI-Support if needed
+/CI-Support/
 
 # published files
 publish/**/*

@@ -24,16 +24,16 @@
 - Routing: `client/src/router/index.js`
 
 ### Server (.NET 9.0)
-- Build: `cd server/RiotProxy && dotnet build`
+- Build: `cd server && dotnet build`
 - Run: `dotnet run` (runs on configured port, typically 5000/5001)
 - Publish for Windows: `dotnet publish -c Release -r win-x86 --self-contained true`
 - Publish for Linux: `dotnet publish -c Release -r linux-x64 --self-contained false`
-- Secrets: Place `RiotSecret.txt` (Riot API key) and `DatabaseSecret.txt` (MySQL connection string) in `server/RiotProxy/`
-- Main entry: `server/RiotProxy/Program.cs`
-- Application layer: `server/RiotProxy/Application/`
+- Secrets: Place `RiotSecret.txt` (Riot API key) and `DatabaseSecret.txt` (MySQL connection string) in `server/`
+- Main entry: `server/Program.cs`
+- Application layer: `server/Application/`
   - Endpoints: `Application/Endpoints/` (API endpoint definitions)
   - DTOs: `Application/DTOs/` (request/response models)
-- Infrastructure layer: `server/RiotProxy/Infrastructure/`
+- Infrastructure layer: `server/Infrastructure/`
   - Database: `Infrastructure/External/Database/` (repositories, connection factory)
   - Riot API: `Infrastructure/External/Riot/` (Riot API client)
 - Background jobs: `Infrastructure/Jobs/` (e.g., MatchHistorySyncJob)
@@ -102,8 +102,8 @@
 
 ## Common Tasks
 ### Add a new API endpoint
-1. Create a new file in `server/RiotProxy/Application/Endpoints/` implementing `IEndpoint`
-2. Register it in `server/RiotProxy/Application/RiotProxyApplication.cs`
+1. Create a new file in `server/Application/Endpoints/` implementing `IEndpoint`
+2. Register it in `server/Application/RiotProxyApplication.cs`
 3. Create corresponding DTO in `Application/DTOs/` if needed
 4. Add client-side API call function in `client/src/assets/`
 5. Update views/components to use the new endpoint
@@ -142,21 +142,20 @@ lol/
 │   │   └── main.js           # Entry point
 │   ├── test/                 # Unit tests
 │   └── package.json
-└── server/
-    └── RiotProxy/            # .NET 9.0 backend
-        ├── Application/      # Application layer
-        │   ├── DTOs/        # Data transfer objects
-        │   └── Endpoints/   # API endpoints
-        ├── Infrastructure/   # Infrastructure layer
-        │   ├── External/    # External services (DB, Riot API)
-        │   └── Jobs/        # Background jobs
-        └── Program.cs       # Entry point
+└── server/# .NET 9.0 backend   
+      ├── Application/      # Application layer
+      │   ├── DTOs/        # Data transfer objects
+      │   └── Endpoints/   # API endpoints
+      ├── Infrastructure/   # Infrastructure layer
+      │   ├── External/    # External services (DB, Riot API)
+      │   └── Jobs/        # Background jobs
+      └── Program.cs       # Entry point
 ```
 
 ## References
 - Setup instructions: [README.md](../README.md)
-- Sensitive config: `server/RiotProxy/RiotSecret.txt`, `server/RiotProxy/DatabaseSecret.txt`
-- Main server logic: `server/RiotProxy/Program.cs`, `server/RiotProxy/Application/`
+- Sensitive config: `server/RiotSecret.txt`, `server/DatabaseSecret.txt`
+- Main server logic: `server/Program.cs`, `server/Application/`
 - Main client logic: `client/src/`, `client/src/assets/`, `client/src/composables/`
 - Riot API Documentation: https://developer.riotgames.com/
 
