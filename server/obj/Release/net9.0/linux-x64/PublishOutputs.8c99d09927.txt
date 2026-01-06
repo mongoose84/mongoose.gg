@@ -1,0 +1,16 @@
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/RiotProxy
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/web.config
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/appsettings.Development.json
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/appsettings.json
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/DatabaseSecret.txt
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/RiotSecret.txt
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/RiotProxy.dll
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/RiotProxy.runtimeconfig.json
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/RiotProxy.pdb
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/Microsoft.AspNetCore.OpenApi.dll
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/Microsoft.OpenApi.dll
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/MySqlConnector.dll
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/Swashbuckle.AspNetCore.Swagger.dll
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/Swashbuckle.AspNetCore.SwaggerGen.dll
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/Swashbuckle.AspNetCore.SwaggerUI.dll
+/home/thread/Documents/lol/server/RiotProxy/bin/Release/net9.0/linux-x64/publish/RiotProxy.deps.json
