@@ -70,4 +70,3 @@ var riotProxyApplication = new RiotProxyApplication(app);
 riotProxyApplication.ConfigureEndpoints();
 
 app.Run();
-
