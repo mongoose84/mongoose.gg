@@ -19,7 +19,7 @@ namespace RiotProxy.Application.Endpoints
                 [FromRoute] string userId,
                 [FromServices] GamerRepository gamerRepo,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] SoloStatsRepository soloStatsRepo
                 ) =>
             {
                 try
@@ -48,8 +48,8 @@ namespace RiotProxy.Application.Endpoints
                         var serverName = gamer.Tagline.ToUpperInvariant();
                         var gamerName = $"{gamer.GamerName}#{serverName}";
 
-                        // Get duration bucket statistics
-                        var bucketRecords = await matchParticipantRepo.GetDurationStatsByPuuIdAsync(puuId);
+                        // Get duration bucket statistics (excludes ARAM games)
+                        var bucketRecords = await soloStatsRepo.GetDurationStatsByPuuIdAsync(puuId);
 
                         var buckets = bucketRecords.Select(record =>
                         {

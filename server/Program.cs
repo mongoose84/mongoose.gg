@@ -19,6 +19,9 @@ builder.Services.AddScoped<GamerRepository>();
 builder.Services.AddScoped<UserGamerRepository>();
 builder.Services.AddScoped<LolMatchRepository>();
 builder.Services.AddScoped<LolMatchParticipantRepository>();
+builder.Services.AddScoped<SoloStatsRepository>();
+builder.Services.AddScoped<DuoStatsRepository>();
+builder.Services.AddScoped<TeamStatsRepository>();
 
 // Named HttpClient for Riot API
 builder.Services.AddHttpClient("RiotApi", client =>

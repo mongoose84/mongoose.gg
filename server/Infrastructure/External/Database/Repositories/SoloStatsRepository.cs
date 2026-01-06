@@ -17,6 +17,7 @@ public class SoloStatsRepository
 
     /// <summary>
     /// Get side statistics (blue/red) for a specific puuid.
+    /// Excludes ARAM games.
     /// </summary>
     public async Task<SideStatsRecord> GetSideStatsByPuuIdAsync(string puuId)
     {
@@ -25,12 +26,14 @@ public class SoloStatsRepository
 
         const string sql = @"
             SELECT
-                SUM(CASE WHEN TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
-                SUM(CASE WHEN TeamId = 100 AND Win = 1 THEN 1 ELSE 0 END) as BlueWins,
-                SUM(CASE WHEN TeamId = 200 THEN 1 ELSE 0 END) as RedGames,
-                SUM(CASE WHEN TeamId = 200 AND Win = 1 THEN 1 ELSE 0 END) as RedWins
-            FROM LolMatchParticipant
-            WHERE Puuid = @puuid";
+                SUM(CASE WHEN p.TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
+                SUM(CASE WHEN p.TeamId = 100 AND p.Win = 1 THEN 1 ELSE 0 END) as BlueWins,
+                SUM(CASE WHEN p.TeamId = 200 THEN 1 ELSE 0 END) as RedGames,
+                SUM(CASE WHEN p.TeamId = 200 AND p.Win = 1 THEN 1 ELSE 0 END) as RedWins
+            FROM LolMatchParticipant p
+            INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+            WHERE p.Puuid = @puuid
+              AND m.GameMode != 'ARAM'";
 
         await using var cmd = new MySqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@puuid", puuId);
@@ -51,6 +54,7 @@ public class SoloStatsRepository
 
     /// <summary>
     /// Get champion statistics grouped by champion for a specific puuid.
+    /// Excludes ARAM games.
     /// </summary>
     public async Task<IList<ChampionStatsRecord>> GetChampionStatsByPuuIdAsync(string puuId)
     {
@@ -60,13 +64,15 @@ public class SoloStatsRepository
 
         const string sql = @"
             SELECT
-                ChampionId,
-                ChampionName,
+                p.ChampionId,
+                p.ChampionName,
                 COUNT(*) as GamesPlayed,
-                SUM(CASE WHEN Win = 1 THEN 1 ELSE 0 END) as Wins
-            FROM LolMatchParticipant
-            WHERE Puuid = @puuid
-            GROUP BY ChampionId, ChampionName
+                SUM(CASE WHEN p.Win = 1 THEN 1 ELSE 0 END) as Wins
+            FROM LolMatchParticipant p
+            INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+            WHERE p.Puuid = @puuid
+              AND m.GameMode != 'ARAM'
+            GROUP BY p.ChampionId, p.ChampionName
             ORDER BY GamesPlayed DESC";
 
         await using var cmd = new MySqlCommand(sql, conn);
@@ -88,6 +94,7 @@ public class SoloStatsRepository
 
     /// <summary>
     /// Get role/position distribution for a specific puuid.
+    /// Excludes ARAM games.
     /// </summary>
     public async Task<IList<RoleDistributionRecord>> GetRoleDistributionByPuuIdAsync(string puuId)
     {
@@ -97,10 +104,12 @@ public class SoloStatsRepository
 
         const string sql = @"
             SELECT
-                COALESCE(NULLIF(TeamPosition, ''), 'UNKNOWN') as Position,
+                COALESCE(NULLIF(p.TeamPosition, ''), 'UNKNOWN') as Position,
                 COUNT(*) as GamesPlayed
-            FROM LolMatchParticipant
-            WHERE Puuid = @puuid
+            FROM LolMatchParticipant p
+            INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+            WHERE p.Puuid = @puuid
+              AND m.GameMode != 'ARAM'
             GROUP BY Position
             ORDER BY GamesPlayed DESC";
 
@@ -121,6 +130,7 @@ public class SoloStatsRepository
 
     /// <summary>
     /// Get match duration statistics grouped by duration buckets for a specific puuid.
+    /// Excludes ARAM games.
     /// </summary>
     public async Task<IList<DurationBucketRecord>> GetDurationStatsByPuuIdAsync(string puuId)
     {
@@ -138,6 +148,7 @@ public class SoloStatsRepository
             WHERE p.Puuid = @puuid
               AND m.InfoFetched = TRUE
               AND m.DurationSeconds > 0
+              AND m.GameMode != 'ARAM'
             GROUP BY MinMinutes
             ORDER BY MinMinutes ASC";
 

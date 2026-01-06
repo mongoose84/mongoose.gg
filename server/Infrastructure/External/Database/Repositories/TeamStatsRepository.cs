@@ -17,6 +17,7 @@ public class TeamStatsRepository
 
     /// <summary>
     /// Get team statistics for games where all specified players played together.
+    /// Excludes ARAM games.
     /// </summary>
     public async Task<TeamStatsRecord?> GetTeamStatsByPuuIdsAsync(string[] puuIds)
     {
@@ -45,17 +46,14 @@ public class TeamStatsRepository
                 SUM(p0.Kills + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Kills"))}) as TotalKills,
                 SUM(p0.Deaths + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Deaths"))}) as TotalDeaths,
                 SUM(p0.Assists + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Assists"))}) as TotalAssists,
-                AVG(m.DurationSeconds) as AvgDurationSeconds,
-                m.GameMode
+                AVG(m.DurationSeconds) as AvgDurationSeconds
             FROM LolMatchParticipant p0
             {string.Join(" ", joinClauses)}
             INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
             WHERE p0.Puuid = @puuid0
               AND m.InfoFetched = TRUE
               AND m.DurationSeconds > 0
-            GROUP BY m.GameMode
-            ORDER BY GamesPlayed DESC
-            LIMIT 1";
+              AND m.GameMode != 'ARAM'";
 
         await using var cmd = new MySqlCommand(sql, conn);
         for (int i = 0; i < puuIds.Length; i++)
@@ -75,7 +73,7 @@ public class TeamStatsRepository
                 reader.GetInt32("TotalDeaths"),
                 reader.GetInt32("TotalAssists"),
                 reader.GetDouble("AvgDurationSeconds"),
-                reader.IsDBNull(reader.GetOrdinal("GameMode")) ? "Unknown" : reader.GetString("GameMode")
+                "Excluding ARAM"
             );
         }
 
@@ -84,6 +82,7 @@ public class TeamStatsRepository
 
     /// <summary>
     /// Get side statistics (blue/red) for team games.
+    /// Excludes ARAM games.
     /// </summary>
     public async Task<SideStatsRecord> GetTeamSideStatsByPuuIdsAsync(string[] puuIds)
     {
@@ -111,7 +110,9 @@ public class TeamStatsRepository
                 SUM(CASE WHEN p0.TeamId = 200 AND p0.Win = 1 THEN 1 ELSE 0 END) as RedWins
             FROM LolMatchParticipant p0
             {string.Join(" ", joinClauses)}
-            WHERE p0.Puuid = @puuid0";
+            INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+            WHERE p0.Puuid = @puuid0
+              AND m.GameMode != 'ARAM'";
 
         await using var cmd = new MySqlCommand(sql, conn);
         for (int i = 0; i < puuIds.Length; i++)

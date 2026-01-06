@@ -566,6 +566,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
         /// <summary>
         /// Get champion statistics (games played, wins) grouped by champion for a specific puuid.
+        /// Excludes ARAM games.
         /// </summary>
         internal async Task<IList<ChampionStatsRecord>> GetChampionStatsByPuuIdAsync(string puuId)
         {
@@ -575,13 +576,15 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
             const string sql = @"
                 SELECT
-                    ChampionId,
-                    ChampionName,
+                    p.ChampionId,
+                    p.ChampionName,
                     COUNT(*) as GamesPlayed,
-                    SUM(CASE WHEN Win = 1 THEN 1 ELSE 0 END) as Wins
-                FROM LolMatchParticipant
-                WHERE Puuid = @puuid
-                GROUP BY ChampionId, ChampionName
+                    SUM(CASE WHEN p.Win = 1 THEN 1 ELSE 0 END) as Wins
+                FROM LolMatchParticipant p
+                INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                WHERE p.Puuid = @puuid
+                  AND m.GameMode != 'ARAM'
+                GROUP BY p.ChampionId, p.ChampionName
                 ORDER BY GamesPlayed DESC";
 
             await using var cmd = new MySqlCommand(sql, conn);
@@ -604,6 +607,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// <summary>
         /// Get role/position distribution for a specific puuid.
         /// Returns count of games played in each role/position.
+        /// Excludes ARAM games.
         /// </summary>
         internal async Task<IList<RoleDistributionRecord>> GetRoleDistributionByPuuIdAsync(string puuId)
         {
@@ -614,10 +618,12 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             // Use TeamPosition as it's more reliable than Role or Lane in modern League
             const string sql = @"
                 SELECT
-                    COALESCE(NULLIF(TeamPosition, ''), 'UNKNOWN') as Position,
+                    COALESCE(NULLIF(p.TeamPosition, ''), 'UNKNOWN') as Position,
                     COUNT(*) as GamesPlayed
-                FROM LolMatchParticipant
-                WHERE Puuid = @puuid
+                FROM LolMatchParticipant p
+                INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                WHERE p.Puuid = @puuid
+                  AND m.GameMode != 'ARAM'
                 GROUP BY Position
                 ORDER BY GamesPlayed DESC";
 
@@ -639,6 +645,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// <summary>
         /// Get side statistics (blue/red) for a specific puuid.
         /// TeamId 100 = Blue side, TeamId 200 = Red side.
+        /// Excludes ARAM games.
         /// </summary>
         internal async Task<SideStatsRecord> GetSideStatsByPuuIdAsync(string puuId)
         {
@@ -647,12 +654,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
             const string sql = @"
                 SELECT
-                    SUM(CASE WHEN TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
-                    SUM(CASE WHEN TeamId = 100 AND Win = 1 THEN 1 ELSE 0 END) as BlueWins,
-                    SUM(CASE WHEN TeamId = 200 THEN 1 ELSE 0 END) as RedGames,
-                    SUM(CASE WHEN TeamId = 200 AND Win = 1 THEN 1 ELSE 0 END) as RedWins
-                FROM LolMatchParticipant
-                WHERE Puuid = @puuid";
+                    SUM(CASE WHEN p.TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
+                    SUM(CASE WHEN p.TeamId = 100 AND p.Win = 1 THEN 1 ELSE 0 END) as BlueWins,
+                    SUM(CASE WHEN p.TeamId = 200 THEN 1 ELSE 0 END) as RedGames,
+                    SUM(CASE WHEN p.TeamId = 200 AND p.Win = 1 THEN 1 ELSE 0 END) as RedWins
+                FROM LolMatchParticipant p
+                INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                WHERE p.Puuid = @puuid
+                  AND m.GameMode != 'ARAM'";
 
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@puuid", puuId);
@@ -673,6 +682,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
         /// <summary>
         /// Get side statistics (blue/red) for duo games (where both players are on the same team).
+        /// Excludes ARAM games.
         /// </summary>
         internal async Task<SideStatsRecord> GetDuoSideStatsByPuuIdsAsync(string puuId1, string puuId2)
         {
@@ -690,8 +700,10 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                     ON p1.MatchId = p2.MatchId
                     AND p1.TeamId = p2.TeamId
                     AND p1.Puuid != p2.Puuid
+                INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
                 WHERE p1.Puuid = @puuid1
-                  AND p2.Puuid = @puuid2";
+                  AND p2.Puuid = @puuid2
+                  AND m.GameMode != 'ARAM'";
 
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@puuid1", puuId1);
@@ -713,6 +725,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
         /// <summary>
         /// Get side statistics (blue/red) for team games (where all specified players are on the same team).
+        /// Excludes ARAM games.
         /// </summary>
         internal async Task<SideStatsRecord> GetTeamSideStatsByPuuIdsAsync(string[] puuIds)
         {
@@ -743,7 +756,9 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                     SUM(CASE WHEN p0.TeamId = 200 AND p0.Win = 1 THEN 1 ELSE 0 END) as RedWins
                 FROM LolMatchParticipant p0
                 {string.Join(" ", joinClauses)}
-                WHERE p0.Puuid = @puuid0";
+                INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+                WHERE p0.Puuid = @puuid0
+                  AND m.GameMode != 'ARAM'";
 
             await using var cmd = new MySqlCommand(sql, conn);
             for (int i = 0; i < puuIds.Length; i++)
@@ -767,6 +782,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
         /// <summary>
         /// Get match duration statistics (wins/total games) grouped by duration buckets for a specific puuid.
+        /// Excludes ARAM games.
         /// </summary>
         internal async Task<IList<DurationBucketRecord>> GetDurationStatsByPuuIdAsync(string puuId)
         {
@@ -785,6 +801,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 WHERE p.Puuid = @puuid
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0
+                  AND m.GameMode != 'ARAM'
                 GROUP BY MinMinutes
                 ORDER BY MinMinutes ASC";
 
@@ -825,6 +842,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             // This query finds all matches where the player played a champion in a role,
             // then joins to find the opponent in the same role on the enemy team
             // Filters out UNKNOWN roles (empty or null TeamPosition)
+            // Excludes ARAM games
             var sql = $@"
                 SELECT
                     player.ChampionId,
@@ -839,9 +857,11 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                     ON player.MatchId = opponent.MatchId
                     AND player.TeamId != opponent.TeamId
                     AND player.TeamPosition = opponent.TeamPosition
+                INNER JOIN LolMatch m ON player.MatchId = m.MatchId
                 WHERE player.Puuid IN ({puuidParams})
                     AND player.TeamPosition IS NOT NULL
                     AND player.TeamPosition != ''
+                    AND m.GameMode != 'ARAM'
                 GROUP BY player.ChampionId, player.ChampionName, Role, opponent.ChampionId, opponent.ChampionName
                 ORDER BY player.ChampionName, Role, GamesPlayed DESC";
 
@@ -879,7 +899,8 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
         /// <summary>
         /// Get statistics for games where two players played together (on the same team).
-        /// Returns total games played together, wins, and the most common queue type.
+        /// Returns total games played together and wins.
+        /// Excludes ARAM games.
         /// </summary>
         internal async Task<DuoStatsRecord?> GetDuoStatsByPuuIdsAsync(string puuId1, string puuId2)
         {
@@ -895,8 +916,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             const string sql = @"
                 SELECT
                     COUNT(DISTINCT p1.MatchId) as GamesPlayed,
-                    SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins,
-                    m.GameMode
+                    SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins
                 FROM LolMatchParticipant p1
                 INNER JOIN LolMatchParticipant p2
                     ON p1.MatchId = p2.MatchId
@@ -906,9 +926,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 WHERE p1.Puuid = @puuid1
                   AND p2.Puuid = @puuid2
                   AND m.InfoFetched = TRUE
-                GROUP BY m.GameMode
-                ORDER BY GamesPlayed DESC
-                LIMIT 1";
+                  AND m.GameMode != 'ARAM'";
 
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@puuid1", puuId1);
@@ -920,11 +938,8 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             {
                 var gamesPlayed = reader.GetInt32("GamesPlayed");
                 var wins = reader.GetInt32("Wins");
-                var gameMode = reader.IsDBNull(reader.GetOrdinal("GameMode"))
-                    ? "Unknown"
-                    : reader.GetString("GameMode");
 
-                return new DuoStatsRecord(gamesPlayed, wins, gameMode);
+                return new DuoStatsRecord(gamesPlayed, wins, "Excluding ARAM");
             }
 
             return null;
@@ -932,8 +947,9 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
         /// <summary>
         /// Get performance statistics for duo games (when two players play together).
+        /// Excludes ARAM games.
         /// </summary>
-        internal async Task<PlayerPerformanceRecord?> GetDuoPerformanceByPuuIdsAsync(string puuId1, string puuId2, string targetPuuId, string? gameMode = null)
+        internal async Task<PlayerPerformanceRecord?> GetDuoPerformanceByPuuIdsAsync(string puuId1, string puuId2, string targetPuuId)
         {
             if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2) || string.IsNullOrWhiteSpace(targetPuuId))
             {
@@ -944,7 +960,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             await conn.OpenAsync();
 
             // Get performance stats for targetPuuId in games where both players were on the same team
-            var sql = @"
+            const string sql = @"
                 SELECT
                     COUNT(DISTINCT p1.MatchId) as GamesPlayed,
                     SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins,
@@ -962,22 +978,12 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 WHERE p1.Puuid = @targetPuuid
                   AND p2.Puuid = @otherPuuid
                   AND m.InfoFetched = TRUE
-                  AND m.DurationSeconds > 0";
-
-            // Add game mode filter if specified
-            if (!string.IsNullOrWhiteSpace(gameMode))
-            {
-                sql += " AND m.GameMode = @gameMode";
-            }
+                  AND m.DurationSeconds > 0
+                  AND m.GameMode != 'ARAM'";
 
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@targetPuuid", targetPuuId);
             cmd.Parameters.AddWithValue("@otherPuuid", targetPuuId == puuId1 ? puuId2 : puuId1);
-
-            if (!string.IsNullOrWhiteSpace(gameMode))
-            {
-                cmd.Parameters.AddWithValue("@gameMode", gameMode);
-            }
 
             await using var reader = await cmd.ExecuteReaderAsync();
 
@@ -1002,6 +1008,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
 
         /// <summary>
         /// Get performance statistics for solo games (when a player plays without a specific partner).
+        /// Excludes ARAM games when gameMode is not specified.
         /// </summary>
         internal async Task<PlayerPerformanceRecord?> GetSoloPerformanceByPuuIdAsync(string puuId, string excludePuuId, string? gameMode = null)
         {
@@ -1035,10 +1042,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                         AND p2.Puuid = @excludePuuid
                   )";
 
-            // Add game mode filter if specified
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             await using var cmd = new MySqlCommand(sql, conn);
@@ -1074,6 +1085,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// <summary>
         /// Get champion synergy statistics for duo games.
         /// Returns win rates for each champion pair combination when two players play together.
+        /// Excludes ARAM games when gameMode is not specified.
         /// </summary>
         internal async Task<IList<ChampionSynergyRecord>> GetChampionSynergyByPuuIdsAsync(string puuId1, string puuId2, string? gameMode = null)
         {
@@ -1105,9 +1117,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND p2.Puuid = @puuid2
                   AND m.InfoFetched = TRUE";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += @"
@@ -1184,9 +1201,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND enemy.TeamPosition IS NOT NULL
                   AND enemy.TeamPosition != ''";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += @"
@@ -1255,9 +1277,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND p2.Puuid = @otherPuuid
                   AND m.InfoFetched = TRUE";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += @"
@@ -1317,14 +1344,19 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND p2.Puuid = @puuid2
                   AND m.InfoFetched = TRUE";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
             }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
+            }
 
             sql += @"
                 GROUP BY Lane1, Lane2
-                ORDER BY GamesPlayed DESC";
+                ORDER BY GamesPlayed DESC";;
 
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@puuid1", puuId1);
@@ -1394,9 +1426,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND p2.Puuid = @otherPuuid
                   AND m.InfoFetched = TRUE";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             await using var cmd = new MySqlCommand(sql, conn);
@@ -1457,9 +1494,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += @"
@@ -1520,9 +1562,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                       AND m.InfoFetched = TRUE
                       AND m.DurationSeconds > 0";
 
+                // Filter by specific game mode if provided, otherwise exclude ARAM
                 if (!string.IsNullOrWhiteSpace(gameMode))
                 {
                     sql += " AND m.GameMode = @gameMode";
+                }
+                else
+                {
+                    sql += " AND m.GameMode != 'ARAM'";
                 }
 
                 await using var cmd = new MySqlCommand(sql, conn);
@@ -1584,9 +1631,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " GROUP BY DurationBucket";
@@ -1643,9 +1695,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                       AND m.InfoFetched = TRUE
                       AND m.DurationSeconds > 0";
 
+                // Filter by specific game mode if provided, otherwise exclude ARAM
                 if (!string.IsNullOrWhiteSpace(gameMode))
                 {
                     sql += " AND m.GameMode = @gameMode";
+                }
+                else
+                {
+                    sql += " AND m.GameMode != 'ARAM'";
                 }
 
                 await using var cmd = new MySqlCommand(sql, conn);
@@ -1700,9 +1757,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " ORDER BY m.GameEndTimestamp ASC LIMIT @limit";
@@ -1760,9 +1822,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                       AND m.InfoFetched = TRUE
                       AND m.DurationSeconds > 0";
 
+                // Filter by specific game mode if provided, otherwise exclude ARAM
                 if (!string.IsNullOrWhiteSpace(gameMode))
                 {
                     sql += " AND m.GameMode = @gameMode";
+                }
+                else
+                {
+                    sql += " AND m.GameMode != 'ARAM'";
                 }
 
                 await using var cmd = new MySqlCommand(sql, conn);
@@ -1824,9 +1891,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " GROUP BY DurationBucket";
@@ -1881,9 +1953,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                       AND m.InfoFetched = TRUE
                       AND m.DurationSeconds > 0";
 
+                // Filter by specific game mode if provided, otherwise exclude ARAM
                 if (!string.IsNullOrWhiteSpace(gameMode))
                 {
                     sql += " AND m.GameMode = @gameMode";
+                }
+                else
+                {
+                    sql += " AND m.GameMode != 'ARAM'";
                 }
 
                 await using var cmd = new MySqlCommand(sql, conn);
@@ -1936,9 +2013,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " ORDER BY m.GameEndTimestamp ASC LIMIT @limit";
@@ -1993,9 +2075,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " ORDER BY m.GameEndTimestamp ASC LIMIT @limit";
@@ -2052,9 +2139,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             await using var cmd = new MySqlCommand(sql, conn);
@@ -2113,9 +2205,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " ORDER BY m.GameEndTimestamp DESC";
@@ -2252,6 +2349,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 WHERE {whereClauses[0]}
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0
+                  AND m.GameMode != 'ARAM'
                 GROUP BY m.GameMode
                 ORDER BY GamesPlayed DESC
                 LIMIT 1";
@@ -2313,9 +2411,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                           AND p2.Puuid = @puuid2
                           AND m.InfoFetched = TRUE";
 
+                    // Filter by specific game mode if provided, otherwise exclude ARAM
                     if (!string.IsNullOrWhiteSpace(gameMode))
                     {
                         sql += " AND m.GameMode = @gameMode";
+                    }
+                    else
+                    {
+                        sql += " AND m.GameMode != 'ARAM'";
                     }
 
                     await using var cmd = new MySqlCommand(sql, conn);
@@ -2379,9 +2482,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 WHERE tp0.Puuid = @teamPuuid0
                   AND m.InfoFetched = TRUE";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 teamMatchSubquery += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                teamMatchSubquery += " AND m.GameMode != 'ARAM'";
             }
 
             // For each player, get their role distribution in team games
@@ -2459,9 +2567,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 teamMatchSubquery += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                teamMatchSubquery += " AND m.GameMode != 'ARAM'";
             }
 
             // For each player, get their performance in team games
@@ -2552,9 +2665,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             await using var cmd = new MySqlCommand(sql, conn);
@@ -2615,9 +2733,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " ORDER BY m.GameEndTimestamp DESC LIMIT @limit";
@@ -2691,9 +2814,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " GROUP BY DurationBucket ORDER BY DurationBucket";
@@ -2762,9 +2890,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             // Group by all champion IDs and Puuids
@@ -2854,9 +2987,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             await using var cmd = new MySqlCommand(sql, conn);
@@ -2967,9 +3105,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                       AND p.Puuid = @targetPuuid
                       AND m.InfoFetched = TRUE";
 
+                // Filter by specific game mode if provided, otherwise exclude ARAM
                 if (!string.IsNullOrWhiteSpace(gameMode))
                 {
                     sql += " AND m.GameMode = @gameMode";
+                }
+                else
+                {
+                    sql += " AND m.GameMode != 'ARAM'";
                 }
 
                 await using var cmd = new MySqlCommand(sql, conn);
@@ -3048,9 +3191,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 WHERE p0.Puuid = @puuid0
                   AND m.InfoFetched = TRUE";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " GROUP BY DurationBucket ORDER BY DurationBucket";
@@ -3119,9 +3267,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 WHERE p0.Puuid = @puuid0
                   AND m.InfoFetched = TRUE";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " ORDER BY m.GameEndTimestamp ASC LIMIT @limit";
@@ -3195,9 +3348,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 WHERE p0.Puuid = @puuid0
                   AND m.InfoFetched = TRUE";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " ORDER BY m.GameEndTimestamp ASC LIMIT @limit";
@@ -3276,9 +3434,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 sql += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                sql += " AND m.GameMode != 'ARAM'";
             }
 
             sql += " GROUP BY DurationBucket ORDER BY DurationBucket";
@@ -3342,9 +3505,14 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.DurationSeconds > 0";
 
+            // Filter by specific game mode if provided, otherwise exclude ARAM
             if (!string.IsNullOrWhiteSpace(gameMode))
             {
                 teamMatchSubquery += " AND m.GameMode = @gameMode";
+            }
+            else
+            {
+                teamMatchSubquery += " AND m.GameMode != 'ARAM'";
             }
 
             // For each player, get their multi-kill stats in team games

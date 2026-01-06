@@ -17,6 +17,7 @@ public class DuoStatsRepository
 
     /// <summary>
     /// Get statistics for games where two players played together (on the same team).
+    /// Excludes ARAM games.
     /// </summary>
     public async Task<DuoStatsRecord?> GetDuoStatsByPuuIdsAsync(string puuId1, string puuId2)
     {
@@ -29,8 +30,7 @@ public class DuoStatsRepository
         const string sql = @"
             SELECT
                 COUNT(DISTINCT p1.MatchId) as GamesPlayed,
-                SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins,
-                m.GameMode
+                SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins
             FROM LolMatchParticipant p1
             INNER JOIN LolMatchParticipant p2
                 ON p1.MatchId = p2.MatchId
@@ -40,9 +40,7 @@ public class DuoStatsRepository
             WHERE p1.Puuid = @puuid1
               AND p2.Puuid = @puuid2
               AND m.InfoFetched = TRUE
-            GROUP BY m.GameMode
-            ORDER BY GamesPlayed DESC
-            LIMIT 1";
+              AND m.GameMode != 'ARAM'";
 
         await using var cmd = new MySqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@puuid1", puuId1);
@@ -55,7 +53,7 @@ public class DuoStatsRepository
             return new DuoStatsRecord(
                 reader.GetInt32("GamesPlayed"),
                 reader.GetInt32("Wins"),
-                reader.IsDBNull(reader.GetOrdinal("GameMode")) ? "Unknown" : reader.GetString("GameMode")
+                "Excluding ARAM"
             );
         }
 
@@ -64,6 +62,7 @@ public class DuoStatsRepository
 
     /// <summary>
     /// Get side statistics (blue/red) for duo games.
+    /// Excludes ARAM games.
     /// </summary>
     public async Task<SideStatsRecord> GetDuoSideStatsByPuuIdsAsync(string puuId1, string puuId2)
     {
@@ -81,8 +80,10 @@ public class DuoStatsRepository
                 ON p1.MatchId = p2.MatchId
                 AND p1.TeamId = p2.TeamId
                 AND p1.Puuid != p2.Puuid
+            INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
             WHERE p1.Puuid = @puuid1
-              AND p2.Puuid = @puuid2";
+              AND p2.Puuid = @puuid2
+              AND m.GameMode != 'ARAM'";
 
         await using var cmd = new MySqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@puuid1", puuId1);
@@ -104,8 +105,9 @@ public class DuoStatsRepository
 
     /// <summary>
     /// Get champion synergy statistics for duo games.
+    /// Excludes ARAM games.
     /// </summary>
-    public async Task<IList<ChampionSynergyRecord>> GetChampionSynergyByPuuIdsAsync(string puuId1, string puuId2, string? gameMode = null)
+    public async Task<IList<ChampionSynergyRecord>> GetChampionSynergyByPuuIdsAsync(string puuId1, string puuId2)
     {
         if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
             return new List<ChampionSynergyRecord>();
@@ -114,7 +116,7 @@ public class DuoStatsRepository
         await using var conn = _factory.CreateConnection();
         await conn.OpenAsync();
 
-        var sql = @"
+        const string sql = @"
             SELECT
                 p1.ChampionId as ChampionId1,
                 p1.ChampionName as ChampionName1,
@@ -130,20 +132,14 @@ public class DuoStatsRepository
             INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
             WHERE p1.Puuid = @puuid1
               AND p2.Puuid = @puuid2
-              AND m.InfoFetched = TRUE";
-
-        if (!string.IsNullOrWhiteSpace(gameMode))
-            sql += " AND m.GameMode = @gameMode";
-
-        sql += @"
+              AND m.InfoFetched = TRUE
+              AND m.GameMode != 'ARAM'
             GROUP BY p1.ChampionId, p1.ChampionName, p2.ChampionId, p2.ChampionName
             ORDER BY GamesPlayed DESC";
 
         await using var cmd = new MySqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@puuid1", puuId1);
         cmd.Parameters.AddWithValue("@puuid2", puuId2);
-        if (!string.IsNullOrWhiteSpace(gameMode))
-            cmd.Parameters.AddWithValue("@gameMode", gameMode);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -163,8 +159,9 @@ public class DuoStatsRepository
 
     /// <summary>
     /// Get multi-kill statistics for duo games.
+    /// Excludes ARAM games.
     /// </summary>
-    public async Task<IList<DuoMultiKillRecord>> GetDuoMultiKillsAsync(string puuId1, string puuId2, string? gameMode = null)
+    public async Task<IList<DuoMultiKillRecord>> GetDuoMultiKillsAsync(string puuId1, string puuId2)
     {
         if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
             return new List<DuoMultiKillRecord>();
@@ -175,7 +172,7 @@ public class DuoStatsRepository
 
         foreach (var puuId in new[] { puuId1, puuId2 })
         {
-            var sql = @"
+            const string sql = @"
                 SELECT
                     SUM(p.DoubleKills) as DoubleKills,
                     SUM(p.TripleKills) as TripleKills,
@@ -187,16 +184,12 @@ public class DuoStatsRepository
                 WHERE p.Puuid = @puuid
                   AND p2.Puuid = @otherPuuid
                   AND m.InfoFetched = TRUE
-                  AND m.DurationSeconds > 0";
-
-            if (!string.IsNullOrWhiteSpace(gameMode))
-                sql += " AND m.GameMode = @gameMode";
+                  AND m.DurationSeconds > 0
+                  AND m.GameMode != 'ARAM'";
 
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@puuid", puuId);
             cmd.Parameters.AddWithValue("@otherPuuid", puuId == puuId1 ? puuId2 : puuId1);
-            if (!string.IsNullOrWhiteSpace(gameMode))
-                cmd.Parameters.AddWithValue("@gameMode", gameMode);
 
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -216,8 +209,9 @@ public class DuoStatsRepository
 
     /// <summary>
     /// Get win rate trend for duo games.
+    /// Excludes ARAM games.
     /// </summary>
-    public async Task<IList<DuoWinRateTrendRecord>> GetDuoWinRateTrendAsync(string puuId1, string puuId2, string? gameMode = null, int limit = 50)
+    public async Task<IList<DuoWinRateTrendRecord>> GetDuoWinRateTrendAsync(string puuId1, string puuId2, int limit = 50)
     {
         if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
             return new List<DuoWinRateTrendRecord>();
@@ -226,7 +220,7 @@ public class DuoStatsRepository
         await using var conn = _factory.CreateConnection();
         await conn.OpenAsync();
 
-        var sql = @"
+        const string sql = @"
             SELECT
                 p1.MatchId,
                 p1.Win,
@@ -239,19 +233,15 @@ public class DuoStatsRepository
             INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
             WHERE p1.Puuid = @puuid1
               AND p2.Puuid = @puuid2
-              AND m.InfoFetched = TRUE";
-
-        if (!string.IsNullOrWhiteSpace(gameMode))
-            sql += " AND m.GameMode = @gameMode";
-
-        sql += " ORDER BY m.GameEndTimestamp DESC LIMIT @limit";
+              AND m.InfoFetched = TRUE
+              AND m.GameMode != 'ARAM'
+            ORDER BY m.GameEndTimestamp DESC
+            LIMIT @limit";
 
         await using var cmd = new MySqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@puuid1", puuId1);
         cmd.Parameters.AddWithValue("@puuid2", puuId2);
         cmd.Parameters.AddWithValue("@limit", limit);
-        if (!string.IsNullOrWhiteSpace(gameMode))
-            cmd.Parameters.AddWithValue("@gameMode", gameMode);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -269,8 +259,9 @@ public class DuoStatsRepository
 
     /// <summary>
     /// Get streak data for duo games.
+    /// Excludes ARAM games.
     /// </summary>
-    public async Task<DuoStreakRecord?> GetDuoStreakAsync(string puuId1, string puuId2, string? gameMode = null)
+    public async Task<DuoStreakRecord?> GetDuoStreakAsync(string puuId1, string puuId2)
     {
         if (string.IsNullOrWhiteSpace(puuId1) || string.IsNullOrWhiteSpace(puuId2))
             return null;
@@ -278,7 +269,7 @@ public class DuoStatsRepository
         await using var conn = _factory.CreateConnection();
         await conn.OpenAsync();
 
-        var sql = @"
+        const string sql = @"
             SELECT
                 p1.Win
             FROM LolMatchParticipant p1
@@ -289,18 +280,13 @@ public class DuoStatsRepository
             INNER JOIN LolMatch m ON p1.MatchId = m.MatchId
             WHERE p1.Puuid = @puuid1
               AND p2.Puuid = @puuid2
-              AND m.InfoFetched = TRUE";
-
-        if (!string.IsNullOrWhiteSpace(gameMode))
-            sql += " AND m.GameMode = @gameMode";
-
-        sql += " ORDER BY m.GameEndTimestamp DESC";
+              AND m.InfoFetched = TRUE
+              AND m.GameMode != 'ARAM'
+            ORDER BY m.GameEndTimestamp DESC";
 
         await using var cmd = new MySqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@puuid1", puuId1);
         cmd.Parameters.AddWithValue("@puuid2", puuId2);
-        if (!string.IsNullOrWhiteSpace(gameMode))
-            cmd.Parameters.AddWithValue("@gameMode", gameMode);
 
         await using var reader = await cmd.ExecuteReaderAsync();
 

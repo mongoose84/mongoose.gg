@@ -19,7 +19,7 @@ namespace RiotProxy.Application.Endpoints
                 [FromRoute] string userId,
                 [FromServices] GamerRepository gamerRepo,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] SoloStatsRepository soloStatsRepo
                 ) =>
             {
                 try
@@ -50,8 +50,8 @@ namespace RiotProxy.Application.Endpoints
                         var serverName = gamer.Tagline.ToUpperInvariant();
                         var gamerName = $"{gamer.GamerName}#{serverName}";
 
-                        // Get champion stats for this puuid
-                        var championStats = await matchParticipantRepo.GetChampionStatsByPuuIdAsync(puuId);
+                        // Get champion stats for this puuid (excludes ARAM games)
+                        var championStats = await soloStatsRepo.GetChampionStatsByPuuIdAsync(puuId);
 
                         foreach (var stat in championStats)
                         {
