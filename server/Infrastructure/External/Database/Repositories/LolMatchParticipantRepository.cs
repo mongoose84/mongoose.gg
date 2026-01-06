@@ -4,59 +4,43 @@ using RiotProxy.Infrastructure.External.Database.Records;
 
 namespace RiotProxy.Infrastructure.External.Database.Repositories
 {
-    public class LolMatchParticipantRepository
+    public class LolMatchParticipantRepository : RepositoryBase
     {
-        private readonly IDbConnectionFactory _factory;
-
-        public LolMatchParticipantRepository(IDbConnectionFactory factory)
+        public LolMatchParticipantRepository(IDbConnectionFactory factory) : base(factory)
         {
-            _factory = factory;
         }
 
         public async Task AddParticipantIfNotExistsAsync(LolMatchParticipant participant)
         {
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
             const string sql = "INSERT IGNORE INTO LolMatchParticipant (MatchId, Puuid, TeamId, Win, Role, TeamPosition, Lane, ChampionId, ChampionName, Kills, Deaths, Assists, DoubleKills, TripleKills, QuadraKills, PentaKills, GoldEarned, TimeBeingDeadSeconds, CreepScore) " +
                                "VALUES (@matchId, @puuid, @teamId, @win, @role, @teamPosition, @lane, @championId, @championName, @kills, @deaths, @assists, @doubleKills, @tripleKills, @quadraKills, @pentaKills, @goldEarned, @timeBeingDeadSeconds, @creepScore)";
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@matchId", participant.MatchId);
-            cmd.Parameters.AddWithValue("@puuid", participant.PuuId);
-            cmd.Parameters.AddWithValue("@teamId", participant.TeamId);
-            cmd.Parameters.AddWithValue("@win", participant.Win);
-            cmd.Parameters.AddWithValue("@role", participant.Role ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@teamPosition", participant.TeamPosition ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@lane", participant.Lane ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@championId", participant.ChampionId);
-            cmd.Parameters.AddWithValue("@championName", participant.ChampionName);
-            cmd.Parameters.AddWithValue("@kills", participant.Kills);
-            cmd.Parameters.AddWithValue("@deaths", participant.Deaths);
-            cmd.Parameters.AddWithValue("@assists", participant.Assists);
-            cmd.Parameters.AddWithValue("@doubleKills", participant.DoubleKills);
-            cmd.Parameters.AddWithValue("@tripleKills", participant.TripleKills);
-            cmd.Parameters.AddWithValue("@quadraKills", participant.QuadraKills);
-            cmd.Parameters.AddWithValue("@pentaKills", participant.PentaKills);
-            cmd.Parameters.AddWithValue("@goldEarned", participant.GoldEarned);
-            cmd.Parameters.AddWithValue("@timeBeingDeadSeconds", participant.TimeBeingDeadSeconds);
-            cmd.Parameters.AddWithValue("@creepScore", participant.CreepScore);
-            await cmd.ExecuteNonQueryAsync();
+            
+            await ExecuteNonQueryAsync(sql,
+                ("@matchId", participant.MatchId),
+                ("@puuid", participant.PuuId),
+                ("@teamId", participant.TeamId),
+                ("@win", participant.Win),
+                ("@role", participant.Role),
+                ("@teamPosition", participant.TeamPosition),
+                ("@lane", participant.Lane),
+                ("@championId", participant.ChampionId),
+                ("@championName", participant.ChampionName),
+                ("@kills", participant.Kills),
+                ("@deaths", participant.Deaths),
+                ("@assists", participant.Assists),
+                ("@doubleKills", participant.DoubleKills),
+                ("@tripleKills", participant.TripleKills),
+                ("@quadraKills", participant.QuadraKills),
+                ("@pentaKills", participant.PentaKills),
+                ("@goldEarned", participant.GoldEarned),
+                ("@timeBeingDeadSeconds", participant.TimeBeingDeadSeconds),
+                ("@creepScore", participant.CreepScore));
         }
 
         public async Task<IList<string>> GetMatchIdsForPuuidAsync(string puuId)
         {
-            var matchIds = new List<string>();
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
             const string sql = "SELECT MatchId FROM LolMatchParticipant WHERE Puuid = @puuid";
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                matchIds.Add(reader.GetString(0));
-            }
-            return matchIds;
+            return await ExecuteListAsync(sql, r => r.GetString(0), ("@puuid", puuId));
         }
 
         /// <summary>
@@ -65,9 +49,6 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// </summary>
         public async Task<PlayerAggregateStatsRecord> GetAggregateStatsByPuuIdAsync(string puuId)
         {
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
             const string sql = @"
                 SELECT
                     -- Basic stats (all games)
@@ -88,36 +69,26 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 INNER JOIN LolMatch m ON p.MatchId = m.MatchId
                 WHERE p.Puuid = @puuid";
 
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            await using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                return new PlayerAggregateStatsRecord(
-                    TotalMatches: reader.GetInt32("TotalMatches"),
-                    Wins: reader.GetInt32("Wins"),
-                    TotalKills: reader.GetInt32("TotalKills"),
-                    TotalDeaths: reader.GetInt32("TotalDeaths"),
-                    TotalAssists: reader.GetInt32("TotalAssists"),
-                    TotalCreepScore: reader.GetInt32("TotalCreepScore"),
-                    TotalGoldEarned: reader.GetInt32("TotalGoldEarned"),
-                    TotalDurationPlayedSeconds: reader.GetInt64("TotalDurationPlayedSeconds"),
-                    TotalTimeBeingDeadSeconds: reader.GetInt32("TotalTimeBeingDeadSeconds"),
-                    TotalCreepScoreExcludingAram: reader.GetInt32("TotalCreepScoreExcludingAram"),
-                    TotalGoldEarnedExcludingAram: reader.GetInt32("TotalGoldEarnedExcludingAram"),
-                    TotalDurationExcludingAramSeconds: reader.GetInt64("TotalDurationExcludingAramSeconds")
-                );
-            }
-
-            return new PlayerAggregateStatsRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+            return await ExecuteSingleAsync(sql, r => new PlayerAggregateStatsRecord(
+                TotalMatches: r.GetInt32("TotalMatches"),
+                Wins: r.GetInt32("Wins"),
+                TotalKills: r.GetInt32("TotalKills"),
+                TotalDeaths: r.GetInt32("TotalDeaths"),
+                TotalAssists: r.GetInt32("TotalAssists"),
+                TotalCreepScore: r.GetInt32("TotalCreepScore"),
+                TotalGoldEarned: r.GetInt32("TotalGoldEarned"),
+                TotalDurationPlayedSeconds: r.GetInt64("TotalDurationPlayedSeconds"),
+                TotalTimeBeingDeadSeconds: r.GetInt32("TotalTimeBeingDeadSeconds"),
+                TotalCreepScoreExcludingAram: r.GetInt32("TotalCreepScoreExcludingAram"),
+                TotalGoldEarnedExcludingAram: r.GetInt32("TotalGoldEarnedExcludingAram"),
+                TotalDurationExcludingAramSeconds: r.GetInt64("TotalDurationExcludingAramSeconds")
+            ), ("@puuid", puuId)) ?? new PlayerAggregateStatsRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
 
         internal async Task<int> GetMatchesCountByPuuIdAsync(string puuId)
         {
             const string sql = "SELECT COUNT(*) FROM LolMatchParticipant WHERE Puuid = @puuid";
-            var totalMatches = await GetIntegerValueFromPuuIdAsync(puuId, sql);
-            return totalMatches;
+            return await ExecuteScalarAsync<int>(sql, ("@puuid", puuId));
         }
 
         /// <summary>
@@ -125,9 +96,6 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// </summary>
         internal async Task<DateTime?> GetLatestGameTimestampByPuuIdAsync(string puuId)
         {
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
             const string sql = @"
                 SELECT MAX(m.GameEndTimestamp)
                 FROM LolMatchParticipant p
@@ -136,14 +104,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                   AND m.InfoFetched = TRUE
                   AND m.GameEndTimestamp IS NOT NULL";
 
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            var result = await cmd.ExecuteScalarAsync();
-
-            if (result == null || result == DBNull.Value)
-                return null;
-
-            return Convert.ToDateTime(result);
+            return await ExecuteScalarAsync<DateTime?>(sql, ("@puuid", puuId));
         }
 
         /// <summary>
@@ -151,9 +112,6 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// </summary>
         internal async Task<LatestGameRecord?> GetLatestGameDetailsByPuuIdAsync(string puuId)
         {
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
             const string sql = @"
                 SELECT
                     m.GameEndTimestamp,
@@ -172,37 +130,16 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 ORDER BY m.GameEndTimestamp DESC
                 LIMIT 1";
 
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            await using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                return new LatestGameRecord(
-                    GameEndTimestamp: reader.GetDateTime("GameEndTimestamp"),
-                    Win: reader.GetBoolean("Win"),
-                    Role: reader.GetString("Role"),
-                    ChampionId: reader.GetInt32("ChampionId"),
-                    ChampionName: reader.GetString("ChampionName"),
-                    Kills: reader.GetInt32("Kills"),
-                    Deaths: reader.GetInt32("Deaths"),
-                    Assists: reader.GetInt32("Assists")
-                );
-            }
-
-            return null;
-        }
-
-        private async Task<int> GetIntegerValueFromPuuIdAsync(string puuId, string sqlQuery)
-        {
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-            await using var cmd = new MySqlCommand(sqlQuery, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            var result = await cmd.ExecuteScalarAsync();
-            if (result == null || result == DBNull.Value)
-                return 0;
-            return Convert.ToInt32(result);
+            return await ExecuteSingleAsync(sql, r => new LatestGameRecord(
+                GameEndTimestamp: r.GetDateTime("GameEndTimestamp"),
+                Win: r.GetBoolean("Win"),
+                Role: r.GetString("Role"),
+                ChampionId: r.GetInt32("ChampionId"),
+                ChampionName: r.GetString("ChampionName"),
+                Kills: r.GetInt32("Kills"),
+                Deaths: r.GetInt32("Deaths"),
+                Assists: r.GetInt32("Assists")
+            ), ("@puuid", puuId));
         }
 
         /// <summary>
@@ -215,100 +152,53 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// <returns>List of match performance records ordered oldest to newest</returns>
         public async Task<IList<MatchPerformanceRecord>> GetMatchPerformanceTimelineAsync(string puuId, DateTime? fromDate = null, int? limit = null)
         {
-            var records = new List<MatchPerformanceRecord>();
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
-            // If limit is specified, we need to get the most recent N matches first, then reverse them
-            // We'll use a subquery to get the latest N matches, then order them chronologically
-            string sql;
-
-            if (limit.HasValue)
+            return await ExecuteWithConnectionAsync(async conn =>
             {
-                // Get the latest N matches ordered chronologically (oldest to newest)
-                // Using a subquery to first get the most recent N matches, then order them chronologically
-                // Excludes ARAM games since CS/min and Gold/min are not meaningful for ARAM
-                sql = @"
-                    SELECT * FROM (
-                        SELECT
-                            p.Win,
-                            p.GoldEarned,
-                            p.CreepScore,
-                            m.DurationSeconds,
-                            m.GameEndTimestamp
+                var records = new List<MatchPerformanceRecord>();
+
+                // Build SQL dynamically based on parameters
+                string sql;
+                if (limit.HasValue)
+                {
+                    sql = @"
+                        SELECT * FROM (
+                            SELECT p.Win, p.GoldEarned, p.CreepScore, m.DurationSeconds, m.GameEndTimestamp
+                            FROM LolMatchParticipant p
+                            INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                            WHERE p.Puuid = @puuid AND m.InfoFetched = TRUE AND m.DurationSeconds > 0 AND m.GameMode != 'ARAM'";
+                    if (fromDate.HasValue) sql += " AND m.GameEndTimestamp >= @fromDate";
+                    sql += " ORDER BY m.GameEndTimestamp DESC LIMIT @limit) AS recent_matches ORDER BY GameEndTimestamp ASC";
+                }
+                else
+                {
+                    sql = @"
+                        SELECT p.Win, p.GoldEarned, p.CreepScore, m.DurationSeconds, m.GameEndTimestamp
                         FROM LolMatchParticipant p
                         INNER JOIN LolMatch m ON p.MatchId = m.MatchId
-                        WHERE p.Puuid = @puuid
-                          AND m.InfoFetched = TRUE
-                          AND m.DurationSeconds > 0
-                          AND m.GameMode != 'ARAM'";
-
-                if (fromDate.HasValue)
-                {
-                    sql += " AND m.GameEndTimestamp >= @fromDate";
+                        WHERE p.Puuid = @puuid AND m.InfoFetched = TRUE AND m.DurationSeconds > 0 AND m.GameMode != 'ARAM'";
+                    if (fromDate.HasValue) sql += " AND m.GameEndTimestamp >= @fromDate";
+                    sql += " ORDER BY m.GameEndTimestamp ASC";
                 }
 
-                sql += @"
-                        ORDER BY m.GameEndTimestamp DESC
-                        LIMIT @limit
-                    ) AS recent_matches
-                    ORDER BY GameEndTimestamp ASC";
-            }
-            else
-            {
-                // No limit - get all matches
-                // Excludes ARAM games since CS/min and Gold/min are not meaningful for ARAM
-                sql = @"
-                    SELECT
-                        p.Win,
-                        p.GoldEarned,
-                        p.CreepScore,
-                        m.DurationSeconds,
-                        m.GameEndTimestamp
-                    FROM LolMatchParticipant p
-                    INNER JOIN LolMatch m ON p.MatchId = m.MatchId
-                    WHERE p.Puuid = @puuid
-                      AND m.InfoFetched = TRUE
-                      AND m.DurationSeconds > 0
-                      AND m.GameMode != 'ARAM'";
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@puuid", puuId);
+                if (fromDate.HasValue) cmd.Parameters.AddWithValue("@fromDate", fromDate.Value);
+                if (limit.HasValue) cmd.Parameters.AddWithValue("@limit", limit.Value);
 
-                if (fromDate.HasValue)
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
                 {
-                    sql += " AND m.GameEndTimestamp >= @fromDate";
+                    var durationSeconds = reader.GetInt64(3);
+                    records.Add(new MatchPerformanceRecord(
+                        Win: reader.GetBoolean(0),
+                        GoldEarned: reader.GetInt32(1),
+                        CreepScore: reader.GetInt32(2),
+                        DurationMinutes: durationSeconds / 60.0,
+                        GameEndTimestamp: reader.IsDBNull(4) ? DateTime.MinValue : reader.GetDateTime(4)
+                    ));
                 }
-
-                sql += " ORDER BY m.GameEndTimestamp ASC";
-            }
-
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            if (fromDate.HasValue)
-            {
-                cmd.Parameters.AddWithValue("@fromDate", fromDate.Value);
-            }
-            if (limit.HasValue)
-            {
-                cmd.Parameters.AddWithValue("@limit", limit.Value);
-            }
-
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                var durationSeconds = reader.GetInt64(3);
-                var durationMinutes = durationSeconds / 60.0;
-
-                records.Add(new MatchPerformanceRecord(
-                    Win: reader.GetBoolean(0),
-                    GoldEarned: reader.GetInt32(1),
-                    CreepScore: reader.GetInt32(2),
-                    DurationMinutes: durationMinutes,
-                    GameEndTimestamp: reader.IsDBNull(4) ? DateTime.MinValue : reader.GetDateTime(4)
-                ));
-            }
-
-            // No need to reverse - the SQL query now handles ordering correctly
-            // Both limited and unlimited queries return results in chronological order (oldest to newest)
-            return records;
+                return records;
+            });
         }
 
         /// <summary>
@@ -317,10 +207,6 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// </summary>
         internal async Task<IList<ChampionStatsRecord>> GetChampionStatsByPuuIdAsync(string puuId)
         {
-            var records = new List<ChampionStatsRecord>();
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
             const string sql = @"
                 SELECT
                     p.ChampionId,
@@ -334,21 +220,12 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 GROUP BY p.ChampionId, p.ChampionName
                 ORDER BY GamesPlayed DESC";
 
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            await using var reader = await cmd.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                var championId = reader.GetInt32("ChampionId");
-                var championName = reader.GetString("ChampionName");
-                var gamesPlayed = reader.GetInt32("GamesPlayed");
-                var wins = reader.GetInt32("Wins");
-
-                records.Add(new ChampionStatsRecord(championId, championName, gamesPlayed, wins));
-            }
-
-            return records;
+            return await ExecuteListAsync(sql, r => new ChampionStatsRecord(
+                r.GetInt32("ChampionId"),
+                r.GetString("ChampionName"),
+                r.GetInt32("GamesPlayed"),
+                r.GetInt32("Wins")
+            ), ("@puuid", puuId));
         }
 
         /// <summary>
@@ -358,10 +235,6 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// </summary>
         internal async Task<IList<RoleDistributionRecord>> GetRoleDistributionByPuuIdAsync(string puuId)
         {
-            var records = new List<RoleDistributionRecord>();
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
             // Use TeamPosition as it's more reliable than Role or Lane in modern League
             const string sql = @"
                 SELECT
@@ -374,19 +247,10 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 GROUP BY Position
                 ORDER BY GamesPlayed DESC";
 
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            await using var reader = await cmd.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                var position = reader.GetString("Position");
-                var gamesPlayed = reader.GetInt32("GamesPlayed");
-
-                records.Add(new RoleDistributionRecord(position, gamesPlayed));
-            }
-
-            return records;
+            return await ExecuteListAsync(sql, r => new RoleDistributionRecord(
+                r.GetString("Position"),
+                r.GetInt32("GamesPlayed")
+            ), ("@puuid", puuId));
         }
 
         /// <summary>
@@ -396,9 +260,6 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// </summary>
         internal async Task<SideStatsRecord> GetSideStatsByPuuIdAsync(string puuId)
         {
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
             const string sql = @"
                 SELECT
                     SUM(CASE WHEN p.TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
@@ -410,21 +271,12 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 WHERE p.Puuid = @puuid
                   AND m.GameMode != 'ARAM'";
 
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            await using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                return new SideStatsRecord(
-                    BlueGames: reader.GetInt32("BlueGames"),
-                    BlueWins: reader.GetInt32("BlueWins"),
-                    RedGames: reader.GetInt32("RedGames"),
-                    RedWins: reader.GetInt32("RedWins")
-                );
-            }
-
-            return new SideStatsRecord(0, 0, 0, 0);
+            return await ExecuteSingleAsync(sql, r => new SideStatsRecord(
+                BlueGames: r.GetInt32("BlueGames"),
+                BlueWins: r.GetInt32("BlueWins"),
+                RedGames: r.GetInt32("RedGames"),
+                RedWins: r.GetInt32("RedWins")
+            ), ("@puuid", puuId)) ?? new SideStatsRecord(0, 0, 0, 0);
         }
 
         /// <summary>
@@ -433,10 +285,6 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
         /// </summary>
         internal async Task<IList<DurationBucketRecord>> GetDurationStatsByPuuIdAsync(string puuId)
         {
-            var records = new List<DurationBucketRecord>();
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
             // Group matches into 5-minute buckets
             const string sql = @"
                 SELECT
@@ -452,20 +300,11 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 GROUP BY MinMinutes
                 ORDER BY MinMinutes ASC";
 
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            await using var reader = await cmd.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
+            return await ExecuteListAsync(sql, r =>
             {
-                var minMinutes = reader.GetInt32("MinMinutes");
-                var gamesPlayed = reader.GetInt32("GamesPlayed");
-                var wins = reader.GetInt32("Wins");
-
-                records.Add(new DurationBucketRecord(minMinutes, minMinutes + 5, gamesPlayed, wins));
-            }
-
-            return records;
+                var minMinutes = r.GetInt32("MinMinutes");
+                return new DurationBucketRecord(minMinutes, minMinutes + 5, r.GetInt32("GamesPlayed"), r.GetInt32("Wins"));
+            }, ("@puuid", puuId));
         }
 
         /// <summary>
@@ -479,69 +318,45 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 return new List<ChampionMatchupRecord>();
             }
 
-            var records = new List<ChampionMatchupRecord>();
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
-            // Build parameterized query for multiple puuids
-            var puuidParams = string.Join(",", puuIds.Select((_, i) => $"@puuid{i}"));
-
-            // This query finds all matches where the player played a champion in a role,
-            // then joins to find the opponent in the same role on the enemy team
-            // Filters out UNKNOWN roles (empty or null TeamPosition)
-            // Excludes ARAM games
-            var sql = $@"
-                SELECT
-                    player.ChampionId,
-                    player.ChampionName,
-                    player.TeamPosition as Role,
-                    opponent.ChampionId as OpponentChampionId,
-                    opponent.ChampionName as OpponentChampionName,
-                    COUNT(*) as GamesPlayed,
-                    SUM(CASE WHEN player.Win = 1 THEN 1 ELSE 0 END) as Wins
-                FROM LolMatchParticipant player
-                INNER JOIN LolMatchParticipant opponent
-                    ON player.MatchId = opponent.MatchId
-                    AND player.TeamId != opponent.TeamId
-                    AND player.TeamPosition = opponent.TeamPosition
-                INNER JOIN LolMatch m ON player.MatchId = m.MatchId
-                WHERE player.Puuid IN ({puuidParams})
-                    AND player.TeamPosition IS NOT NULL
-                    AND player.TeamPosition != ''
-                    AND m.GameMode != 'ARAM'
-                GROUP BY player.ChampionId, player.ChampionName, Role, opponent.ChampionId, opponent.ChampionName
-                ORDER BY player.ChampionName, Role, GamesPlayed DESC";
-
-            await using var cmd = new MySqlCommand(sql, conn);
-            for (int i = 0; i < puuIds.Length; i++)
+            return await ExecuteWithConnectionAsync(async conn =>
             {
-                cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
-            }
+                var records = new List<ChampionMatchupRecord>();
+                var puuidParams = string.Join(",", puuIds.Select((_, i) => $"@puuid{i}"));
 
-            await using var reader = await cmd.ExecuteReaderAsync();
+                var sql = $@"
+                    SELECT player.ChampionId, player.ChampionName, player.TeamPosition as Role,
+                           opponent.ChampionId as OpponentChampionId, opponent.ChampionName as OpponentChampionName,
+                           COUNT(*) as GamesPlayed, SUM(CASE WHEN player.Win = 1 THEN 1 ELSE 0 END) as Wins
+                    FROM LolMatchParticipant player
+                    INNER JOIN LolMatchParticipant opponent
+                        ON player.MatchId = opponent.MatchId AND player.TeamId != opponent.TeamId AND player.TeamPosition = opponent.TeamPosition
+                    INNER JOIN LolMatch m ON player.MatchId = m.MatchId
+                    WHERE player.Puuid IN ({puuidParams})
+                        AND player.TeamPosition IS NOT NULL AND player.TeamPosition != '' AND m.GameMode != 'ARAM'
+                    GROUP BY player.ChampionId, player.ChampionName, Role, opponent.ChampionId, opponent.ChampionName
+                    ORDER BY player.ChampionName, Role, GamesPlayed DESC";
 
-            while (await reader.ReadAsync())
-            {
-                var championId = reader.GetInt32("ChampionId");
-                var championName = reader.GetString("ChampionName");
-                var role = reader.GetString("Role");
-                var opponentChampionId = reader.GetInt32("OpponentChampionId");
-                var opponentChampionName = reader.GetString("OpponentChampionName");
-                var gamesPlayed = reader.GetInt32("GamesPlayed");
-                var wins = reader.GetInt32("Wins");
+                await using var cmd = new MySqlCommand(sql, conn);
+                for (int i = 0; i < puuIds.Length; i++)
+                {
+                    cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
+                }
 
-                records.Add(new ChampionMatchupRecord(
-                    championId,
-                    championName,
-                    role,
-                    opponentChampionId,
-                    opponentChampionName,
-                    gamesPlayed,
-                    wins
-                ));
-            }
-
-            return records;
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    records.Add(new ChampionMatchupRecord(
+                        reader.GetInt32("ChampionId"),
+                        reader.GetString("ChampionName"),
+                        reader.GetString("Role"),
+                        reader.GetInt32("OpponentChampionId"),
+                        reader.GetString("OpponentChampionName"),
+                        reader.GetInt32("GamesPlayed"),
+                        reader.GetInt32("Wins")
+                    ));
+                }
+                return records;
+            });
         }
 
         /// <summary>
@@ -555,69 +370,43 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 return null;
             }
 
-            await using var conn = _factory.CreateConnection();
-            await conn.OpenAsync();
-
-            // Get performance stats for puuId in games where excludePuuId was NOT on the same team
-            var sql = @"
-                SELECT
-                    COUNT(DISTINCT p.MatchId) as GamesPlayed,
-                    SUM(CASE WHEN p.Win = 1 THEN 1 ELSE 0 END) as Wins,
-                    SUM(p.Kills) as TotalKills,
-                    SUM(p.Deaths) as TotalDeaths,
-                    SUM(p.Assists) as TotalAssists,
-                    SUM(p.GoldEarned) as TotalGoldEarned,
-                    SUM(m.DurationSeconds) as TotalDurationSeconds
-                FROM LolMatchParticipant p
-                INNER JOIN LolMatch m ON p.MatchId = m.MatchId
-                WHERE p.Puuid = @puuid
-                  AND m.InfoFetched = TRUE
-                  AND m.DurationSeconds > 0
-                  AND NOT EXISTS (
-                      SELECT 1 FROM LolMatchParticipant p2
-                      WHERE p2.MatchId = p.MatchId
-                        AND p2.TeamId = p.TeamId
-                        AND p2.Puuid = @excludePuuid
-                  )";
-
-            // Filter by specific game mode if provided, otherwise exclude ARAM
-            if (!string.IsNullOrWhiteSpace(gameMode))
+            return await ExecuteWithConnectionAsync(async conn =>
             {
-                sql += " AND m.GameMode = @gameMode";
-            }
-            else
-            {
-                sql += " AND m.GameMode != 'ARAM'";
-            }
+                var sql = @"
+                    SELECT COUNT(DISTINCT p.MatchId) as GamesPlayed,
+                           SUM(CASE WHEN p.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                           SUM(p.Kills) as TotalKills, SUM(p.Deaths) as TotalDeaths, SUM(p.Assists) as TotalAssists,
+                           SUM(p.GoldEarned) as TotalGoldEarned, SUM(m.DurationSeconds) as TotalDurationSeconds
+                    FROM LolMatchParticipant p
+                    INNER JOIN LolMatch m ON p.MatchId = m.MatchId
+                    WHERE p.Puuid = @puuid AND m.InfoFetched = TRUE AND m.DurationSeconds > 0
+                      AND NOT EXISTS (SELECT 1 FROM LolMatchParticipant p2 WHERE p2.MatchId = p.MatchId AND p2.TeamId = p.TeamId AND p2.Puuid = @excludePuuid)";
 
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuId);
-            cmd.Parameters.AddWithValue("@excludePuuid", excludePuuId);
+                sql += !string.IsNullOrWhiteSpace(gameMode) ? " AND m.GameMode = @gameMode" : " AND m.GameMode != 'ARAM'";
 
-            if (!string.IsNullOrWhiteSpace(gameMode))
-            {
-                cmd.Parameters.AddWithValue("@gameMode", gameMode);
-            }
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@puuid", puuId);
+                cmd.Parameters.AddWithValue("@excludePuuid", excludePuuId);
+                if (!string.IsNullOrWhiteSpace(gameMode)) cmd.Parameters.AddWithValue("@gameMode", gameMode);
 
-            await using var reader = await cmd.ExecuteReaderAsync();
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    var gamesPlayed = reader.GetInt32("GamesPlayed");
+                    if (gamesPlayed == 0) return null;
 
-            if (await reader.ReadAsync())
-            {
-                var gamesPlayed = reader.GetInt32("GamesPlayed");
-                if (gamesPlayed == 0) return null;
-
-                return new PlayerPerformanceRecord(
-                    GamesPlayed: gamesPlayed,
-                    Wins: reader.GetInt32("Wins"),
-                    TotalKills: reader.GetInt32("TotalKills"),
-                    TotalDeaths: reader.GetInt32("TotalDeaths"),
-                    TotalAssists: reader.GetInt32("TotalAssists"),
-                    TotalGoldEarned: reader.GetInt64("TotalGoldEarned"),
-                    TotalDurationSeconds: reader.GetInt64("TotalDurationSeconds")
-                );
-            }
-
-            return null;
+                    return new PlayerPerformanceRecord(
+                        GamesPlayed: gamesPlayed,
+                        Wins: reader.GetInt32("Wins"),
+                        TotalKills: reader.GetInt32("TotalKills"),
+                        TotalDeaths: reader.GetInt32("TotalDeaths"),
+                        TotalAssists: reader.GetInt32("TotalAssists"),
+                        TotalGoldEarned: reader.GetInt64("TotalGoldEarned"),
+                        TotalDurationSeconds: reader.GetInt64("TotalDurationSeconds")
+                    );
+                }
+                return null;
+            });
         }
     }
 }

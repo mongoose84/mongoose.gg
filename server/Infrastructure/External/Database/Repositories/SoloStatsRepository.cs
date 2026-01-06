@@ -1,4 +1,3 @@
-using MySqlConnector;
 using RiotProxy.Infrastructure.External.Database.Records;
 
 namespace RiotProxy.Infrastructure.External.Database.Repositories;
@@ -6,13 +5,10 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories;
 /// <summary>
 /// Repository for solo (single player) game statistics.
 /// </summary>
-public class SoloStatsRepository
+public class SoloStatsRepository : RepositoryBase
 {
-    private readonly IDbConnectionFactory _factory;
-
-    public SoloStatsRepository(IDbConnectionFactory factory)
+    public SoloStatsRepository(IDbConnectionFactory factory) : base(factory)
     {
-        _factory = factory;
     }
 
     /// <summary>
@@ -21,9 +17,6 @@ public class SoloStatsRepository
     /// </summary>
     public async Task<SideStatsRecord> GetSideStatsByPuuIdAsync(string puuId)
     {
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
-
         const string sql = @"
             SELECT
                 SUM(CASE WHEN p.TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
@@ -35,21 +28,12 @@ public class SoloStatsRepository
             WHERE p.Puuid = @puuid
               AND m.GameMode != 'ARAM'";
 
-        await using var cmd = new MySqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("@puuid", puuId);
-        await using var reader = await cmd.ExecuteReaderAsync();
-
-        if (await reader.ReadAsync())
-        {
-            return new SideStatsRecord(
-                reader.GetInt32("BlueGames"),
-                reader.GetInt32("BlueWins"),
-                reader.GetInt32("RedGames"),
-                reader.GetInt32("RedWins")
-            );
-        }
-
-        return new SideStatsRecord(0, 0, 0, 0);
+        return await ExecuteSingleAsync(sql, r => new SideStatsRecord(
+            r.GetInt32("BlueGames"),
+            r.GetInt32("BlueWins"),
+            r.GetInt32("RedGames"),
+            r.GetInt32("RedWins")
+        ), ("@puuid", puuId)) ?? new SideStatsRecord(0, 0, 0, 0);
     }
 
     /// <summary>
@@ -58,10 +42,6 @@ public class SoloStatsRepository
     /// </summary>
     public async Task<IList<ChampionStatsRecord>> GetChampionStatsByPuuIdAsync(string puuId)
     {
-        var records = new List<ChampionStatsRecord>();
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
-
         const string sql = @"
             SELECT
                 p.ChampionId,
@@ -75,21 +55,12 @@ public class SoloStatsRepository
             GROUP BY p.ChampionId, p.ChampionName
             ORDER BY GamesPlayed DESC";
 
-        await using var cmd = new MySqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("@puuid", puuId);
-        await using var reader = await cmd.ExecuteReaderAsync();
-
-        while (await reader.ReadAsync())
-        {
-            records.Add(new ChampionStatsRecord(
-                reader.GetInt32("ChampionId"),
-                reader.GetString("ChampionName"),
-                reader.GetInt32("GamesPlayed"),
-                reader.GetInt32("Wins")
-            ));
-        }
-
-        return records;
+        return await ExecuteListAsync(sql, r => new ChampionStatsRecord(
+            r.GetInt32("ChampionId"),
+            r.GetString("ChampionName"),
+            r.GetInt32("GamesPlayed"),
+            r.GetInt32("Wins")
+        ), ("@puuid", puuId));
     }
 
     /// <summary>
@@ -98,10 +69,6 @@ public class SoloStatsRepository
     /// </summary>
     public async Task<IList<RoleDistributionRecord>> GetRoleDistributionByPuuIdAsync(string puuId)
     {
-        var records = new List<RoleDistributionRecord>();
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
-
         const string sql = @"
             SELECT
                 COALESCE(NULLIF(p.TeamPosition, ''), 'UNKNOWN') as Position,
@@ -113,19 +80,10 @@ public class SoloStatsRepository
             GROUP BY Position
             ORDER BY GamesPlayed DESC";
 
-        await using var cmd = new MySqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("@puuid", puuId);
-        await using var reader = await cmd.ExecuteReaderAsync();
-
-        while (await reader.ReadAsync())
-        {
-            records.Add(new RoleDistributionRecord(
-                reader.GetString("Position"),
-                reader.GetInt32("GamesPlayed")
-            ));
-        }
-
-        return records;
+        return await ExecuteListAsync(sql, r => new RoleDistributionRecord(
+            r.GetString("Position"),
+            r.GetInt32("GamesPlayed")
+        ), ("@puuid", puuId));
     }
 
     /// <summary>
@@ -134,10 +92,6 @@ public class SoloStatsRepository
     /// </summary>
     public async Task<IList<DurationBucketRecord>> GetDurationStatsByPuuIdAsync(string puuId)
     {
-        var records = new List<DurationBucketRecord>();
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
-
         const string sql = @"
             SELECT
                 FLOOR(m.DurationSeconds / 300) * 5 as MinMinutes,
@@ -152,17 +106,11 @@ public class SoloStatsRepository
             GROUP BY MinMinutes
             ORDER BY MinMinutes ASC";
 
-        await using var cmd = new MySqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("@puuid", puuId);
-        await using var reader = await cmd.ExecuteReaderAsync();
-
-        while (await reader.ReadAsync())
+        return await ExecuteListAsync(sql, r =>
         {
-            var minMinutes = reader.GetInt32("MinMinutes");
-            records.Add(new DurationBucketRecord(minMinutes, minMinutes + 5, reader.GetInt32("GamesPlayed"), reader.GetInt32("Wins")));
-        }
-
-        return records;
+            var minMinutes = r.GetInt32("MinMinutes");
+            return new DurationBucketRecord(minMinutes, minMinutes + 5, r.GetInt32("GamesPlayed"), r.GetInt32("Wins"));
+        }, ("@puuid", puuId));
     }
 }
 
