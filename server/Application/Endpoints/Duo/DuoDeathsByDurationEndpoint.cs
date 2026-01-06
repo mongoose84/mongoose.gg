@@ -18,7 +18,7 @@ namespace RiotProxy.Application.Endpoints
             app.MapGet(Route, async (
                 [FromRoute] string userId,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] DuoStatsRepository duoStatsRepo
                 ) =>
             {
                 try
@@ -35,10 +35,10 @@ namespace RiotProxy.Application.Endpoints
                     var puuId1 = distinctPuuIds[0];
                     var puuId2 = distinctPuuIds[1];
 
-                    var duoStats = await matchParticipantRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
+                    var duoStats = await duoStatsRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
                     var gameMode = duoStats?.MostCommonQueueType;
 
-                    var deathsByDuration = await matchParticipantRepo.GetDuoDeathsByDurationAsync(puuId1, puuId2, gameMode);
+                    var deathsByDuration = await duoStatsRepo.GetDuoDeathsByDurationAsync(puuId1, puuId2, gameMode);
 
                     var bucketOrder = new[] { "under20", "20-25", "25-30", "30-35", "35-40", "40+" };
                     var bucketLabels = new Dictionary<string, string>

@@ -18,7 +18,7 @@ public sealed class ChampionSynergyEndpoint : IEndpoint
         app.MapGet(Route, async (
             [FromRoute] string userId,
             [FromServices] UserGamerRepository userGamerRepo,
-            [FromServices] LolMatchParticipantRepository matchParticipantRepo
+            [FromServices] DuoStatsRepository duoStatsRepo
             ) =>
         {
             try
@@ -36,12 +36,8 @@ public sealed class ChampionSynergyEndpoint : IEndpoint
                 var puuId1 = distinctPuuIds[0];
                 var puuId2 = distinctPuuIds[1];
 
-                // Get the most common game mode for filtering
-                var duoStats = await matchParticipantRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
-                var mostCommonGameMode = duoStats?.MostCommonQueueType;
-
-                // Get champion synergy data
-                var synergyRecords = await matchParticipantRepo.GetChampionSynergyByPuuIdsAsync(puuId1, puuId2, mostCommonGameMode);
+                // Get champion synergy data (ARAM games are excluded automatically)
+                var synergyRecords = await duoStatsRepo.GetChampionSynergyByPuuIdsAsync(puuId1, puuId2);
 
                 // Convert to response format
                 var synergies = synergyRecords

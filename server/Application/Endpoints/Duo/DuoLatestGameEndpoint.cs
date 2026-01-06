@@ -18,7 +18,7 @@ namespace RiotProxy.Application.Endpoints
                 [FromRoute] string userId,
                 [FromServices] UserGamerRepository userGamerRepo,
                 [FromServices] GamerRepository gamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] DuoStatsRepository duoStatsRepo
                 ) =>
             {
                 try
@@ -35,7 +35,7 @@ namespace RiotProxy.Application.Endpoints
                     var puuId1 = distinctPuuIds[0];
                     var puuId2 = distinctPuuIds[1];
 
-                    var latestGame = await matchParticipantRepo.GetLatestGameTogetherByDuoPuuIdsAsync(puuId1, puuId2);
+                    var latestGame = await duoStatsRepo.GetLatestGameTogetherByDuoPuuIdsAsync(puuId1, puuId2);
 
                     if (latestGame == null)
                     {

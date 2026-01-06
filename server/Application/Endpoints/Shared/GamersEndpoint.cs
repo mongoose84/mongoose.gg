@@ -40,35 +40,23 @@ namespace RiotProxy.Application.Endpoints
                         }
                         gamer.IconUrl = $"https://ddragon.leagueoflegends.com/cdn/{lolVersion}/img/profileicon/{gamer.IconId}.png";
 
-                        // Runtime of this is a N+1 query, could be optimized if needed
-                        var totalMatches = await matchParticipantRepo.GetMatchesCountByPuuIdAsync(puuId);
-                        var wins = await matchParticipantRepo.GetWinsByPuuIdAsync(puuId);
-                        var totalKills = await matchParticipantRepo.GetTotalKillsByPuuIdAsync(puuId);
-                        var totalDeaths = await matchParticipantRepo.GetTotalDeathsByPuuIdAsync(puuId);
-                        var totalAssists = await matchParticipantRepo.GetTotalAssistsByPuuIdAsync(puuId);
-                        var totalCreepScore = await matchParticipantRepo.GetTotalCreepScoreByPuuIdAsync(puuId);
-                        var totalGoldEarned = await matchParticipantRepo.GetTotalGoldEarnedByPuuIdAsync(puuId);
-                        var totalDurationPlayedSeconds = await matchParticipantRepo.GetTotalDurationPlayedByPuuidAsync(puuId);
+                        // Fetch all aggregate stats in a single query
+                        var stats = await matchParticipantRepo.GetAggregateStatsByPuuIdAsync(puuId);
                         var latestGame = await matchParticipantRepo.GetLatestGameDetailsByPuuIdAsync(puuId);
-
-                        // ARAM-excluding stats for accurate CS/min and Gold/min calculations
-                        var totalCreepScoreExcludingAram = await matchParticipantRepo.GetTotalCreepScoreExcludingAramByPuuIdAsync(puuId);
-                        var totalGoldEarnedExcludingAram = await matchParticipantRepo.GetTotalGoldEarnedExcludingAramByPuuIdAsync(puuId);
-                        var totalDurationExcludingAramSeconds = await matchParticipantRepo.GetTotalDurationPlayedExcludingAramByPuuidAsync(puuId);
 
                         gamer.Stats = new GamerStats
                         {
-                            Wins = wins,
-                            TotalKills = totalKills,
-                            TotalDeaths = totalDeaths,
-                            TotalAssists = totalAssists,
-                            TotalMatches = totalMatches,
-                            TotalCreepScore = totalCreepScore,
-                            TotalGoldEarned = totalGoldEarned,
-                            TotalDurationPlayedSeconds = totalDurationPlayedSeconds,
-                            TotalCreepScoreExcludingAram = totalCreepScoreExcludingAram,
-                            TotalGoldEarnedExcludingAram = totalGoldEarnedExcludingAram,
-                            TotalDurationPlayedExcludingAramSeconds = totalDurationExcludingAramSeconds
+                            Wins = stats.Wins,
+                            TotalKills = stats.TotalKills,
+                            TotalDeaths = stats.TotalDeaths,
+                            TotalAssists = stats.TotalAssists,
+                            TotalMatches = stats.TotalMatches,
+                            TotalCreepScore = stats.TotalCreepScore,
+                            TotalGoldEarned = stats.TotalGoldEarned,
+                            TotalDurationPlayedSeconds = stats.TotalDurationPlayedSeconds,
+                            TotalCreepScoreExcludingAram = stats.TotalCreepScoreExcludingAram,
+                            TotalGoldEarnedExcludingAram = stats.TotalGoldEarnedExcludingAram,
+                            TotalDurationPlayedExcludingAramSeconds = stats.TotalDurationExcludingAramSeconds
                         };
                         gamer.LatestGame = latestGame;
                         gamers.Add(gamer);

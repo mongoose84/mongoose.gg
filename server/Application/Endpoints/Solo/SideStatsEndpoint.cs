@@ -20,7 +20,9 @@ public sealed class SideStatsEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? mode,
             [FromServices] UserGamerRepository userGamerRepo,
-            [FromServices] LolMatchParticipantRepository matchParticipantRepo
+            [FromServices] SoloStatsRepository soloStatsRepo,
+            [FromServices] DuoStatsRepository duoStatsRepo,
+            [FromServices] TeamStatsRepository teamStatsRepo
         ) =>
         {
             try
@@ -42,10 +44,10 @@ public sealed class SideStatsEndpoint : IEndpoint
                 switch (effectiveMode)
                 {
                     case "team" when distinctPuuIds.Length >= 3:
-                        sideStats = await matchParticipantRepo.GetTeamSideStatsByPuuIdsAsync(distinctPuuIds);
+                        sideStats = await teamStatsRepo.GetTeamSideStatsByPuuIdsAsync(distinctPuuIds);
                         break;
                     case "duo" when distinctPuuIds.Length >= 2:
-                        sideStats = await matchParticipantRepo.GetDuoSideStatsByPuuIdsAsync(distinctPuuIds[0], distinctPuuIds[1]);
+                        sideStats = await duoStatsRepo.GetDuoSideStatsByPuuIdsAsync(distinctPuuIds[0], distinctPuuIds[1]);
                         break;
                     default:
                         // Solo mode: aggregate stats from all puuIds
@@ -56,7 +58,7 @@ public sealed class SideStatsEndpoint : IEndpoint
 
                         foreach (var puuId in distinctPuuIds)
                         {
-                            var stats = await matchParticipantRepo.GetSideStatsByPuuIdAsync(puuId);
+                            var stats = await soloStatsRepo.GetSideStatsByPuuIdAsync(puuId);
                             aggregatedBlueGames += stats.BlueGames;
                             aggregatedBlueWins += stats.BlueWins;
                             aggregatedRedGames += stats.RedGames;

@@ -19,7 +19,7 @@ public sealed class DuoVsEnemyEndpoint : IEndpoint
         app.MapGet(Route, async (
             [FromRoute] string userId,
             [FromServices] UserGamerRepository userGamerRepo,
-            [FromServices] LolMatchParticipantRepository matchParticipantRepo
+            [FromServices] DuoStatsRepository duoStatsRepo
             ) =>
         {
             try
@@ -38,11 +38,11 @@ public sealed class DuoVsEnemyEndpoint : IEndpoint
                 var puuId2 = distinctPuuIds[1];
 
                 // Get the most common game mode for filtering
-                var duoStats = await matchParticipantRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
+                var duoStats = await duoStatsRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
                 var mostCommonGameMode = duoStats?.MostCommonQueueType;
 
                 // Get duo vs enemy data
-                var matchupRecords = await matchParticipantRepo.GetDuoVsEnemyByPuuIdsAsync(puuId1, puuId2, mostCommonGameMode);
+                var matchupRecords = await duoStatsRepo.GetDuoVsEnemyByPuuIdsAsync(puuId1, puuId2, mostCommonGameMode);
 
                 // Convert to response format
                 var matchups = matchupRecords

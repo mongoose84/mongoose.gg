@@ -6,7 +6,7 @@ namespace RiotProxy.Infrastructure.External.Database.Records;
 public record DuoStatsRecord(
     int GamesPlayed,
     int Wins,
-    string MostCommonQueueType
+    string? MostCommonQueueType
 );
 
 /// <summary>

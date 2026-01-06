@@ -19,7 +19,7 @@ namespace RiotProxy.Application.Endpoints
                 [FromRoute] string userId,
                 [FromServices] GamerRepository gamerRepo,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] DuoStatsRepository duoStatsRepo
                 ) =>
             {
                 try
@@ -36,10 +36,10 @@ namespace RiotProxy.Application.Endpoints
                     var puuId1 = distinctPuuIds[0];
                     var puuId2 = distinctPuuIds[1];
 
-                    var duoStats = await matchParticipantRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
+                    var duoStats = await duoStatsRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
                     var gameMode = duoStats?.MostCommonQueueType;
 
-                    var deathShareRecords = await matchParticipantRepo.GetDuoDeathShareAsync(puuId1, puuId2, gameMode);
+                    var deathShareRecords = await duoStatsRepo.GetDuoDeathShareAsync(puuId1, puuId2, gameMode);
 
                     var playerNames = new Dictionary<string, string>();
                     foreach (var puuId in distinctPuuIds)

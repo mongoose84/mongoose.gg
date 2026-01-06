@@ -18,7 +18,7 @@ namespace RiotProxy.Application.Endpoints
             app.MapGet(Route, async (
                 [FromRoute] string userId,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] DuoStatsRepository duoStatsRepo
                 ) =>
             {
                 try
@@ -37,11 +37,11 @@ namespace RiotProxy.Application.Endpoints
                     var puuId2 = distinctPuuIds[1];
 
                     // Get the most common game mode for filtering
-                    var duoStats = await matchParticipantRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
+                    var duoStats = await duoStatsRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
                     var mostCommonGameMode = duoStats?.MostCommonQueueType;
 
                     // Get duration statistics for duo games
-                    var durationRecords = await matchParticipantRepo.GetDuoDurationStatsByPuuIdsAsync(puuId1, puuId2, mostCommonGameMode);
+                    var durationRecords = await duoStatsRepo.GetDuoDurationStatsByPuuIdsAsync(puuId1, puuId2, mostCommonGameMode);
 
                     // Convert to response format
                     var buckets = durationRecords.Select(record =>

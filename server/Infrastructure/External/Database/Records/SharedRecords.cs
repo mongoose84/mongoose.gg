@@ -136,3 +136,22 @@ public record PlayerMultiKillRecord(
     int PentaKills
 );
 
+/// <summary>
+/// Consolidated aggregate statistics for a player.
+/// Fetched in a single query to avoid N+1 database round-trips.
+/// </summary>
+public record PlayerAggregateStatsRecord(
+    int TotalMatches,
+    int Wins,
+    int TotalKills,
+    int TotalDeaths,
+    int TotalAssists,
+    int TotalCreepScore,
+    int TotalGoldEarned,
+    long TotalDurationPlayedSeconds,
+    int TotalTimeBeingDeadSeconds,
+    // ARAM-excluded stats for accurate CS/min and Gold/min calculations
+    int TotalCreepScoreExcludingAram,
+    int TotalGoldEarnedExcludingAram,
+    long TotalDurationExcludingAramSeconds
+);

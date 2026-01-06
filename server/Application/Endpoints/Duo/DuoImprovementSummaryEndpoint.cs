@@ -19,7 +19,7 @@ namespace RiotProxy.Application.Endpoints
                 [FromRoute] string userId,
                 [FromServices] GamerRepository gamerRepo,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] DuoStatsRepository duoStatsRepo
                 ) =>
             {
                 try
@@ -38,7 +38,7 @@ namespace RiotProxy.Application.Endpoints
                     var puuId2 = distinctPuuIds[1];
 
                     // Get the most common game mode for filtering
-                    var duoStats = await matchParticipantRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
+                    var duoStats = await duoStatsRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
                     var mostCommonGameMode = duoStats?.MostCommonQueueType;
 
                     var insights = new List<Insight>();
@@ -50,7 +50,7 @@ namespace RiotProxy.Application.Endpoints
                     var player2Name = gamer2 != null ? $"{gamer2.GamerName}#{gamer2.Tagline.ToUpperInvariant()}" : "Player 2";
 
                     // 1. Best champion pairing insight
-                    var championSynergies = await matchParticipantRepo.GetChampionSynergyByPuuIdsAsync(puuId1, puuId2, mostCommonGameMode);
+                    var championSynergies = await duoStatsRepo.GetChampionSynergyByPuuIdsAsync(puuId1, puuId2);
                     var bestSynergy = championSynergies
                         .Where(s => s.GamesPlayed >= 3)
                         .OrderByDescending(s => (double)s.Wins / s.GamesPlayed)
@@ -67,7 +67,7 @@ namespace RiotProxy.Application.Endpoints
                     }
 
                     // 2. Match duration performance insight
-                    var durationStats = await matchParticipantRepo.GetDuoDurationStatsByPuuIdsAsync(puuId1, puuId2, mostCommonGameMode);
+                    var durationStats = await duoStatsRepo.GetDuoDurationStatsByPuuIdsAsync(puuId1, puuId2, mostCommonGameMode);
                     var longGames = durationStats.Where(d => d.MinMinutes >= 35).ToList();
                     if (longGames.Any())
                     {
@@ -92,8 +92,8 @@ namespace RiotProxy.Application.Endpoints
                     }
 
                     // 3. Death efficiency insight
-                    var efficiency1 = await matchParticipantRepo.GetDuoKillEfficiencyByPuuIdsAsync(puuId1, puuId2, puuId1, mostCommonGameMode);
-                    var efficiency2 = await matchParticipantRepo.GetDuoKillEfficiencyByPuuIdsAsync(puuId1, puuId2, puuId2, mostCommonGameMode);
+                    var efficiency1 = await duoStatsRepo.GetDuoKillEfficiencyByPuuIdsAsync(puuId1, puuId2, puuId1, mostCommonGameMode);
+                    var efficiency2 = await duoStatsRepo.GetDuoKillEfficiencyByPuuIdsAsync(puuId1, puuId2, puuId2, mostCommonGameMode);
 
                     if (efficiency1 != null && efficiency2 != null)
                     {
@@ -121,8 +121,8 @@ namespace RiotProxy.Application.Endpoints
                     }
 
                     // 4. Off-role games insight
-                    var roleDistribution1 = await matchParticipantRepo.GetDuoRoleDistributionByPuuIdsAsync(puuId1, puuId2, puuId1, mostCommonGameMode);
-                    var roleDistribution2 = await matchParticipantRepo.GetDuoRoleDistributionByPuuIdsAsync(puuId1, puuId2, puuId2, mostCommonGameMode);
+                    var roleDistribution1 = await duoStatsRepo.GetDuoRoleDistributionByPuuIdsAsync(puuId1, puuId2, puuId1, mostCommonGameMode);
+                    var roleDistribution2 = await duoStatsRepo.GetDuoRoleDistributionByPuuIdsAsync(puuId1, puuId2, puuId2, mostCommonGameMode);
 
                     var unknownGames1 = roleDistribution1.FirstOrDefault(r => r.Position == "UNKNOWN")?.GamesPlayed ?? 0;
                     var unknownGames2 = roleDistribution2.FirstOrDefault(r => r.Position == "UNKNOWN")?.GamesPlayed ?? 0;

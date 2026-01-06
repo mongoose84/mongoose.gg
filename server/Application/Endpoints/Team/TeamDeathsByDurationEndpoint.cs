@@ -18,7 +18,7 @@ namespace RiotProxy.Application.Endpoints
             app.MapGet(Route, async (
                 [FromRoute] string userId,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] TeamStatsRepository teamStatsRepo
                 ) =>
             {
                 try
@@ -33,11 +33,11 @@ namespace RiotProxy.Application.Endpoints
                     }
 
                     // Get team stats for game mode filtering
-                    var teamStats = await matchParticipantRepo.GetTeamStatsByPuuIdsAsync(distinctPuuIds);
+                    var teamStats = await teamStatsRepo.GetTeamStatsByPuuIdsAsync(distinctPuuIds);
                     var gameMode = teamStats?.MostCommonGameMode;
 
                     // Get deaths by duration
-                    var durationRecords = await matchParticipantRepo.GetTeamDeathsByDurationAsync(distinctPuuIds, gameMode);
+                    var durationRecords = await teamStatsRepo.GetTeamDeathsByDurationAsync(distinctPuuIds, gameMode);
 
                     // Define bucket metadata (5-minute intervals)
                     var bucketMeta = new Dictionary<string, (string Label, int Min, int Max)>

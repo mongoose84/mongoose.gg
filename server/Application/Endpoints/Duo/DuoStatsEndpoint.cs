@@ -18,7 +18,7 @@ namespace RiotProxy.Application.Endpoints
             app.MapGet(Route, async (
                 [FromRoute] string userId,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] DuoStatsRepository duoStatsRepo
                 ) =>
             {
                 try
@@ -36,7 +36,7 @@ namespace RiotProxy.Application.Endpoints
                     var puuId1 = distinctPuuIds[0];
                     var puuId2 = distinctPuuIds[1];
 
-                    var duoStats = await matchParticipantRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
+                    var duoStats = await duoStatsRepo.GetDuoStatsByPuuIdsAsync(puuId1, puuId2);
 
                     if (duoStats == null)
                     {
@@ -78,7 +78,7 @@ namespace RiotProxy.Application.Endpoints
             });
         }
 
-        private static string MapGameModeToQueueType(string gameMode)
+        private static string MapGameModeToQueueType(string? gameMode)
         {
             return gameMode switch
             {
@@ -88,6 +88,7 @@ namespace RiotProxy.Application.Endpoints
                 "NEXUSBLITZ" => "Nexus Blitz",
                 "ONEFORALL" => "One For All",
                 "TUTORIAL" => "Tutorial",
+                null => "Excluding ARAM",
                 _ => gameMode
             };
         }

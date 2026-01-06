@@ -19,7 +19,7 @@ namespace RiotProxy.Application.Endpoints
                 [FromRoute] string userId,
                 [FromServices] GamerRepository gamerRepo,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] SoloStatsRepository soloStatsRepo
                 ) =>
             {
                 try
@@ -48,8 +48,8 @@ namespace RiotProxy.Application.Endpoints
                         var serverName = gamer.Tagline.ToUpperInvariant();
                         var gamerName = $"{gamer.GamerName}#{serverName}";
 
-                        // Get role distribution for this puuid
-                        var roleDistribution = await matchParticipantRepo.GetRoleDistributionByPuuIdAsync(puuId);
+                        // Get role distribution for this puuid (excludes ARAM games)
+                        var roleDistribution = await soloStatsRepo.GetRoleDistributionByPuuIdAsync(puuId);
                         
                         // Calculate total games and percentages
                         var totalGames = roleDistribution.Sum(r => r.GamesPlayed);

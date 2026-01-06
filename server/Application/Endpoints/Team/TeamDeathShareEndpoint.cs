@@ -19,7 +19,7 @@ namespace RiotProxy.Application.Endpoints
                 [FromRoute] string userId,
                 [FromServices] GamerRepository gamerRepo,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] TeamStatsRepository teamStatsRepo
                 ) =>
             {
                 try
@@ -34,12 +34,12 @@ namespace RiotProxy.Application.Endpoints
                     }
 
                     // Get team stats for game mode filtering
-                    var teamStats = await matchParticipantRepo.GetTeamStatsByPuuIdsAsync(distinctPuuIds);
+                    var teamStats = await teamStatsRepo.GetTeamStatsByPuuIdsAsync(distinctPuuIds);
                     var gameMode = teamStats?.MostCommonGameMode;
                     var totalGames = teamStats?.GamesPlayed ?? 0;
 
                     // Get performance data (which includes deaths)
-                    var performanceRecords = await matchParticipantRepo.GetTeamPlayerPerformanceByPuuIdsAsync(distinctPuuIds, gameMode);
+                    var performanceRecords = await teamStatsRepo.GetTeamPlayerPerformanceByPuuIdsAsync(distinctPuuIds, gameMode);
 
                     // Build player name lookup
                     var playerNames = new Dictionary<string, string>();
