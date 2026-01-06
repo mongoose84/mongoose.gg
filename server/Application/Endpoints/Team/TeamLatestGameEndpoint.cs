@@ -18,7 +18,7 @@ namespace RiotProxy.Application.Endpoints
                 [FromRoute] string userId,
                 [FromServices] UserGamerRepository userGamerRepo,
                 [FromServices] GamerRepository gamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] TeamStatsRepository teamStatsRepo
                 ) =>
             {
                 try
@@ -32,7 +32,7 @@ namespace RiotProxy.Application.Endpoints
                         return Results.BadRequest("Team latest game requires at least 3 players");
                     }
 
-                    var latestGame = await matchParticipantRepo.GetLatestGameTogetherByTeamPuuIdsAsync(distinctPuuIds);
+                    var latestGame = await teamStatsRepo.GetLatestGameTogetherByTeamPuuIdsAsync(distinctPuuIds);
 
                     if (latestGame == null)
                     {

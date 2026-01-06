@@ -21,7 +21,7 @@ public class TeamRolePairEffectivenessEndpoint : IEndpoint
         app.MapGet(Route, async (
             [FromRoute] string userId,
             [FromServices] UserGamerRepository userGamerRepo,
-            [FromServices] LolMatchParticipantRepository participantRepo) =>
+            [FromServices] TeamStatsRepository teamStatsRepo) =>
         {
             try
             {
@@ -34,7 +34,7 @@ public class TeamRolePairEffectivenessEndpoint : IEndpoint
                     return Results.BadRequest("Team analytics requires at least 3 players.");
                 }
 
-                var pairRecords = await participantRepo.GetTeamRolePairStatsByPuuIdsAsync(distinctPuuIds);
+                var pairRecords = await teamStatsRepo.GetTeamRolePairStatsByPuuIdsAsync(distinctPuuIds);
 
                 var rolePairs = pairRecords
                     .Where(r => !string.IsNullOrEmpty(r.Role1) && !string.IsNullOrEmpty(r.Role2))

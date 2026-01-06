@@ -18,7 +18,7 @@ namespace RiotProxy.Application.Endpoints
             app.MapGet(Route, async (
                 [FromRoute] string userId,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] TeamStatsRepository teamStatsRepo
                 ) =>
             {
                 try
@@ -33,7 +33,7 @@ namespace RiotProxy.Application.Endpoints
                         return Results.BadRequest("Team stats requires at least 3 players");
                     }
 
-                    var teamStats = await matchParticipantRepo.GetTeamStatsByPuuIdsAsync(distinctPuuIds);
+                    var teamStats = await teamStatsRepo.GetTeamStatsByPuuIdsAsync(distinctPuuIds);
 
                     if (teamStats == null || teamStats.GamesPlayed == 0)
                     {

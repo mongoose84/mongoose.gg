@@ -21,7 +21,7 @@ public class TeamDurationAnalysisEndpoint : IEndpoint
         app.MapGet(Route, async (
             [FromRoute] string userId,
             [FromServices] UserGamerRepository userGamerRepo,
-            [FromServices] LolMatchParticipantRepository participantRepo) =>
+            [FromServices] TeamStatsRepository teamStatsRepo) =>
         {
             try
             {
@@ -34,7 +34,7 @@ public class TeamDurationAnalysisEndpoint : IEndpoint
                     return Results.BadRequest("Team analytics requires at least 3 players.");
                 }
 
-                var durationStats = await participantRepo.GetTeamDurationStatsByPuuIdsAsync(distinctPuuIds);
+                var durationStats = await teamStatsRepo.GetTeamDurationStatsByPuuIdsAsync(distinctPuuIds);
 
                 // Use 5-minute intervals matching the repository query
                 var buckets = new List<TeamDurationAnalysisDto.DurationBucket>

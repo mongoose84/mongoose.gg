@@ -21,7 +21,7 @@ public class TeamWinRateTrendEndpoint : IEndpoint
         app.MapGet(Route, async (
             [FromRoute] string userId,
             [FromServices] UserGamerRepository userGamerRepo,
-            [FromServices] LolMatchParticipantRepository participantRepo) =>
+            [FromServices] TeamStatsRepository teamStatsRepo) =>
         {
             try
             {
@@ -35,7 +35,7 @@ public class TeamWinRateTrendEndpoint : IEndpoint
                 {
                     return Results.BadRequest("Team analytics requires at least 3 players.");
                 }
-                var matchResults = await participantRepo.GetTeamMatchResultsByPuuIdsAsync(distinctPuuIds, 50);
+                var matchResults = await teamStatsRepo.GetTeamMatchResultsByPuuIdsAsync(distinctPuuIds, 50);
                 Console.WriteLine($"[TeamWinRateTrend] matchResults count={matchResults.Count}");
 
                 if (matchResults.Count == 0)

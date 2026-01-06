@@ -22,7 +22,7 @@ public class TeamChampionCombosEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromServices] GamerRepository gamerRepo,
             [FromServices] UserGamerRepository userGamerRepo,
-            [FromServices] LolMatchParticipantRepository participantRepo) =>
+            [FromServices] TeamStatsRepository teamStatsRepo) =>
         {
             try
             {
@@ -46,7 +46,7 @@ public class TeamChampionCombosEndpoint : IEndpoint
                     }
                 }
 
-                var comboRecords = await participantRepo.GetTeamChampionCombosByPuuIdsAsync(distinctPuuIds, 10);
+                var comboRecords = await teamStatsRepo.GetTeamChampionCombosByPuuIdsAsync(distinctPuuIds, 10);
 
                 var combos = comboRecords.Select(record =>
                 {

@@ -19,7 +19,7 @@ namespace RiotProxy.Application.Endpoints
                 [FromRoute] string userId,
                 [FromServices] GamerRepository gamerRepo,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] LolMatchParticipantRepository matchParticipantRepo
+                [FromServices] TeamStatsRepository teamStatsRepo
                 ) =>
             {
                 try
@@ -34,14 +34,14 @@ namespace RiotProxy.Application.Endpoints
                     }
 
                     // Get team stats for game mode filtering
-                    var teamStats = await matchParticipantRepo.GetTeamStatsByPuuIdsAsync(distinctPuuIds);
+                    var teamStats = await teamStatsRepo.GetTeamStatsByPuuIdsAsync(distinctPuuIds);
                     var gameMode = teamStats?.MostCommonGameMode;
 
                     // Get pairwise synergy data
-                    var synergyRecords = await matchParticipantRepo.GetTeamPairSynergyByPuuIdsAsync(distinctPuuIds, gameMode);
+                    var synergyRecords = await teamStatsRepo.GetTeamPairSynergyByPuuIdsAsync(distinctPuuIds, gameMode);
 
                     // Get role distribution to find most common role per player
-                    var roleRecords = await matchParticipantRepo.GetTeamRoleDistributionByPuuIdsAsync(distinctPuuIds, gameMode);
+                    var roleRecords = await teamStatsRepo.GetTeamRoleDistributionByPuuIdsAsync(distinctPuuIds, gameMode);
                     var playerRoles = roleRecords
                         .GroupBy(r => r.PuuId)
                         .ToDictionary(
