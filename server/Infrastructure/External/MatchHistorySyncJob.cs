@@ -217,6 +217,21 @@ namespace RiotProxy.Infrastructure.External
             return string.Empty;
         }
 
+        private int? GetQueueId(JsonElement infoElement)
+        {
+            if (infoElement.TryGetProperty("queueId", out var queueIdElement))
+            {
+                if (queueIdElement.ValueKind == JsonValueKind.Number)
+                    return queueIdElement.GetInt32();
+
+                // Handle string fallback if API returns it as string
+                if (queueIdElement.ValueKind == JsonValueKind.String &&
+                    int.TryParse(queueIdElement.GetString(), out var parsedId))
+                    return parsedId;
+            }
+            return null;
+        }
+
         private static long? GetEpochMilliseconds(JsonElement obj, string propertyName)
         {
             if (!obj.TryGetProperty(propertyName, out var el))
@@ -249,6 +264,7 @@ namespace RiotProxy.Infrastructure.External
                 
                 // Map match ID and other properties
                 match.GameMode = GetGameMode(matchInfo);
+                match.QueueId = GetQueueId(infoElement);
                 match.InfoFetched = true;
                 var gameDuration = Require<long>(infoElement, "gameDuration", e => e.GetInt64(), JsonValueKind.Number);
                 match.DurationSeconds = gameDuration;

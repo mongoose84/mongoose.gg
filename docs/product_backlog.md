@@ -46,11 +46,11 @@ Add `QueueId` (INT, nullable) column to the `LolMatch` table to store Riot's que
 
 #### Acceptance Criteria
 
-- [ ] Create SQL migration: `ALTER TABLE LolMatch ADD COLUMN QueueId INT NULL;`
-- [ ] Add index: `CREATE INDEX idx_lolmatch_queueid ON LolMatch(QueueId);`
-- [ ] Update `LolMatch` entity with `public int? QueueId { get; set; }`
-- [ ] Update `LolMatchRepository` insert/update methods to include QueueId
-- [ ] Migration is idempotent
+- [x] Create SQL migration: `ALTER TABLE LolMatch ADD COLUMN QueueId INT NULL;`
+- [x] Add index: `CREATE INDEX idx_lolmatch_queueid ON LolMatch(QueueId);`
+- [x] Update `LolMatch` entity with `public int? QueueId { get; set; }`
+- [x] Update `LolMatchRepository` insert/update methods to include QueueId
+- [x] Migration is idempotent
 
 #### Queue ID Reference
 
@@ -77,9 +77,9 @@ Update `MatchHistorySyncJob` to extract and persist `queueId` from Riot API matc
 
 #### Acceptance Criteria
 
-- [ ] Add `queueId` to `LolMatch` entity from `GetMatchInfoAsync`
-- [ ] Update `MapToLolMatchEntity` to set `match.QueueId`
-- [ ] Handle missing queueId gracefully (set to null)
+- [x] Add `queueId` to `LolMatch` entity from `GetMatchInfoAsync`
+- [x] Update `MapToLolMatchEntity` to set `match.QueueId`
+- [x] Handle missing queueId gracefully (set to null)
 
 ---
 
@@ -96,11 +96,11 @@ Create a generic backfill job infrastructure for future data migrations.
 
 #### Acceptance Criteria
 
-- [ ] Create `IBackfillJob` interface
-- [ ] Create `BackfillJobRunner` with batch processing, progress tracking, error recovery
-- [ ] Support configurable batch size and delay
-- [ ] Log progress (e.g., "Processed 500/10000 matches")
-- [ ] Respect `IRiotLimitHandler` rate limits
+- [x] Create `IBackfillJob` interface
+- [x] Create `BackfillJobRunner` with batch processing, progress tracking, error recovery
+- [x] Support configurable batch size and delay
+- [x] Log progress (e.g., "Processed 500/10000 matches")
+- [x] Respect `IRiotLimitHandler` rate limits
 
 ---
 
