@@ -118,10 +118,10 @@ Backfill job to populate QueueId for existing matches.
 
 #### Acceptance Criteria
 
-- [ ] Create `QueueIdBackfillJob : IBackfillJob`
-- [ ] Query matches where `QueueId IS NULL AND InfoFetched = TRUE`
-- [ ] Fetch match info from Riot API (using rate limiter)
-- [ ] Add endpoint: `POST /admin/backfill/queue-id`
+- [x] Create `QueueIdBackfillJob : IBackfillJob`
+- [x] Query matches where `QueueId IS NULL AND InfoFetched = TRUE`
+- [x] Fetch match info from Riot API (using rate limiter)
+- [x] Add endpoint: `POST /admin/backfill/queue-id`
 
 ---
 
