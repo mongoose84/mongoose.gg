@@ -35,23 +35,6 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 ("@gameEndTimestamp", match.GameEndTimestamp == DateTime.MinValue ? DBNull.Value : match.GameEndTimestamp));
         }
 
-        public async Task UpdateMatchQueueIdAsync(string matchId, int queueId)
-        {
-            const string sql = "UPDATE LolMatch SET QueueId = @queueId WHERE MatchId = @matchId";
-            await ExecuteNonQueryAsync(sql,
-                ("@matchId", matchId),
-                ("@queueId", queueId));
-        }
-
-        public async Task UpdateMatchQueueIdAndTimestampAsync(string matchId, int queueId, DateTime gameEndTimestamp)
-        {
-            const string sql = "UPDATE LolMatch SET QueueId = @queueId, GameEndTimestamp = @gameEndTimestamp WHERE MatchId = @matchId";
-            await ExecuteNonQueryAsync(sql,
-                ("@matchId", matchId),
-                ("@queueId", queueId),
-                ("@gameEndTimestamp", gameEndTimestamp == DateTime.MinValue ? DBNull.Value : gameEndTimestamp));
-        }
-
         public async Task UpdateMatchQueueIdTimestampAndDurationAsync(string matchId, int? queueId, DateTime gameEndTimestamp, long durationSeconds)
         {
             const string sql = "UPDATE LolMatch SET QueueId = @queueId, GameEndTimestamp = @gameEndTimestamp, DurationSeconds = @durationSeconds WHERE MatchId = @matchId";
@@ -75,20 +58,6 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
             });
         }
 
-        internal async Task<IList<LolMatch>> GetMatchesMissingQueueIdAsync()
-        {
-            const string sql = "SELECT MatchId, InfoFetched, GameMode, QueueId, DurationSeconds, GameEndTimestamp FROM LolMatch WHERE InfoFetched = FALSE OR (InfoFetched = TRUE AND (QueueId IS NULL OR GameEndTimestamp IS NULL))";
-            return await ExecuteListAsync(sql, r => new LolMatch
-            {
-                MatchId = r.GetString(0),
-                InfoFetched = r.GetBoolean(1),
-                GameMode = r.IsDBNull(2) ? string.Empty : r.GetString(2),
-                QueueId = r.IsDBNull(3) ? null : r.GetInt32(3),
-                DurationSeconds = r.GetInt64(4),
-                GameEndTimestamp = r.IsDBNull(5) ? DateTime.MinValue : r.GetDateTime(5)
-            });
-        }
-
         internal async Task<IList<LolMatch>> GetProcessedMatchesMissingMetadataAsync()
         {
             const string sql = "SELECT MatchId, InfoFetched, GameMode, QueueId, DurationSeconds, GameEndTimestamp FROM LolMatch WHERE InfoFetched = TRUE AND (QueueId IS NULL OR GameEndTimestamp IS NULL)";
@@ -98,7 +67,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories
                 InfoFetched = r.GetBoolean(1),
                 GameMode = r.IsDBNull(2) ? string.Empty : r.GetString(2),
                 QueueId = r.IsDBNull(3) ? null : r.GetInt32(3),
-                DurationSeconds = r.GetInt64(4),
+                DurationSeconds = r.IsDBNull(4) ? 0L : r.GetInt64(4),
                 GameEndTimestamp = r.IsDBNull(5) ? DateTime.MinValue : r.GetDateTime(5)
             });
         }

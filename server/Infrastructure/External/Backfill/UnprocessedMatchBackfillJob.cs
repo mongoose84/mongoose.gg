@@ -83,17 +83,9 @@ namespace RiotProxy.Infrastructure.External.Backfill
         {
             if (matchInfo.RootElement.TryGetProperty("info", out var infoElement))
             {
-                var endMs = GetEpochMilliseconds(infoElement, "gameEndTimestamp")
-                            ?? GetEpochMilliseconds(infoElement, "gameCreation")
-                            ?? 0L;
-
-                if (endMs > 0)
-                    match.GameEndTimestamp = DateTimeOffset.FromUnixTimeMilliseconds(endMs).UtcDateTime;
-                else
-                    match.GameEndTimestamp = DateTime.MinValue;
-
-                match.GameMode = GetGameMode(matchInfo);
-                match.QueueId = ExtractQueueId(matchInfo);
+                match.GameEndTimestamp = BackfillMatchJsonExtractor.ExtractGameEndTimestamp(matchInfo);
+                match.GameMode = BackfillMatchJsonExtractor.ExtractGameMode(matchInfo);
+                match.QueueId = BackfillMatchJsonExtractor.ExtractQueueId(matchInfo);
                 match.InfoFetched = true;
 
                 if (infoElement.TryGetProperty("gameDuration", out var gameDurationElement) &&
@@ -104,47 +96,16 @@ namespace RiotProxy.Infrastructure.External.Backfill
             }
         }
 
-        private string GetGameMode(JsonDocument matchInfo)
-        {
-            if (matchInfo.RootElement.TryGetProperty("info", out var infoElement) &&
-                infoElement.TryGetProperty("gameMode", out var gameModeElement))
-            {
-                if (gameModeElement.ValueKind == JsonValueKind.String)
-                    return gameModeElement.GetString() ?? string.Empty;
-
-                return gameModeElement.ToString();
-            }
-            return string.Empty;
-        }
-
-        private int? ExtractQueueId(JsonDocument matchInfo)
-        {
-            if (matchInfo.RootElement.TryGetProperty("info", out var infoElement) &&
-                infoElement.TryGetProperty("queueId", out var queueIdElement))
-            {
-                if (queueIdElement.ValueKind == JsonValueKind.Number)
-                    return queueIdElement.GetInt32();
-
-                if (queueIdElement.ValueKind == JsonValueKind.String &&
-                    int.TryParse(queueIdElement.GetString(), out var parsedId))
-                    return parsedId;
-            }
-
-            return null;
-        }
-
         private IList<LolMatchParticipant> MapToParticipantEntity(JsonDocument matchInfo, string matchId)
         {
-            var list = new List<LolMatchParticipant>();
             if (!matchInfo.RootElement.TryGetProperty("info", out var infoElement))
-                return list;
+                return new List<LolMatchParticipant>();
 
             if (!infoElement.TryGetProperty("participants", out var participantsElement))
-                return list;
+                return new List<LolMatchParticipant>();
 
-            foreach (var participantElement in participantsElement.EnumerateArray())
-            {
-                var participant = new LolMatchParticipant
+            return participantsElement.EnumerateArray()
+                .Select(participantElement => new LolMatchParticipant
                 {
                     MatchId = matchId,
                     PuuId = participantElement.TryGetProperty("puuid", out var puuIdEl) ? puuIdEl.GetString() ?? string.Empty : string.Empty,
@@ -165,25 +126,8 @@ namespace RiotProxy.Infrastructure.External.Backfill
                     GoldEarned = participantElement.TryGetProperty("goldEarned", out var goldEl) && goldEl.ValueKind == JsonValueKind.Number ? goldEl.GetInt32() : 0,
                     CreepScore = participantElement.TryGetProperty("totalMinionsKilled", out var minionsEl) && minionsEl.ValueKind == JsonValueKind.Number ? minionsEl.GetInt32() : 0,
                     TimeBeingDeadSeconds = participantElement.TryGetProperty("totalTimeDeadSeconds", out var deadEl) && deadEl.ValueKind == JsonValueKind.Number ? deadEl.GetInt32() : 0,
-                };
-
-                list.Add(participant);
-            }
-
-            return list;
-        }
-
-        private static long? GetEpochMilliseconds(JsonElement obj, string propertyName)
-        {
-            if (!obj.TryGetProperty(propertyName, out var el))
-                return null;
-
-            return el.ValueKind switch
-            {
-                JsonValueKind.Number => el.GetInt64(),
-                JsonValueKind.String => long.TryParse(el.GetString(), out var v) ? v : null,
-                _ => null
-            };
+                })
+                .ToList();
         }
     }
 }

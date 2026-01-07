@@ -11,7 +11,7 @@ namespace RiotProxy.Application.Endpoints
 
         public BackfillDataEndpoint(string basePath)
         {
-            Route = basePath + "/admin/backfill/data";
+            Route = basePath + "/admin/backfill/queue-id";
         }
 
         public void Configure(WebApplication app)
@@ -25,6 +25,9 @@ namespace RiotProxy.Application.Endpoints
             {
                 try
                 {
+                    // NOTE: This endpoint runs backfill jobs synchronously within the HTTP request.
+                    // For large datasets, this operation is long-running and may approach or exceed HTTP timeout limits.
+                    // Consider implementing as a background job (e.g., Hangfire) for production use with very large datasets.
                     var runner = new BackfillJobRunner(
                         batchSize: 10,
                         delayBetweenBatches: TimeSpan.FromMilliseconds(500)
@@ -67,9 +70,11 @@ namespace RiotProxy.Application.Endpoints
                     );
                 }
             })
-            .WithName("BackfillData")
+            .WithName("BackfillMatchMetadata")
             .WithTags("Admin", "Backfill")
-            .WithDescription("Backfills QueueId/metadata for processed matches and fully hydrates unprocessed matches");
+            .WithDescription("Backfills QueueId/metadata for processed matches and fully hydrates unprocessed matches. " +
+                "WARNING: This is a long-running synchronous operation. Large datasets may take several minutes and could exceed HTTP timeout limits. " +
+                "For very large datasets, adjust client/server timeout settings accordingly.");
         }
     }
 }

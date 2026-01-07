@@ -42,9 +42,9 @@ namespace RiotProxy.Infrastructure.External.Backfill
                 {
                     var matchInfoJson = await _riotApiClient.GetMatchInfoAsync(match.MatchId, ct);
 
-                    var queueId = ExtractQueueId(matchInfoJson);
-                    var gameEndTimestamp = ExtractGameEndTimestamp(matchInfoJson);
-                    var durationSeconds = ExtractDurationSeconds(matchInfoJson);
+                    var queueId = BackfillMatchJsonExtractor.ExtractQueueId(matchInfoJson);
+                    var gameEndTimestamp = BackfillMatchJsonExtractor.ExtractGameEndTimestamp(matchInfoJson);
+                    var durationSeconds = BackfillMatchJsonExtractor.ExtractDurationSeconds(matchInfoJson);
 
                     if (queueId.HasValue || gameEndTimestamp != DateTime.MinValue)
                     {
@@ -72,62 +72,6 @@ namespace RiotProxy.Infrastructure.External.Backfill
         {
             Console.WriteLine($"[{Name}] Backfill failed with error: {ex.Message}");
             return Task.CompletedTask;
-        }
-
-        private int? ExtractQueueId(JsonDocument matchInfo)
-        {
-            if (matchInfo.RootElement.TryGetProperty("info", out var infoElement) &&
-                infoElement.TryGetProperty("queueId", out var queueIdElement))
-            {
-                if (queueIdElement.ValueKind == JsonValueKind.Number)
-                    return queueIdElement.GetInt32();
-
-                if (queueIdElement.ValueKind == JsonValueKind.String &&
-                    int.TryParse(queueIdElement.GetString(), out var parsedId))
-                    return parsedId;
-            }
-
-            return null;
-        }
-
-        private DateTime ExtractGameEndTimestamp(JsonDocument matchInfo)
-        {
-            if (matchInfo.RootElement.TryGetProperty("info", out var infoElement))
-            {
-                var endMs = GetEpochMilliseconds(infoElement, "gameEndTimestamp")
-                            ?? GetEpochMilliseconds(infoElement, "gameCreation")
-                            ?? 0L;
-
-                if (endMs > 0)
-                    return DateTimeOffset.FromUnixTimeMilliseconds(endMs).UtcDateTime;
-            }
-
-            return DateTime.MinValue;
-        }
-
-        private long ExtractDurationSeconds(JsonDocument matchInfo)
-        {
-            if (matchInfo.RootElement.TryGetProperty("info", out var infoElement) &&
-                infoElement.TryGetProperty("gameDuration", out var durationElement))
-            {
-                if (durationElement.ValueKind == JsonValueKind.Number)
-                    return durationElement.GetInt64();
-            }
-
-            return 0;
-        }
-
-        private static long? GetEpochMilliseconds(JsonElement obj, string propertyName)
-        {
-            if (!obj.TryGetProperty(propertyName, out var el))
-                return null;
-
-            return el.ValueKind switch
-            {
-                JsonValueKind.Number => el.GetInt64(),
-                JsonValueKind.String => long.TryParse(el.GetString(), out var v) ? v : null,
-                _ => null
-            };
         }
     }
 }
