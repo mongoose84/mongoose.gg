@@ -22,8 +22,13 @@
 | **B. AI Goal Recommendations** | LLM-powered improvement suggestions | 42 pts |
 | **C. Subscription & Paywall** | Stripe integration, tiers, feature flags | 35 pts |
 | **D. Analytics & Tracking** | User behavior tracking for product decisions | 18 pts |
+| **E. Database v2 & Analytics Schema** | New match/participant/timeline schema + ingestion | 20 pts |
+| **F. API v2** | New API surface aligned with v2 schema and dashboards | 16 pts |
+| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 25 pts |
 
-**Grand Total:** 122 points
+**Grand Total:** 183 points
+
+> Note: Platform v2 epics (E–G) are prerequisites for most A–D feature work and should generally be completed first.
 
 ---
 
@@ -46,11 +51,11 @@ Add `QueueId` (INT, nullable) column to the `LolMatch` table to store Riot's que
 
 #### Acceptance Criteria
 
-- [x] Create SQL migration: `ALTER TABLE LolMatch ADD COLUMN QueueId INT NULL;`
-- [x] Add index: `CREATE INDEX idx_lolmatch_queueid ON LolMatch(QueueId);`
-- [x] Update `LolMatch` entity with `public int? QueueId { get; set; }`
-- [x] Update `LolMatchRepository` insert/update methods to include QueueId
-- [x] Migration is idempotent
+- [ ] Create SQL migration: `ALTER TABLE LolMatch ADD COLUMN QueueId INT NULL;`
+- [ ] Add index: `CREATE INDEX idx_lolmatch_queueid ON LolMatch(QueueId);`
+- [ ] Update `LolMatch` entity with `public int? QueueId { get; set; }`
+- [ ] Update `LolMatchRepository` insert/update methods to include QueueId
+- [ ] Migration is idempotent
 
 #### Queue ID Reference
 
@@ -77,9 +82,9 @@ Update `MatchHistorySyncJob` to extract and persist `queueId` from Riot API matc
 
 #### Acceptance Criteria
 
-- [x] Add `queueId` to `LolMatch` entity from `GetMatchInfoAsync`
-- [x] Update `MapToLolMatchEntity` to set `match.QueueId`
-- [x] Handle missing queueId gracefully (set to null)
+- [ ] Add `queueId` to `LolMatch` entity from `GetMatchInfoAsync`
+- [ ] Update `MapToLolMatchEntity` to set `match.QueueId`
+- [ ] Handle missing queueId gracefully (set to null)
 
 ---
 
@@ -96,11 +101,11 @@ Create a generic backfill job infrastructure for future data migrations.
 
 #### Acceptance Criteria
 
-- [x] Create `IBackfillJob` interface
-- [x] Create `BackfillJobRunner` with batch processing, progress tracking, error recovery
-- [x] Support configurable batch size and delay
-- [x] Log progress (e.g., "Processed 500/10000 matches")
-- [x] Respect `IRiotLimitHandler` rate limits
+- [ ] Create `IBackfillJob` interface
+- [ ] Create `BackfillJobRunner` with batch processing, progress tracking, error recovery
+- [ ] Support configurable batch size and delay
+- [ ] Log progress (e.g., "Processed 500/10000 matches")
+- [ ] Respect `IRiotLimitHandler` rate limits
 
 ---
 
@@ -118,10 +123,10 @@ Backfill job to populate QueueId for existing matches.
 
 #### Acceptance Criteria
 
-- [x] Create `QueueIdBackfillJob : IBackfillJob`
-- [x] Query matches where `QueueId IS NULL AND InfoFetched = TRUE`
-- [x] Fetch match info from Riot API (using rate limiter)
-- [x] Add endpoint: `POST /admin/backfill/queue-id`
+- [ ] Create `QueueIdBackfillJob : IBackfillJob`
+- [ ] Query matches where `QueueId IS NULL AND InfoFetched = TRUE`
+- [ ] Fetch match info from Riot API (using rate limiter)
+- [ ] Add endpoint: `POST /admin/backfill/queue-id`
 
 ---
 
@@ -1261,6 +1266,442 @@ Framework for A/B testing features and pricing.
 
 ---
 
+# Epic E: Database v2 & Analytics Schema
+
+Modernize the database to match `docs/database_schema.md` and support advanced solo/duo/team analytics.
+
+## Issues
+
+### E1. [Database] Finalize Database v2 schema & DDL
+
+**Priority:** P0 - Critical  
+**Type:** Architecture  
+**Estimate:** 3 points  
+**Labels:** `database`, `v2`, `epic-e`
+
+#### Description
+
+Finalize the Database v2 schema (tables, columns, indexes) based on `docs/database_schema.md` for matches, participants, checkpoints, metrics, duo/team analytics and AI snapshots.
+
+#### Acceptance Criteria
+
+- [ ] Consolidated ERD / schema documented in `docs/database_schema.md`  
+- [ ] Tables defined for: `matches`, `participants`, `participant_checkpoints`, `participant_metrics`, `team_objectives`, `participant_objectives`, `duo_metrics`, `team_match_metrics`, `team_role_responsibility`, `ai_snapshots`  
+- [ ] Index strategy defined for common filters (puuid, queue_type, season/patch, team_id, minute_mark)
+
+---
+
+### E2. [Database] Create MySQL schema scripts for Database v2
+
+**Priority:** P0 - Critical  
+**Type:** Database Migration  
+**Estimate:** 2 points  
+**Depends on:** E1  
+**Labels:** `database`, `migration`, `v2`, `epic-e`
+
+#### Description
+
+Create SQL scripts (or migrations) to create all Database v2 tables and indexes in MySQL.
+
+#### Acceptance Criteria
+
+- [ ] `schema-v2.sql` (or equivalent migration) creates all v2 tables and indexes  
+- [ ] Script can be applied to a clean database without errors  
+- [ ] Script is safe to re-run on an empty DB (idempotent for local dev)
+
+---
+
+### E3. [Repository] Implement v2 entities and repositories
+
+**Priority:** P0 - Critical  
+**Type:** Feature  
+**Estimate:** 3 points  
+**Depends on:** E1, E2  
+**Labels:** `repository`, `v2`, `epic-e`
+
+#### Description
+
+Add entity classes and repository types for Database v2 tables under `server/Infrastructure/External/Domain/Entities/` and `server/Infrastructure/External/Database/Repositories/`.
+
+#### Acceptance Criteria
+
+- [ ] Entity classes created for all v2 tables  
+- [ ] Repositories expose queries aligned with product needs (solo/duo/team summaries, timelines, derived metrics)  
+- [ ] New repositories use `RepositoryBase` helpers and follow existing patterns
+
+---
+
+### E4. [Sync] Ingest match & participant core data into v2 tables
+
+**Priority:** P0 - Critical  
+**Type:** Feature  
+**Estimate:** 3 points  
+**Depends on:** E3  
+**Labels:** `sync`, `riot-api`, `v2`, `epic-e`
+
+#### Description
+
+Update `MatchHistorySyncJob` (and related logic) to write match- and participant-level data from Riot match info into the v2 `matches` and `participants` tables.
+
+#### Acceptance Criteria
+
+- [ ] New writes to `matches` and `participants` occur for all synced matches  
+- [ ] At least one test account can be fully synced into v2 tables  
+- [ ] Basic solo stats queries using v2 repositories return expected values (win rate, KDA, CS, etc.)
+
+---
+
+### E5. [Sync] Ingest timeline & derived metrics into v2 tables
+
+**Priority:** P0 - Critical  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** E4  
+**Labels:** `sync`, `timeline`, `statistics`, `v2`, `epic-e`
+
+#### Description
+
+Extend the sync pipeline to call Riot timeline endpoints and populate `participant_checkpoints`, `participant_metrics`, `team_objectives`, `participant_objectives`, `duo_metrics`, and `team_match_metrics`.
+
+#### Acceptance Criteria
+
+- [ ] Timeline data fetched for synced matches (respecting rate limits)  
+- [ ] Checkpoints stored at key minute marks (10/15/20/25 etc.)  
+- [ ] Derived metrics (kill participation, damage share, death timings, gold leads, duo/team metrics) are persisted  
+- [ ] Core solo/duo/team analytics can be served from v2 tables without additional Riot calls
+
+---
+
+### E6. [Validation] Validate Database v2 metrics against Riot for sample accounts
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 2 points  
+**Depends on:** E5  
+**Labels:** `validation`, `v2`, `epic-e`
+
+#### Description
+
+Spot-check v2 metrics for a small set of accounts against Riot and/or existing dashboards to ensure correctness.
+
+#### Acceptance Criteria
+
+- [ ] Define 3–5 representative test accounts (roles, elos)  
+- [ ] For each, verify key metrics (win rate, CS@10/15, kill participation, deaths timings, gold leads) match expectations  
+- [ ] Any discrepancies are either fixed or documented with rationale
+
+---
+
+### E7. [Cleanup] Remove v1 database tables and repositories
+
+**Priority:** P2 - Medium  
+**Type:** Chore  
+**Estimate:** 2 points  
+**Depends on:** E6, F6  
+**Labels:** `cleanup`, `database`, `v2`, `epic-e`
+
+#### Description
+
+Once all consumers have been migrated to v2, remove legacy tables, repositories and any unused DTOs/entities.
+
+#### Acceptance Criteria
+
+- [ ] No remaining code paths depend on v1 tables  
+- [ ] Legacy repositories and entities are deleted  
+- [ ] Database v2 is the only schema used in production
+
+---
+
+# Epic F: API v2
+
+Expose a new HTTP API surface aligned with Database v2 and the new dashboards.
+
+## Issues
+
+### F1. [Design] Define API v2 surface & versioning
+
+**Priority:** P0 - Critical  
+**Type:** Architecture  
+**Estimate:** 2 points  
+**Depends on:** E1  
+**Labels:** `api`, `v2`, `epic-f`
+
+#### Description
+
+Design the v2 API surface (routes, DTOs, versioning strategy) for solo, duo, team dashboards and AI/goal endpoints.
+
+#### Acceptance Criteria
+
+- [ ] API v2 route scheme decided (e.g. `/api/v2/...`)  
+- [ ] Request/response models defined for solo/duo/team summary endpoints  
+- [ ] Response shapes optimized for frontend dashboards (minimal client-side aggregation)
+
+---
+
+### F2. [API] Implement Solo dashboard v2 endpoint
+
+**Priority:** P0 - Critical  
+**Type:** Feature  
+**Estimate:** 3 points  
+**Depends on:** E3, E4, F1  
+**Labels:** `api`, `solo`, `v2`, `epic-f`
+
+#### Description
+
+Create a v2 endpoint that returns all data required for the Solo dashboard (overall stats, champion performance, role distribution, death efficiency, match duration, etc.) from Database v2.
+
+#### Acceptance Criteria
+
+- [ ] Endpoint implemented (e.g. `GET /api/v2/solo/dashboard/{userId}`)  
+- [ ] Uses only v2 repositories  
+- [ ] Returns a single well-structured payload consumed by the new Solo dashboard view
+
+---
+
+### F3. [API] Implement Duo dashboard v2 endpoint
+
+**Priority:** P0 - Critical  
+**Type:** Feature  
+**Estimate:** 3 points  
+**Depends on:** E3, E5, F1  
+**Labels:** `api`, `duo`, `v2`, `epic-f`
+
+#### Description
+
+Create a v2 endpoint that returns duo synergy stats, matchup data, shared objective participation and win rates from Database v2.
+
+#### Acceptance Criteria
+
+- [ ] Endpoint implemented (e.g. `GET /api/v2/duo/dashboard/{userId}`)  
+- [ ] Returns per-duo aggregates needed for the Duo dashboard  
+- [ ] Uses duo-related tables/metrics from Database v2
+
+---
+
+### F4. [API] Implement Team dashboard v2 endpoint
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 3 points  
+**Depends on:** E3, E5, F1  
+**Labels:** `api`, `team`, `v2`, `epic-f`
+
+#### Description
+
+Create a v2 endpoint that exposes team-level metrics (games played, win rate, queue type, gold leads, role composition, champion combos, role pair effectiveness).
+
+#### Acceptance Criteria
+
+- [ ] Endpoint implemented (e.g. `GET /api/v2/team/dashboard/{userId}`)  
+- [ ] Returns all data needed by the Team dashboard v2  
+- [ ] Uses team-related tables/metrics from Database v2
+
+---
+
+### F5. [API] Implement AI snapshot/goal input endpoint
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 3 points  
+**Depends on:** E5, B1, F1  
+**Labels:** `api`, `ai`, `v2`, `epic-f`
+
+#### Description
+
+Expose an endpoint that aggregates player stats into an AI-friendly snapshot (`ai_snapshots`), to be consumed by the AI goal recommendation flow (Epic B).
+
+#### Acceptance Criteria
+
+- [ ] Endpoint implemented (e.g. `POST /api/v2/ai/snapshot`)  
+- [ ] Returns or stores an `ai_snapshots` record for the requested context (solo/duo/team)  
+- [ ] Contracts align with `IPlayerStatsAggregator` and `IGoalRecommendationService`
+
+---
+
+### F6. [API] Deprecate or migrate v1 endpoints to v2
+
+**Priority:** P2 - Medium  
+**Type:** Chore  
+**Estimate:** 2 points  
+**Depends on:** F2, F3, F4, G5, G6, G7  
+**Labels:** `api`, `cleanup`, `v2`, `epic-f`
+
+#### Description
+
+Once the new frontend is migrated to API v2, mark v1 endpoints as deprecated and remove any unused routes.
+
+#### Acceptance Criteria
+
+- [ ] Frontend uses only v2 endpoints for dashboards  
+- [ ] v1 routes removed or clearly marked as internal/testing-only  
+- [ ] API documentation updated to reference v2 only
+
+---
+
+# Epic G: Frontend v2 App & Marketing
+
+Create a new, professional user experience with a landing page, pricing, and app shell consuming API v2.
+
+## Issues
+
+### G1. [UX] Define app v2 information architecture & routes
+
+**Priority:** P0 - Critical  
+**Type:** UX  
+**Estimate:** 2 points  
+**Labels:** `frontend`, `ux`, `epic-g`
+
+#### Description
+
+Define the high-level navigation for v2, including marketing pages and in-app routes (e.g. `/`, `/pricing`, `/app/solo`, `/app/duo`, `/app/team`, `/app/settings`).
+
+#### Acceptance Criteria
+
+- [ ] Route map documented (public vs app routes)  
+- [ ] Decisions on authentication and how users enter the dashboards  
+- [ ] Mapping from legacy routes to new routes defined
+
+---
+
+### G2. [Frontend] Implement new app shell & navigation
+
+**Priority:** P0 - Critical  
+**Type:** Feature  
+**Estimate:** 3 points  
+**Depends on:** G1  
+**Labels:** `frontend`, `layout`, `epic-g`
+
+#### Description
+
+Create a shared layout component for all `/app/*` routes with header, navigation (solo/duo/team/goals/settings), and consistent styling.
+
+#### Acceptance Criteria
+
+- [ ] New layout component created and used by all app routes  
+- [ ] Navigation clearly shows Free/Pro/Team feature boundaries (copy can be simple initially)  
+- [ ] Works responsively on desktop and common laptop resolutions
+
+---
+
+### G3. [Frontend] Implement new public landing page
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 2 points  
+**Labels:** `frontend`, `marketing`, `epic-g`
+
+#### Description
+
+Redesign the `/` route as a marketing landing page describing the product, key benefits, and CTAs to create a dashboard or sign up.
+
+#### Acceptance Criteria
+
+- [ ] Hero section with concise value proposition  
+- [ ] Explanation of Free vs Pro vs Team tiers at a high level  
+- [ ] Primary CTA leading into the app (e.g. create dashboard / log in)
+
+---
+
+### G4. [Frontend] Implement pricing page
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 2 points  
+**Depends on:** C1, C2, C7 (for final details)  
+**Labels:** `frontend`, `pricing`, `epic-g`
+
+#### Description
+
+Create a `/pricing` view that presents the Free, Pro, and Team plans and integrates with the subscription endpoints once available.
+
+#### Acceptance Criteria
+
+- [ ] Pricing cards for Free, Pro, Team with key features  
+- [ ] Buttons wired to subscription/checkout flows when those are implemented  
+- [ ] Clear explanation of what is included in each tier
+
+---
+
+### G5. [Frontend] Implement Solo dashboard v2 view
+
+**Priority:** P0 - Critical  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** F2, G2  
+**Labels:** `frontend`, `solo`, `dashboard`, `epic-g`
+
+#### Description
+
+Create a new Solo dashboard screen under `/app/solo` that consumes the Solo dashboard v2 endpoint and presents the key solo stats (overview, champion performance, role distribution, death efficiency, match duration, etc.).
+
+#### Acceptance Criteria
+
+- [ ] Solo v2 view implemented and wired to API v2  
+- [ ] Old Solo dashboard route either redirects or is clearly deprecated  
+- [ ] Layout matches the new app shell and feels consistent with the product branding
+
+---
+
+### G6. [Frontend] Implement Duo dashboard v2 view
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** F3, G2  
+**Labels:** `frontend`, `duo`, `dashboard`, `epic-g`
+
+#### Description
+
+Create a new Duo dashboard screen under `/app/duo` that consumes the Duo dashboard v2 endpoint.
+
+#### Acceptance Criteria
+
+- [ ] Duo v2 view implemented and wired to API v2  
+- [ ] Shows duo synergy, matchups, shared objectives, and relevant duo KPIs  
+- [ ] Old Duo dashboard route either redirects or is clearly deprecated
+
+---
+
+### G7. [Frontend] Implement Team dashboard v2 view
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** F4, G2  
+**Labels:** `frontend`, `team`, `dashboard`, `epic-g`
+
+#### Description
+
+Create a new Team dashboard screen under `/app/team` that consumes the Team dashboard v2 endpoint.
+
+#### Acceptance Criteria
+
+- [ ] Team v2 view implemented and wired to API v2  
+- [ ] Shows team composition, win rate, role composition, combos, and performance trends  
+- [ ] Old Team dashboard route either redirects or is clearly deprecated
+
+---
+
+### G8. [Cleanup] Remove legacy dashboard views & routes
+
+**Priority:** P2 - Medium  
+**Type:** Chore  
+**Estimate:** 1 point  
+**Depends on:** G5, G6, G7  
+**Labels:** `frontend`, `cleanup`, `epic-g`
+
+#### Description
+
+Remove old dashboard views, components and routes that are no longer used after migration to v2.
+
+#### Acceptance Criteria
+
+- [ ] Legacy Solo/Duo/Team views are removed or replaced by thin redirect stubs  
+- [ ] No dead routes or components remain for v1 dashboards  
+- [ ] Router configuration reflects only the v2 navigation structure
+
+---
+
 # Summary
 
 ## All Issues by Priority
@@ -1289,7 +1730,19 @@ Framework for A/B testing features and pricing.
 | C7 | Create subscription endpoints | Subscription | 2 |
 | C8 | Create feature flag service | Subscription | 2 |
 
-**P0 Total:** 43 points
+| E1 | Finalize Database v2 schema & DDL | Database v2 | 3 |
+| E2 | Create MySQL schema scripts for Database v2 | Database v2 | 2 |
+| E3 | Implement v2 entities and repositories | Database v2 | 3 |
+| E4 | Ingest match & participant core data into v2 | Database v2 | 3 |
+| E5 | Ingest timeline & derived metrics into v2 | Database v2 | 5 |
+| F1 | Define API v2 surface & versioning | API v2 | 2 |
+| F2 | Implement Solo dashboard v2 endpoint | API v2 | 3 |
+| F3 | Implement Duo dashboard v2 endpoint | API v2 | 3 |
+| G1 | Define app v2 IA & routes | Frontend v2 | 2 |
+| G2 | Implement new app shell & navigation | Frontend v2 | 3 |
+| G5 | Implement Solo dashboard v2 view | Frontend v2 | 5 |
+
+**P0 Total:** 77 points
 
 ### P1 - High
 
@@ -1313,7 +1766,15 @@ Framework for A/B testing features and pricing.
 | D2 | Implement core tracking events | Analytics | 3 |
 | D3 | Track page views and sessions | Analytics | 1 |
 
-**P1 Total:** 38 points
+| E6 | Validate Database v2 metrics against Riot | Database v2 | 2 |
+| F4 | Implement Team dashboard v2 endpoint | API v2 | 3 |
+| F5 | Implement AI snapshot/goal input endpoint | API v2 | 3 |
+| G3 | Implement new public landing page | Frontend v2 | 2 |
+| G4 | Implement pricing page | Frontend v2 | 2 |
+| G6 | Implement Duo dashboard v2 view | Frontend v2 | 5 |
+| G7 | Implement Team dashboard v2 view | Frontend v2 | 5 |
+
+**P1 Total:** 60 points
 
 ### P2 - Medium
 
@@ -1331,7 +1792,11 @@ Framework for A/B testing features and pricing.
 | D6 | Create internal metrics endpoint | Analytics | 2 |
 | D7 | Set up error tracking | Analytics | 2 |
 
-**P2 Total:** 25 points
+| E7 | Remove v1 database tables and repositories | Database v2 | 2 |
+| F6 | Deprecate or migrate v1 endpoints to v2 | API v2 | 2 |
+| G8 | Remove legacy dashboard views & routes | Frontend v2 | 1 |
+
+**P2 Total:** 30 points
 
 ### P3 - Low
 
@@ -1349,6 +1814,15 @@ Framework for A/B testing features and pricing.
 ---
 
 ## Recommended Sprint Plan
+
+### Sprint 0: Platform v2 Foundation
+**Focus:** Database v2 + API v2 + Solo dashboard v2  
+**Points:** ~30
+
+- E1, E2, E3 (Database v2 schema & repositories)
+- E4, E5 (v2 ingestion: matches, participants, timeline & metrics)
+- F1, F2 (API v2 design + Solo dashboard endpoint)
+- G1, G2, G5 (App v2 IA, shell, Solo dashboard view)
 
 ### Sprint 1: Foundation (P0 Core)
 **Focus:** Database + Stripe + Basic AI  
