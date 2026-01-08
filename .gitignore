@@ -45,3 +45,4 @@ server/DatabaseSecret.txt
 
 # published files
 publish/**/*
+server/DatabaseSecretV2.txt

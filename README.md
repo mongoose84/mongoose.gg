@@ -1,6 +1,8 @@
-# League of Legends champion stats
+# Pulse (pulse.gg) - League of Legends improvement tracker
 
-The idea is to look up your champion and see some stats. More will follow
+> "Pulse is the only LoL improvement tracker built for duos and teams, powered by AI coaching that turns your stats into actionable goals you can actually achieve."
+
+Pulse helps players (solo, duo, and full teams) understand their performance with rich match analytics, timeline-derived metrics, and AI goal recommendations.
 
 ## 1st time install
 

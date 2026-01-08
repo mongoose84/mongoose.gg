@@ -1,8 +1,8 @@
-# Product Backlog - LoL Improvement Tracker
+# Product Backlog - Pulse (pulse.gg)
 
 ## Vision
 
-> **"The only LoL improvement tracker also built for duos and teams, powered by AI coaching that turns your stats into actionable goals you can actually achieve."**
+> **"Pulse is the only LoL improvement tracker built for duos and teams, powered by AI coaching that turns your stats into actionable goals you can actually achieve."**
 
 ## Pricing Model
 
@@ -417,32 +417,32 @@ Use the concepts in `/docs/rules_of_climbing.md` as domain context so the AI can
 
 # Epic C: Subscription & Paywall System
 
-Implement tiered subscriptions with Stripe integration and feature flags.
+Implement tiered subscriptions with Mollie integration (European payment provider) and feature flags.
 
 ## Issues
 
-### C1. [Infrastructure] Set up Stripe integration
+### C1. [Infrastructure] Set up Mollie integration
 
 **Priority:** P0 - Critical  
 **Type:** Infrastructure  
 **Estimate:** 3 points  
-**Labels:** `infrastructure`, `payments`, `stripe`, `epic-c`
+**Labels:** `infrastructure`, `payments`, `mollie`, `epic-c`
 
 #### Description
 
-Set up Stripe SDK and configuration for payment processing.
+Set up Mollie SDK and configuration for payment processing (European payment provider).
 
 #### Acceptance Criteria
 
-- [ ] Add Stripe.net NuGet package
-- [ ] Store Stripe API keys in `StripeSecret.txt` (gitignored)
-- [ ] Configure Stripe client in DI container
-- [ ] Set up webhook endpoint for Stripe events
+- [ ] Add Mollie.Api NuGet package
+- [ ] Store Mollie API keys in `MollieSecret.txt` (gitignored)
+- [ ] Configure Mollie client in DI container
+- [ ] Set up webhook endpoint for Mollie events
 - [ ] Add to `appsettings.json`:
   ```json
-  "Stripe": {
-    "PublishableKey": "pk_...",
-    "WebhookSecret": "whsec_..."
+  "Mollie": {
+    "ApiKey": "live_...",
+    "WebhookSecret": "..."
   }
   ```
 
@@ -466,8 +466,8 @@ Database schema for subscriptions and billing.
   CREATE TABLE Subscription (
     Id BIGINT AUTO_INCREMENT PRIMARY KEY,
     UserId INT NOT NULL,
-    StripeCustomerId VARCHAR(100),
-    StripeSubscriptionId VARCHAR(100),
+    MollieCustomerId VARCHAR(100),
+    MollieSubscriptionId VARCHAR(100),
     Tier ENUM('free', 'pro', 'team') DEFAULT 'free',
     Status ENUM('active', 'cancelled', 'past_due', 'trialing') DEFAULT 'active',
     CurrentPeriodStart DATETIME,
@@ -477,7 +477,7 @@ Database schema for subscriptions and billing.
     UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (UserId) REFERENCES User(Id),
     UNIQUE INDEX idx_subscription_user (UserId),
-    INDEX idx_subscription_stripe (StripeSubscriptionId)
+    INDEX idx_subscription_mollie (MollieSubscriptionId)
   );
   ```
 - [ ] Create `SubscriptionEvent` table for audit log
@@ -504,25 +504,25 @@ Add subscription tier to User for quick access.
 
 ---
 
-### C4. [Service] Create Stripe customer service
+### C4. [Service] Create Mollie customer service
 
 **Priority:** P0 - Critical  
 **Type:** Feature  
 **Estimate:** 2 points  
 **Depends on:** C1, C2  
-**Labels:** `service`, `stripe`, `epic-c`
+**Labels:** `service`, `mollie`, `epic-c`
 
 #### Description
 
-Service to manage Stripe customers.
+Service to manage Mollie customers.
 
 #### Acceptance Criteria
 
-- [ ] Create `IStripeCustomerService` interface
-- [ ] `CreateCustomerAsync(User user)` - create Stripe customer
+- [ ] Create `IMollieCustomerService` interface
+- [ ] `CreateCustomerAsync(User user)` - create Mollie customer
 - [ ] `GetOrCreateCustomerAsync(User user)` - idempotent customer creation
-- [ ] Store StripeCustomerId in Subscription table
-- [ ] Handle Stripe API errors
+- [ ] Store MollieCustomerId in Subscription table
+- [ ] Handle Mollie API errors
 
 ---
 
@@ -541,35 +541,35 @@ Service to manage subscription lifecycle.
 #### Acceptance Criteria
 
 - [ ] Create `ISubscriptionService` interface
-- [ ] `CreateCheckoutSessionAsync(UserId, Tier)` - generate Stripe Checkout URL
-- [ ] `CreatePortalSessionAsync(UserId)` - generate Stripe Customer Portal URL
+- [ ] `CreateCheckoutSessionAsync(UserId, Tier)` - generate Mollie payment link
 - [ ] `GetSubscriptionAsync(UserId)` - get current subscription
 - [ ] `CancelSubscriptionAsync(UserId)` - cancel at period end
 - [ ] Handle upgrade/downgrade flows
+- [ ] Note: Mollie doesn't have a built-in customer portal like Stripe; manage subscriptions via app UI
 
 ---
 
-### C6. [API] Create Stripe webhook handler
+### C6. [API] Create Mollie webhook handler
 
 **Priority:** P0 - Critical  
 **Type:** Feature  
 **Estimate:** 3 points  
 **Depends on:** C1, C5  
-**Labels:** `api`, `stripe`, `webhook`, `epic-c`
+**Labels:** `api`, `mollie`, `webhook`, `epic-c`
 
 #### Description
 
-Handle Stripe webhook events for subscription updates.
+Handle Mollie webhook events for subscription updates.
 
 #### Acceptance Criteria
 
-- [ ] Create endpoint: `POST /api/webhooks/stripe`
+- [ ] Create endpoint: `POST /api/webhooks/mollie`
 - [ ] Verify webhook signature
 - [ ] Handle events:
-  - `checkout.session.completed` → create subscription
-  - `customer.subscription.updated` → update status/tier
-  - `customer.subscription.deleted` → downgrade to free
-  - `invoice.payment_failed` → mark past_due
+  - `payment.paid` → activate subscription
+  - `subscription.updated` → update status/tier
+  - `subscription.cancelled` → downgrade to free
+  - `payment.failed` → mark past_due
 - [ ] Log all events to `SubscriptionEvent` table
 
 ---
@@ -591,9 +591,8 @@ API endpoints for subscription management.
 - [ ] `GET /api/subscription` - get current subscription status
 - [ ] `POST /api/subscription/checkout` - create checkout session for upgrade
   - Request: `{ "tier": "pro" }`
-  - Response: `{ "checkoutUrl": "https://checkout.stripe.com/..." }`
-- [ ] `POST /api/subscription/portal` - get customer portal URL
-- [ ] `POST /api/subscription/cancel` - cancel subscription
+  - Response: `{ "checkoutUrl": "https://www.mollie.com/checkout/..." }`
+- [ ] `POST /api/subscription/cancel` - cancel subscription (handle via app UI instead of external portal)
 - [ ] Require authentication
 
 ---
@@ -710,7 +709,7 @@ Vue component showing current subscription status.
 
 - [ ] Create `SubscriptionStatus.vue`
 - [ ] Display current tier, status, renewal date
-- [ ] "Manage Subscription" button → Stripe Portal
+- [ ] "Manage Subscription" button → in-app subscription management
 - [ ] Show upgrade prompts for free users
 
 ---
@@ -733,7 +732,7 @@ Component to prompt users to upgrade when hitting feature limits.
 - [ ] Props: feature name, required tier
 - [ ] Display benefits of upgrading
 - [ ] "Upgrade to Pro" / "Upgrade to Team" buttons
-- [ ] Redirect to Stripe Checkout
+- [ ] Redirect to Mollie checkout
 
 ---
 
@@ -797,8 +796,8 @@ Special pricing for first 100 users.
 #### Acceptance Criteria
 
 - [ ] Track founding member count
-- [ ] Create Stripe coupon for founding member discount (€2.99 forever)
-- [ ] Auto-apply coupon for qualifying users
+- [ ] Implement founding member discount logic (€2.99 forever) in subscription creation
+- [ ] Auto-apply discount for qualifying users
 - [ ] Display "X spots remaining" on pricing page
 - [ ] Lock in price for founding members permanently
 
@@ -1056,7 +1055,7 @@ Give users a GitHub-style contribution view of how often they log in over time.
 
 # Epic E: Database v2 & Analytics Schema
 
-Modernize the database to match `docs/database_schema.md` and support advanced solo/duo/team analytics.
+Modernize the Pulse database to match `docs/database_schema_v2.md` and support advanced solo/duo/team analytics.
 
 ## Issues
 
@@ -1069,11 +1068,11 @@ Modernize the database to match `docs/database_schema.md` and support advanced s
 
 #### Description
 
-Finalize the Database v2 schema (tables, columns, indexes) based on `docs/database_schema.md` for matches, participants, checkpoints, metrics, duo/team analytics and AI snapshots.
+Finalize the Pulse Database v2 schema (tables, columns, indexes) based on `docs/database_schema_v2.md` for matches, participants, checkpoints, metrics, duo/team analytics and AI snapshots.
 
 #### Acceptance Criteria
 
-- [ ] Consolidated ERD / schema documented in `docs/database_schema.md`  
+- [ ] Consolidated ERD / schema documented in `docs/database_schema_v2.md`  
 - [ ] Tables defined for: `matches`, `participants`, `participant_checkpoints`, `participant_metrics`, `team_objectives`, `participant_objectives`, `duo_metrics`, `team_match_metrics`, `team_role_responsibility`, `ai_snapshots`  
 - [ ] `matches.queue_id` present (numeric Riot queue id) and used for queue filtering across v2 dashboards
 - [ ] Index strategy defined for common filters (puuid, queue_id, season/patch, team_id, minute_mark)
@@ -1744,10 +1743,10 @@ Create the user-facing authentication and account experience so dashboards, paym
 - G1, G2, G5 (App v2 IA, shell, Solo dashboard view)
 
 ### Sprint 1: Foundation (P0 Core)
-**Focus:** Database + Stripe + Basic AI  
+**Focus:** Database + Mollie + Basic AI  
 **Points:** ~20
 
-- C1, C2, C3 (Stripe + DB setup)
+- C1, C2, C3 (Mollie + DB setup)
 - B1, B2 (LLM abstraction)
 
 ### Sprint 2: Subscriptions (P0 Payments)
