@@ -57,20 +57,20 @@ public class V2SubscriptionsRepository : RepositoryBase
 
     private static V2Subscription Map(MySqlDataReader r) => new()
     {
-        SubscriptionId = r.GetInt64("subscription_id"),
-        UserId = r.GetInt64("user_id"),
-        Tier = r.GetString("tier"),
-        Status = r.GetString("status"),
-        MollieSubscriptionId = r.IsDBNull("mollie_subscription_id") ? null : r.GetString("mollie_subscription_id"),
-        MolliePlanId = r.IsDBNull("mollie_plan_id") ? null : r.GetString("mollie_plan_id"),
-        CurrentPeriodStart = r.IsDBNull("current_period_start") ? null : r.GetDateTime("current_period_start"),
-        CurrentPeriodEnd = r.IsDBNull("current_period_end") ? null : r.GetDateTime("current_period_end"),
-        TrialStart = r.IsDBNull("trial_start") ? null : r.GetDateTime("trial_start"),
-        TrialEnd = r.IsDBNull("trial_end") ? null : r.GetDateTime("trial_end"),
-        IsFoundingMember = r.GetBoolean("is_founding_member"),
-        CancelAtPeriodEnd = r.GetBoolean("cancel_at_period_end"),
-        CanceledAt = r.IsDBNull("canceled_at") ? null : r.GetDateTime("canceled_at"),
-        CreatedAt = r.GetDateTime("created_at"),
-        UpdatedAt = r.GetDateTime("updated_at")
+        SubscriptionId = r.GetInt64(0),
+        UserId = r.GetInt64(1),
+        Tier = r.GetString(2),
+        Status = r.GetString(3),
+        MollieSubscriptionId = r.IsDBNull(4) ? null : r.GetString(4),
+        MolliePlanId = r.IsDBNull(5) ? null : r.GetString(5),
+        CurrentPeriodStart = r.IsDBNull(6) ? null : r.GetDateTime(6),
+        CurrentPeriodEnd = r.IsDBNull(7) ? null : r.GetDateTime(7),
+        TrialStart = r.IsDBNull(8) ? null : r.GetDateTime(8),
+        TrialEnd = r.IsDBNull(9) ? null : r.GetDateTime(9),
+        IsFoundingMember = r.GetBoolean(10),
+        CancelAtPeriodEnd = r.GetBoolean(11),
+        CanceledAt = r.IsDBNull(12) ? null : r.GetDateTime(12),
+        CreatedAt = r.GetDateTime(13),
+        UpdatedAt = r.GetDateTime(14)
     };
 }

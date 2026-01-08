@@ -34,13 +34,13 @@ public class V2TeamRoleResponsibilitiesRepository : RepositoryBase
 
     private static V2TeamRoleResponsibility Map(MySqlDataReader r) => new()
     {
-        Id = r.GetInt64("id"),
-        MatchId = r.GetString("match_id"),
-        TeamId = r.GetInt32("team_id"),
-        Role = r.GetString("role"),
-        DeathsSharePct = r.GetDecimal("deaths_share_pct"),
-        GoldSharePct = r.GetDecimal("gold_share_pct"),
-        DamageSharePct = r.GetDecimal("damage_share_pct"),
-        CreatedAt = r.GetDateTime("created_at")
+        Id = r.GetInt64(0),
+        MatchId = r.GetString(1),
+        TeamId = r.GetInt32(2),
+        Role = r.GetString(3),
+        DeathsSharePct = r.GetDecimal(4),
+        GoldSharePct = r.GetDecimal(5),
+        DamageSharePct = r.GetDecimal(6),
+        CreatedAt = r.GetDateTime(7)
     };
 }

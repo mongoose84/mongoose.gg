@@ -36,12 +36,12 @@ public class V2RiotAccountsRepository : RepositoryBase
 
     private static V2RiotAccount Map(MySqlDataReader r) => new()
     {
-        Puuid = r.GetString("puuid"),
-        UserId = r.GetInt64("user_id"),
-        SummonerName = r.GetString("summoner_name"),
-        Region = r.GetString("region"),
-        IsPrimary = r.GetBoolean("is_primary"),
-        CreatedAt = r.GetDateTime("created_at"),
-        UpdatedAt = r.GetDateTime("updated_at")
+        Puuid = r.GetString(0),
+        UserId = r.GetInt64(1),
+        SummonerName = r.GetString(2),
+        Region = r.GetString(3),
+        IsPrimary = r.GetBoolean(4),
+        CreatedAt = r.GetDateTime(5),
+        UpdatedAt = r.GetDateTime(6)
     };
 }

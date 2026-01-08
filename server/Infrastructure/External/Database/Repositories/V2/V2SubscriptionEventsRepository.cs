@@ -38,15 +38,15 @@ public class V2SubscriptionEventsRepository : RepositoryBase
 
     private static V2SubscriptionEvent Map(MySqlDataReader r) => new()
     {
-        EventId = r.GetInt64("event_id"),
-        SubscriptionId = r.GetInt64("subscription_id"),
-        EventType = r.GetString("event_type"),
-        OldTier = r.IsDBNull("old_tier") ? null : r.GetString("old_tier"),
-        NewTier = r.IsDBNull("new_tier") ? null : r.GetString("new_tier"),
-        OldStatus = r.IsDBNull("old_status") ? null : r.GetString("old_status"),
-        NewStatus = r.IsDBNull("new_status") ? null : r.GetString("new_status"),
-        MollieEventId = r.IsDBNull("mollie_event_id") ? null : r.GetString("mollie_event_id"),
-        MetadataJson = r.IsDBNull("metadata") ? null : r.GetString("metadata"),
-        CreatedAt = r.GetDateTime("created_at")
+        EventId = r.GetInt64(0),
+        SubscriptionId = r.GetInt64(1),
+        EventType = r.GetString(2),
+        OldTier = r.IsDBNull(3) ? null : r.GetString(3),
+        NewTier = r.IsDBNull(4) ? null : r.GetString(4),
+        OldStatus = r.IsDBNull(5) ? null : r.GetString(5),
+        NewStatus = r.IsDBNull(6) ? null : r.GetString(6),
+        MollieEventId = r.IsDBNull(7) ? null : r.GetString(7),
+        MetadataJson = r.IsDBNull(8) ? null : r.GetString(8),
+        CreatedAt = r.GetDateTime(9)
     };
 }

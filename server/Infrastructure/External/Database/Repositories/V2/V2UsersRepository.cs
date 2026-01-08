@@ -56,16 +56,16 @@ public class V2UsersRepository : RepositoryBase
 
     private static V2User Map(MySqlDataReader r) => new()
     {
-        UserId = r.GetInt64("user_id"),
-        Email = r.GetString("email"),
-        Username = r.GetString("username"),
-        PasswordHash = r.GetString("password_hash"),
-        EmailVerified = r.GetBoolean("email_verified"),
-        IsActive = r.GetBoolean("is_active"),
-        Tier = r.GetString("tier"),
-        MollieCustomerId = r.IsDBNull("mollie_customer_id") ? null : r.GetString("mollie_customer_id"),
-        CreatedAt = r.GetDateTime("created_at"),
-        UpdatedAt = r.GetDateTime("updated_at"),
-        LastLoginAt = r.IsDBNull("last_login_at") ? null : r.GetDateTime("last_login_at")
+        UserId = r.GetInt64(0),
+        Email = r.GetString(1),
+        Username = r.GetString(2),
+        PasswordHash = r.GetString(3),
+        EmailVerified = r.GetBoolean(4),
+        IsActive = r.GetBoolean(5),
+        Tier = r.GetString(6),
+        MollieCustomerId = r.IsDBNull(7) ? null : r.GetString(7),
+        CreatedAt = r.GetDateTime(8),
+        UpdatedAt = r.GetDateTime(9),
+        LastLoginAt = r.IsDBNull(10) ? null : r.GetDateTime(10)
     };
 }

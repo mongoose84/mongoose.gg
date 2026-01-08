@@ -34,12 +34,12 @@ public class V2ParticipantObjectivesRepository : RepositoryBase
 
     private static V2ParticipantObjective Map(MySqlDataReader r) => new()
     {
-        Id = r.GetInt64("id"),
-        ParticipantId = r.GetInt64("participant_id"),
-        DragonsParticipated = r.GetInt32("dragons_participated"),
-        HeraldsParticipated = r.GetInt32("heralds_participated"),
-        BaronsParticipated = r.GetInt32("barons_participated"),
-        TowersParticipated = r.GetInt32("towers_participated"),
-        CreatedAt = r.GetDateTime("created_at")
+        Id = r.GetInt64(0),
+        ParticipantId = r.GetInt64(1),
+        DragonsParticipated = r.GetInt32(2),
+        HeraldsParticipated = r.GetInt32(3),
+        BaronsParticipated = r.GetInt32(4),
+        TowersParticipated = r.GetInt32(5),
+        CreatedAt = r.GetDateTime(6)
     };
 }

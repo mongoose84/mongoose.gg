@@ -37,15 +37,15 @@ public class V2DuoMetricsRepository : RepositoryBase
 
     private static V2DuoMetric Map(MySqlDataReader r) => new()
     {
-        Id = r.GetInt64("id"),
-        MatchId = r.GetString("match_id"),
-        ParticipantId1 = r.GetInt64("participant_id_1"),
-        ParticipantId2 = r.GetInt64("participant_id_2"),
-        EarlyGoldDelta10 = r.IsDBNull("early_gold_delta_10") ? null : r.GetInt32("early_gold_delta_10"),
-        EarlyGoldDelta15 = r.IsDBNull("early_gold_delta_15") ? null : r.GetInt32("early_gold_delta_15"),
-        AssistSynergyPct = r.IsDBNull("assist_synergy_pct") ? null : r.GetDecimal("assist_synergy_pct"),
-        SharedObjectiveParticipationPct = r.IsDBNull("shared_objective_participation_pct") ? null : r.GetDecimal("shared_objective_participation_pct"),
-        WinWhenAheadAt15 = r.IsDBNull("win_when_ahead_at_15") ? null : r.GetBoolean("win_when_ahead_at_15"),
-        CreatedAt = r.GetDateTime("created_at")
+        Id = r.GetInt64(0),
+        MatchId = r.GetString(1),
+        ParticipantId1 = r.GetInt64(2),
+        ParticipantId2 = r.GetInt64(3),
+        EarlyGoldDelta10 = r.IsDBNull(4) ? null : r.GetInt32(4),
+        EarlyGoldDelta15 = r.IsDBNull(5) ? null : r.GetInt32(5),
+        AssistSynergyPct = r.IsDBNull(6) ? null : r.GetDecimal(6),
+        SharedObjectiveParticipationPct = r.IsDBNull(7) ? null : r.GetDecimal(7),
+        WinWhenAheadAt15 = r.IsDBNull(8) ? null : r.GetBoolean(8),
+        CreatedAt = r.GetDateTime(9)
     };
 }

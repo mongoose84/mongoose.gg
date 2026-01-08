@@ -48,14 +48,14 @@ public class V2AiSnapshotsRepository : RepositoryBase
 
     private static V2AiSnapshot Map(MySqlDataReader r) => new()
     {
-        Id = r.GetInt64("id"),
-        Puuid = r.GetString("puuid"),
-        ContextType = r.GetString("context_type"),
-        ContextPuuidsJson = r.IsDBNull("context_puuids") ? null : r.GetString("context_puuids"),
-        QueueId = r.IsDBNull("queue_id") ? null : r.GetInt32("queue_id"),
-        SummaryText = r.GetString("summary_text"),
-        GoalsJson = r.IsDBNull("goals_json") ? null : r.GetString("goals_json"),
-        SnapshotDate = DateOnly.FromDateTime(r.GetDateTime("snapshot_date")),
-        CreatedAt = r.GetDateTime("created_at")
+        Id = r.GetInt64(0),
+        Puuid = r.GetString(1),
+        ContextType = r.GetString(2),
+        ContextPuuidsJson = r.IsDBNull(3) ? null : r.GetString(3),
+        QueueId = r.IsDBNull(4) ? null : r.GetInt32(4),
+        SummaryText = r.GetString(5),
+        GoalsJson = r.IsDBNull(6) ? null : r.GetString(6),
+        SnapshotDate = DateOnly.FromDateTime(r.GetDateTime(7)),
+        CreatedAt = r.GetDateTime(8)
     };
 }

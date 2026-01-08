@@ -35,13 +35,13 @@ public class V2TeamObjectivesRepository : RepositoryBase
 
     private static V2TeamObjective Map(MySqlDataReader r) => new()
     {
-        Id = r.GetInt64("id"),
-        MatchId = r.GetString("match_id"),
-        TeamId = r.GetInt32("team_id"),
-        DragonsTaken = r.GetInt32("dragons_taken"),
-        HeraldsTaken = r.GetInt32("heralds_taken"),
-        BaronsTaken = r.GetInt32("barons_taken"),
-        TowersTaken = r.GetInt32("towers_taken"),
-        CreatedAt = r.GetDateTime("created_at")
+        Id = r.GetInt64(0),
+        MatchId = r.GetString(1),
+        TeamId = r.GetInt32(2),
+        DragonsTaken = r.GetInt32(3),
+        HeraldsTaken = r.GetInt32(4),
+        BaronsTaken = r.GetInt32(5),
+        TowersTaken = r.GetInt32(6),
+        CreatedAt = r.GetDateTime(7)
     };
 }

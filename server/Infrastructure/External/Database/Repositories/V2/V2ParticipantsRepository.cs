@@ -76,21 +76,21 @@ public class V2ParticipantsRepository : RepositoryBase
 
     private static V2Participant Map(MySqlDataReader r) => new()
     {
-        Id = r.GetInt64("id"),
-        MatchId = r.GetString("match_id"),
-        Puuid = r.GetString("puuid"),
-        TeamId = r.GetInt32("team_id"),
-        Role = r.IsDBNull("role") ? null : r.GetString("role"),
-        Lane = r.IsDBNull("lane") ? null : r.GetString("lane"),
-        ChampionId = r.GetInt32("champion_id"),
-        ChampionName = r.GetString("champion_name"),
-        Win = r.GetBoolean("win"),
-        Kills = r.GetInt32("kills"),
-        Deaths = r.GetInt32("deaths"),
-        Assists = r.GetInt32("assists"),
-        CreepScore = r.GetInt32("creep_score"),
-        GoldEarned = r.GetInt32("gold_earned"),
-        TimeDeadSec = r.GetInt32("time_dead_sec"),
-        CreatedAt = r.GetDateTime("created_at")
+        Id = r.GetInt64(0),
+        MatchId = r.GetString(1),
+        Puuid = r.GetString(2),
+        TeamId = r.GetInt32(3),
+        Role = r.IsDBNull(4) ? null : r.GetString(4),
+        Lane = r.IsDBNull(5) ? null : r.GetString(5),
+        ChampionId = r.GetInt32(6),
+        ChampionName = r.GetString(7),
+        Win = r.GetBoolean(8),
+        Kills = r.GetInt32(9),
+        Deaths = r.GetInt32(10),
+        Assists = r.GetInt32(11),
+        CreepScore = r.GetInt32(12),
+        GoldEarned = r.GetInt32(13),
+        TimeDeadSec = r.GetInt32(14),
+        CreatedAt = r.GetDateTime(15)
     };
 }

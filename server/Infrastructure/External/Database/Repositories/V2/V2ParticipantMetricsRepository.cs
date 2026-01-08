@@ -51,20 +51,20 @@ public class V2ParticipantMetricsRepository : RepositoryBase
 
     private static V2ParticipantMetric Map(MySqlDataReader r) => new()
     {
-        Id = r.GetInt64("id"),
-        ParticipantId = r.GetInt64("participant_id"),
-        KillParticipationPct = r.GetDecimal("kill_participation_pct"),
-        DamageSharePct = r.GetDecimal("damage_share_pct"),
-        DamageTaken = r.GetInt32("damage_taken"),
-        DamageMitigated = r.GetInt32("damage_mitigated"),
-        VisionScore = r.GetInt32("vision_score"),
-        VisionPerMin = r.GetDecimal("vision_per_min"),
-        DeathsPre10 = r.GetInt32("deaths_pre_10"),
-        Deaths10To20 = r.GetInt32("deaths_10_20"),
-        Deaths20To30 = r.GetInt32("deaths_20_30"),
-        Deaths30Plus = r.GetInt32("deaths_30_plus"),
-        FirstDeathMinute = r.IsDBNull("first_death_minute") ? null : r.GetInt32("first_death_minute"),
-        FirstKillParticipationMinute = r.IsDBNull("first_kill_participation_minute") ? null : r.GetInt32("first_kill_participation_minute"),
-        CreatedAt = r.GetDateTime("created_at")
+        Id = r.GetInt64(0),
+        ParticipantId = r.GetInt64(1),
+        KillParticipationPct = r.GetDecimal(2),
+        DamageSharePct = r.GetDecimal(3),
+        DamageTaken = r.GetInt32(4),
+        DamageMitigated = r.GetInt32(5),
+        VisionScore = r.GetInt32(6),
+        VisionPerMin = r.GetDecimal(7),
+        DeathsPre10 = r.GetInt32(8),
+        Deaths10To20 = r.GetInt32(9),
+        Deaths20To30 = r.GetInt32(10),
+        Deaths30Plus = r.GetInt32(11),
+        FirstDeathMinute = r.IsDBNull(12) ? null : r.GetInt32(12),
+        FirstKillParticipationMinute = r.IsDBNull(13) ? null : r.GetInt32(13),
+        CreatedAt = r.GetDateTime(14)
     };
 }
