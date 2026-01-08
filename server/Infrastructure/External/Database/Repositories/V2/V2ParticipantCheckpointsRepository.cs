@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2ParticipantCheckpointsRepository : RepositoryBase
 {
-    public V2ParticipantCheckpointsRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2ParticipantCheckpointsRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public Task UpsertAsync(V2ParticipantCheckpoint cp)
     {

@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2SubscriptionEventsRepository : RepositoryBase
 {
-    public V2SubscriptionEventsRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2SubscriptionEventsRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public async Task<long> InsertAsync(V2SubscriptionEvent ev)
     {

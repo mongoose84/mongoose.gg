@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2TeamMatchMetricsRepository : RepositoryBase
 {
-    public V2TeamMatchMetricsRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2TeamMatchMetricsRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public Task UpsertAsync(V2TeamMatchMetric t)
     {

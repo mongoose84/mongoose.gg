@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2DuoMetricsRepository : RepositoryBase
 {
-    public V2DuoMetricsRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2DuoMetricsRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public Task<long> InsertAsync(V2DuoMetric d)
     {

@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2AiSnapshotsRepository : RepositoryBase
 {
-    public V2AiSnapshotsRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2AiSnapshotsRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public Task<long> InsertAsync(V2AiSnapshot s)
     {
