@@ -1,0 +1,54 @@
+using MySqlConnector;
+using RiotProxy.External.Domain.Entities.V2;
+
+namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
+
+public class V2ParticipantCheckpointsRepository : RepositoryBase
+{
+    public V2ParticipantCheckpointsRepository(IDbConnectionFactory factory) : base(factory) {}
+
+    public Task UpsertAsync(V2ParticipantCheckpoint cp)
+    {
+        const string sql = @"INSERT INTO participant_checkpoints
+            (participant_id, minute_mark, gold, cs, xp, gold_diff_vs_lane, cs_diff_vs_lane, is_ahead, created_at)
+            VALUES (@participant_id, @minute_mark, @gold, @cs, @xp, @gold_diff_vs_lane, @cs_diff_vs_lane, @is_ahead, @created_at)
+            ON DUPLICATE KEY UPDATE
+                gold = VALUES(gold),
+                cs = VALUES(cs),
+                xp = VALUES(xp),
+                gold_diff_vs_lane = VALUES(gold_diff_vs_lane),
+                cs_diff_vs_lane = VALUES(cs_diff_vs_lane),
+                is_ahead = VALUES(is_ahead);";
+
+        return ExecuteNonQueryAsync(sql,
+            ("@participant_id", cp.ParticipantId),
+            ("@minute_mark", cp.MinuteMark),
+            ("@gold", cp.Gold),
+            ("@cs", cp.Cs),
+            ("@xp", cp.Xp),
+            ("@gold_diff_vs_lane", cp.GoldDiffVsLane ?? (object)DBNull.Value),
+            ("@cs_diff_vs_lane", cp.CsDiffVsLane ?? (object)DBNull.Value),
+            ("@is_ahead", cp.IsAhead ?? (object)DBNull.Value),
+            ("@created_at", cp.CreatedAt == default ? DateTime.UtcNow : cp.CreatedAt));
+    }
+
+    public Task<IList<V2ParticipantCheckpoint>> GetByParticipantAsync(long participantId)
+    {
+        const string sql = "SELECT * FROM participant_checkpoints WHERE participant_id = @participant_id ORDER BY minute_mark";
+        return ExecuteListAsync(sql, Map, ("@participant_id", participantId));
+    }
+
+    private static V2ParticipantCheckpoint Map(MySqlDataReader r) => new()
+    {
+        Id = r.GetInt64("id"),
+        ParticipantId = r.GetInt64("participant_id"),
+        MinuteMark = r.GetInt32("minute_mark"),
+        Gold = r.GetInt32("gold"),
+        Cs = r.GetInt32("cs"),
+        Xp = r.GetInt32("xp"),
+        GoldDiffVsLane = r.IsDBNull("gold_diff_vs_lane") ? null : r.GetInt32("gold_diff_vs_lane"),
+        CsDiffVsLane = r.IsDBNull("cs_diff_vs_lane") ? null : r.GetInt32("cs_diff_vs_lane"),
+        IsAhead = r.IsDBNull("is_ahead") ? null : r.GetBoolean("is_ahead"),
+        CreatedAt = r.GetDateTime("created_at")
+    };
+}
