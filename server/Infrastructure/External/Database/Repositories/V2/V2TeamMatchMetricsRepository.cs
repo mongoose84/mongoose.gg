@@ -35,13 +35,13 @@ public class V2TeamMatchMetricsRepository : RepositoryBase
 
     private static V2TeamMatchMetric Map(MySqlDataReader r) => new()
     {
-        Id = r.GetInt64("id"),
-        MatchId = r.GetString("match_id"),
-        TeamId = r.GetInt32("team_id"),
-        GoldLeadAt15 = r.IsDBNull("gold_lead_at_15") ? null : r.GetInt32("gold_lead_at_15"),
-        LargestGoldLead = r.IsDBNull("largest_gold_lead") ? null : r.GetInt32("largest_gold_lead"),
-        GoldSwingPost20 = r.IsDBNull("gold_swing_post_20") ? null : r.GetInt32("gold_swing_post_20"),
-        WinWhenAheadAt20 = r.IsDBNull("win_when_ahead_at_20") ? null : r.GetBoolean("win_when_ahead_at_20"),
-        CreatedAt = r.GetDateTime("created_at")
+        Id = r.GetInt64(0),
+        MatchId = r.GetString(1),
+        TeamId = r.GetInt32(2),
+        GoldLeadAt15 = r.IsDBNull(3) ? null : r.GetInt32(3),
+        LargestGoldLead = r.IsDBNull(4) ? null : r.GetInt32(4),
+        GoldSwingPost20 = r.IsDBNull(5) ? null : r.GetInt32(5),
+        WinWhenAheadAt20 = r.IsDBNull(6) ? null : r.GetBoolean(6),
+        CreatedAt = r.GetDateTime(7)
     };
 }

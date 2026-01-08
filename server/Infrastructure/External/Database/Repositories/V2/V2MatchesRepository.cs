@@ -54,12 +54,12 @@ public class V2MatchesRepository : RepositoryBase
 
     private static V2Match Map(MySqlDataReader r) => new()
     {
-        MatchId = r.GetString("match_id"),
-        QueueId = r.GetInt32("queue_id"),
-        GameDurationSec = r.GetInt32("game_duration_sec"),
-        GameStartTime = r.GetInt64("game_start_time"),
-        PatchVersion = r.GetString("patch_version"),
-        SeasonCode = r.IsDBNull("season_code") ? null : r.GetString("season_code"),
-        CreatedAt = r.GetDateTime("created_at")
+        MatchId = r.GetString(0),
+        QueueId = r.GetInt32(1),
+        GameDurationSec = r.GetInt32(2),
+        GameStartTime = r.GetInt64(3),
+        PatchVersion = r.GetString(4),
+        SeasonCode = r.IsDBNull(5) ? null : r.GetString(5),
+        CreatedAt = r.GetDateTime(6)
     };
 }

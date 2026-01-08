@@ -32,10 +32,10 @@ public class V2SeasonsRepository : RepositoryBase
 
     private static V2Season Map(MySqlDataReader r) => new()
     {
-        SeasonCode = r.GetString("season_code"),
-        PatchVersion = r.GetString("patch_version"),
-        StartDate = DateOnly.FromDateTime(r.GetDateTime("start_date")),
-        EndDate = r.IsDBNull("end_date") ? null : DateOnly.FromDateTime(r.GetDateTime("end_date")),
-        CreatedAt = r.GetDateTime("created_at")
+        SeasonCode = r.GetString(0),
+        PatchVersion = r.GetString(1),
+        StartDate = DateOnly.FromDateTime(r.GetDateTime(2)),
+        EndDate = r.IsDBNull(3) ? null : DateOnly.FromDateTime(r.GetDateTime(3)),
+        CreatedAt = r.GetDateTime(4)
     };
 }
