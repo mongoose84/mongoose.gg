@@ -19,12 +19,25 @@ Use gameVersion (e.g. 14.3.1) → map to season internally.
 matches
 Field	Riot API	Status
 match_id	matchId	✅
-queue_type	info.queueId	⚠️
+queue_id	info.queueId	✅
 game_duration_sec	info.gameDuration	✅
 game_start_time	info.gameStartTimestamp	✅
 patch_version	info.gameVersion	✅
 
-📌 queueId is numeric → map to your ENUM at ingest.
+📌 `queue_id` is numeric (Riot queueId). Prefer storing it as-is.
+
+Derive a user-friendly queue grouping (e.g. ranked_solo/ranked_flex/normal/aram) in the API/domain layer.
+
+Suggested queue groupings:
+
+| Group | Riot queue ids |
+|------|----------------|
+| ranked_solo | 420 |
+| ranked_flex | 440 |
+| ranked | 420, 440 |
+| normal | 400, 430 |
+| aram | 450 |
+| all | (no filter) |
 
 3. Participants (Base Stats)
 participants

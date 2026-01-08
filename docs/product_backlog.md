@@ -18,274 +18,21 @@
 
 | Epic | Description | Total Points |
 |------|-------------|--------------|
-| **A. Queue Type Filtering** | Filter stats by Ranked/Normal/ARAM | 27 pts |
-| **B. AI Goal Recommendations** | LLM-powered improvement suggestions | 42 pts |
-| **C. Subscription & Paywall** | Stripe integration, tiers, feature flags | 35 pts |
-| **D. Analytics & Tracking** | User behavior tracking for product decisions | 18 pts |
+| **B. AI Goal Recommendations** | LLM-powered improvement suggestions | 44 pts |
+| **C. Subscription & Paywall** | Stripe integration, tiers, feature flags | 34 pts |
+| **D. Analytics & Tracking** | User behavior tracking for product decisions | 19 pts |
 | **E. Database v2 & Analytics Schema** | New match/participant/timeline schema + ingestion | 20 pts |
-| **F. API v2** | New API surface aligned with v2 schema and dashboards | 16 pts |
-| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 25 pts |
+| **F. API v2** | New API surface aligned with v2 schema and dashboards | 33 pts |
+| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 30 pts |
 
-**Grand Total:** 183 points
+**Grand Total:** 180 points
 
-> Note: Platform v2 epics (E–G) are prerequisites for most A–D feature work and should generally be completed first.
+> Note: Platform v2 epics (E–G) are prerequisites for most feature work (B–D) and should generally be completed first.
 
----
+## Cross-cutting requirements (v2)
 
-# Epic A: Queue Type Filtering & Death Timeline
-
-Enable filtering of statistics by queue type (Ranked Solo/Duo, Ranked Flex, Normal, ARAM).
-
-## Issues
-
-### A1. [Database] Add QueueId column to LolMatch table
-
-**Priority:** P0 - Critical  
-**Type:** Database Migration  
-**Estimate:** 1 point  
-**Labels:** `database`, `migration`, `epic-a`
-
-#### Description
-
-Add `QueueId` (INT, nullable) column to the `LolMatch` table to store Riot's queue identifier.
-
-#### Acceptance Criteria
-
-- [x] Create SQL migration: `ALTER TABLE LolMatch ADD COLUMN QueueId INT NULL;`
-- [x] Add index: `CREATE INDEX idx_lolmatch_queueid ON LolMatch(QueueId);`
-- [x] Update `LolMatch` entity with `public int? QueueId { get; set; }`
-- [x] Update `LolMatchRepository` insert/update methods to include QueueId
-- [x] Migration is idempotent
-
-#### Queue ID Reference
-
-| Queue ID | Queue Type |
-|----------|------------|
-| 420 | Ranked Solo/Duo |
-| 440 | Ranked Flex |
-| 450 | ARAM |
-| 400 | Normal Draft |
-| 430 | Normal Blind |
-
----
-
-### A2. [API] Extract QueueId from Riot Match API response
-
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 1 point  
-**Labels:** `api`, `riot-api`, `epic-a`
-
-#### Description
-
-Update `MatchHistorySyncJob` to extract and persist `queueId` from Riot API match info response.
-
-#### Acceptance Criteria
-
-- [x] Add `queueId` to `LolMatch` entity from `GetMatchInfoAsync`
-- [x] Update `MapToLolMatchEntity` to set `match.QueueId`
-- [x] Handle missing queueId gracefully (set to null)
-
----
-
-### A3. [Infrastructure] Create reusable backfill job framework
-
-**Priority:** P0 - Critical  
-**Type:** Infrastructure  
-**Estimate:** 3 points  
-**Labels:** `infrastructure`, `backfill`, `epic-a`
-
-#### Description
-
-Create a generic backfill job infrastructure for future data migrations.
-
-#### Acceptance Criteria
-
-- [x] Create `IBackfillJob` interface
-- [x] Create `BackfillJobRunner` with batch processing, progress tracking, error recovery
-- [x] Support configurable batch size and delay
-- [x] Log progress (e.g., "Processed 500/10000 matches")
-- [x] Respect `IRiotLimitHandler` rate limits
-
----
-
-### A4. [Backfill] Implement QueueId backfill job
-
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** A2, A3  
-**Labels:** `backfill`, `epic-a`
-
-#### Description
-
-Backfill job to populate QueueId for existing matches.
-
-#### Acceptance Criteria
-
-- [x] Create `QueueIdBackfillJob : IBackfillJob`
-- [x] Query matches where `QueueId IS NULL AND InfoFetched = TRUE`
-- [x] Fetch match info from Riot API (using rate limiter)
-- [x] Add endpoint: `POST /admin/backfill/queue-id`
-
----
-
-### A5. [Database] Create QueueType lookup/enum for filtering
-
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 1 point  
-**Labels:** `database`, `epic-a`
-
-#### Description
-
-Create mapping between QueueId integers and user-friendly filter categories.
-
-#### Acceptance Criteria
-
-- [ ] Create `QueueTypeMapper` utility class
-- [ ] Map: `RankedSoloDuo` → [420], `RankedFlex` → [440], `Ranked` → [420, 440], `Normal` → [400, 430], `ARAM` → [450], `All` → null
-- [ ] Expose available filters via API endpoint
-
----
-
-### A6. [Repository] Add QueueId filtering to all statistics queries
-
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Depends on:** A1, A5  
-**Labels:** `repository`, `refactor`, `epic-a`
-
-#### Description
-
-Update repository methods to support optional QueueId filtering.
-
-#### Acceptance Criteria
-
-- [ ] Add `int[]? queueIds` parameter to repository methods
-- [ ] Update SQL JOINs to filter by `LolMatch.QueueId IN (@queueIds)`
-- [ ] Update `LolMatchParticipantRepository`, `SoloStatsRepository`
-- [ ] Deprecate `GameMode` filtering
-
----
-
-### A7. [API] Add queue type filter to statistics endpoints
-
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** A5, A6  
-**Labels:** `api`, `endpoints`, `epic-a`
-
-#### Description
-
-Expose queue type filtering in API endpoints.
-
-#### Acceptance Criteria
-
-- [ ] Add `?queueType=ranked_solo` query parameter
-- [ ] Validate against allowed filter names
-- [ ] Default to `All` if not specified
-
----
-
-### A8. [Database] Add death timing table for timeline data
-
-**Priority:** P2 - Medium  
-**Type:** Database Migration  
-**Estimate:** 2 points  
-**Labels:** `database`, `migration`, `epic-a`
-
-#### Description
-
-Create table for per-death timing and position data.
-
-#### Acceptance Criteria
-
-- [ ] Create `LolMatchDeath` table with MatchId, VictimPuuid, KillerPuuid, TimestampMs, PositionX, PositionY
-- [ ] Create `LolMatchDeath` entity class
-- [ ] Create `LolMatchDeathRepository`
-
----
-
-### A9. [API] Add Match Timeline API client method
-
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** A8  
-**Labels:** `api`, `riot-api`, `epic-a`
-
-#### Description
-
-Add method to fetch match timeline data from Riot API.
-
-#### Acceptance Criteria
-
-- [ ] Add `GetMatchTimelineAsync(string matchId, CancellationToken ct)` to `IRiotApiClient`
-- [ ] Use endpoint `/lol/match/v5/matches/{matchId}/timeline`
-- [ ] Respect rate limits
-
----
-
-### A10. [Sync] Extract and persist death events from timeline
-
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** A8, A9  
-**Labels:** `sync`, `epic-a`
-
-#### Description
-
-Update match sync job to fetch and store death timeline data.
-
-#### Acceptance Criteria
-
-- [ ] Add configuration flag to enable/disable timeline fetching
-- [ ] Parse timeline JSON for `CHAMPION_KILL` events
-- [ ] Persist via `LolMatchDeathRepository`
-
----
-
-### A11. [Backfill] Implement death timeline backfill job
-
-**Priority:** P3 - Low  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** A3, A10  
-**Labels:** `backfill`, `epic-a`
-
-#### Description
-
-Backfill job for death timeline data.
-
-#### Acceptance Criteria
-
-- [ ] Create `DeathTimelineBackfillJob : IBackfillJob`
-- [ ] Add endpoint: `POST /admin/backfill/death-timeline`
-
----
-
-### A12. [Repository] Add death timing statistics methods
-
-**Priority:** P3 - Low  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** A8  
-**Labels:** `repository`, `statistics`, `epic-a`
-
-#### Description
-
-Add repository methods for death timing statistics.
-
-#### Acceptance Criteria
-
-- [ ] `GetDeathTimingsByPuuidAsync`
-- [ ] `GetAverageDeathTimeByPuuidAsync`
-- [ ] `GetDeathsByGamePhaseAsync`
-- [ ] Support queue type filtering
+- All v2 dashboard endpoints and views support **queue filtering** (Ranked Solo/Duo, Ranked Flex, Normal, ARAM).
+- Queue filtering is backed by the v2 schema via `matches.queue_id` (numeric Riot queue id) and appropriate indexing.
 
 ---
 
@@ -645,6 +392,26 @@ Enable follow-up questions about goals.
 - [ ] Store conversation context
 - [ ] Endpoint: `POST /api/goals/chat`
 - [ ] Frontend chat UI
+
+---
+
+### B18. [AI] Add rules-of-climbing domain context for recommendations
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 2 points  
+**Depends on:** B5, B6, B7  
+**Labels:** `ai`, `prompting`, `epic-b`
+
+#### Description
+
+Use the concepts in `/docs/rules_of_climbing.md` as domain context so the AI can interpret stats and suggest goals in line with your climbing philosophy.
+
+#### Acceptance Criteria
+
+- [ ] Summarize the key rules from `/docs/rules_of_climbing.md` into a stable, versioned system prompt (or configuration)  
+- [ ] Ensure `IGoalPromptBuilder` includes this context for solo, duo and team prompts  
+- [ ] Add tests or fixtures that verify the rules context is present in prompts so changes are explicit
 
 ---
 
@@ -1266,6 +1033,27 @@ Framework for A/B testing features and pricing.
 
 ---
 
+### D9. [Frontend] Show login activity heatmap on user page
+
+**Priority:** P2 - Medium  
+**Type:** Feature  
+**Estimate:** 3 points  
+**Depends on:** D1, D2, G9  
+**Labels:** `frontend`, `analytics`, `epic-d`
+
+#### Description
+
+Give users a GitHub-style contribution view of how often they log in over time.
+
+#### Acceptance Criteria
+
+- [ ] Use existing `user_logged_in` tracking (or add it) to store daily login counts per user  
+- [ ] Implement a heatmap component that renders a 12-month day-by-day matrix similar to GitHub's contribution graph  
+- [ ] Surface the heatmap on the user account page (Epic G9)  
+- [ ] Provide basic tooltips (date + number of logins) and a legend for intensity levels
+
+---
+
 # Epic E: Database v2 & Analytics Schema
 
 Modernize the database to match `docs/database_schema.md` and support advanced solo/duo/team analytics.
@@ -1287,7 +1075,8 @@ Finalize the Database v2 schema (tables, columns, indexes) based on `docs/databa
 
 - [ ] Consolidated ERD / schema documented in `docs/database_schema.md`  
 - [ ] Tables defined for: `matches`, `participants`, `participant_checkpoints`, `participant_metrics`, `team_objectives`, `participant_objectives`, `duo_metrics`, `team_match_metrics`, `team_role_responsibility`, `ai_snapshots`  
-- [ ] Index strategy defined for common filters (puuid, queue_type, season/patch, team_id, minute_mark)
+- [ ] `matches.queue_id` present (numeric Riot queue id) and used for queue filtering across v2 dashboards
+- [ ] Index strategy defined for common filters (puuid, queue_id, season/patch, team_id, minute_mark)
 
 ---
 
@@ -1435,6 +1224,7 @@ Design the v2 API surface (routes, DTOs, versioning strategy) for solo, duo, tea
 - [ ] API v2 route scheme decided (e.g. `/api/v2/...`)  
 - [ ] Request/response models defined for solo/duo/team summary endpoints  
 - [ ] Response shapes optimized for frontend dashboards (minimal client-side aggregation)
+- [ ] Standardize optional queue filtering for v2 endpoints (e.g. `queueType=ranked_solo|ranked_flex|normal|aram|all`)
 
 ---
 
@@ -1455,6 +1245,7 @@ Create a v2 endpoint that returns all data required for the Solo dashboard (over
 - [ ] Endpoint implemented (e.g. `GET /api/v2/solo/dashboard/{userId}`)  
 - [ ] Uses only v2 repositories  
 - [ ] Returns a single well-structured payload consumed by the new Solo dashboard view
+- [ ] Supports optional queue filtering via the standardized v2 queue filter
 
 ---
 
@@ -1475,6 +1266,7 @@ Create a v2 endpoint that returns duo synergy stats, matchup data, shared object
 - [ ] Endpoint implemented (e.g. `GET /api/v2/duo/dashboard/{userId}`)  
 - [ ] Returns per-duo aggregates needed for the Duo dashboard  
 - [ ] Uses duo-related tables/metrics from Database v2
+- [ ] Supports optional queue filtering via the standardized v2 queue filter
 
 ---
 
@@ -1495,6 +1287,7 @@ Create a v2 endpoint that exposes team-level metrics (games played, win rate, qu
 - [ ] Endpoint implemented (e.g. `GET /api/v2/team/dashboard/{userId}`)  
 - [ ] Returns all data needed by the Team dashboard v2  
 - [ ] Uses team-related tables/metrics from Database v2
+- [ ] Supports optional queue filtering via the standardized v2 queue filter
 
 ---
 
@@ -1535,6 +1328,113 @@ Once the new frontend is migrated to API v2, mark v1 endpoints as deprecated and
 - [ ] Frontend uses only v2 endpoints for dashboards  
 - [ ] v1 routes removed or clearly marked as internal/testing-only  
 - [ ] API documentation updated to reference v2 only
+
+---
+
+### F7. [Security] Implement API key authentication for backend
+
+**Priority:** P0 - Critical  
+**Type:** Security  
+**Estimate:** 3 points  
+**Depends on:** F1  
+**Labels:** `security`, `auth`, `api`, `epic-f`
+
+#### Description
+
+Protect the .NET backend with an API key mechanism similar to the Riot API so only authorized clients can call the server.
+
+#### Acceptance Criteria
+
+- [ ] Configure one or more API keys via secure configuration (e.g. environment variables or secrets file)  
+- [ ] Require a valid API key (e.g. `X-Api-Key` header) for all non-public endpoints  
+- [ ] Requests with missing/invalid keys return `401 Unauthorized` using the standardized error format  
+- [ ] Local development can disable or relax API key checks via configuration  
+- [ ] Authentication failures are logged without exposing the raw key
+
+---
+
+### F8. [API] Implement unified error handling & problem responses
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 3 points  
+**Depends on:** F1  
+**Labels:** `api`, `error-handling`, `epic-f`
+
+#### Description
+
+Provide consistent, user-friendly error responses from the API v2 surface and avoid leaking implementation details.
+
+#### Acceptance Criteria
+
+- [ ] Add global exception handling middleware/filter that returns a standard error shape (e.g. RFC 7807-style problem details)  
+- [ ] Map validation and domain errors to 4xx responses with clear, structured error information  
+- [ ] Map unexpected failures to 5xx responses with a generic message and correlation id  
+- [ ] Integrate with error tracking (Epic D7) so important failures are logged with context  
+- [ ] Update a representative set of endpoints to use the standardized error patterns
+
+---
+
+### F9. [Testing] Add backend tests with focus on security
+
+**Priority:** P1 - High  
+**Type:** Testing  
+**Estimate:** 3 points  
+**Depends on:** F7, F8  
+**Labels:** `testing`, `security`, `epic-f`
+
+#### Description
+
+Introduce automated tests for the .NET server, with emphasis on security-sensitive flows.
+
+#### Acceptance Criteria
+
+- [ ] Create a test project for the backend (unit and/or integration tests)  
+- [ ] Tests cover API key authentication happy-path and failure scenarios  
+- [ ] Tests cover at least one representative endpoint from each major area (goals, subscriptions, dashboards)  
+- [ ] Tests verify error handling behavior (4xx vs 5xx, response shape)  
+- [ ] Tests run as part of the standard CI pipeline
+
+---
+
+### F10. [Reliability] Audit async methods for CancellationToken usage
+
+**Priority:** P2 - Medium  
+**Type:** Chore  
+**Estimate:** 3 points  
+**Labels:** `reliability`, `async`, `epic-f`
+
+#### Description
+
+Ensure all important async operations in the backend respect `CancellationToken` so requests and background jobs can be cancelled cleanly.
+
+#### Acceptance Criteria
+
+- [ ] Identify public async methods in the Application, Endpoints, and Infrastructure layers  
+- [ ] Add `CancellationToken` parameters where missing and thread them through to HTTP and database calls  
+- [ ] Wire up tokens from ASP.NET request pipeline and background job scheduler  
+- [ ] Add at least a couple of tests that verify cancellation is honored for long-running operations
+
+---
+
+### F11. [API] Implement user auth, profile & social endpoints
+
+**Priority:** P0 - Critical  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Labels:** `api`, `auth`, `users`, `epic-f`
+
+#### Description
+
+Provide API endpoints for user login, user profile data, and managing friends/duos/teams so dashboards and payments are associated with a user.
+
+#### Acceptance Criteria
+
+- [ ] Implement basic user authentication endpoints (e.g. `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`)  
+- [ ] Expose a `GET /api/users/me` endpoint that returns the current user's profile, subscription tier and linked LoL accounts  
+- [ ] Provide endpoints to manage friends / duo partners and team members (e.g. add/remove friends, manage team roster)  
+- [ ] Provide a user search endpoint that lets you look up LoL accounts by Riot ID / game name + tagline when creating or linking a user  
+- [ ] All new endpoints are protected by API key authentication and follow the unified error-handling conventions
 
 ---
 
@@ -1637,6 +1537,7 @@ Create a new Solo dashboard screen under `/app/solo` that consumes the Solo dash
 #### Acceptance Criteria
 
 - [ ] Solo v2 view implemented and wired to API v2  
+- [ ] Queue filter control implemented (Ranked Solo/Duo, Ranked Flex, Normal, ARAM, All) and wired into API requests
 - [ ] Old Solo dashboard route either redirects or is clearly deprecated  
 - [ ] Layout matches the new app shell and feels consistent with the product branding
 
@@ -1702,6 +1603,28 @@ Remove old dashboard views, components and routes that are no longer used after 
 
 ---
 
+### G9. [Frontend] Implement user login, account page & friends management
+
+**Priority:** P0 - Critical  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** F7, F11, C7  
+**Labels:** `frontend`, `auth`, `users`, `epic-g`
+
+#### Description
+
+Create the user-facing authentication and account experience so dashboards, payments and social features are tied to a logged-in user.
+
+#### Acceptance Criteria
+
+- [ ] Add routes/views for login/registration and a user account page (e.g. `/login`, `/app/account`)  
+- [ ] On the account page, show core user info, subscription tier/status and entry points to manage billing (using subscription flows from Epic C)  
+- [ ] Provide UI to search for and link the player's LoL account when creating the user (using the user/summoner search endpoint from F11)  
+- [ ] Provide UI to manage friends / duo partners and team members (add/remove) and surface them in the Duo and Team dashboards  
+- [ ] All flows respect authentication state and handle error states gracefully
+
+---
+
 # Summary
 
 ## All Issues by Priority
@@ -1710,10 +1633,6 @@ Remove old dashboard views, components and routes that are no longer used after 
 
 | ID | Title | Epic | Points |
 |----|-------|------|--------|
-| A1 | Add QueueId column to LolMatch | Queue Filtering | 1 |
-| A2 | Extract QueueId from Riot API | Queue Filtering | 1 |
-| A3 | Create reusable backfill framework | Queue Filtering | 3 |
-| A4 | Implement QueueId backfill job | Queue Filtering | 2 |
 | B1 | Create LLM provider abstraction | AI Goals | 3 |
 | B2 | Implement OpenAI client | AI Goals | 2 |
 | B4 | Create Goal database tables | AI Goals | 2 |
@@ -1738,24 +1657,25 @@ Remove old dashboard views, components and routes that are no longer used after 
 | F1 | Define API v2 surface & versioning | API v2 | 2 |
 | F2 | Implement Solo dashboard v2 endpoint | API v2 | 3 |
 | F3 | Implement Duo dashboard v2 endpoint | API v2 | 3 |
+| F7 | Implement API key authentication for backend | API v2 | 3 |
+| F11 | Implement user auth, profile & social endpoints | API v2 | 5 |
 | G1 | Define app v2 IA & routes | Frontend v2 | 2 |
 | G2 | Implement new app shell & navigation | Frontend v2 | 3 |
 | G5 | Implement Solo dashboard v2 view | Frontend v2 | 5 |
+| G9 | Implement user login, account page & friends management | Frontend v2 | 5 |
 
-**P0 Total:** 77 points
+**P0 Total:** 82 points
 
 ### P1 - High
 
 | ID | Title | Epic | Points |
 |----|-------|------|--------|
-| A5 | Create QueueType lookup/enum | Queue Filtering | 1 |
-| A6 | Add QueueId filtering to repositories | Queue Filtering | 5 |
-| A7 | Add queue type filter to endpoints | Queue Filtering | 2 |
 | B3 | Add LLM rate limiting | AI Goals | 2 |
 | B9 | Create goal CRUD endpoints | AI Goals | 2 |
 | B10 | Create progress tracking service | AI Goals | 3 |
 | B11 | Create progress update job | AI Goals | 2 |
 | B12 | Create progress endpoint | AI Goals | 1 |
+| B18 | Add rules-of-climbing domain context for recommendations | AI Goals | 2 |
 | C9 | Create feature gate middleware | Subscription | 2 |
 | C10 | Add tier info to user endpoints | Subscription | 1 |
 | C11 | Create subscription status component | Subscription | 2 |
@@ -1769,20 +1689,19 @@ Remove old dashboard views, components and routes that are no longer used after 
 | E6 | Validate Database v2 metrics against Riot | Database v2 | 2 |
 | F4 | Implement Team dashboard v2 endpoint | API v2 | 3 |
 | F5 | Implement AI snapshot/goal input endpoint | API v2 | 3 |
+| F8 | Implement unified error handling & problem responses | API v2 | 3 |
+| F9 | Add backend tests with focus on security | API v2 | 3 |
 | G3 | Implement new public landing page | Frontend v2 | 2 |
 | G4 | Implement pricing page | Frontend v2 | 2 |
 | G6 | Implement Duo dashboard v2 view | Frontend v2 | 5 |
 | G7 | Implement Team dashboard v2 view | Frontend v2 | 5 |
 
-**P1 Total:** 60 points
+**P1 Total:** 58 points
 
 ### P2 - Medium
 
 | ID | Title | Epic | Points |
 |----|-------|------|--------|
-| A8 | Add death timing table | Queue Filtering | 2 |
-| A9 | Add Timeline API client | Queue Filtering | 2 |
-| A10 | Extract death events from timeline | Queue Filtering | 3 |
 | B13 | Create goal recommendation UI | AI Goals | 3 |
 | B14 | Create active goals display | AI Goals | 3 |
 | B15 | Create goal progress chart | AI Goals | 2 |
@@ -1791,25 +1710,25 @@ Remove old dashboard views, components and routes that are no longer used after 
 | D5 | Create key dashboards | Analytics | 2 |
 | D6 | Create internal metrics endpoint | Analytics | 2 |
 | D7 | Set up error tracking | Analytics | 2 |
+| D9 | Show login activity heatmap on user page | Analytics | 3 |
 
 | E7 | Remove v1 database tables and repositories | Database v2 | 2 |
 | F6 | Deprecate or migrate v1 endpoints to v2 | API v2 | 2 |
+| F10 | Audit async methods for CancellationToken usage | API v2 | 3 |
 | G8 | Remove legacy dashboard views & routes | Frontend v2 | 1 |
 
-**P2 Total:** 30 points
+**P2 Total:** 29 points
 
 ### P3 - Low
 
 | ID | Title | Epic | Points |
 |----|-------|------|--------|
-| A11 | Death timeline backfill job | Queue Filtering | 2 |
-| A12 | Death timing statistics methods | Queue Filtering | 3 |
 | B16 | Implement Anthropic client | AI Goals | 2 |
 | B17 | Conversational follow-up | AI Goals | 5 |
 | C16 | Create referral tracking | Subscription | 2 |
 | D8 | Implement A/B testing | Analytics | 2 |
 
-**P3 Total:** 16 points
+**P3 Total:** 11 points
 
 ---
 
@@ -1826,26 +1745,23 @@ Remove old dashboard views, components and routes that are no longer used after 
 
 ### Sprint 1: Foundation (P0 Core)
 **Focus:** Database + Stripe + Basic AI  
-**Points:** ~25
+**Points:** ~20
 
-- A1, A2, A3 (Queue infrastructure)
 - C1, C2, C3 (Stripe + DB setup)
 - B1, B2 (LLM abstraction)
 
 ### Sprint 2: Subscriptions (P0 Payments)
 **Focus:** Complete payment flow  
-**Points:** ~20
+**Points:** ~18
 
 - C4, C5, C6, C7, C8 (Subscription services + endpoints)
-- A4 (QueueId backfill)
 - B4 (Goal tables)
 
 ### Sprint 3: AI Goals MVP (P0 AI)
 **Focus:** AI recommendations working  
-**Points:** ~18
+**Points:** ~10
 
 - B5, B6, B7, B8 (AI goal flow)
-- A5, A6, A7 (Queue filtering)
 
 ### Sprint 4: Polish (P1)
 **Focus:** Feature gates + analytics  
@@ -1863,7 +1779,7 @@ Remove old dashboard views, components and routes that are no longer used after 
 - D4, D5, D6, D7 (Server analytics + monitoring)
 
 ### Sprint 6+: Enhancements (P2/P3)
-**Focus:** Death timing, UI polish, advanced features  
+**Focus:** UI polish, advanced features  
 **Points:** ~41
 
 - Remaining P2 and P3 items
