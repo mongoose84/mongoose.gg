@@ -1,7 +1,7 @@
-# Copilot Instructions for lol-app
+# Copilot Instructions for Pulse (pulse.gg)
 
 ## Project Overview
-- **lol-app** is a full-stack project with a Vue 3 + Vite client (in `client/`) and a C# .NET server (in `server/RiotProxy`).
+- **Pulse** is a full-stack project with a Vue 3 + Vite client (in `client/`) and a C# .NET server (in `server/RiotProxy`).
 - The client and server communicate via HTTP APIs. The server acts as a proxy to the Riot Games API and manages user/game data.
 - Sensitive secrets (API keys, DB connection strings) are stored in plaintext files in the server directory and are gitignored.
 
@@ -19,6 +19,7 @@
 - Run: `dotnet run`
 - Publish (Windows): `dotnet publish -c Release -r win-x86 --self-contained true`
 - Secrets: Place `RiotSecret.txt` and `DatabaseSecret.txt` in `server/`
+- Payments: Use Mollie (EU) for subscriptions; keep Mollie/API keys out of source (see DatabaseSecret.txt and other secrets files)
 - Main entry: `server/Program.cs`
 - Endpoints: `server/Application/Endpoints/`
 - DTOs: `server/Application/DTOs/`
@@ -40,7 +41,7 @@
 - Add a new client view: create a `.vue` file in `src/views/`, add a route in `src/router/index.js`.
 
 ## References
-- See [README.md](../README.md) for setup, build, and test commands.
+- See [README.md](../README.md) for setup, build, and test commands (Pulse vision and domain: pulse.gg).
 - Sensitive config: [server/RiotSecret.txt], [server/DatabaseSecret.txt]
 - Main server logic: [server/Program.cs], [server/Application/Endpoints/]
 - Main client logic: [client/src/], [client/src/assets/], [client/src/composables/]
