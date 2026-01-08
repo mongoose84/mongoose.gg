@@ -7,18 +7,18 @@ public class V2RiotAccountsRepository : RepositoryBase
 {
     public V2RiotAccountsRepository(IDbConnectionFactory factory) : base(factory) {}
 
-    public async Task UpsertAsync(V2RiotAccount account)
+    public Task UpsertAsync(V2RiotAccount account)
     {
         const string sql = @"INSERT INTO riot_accounts (puuid, user_id, summoner_name, region, is_primary, created_at, updated_at)
-            VALUES (@puuid, @user_id, @summoner_name, @region, @is_primary, @created_at, @updated_at)
+            VALUES (@puuid, @user_id, @summoner_name, @region, @is_primary, @created_at, @updated_at) AS new
             ON DUPLICATE KEY UPDATE
-                user_id = VALUES(user_id),
-                summoner_name = VALUES(summoner_name),
-                region = VALUES(region),
-                is_primary = VALUES(is_primary),
-                updated_at = VALUES(updated_at);";
+                user_id = new.user_id,
+                summoner_name = new.summoner_name,
+                region = new.region,
+                is_primary = new.is_primary,
+                updated_at = new.updated_at;";
 
-        await ExecuteNonQueryAsync(sql,
+        return ExecuteNonQueryAsync(sql,
             ("@puuid", account.Puuid),
             ("@user_id", account.UserId),
             ("@summoner_name", account.SummonerName),

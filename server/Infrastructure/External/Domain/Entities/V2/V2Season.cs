@@ -6,7 +6,7 @@ public class V2Season : EntityBase
 {
     public string SeasonCode { get; set; } = string.Empty;
     public string PatchVersion { get; set; } = string.Empty;
-    public DateTime StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
+    public DateOnly StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
     public DateTime CreatedAt { get; set; }
 }

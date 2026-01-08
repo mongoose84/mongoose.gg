@@ -11,17 +11,17 @@ public class V2UsersRepository : RepositoryBase
     {
         const string sql = @"INSERT INTO users
             (user_id, email, username, password_hash, email_verified, is_active, tier, mollie_customer_id, created_at, updated_at, last_login_at)
-            VALUES (@user_id, @email, @username, @password_hash, @email_verified, @is_active, @tier, @mollie_customer_id, @created_at, @updated_at, @last_login_at)
+            VALUES (@user_id, @email, @username, @password_hash, @email_verified, @is_active, @tier, @mollie_customer_id, @created_at, @updated_at, @last_login_at) AS new
             ON DUPLICATE KEY UPDATE
-                email = VALUES(email),
-                username = VALUES(username),
-                password_hash = VALUES(password_hash),
-                email_verified = VALUES(email_verified),
-                is_active = VALUES(is_active),
-                tier = VALUES(tier),
-                mollie_customer_id = VALUES(mollie_customer_id),
-                updated_at = VALUES(updated_at),
-                last_login_at = VALUES(last_login_at);";
+                email = new.email,
+                username = new.username,
+                password_hash = new.password_hash,
+                email_verified = new.email_verified,
+                is_active = new.is_active,
+                tier = new.tier,
+                mollie_customer_id = new.mollie_customer_id,
+                updated_at = new.updated_at,
+                last_login_at = new.last_login_at;";
 
         return await ExecuteWithConnectionAsync(async conn =>
         {

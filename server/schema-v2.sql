@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS subscription_events (
     event_type VARCHAR(50) NOT NULL,
     old_tier ENUM('free', 'pro', 'team') NULL,
     new_tier ENUM('free', 'pro', 'team') NULL,
-    old_status VARCHAR(20) NULL,
-    new_status VARCHAR(20) NULL,
+    old_status ENUM('active', 'trialing', 'past_due', 'canceled', 'paused') NULL,
+    new_status ENUM('active', 'trialing', 'past_due', 'canceled', 'paused') NULL,
     mollie_event_id VARCHAR(255) NULL,
     metadata JSON NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -135,8 +135,7 @@ CREATE TABLE IF NOT EXISTS participants (
     KEY idx_champion_id (champion_id),
     KEY idx_role (role),
     KEY idx_team_id (team_id),
-    CONSTRAINT fk_participants_match FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE,
-    CONSTRAINT fk_participants_riot_account FOREIGN KEY (puuid) REFERENCES riot_accounts(puuid)
+    CONSTRAINT fk_participants_match FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- TIMELINE-DERIVED CHECKPOINTS

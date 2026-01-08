@@ -11,20 +11,20 @@ public class V2ParticipantsRepository : RepositoryBase
     {
         const string sql = @"INSERT INTO participants
             (match_id, puuid, team_id, role, lane, champion_id, champion_name, win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec, created_at)
-            VALUES (@match_id, @puuid, @team_id, @role, @lane, @champion_id, @champion_name, @win, @kills, @deaths, @assists, @creep_score, @gold_earned, @time_dead_sec, @created_at)
+            VALUES (@match_id, @puuid, @team_id, @role, @lane, @champion_id, @champion_name, @win, @kills, @deaths, @assists, @creep_score, @gold_earned, @time_dead_sec, @created_at) AS new
             ON DUPLICATE KEY UPDATE
-                team_id = VALUES(team_id),
-                role = VALUES(role),
-                lane = VALUES(lane),
-                champion_id = VALUES(champion_id),
-                champion_name = VALUES(champion_name),
-                win = VALUES(win),
-                kills = VALUES(kills),
-                deaths = VALUES(deaths),
-                assists = VALUES(assists),
-                creep_score = VALUES(creep_score),
-                gold_earned = VALUES(gold_earned),
-                time_dead_sec = VALUES(time_dead_sec);";
+                team_id = new.team_id,
+                role = new.role,
+                lane = new.lane,
+                champion_id = new.champion_id,
+                champion_name = new.champion_name,
+                win = new.win,
+                kills = new.kills,
+                deaths = new.deaths,
+                assists = new.assists,
+                creep_score = new.creep_score,
+                gold_earned = new.gold_earned,
+                time_dead_sec = new.time_dead_sec;";
 
         return ExecuteWithConnectionAsync(async conn =>
         {

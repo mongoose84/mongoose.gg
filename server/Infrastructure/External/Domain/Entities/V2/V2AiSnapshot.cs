@@ -11,6 +11,6 @@ public class V2AiSnapshot : EntityBase
     public int? QueueId { get; set; }
     public string SummaryText { get; set; } = string.Empty;
     public string? GoalsJson { get; set; }
-    public DateTime SnapshotDate { get; set; }
+    public DateOnly SnapshotDate { get; set; }
     public DateTime CreatedAt { get; set; }
 }

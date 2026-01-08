@@ -21,7 +21,7 @@ public class V2AiSnapshotsRepository : RepositoryBase
             cmd.Parameters.AddWithValue("@queue_id", s.QueueId ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@summary_text", s.SummaryText);
             cmd.Parameters.AddWithValue("@goals_json", s.GoalsJson ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("@snapshot_date", s.SnapshotDate == default ? DateTime.UtcNow.Date : s.SnapshotDate.Date);
+            cmd.Parameters.AddWithValue("@snapshot_date", s.SnapshotDate == default ? DateOnly.FromDateTime(DateTime.UtcNow) : s.SnapshotDate);
             cmd.Parameters.AddWithValue("@created_at", s.CreatedAt == default ? DateTime.UtcNow : s.CreatedAt);
             await cmd.ExecuteNonQueryAsync();
             return cmd.LastInsertedId;
@@ -55,7 +55,7 @@ public class V2AiSnapshotsRepository : RepositoryBase
         QueueId = r.IsDBNull("queue_id") ? null : r.GetInt32("queue_id"),
         SummaryText = r.GetString("summary_text"),
         GoalsJson = r.IsDBNull("goals_json") ? null : r.GetString("goals_json"),
-        SnapshotDate = r.GetDateTime("snapshot_date"),
+        SnapshotDate = DateOnly.FromDateTime(r.GetDateTime("snapshot_date")),
         CreatedAt = r.GetDateTime("created_at")
     };
 }

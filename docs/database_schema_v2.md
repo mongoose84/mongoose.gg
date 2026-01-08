@@ -889,7 +889,7 @@ The Timeline API is **critical** for:
 ✅ **Consolidated ERD / schema documented in docs/database_schema_v2.md**  
 ✅ **Tables defined for:** users, subscriptions, subscription_events, riot_accounts, matches, participants, participant_checkpoints, participant_metrics, team_objectives, participant_objectives, duo_metrics, team_match_metrics, team_role_responsibility, ai_snapshots  
 ✅ **User authentication:** users table with secure password storage (bcrypt/Argon2 hashed)  
-✅ **Subscription management:** subscriptions table with tier tracking, trial support (30 days), Stripe integration, and founding member flags  
+✅ **Subscription management:** subscriptions table with tier tracking, trial support (30 days), Mollie integration, and founding member flags  
 ✅ **matches.queue_id present** (numeric Riot queue id) and used for queue filtering across v2 dashboards  
 ✅ **Index strategy defined** for common filters (puuid, queue_id, season/patch, team_id, minute_mark)
 

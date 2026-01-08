@@ -10,13 +10,13 @@ public class V2MatchesRepository : RepositoryBase
     public Task UpsertAsync(V2Match match)
     {
         const string sql = @"INSERT INTO matches (match_id, queue_id, game_duration_sec, game_start_time, patch_version, season_code, created_at)
-            VALUES (@match_id, @queue_id, @game_duration_sec, @game_start_time, @patch_version, @season_code, @created_at)
+            VALUES (@match_id, @queue_id, @game_duration_sec, @game_start_time, @patch_version, @season_code, @created_at) AS new
             ON DUPLICATE KEY UPDATE
-                queue_id = VALUES(queue_id),
-                game_duration_sec = VALUES(game_duration_sec),
-                game_start_time = VALUES(game_start_time),
-                patch_version = VALUES(patch_version),
-                season_code = VALUES(season_code);";
+                queue_id = new.queue_id,
+                game_duration_sec = new.game_duration_sec,
+                game_start_time = new.game_start_time,
+                patch_version = new.patch_version,
+                season_code = new.season_code;";
 
         return ExecuteNonQueryAsync(sql,
             ("@match_id", match.MatchId),

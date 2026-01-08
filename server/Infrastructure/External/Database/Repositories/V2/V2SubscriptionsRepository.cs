@@ -11,20 +11,20 @@ public class V2SubscriptionsRepository : RepositoryBase
     {
         const string sql = @"INSERT INTO subscriptions
             (subscription_id, user_id, tier, status, mollie_subscription_id, mollie_plan_id, current_period_start, current_period_end, trial_start, trial_end, is_founding_member, cancel_at_period_end, canceled_at, created_at, updated_at)
-            VALUES (@id, @user_id, @tier, @status, @mollie_subscription_id, @mollie_plan_id, @current_period_start, @current_period_end, @trial_start, @trial_end, @is_founding_member, @cancel_at_period_end, @canceled_at, @created_at, @updated_at)
+            VALUES (@id, @user_id, @tier, @status, @mollie_subscription_id, @mollie_plan_id, @current_period_start, @current_period_end, @trial_start, @trial_end, @is_founding_member, @cancel_at_period_end, @canceled_at, @created_at, @updated_at) AS new
             ON DUPLICATE KEY UPDATE
-                tier = VALUES(tier),
-                status = VALUES(status),
-                mollie_subscription_id = VALUES(mollie_subscription_id),
-                mollie_plan_id = VALUES(mollie_plan_id),
-                current_period_start = VALUES(current_period_start),
-                current_period_end = VALUES(current_period_end),
-                trial_start = VALUES(trial_start),
-                trial_end = VALUES(trial_end),
-                is_founding_member = VALUES(is_founding_member),
-                cancel_at_period_end = VALUES(cancel_at_period_end),
-                canceled_at = VALUES(canceled_at),
-                updated_at = VALUES(updated_at);";
+                tier = new.tier,
+                status = new.status,
+                mollie_subscription_id = new.mollie_subscription_id,
+                mollie_plan_id = new.mollie_plan_id,
+                current_period_start = new.current_period_start,
+                current_period_end = new.current_period_end,
+                trial_start = new.trial_start,
+                trial_end = new.trial_end,
+                is_founding_member = new.is_founding_member,
+                cancel_at_period_end = new.cancel_at_period_end,
+                canceled_at = new.canceled_at,
+                updated_at = new.updated_at;";
 
         return await ExecuteWithConnectionAsync(async conn =>
         {

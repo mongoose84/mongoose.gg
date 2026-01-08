@@ -10,11 +10,11 @@ public class V2TeamRoleResponsibilitiesRepository : RepositoryBase
     public Task UpsertAsync(V2TeamRoleResponsibility r)
     {
         const string sql = @"INSERT INTO team_role_responsibility (match_id, team_id, role, deaths_share_pct, gold_share_pct, damage_share_pct, created_at)
-            VALUES (@match_id, @team_id, @role, @deaths_pct, @gold_pct, @damage_pct, @created_at)
+            VALUES (@match_id, @team_id, @role, @deaths_pct, @gold_pct, @damage_pct, @created_at) AS new
             ON DUPLICATE KEY UPDATE
-                deaths_share_pct = VALUES(deaths_share_pct),
-                gold_share_pct = VALUES(gold_share_pct),
-                damage_share_pct = VALUES(damage_share_pct);";
+                deaths_share_pct = new.deaths_share_pct,
+                gold_share_pct = new.gold_share_pct,
+                damage_share_pct = new.damage_share_pct;";
 
         return ExecuteNonQueryAsync(sql,
             ("@match_id", r.MatchId),

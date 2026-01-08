@@ -10,12 +10,12 @@ public class V2TeamObjectivesRepository : RepositoryBase
     public Task UpsertAsync(V2TeamObjective t)
     {
         const string sql = @"INSERT INTO team_objectives (match_id, team_id, dragons_taken, heralds_taken, barons_taken, towers_taken, created_at)
-            VALUES (@match_id, @team_id, @dragons, @heralds, @barons, @towers, @created_at)
+            VALUES (@match_id, @team_id, @dragons, @heralds, @barons, @towers, @created_at) AS new
             ON DUPLICATE KEY UPDATE
-                dragons_taken = VALUES(dragons_taken),
-                heralds_taken = VALUES(heralds_taken),
-                barons_taken = VALUES(barons_taken),
-                towers_taken = VALUES(towers_taken);";
+                dragons_taken = new.dragons_taken,
+                heralds_taken = new.heralds_taken,
+                barons_taken = new.barons_taken,
+                towers_taken = new.towers_taken;";
 
         return ExecuteNonQueryAsync(sql,
             ("@match_id", t.MatchId),

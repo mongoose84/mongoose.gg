@@ -10,12 +10,12 @@ public class V2ParticipantObjectivesRepository : RepositoryBase
     public Task UpsertAsync(V2ParticipantObjective o)
     {
         const string sql = @"INSERT INTO participant_objectives (participant_id, dragons_participated, heralds_participated, barons_participated, towers_participated, created_at)
-            VALUES (@participant_id, @dragons, @heralds, @barons, @towers, @created_at)
+            VALUES (@participant_id, @dragons, @heralds, @barons, @towers, @created_at) AS new
             ON DUPLICATE KEY UPDATE
-                dragons_participated = VALUES(dragons_participated),
-                heralds_participated = VALUES(heralds_participated),
-                barons_participated = VALUES(barons_participated),
-                towers_participated = VALUES(towers_participated);";
+                dragons_participated = new.dragons_participated,
+                heralds_participated = new.heralds_participated,
+                barons_participated = new.barons_participated,
+                towers_participated = new.towers_participated;";
 
         return ExecuteNonQueryAsync(sql,
             ("@participant_id", o.ParticipantId),

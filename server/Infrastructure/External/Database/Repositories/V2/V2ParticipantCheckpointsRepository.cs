@@ -11,14 +11,14 @@ public class V2ParticipantCheckpointsRepository : RepositoryBase
     {
         const string sql = @"INSERT INTO participant_checkpoints
             (participant_id, minute_mark, gold, cs, xp, gold_diff_vs_lane, cs_diff_vs_lane, is_ahead, created_at)
-            VALUES (@participant_id, @minute_mark, @gold, @cs, @xp, @gold_diff_vs_lane, @cs_diff_vs_lane, @is_ahead, @created_at)
+            VALUES (@participant_id, @minute_mark, @gold, @cs, @xp, @gold_diff_vs_lane, @cs_diff_vs_lane, @is_ahead, @created_at) AS new
             ON DUPLICATE KEY UPDATE
-                gold = VALUES(gold),
-                cs = VALUES(cs),
-                xp = VALUES(xp),
-                gold_diff_vs_lane = VALUES(gold_diff_vs_lane),
-                cs_diff_vs_lane = VALUES(cs_diff_vs_lane),
-                is_ahead = VALUES(is_ahead);";
+                gold = new.gold,
+                cs = new.cs,
+                xp = new.xp,
+                gold_diff_vs_lane = new.gold_diff_vs_lane,
+                cs_diff_vs_lane = new.cs_diff_vs_lane,
+                is_ahead = new.is_ahead;";
 
         return ExecuteNonQueryAsync(sql,
             ("@participant_id", cp.ParticipantId),

@@ -10,11 +10,11 @@ public class V2SeasonsRepository : RepositoryBase
     public Task UpsertAsync(V2Season season)
     {
         const string sql = @"INSERT INTO seasons (season_code, patch_version, start_date, end_date, created_at)
-            VALUES (@season_code, @patch_version, @start_date, @end_date, @created_at)
+            VALUES (@season_code, @patch_version, @start_date, @end_date, @created_at) AS new
             ON DUPLICATE KEY UPDATE
-                patch_version = VALUES(patch_version),
-                start_date = VALUES(start_date),
-                end_date = VALUES(end_date);";
+                patch_version = new.patch_version,
+                start_date = new.start_date,
+                end_date = new.end_date;";
 
         return ExecuteNonQueryAsync(sql,
             ("@season_code", season.SeasonCode),
@@ -34,8 +34,8 @@ public class V2SeasonsRepository : RepositoryBase
     {
         SeasonCode = r.GetString("season_code"),
         PatchVersion = r.GetString("patch_version"),
-        StartDate = r.GetDateTime("start_date"),
-        EndDate = r.IsDBNull("end_date") ? null : r.GetDateTime("end_date"),
+        StartDate = DateOnly.FromDateTime(r.GetDateTime("start_date")),
+        EndDate = r.IsDBNull("end_date") ? null : DateOnly.FromDateTime(r.GetDateTime("end_date")),
         CreatedAt = r.GetDateTime("created_at")
     };
 }

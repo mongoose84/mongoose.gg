@@ -10,12 +10,12 @@ public class V2TeamMatchMetricsRepository : RepositoryBase
     public Task UpsertAsync(V2TeamMatchMetric t)
     {
         const string sql = @"INSERT INTO team_match_metrics (match_id, team_id, gold_lead_at_15, largest_gold_lead, gold_swing_post_20, win_when_ahead_at_20, created_at)
-            VALUES (@match_id, @team_id, @g15, @largest, @swing20, @win_ahead20, @created_at)
+            VALUES (@match_id, @team_id, @g15, @largest, @swing20, @win_ahead20, @created_at) AS new
             ON DUPLICATE KEY UPDATE
-                gold_lead_at_15 = VALUES(gold_lead_at_15),
-                largest_gold_lead = VALUES(largest_gold_lead),
-                gold_swing_post_20 = VALUES(gold_swing_post_20),
-                win_when_ahead_at_20 = VALUES(win_when_ahead_at_20);";
+                gold_lead_at_15 = new.gold_lead_at_15,
+                largest_gold_lead = new.largest_gold_lead,
+                gold_swing_post_20 = new.gold_swing_post_20,
+                win_when_ahead_at_20 = new.win_when_ahead_at_20;";
 
         return ExecuteNonQueryAsync(sql,
             ("@match_id", t.MatchId),
