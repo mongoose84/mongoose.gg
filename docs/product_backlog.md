@@ -1,4 +1,4 @@
-# Product Backlog - Pulse (pulse.gg)
+# Product Backlog - Pulse (lolcoach.gg/duolytics.gg/riftgoals.gg)
 
 ## Vision
 

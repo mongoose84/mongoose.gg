@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import SideWinRate from '@/components/shared/SideWinRate.vue'
+import SideWinDistribution from '@/components/shared/SideWinDistribution.vue'
 
 // Mock the getSideStats API call
 vi.mock('@/api/shared.js', () => ({
@@ -17,7 +17,7 @@ vi.mock('@/api/shared.js', () => ({
   })
 }))
 
-describe('SideWinRate', () => {
+describe('SideWinDistribution', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -27,7 +27,7 @@ describe('SideWinRate', () => {
   })
 
   it('mounts without errors', () => {
-    const wrapper = mount(SideWinRate, {
+    const wrapper = mount(SideWinDistribution, {
       props: { userId: 1 },
       global: {
         stubs: { ChartCard: { template: '<div class="chart-card"><slot /></div>' } }
@@ -38,7 +38,7 @@ describe('SideWinRate', () => {
   })
 
   it('shows loading state initially', async () => {
-    const wrapper = mount(SideWinRate, {
+    const wrapper = mount(SideWinDistribution, {
       props: { userId: 1 },
       global: {
         stubs: { ChartCard: { template: '<div class="chart-card"><slot /></div>' } }
@@ -46,11 +46,11 @@ describe('SideWinRate', () => {
     })
 
     // The loading state might be brief, but let's verify the structure
-    expect(wrapper.find('.side-win-rate-container').exists()).toBe(true)
+    expect(wrapper.find('.side-win-distribution-container').exists()).toBe(true)
   })
 
   it('renders bar chart after loading', async () => {
-    const wrapper = mount(SideWinRate, {
+    const wrapper = mount(SideWinDistribution, {
       props: { userId: 1 },
       global: {
         stubs: { ChartCard: { template: '<div class="chart-card"><slot /></div>' } }
@@ -65,7 +65,7 @@ describe('SideWinRate', () => {
   })
 
   it('displays correct win rates', async () => {
-    const wrapper = mount(SideWinRate, {
+    const wrapper = mount(SideWinDistribution, {
       props: { userId: 1 },
       global: {
         stubs: { ChartCard: { template: '<div class="chart-card"><slot /></div>' } }
@@ -80,8 +80,8 @@ describe('SideWinRate', () => {
     expect(barValues[1].text()).toContain('48.0%') // Red win rate
   })
 
-  it('renders summary text with game counts', async () => {
-    const wrapper = mount(SideWinRate, {
+  it('renders summary text with win distribution and game counts', async () => {
+    const wrapper = mount(SideWinDistribution, {
       props: { userId: 1 },
       global: {
         stubs: { ChartCard: { template: '<div class="chart-card"><slot /></div>' } }
@@ -90,12 +90,15 @@ describe('SideWinRate', () => {
 
     await flushPromises()
 
-    const summaryText = wrapper.find('.summary-text')
-    expect(summaryText.exists()).toBe(true)
-    expect(summaryText.text()).toContain('30') // Blue games
-    expect(summaryText.text()).toContain('25') // Red games
-    expect(summaryText.text()).toContain('54.5%') // Blue percentage
-    expect(summaryText.text()).toContain('45.5%') // Red percentage
+    const summaryTextBlocks = wrapper.findAll('.summary-text')
+    expect(summaryTextBlocks.length).toBe(2)
+    expect(summaryTextBlocks[0].text()).toContain('Of your 30 wins')
+    expect(summaryTextBlocks[0].text()).toContain('18 from blue')
+    expect(summaryTextBlocks[0].text()).toContain('12 from red')
+
+    // Game counts line
+    expect(summaryTextBlocks[1].text()).toContain('30') // Blue games
+    expect(summaryTextBlocks[1].text()).toContain('25') // Red games
   })
 
   it('handles empty data gracefully', async () => {
@@ -112,7 +115,7 @@ describe('SideWinRate', () => {
       totalGames: 0
     })
 
-    const wrapper = mount(SideWinRate, {
+    const wrapper = mount(SideWinDistribution, {
       props: { userId: 1 },
       global: {
         stubs: { ChartCard: { template: '<div class="chart-card"><slot /></div>' } }
@@ -129,7 +132,7 @@ describe('SideWinRate', () => {
     const sharedApi = await import('@/api/shared.js')
     vi.mocked(sharedApi.getSideStats).mockRejectedValueOnce(new Error('Network Error'))
 
-    const wrapper = mount(SideWinRate, {
+    const wrapper = mount(SideWinDistribution, {
       props: { userId: 1 },
       global: {
         stubs: { ChartCard: { template: '<div class="chart-card"><slot /></div>' } }
@@ -145,7 +148,7 @@ describe('SideWinRate', () => {
   it('passes mode prop to API', async () => {
     const sharedApi = await import('@/api/shared.js')
 
-    mount(SideWinRate, {
+    mount(SideWinDistribution, {
       props: { userId: 1, mode: 'duo' },
       global: {
         stubs: { ChartCard: { template: '<div class="chart-card"><slot /></div>' } }
@@ -160,7 +163,7 @@ describe('SideWinRate', () => {
   it('reloads data when userId prop changes', async () => {
     const sharedApi = await import('@/api/shared.js')
 
-    const wrapper = mount(SideWinRate, {
+    const wrapper = mount(SideWinDistribution, {
       props: { userId: 1 },
       global: {
         stubs: { ChartCard: { template: '<div class="chart-card"><slot /></div>' } }

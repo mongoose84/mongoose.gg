@@ -52,7 +52,7 @@
           <!-- Win Rate Trend, Side Win Rate & Duration Analysis (Three-column layout) -->
           <div class="team-features-grid-3">
             <TeamWinRateTrend :userId="userId" />
-            <SideWinRate :userId="userId" mode="team" />
+            <SideWinDistribution :userId="userId" mode="team" />
             <TeamDurationAnalysis :userId="userId" />
           </div>
 
@@ -92,7 +92,7 @@ import { useGamers } from '@/composables/useGamers.js';
 import { getTeamStats, getTeamLatestGame } from '@/api/team.js';
 // Shared components
 import GamerCardsList from '@/components/shared/GamerCardsList.vue';
-import SideWinRate from '@/components/shared/SideWinRate.vue';
+import SideWinDistribution from '@/components/shared/SideWinDistribution.vue';
 import AppLogo from '@/components/shared/AppLogo.vue';
 import LatestGameTogether from '@/components/shared/LatestGameTogether.vue';
 // Team components

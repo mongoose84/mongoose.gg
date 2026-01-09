@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2SeasonsRepository : RepositoryBase
 {
-    public V2SeasonsRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2SeasonsRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public Task UpsertAsync(V2Season season)
     {

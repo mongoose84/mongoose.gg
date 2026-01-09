@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2ParticipantsRepository : RepositoryBase
 {
-    public V2ParticipantsRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2ParticipantsRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public Task<long> InsertAsync(V2Participant p)
     {
@@ -53,6 +53,24 @@ public class V2ParticipantsRepository : RepositoryBase
     {
         const string sql = "SELECT * FROM participants WHERE match_id = @match_id";
         return ExecuteListAsync(sql, Map, ("@match_id", matchId));
+    }
+
+    public async Task<ISet<string>> GetMatchIdsForPuuidAsync(string puuid)
+    {
+        const string sql = "SELECT match_id FROM participants WHERE puuid = @puuid";
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                ids.Add(reader.GetString(0));
+            }
+            return 0; // dummy return to satisfy signature
+        });
+        return ids;
     }
 
     public Task<IList<V2Participant>> GetRecentByPuuidAsync(string puuid, int? queueId, int limit)

@@ -38,7 +38,7 @@ public class TeamStatsRepository : RepositoryBase
             cmd.CommandText = $@"
                 SELECT
                     COUNT(DISTINCT p0.MatchId) as GamesPlayed,
-                    SUM(CASE WHEN p0.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                    COUNT(DISTINCT CASE WHEN p0.Win = 1 THEN p0.MatchId ELSE NULL END) as Wins,
                     SUM(p0.Kills + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Kills"))}) as TotalKills,
                     SUM(p0.Deaths + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Deaths"))}) as TotalDeaths,
                     SUM(p0.Assists + {string.Join(" + ", Enumerable.Range(1, puuIds.Length - 1).Select(i => $"p{i}.Assists"))}) as TotalAssists,
@@ -103,15 +103,23 @@ public class TeamStatsRepository : RepositoryBase
 
             cmd.CommandText = $@"
                 SELECT
-                    SUM(CASE WHEN p0.TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
-                    SUM(CASE WHEN p0.TeamId = 100 AND p0.Win = 1 THEN 1 ELSE 0 END) as BlueWins,
-                    SUM(CASE WHEN p0.TeamId = 200 THEN 1 ELSE 0 END) as RedGames,
-                    SUM(CASE WHEN p0.TeamId = 200 AND p0.Win = 1 THEN 1 ELSE 0 END) as RedWins
-                FROM LolMatchParticipant p0
-                {string.Join(" ", joinClauses)}
-                INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
-                WHERE p0.Puuid = @puuid0
-                  AND m.GameMode != 'ARAM'";
+                    SUM(CASE WHEN t1.TeamId = 100 THEN 1 ELSE 0 END) as BlueGames,
+                    SUM(CASE WHEN t1.TeamId = 100 AND t1.Win = 1 THEN 1 ELSE 0 END) as BlueWins,
+                    SUM(CASE WHEN t1.TeamId = 200 THEN 1 ELSE 0 END) as RedGames,
+                    SUM(CASE WHEN t1.TeamId = 200 AND t1.Win = 1 THEN 1 ELSE 0 END) as RedWins
+                FROM (
+                    SELECT DISTINCT
+                        p0.MatchId,
+                        p0.TeamId,
+                        p0.Win
+                    FROM LolMatchParticipant p0
+                    {string.Join(" ", joinClauses)}
+                    INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
+                    WHERE p0.Puuid = @puuid0
+                      AND m.InfoFetched = TRUE
+                      AND m.DurationSeconds > 0
+                      AND m.GameMode != 'ARAM'
+                ) as t1";
 
             for (int i = 0; i < puuIds.Length; i++)
                 cmd.Parameters.AddWithValue($"@puuid{i}", puuIds[i]);
@@ -151,7 +159,7 @@ public class TeamStatsRepository : RepositoryBase
                     var sql = @"
                         SELECT
                             COUNT(DISTINCT p1.MatchId) as GamesPlayed,
-                            SUM(CASE WHEN p1.Win = 1 THEN 1 ELSE 0 END) as Wins
+                            COUNT(DISTINCT CASE WHEN p1.Win = 1 THEN p1.MatchId ELSE NULL END) as Wins
                         FROM LolMatchParticipant p1
                         INNER JOIN LolMatchParticipant p2
                             ON p1.MatchId = p2.MatchId
@@ -428,7 +436,7 @@ public class TeamStatsRepository : RepositoryBase
             }
 
             var sql = $@"
-                SELECT
+                SELECT DISTINCT
                     m.MatchId,
                     p0.Win,
                     m.GameEndTimestamp
@@ -498,8 +506,8 @@ public class TeamStatsRepository : RepositoryBase
                         WHEN m.DurationSeconds < 2400 THEN '35-40'
                         ELSE '40+'
                     END as DurationBucket,
-                    COUNT(*) as GamesPlayed,
-                    SUM(CASE WHEN p0.Win = 1 THEN 1 ELSE 0 END) as Wins
+                    COUNT(DISTINCT p0.MatchId) as GamesPlayed,
+                    COUNT(DISTINCT CASE WHEN p0.Win = 1 THEN p0.MatchId ELSE NULL END) as Wins
                 FROM LolMatchParticipant p0
                 {string.Join("", joinClauses)}
                 INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
@@ -809,7 +817,7 @@ public class TeamStatsRepository : RepositoryBase
                         ELSE '40+'
                     END as DurationBucket,
                     COUNT(DISTINCT p0.MatchId) as GamesPlayed,
-                    SUM(CASE WHEN p0.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                    COUNT(DISTINCT CASE WHEN p0.Win = 1 THEN p0.MatchId ELSE NULL END) as Wins,
                     SUM({deathsSum}) as TotalTeamDeaths
                 FROM LolMatchParticipant p0
                 {string.Join("", joinClauses)}
@@ -869,7 +877,7 @@ public class TeamStatsRepository : RepositoryBase
             var deathsSum = string.Join(" + ", Enumerable.Range(0, puuIds.Length).Select(i => $"p{i}.Deaths"));
 
             var sql = $@"
-                SELECT
+                SELECT DISTINCT
                     p0.MatchId,
                     p0.Win,
                     ({deathsSum}) as TeamDeaths,
@@ -933,7 +941,7 @@ public class TeamStatsRepository : RepositoryBase
             var killsSum = string.Join(" + ", Enumerable.Range(0, puuIds.Length).Select(i => $"p{i}.Kills"));
 
             var sql = $@"
-                SELECT
+                SELECT DISTINCT
                     p0.MatchId,
                     p0.Win,
                     ({killsSum}) as TeamKills,
@@ -1006,8 +1014,8 @@ public class TeamStatsRepository : RepositoryBase
                         WHEN m.DurationSeconds < 2400 THEN '35-40'
                         ELSE '40+'
                     END as DurationBucket,
-                    COUNT(*) as GamesPlayed,
-                    SUM(CASE WHEN p0.Win = 1 THEN 1 ELSE 0 END) as Wins,
+                    COUNT(DISTINCT p0.MatchId) as GamesPlayed,
+                    COUNT(DISTINCT CASE WHEN p0.Win = 1 THEN p0.MatchId ELSE NULL END) as Wins,
                     SUM({killsSum}) as TotalTeamKills
                 FROM LolMatchParticipant p0
                 {string.Join("", joinClauses)}
@@ -1141,7 +1149,7 @@ public class TeamStatsRepository : RepositoryBase
             }
 
             var sql = $@"
-                SELECT p0.MatchId, m.GameEndTimestamp, p0.Win
+                SELECT p0.MatchId, m.GameEndTimestamp, p0.Win, p0.TeamId
                 FROM LolMatchParticipant p0
                 {string.Join("", joinClauses)}
                 INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
@@ -1160,6 +1168,7 @@ public class TeamStatsRepository : RepositoryBase
             string? matchId = null;
             DateTime gameEndTimestamp = DateTime.MinValue;
             bool win = false;
+            int teamId = 0;
 
             await using (var reader = await cmd.ExecuteReaderAsync())
             {
@@ -1168,17 +1177,18 @@ public class TeamStatsRepository : RepositoryBase
                     matchId = reader.GetString("MatchId");
                     gameEndTimestamp = reader.GetDateTime("GameEndTimestamp");
                     win = reader.GetBoolean("Win");
+                    teamId = reader.GetInt32("TeamId");
                 }
             }
 
             if (matchId == null)
                 return null;
 
-            // Build IN clause for puuids
+            // Build IN clause for puuids and filter by team
             cmd.Parameters.Clear();
             var puuidParams = string.Join(", ", puuIds.Select((_, i) => $"@playerPuuid{i}"));
             var playersSql = $@"
-                SELECT
+                SELECT DISTINCT
                     p.Puuid,
                     p.Win,
                     COALESCE(NULLIF(p.TeamPosition, ''), 'UNKNOWN') as Role,
@@ -1189,10 +1199,12 @@ public class TeamStatsRepository : RepositoryBase
                     p.Assists
                 FROM LolMatchParticipant p
                 WHERE p.MatchId = @matchId
+                  AND p.TeamId = @teamId
                   AND p.Puuid IN ({puuidParams})";
 
             cmd.CommandText = playersSql;
             cmd.Parameters.AddWithValue("@matchId", matchId);
+            cmd.Parameters.AddWithValue("@teamId", teamId);
             for (int i = 0; i < puuIds.Length; i++)
             {
                 cmd.Parameters.AddWithValue($"@playerPuuid{i}", puuIds[i]);

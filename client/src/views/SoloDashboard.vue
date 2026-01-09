@@ -64,7 +64,7 @@
 
           <!-- Side Win Rate -->
           <div class="side-win-rate-section">
-            <SideWinRate :userId="userId" mode="solo" />
+            <SideWinDistribution :userId="userId" mode="solo" />
           </div>
 
           <!-- Summary Insights Panel -->
@@ -87,7 +87,7 @@ import { refreshGames } from '@/api/solo.js';
 // Shared components
 import GamerCardsList from '@/components/shared/GamerCardsList.vue';
 import RadarChart from '@/components/shared/RadarChart.vue';
-import SideWinRate from '@/components/shared/SideWinRate.vue';
+import SideWinDistribution from '@/components/shared/SideWinDistribution.vue';
 import AppLogo from '@/components/shared/AppLogo.vue';
 // Solo components
 import PerformanceCharts from '@/components/solo/PerformanceCharts.vue';

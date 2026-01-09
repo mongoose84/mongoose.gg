@@ -3,6 +3,7 @@ using RiotProxy.Infrastructure;
 using RiotProxy.Application;
 using RiotProxy.Infrastructure.External.Database;
 using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Infrastructure.External.Database.Repositories.V2;
 using RiotProxy.Infrastructure.External.Riot;
 using RiotProxy.Infrastructure.External;
 
@@ -13,6 +14,7 @@ Secrets.Initialize();
 
 builder.Services.AddSingleton<IRiotApiClient, RiotApiClient>();
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
+builder.Services.AddSingleton<IV2DbConnectionFactory, V2DbConnectionFactory>();
 
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<GamerRepository>();
@@ -22,6 +24,15 @@ builder.Services.AddScoped<LolMatchParticipantRepository>();
 builder.Services.AddScoped<SoloStatsRepository>();
 builder.Services.AddScoped<DuoStatsRepository>();
 builder.Services.AddScoped<TeamStatsRepository>();
+// V2 repositories
+builder.Services.AddScoped<V2MatchesRepository>();
+builder.Services.AddScoped<V2ParticipantsRepository>();
+builder.Services.AddScoped<V2ParticipantCheckpointsRepository>();
+builder.Services.AddScoped<V2ParticipantMetricsRepository>();
+builder.Services.AddScoped<V2TeamObjectivesRepository>();
+builder.Services.AddScoped<V2ParticipantObjectivesRepository>();
+builder.Services.AddScoped<V2TeamMatchMetricsRepository>();
+builder.Services.AddScoped<V2DuoMetricsRepository>();
 
 // Named HttpClient for Riot API
 builder.Services.AddHttpClient("RiotApi", client =>

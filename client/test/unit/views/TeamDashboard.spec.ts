@@ -52,7 +52,7 @@ const stubs = {
   AppLogo: { template: '<div class="app-logo-stub">Logo</div>' },
   GamerCard: { template: '<div class="gamer-card-stub">Gamer</div>' },
   GamerCardsList: { template: '<div class="gamer-cards-stub"><slot /></div>' },
-  SideWinRate: { template: '<div class="side-wr-stub">Side WR</div>' },
+  SideWinDistribution: { template: '<div class="side-wd-stub">Side Win Distribution</div>' },
   LatestGameTogether: { template: '<div class="latest-game-stub">Latest Game</div>' },
   TeamSynergyMatrix: { template: '<div class="synergy-stub">Synergy</div>' },
   TeamWinRateTrend: { template: '<div class="wr-trend-stub">WR Trend</div>' },
@@ -137,7 +137,7 @@ describe('TeamDashboard', () => {
     await flushPromises()
 
     expect(wrapper.find('.wr-trend-stub').exists()).toBe(true)
-    expect(wrapper.find('.side-wr-stub').exists()).toBe(true)
+    expect(wrapper.find('.side-wd-stub').exists()).toBe(true)
     expect(wrapper.find('.synergy-stub').exists()).toBe(true)
     expect(wrapper.find('.combos-stub').exists()).toBe(true)
   })

@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2SubscriptionsRepository : RepositoryBase
 {
-    public V2SubscriptionsRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2SubscriptionsRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public async Task<long> UpsertAsync(V2Subscription sub)
     {

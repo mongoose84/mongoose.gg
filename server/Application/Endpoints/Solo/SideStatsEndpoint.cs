@@ -70,21 +70,26 @@ public sealed class SideStatsEndpoint : IEndpoint
                 }
 
                 var totalGames = sideStats.BlueGames + sideStats.RedGames;
-                var blueWinRate = sideStats.BlueGames > 0 ? Math.Round((double)sideStats.BlueWins / sideStats.BlueGames * 100, 1) : 0;
-                var redWinRate = sideStats.RedGames > 0 ? Math.Round((double)sideStats.RedWins / sideStats.RedGames * 100, 1) : 0;
-                var bluePercentage = totalGames > 0 ? Math.Round((double)sideStats.BlueGames / totalGames * 100, 1) : 0;
-                var redPercentage = totalGames > 0 ? Math.Round((double)sideStats.RedGames / totalGames * 100, 1) : 0;
+                var totalWins = sideStats.BlueWins + sideStats.RedWins;
+                
+                // Win distribution: what percentage of total wins came from each side
+                var blueWinDistribution = totalWins > 0 ? Math.Round((double)sideStats.BlueWins / totalWins * 100, 1) : 0;
+                var redWinDistribution = totalWins > 0 ? Math.Round((double)sideStats.RedWins / totalWins * 100, 1) : 0;
+                
+                // Game distribution: what percentage of games were on each side
+                var blueGamePercentage = totalGames > 0 ? Math.Round((double)sideStats.BlueGames / totalGames * 100, 1) : 0;
+                var redGamePercentage = totalGames > 0 ? Math.Round((double)sideStats.RedGames / totalGames * 100, 1) : 0;
 
                 return Results.Ok(new SideStatsResponse(
                     BlueGames: sideStats.BlueGames,
                     BlueWins: sideStats.BlueWins,
-                    BlueWinRate: blueWinRate,
+                    BlueWinRate: blueWinDistribution,
                     RedGames: sideStats.RedGames,
                     RedWins: sideStats.RedWins,
-                    RedWinRate: redWinRate,
+                    RedWinRate: redWinDistribution,
                     TotalGames: totalGames,
-                    BluePercentage: bluePercentage,
-                    RedPercentage: redPercentage
+                    BluePercentage: blueGamePercentage,
+                    RedPercentage: redGamePercentage
                 ));
             }
             catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)

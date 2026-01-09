@@ -106,6 +106,19 @@ namespace RiotProxy.Infrastructure.External.Riot
             return matchDoc;
         }
 
+        public async Task<JsonDocument> GetMatchTimelineAsync(string matchId, CancellationToken ct = default)
+        {
+            var timelineUrl = RiotUrlBuilder.GetMatchUrl($"/match/v5/matches/{matchId}/timeline");
+            Metrics.SetLastUrlCalled("RiotServices.cs timeline " + timelineUrl);
+
+            await _riotLimitHandler.WaitAsync(ct);
+
+            var response = await _http.GetAsync(timelineUrl, ct);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync(ct);
+            return JsonDocument.Parse(json);
+        }
+
         public async Task<Summoner?> GetSummonerByPuuIdAsync(string tagLine, string puuid, CancellationToken ct = default)
         {
             var encodedPuuid = HttpUtility.UrlEncode(puuid);

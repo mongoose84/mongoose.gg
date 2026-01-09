@@ -44,7 +44,7 @@ const stubs = {
   RoleDistribution: { template: '<div class="role-dist-stub">Roles</div>' },
   DeathEfficiency: { template: '<div class="death-eff-stub">Deaths</div>' },
   MatchDuration: { template: '<div class="match-dur-stub">Duration</div>' },
-  SideWinRate: { template: '<div class="side-wr-stub">Side WR</div>' },
+  SideWinDistribution: { template: '<div class="side-wd-stub">Side Win Distribution</div>' },
   SummaryInsights: { template: '<div class="summary-stub">Insights</div>' },
   ChampionMatchups: { template: '<div class="matchups-stub">Matchups</div>' }
 }
@@ -151,7 +151,7 @@ describe('SoloDashboard', () => {
     expect(wrapper.find('.performance-charts-stub').exists()).toBe(true)
     expect(wrapper.find('.radar-chart-stub').exists()).toBe(true)
     expect(wrapper.find('.champion-perf-stub').exists()).toBe(true)
-    expect(wrapper.find('.side-wr-stub').exists()).toBe(true)
+    expect(wrapper.find('.side-wd-stub').exists()).toBe(true)
     expect(wrapper.find('.summary-stub').exists()).toBe(true)
     expect(wrapper.find('.matchups-stub').exists()).toBe(true)
   })

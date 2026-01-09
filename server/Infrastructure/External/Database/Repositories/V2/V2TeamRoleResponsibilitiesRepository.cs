@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2TeamRoleResponsibilitiesRepository : RepositoryBase
 {
-    public V2TeamRoleResponsibilitiesRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2TeamRoleResponsibilitiesRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public Task UpsertAsync(V2TeamRoleResponsibility r)
     {

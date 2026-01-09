@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2ParticipantMetricsRepository : RepositoryBase
 {
-    public V2ParticipantMetricsRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2ParticipantMetricsRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public Task UpsertAsync(V2ParticipantMetric m)
     {

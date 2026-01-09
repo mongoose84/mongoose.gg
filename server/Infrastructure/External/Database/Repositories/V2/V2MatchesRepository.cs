@@ -5,7 +5,7 @@ namespace RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 public class V2MatchesRepository : RepositoryBase
 {
-    public V2MatchesRepository(IDbConnectionFactory factory) : base(factory) {}
+    public V2MatchesRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
     public Task UpsertAsync(V2Match match)
     {
