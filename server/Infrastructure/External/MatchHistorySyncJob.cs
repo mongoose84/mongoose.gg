@@ -776,6 +776,18 @@ namespace RiotProxy.Infrastructure.External
                 }
             }
 
+            // Determine team win flags (used by team metrics and duo metrics)
+            var teamWin = new Dictionary<int, bool> { [100] = false, [200] = false };
+            if (matchInfo.RootElement.TryGetProperty("info", out var winInfoForTeams) && winInfoForTeams.TryGetProperty("teams", out var teamsElForWin))
+            {
+                foreach (var t in teamsElForWin.EnumerateArray())
+                {
+                    var tId = t.TryGetProperty("teamId", out var idEl) && idEl.ValueKind == JsonValueKind.Number ? idEl.GetInt32() : 0;
+                    var w = t.TryGetProperty("win", out var wEl) && (wEl.ValueKind == JsonValueKind.True || wEl.ValueKind == JsonValueKind.False) ? wEl.GetBoolean() : false;
+                    if (tId != 0) teamWin[tId] = w;
+                }
+            }
+
             // Persist team match metrics
             if (frameTeamGold.Count > 0)
             {
@@ -786,18 +798,6 @@ namespace RiotProxy.Infrastructure.External
                 if (leads.Count > 0) largest = Math.Max(Math.Abs(leads.Min(x => x.lead)), Math.Abs(leads.Max(x => x.lead)));
                 var post20 = leads.Where(x => x.minute >= 20).Select(x => x.lead).ToList();
                 if (post20.Count > 0) swing20 = (post20.Max() - post20.Min());
-
-                // Determine team win flags
-                var teamWin = new Dictionary<int, bool> { [100] = false, [200] = false };
-                if (matchInfo.RootElement.TryGetProperty("info", out var winInfo) && winInfo.TryGetProperty("teams", out var teamsEl))
-                {
-                    foreach (var t in teamsEl.EnumerateArray())
-                    {
-                        var tId = t.TryGetProperty("teamId", out var idEl) && idEl.ValueKind == JsonValueKind.Number ? idEl.GetInt32() : 0;
-                        var w = t.TryGetProperty("win", out var wEl) && (wEl.ValueKind == JsonValueKind.True || wEl.ValueKind == JsonValueKind.False) ? wEl.GetBoolean() : false;
-                        if (tId != 0) teamWin[tId] = w;
-                    }
-                }
                 if (byMin.TryGetValue(20, out var l20))
                 {
                     if (l20 > 0) winAhead20 = teamWin.GetValueOrDefault(100);
@@ -941,7 +941,7 @@ namespace RiotProxy.Infrastructure.External
                 }
 
                 // Persist duo metrics
-                await v2DuoMetrics.UpsertAsync(new RiotProxy.External.Domain.Entities.V2.V2DuoMetric
+                await v2DuoMetrics.InsertAsync(new RiotProxy.External.Domain.Entities.V2.V2DuoMetric
                 {
                     MatchId = matchId,
                     ParticipantId1 = adcV2Id,
