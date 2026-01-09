@@ -1330,7 +1330,7 @@ Once the new frontend is migrated to API v2, mark v1 endpoints as deprecated and
 
 ---
 
-### F7. [Security] Implement API key authentication for backend
+### F7. [Security] Implement authenticated access for backend
 
 **Priority:** P0 - Critical  
 **Type:** Security  
@@ -1340,15 +1340,17 @@ Once the new frontend is migrated to API v2, mark v1 endpoints as deprecated and
 
 #### Description
 
-Protect the .NET backend with an API key mechanism similar to the Riot API so only authorized clients can call the server.
+Protect the .NET backend with cookie-based session authentication so only authorized clients can call the server.
 
 #### Acceptance Criteria
 
-- [ ] Configure one or more API keys via secure configuration (e.g. environment variables or secrets file)  
-- [ ] Require a valid API key (e.g. `X-Api-Key` header) for all non-public endpoints  
-- [ ] Requests with missing/invalid keys return `401 Unauthorized` using the standardized error format  
-- [ ] Local development can disable or relax API key checks via configuration  
-- [ ] Authentication failures are logged without exposing the raw key
+- [ ] Configure session middleware (httpOnly, secure, SameSite=Lax cookies) for all v2 endpoints  
+- [ ] Create a login endpoint that validates credentials and sets a session cookie  
+- [ ] Require valid session for non-public endpoints; missing/expired → `401 Unauthorized`  
+- [ ] Session timeout configurable via appsettings (default 30 min)  
+- [ ] Authorization policies can be applied per-route where needed  
+- [ ] Local development can relax cookie.SecurePolicy via configuration  
+- [ ] Authentication failures are logged without exposing user data
 
 ---
 
@@ -1656,7 +1658,7 @@ Create the user-facing authentication and account experience so dashboards, paym
 | F1 | Define API v2 surface & versioning | API v2 | 2 |
 | F2 | Implement Solo dashboard v2 endpoint | API v2 | 3 |
 | F3 | Implement Duo dashboard v2 endpoint | API v2 | 3 |
-| F7 | Implement API key authentication for backend | API v2 | 3 |
+| F7 | Implement authenticated access for backend | API v2 | 3 |
 | F11 | Implement user auth, profile & social endpoints | API v2 | 5 |
 | G1 | Define app v2 IA & routes | Frontend v2 | 2 |
 | G2 | Implement new app shell & navigation | Frontend v2 | 3 |

@@ -21,7 +21,8 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
 
     public void Configure(WebApplication app)
     {
-        app.MapGet(Route, async (
+        var endpoint = app.MapGet(Route, async (
+            HttpContext httpContext,
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromServices] UserGamerRepository userGamerRepo,
@@ -30,6 +31,9 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
         {
             try
             {
+                if (httpContext.User?.Identity?.IsAuthenticated != true)
+                    return Results.Unauthorized();
+
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))
                     return Results.BadRequest(new { error = "Invalid userId format" });
@@ -63,5 +67,7 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });
+
+        endpoint.RequireAuthorization();
     }
 }

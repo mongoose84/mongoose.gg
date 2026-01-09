@@ -62,6 +62,13 @@ POST /api/v2/goals/{userId}
 GET  /api/v2/goals/{userId}/progress
 ```
 
+#### E. User
+```
+POST /api/v2/users                     # Create/register a user for dashboards
+GET  /api/v2/users/{userId}            # Fetch user details for solo/duo/team views
+GET  /api/v2/users/by-puuid/{puuid}    # Optional helper when PUUID is already known
+```
+
 ---
 
 ## 3. Query Parameters - Queue Filtering
@@ -588,6 +595,50 @@ public record InsightCategory(
 
 ---
 
+### E. User Endpoints
+
+#### 4.E.1 `POST /api/v2/users`
+**Purpose:** Create/register a user and attach Riot identity so solo/duo/team dashboards can resolve PUUID.
+
+```csharp
+public record CreateUserRequest(
+    string GameName,                    // Riot game name
+    string TagLine,                     // #TAG line
+    string Region,                      // e.g., euw1, na1, kr
+    string Platform,                    // e.g., americas, europe, asia (for match routing)
+    string? SummonerNameOverride        // Optional: override display if different from gameName
+);
+
+public record UserResponse(
+    string UserId,
+    string Puuid,
+    string GameName,
+    string TagLine,
+    string Region,
+    string Platform,
+    string SummonerName,
+    int ProfileIconId,
+    DateTime CreatedAt,
+    DateTime? LastSyncedAt
+);
+```
+
+#### 4.E.2 `GET /api/v2/users/{userId}`
+**Purpose:** Fetch a user for the solo view (or any dashboard) including PUUID and display info.
+
+```csharp
+// Returns UserResponse
+```
+
+#### 4.E.3 `GET /api/v2/users/by-puuid/{puuid}`
+**Purpose:** Helper when the client already has the PUUID (e.g., deep link) and needs Pulse user metadata.
+
+```csharp
+// Returns UserResponse
+```
+
+---
+
 ## 5. Implementation Guidelines
 
 ### 5.1 Response Shapes
@@ -618,6 +669,9 @@ DTOs/
 │   ├── DuoKillsDto.cs
 │   ├── DuoDeathsDto.cs
 │   └── DuoVsEnemyDto.cs
+├── User/
+│   ├── CreateUserDto.cs
+│   └── UserResponseDto.cs
 ├── Team/
 │   ├── TeamSummaryDto.cs
 │   ├── TeamPerformanceDto.cs
@@ -644,6 +698,13 @@ _endpoints.Add(duoV2Endpoint);
 // ... etc for team, goals
 ```
 
+### 5.5 Authentication
+- All v2 endpoints require cookie-based session authentication
+- Clients must first authenticate via a login endpoint to obtain an auth cookie (httpOnly, secure, SameSite=Lax)
+- Subsequent requests include the cookie automatically; server validates session on each request
+- Missing/expired/invalid session → `401 Unauthorized`
+- Authorization policies can further restrict access per endpoint as needed
+
 ---
 
 ## 6. Versioning Strategy
@@ -663,10 +724,11 @@ _endpoints.Add(duoV2Endpoint);
 
 ## 7. Acceptance Criteria Checklist
 
-- [x] **API v2 route scheme decided** (`/api/v2/solo|duo|team|goals`)
+- [x] **API v2 route scheme decided** (`/api/v2/solo|duo|team|goals|users`)
 - [x] **Request/response models defined** for all dashboard endpoints (see Section 4)
 - [x] **Response shapes optimized** (minimal client aggregation, dashboard-ready)
 - [x] **Queue filtering standardized** (`?queueType=ranked_solo|ranked_flex|normal|aram|all`)
+- [x] **Authentication required** (v2 endpoints assume bearer/cookie auth; unauthorized → 401)
 - [ ] DTOs created & implemented (Next: F2)
 - [ ] Endpoints implemented & tested (Next: F3)
 - [ ] Frontend integration & validation (Next: F4)

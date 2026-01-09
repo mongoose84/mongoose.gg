@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.Logging;
 using RiotProxy.Infrastructure;
 using RiotProxy.Application;
@@ -49,6 +50,29 @@ builder.Services.AddSingleton<MatchHistorySyncJob>();
 builder.Services.AddSingleton<IRiotApiClient, RiotApiClient>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<MatchHistorySyncJob>());
 
+// Add session support
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // set to SameAsRequest for local dev
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
+
+// Add authentication (cookie-based)
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.LogoutPath = "/logout";
+        options.AccessDeniedPath = "/access-denied";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // set to SameAsRequest for local dev
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    });
+
+builder.Services.AddAuthorization();
+
 builder.Services.AddCors(options =>
 {
     // Give the policy a name so you can refer to it later
@@ -79,6 +103,13 @@ var app = builder.Build();
 
 // Apply the CORS policy globally
 app.UseCors("VueClientPolicy");
+
+// Session middleware (must come before routing)
+app.UseSession();
+
+// AuthN/Z middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Enable routing and map endpoints
 var riotProxyApplication = new RiotProxyApplication(app);
