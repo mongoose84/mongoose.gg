@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using System.Linq;
 
 namespace RiotProxy.Infrastructure
 {
@@ -46,12 +47,10 @@ namespace RiotProxy.Infrastructure
 
         private static string FirstNonEmpty(params string?[] values)
         {
-            foreach (var value in values)
-            {
-                if (!string.IsNullOrWhiteSpace(value))
-                    return value.Trim();
-            }
-            return string.Empty;
+            return values
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Select(v => v!.Trim())
+                .FirstOrDefault() ?? string.Empty;
         }
 
         private static string ReadIfExists(string filename)

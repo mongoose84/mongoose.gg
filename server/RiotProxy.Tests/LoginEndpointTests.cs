@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
@@ -73,5 +74,17 @@ public class LoginEndpointTests
         cookie.Should().ContainEquivalentOf("httponly", "cookie must be httpOnly");
         cookie.Should().ContainEquivalentOf("secure", "cookie must require TLS");
         cookie.Should().ContainEquivalentOf("samesite=lax", "cookie should default to SameSite Lax");
+
+        var expiresPart = cookie
+            .Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(p => p.Trim().StartsWith("expires=", StringComparison.OrdinalIgnoreCase));
+
+        expiresPart.Should().NotBeNull("cookie must include Expires");
+        var expiresValue = expiresPart!.Split('=', 2)[1].Trim();
+        DateTimeOffset.TryParse(expiresValue, out var expiresUtc).Should().BeTrue("Expires must be parseable");
+
+        var remaining = expiresUtc - DateTimeOffset.UtcNow;
+        remaining.Should().BeGreaterThan(TimeSpan.FromMinutes(40));
+        remaining.Should().BeLessThan(TimeSpan.FromMinutes(50));
     }
 }

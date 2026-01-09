@@ -95,7 +95,7 @@ cd RiotProxy
 ```
 
 ##### Riot API Key (local)
-Set it via  NET user-secrets (preferred). Example:
+Set it via .NET user-secrets (preferred). Example:
 ```
 
 # or user-secrets (from server/)
@@ -103,7 +103,7 @@ dotnet user-secrets set "Riot:ApiKey" "your-key"
 ```
 
 ##### Database connection string (local)
-Set via  user-secrets:
+Set via user-secrets:
 ```
 
 

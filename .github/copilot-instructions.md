@@ -3,7 +3,7 @@
 ## Project Overview
 - **Pulse** is a full-stack project with a Vue 3 + Vite client (in `client/`) and a C# .NET server (in `server/RiotProxy`).
 - The client and server communicate via HTTP APIs. The server acts as a proxy to the Riot Games API and manages user/game data.
-- Sensitive secrets (API keys, DB connection strings) are stored in plaintext files in the server directory and are gitignored.
+- Sensitive secrets (API keys, DB connection strings) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, LOL_DB_CONNECTIONSTRING, LOL_DB_CONNECTIONSTRING_V2); no secret files should be committed or required.
 
 ## Key Workflows
 ### Client (Vue 3 + Vite)
@@ -18,7 +18,7 @@
 - Build: `cd server && dotnet build`
 - Run: `dotnet run`
 - Publish (Windows): `dotnet publish -c Release -r win-x86 --self-contained true`
-- Secrets: Place `RiotSecret.txt` and `DatabaseSecret.txt` in `server/`
+- Secrets: Provide via env vars or user-secrets (preferred) — `RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING`, `LOL_DB_CONNECTIONSTRING_V2`; legacy secret files are not used.
 - Payments: Use Mollie (EU) for subscriptions; keep Mollie/API keys out of source (see DatabaseSecret.txt and other secrets files)
 - Main entry: `server/Program.cs`
 - Endpoints: `server/Application/Endpoints/`
@@ -29,12 +29,12 @@
 - **Client**: Uses Vue SFCs, composition API, and composables for state/data logic. API calls are abstracted in `assets/`.
 - **Server**: Endpoints are organized by resource in `Application/Endpoints/`. DTOs are used for request/response shapes. Secrets are not checked in. Use SOLID principles for maintainability.  
 - **Testing**: Uses Vitest for client unit tests. No server-side test convention is documented.
-- **Secrets**: Never commit `RiotSecret.txt` or `DatabaseSecret.txt`.
+- **Secrets**: Never commit secrets; use env vars/user-secrets (`RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING`, `LOL_DB_CONNECTIONSTRING_V2`).
 
 ## Integration Points
 - Client <-> Server: HTTP API (see `getUsers.js`, `getGamers.js`, etc. for usage)
 - Server <-> Riot API: Proxy logic in `RiotApiClient.cs`
-- Server <-> Database: Connection via string in `DatabaseSecret.txt`, logic in `Infrastructure/External/Database/`
+- Server <-> Database: Connection via `LOL_DB_CONNECTIONSTRING`/`LOL_DB_CONNECTIONSTRING_V2` (env/user-secrets), logic in `Infrastructure/External/Database/`
 
 ## Examples
 - Add a new API endpoint: create a new file in `Application/Endpoints/`, update `Program.cs` to register it.
@@ -42,7 +42,7 @@
 
 ## References
 - See [README.md](../README.md) for setup, build, and test commands (Pulse vision and domain: pulse.gg).
-- Sensitive config: [server/RiotSecret.txt], [server/DatabaseSecret.txt]
+- Sensitive config: set via env vars or user-secrets (`RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING`, `LOL_DB_CONNECTIONSTRING_V2`)
 - Main server logic: [server/Program.cs], [server/Application/Endpoints/]
 - Main client logic: [client/src/], [client/src/assets/], [client/src/composables/]
 - Riot API Documentation: https://developer.riotgames.com/

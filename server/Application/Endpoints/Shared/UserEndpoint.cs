@@ -70,7 +70,7 @@ namespace RiotProxy.Application.Endpoints
                 [FromServices] IUserRepository userRepo,
                 [FromServices] GamerRepository gamerRepo,
                 [FromServices] UserGamerRepository userGamerRepo,
-                [FromServices] MatchHistorySyncJob matchHistorySyncJob,
+                [FromServices] MatchHistorySyncJob? matchHistorySyncJob,
                 [FromServices] IRiotApiClient riotApiClient
                 ) =>
             {
@@ -117,9 +117,12 @@ namespace RiotProxy.Application.Endpoints
                         }
                     }
                     
-                    // Trigger the background job to update match history
-                    Console.WriteLine("Triggering MatchHistorySyncJob after user creation...");
-                    _ = Task.Run(() => matchHistorySyncJob.RunJobAsync(CancellationToken.None));
+                    // Trigger the background job to update match history if available
+                    if (matchHistorySyncJob is not null)
+                    {
+                        Console.WriteLine("Triggering MatchHistorySyncJob after user creation...");
+                        _ = Task.Run(() => matchHistorySyncJob.RunJobAsync(CancellationToken.None));
+                    }
 
                     return Results.Ok("{\"message\":\"User and gamers created successfully\"}");
                 }
