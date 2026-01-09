@@ -102,6 +102,12 @@ jobs:
           port: 21
           # Point to the SAME folder we just verified
           local-dir: ./server/${{ env.PUBLISH_DIR }}/
+          # NOTE: The exclusion patterns below may be redundant. RiotProxy.csproj already
+          # excludes RiotProxy.Tests content via Compile Remove, EmbeddedResource Remove,
+          # and None Remove directives. Since the tests project is separate and should not
+          # be included in the publish output by dotnet publish, these FTP patterns are
+          # likely unnecessary. Consider removing if verification confirms test files are
+          # not present in the publish folder.
           exclude: |
             RiotProxy.Tests/**
             **/RiotProxy.Tests/**
