@@ -116,6 +116,8 @@ public class TeamStatsRepository : RepositoryBase
                     {string.Join(" ", joinClauses)}
                     INNER JOIN LolMatch m ON p0.MatchId = m.MatchId
                     WHERE p0.Puuid = @puuid0
+                      AND m.InfoFetched = TRUE
+                      AND m.DurationSeconds > 0
                       AND m.GameMode != 'ARAM'
                 ) as t1";
 

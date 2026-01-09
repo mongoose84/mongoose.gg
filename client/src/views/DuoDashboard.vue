@@ -67,7 +67,7 @@
           <!-- Match Duration & Side Win Rate (Two-column layout) -->
           <div class="duo-features-grid">
             <DuoMatchDuration :userId="userId" />
-            <SideWinRate :userId="userId" mode="duo" />
+            <SideWinDistribution :userId="userId" mode="duo" />
           </div>
 
           <!-- Kill Analysis Section -->
@@ -102,7 +102,7 @@ import { useGamers } from '@/composables/useGamers.js';
 import { getDuoStats, getDuoLatestGame } from '@/api/duo.js';
 // Shared components
 import GamerCardsList from '@/components/shared/GamerCardsList.vue';
-import SideWinRate from '@/components/shared/SideWinRate.vue';
+import SideWinDistribution from '@/components/shared/SideWinDistribution.vue';
 import AppLogo from '@/components/shared/AppLogo.vue';
 import LatestGameTogether from '@/components/shared/LatestGameTogether.vue';
 // Duo components

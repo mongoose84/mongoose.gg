@@ -1,5 +1,5 @@
 <template>
-  <div class="side-win-rate-container">
+  <div class="side-win-distribution-container">
     <div v-if="loading" class="loading">Loading side statistics…</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else-if="!hasData" class="empty">No side data available.</div>
@@ -132,18 +132,18 @@ onMounted(load);
 </script>
 
 <style scoped>
-.side-win-rate-container {
+.side-win-distribution-container {
   width: 100%;
 }
 
-.side-win-rate-container :deep(.chart-card) {
+.side-win-distribution-container :deep(.chart-card) {
   min-height: 200px;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.side-win-rate-container :deep(.chart-card > div:last-child) {
+.side-win-distribution-container :deep(.chart-card > div:last-child) {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -214,9 +214,8 @@ onMounted(load);
 }
 
 @media (max-width: 1200px) {
-  .side-win-rate-container {
+  .side-win-distribution-container {
     max-width: 100%;
   }
 }
 </style>
-
