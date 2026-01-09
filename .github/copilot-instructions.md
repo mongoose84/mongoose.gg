@@ -45,6 +45,9 @@
 - Sensitive config: [server/RiotSecret.txt], [server/DatabaseSecret.txt]
 - Main server logic: [server/Program.cs], [server/Application/Endpoints/]
 - Main client logic: [client/src/], [client/src/assets/], [client/src/composables/]
+- Riot API Documentation: https://developer.riotgames.com/
+- Documentation for API v2: [docs/api_v2.md]
+- Database schema: [docs/database_schema_v2.md][server/schema_v2.sql]
 
 ---
 For new patterns or changes, update this file to keep AI agents productive and aligned with project conventions.
