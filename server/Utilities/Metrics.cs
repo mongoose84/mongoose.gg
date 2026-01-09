@@ -1,5 +1,6 @@
 
 using System.Reflection;
+using System.Threading;
 
 namespace RiotProxy.Utilities
 {
@@ -18,13 +19,15 @@ namespace RiotProxy.Utilities
         public static void IncrementMetrics() => Interlocked.Increment(ref _metricHits);
         public static void IncrementWinrate() => Interlocked.Increment(ref _winrateHits);
         public static void IncrementSummoner() => Interlocked.Increment(ref _summonerHits);
-        public static void SetLastUrlCalled(string url) => _lastUrlCalled = url;
+        public static void SetLastUrlCalled(string url)
+            => Interlocked.Exchange(ref _lastUrlCalled, url ?? string.Empty);
 
         // Expose the counters
         public static long HomeHits => Interlocked.Read(ref _homeHits);
         public static long MetricHits => Interlocked.Read(ref _metricHits);
         public static long WinrateHits => Interlocked.Read(ref _winrateHits);
         public static long SummonerHits => Interlocked.Read(ref _summonerHits);
+        public static string LastUrlCalled => Volatile.Read(ref _lastUrlCalled);
         public static string BuildNumber =>
             typeof(Metrics).Assembly
                         .GetCustomAttribute<AssemblyInformationalVersionAttribute>()

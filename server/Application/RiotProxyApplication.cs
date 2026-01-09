@@ -1,5 +1,6 @@
 using RiotProxy.Application.Endpoints;
 using RiotProxy.Application.Endpoints.Auth;
+using RiotProxy.Application.Endpoints.Diagnostics;
 using RiotProxy.Application.Endpoints.Solo;
 
 namespace RiotProxy.Application
@@ -18,8 +19,9 @@ namespace RiotProxy.Application
             var homeEndPoint = new HomeEndpoint(_apiVersion, _basePath);
             _endpoints.Add(homeEndPoint);
 
-            var metricsEndpoint = new MetricsEndpoint(_basePath);
-            _endpoints.Add(metricsEndpoint);
+            // Diagnostics endpoint (public, no auth required)
+            var diagnosticsEndpoint = new DiagnosticsEndpoint(_basePath);
+            _endpoints.Add(diagnosticsEndpoint);
 
             var userEndpoint = new UserEndpoint(_basePath);
             _endpoints.Add(userEndpoint);

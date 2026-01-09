@@ -19,8 +19,7 @@ jobs:
     runs-on: windows-latest               # needed for win‑x86 runtime
     env:
       # Folder where `dotnet publish` will drop the files
-      PUBLISH_DIR: publish-output
-      LOL_DB_CONNECTIONSTRING: ${{ secrets.LOL_DB_CONNECTIONSTRING }}  
+      PUBLISH_DIR: publish-output  
       
     defaults:
       # Every `run:` step will start in the project folder
@@ -62,6 +61,71 @@ jobs:
       # -------------------------------------------------
       - name: Restore dependencies
         run: dotnet restore
+
+      # -------------------------------------------------
+      # Validate required secrets are set
+      # -------------------------------------------------
+      - name: Validate required secrets
+        shell: pwsh
+        run: |
+          $missingSecrets = @()
+          
+          if ([string]::IsNullOrWhiteSpace("${{ secrets.LOL_DB_CONNECTIONSTRING }}")) {
+            $missingSecrets += "LOL_DB_CONNECTIONSTRING"
+          }
+          if ([string]::IsNullOrWhiteSpace("${{ secrets.LOL_DB_CONNECTIONSTRING_V2 }}")) {
+            $missingSecrets += "LOL_DB_CONNECTIONSTRING_V2"
+          }
+          if ([string]::IsNullOrWhiteSpace("${{ secrets.RIOT_API_KEY }}")) {
+            $missingSecrets += "RIOT_API_KEY"
+          }
+          
+          if ($missingSecrets.Count -gt 0) {
+            Write-Error "❌ Missing required GitHub secrets: $($missingSecrets -join ', ')"
+            Write-Error "Please add these secrets in: Settings → Secrets and variables → Actions"
+            Write-Error "Required format:"
+            Write-Error "  - LOL_DB_CONNECTIONSTRING: Server=host;Port=3306;Database=db;User=user;Password=pass"
+            Write-Error "  - LOL_DB_CONNECTIONSTRING_V2: Server=host;Port=3306;Database=db_v2;User=user;Password=pass"
+            Write-Error "  - RIOT_API_KEY: RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            exit 1
+          }
+          
+          Write-Host "✅ All required secrets are configured"
+
+      # -------------------------------------------------
+      # Create appsettings.Production.json with secrets
+      # This file will be deployed and read by the app at runtime
+      # -------------------------------------------------
+      - name: Generate appsettings.Production.json
+        shell: pwsh
+        run: |
+          $json = @{
+            "Logging" = @{
+              "LogLevel" = @{
+                "Default" = "Warning"
+                "Microsoft.AspNetCore" = "Warning"
+              }
+            }
+            "AllowedHosts" = "*"
+            "ConnectionStrings" = @{
+              "Default" = "${{ secrets.LOL_DB_CONNECTIONSTRING }}"
+              "DatabaseV2" = "${{ secrets.LOL_DB_CONNECTIONSTRING_V2 }}"
+            }
+            "Riot" = @{
+              "ApiKey" = "${{ secrets.RIOT_API_KEY }}"
+            }
+            "Auth" = @{
+              "CookieName" = "pulse-auth"
+              "SessionTimeout" = 30
+              "EnableMvpLogin" = $false
+            }
+            "Jobs" = @{
+              "EnableMatchHistorySync" = $true
+            }
+          } | ConvertTo-Json -Depth 10
+          
+          Set-Content -Path "appsettings.Production.json" -Value $json
+          Write-Host "✅ appsettings.Production.json generated successfully (contents hidden for security)"
 
       # -------------------------------------------------
       # Run server unit tests (including auth hardening)

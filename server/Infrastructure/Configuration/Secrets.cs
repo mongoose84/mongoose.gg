@@ -14,6 +14,8 @@ namespace RiotProxy.Infrastructure
 
         /// <summary>
         /// Load secrets from configuration/env. Falls back to optional local files if present.
+        /// Priority: appsettings → env vars → local files
+        /// Debug logging is conditional (Development or Secrets:EnableDebugLogging=true).
         /// </summary>
         public static void Initialize(IConfiguration config)
         {
@@ -42,7 +44,40 @@ namespace RiotProxy.Infrastructure
                 Environment.GetEnvironmentVariable("LOL_DB_CONNECTIONSTRING_V2"),
                 ReadIfExists("DatabaseSecretV2.txt"));
 
+            // Optional debug logging: only in Development or when explicitly enabled
+            var enableSecretsDebug = config.GetValue<bool>("Secrets:EnableDebugLogging", false);
+            var aspnetEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? string.Empty;
+            var isDevelopment = string.Equals(aspnetEnv, "Development", StringComparison.OrdinalIgnoreCase);
+            if (enableSecretsDebug || isDevelopment)
+            {
+                LogConfigurationStatus(config);
+            }
+
             _initialized = true;
+        }
+
+        /// <summary>
+        /// Log which secrets were successfully loaded (for debugging configuration issues).
+        /// </summary>
+        private static void LogConfigurationStatus(IConfiguration config)
+        {
+            var isApiKeySet = !string.IsNullOrWhiteSpace(ApiKey);
+            var isDbConnectionSet = !string.IsNullOrWhiteSpace(DatabaseConnectionString);
+            var isDbV2ConnectionSet = !string.IsNullOrWhiteSpace(DatabaseConnectionStringV2);
+
+            Console.WriteLine($"[Secrets.Initialize] ApiKey configured: {isApiKeySet}");
+            Console.WriteLine($"[Secrets.Initialize] DatabaseConnectionString configured: {isDbConnectionSet}");
+            Console.WriteLine($"[Secrets.Initialize] DatabaseConnectionStringV2 configured: {isDbV2ConnectionSet}");
+
+            // List environment variables that might be missing
+            if (!isDbConnectionSet)
+            {
+                Console.WriteLine("[Secrets.Initialize] WARNING: LOL_DB_CONNECTIONSTRING not found. Checked: appsettings, env vars, DatabaseSecret.txt");
+            }
+            if (!isDbV2ConnectionSet)
+            {
+                Console.WriteLine("[Secrets.Initialize] WARNING: LOL_DB_CONNECTIONSTRING_V2 not found. Checked: appsettings, env vars, DatabaseSecretV2.txt");
+            }
         }
 
         private static string FirstNonEmpty(params string?[] values)

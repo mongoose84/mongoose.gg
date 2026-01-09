@@ -133,7 +133,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "Server=...;Password=...;"
 dotnet user-secrets set "ConnectionStrings:DatabaseV2" "Server=...;Password=...;"
 ```
 
-Note: You no longer need to create RiotSecret.txt or DatabaseSecret.txt; secrets are read from configuration/env.
+Note: Secrets are read from configuration/env. Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported as a fallback for local development, but they must never be committed and are not used in production.
 ##### Build and run
 
 build and run the application on Windows

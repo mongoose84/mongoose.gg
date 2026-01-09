@@ -3,7 +3,7 @@
 ## Project Overview
 - **Pulse** is a full-stack project with a Vue 3 + Vite client (in `client/`) and a C# .NET server (in `server/RiotProxy`).
 - The client and server communicate via HTTP APIs. The server acts as a proxy to the Riot Games API and manages user/game data.
-- Sensitive secrets (API keys, DB connection strings) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, LOL_DB_CONNECTIONSTRING, LOL_DB_CONNECTIONSTRING_V2); no secret files should be committed or required.
+- Sensitive secrets (API keys, DB connection strings) are supplied primarily via environment variables or .NET user-secrets (RIOT_API_KEY, LOL_DB_CONNECTIONSTRING, LOL_DB_CONNECTIONSTRING_V2). Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported as a fallback for local development but must never be committed and are not used in production.
 
 ## Key Workflows
 ### Client (Vue 3 + Vite)
@@ -18,7 +18,7 @@
 - Build: `cd server && dotnet build`
 - Run: `dotnet run`
 - Publish (Windows): `dotnet publish -c Release -r win-x86 --self-contained true`
-- Secrets: Provide via env vars or user-secrets (preferred) — `RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING`, `LOL_DB_CONNECTIONSTRING_V2`; legacy secret files are not used.
+- Secrets: Provide via env vars or user-secrets (preferred) — `RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING`, `LOL_DB_CONNECTIONSTRING_V2`. Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported as a local development fallback and must not be committed; they are not used in production deployments.
 - Payments: Use Mollie (EU) for subscriptions; keep Mollie/API keys out of source (see DatabaseSecret.txt and other secrets files)
 - Main entry: `server/Program.cs`
 - Endpoints: `server/Application/Endpoints/`
