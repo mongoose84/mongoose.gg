@@ -50,6 +50,9 @@ builder.Services.AddSingleton<MatchHistorySyncJob>();
 builder.Services.AddSingleton<IRiotApiClient, RiotApiClient>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<MatchHistorySyncJob>());
 
+// Add distributed cache for session storage (in-memory for dev, Redis for prod)
+builder.Services.AddDistributedMemoryCache();
+
 // Add session support
 builder.Services.AddSession(options =>
 {
