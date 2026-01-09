@@ -25,6 +25,7 @@ namespace RiotProxy.Utilities
         public static long MetricHits => Interlocked.Read(ref _metricHits);
         public static long WinrateHits => Interlocked.Read(ref _winrateHits);
         public static long SummonerHits => Interlocked.Read(ref _summonerHits);
+        public static string LastUrlCalled => _lastUrlCalled;
         public static string BuildNumber =>
             typeof(Metrics).Assembly
                         .GetCustomAttribute<AssemblyInformationalVersionAttribute>()

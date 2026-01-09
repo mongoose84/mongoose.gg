@@ -1,10 +1,11 @@
 using RiotProxy.Infrastructure;
+using RiotProxy.Utilities;
 
 namespace RiotProxy.Application.Endpoints.Diagnostics
 {
     /// <summary>
-    /// Diagnostics endpoint for verifying configuration and connectivity.
-    /// Returns status of critical infrastructure: database, API keys, etc.
+    /// Diagnostics endpoint for verifying configuration, connectivity, and runtime metrics.
+    /// Returns status of critical infrastructure: database, API keys, usage statistics, etc.
     /// </summary>
     public sealed class DiagnosticsEndpoint : IEndpoint
     {
@@ -19,6 +20,9 @@ namespace RiotProxy.Application.Endpoints.Diagnostics
         {
             app.MapGet(Route, (HttpContext httpContext) =>
             {
+                // Increment metrics counter
+                Metrics.IncrementMetrics();
+
                 var isApiKeyConfigured = !string.IsNullOrWhiteSpace(Secrets.ApiKey);
                 var isDbConfigured = !string.IsNullOrWhiteSpace(Secrets.DatabaseConnectionString);
                 var isDbV2Configured = !string.IsNullOrWhiteSpace(Secrets.DatabaseConnectionStringV2);
@@ -27,12 +31,21 @@ namespace RiotProxy.Application.Endpoints.Diagnostics
                 {
                     environment = GetEnvironment(),
                     timestamp = DateTime.UtcNow,
+                    build = Metrics.BuildNumber,
                     configuration = new
                     {
                         apiKeyConfigured = isApiKeyConfigured,
                         databaseConfigured = isDbConfigured,
                         databaseV2Configured = isDbV2Configured,
                         allConfigured = isApiKeyConfigured && isDbConfigured && isDbV2Configured
+                    },
+                    metrics = new
+                    {
+                        homeHits = Metrics.HomeHits,
+                        metricHits = Metrics.MetricHits,
+                        winrateHits = Metrics.WinrateHits,
+                        summonerHits = Metrics.SummonerHits,
+                        lastUrlCalled = string.IsNullOrWhiteSpace(Metrics.LastUrlCalled) ? "none" : Metrics.LastUrlCalled
                     },
                     notes = new string[]
                     {

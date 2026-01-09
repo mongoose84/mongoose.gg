@@ -19,9 +19,6 @@ namespace RiotProxy.Application
             var homeEndPoint = new HomeEndpoint(_apiVersion, _basePath);
             _endpoints.Add(homeEndPoint);
 
-            var metricsEndpoint = new MetricsEndpoint(_basePath);
-            _endpoints.Add(metricsEndpoint);
-
             // Diagnostics endpoint (public, no auth required)
             var diagnosticsEndpoint = new DiagnosticsEndpoint(_basePath);
             _endpoints.Add(diagnosticsEndpoint);
