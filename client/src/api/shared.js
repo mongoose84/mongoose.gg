@@ -4,7 +4,7 @@ import axios from 'axios';
 const development = import.meta.env.DEV;
 const apiVersion = '/api/v1.0';
 const host = development
-  ? 'http://localhost:5000'
+  ? 'http://localhost:5164'
   : 'https://lol-api.agileastronaut.com';
 
 export function getHost() {
