@@ -102,6 +102,14 @@ builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
 builder.Logging.AddFilter("System.Net.Http.HttpClient.RiotApi.LogicalHandler", LogLevel.Warning);
 builder.Logging.AddFilter("System.Net.Http.HttpClient.RiotApi.ClientHandler", LogLevel.Warning);
 
+// In development, print ILogger messages to console (and debug)
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.SetMinimumLevel(LogLevel.Information);
+    builder.Logging.AddConsole();
+    builder.Logging.AddDebug();
+}
+
 var app = builder.Build();
 
 // Apply the CORS policy globally
