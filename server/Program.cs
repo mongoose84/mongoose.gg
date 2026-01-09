@@ -27,12 +27,12 @@ builder.Services.AddScoped<TeamStatsRepository>();
 // V2 repositories
 builder.Services.AddScoped<V2MatchesRepository>();
 builder.Services.AddScoped<V2ParticipantsRepository>();
-builder.Services.AddScoped<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantCheckpointsRepository>();
-builder.Services.AddScoped<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantMetricsRepository>();
-builder.Services.AddScoped<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2TeamObjectivesRepository>();
-builder.Services.AddScoped<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantObjectivesRepository>();
-builder.Services.AddScoped<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2TeamMatchMetricsRepository>();
-builder.Services.AddScoped<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2DuoMetricsRepository>();
+builder.Services.AddScoped<V2ParticipantCheckpointsRepository>();
+builder.Services.AddScoped<V2ParticipantMetricsRepository>();
+builder.Services.AddScoped<V2TeamObjectivesRepository>();
+builder.Services.AddScoped<V2ParticipantObjectivesRepository>();
+builder.Services.AddScoped<V2TeamMatchMetricsRepository>();
+builder.Services.AddScoped<V2DuoMetricsRepository>();
 
 // Named HttpClient for Riot API
 builder.Services.AddHttpClient("RiotApi", client =>

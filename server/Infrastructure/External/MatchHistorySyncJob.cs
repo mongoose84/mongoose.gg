@@ -2,6 +2,7 @@ using RiotProxy.External.Domain.Entities;
 using RiotProxy.Infrastructure.External.Database.Repositories;
 using RiotProxy.Infrastructure.External.Riot;
 using System.Text.Json;
+using RiotProxy.Infrastructure.External.Database.Repositories.V2;
 
 namespace RiotProxy.Infrastructure.External
 {
@@ -52,14 +53,14 @@ namespace RiotProxy.Infrastructure.External
                 var matchRepository = scope.ServiceProvider.GetRequiredService<LolMatchRepository>();
                 var participantRepository = scope.ServiceProvider.GetRequiredService<LolMatchParticipantRepository>();
                 // v2 repositories
-                var v2Matches = scope.ServiceProvider.GetRequiredService<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2MatchesRepository>();
-                var v2Participants = scope.ServiceProvider.GetRequiredService<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantsRepository>();
-                var v2Checkpoints = scope.ServiceProvider.GetRequiredService<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantCheckpointsRepository>();
-                var v2PartMetrics = scope.ServiceProvider.GetRequiredService<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantMetricsRepository>();
-                var v2TeamObjectives = scope.ServiceProvider.GetRequiredService<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2TeamObjectivesRepository>();
-                var v2PartObjectives = scope.ServiceProvider.GetRequiredService<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantObjectivesRepository>();
-                var v2TeamMetrics = scope.ServiceProvider.GetRequiredService<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2TeamMatchMetricsRepository>();
-                var v2DuoMetrics = scope.ServiceProvider.GetRequiredService<RiotProxy.Infrastructure.External.Database.Repositories.V2.V2DuoMetricsRepository>();
+                var v2Matches = scope.ServiceProvider.GetRequiredService<V2MatchesRepository>();
+                var v2Participants = scope.ServiceProvider.GetRequiredService<V2ParticipantsRepository>();
+                var v2Checkpoints = scope.ServiceProvider.GetRequiredService<V2ParticipantCheckpointsRepository>();
+                var v2PartMetrics = scope.ServiceProvider.GetRequiredService<V2ParticipantMetricsRepository>();
+                var v2TeamObjectives = scope.ServiceProvider.GetRequiredService<V2TeamObjectivesRepository>();
+                var v2PartObjectives = scope.ServiceProvider.GetRequiredService<V2ParticipantObjectivesRepository>();
+                var v2TeamMetrics = scope.ServiceProvider.GetRequiredService<V2TeamMatchMetricsRepository>();
+                var v2DuoMetrics = scope.ServiceProvider.GetRequiredService<V2DuoMetricsRepository>();
 
                 Console.WriteLine("MatchHistorySyncJob started.");
                 var gamers = await gamerRepository.GetAllGamersAsync();
@@ -114,7 +115,7 @@ namespace RiotProxy.Infrastructure.External
             IList<Gamer> gamers,
             IRiotApiClient riotApiClient,
             LolMatchParticipantRepository participantRepository,
-            RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantsRepository v2ParticipantRepository,
+            V2ParticipantsRepository v2ParticipantRepository,
             CancellationToken ct)
         {
             var allNewMatches = new List<LolMatch>();
@@ -202,14 +203,14 @@ namespace RiotProxy.Infrastructure.External
                         LolMatchParticipantRepository participantRepository,
                         LolMatchRepository matchRepository,
                         GamerRepository gamerRepository,
-                        RiotProxy.Infrastructure.External.Database.Repositories.V2.V2MatchesRepository v2Matches,
-                        RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantsRepository v2Participants,
-                        RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantCheckpointsRepository v2Checkpoints,
-                        RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantMetricsRepository v2PartMetrics,
-                        RiotProxy.Infrastructure.External.Database.Repositories.V2.V2TeamObjectivesRepository v2TeamObjectives,
-                        RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantObjectivesRepository v2PartObjectives,
-                        RiotProxy.Infrastructure.External.Database.Repositories.V2.V2TeamMatchMetricsRepository v2TeamMetrics,
-                        RiotProxy.Infrastructure.External.Database.Repositories.V2.V2DuoMetricsRepository v2DuoMetrics,
+                        V2MatchesRepository v2Matches,
+                        V2ParticipantsRepository v2Participants,
+                        V2ParticipantCheckpointsRepository v2Checkpoints,
+                        V2ParticipantMetricsRepository v2PartMetrics,
+                        V2TeamObjectivesRepository v2TeamObjectives,
+                        V2ParticipantObjectivesRepository v2PartObjectives,
+                        V2TeamMatchMetricsRepository v2TeamMetrics,
+                        V2DuoMetricsRepository v2DuoMetrics,
                         CancellationToken ct)
         {
             var participantsAdded = 0;
@@ -237,11 +238,19 @@ namespace RiotProxy.Infrastructure.External
                     foreach (var p in v2Parts)
                         await v2Participants.InsertAsync(p);
 
-                    // Fetch timeline and compute derived metrics for v2
-                    var timelineDoc = await riotApiClient.GetMatchTimelineAsync(match.MatchId);
-                    await PersistV2TimelineDerivedAsync(match.MatchId, matchInfoJson, timelineDoc,
-                        v2Participants, v2Checkpoints, v2PartMetrics, v2TeamObjectives, v2PartObjectives,
-                        v2TeamMetrics, v2DuoMetrics, ct);
+                    // Fetch timeline and compute derived metrics for v2; failures here should not rollback v1 data
+                    try
+                    {
+                        var timelineDoc = await riotApiClient.GetMatchTimelineAsync(match.MatchId);
+                        await PersistV2TimelineDerivedAsync(match.MatchId, matchInfoJson, timelineDoc,
+                            v2Participants, v2Checkpoints, v2PartMetrics, v2TeamObjectives, v2PartObjectives,
+                            v2TeamMetrics, v2DuoMetrics, ct);
+                    }
+                    catch (Exception ex) when (!(ex is OperationCanceledException))
+                    {
+                        // Log and continue so v1 data stays persisted; v2 timeline processing can be retried later
+                        Console.WriteLine($"Warning: timeline processing failed for match {match.MatchId}: {ex.Message}");
+                    }
 
                     // Update that a gamers info has been updated
                     var gamer = gamers.FirstOrDefault(g => g.Puuid == match.Puuid);
@@ -523,13 +532,13 @@ namespace RiotProxy.Infrastructure.External
             string matchId,
             JsonDocument matchInfo,
             JsonDocument timeline,
-            RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantsRepository v2Participants,
-            RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantCheckpointsRepository v2Checkpoints,
-            RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantMetricsRepository v2PartMetrics,
-            RiotProxy.Infrastructure.External.Database.Repositories.V2.V2TeamObjectivesRepository v2TeamObjectives,
-            RiotProxy.Infrastructure.External.Database.Repositories.V2.V2ParticipantObjectivesRepository v2PartObjectives,
-            RiotProxy.Infrastructure.External.Database.Repositories.V2.V2TeamMatchMetricsRepository v2TeamMetrics,
-            RiotProxy.Infrastructure.External.Database.Repositories.V2.V2DuoMetricsRepository v2DuoMetrics,
+            V2ParticipantsRepository v2Participants,
+            V2ParticipantCheckpointsRepository v2Checkpoints,
+            V2ParticipantMetricsRepository v2PartMetrics,
+            V2TeamObjectivesRepository v2TeamObjectives,
+            V2ParticipantObjectivesRepository v2PartObjectives,
+            V2TeamMatchMetricsRepository v2TeamMetrics,
+            V2DuoMetricsRepository v2DuoMetrics,
             CancellationToken ct)
         {
             var participants = await v2Participants.GetByMatchAsync(matchId);
@@ -612,6 +621,8 @@ namespace RiotProxy.Infrastructure.External
                     var gold100 = 0; var gold200 = 0;
                     if (frame.TryGetProperty("participantFrames", out var pf))
                     {
+                        var frameCheckpoints = new List<RiotProxy.External.Domain.Entities.V2.V2ParticipantCheckpoint>();
+
                         foreach (var kv in pf.EnumerateObject())
                         {
                             var tlId = int.TryParse(kv.Name, out var idVal) ? idVal : 0;
@@ -657,20 +668,25 @@ namespace RiotProxy.Infrastructure.External
                                         }
                                     }
 
-                                    await v2Checkpoints.UpsertAsync(new RiotProxy.External.Domain.Entities.V2.V2ParticipantCheckpoint
+                                    frameCheckpoints.Add(new RiotProxy.External.Domain.Entities.V2.V2ParticipantCheckpoint
                                     {
-                                        ParticipantId = v2Pid,
-                                        MinuteMark = minute,
-                                        Gold = gold,
-                                        Cs = cs,
-                                        Xp = xp,
-                                        GoldDiffVsLane = diffGold,
-                                        CsDiffVsLane = diffCs,
-                                        IsAhead = ahead,
-                                        CreatedAt = DateTime.UtcNow
+        ParticipantId = v2Pid,
+        MinuteMark = minute,
+        Gold = gold,
+        Cs = cs,
+        Xp = xp,
+        GoldDiffVsLane = diffGold,
+        CsDiffVsLane = diffCs,
+        IsAhead = ahead,
+        CreatedAt = DateTime.UtcNow
                                     });
                                 }
                             }
+                        }
+
+                        if (frameCheckpoints.Count > 0)
+                        {
+                            await v2Checkpoints.UpsertBatchAsync(frameCheckpoints);
                         }
                     }
                     frameTeamGold.Add((minute, gold100, gold200));
@@ -691,7 +707,10 @@ namespace RiotProxy.Infrastructure.External
                                 var assists = new List<int>();
                                 if (ev.TryGetProperty("assistingParticipantIds", out var aid) && aid.ValueKind == JsonValueKind.Array)
                                 {
-                                    foreach (var a in aid.EnumerateArray()) if (a.ValueKind == JsonValueKind.Number) assists.Add(a.GetInt32());
+                                    foreach (var a in aid.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Number))
+                                    {
+                                        assists.Add(a.GetInt32());
+                                    }
                                 }
                                 // death bucket for victim
                                 var victimPuuid = puuidToTimelineId.FirstOrDefault(p => p.Value == victimId).Key;
@@ -739,16 +758,13 @@ namespace RiotProxy.Infrastructure.External
                                     }
                                     if (ev.TryGetProperty("assistingParticipantIds", out var aid) && aid.ValueKind == JsonValueKind.Array)
                                     {
-                                        foreach (var a in aid.EnumerateArray())
+                                        foreach (var a in aid.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Number))
                                         {
-                                            if (a.ValueKind == JsonValueKind.Number)
+                                            var ap = puuidToTimelineId.FirstOrDefault(p => p.Value == a.GetInt32()).Key;
+                                            if (!string.IsNullOrEmpty(ap))
                                             {
-                                                var ap = puuidToTimelineId.FirstOrDefault(p => p.Value == a.GetInt32()).Key;
-                                                if (!string.IsNullOrEmpty(ap))
-                                                {
-                                                    var cur = partObj[ap];
-                                                    partObj[ap] = (cur.drake + inc.drake, cur.herald + inc.herald, cur.baron + inc.baron, cur.towers);
-                                                }
+                                                var cur = partObj[ap];
+                                                partObj[ap] = (cur.drake + inc.drake, cur.herald + inc.herald, cur.baron + inc.baron, cur.towers);
                                             }
                                         }
                                     }
@@ -783,7 +799,7 @@ namespace RiotProxy.Infrastructure.External
                 foreach (var t in teamsElForWin.EnumerateArray())
                 {
                     var tId = t.TryGetProperty("teamId", out var idEl) && idEl.ValueKind == JsonValueKind.Number ? idEl.GetInt32() : 0;
-                    var w = t.TryGetProperty("win", out var wEl) && (wEl.ValueKind == JsonValueKind.True || wEl.ValueKind == JsonValueKind.False) ? wEl.GetBoolean() : false;
+                    var w = t.TryGetProperty("win", out var wEl) && (wEl.ValueKind == JsonValueKind.True || wEl.ValueKind == JsonValueKind.False) && wEl.GetBoolean();
                     if (tId != 0) teamWin[tId] = w;
                 }
             }
@@ -902,11 +918,22 @@ namespace RiotProxy.Infrastructure.External
                 if (!puuidToV2Id.TryGetValue(enemyAdc, out var enemyAdcV2Id) || !puuidToV2Id.TryGetValue(enemySup, out var enemySupV2Id))
                     continue;
 
-                // Fetch checkpoints for all four players
-                var adcCheckpoints = await v2Checkpoints.GetByParticipantAsync(adcV2Id);
-                var supCheckpoints = await v2Checkpoints.GetByParticipantAsync(supV2Id);
-                var enemyAdcCheckpoints = await v2Checkpoints.GetByParticipantAsync(enemyAdcV2Id);
-                var enemySupCheckpoints = await v2Checkpoints.GetByParticipantAsync(enemySupV2Id);
+                // Fetch checkpoints for all four players in a single batch
+                var participantIds = new[] { adcV2Id, supV2Id, enemyAdcV2Id, enemySupV2Id };
+                var allCheckpoints = await v2Checkpoints.GetByParticipantIdsAsync(participantIds);
+                var cpsByParticipant = allCheckpoints
+                    .GroupBy(c => c.ParticipantId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                cpsByParticipant.TryGetValue(adcV2Id, out var adcCheckpoints);
+                cpsByParticipant.TryGetValue(supV2Id, out var supCheckpoints);
+                cpsByParticipant.TryGetValue(enemyAdcV2Id, out var enemyAdcCheckpoints);
+                cpsByParticipant.TryGetValue(enemySupV2Id, out var enemySupCheckpoints);
+
+                adcCheckpoints ??= new List<RiotProxy.External.Domain.Entities.V2.V2ParticipantCheckpoint>();
+                supCheckpoints ??= new List<RiotProxy.External.Domain.Entities.V2.V2ParticipantCheckpoint>();
+                enemyAdcCheckpoints ??= new List<RiotProxy.External.Domain.Entities.V2.V2ParticipantCheckpoint>();
+                enemySupCheckpoints ??= new List<RiotProxy.External.Domain.Entities.V2.V2ParticipantCheckpoint>();
 
                 int? eg10 = null; int? eg15 = null; bool? winAhead15 = null;
 
@@ -932,12 +959,19 @@ namespace RiotProxy.Infrastructure.External
                     var duoGold15 = adc15.Gold + sup15.Gold;
                     var enemyDuoGold15 = enemyAdc15.Gold + enemySup15.Gold;
                     eg15 = duoGold15 - enemyDuoGold15;
-                    
-                    // Determine if duo won when ahead at 15
+
+                    // Track outcomes both when ahead and when behind at 15
                     if (eg15 > 0)
                     {
+                        // Won/lost while ahead at 15
                         winAhead15 = teamWin.GetValueOrDefault(team);
                     }
+                    else if (eg15 < 0)
+                    {
+                        // Won/lost from behind at 15 (captures comebacks)
+                        winAhead15 = teamWin.GetValueOrDefault(team);
+                    }
+                    // If exactly even at 15, leave null
                 }
 
                 // Persist duo metrics
