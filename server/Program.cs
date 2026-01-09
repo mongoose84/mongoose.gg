@@ -54,9 +54,10 @@ builder.Services.AddHostedService(provider => provider.GetRequiredService<MatchH
 builder.Services.AddDistributedMemoryCache();
 
 // Add session support
+var sessionTimeoutMinutes = builder.Configuration.GetValue<int>("Auth:SessionTimeout", 30);
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.IdleTimeout = TimeSpan.FromMinutes(sessionTimeoutMinutes);
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // set to SameAsRequest for local dev
     options.Cookie.SameSite = SameSiteMode.Lax;
@@ -72,6 +73,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // set to SameAsRequest for local dev
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(sessionTimeoutMinutes);
+        options.SlidingExpiration = true;
+        var cookieName = builder.Configuration.GetValue<string>("Auth:CookieName");
+        if (!string.IsNullOrWhiteSpace(cookieName))
+        {
+            options.Cookie.Name = cookieName;
+        }
     });
 
 builder.Services.AddAuthorization();

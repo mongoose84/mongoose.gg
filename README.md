@@ -4,7 +4,7 @@
 
 This project helps players (solo, duo, and full teams) understand their performance with rich match analytics, timeline-derived metrics, and AI goal recommendations.
 
-![alt text](image.png)
+![League of Legends solo dashboard screenshot](image.png)
 
 ## 1st time install
 

@@ -26,11 +26,20 @@ public sealed class LoginEndpoint : IEndpoint
             [FromBody] LoginRequest request,
             HttpContext httpContext,
             [FromServices] UserRepository userRepo,
-            [FromServices] ILogger<LoginEndpoint> logger
+            [FromServices] ILogger<LoginEndpoint> logger,
+            [FromServices] IConfiguration config
         ) =>
         {
             try
             {
+                // Feature flag gate: disable MVP login unless explicitly enabled
+                var enableMvpLogin = config.GetValue<bool>("Auth:EnableMvpLogin");
+                if (!enableMvpLogin)
+                {
+                    logger.LogWarning("Login attempt blocked: MVP login disabled by configuration");
+                    return Results.StatusCode(503); // Service Unavailable while auth is not ready
+                }
+
                 // Validate input
                 if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
                     return Results.BadRequest(new { error = "Username and password are required" });
@@ -43,10 +52,15 @@ public sealed class LoginEndpoint : IEndpoint
                     return Results.Unauthorized();
                 }
 
-                // For now: simple password validation (in production, use bcrypt/argon2 hash comparison)
-                // TODO: Update User table schema to include password_hash column
-                // For MVP, we allow any user with a valid username to login
-                if (!ValidatePassword(request.Password))
+                // Temporary dev-only password check: require configured DevPassword secret
+                var devPassword = config.GetValue<string>("Auth:DevPassword");
+                if (string.IsNullOrEmpty(devPassword))
+                {
+                    logger.LogWarning("Login blocked: DevPassword not configured");
+                    return Results.StatusCode(503);
+                }
+
+                if (!ValidatePassword(request.Password, devPassword))
                 {
                     logger.LogWarning("Login attempt with invalid password for username: {Username}", request.Username);
                     return Results.Unauthorized();
@@ -60,10 +74,11 @@ public sealed class LoginEndpoint : IEndpoint
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var sessionTimeoutMinutes = config.GetValue<int>("Auth:SessionTimeout", 30);
                 var authProperties = new AuthenticationProperties
                 {
                     IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(24)
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
                 };
 
                 // Sign in user with cookie
@@ -90,13 +105,27 @@ public sealed class LoginEndpoint : IEndpoint
     }
 
     /// <summary>
-    /// Validates password (placeholder for now).
-    /// TODO: Replace with bcrypt/argon2 hash comparison once User table has password_hash column.
+    /// Validates password using a configured dev secret. Replace with bcrypt/argon2 against stored hash.
     /// </summary>
-    private static bool ValidatePassword(string password)
+    private static bool ValidatePassword(string password, string configuredSecret)
     {
-        // For MVP: accept any non-empty password
-        // In production: compare bcrypt hash of password against user.PasswordHash
-        return !string.IsNullOrWhiteSpace(password);
+        if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(configuredSecret))
+            return false;
+        // Constant-time comparison to mitigate timing attacks
+        return ConstantTimeEquals(password, configuredSecret);
+    }
+
+    private static bool ConstantTimeEquals(string a, string b)
+    {
+        if (a == null || b == null)
+            return false;
+        if (a.Length != b.Length)
+            return false;
+        var result = 0;
+        for (int i = 0; i < a.Length; i++)
+        {
+            result |= a[i] ^ b[i];
+        }
+        return result == 0;
     }
 }

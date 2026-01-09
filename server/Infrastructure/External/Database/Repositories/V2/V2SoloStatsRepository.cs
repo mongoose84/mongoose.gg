@@ -63,6 +63,9 @@ public class V2SoloStatsRepository : RepositoryBase
         var performancePhases = CalculatePerformancePhases(overallStats.Value, matchDurations);
 
         // Prepare response
+            var last10 = await GetRecentTrendAsync(puuid, queueFilter, Math.Min(10, totalGames));
+            var last20 = await GetRecentTrendAsync(puuid, queueFilter, Math.Min(20, totalGames));
+
             var response = new SoloDashboardResponse(
             GamesPlayed: totalGames,
             Wins: overallStats.Value.Wins,
@@ -72,8 +75,8 @@ public class V2SoloStatsRepository : RepositoryBase
             SideStats: sideStats,
             UniqueChampsPlayedCount: champions.Count,
             MainChampion: mainChamp,
-            Last10Games: CalculateTrendMetric(overallStats.Value, Math.Min(10, totalGames)),
-            Last20Games: CalculateTrendMetric(overallStats.Value, Math.Min(20, totalGames)),
+            Last10Games: last10,
+            Last20Games: last20,
             PerformanceByPhase: performancePhases.ToArray(),
             RoleBreakdown: roleBreakdown.ToArray(),
             DeathEfficiency: deathStats,
@@ -92,7 +95,7 @@ public class V2SoloStatsRepository : RepositoryBase
     private async Task<(int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes)?> GetOverallStatsAsync(
         string puuid, string queueFilter)
     {
-        const string sql = @"
+        var sql = $@"
             SELECT
                 COUNT(DISTINCT p.match_id) as Games,
                 SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins,
@@ -125,7 +128,7 @@ public class V2SoloStatsRepository : RepositoryBase
 
     private async Task<SideWinDistribution> GetSideStatsAsync(string puuid, string queueFilter)
     {
-        const string sql = @"
+        var sql = $@"
             SELECT
                 SUM(CASE WHEN p.team_id = 100 THEN 1 ELSE 0 END) as BlueGames,
                 SUM(CASE WHEN p.team_id = 100 AND p.win = 1 THEN 1 ELSE 0 END) as BlueWins,
@@ -166,7 +169,7 @@ public class V2SoloStatsRepository : RepositoryBase
     private async Task<List<(int ChampionId, string ChampionName, int Picks, double WinRate)>> GetChampionStatsAsync(
         string puuid, string queueFilter)
     {
-        const string sql = @"
+        var sql = $@"
             SELECT
                 p.champion_id,
                 p.champion_name,
@@ -201,7 +204,7 @@ public class V2SoloStatsRepository : RepositoryBase
 
     private async Task<List<RolePerformance>> GetRoleBreakdownAsync(string puuid, string queueFilter)
     {
-        const string sql = @"
+        var sql = $@"
             SELECT
                 COALESCE(NULLIF(p.role, ''), 'UNKNOWN') as Role,
                 COUNT(DISTINCT p.match_id) as Games,
@@ -235,7 +238,7 @@ public class V2SoloStatsRepository : RepositoryBase
 
     private async Task<DeathEfficiency> GetDeathEfficiencyAsync(string puuid, string queueFilter)
     {
-        const string sql = @"
+        var sql = $@"
             SELECT
                 SUM(pm.deaths_pre_10) as DeathsPre10,
                 SUM(pm.deaths_10_20) as Deaths10To20,
@@ -278,7 +281,7 @@ public class V2SoloStatsRepository : RepositoryBase
     private async Task<List<(int Minutes, int Games, int Wins, double AvgKda)>> GetMatchDurationsAsync(
         string puuid, string queueFilter)
     {
-        const string sql = @"
+        var sql = $@"
             SELECT
                 FLOOR(m.game_duration_sec / 60) as Minutes,
                 COUNT(DISTINCT p.match_id) as Games,
@@ -394,18 +397,48 @@ public class V2SoloStatsRepository : RepositoryBase
         return phases;
     }
 
-    private TrendMetric? CalculateTrendMetric(
-        (int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes) stats,
-        int limit)
+    private async Task<TrendMetric?> GetRecentTrendAsync(string puuid, string queueFilter, int limit)
     {
-        if (stats.Games == 0)
+        if (limit <= 0)
             return null;
 
-        return new TrendMetric(
-            Games: Math.Min(limit, stats.Games),
-            Wins: stats.Wins,
-            WinRate: stats.WinRate,
-            AvgKda: stats.AvgKda
-        );
+        var sql = $@"
+            SELECT
+                COUNT(*) as Games,
+                SUM(CASE WHEN r.win = 1 THEN 1 ELSE 0 END) as Wins,
+                AVG(CASE WHEN r.deaths > 0 THEN (r.kills + r.assists) / r.deaths ELSE (r.kills + r.assists) END) as AvgKda
+            FROM (
+                SELECT p.win, p.kills, p.deaths, p.assists
+                FROM participants p
+                INNER JOIN matches m ON m.match_id = p.match_id
+                WHERE p.puuid = @puuid {queueFilter}
+                ORDER BY m.game_start_time DESC
+                LIMIT @limit
+            ) r";
+
+        return await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            cmd.Parameters.AddWithValue("@limit", limit);
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var games = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
+                if (games == 0)
+                    return null;
+
+                var wins = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+                var avgKda = reader.IsDBNull(2) ? 0 : reader.GetDouble(2);
+                var winRate = Math.Round(games > 0 ? (double)wins / games * 100 : 0, 1);
+                return new TrendMetric(
+                    Games: games,
+                    Wins: wins,
+                    WinRate: winRate,
+                    AvgKda: Math.Round(avgKda, 2)
+                );
+            }
+            return null;
+        });
     }
 }

@@ -71,7 +71,8 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
             catch (ArgumentException ex)
             {
                 logger.LogWarning(ex, "Solo v2 dashboard: bad request");
-                return Results.BadRequest(new { error = ex.Message });
+                // Do not expose internal exception messages to clients
+                return Results.BadRequest(new { error = "Invalid request parameters" });
             }
             catch (Exception ex)
             {
