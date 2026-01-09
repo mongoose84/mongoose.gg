@@ -91,7 +91,11 @@ const themes = [
   { id: 'tesla', name: '🚗 Tesla Premium', desc: 'Luxurious high-tech' },
   { id: 'discord', name: '💬 Discord Community', desc: 'Friendly social gaming' },
   { id: 'notion', name: '📝 Notion Productivity', desc: 'Warm organized calm' },
-  { id: 'vercel', name: '▲ Vercel Developer', desc: 'Technical cutting-edge' }
+  { id: 'vercel', name: '▲ Vercel Developer', desc: 'Technical cutting-edge' },
+  { id: 'github', name: '⚡ GitHub Clean', desc: 'Clear documentation focus' },
+  { id: 'linear', name: '🎯 Linear Modern', desc: 'Smooth productivity flow' },
+  { id: 'nvidia', name: '🟢 Nvidia Tech', desc: 'AI-powered gaming future' },
+  { id: 'pharma', name: '💜 Pharma Pro', desc: 'Corporate trust precision' }
 ];
 
 const currentTheme = ref('riot');
