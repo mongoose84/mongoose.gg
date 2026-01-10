@@ -157,7 +157,7 @@ jobs:
             try {
               Write-Host "Attempt $i: Uploading app_offline.htm to remote root"
               curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
-                -T "./server/CI-Support/app_offline.htm" `
+                -T "./CI-Support/app_offline.htm" `
                 "ftp://${{ secrets.FTP_URL }}/${{ secrets.FTP_SERVER_PATH }}/app_offline.htm"
               Write-Host "✅ Maintenance mode enabled"
               break

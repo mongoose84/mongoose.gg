@@ -6,6 +6,7 @@ namespace RiotProxy.Infrastructure
     public static class Secrets
     {
         private static bool _initialized;
+        private static readonly object _initLock = new object();
         private static readonly string SecretsFolder = AppDomain.CurrentDomain.BaseDirectory;
 
         public static string ApiKey { get; private set; } = string.Empty;
@@ -19,16 +20,17 @@ namespace RiotProxy.Infrastructure
         /// </summary>
         public static void Initialize(IConfiguration config)
         {
-            // Always (re)initialize from the provided configuration. Safe to call multiple times.
             var aspnetEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? string.Empty;
+            var isTesting = string.Equals(aspnetEnv, "Testing", StringComparison.OrdinalIgnoreCase);
 
-            ApiKey = FirstNonEmpty(
+            // Compute candidates outside the lock to reduce lock duration
+            var apiKeyCandidate = FirstNonEmpty(
                 config["Riot:ApiKey"],
                 config["RIOT_API_KEY"],
                 Environment.GetEnvironmentVariable("RIOT_API_KEY"),
                 ReadIfExists("RiotSecret.txt"));
 
-            DatabaseConnectionString = FirstNonEmpty(
+            var dbConnectionCandidate = FirstNonEmpty(
                 config.GetConnectionString("Default"),
                 config["ConnectionStrings:Database"],
                 config["Database:ConnectionString"],
@@ -36,7 +38,7 @@ namespace RiotProxy.Infrastructure
                 Environment.GetEnvironmentVariable("LOL_DB_CONNECTIONSTRING"),
                 ReadIfExists("DatabaseSecret.txt"));
 
-            DatabaseConnectionStringV2 = FirstNonEmpty(
+            var dbConnectionV2Candidate = FirstNonEmpty(
                 config.GetConnectionString("DatabaseV2"),
                 config["ConnectionStrings:DatabaseV2"],
                 config["Database:ConnectionStringV2"],
@@ -44,15 +46,26 @@ namespace RiotProxy.Infrastructure
                 Environment.GetEnvironmentVariable("LOL_DB_CONNECTIONSTRING_V2"),
                 ReadIfExists("DatabaseSecretV2.txt"));
 
-            // Optional debug logging: only in Development or when explicitly enabled
-            var enableSecretsDebug = config.GetValue<bool>("Secrets:EnableDebugLogging", false);
-            var isDevelopment = string.Equals(aspnetEnv, "Development", StringComparison.OrdinalIgnoreCase);
-            if (enableSecretsDebug || isDevelopment)
+            lock (_initLock)
             {
-                LogConfigurationStatus(config);
-            }
+                // In non-testing environments, initialize only once for thread safety.
+                if (_initialized && !isTesting)
+                    return;
 
-            _initialized = true;
+                ApiKey = apiKeyCandidate;
+                DatabaseConnectionString = dbConnectionCandidate;
+                DatabaseConnectionStringV2 = dbConnectionV2Candidate;
+
+                // Optional debug logging: only in Development or when explicitly enabled
+                var enableSecretsDebug = config.GetValue<bool>("Secrets:EnableDebugLogging", false);
+                var isDevelopment = string.Equals(aspnetEnv, "Development", StringComparison.OrdinalIgnoreCase);
+                if (enableSecretsDebug || isDevelopment)
+                {
+                    LogConfigurationStatus(config);
+                }
+
+                _initialized = true;
+            }
         }
 
         /// <summary>
