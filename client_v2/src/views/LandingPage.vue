@@ -330,7 +330,7 @@ const pricingTiers = [
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 50% 0%, rgba(0, 112, 243, 0.2), transparent 60%);
+  background: radial-gradient(circle at 50% 0%, rgba(109, 40, 217, 0.25), transparent 60%);
   pointer-events: none;
 }
 
