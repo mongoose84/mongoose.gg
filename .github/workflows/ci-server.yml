@@ -159,31 +159,29 @@ jobs:
 
           # If the site is already offline, do not fail—just skip the upload
           $alreadyOffline = $false
-          try {
-            curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
-              "$remoteOffline" `
-              -o NUL
-            if ($LASTEXITCODE -eq 0) { $alreadyOffline = $true }
-          }
-          catch {
-            $alreadyOffline = $false
-          }
+          curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
+            "$remoteOffline" > $null 2>&1
+          if ($LASTEXITCODE -eq 0) { $alreadyOffline = $true }
 
           if ($alreadyOffline) {
             Write-Host "⚠️ app_offline.htm already present at root; skipping upload."
           }
           else {
             for ($i = 1; $i -le $maxAttempts; $i++) {
-              try {
-                Write-Host "Attempt ${i}: Uploading app_offline.htm to remote root"
-                curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
-                  -T $localOffline `
-                  "$remoteOffline"
+              Write-Host "Attempt ${i}: Uploading app_offline.htm to remote root"
+              curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
+                -T $localOffline `
+                "$remoteOffline"
+              
+              if ($LASTEXITCODE -eq 0) {
                 Write-Host "✅ Maintenance mode enabled"
                 break
               }
-              catch {
-                if ($i -eq $maxAttempts) { Write-Error "❌ Failed to enable maintenance mode after $maxAttempts attempts"; throw }
+              elseif ($i -eq $maxAttempts) {
+                Write-Error "❌ Failed to enable maintenance mode after $maxAttempts attempts"
+                exit 1
+              }
+              else {
                 $delay = 5 * $i
                 Write-Warning "Upload failed, retrying in $delay seconds..."
                 Start-Sleep -Seconds $delay
@@ -230,58 +228,56 @@ jobs:
           $remoteOffline = "$remoteBase/app_offline.htm"
           $remoteSupportDir = "${{ secrets.FTP_SERVER_PATH }}/CI-Support"
           $remoteSupportTarget = "$remoteBase/CI-Support/app_offline.htm"
+          $moveSucceeded = $false
 
           # Ensure the CI-Support folder exists on the remote (ignore errors if it already exists)
-          try {
-            curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
-              "$remoteBase" `
-              -Q "MKD $remoteSupportDir" `
-              -o NUL
-          }
-          catch {
-            Write-Host "CI-Support folder may already exist; continuing."
-          }
+          curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
+            "$remoteBase" `
+            -Q "MKD $remoteSupportDir" > $null 2>&1
+          Write-Host "CI-Support folder creation attempt completed (may already exist)."
 
           # Best-effort delete of any existing target to avoid RNTO collisions
-          try {
-            curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
-              "$remoteBase" `
-              -Q "DELE $remoteSupportDir/app_offline.htm" `
-              -o NUL
-          }
-          catch {
-            Write-Host "Target cleanup skipped (file likely absent)."
-          }
+          curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
+            "$remoteBase" `
+            -Q "DELE $remoteSupportDir/app_offline.htm" > $null 2>&1
+          Write-Host "Target cleanup attempt completed (file may not exist)."
 
           for ($i = 1; $i -le $maxAttempts; $i++) {
-            try {
-              Write-Host "Attempt ${i}: Moving app_offline.htm from root back to CI-Support"
-              curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
-                "$remoteBase" `
-                -Q "RNFR ${{ secrets.FTP_SERVER_PATH }}/app_offline.htm" `
-                -Q "RNTO $remoteSupportDir/app_offline.htm"
+            Write-Host "Attempt ${i}: Moving app_offline.htm from root back to CI-Support"
+            curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
+              "$remoteBase" `
+              -Q "RNFR ${{ secrets.FTP_SERVER_PATH }}/app_offline.htm" `
+              -Q "RNTO $remoteSupportDir/app_offline.htm" 2>&1 | Out-Null
 
-              if ($LASTEXITCODE -eq 0) {
-                Write-Host "✅ Maintenance mode disabled (file moved to CI-Support)"
-                break
-              }
-              elseif ($LASTEXITCODE -eq 21) {
-                Write-Warning "app_offline.htm not found or already moved; treating as already online"
-                $LASTEXITCODE = 0
-                break
-              }
-              else {
-                throw "Move failed with exit code $LASTEXITCODE"
-              }
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✅ Maintenance mode disabled (file moved to CI-Support)"
+              $moveSucceeded = $true
+              break
             }
-            catch {
-              if ($i -eq $maxAttempts) { Write-Warning "⚠️ Failed to move app_offline.htm after $maxAttempts attempts; site may remain offline"; break }
+            elseif ($LASTEXITCODE -eq 21) {
+              # Exit code 21 = "FTP quote error" which typically indicates the source file was not found
+              # (RNFR failed because app_offline.htm doesn't exist in root). This is acceptable—it means
+              # the site is already online. However, exit code 21 can have other meanings depending on the
+              # FTP server and curl version, so this check may need adjustment if false positives occur.
+              # Alternative: parse stderr or expand exit code checks to include other "not found" codes.
+              Write-Warning "app_offline.htm not found or already moved; treating as already online"
+              $moveSucceeded = $true
+              break
+            }
+            elseif ($i -eq $maxAttempts) {
+              Write-Warning "⚠️ Failed to move app_offline.htm after $maxAttempts attempts; site may remain offline"
+              break
+            }
+            else {
               $delay = 5 * $i
-              Write-Warning "Move failed, retrying in $delay seconds..."
+              Write-Warning "Move failed with exit code $LASTEXITCODE, retrying in $delay seconds..."
               Start-Sleep -Seconds $delay
             }
           }
 
-          # Ensure the step returns success unless explicitly failed above
-          $LASTEXITCODE = 0
+          # Only succeed if we explicitly handled the condition; otherwise fail
+          if (-not $moveSucceeded) {
+            Write-Error "Maintenance mode could not be disabled; pipeline failing to alert operators"
+            exit 1
+          }
 
