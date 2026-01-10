@@ -1,0 +1,25 @@
+<!-- Gaming-themed background image for Pulse.gg -->
+<!-- This is a placeholder - replace with actual gaming image -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" fill="none">
+  <defs>
+    <linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a0a0a;stop-opacity:1" />
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,112,243,0.1)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  
+  <!-- Base gradient -->
+  <rect width="1920" height="1080" fill="url(#bg1)"/>
+  
+  <!-- Tech grid overlay -->
+  <rect width="1920" height="1080" fill="url(#grid)"/>
+  
+  <!-- Glowing elements -->
+  <circle cx="300" cy="200" r="150" fill="rgba(0,112,243,0.15)" filter="blur(80px)"/>
+  <circle cx="1600" cy="800" r="200" fill="rgba(0,168,255,0.1)" filter="blur(100px)"/>
+  <circle cx="960" cy="400" r="250" fill="rgba(0,112,243,0.08)" filter="blur(120px)"/>
+</svg>
