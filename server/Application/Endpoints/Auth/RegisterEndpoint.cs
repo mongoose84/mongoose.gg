@@ -65,12 +65,15 @@ public sealed class RegisterEndpoint : IEndpoint
                 if (!UsernameRegex.IsMatch(request.Username))
                     return Results.BadRequest(new { error = "Username can only contain letters, numbers, underscores, and hyphens", code = "USERNAME_INVALID" });
 
+                // Normalize username to lowercase to prevent case-variant duplicates
+                var normalizedUsername = request.Username.ToLowerInvariant().Trim();
+
                 // Validate password length
                 if (request.Password.Length < 8)
                     return Results.BadRequest(new { error = "Password must be at least 8 characters", code = "PASSWORD_TOO_SHORT" });
 
-                // Check if username already exists
-                if (await usersRepo.UsernameExistsAsync(request.Username))
+                // Check if username already exists (case-insensitive)
+                if (await usersRepo.UsernameExistsAsync(normalizedUsername))
                 {
                     logger.LogWarning("Registration attempt with existing username: {Username}", request.Username);
                     return Results.Conflict(new { error = "This username is already taken", code = "USERNAME_TAKEN" });
@@ -86,11 +89,11 @@ public sealed class RegisterEndpoint : IEndpoint
                 // Hash password (using BCrypt)
                 var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-                // Create user
+                // Create user with normalized username and email
                 var newUser = new V2User
                 {
                     Email = request.Email.ToLowerInvariant().Trim(),
-                    Username = request.Username.Trim(),
+                    Username = normalizedUsername,
                     PasswordHash = passwordHash,
                     EmailVerified = false,
                     IsActive = true,
@@ -108,7 +111,8 @@ public sealed class RegisterEndpoint : IEndpoint
                     new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                     new Claim(ClaimTypes.Name, newUser.Username),
                     new Claim(ClaimTypes.Email, newUser.Email),
-                    new Claim("email_verified", "false")
+                    new Claim("email_verified", "false"),
+                    new Claim("tier", newUser.Tier)
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

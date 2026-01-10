@@ -45,8 +45,11 @@ public sealed class LoginEndpoint : IEndpoint
                 if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
                     return Results.BadRequest(new { error = "Username and password are required" });
 
+                // Normalize username to lowercase to match storage format
+                var normalizedUsername = request.Username.ToLowerInvariant().Trim();
+
                 // Fetch user by username
-                var user = await usersRepo.GetByUsernameAsync(request.Username);
+                var user = await usersRepo.GetByUsernameAsync(normalizedUsername);
                 if (user == null)
                 {
                     logger.LogWarning("Login attempt with non-existent username: {Username}", request.Username);

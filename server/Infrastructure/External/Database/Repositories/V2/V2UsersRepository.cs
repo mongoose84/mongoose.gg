@@ -87,14 +87,14 @@ public class V2UsersRepository : RepositoryBase
     public async Task UpdateEmailVerifiedAsync(long userId, bool verified)
     {
         const string sql = "UPDATE users SET email_verified = @verified, updated_at = @updated_at WHERE user_id = @user_id";
-        await ExecuteWithConnectionAsync(async conn =>
+        await ExecuteWithConnectionAsync<object?>(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@verified", verified);
             cmd.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
             cmd.Parameters.AddWithValue("@user_id", userId);
             await cmd.ExecuteNonQueryAsync();
-            return true;
+            return null;
         });
     }
 

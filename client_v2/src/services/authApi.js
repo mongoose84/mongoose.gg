@@ -40,7 +40,7 @@ export async function register({ username, email, password }) {
  * @param {Object} params - Login params
  * @param {string} params.username - Username or email
  * @param {string} params.password - User password
- * @param {boolean} params.rememberMe - Keep session for 7 days
+ * @param {boolean} params.rememberMe - Keep session for 30 days
  * @returns {Promise<Object>} User data on success
  */
 export async function login({ username, password, rememberMe = false }) {
@@ -56,6 +56,7 @@ export async function login({ username, password, rememberMe = false }) {
   if (!response.ok) {
     const error = new Error(data.error || 'Login failed')
     error.status = response.status
+    error.code = data.code
     throw error
   }
 
@@ -96,6 +97,7 @@ export async function verify(code) {
   if (!response.ok) {
     const error = new Error(data.error || 'Verification failed')
     error.status = response.status
+    error.code = data.code
     throw error
   }
 

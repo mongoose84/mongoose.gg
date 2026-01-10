@@ -1664,7 +1664,7 @@ Provide working user authentication flows and a minimal in-app shell under `/app
 - [x] After successful signup, the user is immediately redirected to a verification screen (e.g. `/auth/verify`) with a 6-digit input
 - [x] For this first version, submitting any 6-digit code marks the user as verified in the database (Option A), then routes them into `/app/user`
 - [x] Unverified users cannot access any `/app/*` routes; attempts redirect back to the verification screen with an explanatory message
-- [x] Login form includes a "Keep me logged in for 7 days" checkbox:
+- [x] Login form includes a "Keep me logged in for 30 days" checkbox:
   - When checked, the backend issues an HttpOnly, SameSite=Lax session cookie with a 7-day expiry
   - Each successful login resets the 7-day expiry (new cookie is issued)
   - When unchecked, session lifetime follows the shorter default from F7

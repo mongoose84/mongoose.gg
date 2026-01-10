@@ -65,7 +65,7 @@ public sealed class VerifyEndpoint : IEndpoint
 
                 // For MVP, accept any valid 6-digit code
                 // TODO: Implement actual email verification with stored codes
-                logger.LogInformation("User {Username} (ID: {UserId}) verified with code: {Code}", user.Username, userId, request.Code);
+                logger.LogDebug("User {UserId} submitted verification code", userId);
 
                 // Update user as verified
                 await usersRepo.UpdateEmailVerifiedAsync(userId, true);
