@@ -7,7 +7,7 @@ public class V2UsersRepository : RepositoryBase
 {
     public V2UsersRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
-    public async Task<long> UpsertAsync(V2User user)
+    public virtual async Task<long> UpsertAsync(V2User user)
     {
         const string sql = @"INSERT INTO users
             (user_id, email, username, password_hash, email_verified, is_active, tier, mollie_customer_id, created_at, updated_at, last_login_at)
@@ -42,19 +42,19 @@ public class V2UsersRepository : RepositoryBase
         });
     }
 
-    public Task<V2User?> GetByEmailAsync(string email)
+    public virtual Task<V2User?> GetByEmailAsync(string email)
     {
         const string sql = "SELECT * FROM users WHERE email = @email LIMIT 1";
         return ExecuteSingleAsync(sql, Map, ("@email", email));
     }
 
-    public Task<V2User?> GetByIdAsync(long userId)
+    public virtual Task<V2User?> GetByIdAsync(long userId)
     {
         const string sql = "SELECT * FROM users WHERE user_id = @user_id LIMIT 1";
         return ExecuteSingleAsync(sql, Map, ("@user_id", userId));
     }
 
-    public Task<V2User?> GetByUsernameAsync(string username)
+    public virtual Task<V2User?> GetByUsernameAsync(string username)
     {
         const string sql = "SELECT * FROM users WHERE username = @username LIMIT 1";
         return ExecuteSingleAsync(sql, Map, ("@username", username));

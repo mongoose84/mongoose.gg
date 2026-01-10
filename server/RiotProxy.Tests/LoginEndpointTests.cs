@@ -18,23 +18,7 @@ public class LoginEndpointTests
         });
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await client.PostAsJsonAsync("/api/v2/login", new { username = "tester", password = "any" });
-
-        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
-        response.Headers.TryGetValues("Set-Cookie", out _).Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task Login_is_blocked_when_dev_password_missing()
-    {
-        using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
-        {
-            ["Auth:DevPassword"] = string.Empty,
-            ["Auth:EnableMvpLogin"] = "true"
-        });
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-        var response = await client.PostAsJsonAsync("/api/v2/login", new { username = "tester", password = "any" });
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "any" });
 
         response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
         response.Headers.TryGetValues("Set-Cookie", out _).Should().BeFalse();
@@ -43,13 +27,10 @@ public class LoginEndpointTests
     [Fact]
     public async Task Login_rejects_invalid_password_and_sets_no_cookie()
     {
-        using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
-        {
-            ["Auth:DevPassword"] = "dev-secret"
-        });
+        using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await client.PostAsJsonAsync("/api/v2/login", new { username = "tester", password = "wrong" });
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "wrong" });
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         response.Headers.TryGetValues("Set-Cookie", out _).Should().BeFalse();
@@ -60,13 +41,13 @@ public class LoginEndpointTests
     {
         using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
         {
-            ["Auth:DevPassword"] = "dev-secret",
             ["Auth:CookieName"] = "pulse-auth-test",
             ["Auth:SessionTimeout"] = "45"
         });
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await client.PostAsJsonAsync("/api/v2/login", new { username = "tester", password = "dev-secret" });
+        // Use the password that matches the BCrypt hash in FakeV2UsersRepository
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();

@@ -150,6 +150,7 @@ jobs:
       # Enter maintenance mode right before deploy (idempotent, with retries)
       # -------------------------------------------------
       - name: Bring site offline (upload app_offline.htm)
+        id: bring-offline
         shell: pwsh
         run: |
           $maxAttempts = 3
@@ -175,6 +176,7 @@ jobs:
               
               if ($LASTEXITCODE -eq 0) {
                 Write-Host "✅ Maintenance mode enabled"
+                "site_offline=true" >> $env:GITHUB_OUTPUT
                 break
               }
               elseif ($i -eq $maxAttempts) {
@@ -187,6 +189,10 @@ jobs:
                 Start-Sleep -Seconds $delay
               }
             }
+          }
+          # If already offline, also set the output so we bring it back online
+          if ($alreadyOffline) {
+            "site_offline=true" >> $env:GITHUB_OUTPUT
           }
 
       # -------------------------------------------------
@@ -217,10 +223,10 @@ jobs:
           # timeout: 30
 
       # --------------------------------------------------------------
-      # Always attempt to bring site back online (runs even if earlier steps fail)
+      # Bring site back online only if it was taken offline
       # --------------------------------------------------------------
       - name: Bring site back online (delete app_offline.htm)
-        if: ${{ always() }}
+        if: ${{ always() && steps.bring-offline.outputs.site_offline == 'true' }}
         shell: pwsh
         run: |
           $maxAttempts = 3
