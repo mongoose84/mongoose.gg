@@ -153,20 +153,41 @@ jobs:
         shell: pwsh
         run: |
           $maxAttempts = 3
-          for ($i = 1; $i -le $maxAttempts; $i++) {
-            try {
-              Write-Host "Attempt $i: Uploading app_offline.htm to remote root"
-              curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
-                -T "./CI-Support/app_offline.htm" `
-                "ftp://${{ secrets.FTP_URL }}/${{ secrets.FTP_SERVER_PATH }}/app_offline.htm"
-              Write-Host "✅ Maintenance mode enabled"
-              break
-            }
-            catch {
-              if ($i -eq $maxAttempts) { Write-Error "❌ Failed to enable maintenance mode after $maxAttempts attempts"; throw }
-              $delay = 5 * $i
-              Write-Warning "Upload failed, retrying in $delay seconds..."
-              Start-Sleep -Seconds $delay
+          $remoteBase = "ftp://${{ secrets.FTP_URL }}/${{ secrets.FTP_SERVER_PATH }}"
+          $remoteOffline = "$remoteBase/app_offline.htm"
+          $localOffline = "./CI-Support/app_offline.htm"
+
+          # If the site is already offline, do not fail—just skip the upload
+          $alreadyOffline = $false
+          try {
+            curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
+              "$remoteOffline" `
+              -o $null
+            if ($LASTEXITCODE -eq 0) { $alreadyOffline = $true }
+          }
+          catch {
+            $alreadyOffline = $false
+          }
+
+          if ($alreadyOffline) {
+            Write-Host "⚠️ app_offline.htm already present at root; skipping upload."
+          }
+          else {
+            for ($i = 1; $i -le $maxAttempts; $i++) {
+              try {
+                Write-Host "Attempt ${i}: Uploading app_offline.htm to remote root"
+                curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
+                  -T $localOffline `
+                  "$remoteOffline"
+                Write-Host "✅ Maintenance mode enabled"
+                break
+              }
+              catch {
+                if ($i -eq $maxAttempts) { Write-Error "❌ Failed to enable maintenance mode after $maxAttempts attempts"; throw }
+                $delay = 5 * $i
+                Write-Warning "Upload failed, retrying in $delay seconds..."
+                Start-Sleep -Seconds $delay
+              }
             }
           }
 
@@ -205,19 +226,36 @@ jobs:
         shell: pwsh
         run: |
           $maxAttempts = 3
+          $remoteBase = "ftp://${{ secrets.FTP_URL }}/${{ secrets.FTP_SERVER_PATH }}"
+          $remoteOffline = "$remoteBase/app_offline.htm"
+          $remoteSupportDir = "${{ secrets.FTP_SERVER_PATH }}/CI-Support"
+          $remoteSupportTarget = "$remoteBase/CI-Support/app_offline.htm"
+
+          # Ensure the CI-Support folder exists on the remote (ignore errors if it already exists)
+          try {
+            curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
+              "$remoteBase" `
+              -Q "MKD $remoteSupportDir" `
+              -o $null
+          }
+          catch {
+            Write-Host "CI-Support folder may already exist; continuing."
+          }
+
           for ($i = 1; $i -le $maxAttempts; $i++) {
             try {
-              Write-Host "Attempt $i: Deleting app_offline.htm from remote root"
+              Write-Host "Attempt ${i}: Moving app_offline.htm from root back to CI-Support"
               curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
-                "ftp://${{ secrets.FTP_URL }}" `
-                -Q "DELE ${{ secrets.FTP_SERVER_PATH }}/app_offline.htm"
-              Write-Host "✅ Maintenance mode disabled"
+                "$remoteBase" `
+                -Q "RNFR ${{ secrets.FTP_SERVER_PATH }}/app_offline.htm" `
+                -Q "RNTO $remoteSupportDir/app_offline.htm"
+              Write-Host "✅ Maintenance mode disabled (file moved to CI-Support)"
               break
             }
             catch {
-              if ($i -eq $maxAttempts) { Write-Warning "⚠️ Failed to delete app_offline.htm after $maxAttempts attempts; site may remain offline"; break }
+              if ($i -eq $maxAttempts) { Write-Warning "⚠️ Failed to move app_offline.htm after $maxAttempts attempts; site may remain offline"; break }
               $delay = 5 * $i
-              Write-Warning "Delete failed, retrying in $delay seconds..."
+              Write-Warning "Move failed, retrying in $delay seconds..."
               Start-Sleep -Seconds $delay
             }
           }
