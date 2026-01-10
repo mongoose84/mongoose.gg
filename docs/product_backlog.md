@@ -1056,6 +1056,29 @@ Give users a GitHub-style contribution view of how often they log in over time.
 
 ---
 
+### D10. [Frontend] Implement cookie consent & preferences
+
+**Priority:** P2 - Medium  
+**Type:** Feature  
+**Estimate:** 2 points  
+**Depends on:** D1, F7  
+**Labels:** `frontend`, `analytics`, `privacy`, `epic-d`
+
+#### Description
+
+Provide a cookie consent banner and preferences so users can control analytics cookies while keeping authentication/session cookies as strictly necessary.
+
+#### Acceptance Criteria
+
+- [ ] On first visit, show a cookie banner that explains the difference between strictly necessary cookies (e.g. auth/session, CSRF) and optional analytics cookies (PostHog or similar from D1)  
+- [ ] Banner offers at least "Accept all" and "Use only necessary cookies" actions; a "Customize" flow can be implemented as a simple preferences dialog or follow-up view  
+- [ ] Authentication/session cookies used for login (F7/F11) are treated as strictly necessary and remain enabled even when the user chooses "only necessary cookies"  
+- [ ] Analytics tracking code is only initialized after the user has granted consent for analytics cookies, and respects the stored preference on subsequent visits  
+- [ ] Cookie/consent preferences are stored (e.g. in a consent cookie or `localStorage`) and can be changed later via a "Cookie settings" link in the footer or account/settings area  
+- [ ] The implementation is wired into the analytics work from D1/D2 so that events are not sent when analytics cookies have been declined
+
+---
+
 # Epic E: Database v2 & Analytics Schema
 
 Modernize the Pulse database to match `docs/database_schema_v2.md` and support advanced solo/duo/team analytics.
@@ -1618,25 +1641,103 @@ Remove old dashboard views, components and routes that are no longer used after 
 
 ---
 
-### G9. [Frontend] Implement user login, account page & friends management
+### G9. [Frontend] Implement user login, signup, verification & `/app/user` shell
 
 **Priority:** P0 - Critical  
 **Type:** Feature  
 **Estimate:** 5 points  
-**Depends on:** F7, F11, C7  
+**Depends on:** F7, F11, G2  
 **Labels:** `frontend`, `auth`, `users`, `epic-g`
 
 #### Description
 
-Create the user-facing authentication and account experience so dashboards, payments and social features are tied to a logged-in user.
+Provide working user authentication flows and a minimal in-app shell under `/app/user`, wired to the backend auth endpoints. Include a simple 6-digit verification page, a 7-day "keep me logged in" cookie-based session, and a basic user dropdown (logout + disabled settings) in the `/app/*` header.
 
 #### Acceptance Criteria
 
-- [ ] Add routes/views for login/registration and a user account page (e.g. `/login`, `/app/account`)  
-- [ ] On the account page, show core user info, subscription tier/status and entry points to manage billing (using subscription flows from Epic C)  
-- [ ] Provide UI to search for and link the player's LoL account when creating the user (using the user/summoner search endpoint from F11)  
-- [ ] Provide UI to manage friends / duo partners and team members (add/remove) and surface them in the Duo and Team dashboards  
-- [ ] All flows respect authentication state and handle error states gracefully
+- [ ] `/auth` supports **login** and **signup** modes using `POST /api/auth/register` and `POST /api/auth/login` from F11  
+- [ ] Signup requires `username`, `email`, and `password` and creates a user record with `emailVerified = false` (or equivalent)  
+- [ ] Username is validated for uniqueness and length/format on the backend; the UI shows specific messages when:
+  - Username is already taken  
+  - Username is too long / invalid  
+- [ ] Auth endpoints treat all user input as parameters (no string-concatenated SQL); tests (either here or in F11) exercise common SQL injection payloads and assert no SQL errors or data leakage  
+- [ ] After successful signup, the user is immediately redirected to a verification screen (e.g. `/auth/verify`) with a 6-digit input  
+- [ ] For this first version, submitting any 6-digit code marks the user as verified in the database (Option A), then routes them into `/app/user`  
+- [ ] Unverified users cannot access any `/app/*` routes; attempts redirect back to the verification screen with an explanatory message  
+- [ ] Login form includes a "Keep me logged in for 7 days" checkbox:
+  - When checked, the backend issues an HttpOnly, SameSite=Lax session cookie with a 7-day expiry  
+  - Each successful login resets the 7-day expiry (new cookie is issued)  
+  - When unchecked, session lifetime follows the shorter default from F7  
+- [ ] On app load, the frontend calls `GET /api/users/me` (or equivalent) to restore auth state from the cookie-backed session and redirect appropriately  
+- [ ] `/app` routing is wired through the G2 app shell and a route for `/app/user` is added  
+- [ ] `/app/user` renders an initial, minimal user page (welcome text and placeholders for future content such as the login heatmap from D9 and friends list)  
+- [ ] The `/app/*` header shows, in the upper-right corner:
+  - User icon/avatar  
+  - Username  
+  - Subscription tier label (e.g. "Free"), with the free/solo tier displayed in grey when not paid  
+- [ ] The header with user info and dropdown is only visible on `/app/*` routes (not on marketing routes)  
+- [ ] Clicking the main app logo/icon:
+  - Navigates to `/app/user` when the user is logged in  
+  - Navigates to `/` when the user is not logged in  
+- [ ] Clicking the user icon/username opens a dropdown that includes:
+  - A working **Logout** item that calls `POST /api/auth/logout`, clears the session cookie, and navigates back to `/` or `/auth`  
+  - A **Settings** item that is visible but visually disabled (e.g. greyed out, "Coming soon") and does not navigate yet
+
+---
+
+### G10. [Frontend] Implement user dropdown details & account settings page
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** G9, C7, C10, F11  
+**Labels:** `frontend`, `auth`, `users`, `settings`, `epic-g`
+
+#### Description
+
+Extend the user dropdown to show key account information and link to a new `/app/settings` page. On this settings page, users can update their username, email, password, and profile icon. Changing email reuses the verification flow and sets a flag in the database to unverified until validation is complete. The page also displays subscription tier/status and links to the existing subscription/pricing flow once Epic C is available.
+
+#### Acceptance Criteria
+
+- [ ] User dropdown displays current username, email, and subscription tier/status using data from the profile endpoint (enriched by C10)  
+- [ ] The Settings item in the dropdown is now active and navigates to `/app/settings`  
+- [ ] `/app/settings` is only accessible to authenticated users and is rendered inside the G2 app shell  
+- [ ] Users can update their **username**:
+  - Uses the same uniqueness and length/format validation rules as signup  
+  - Shows clear error messages when the username is already taken or invalid  
+- [ ] Users can update their **email**:
+  - Changing email updates the stored email and sets `emailVerified = false` (or equivalent)  
+  - The UI clearly indicates the email is pending verification and prompts the user to complete the 6-digit verification flow again  
+- [ ] Users can change their **password** using a form that includes current password, new password, and confirmation; failures (wrong current password or policy violations) are handled with clear messages  
+- [ ] Users can change their **profile icon** by selecting from a predefined set of avatar icons (no file upload yet); the chosen icon is persisted and reflected in the `/app/*` header and dropdown  
+- [ ] A Subscription section on `/app/settings` shows the current tier and status and includes a single button/link that routes to the existing pricing/subscription flow (e.g. `/pricing`), without duplicating subscription management UI  
+- [ ] Update or add backend tests (in this issue or F11) to confirm that username/email/password update endpoints:
+  - Use parameterized queries / ORM APIs (no dynamic SQL)  
+  - Do not leak SQL error details when given malicious input
+
+---
+
+### G11. [Frontend] Implement friends management UI scaffolding
+
+**Priority:** P2 - Medium  
+**Type:** Feature  
+**Estimate:** 3 points  
+**Depends on:** G9 (and future social endpoints from F11)  
+**Labels:** `frontend`, `users`, `social`, `epic-g`
+
+#### Description
+
+Introduce a first-pass friends/social area in the app UI that defines the layout, navigation, and empty states for friends/duos/teams, but with no real backend integration yet. All actions are disabled or marked as "coming soon" so a later iteration can implement the detailed flows.
+
+#### Acceptance Criteria
+
+- [ ] Add a Friends section on the `/app/user` page that visually groups social functionality (e.g. a "Friends & Teams" card or tab)  
+- [ ] The Friends section includes:
+  - An empty state message when there are no friends (e.g. "You don't have any friends added yet")  
+  - UI scaffolding for a friends list (list area or table), search field, "Add friend" button, and per-friend actions (e.g. remove/manage)  
+  - Optional sub-tabs or headings for Friends, Duos, and Teams, even if they contain no real data yet  
+- [ ] All social actions (search, add, remove, manage) are disabled or trigger only local "Coming soon" messages and do not call any backend endpoints yet  
+- [ ] A simple frontend abstraction (e.g. `useFriendsStore` or `useSocialStore`) is introduced and used by the Friends UI to obtain data and actions, with TODO comments describing how it will later connect to social endpoints from F11
 
 ---
 
@@ -1677,7 +1778,7 @@ Create the user-facing authentication and account experience so dashboards, paym
 | G1 | Define app v2 IA & routes | Frontend v2 | 2 |
 | G2 | Implement new app shell & navigation | Frontend v2 | 3 |
 | G5 | Implement Solo dashboard v2 view | Frontend v2 | 5 |
-| G9 | Implement user login, account page & friends management | Frontend v2 | 5 |
+| G9 | Implement user login, signup, verification & `/app/user` shell | Frontend v2 | 5 |
 
 **P0 Total:** 82 points
 
@@ -1711,7 +1812,9 @@ Create the user-facing authentication and account experience so dashboards, paym
 | G6 | Implement Duo dashboard v2 view | Frontend v2 | 5 |
 | G7 | Implement Team dashboard v2 view | Frontend v2 | 5 |
 
-**P1 Total:** 58 points
+| G10 | Implement user dropdown details & account settings page | Frontend v2 | 5 |
+
+**P1 Total:** 63 points
 
 ### P2 - Medium
 
@@ -1726,13 +1829,15 @@ Create the user-facing authentication and account experience so dashboards, paym
 | D6 | Create internal metrics endpoint | Analytics | 2 |
 | D7 | Set up error tracking | Analytics | 2 |
 | D9 | Show login activity heatmap on user page | Analytics | 3 |
+| D10 | Implement cookie consent & preferences | Analytics | 2 |
 
 | E7 | Remove v1 database tables and repositories | Database v2 | 2 |
 | F6 | Deprecate or migrate v1 endpoints to v2 | API v2 | 2 |
 | F10 | Audit async methods for CancellationToken usage | API v2 | 3 |
 | G8 | Remove legacy dashboard views & routes | Frontend v2 | 1 |
+| G11 | Implement friends management UI scaffolding | Frontend v2 | 3 |
 
-**P2 Total:** 29 points
+**P2 Total:** 34 points
 
 ### P3 - Low
 
