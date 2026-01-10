@@ -162,7 +162,7 @@ jobs:
           try {
             curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
               "$remoteOffline" `
-              -o $null
+              -o NUL
             if ($LASTEXITCODE -eq 0) { $alreadyOffline = $true }
           }
           catch {
@@ -236,7 +236,7 @@ jobs:
             curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
               "$remoteBase" `
               -Q "MKD $remoteSupportDir" `
-              -o $null
+              -o NUL
           }
           catch {
             Write-Host "CI-Support folder may already exist; continuing."
@@ -247,7 +247,7 @@ jobs:
             curl -s --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
               "$remoteBase" `
               -Q "DELE $remoteSupportDir/app_offline.htm" `
-              -o $null
+              -o NUL
           }
           catch {
             Write-Host "Target cleanup skipped (file likely absent)."
@@ -267,6 +267,7 @@ jobs:
               }
               elseif ($LASTEXITCODE -eq 21) {
                 Write-Warning "app_offline.htm not found or already moved; treating as already online"
+                $LASTEXITCODE = 0
                 break
               }
               else {
@@ -280,4 +281,7 @@ jobs:
               Start-Sleep -Seconds $delay
             }
           }
+
+          # Ensure the step returns success unless explicitly failed above
+          $LASTEXITCODE = 0
 
