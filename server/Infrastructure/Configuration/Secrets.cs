@@ -19,8 +19,8 @@ namespace RiotProxy.Infrastructure
         /// </summary>
         public static void Initialize(IConfiguration config)
         {
-            if (_initialized)
-                return;
+            // Always (re)initialize from the provided configuration. Safe to call multiple times.
+            var aspnetEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? string.Empty;
 
             ApiKey = FirstNonEmpty(
                 config["Riot:ApiKey"],
@@ -46,7 +46,6 @@ namespace RiotProxy.Infrastructure
 
             // Optional debug logging: only in Development or when explicitly enabled
             var enableSecretsDebug = config.GetValue<bool>("Secrets:EnableDebugLogging", false);
-            var aspnetEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? string.Empty;
             var isDevelopment = string.Equals(aspnetEnv, "Development", StringComparison.OrdinalIgnoreCase);
             if (enableSecretsDebug || isDevelopment)
             {
