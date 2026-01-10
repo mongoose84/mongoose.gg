@@ -17,6 +17,9 @@ on:
 jobs:
   build-and-deploy:
     runs-on: windows-latest               # needed for win‑x86 runtime
+    concurrency:
+      group: server-prod-deploy
+      cancel-in-progress: true
     env:
       # Folder where `dotnet publish` will drop the files
       PUBLISH_DIR: publish-output  
@@ -36,17 +39,7 @@ jobs:
           fetch-depth: 0 # needed for versioning tools
 
 
-      # --------------------------------------------------------------
-      #  Copy the app_offline.htm from the support folder to the main folder
-      # --------------------------------------------------------------
-      - name: Bring site offline (copy app_offline.htm on server)
-        shell: pwsh
-        run: |
-          curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
-            "ftp://${{ secrets.FTP_URL }}" `
-            -Q "RNFR ${{ secrets.FTP_SERVER_PATH }}/CI-Support/app_offline.htm" `
-            -Q "RNTO ${{ secrets.FTP_SERVER_PATH }}/app_offline.htm"
-          
+      # (Removed early offline toggle to avoid leaving site offline if build fails)
 
       # -------------------------------------------------
       # Set up .NET SDK
@@ -154,6 +147,30 @@ jobs:
           Get-ChildItem -Recurse "./${{ env.PUBLISH_DIR }}"
 
       # -------------------------------------------------
+      # Enter maintenance mode right before deploy (idempotent, with retries)
+      # -------------------------------------------------
+      - name: Bring site offline (upload app_offline.htm)
+        shell: pwsh
+        run: |
+          $maxAttempts = 3
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+            try {
+              Write-Host "Attempt $i: Uploading app_offline.htm to remote root"
+              curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
+                -T "./server/CI-Support/app_offline.htm" `
+                "ftp://${{ secrets.FTP_URL }}/${{ secrets.FTP_SERVER_PATH }}/app_offline.htm"
+              Write-Host "✅ Maintenance mode enabled"
+              break
+            }
+            catch {
+              if ($i -eq $maxAttempts) { Write-Error "❌ Failed to enable maintenance mode after $maxAttempts attempts"; throw }
+              $delay = 5 * $i
+              Write-Warning "Upload failed, retrying in $delay seconds..."
+              Start-Sleep -Seconds $delay
+            }
+          }
+
+      # -------------------------------------------------
       # Deploy new files via FTPS (publish folder only)
       # -------------------------------------------------
       - name: Deploy new files to FTP server
@@ -180,14 +197,28 @@ jobs:
           # dry-run: false
           # timeout: 30
 
-       # --------------------------------------------------------------
-      # Bring site back online (move the app_offline.htm to the support folder)
+      # --------------------------------------------------------------
+      # Always attempt to bring site back online (runs even if earlier steps fail)
       # --------------------------------------------------------------
       - name: Bring site back online (delete app_offline.htm)
+        if: ${{ always() }}
         shell: pwsh
         run: |
-          curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
-            "ftp://${{ secrets.FTP_URL }}" `
-            -Q "RNFR ${{ secrets.FTP_SERVER_PATH }}/app_offline.htm" `
-            -Q "RNTO ${{ secrets.FTP_SERVER_PATH }}/CI-Support/app_offline.htm"
+          $maxAttempts = 3
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+            try {
+              Write-Host "Attempt $i: Deleting app_offline.htm from remote root"
+              curl -v --ssl -u "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" `
+                "ftp://${{ secrets.FTP_URL }}" `
+                -Q "DELE ${{ secrets.FTP_SERVER_PATH }}/app_offline.htm"
+              Write-Host "✅ Maintenance mode disabled"
+              break
+            }
+            catch {
+              if ($i -eq $maxAttempts) { Write-Warning "⚠️ Failed to delete app_offline.htm after $maxAttempts attempts; site may remain offline"; break }
+              $delay = 5 * $i
+              Write-Warning "Delete failed, retrying in $delay seconds..."
+              Start-Sleep -Seconds $delay
+            }
+          }
 
