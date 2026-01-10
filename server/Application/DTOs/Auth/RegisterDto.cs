@@ -2,20 +2,20 @@ using System.Text.Json.Serialization;
 
 namespace RiotProxy.Application.DTOs;
 
-public static class LoginDto
+public static class RegisterDto
 {
-    public record LoginRequest(
+    public record RegisterRequest(
         [property: JsonPropertyName("username")] string Username,
-        [property: JsonPropertyName("password")] string Password,
-        [property: JsonPropertyName("rememberMe")] bool RememberMe = false
+        [property: JsonPropertyName("email")] string Email,
+        [property: JsonPropertyName("password")] string Password
     );
 
-    public record LoginResponse(
+    public record RegisterResponse(
         [property: JsonPropertyName("userId")] long UserId,
         [property: JsonPropertyName("username")] string Username,
         [property: JsonPropertyName("email")] string Email,
         [property: JsonPropertyName("emailVerified")] bool EmailVerified,
-        [property: JsonPropertyName("tier")] string Tier,
         [property: JsonPropertyName("message")] string Message
     );
 }
+

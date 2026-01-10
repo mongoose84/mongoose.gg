@@ -1,7 +1,7 @@
 <template>
   <div class="auth-page">
     <NavBar />
-    
+
     <div class="auth-container">
       <div class="auth-card">
         <div class="auth-header">
@@ -9,23 +9,35 @@
           <h1 class="auth-title">Welcome to Pulse.gg</h1>
           <p class="auth-subtitle">{{ isLogin ? 'Sign in to your account' : 'Create your account' }}</p>
         </div>
-        
+
+        <!-- Error message -->
+        <div v-if="errorMessage" class="auth-error">
+          {{ errorMessage }}
+        </div>
+
         <form @submit.prevent="handleSubmit" class="auth-form">
-          <div v-if="!isLogin" class="form-group">
+          <!-- Username field for both login and signup -->
+          <div class="form-group">
             <label for="username" class="form-label">Username</label>
-            <input 
+            <input
               id="username"
               v-model="formData.username"
               type="text"
               class="form-input"
+              :class="{ 'form-input-error': usernameError }"
               placeholder="Your username"
               required
+              minlength="3"
+              maxlength="50"
+              @input="validateUsername"
             />
+            <span v-if="usernameError" class="form-error">{{ usernameError }}</span>
           </div>
-          
-          <div class="form-group">
+
+          <!-- Email field only for signup -->
+          <div v-if="!isLogin" class="form-group">
             <label for="email" class="form-label">Email</label>
-            <input 
+            <input
               id="email"
               v-model="formData.email"
               type="email"
@@ -34,26 +46,39 @@
               required
             />
           </div>
-          
+
           <div class="form-group">
             <label for="password" class="form-label">Password</label>
-            <input 
+            <input
               id="password"
               v-model="formData.password"
               type="password"
               class="form-input"
               placeholder="••••••••"
               required
+              minlength="8"
             />
           </div>
-          
-          <button type="submit" class="auth-btn-submit">
-            {{ isLogin ? 'Sign In' : 'Create Account' }}
+
+          <!-- Remember me checkbox for login -->
+          <div v-if="isLogin" class="form-checkbox-group">
+            <input
+              id="rememberMe"
+              v-model="formData.rememberMe"
+              type="checkbox"
+              class="form-checkbox"
+            />
+            <label for="rememberMe" class="form-checkbox-label">Keep me logged in for 30 days</label>
+          </div>
+
+          <button type="submit" class="auth-btn-submit" :disabled="isSubmitting">
+            <span v-if="isSubmitting" class="auth-spinner"></span>
+            {{ isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account') }}
           </button>
         </form>
-        
+
         <div class="auth-footer">
-          <button @click="toggleMode" class="auth-toggle">
+          <button @click="toggleMode" class="auth-toggle" :disabled="isSubmitting">
             {{ isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in' }}
           </button>
         </div>
@@ -63,37 +88,130 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
+import { useAuthStore } from '../stores/authStore';
 
 const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+
 const isLogin = ref(true);
+const isSubmitting = ref(false);
+const errorMessage = ref('');
+const usernameError = ref('');
+
 const formData = ref({
   username: '',
   email: '',
-  password: ''
+  password: '',
+  rememberMe: false
 });
 
-onMounted(() => {
+onMounted(async () => {
+  // Initialize auth store to check current session
+  await authStore.initialize();
+
+  // Redirect if already authenticated
+  if (authStore.isAuthenticated) {
+    if (!authStore.isVerified) {
+      router.push('/auth/verify');
+    } else {
+      router.push('/app/user');
+    }
+    return;
+  }
+
   // Check query params for mode
   if (route.query.mode === 'signup') {
     isLogin.value = false;
   } else if (route.query.mode === 'login') {
     isLogin.value = true;
   }
-  // Default is login if no mode specified
 });
+
+// Watch for route changes to update mode
+watch(() => route.query.mode, (newMode) => {
+  if (newMode === 'signup') {
+    isLogin.value = false;
+  } else if (newMode === 'login') {
+    isLogin.value = true;
+  }
+});
+
+const validateUsername = () => {
+  const username = formData.value.username;
+  usernameError.value = '';
+
+  if (username.length > 0 && username.length < 3) {
+    usernameError.value = 'Username must be at least 3 characters';
+  } else if (username.length > 50) {
+    usernameError.value = 'Username must be 50 characters or less';
+  } else if (username && !/^[a-zA-Z0-9_-]+$/.test(username)) {
+    usernameError.value = 'Username can only contain letters, numbers, underscores, and hyphens';
+  }
+};
 
 const toggleMode = () => {
   isLogin.value = !isLogin.value;
-  formData.value = { username: '', email: '', password: '' };
+  formData.value = { username: '', email: '', password: '', rememberMe: false };
+  errorMessage.value = '';
+  usernameError.value = '';
+
+  // Update URL without navigating
+  router.replace({
+    path: '/auth',
+    query: { mode: isLogin.value ? 'login' : 'signup' }
+  });
 };
 
-const handleSubmit = () => {
-  console.log('Form submitted:', formData.value);
-  // TODO: Implement authentication logic
-  alert('Authentication coming soon!');
+const handleSubmit = async () => {
+  if (isSubmitting.value) return;
+  if (usernameError.value) return;
+
+  isSubmitting.value = true;
+  errorMessage.value = '';
+
+  try {
+    if (isLogin.value) {
+      // Login flow
+      const result = await authStore.login({
+        username: formData.value.username,
+        password: formData.value.password,
+        rememberMe: formData.value.rememberMe
+      });
+
+      if (!result.emailVerified) {
+        router.push('/auth/verify');
+      } else {
+        router.push('/app/user');
+      }
+    } else {
+      // Signup flow
+      await authStore.register({
+        username: formData.value.username,
+        email: formData.value.email,
+        password: formData.value.password
+      });
+
+      // After signup, redirect to verification
+      router.push('/auth/verify');
+    }
+  } catch (e) {
+    // Handle specific error codes
+    if (e.code === 'USERNAME_TAKEN') {
+      usernameError.value = 'This username is already taken';
+    } else if (e.code === 'USERNAME_TOO_LONG') {
+      usernameError.value = 'Username must be 50 characters or less';
+    } else if (e.code === 'USERNAME_INVALID') {
+      usernameError.value = 'Username contains invalid characters';
+    } else {
+      errorMessage.value = e.message || 'An error occurred. Please try again.';
+    }
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 </script>
 
@@ -224,5 +342,74 @@ const handleSubmit = () => {
 
 .auth-toggle:hover {
   opacity: 0.8;
+}
+
+.auth-toggle:disabled,
+.auth-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-error {
+  padding: var(--spacing-md);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  color: #ef4444;
+  font-size: var(--font-size-sm);
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.form-input-error {
+  border-color: #ef4444;
+}
+
+.form-input-error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.form-error {
+  font-size: var(--font-size-xs);
+  color: #ef4444;
+  margin-top: var(--spacing-xs);
+}
+
+.form-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.form-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.form-checkbox-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.auth-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+  margin-right: var(--spacing-sm);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

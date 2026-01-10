@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '../views/LandingPage.vue'
+import { useAuthStore } from '../stores/authStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,6 +16,12 @@ const router = createRouter({
       component: () => import('../views/AuthPage.vue')
     },
     {
+      path: '/auth/verify',
+      name: 'verify',
+      component: () => import('../views/VerifyPage.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/privacy',
       name: 'privacy',
       component: () => import('../views/PrivacyPage.vue')
@@ -23,6 +30,22 @@ const router = createRouter({
       path: '/terms',
       name: 'terms',
       component: () => import('../views/TermsPage.vue')
+    },
+    {
+      path: '/app',
+      component: () => import('../layouts/AppLayout.vue'),
+      meta: { requiresAuth: true, requiresVerified: true },
+      children: [
+        {
+          path: '',
+          redirect: '/app/user'
+        },
+        {
+          path: 'user',
+          name: 'app-user',
+          component: () => import('../views/UserPage.vue')
+        }
+      ]
     }
   ],
   scrollBehavior(to, from, savedPosition) {
@@ -37,6 +60,35 @@ const router = createRouter({
     }
     return { top: 0 }
   }
+})
+
+// Navigation guards
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore()
+
+  // Initialize auth store if not already done
+  if (!authStore.isInitialized) {
+    await authStore.initialize()
+  }
+
+  // Check if route requires authentication
+  if (to.meta.requiresAuth) {
+    if (!authStore.isAuthenticated) {
+      return next({ path: '/auth', query: { mode: 'login', redirect: to.fullPath } })
+    }
+
+    // Check if route requires verified email
+    if (to.meta.requiresVerified && !authStore.isVerified) {
+      return next('/auth/verify')
+    }
+  }
+
+  // Redirect verified users away from verify page
+  if (to.name === 'verify' && authStore.isAuthenticated && authStore.isVerified) {
+    return next('/app/user')
+  }
+
+  next()
 })
 
 export default router

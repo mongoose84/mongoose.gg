@@ -141,7 +141,7 @@
               <img src="/pulse-icon.svg" alt="Pulse.gg" class="footer-logo-icon" />
               <span class="footer-logo-text">Pulse<span class="footer-logo-tld">.gg</span></span>
             </div>
-            <p class="footer-tagline">Built with ❤️ by Agile Astronaut</p>
+            <p class="footer-tagline">Built with ❤️ in the nordics by the Agile Astronaut</p>
           </div>
           
           <div class="footer-links">

@@ -54,6 +54,50 @@ public class V2UsersRepository : RepositoryBase
         return ExecuteSingleAsync(sql, Map, ("@user_id", userId));
     }
 
+    public Task<V2User?> GetByUsernameAsync(string username)
+    {
+        const string sql = "SELECT * FROM users WHERE username = @username LIMIT 1";
+        return ExecuteSingleAsync(sql, Map, ("@username", username));
+    }
+
+    public async Task<bool> UsernameExistsAsync(string username)
+    {
+        const string sql = "SELECT COUNT(*) FROM users WHERE username = @username";
+        return await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@username", username);
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt64(result) > 0;
+        });
+    }
+
+    public async Task<bool> EmailExistsAsync(string email)
+    {
+        const string sql = "SELECT COUNT(*) FROM users WHERE email = @email";
+        return await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@email", email);
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt64(result) > 0;
+        });
+    }
+
+    public async Task UpdateEmailVerifiedAsync(long userId, bool verified)
+    {
+        const string sql = "UPDATE users SET email_verified = @verified, updated_at = @updated_at WHERE user_id = @user_id";
+        await ExecuteWithConnectionAsync<object?>(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@verified", verified);
+            cmd.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
+            cmd.Parameters.AddWithValue("@user_id", userId);
+            await cmd.ExecuteNonQueryAsync();
+            return null;
+        });
+    }
+
     private static V2User Map(MySqlDataReader r) => new()
     {
         UserId = r.GetInt64(0),

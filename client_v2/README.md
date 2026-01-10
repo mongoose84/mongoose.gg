@@ -227,4 +227,4 @@ For production, configure:
 
 ---
 
-Built with ❤️ by Agile Astronaut | First 500 users get free Pro tier!
+Built with ❤️ in the nordics by the Agile Astronaut| First 500 users get free Pro tier!

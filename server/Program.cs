@@ -27,6 +27,7 @@ builder.Services.AddScoped<SoloStatsRepository>();
 builder.Services.AddScoped<DuoStatsRepository>();
 builder.Services.AddScoped<TeamStatsRepository>();
 // V2 repositories
+builder.Services.AddScoped<V2UsersRepository>();
 builder.Services.AddScoped<V2MatchesRepository>();
 builder.Services.AddScoped<V2ParticipantsRepository>();
 builder.Services.AddScoped<V2ParticipantCheckpointsRepository>();
@@ -107,7 +108,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("VueClientPolicy", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:5173", // <-- Vue dev server
+                "http://localhost:5173", // <-- Vue dev server (client)
+                "http://localhost:5174", // <-- Vue dev server (client_v2)
                 "http://lol.agileastronaut.com",
                 "https://lol.agileastronaut.com",
                 "http://www.lol.agileastronaut.com",
