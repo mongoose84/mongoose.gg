@@ -140,9 +140,6 @@ $env:RIOT_API_KEY = "RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 set RIOT_API_KEY=RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-**Option 3: Local secret file (fallback)**
-Create a file `server/RiotSecret.txt` containing just the API key (this file is gitignored).
-
 ##### Database connection string (local)
 Set via user-secrets:
 ```
@@ -155,18 +152,11 @@ dotnet user-secrets set "ConnectionStrings:DatabaseV2" "Server=...;Password=...;
 
 ##### Build and run
 
-build and run the application on Windows
+build and run the application
 ```
 dotnet build
 dotnet run
-```
-build and run the application on Linux Fedora
-```
-dotnet publish -c Release -r linux-x64 --self-contained false
-dotnet bin/Release/net9.0/linux-x64/publish/RiotProxy.dll
-```
-create publishable build for the hosting server
-```
+
 dotnet publish -c Release -r win-x86 --self-contained true 
 ```
 This will create all the files needed in the folder /bin/Release/publish
