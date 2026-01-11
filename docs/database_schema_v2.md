@@ -31,7 +31,7 @@ Stores application user accounts and authentication credentials.
 | `password_hash` | VARCHAR(255) | NOT NULL | Bcrypt/Argon2 hashed password |
 | `email_verified` | BOOLEAN | DEFAULT FALSE | Whether email has been verified |
 | `is_active` | BOOLEAN | DEFAULT TRUE | Account active status |
-| `tier` | ENUM('free', 'pro', 'team') | DEFAULT 'free' | Subscription tier for quick access |
+| `tier` | ENUM('free', 'pro') | DEFAULT 'free' | Subscription tier for quick access |
 | `mollie_customer_id` | VARCHAR(255) | NULL | Mollie customer identifier |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Account creation time |
 | `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update time |
@@ -97,7 +97,7 @@ Tracks user subscription status, tier, and billing information.
 |--------|------|-------------|-------------|
 | `subscription_id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique subscription record ID |
 | `user_id` | BIGINT | NOT NULL | Foreign key to users |
-| `tier` | ENUM('free', 'pro', 'team') | NOT NULL | Subscription tier |
+| `tier` | ENUM('free', 'pro') | NOT NULL | Subscription tier |
 | `status` | ENUM('active', 'trialing', 'past_due', 'canceled', 'paused') | NOT NULL | Current subscription status |
 | `mollie_subscription_id` | VARCHAR(255) | NULL | Mollie subscription identifier |
 | `mollie_plan_id` | VARCHAR(255) | NULL | Mollie plan identifier |
@@ -147,8 +147,8 @@ Audit log of subscription lifecycle events.
 | `event_id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique event record ID |
 | `subscription_id` | BIGINT | NOT NULL | Foreign key to subscriptions |
 | `event_type` | VARCHAR(50) | NOT NULL | Event type (created, updated, canceled, etc.) |
-| `old_tier` | ENUM('free', 'pro', 'team') | NULL | Previous tier (for upgrades/downgrades) |
-| `new_tier` | ENUM('free', 'pro', 'team') | NULL | New tier |
+| `old_tier` | ENUM('free', 'pro') | NULL | Previous tier (for upgrades/downgrades) |
+| `new_tier` | ENUM('free', 'pro') | NULL | New tier |
 | `old_status` | VARCHAR(20) | NULL | Previous status |
 | `new_status` | VARCHAR(20) | NULL | New status |
 | `mollie_event_id` | VARCHAR(255) | NULL | Mollie webhook event ID |

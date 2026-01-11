@@ -2,40 +2,67 @@
 
 ## Vision
 
-> **"Pulse is the only LoL improvement tracker built for duos and teams, powered by AI coaching that turns your stats into actionable goals you can actually achieve."**
+> **"Pulse is the solo queue improvement tracker—built to help you climb with better champ select picks and post-game takeaways, with a Premium mode that lets your duo or team set goals and improve together."**
+>
+> “Not another builds app—Pulse helps you improve between games and track progress over time.”
 
 Crafted with love by the Agile Astronaut. 
 First 500 users get free Pro tier. Keep a counter on the landing page of how many free users are left.
 
 ## Pricing Model
 
+**Key decision:** Keep pricing **simple** with **2 tiers** (Free + Pro). Collaboration is the main upsell; coaching/goals is the second.
+
+**How Duo/Team works:**
+
+- **Guests (Free users) can create and join Duo/Team spaces**
+- **Guests only see their own data** inside the group (plus generic upgrade nudges)
+- **Only Pro members** can access Duo/Team dashboards and use **shared goals** / collaboration features
+- If a Pro user downgrades, they become a Guest and **do not break the group** for others
+
 | Tier | Monthly | Annual | Features |
 |------|---------|--------|----------|
-| **Free** | €0 | - | Solo stats only, last 20 games, no AI |
-| **Pro** | €4.99 | €3.99/mo | Full solo/duo stats, 5 AI recommendations/week, goal tracking |
-| **Team** | €8.99 | €6.99/mo | Everything + team dashboard, shared goals, unlimited AI |
+| **Free** | €0 | - | Solo basics, last 20 games, champ-select personal matchup highlights, limited post-game takeaways |
+| **Pro** | €4.99 | €3.99/mo | Full solo history, goal setting + tracking, deeper post-game coaching, Duo/Team spaces, Duo/Team dashboards, shared goals (Guests can join groups but can’t collaborate) |
+
+**Primary upgrade moments to optimize for:**
+
+1. **Collaboration lock:** user creates/joins a Duo/Team and hits locked team dashboard/shared goals → upgrade
+2. **Goals lock:** user wants to set/track concrete improvement goals over the next X games → upgrade
 
 ---
 
 ## Epic Overview
 
-| Epic | Description | Total Points |
-|------|-------------|--------------|
-| **B. AI Goal Recommendations** | LLM-powered improvement suggestions | 44 pts |
-| **C. Subscription & Paywall** | Stripe integration, tiers, feature flags | 34 pts |
-| **D. Analytics & Tracking** | User behavior tracking for product decisions | 19 pts |
-| **E. Database v2 & Analytics Schema** | New match/participant/timeline schema + ingestion | 20 pts |
-| **F. API v2** | New API surface aligned with v2 schema and dashboards | 51 pts |
-| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 40 pts |
+| Epic | Description | Remaining Points | Completed Points |
+|------|-------------|------------------|------------------|
+| **B. AI Goal Recommendations** | LLM-powered improvement suggestions | 44 pts | 0 pts |
+| **C. Subscription & Paywall** | Mollie integration, tiers, feature flags | 34 pts | 0 pts |
+| **D. Analytics & Tracking** | User behavior tracking for product decisions | 19 pts | 0 pts |
+| **E. Database v2 & Analytics Schema** | New match/participant/timeline schema + ingestion | 4 pts | 16 pts ✅ |
+| **F. API v2** | New API surface aligned with v2 schema and dashboards | 20 pts | 13 pts ✅ |
+| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 20 pts | 5 pts ✅ |
 
-**Grand Total:** 208 points
+**Remaining:** 141 points | **Completed:** 34 points | **Grand Total:** 175 points
 
 > Note: Platform v2 epics (E–G) are prerequisites for most feature work (B–D) and should generally be completed first.
+>
+> **Completed tasks have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
 
 ## Cross-cutting requirements (v2)
 
 - All v2 dashboard endpoints and views support **queue filtering** (Ranked Solo/Duo, Ranked Flex, Normal, ARAM).
 - Queue filtering is backed by the v2 schema via `matches.queue_id` (numeric Riot queue id) and appropriate indexing.
+
+## Definition of Done (applies to all tasks)
+
+A task is only considered complete when **all** of the following are true:
+
+- [ ] All acceptance criteria for the task are met
+- [ ] Code changes are committed and merged
+- [ ] Update `docs/product_plan.md` to mark the task as ✅ complete
+- [ ] Update `docs/product_backlog.md` to remove the completed task from the active backlog
+- [ ] Update `docs/product_backlog_completed.md` to add the task with full details and checked acceptance criteria
 
 ---
 
@@ -501,7 +528,7 @@ Add subscription tier to User for quick access.
 
 #### Acceptance Criteria
 
-- [ ] `ALTER TABLE User ADD COLUMN Tier ENUM('free', 'pro', 'team') DEFAULT 'free';`
+- [ ] `ALTER TABLE User ADD COLUMN Tier ENUM('free', 'pro') DEFAULT 'free';`
 - [ ] Update `User` entity
 - [ ] Sync tier on subscription changes
 
@@ -781,6 +808,64 @@ Implement frontend feature gating.
 - [ ] Hide/disable features user can't access
 - [ ] Show upgrade prompt instead of blocked features
 - [ ] Blur/overlay for teaser content
+
+---
+
+### C17. [Product] Implement 2-tier pricing (Free + Pro) with Guests, Duo/Team collaboration paywall, and goal tracking paywall
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** C2, C3, C7, C8, C10, C12, C13, C14, F11-social  
+**Labels:** `pricing`, `subscription`, `entitlements`, `backend`, `frontend`, `client_v2`, `epic-c`
+
+#### Description
+
+Ship the updated monetization model in the product:
+
+- **Only 2 tiers:** Free + Pro (remove Team tier from UI/backend logic)
+- **Guests can create and join Duo/Team spaces**, but **Guests only see their own data** (plus upgrade nudges)
+- **Pro unlocks collaboration** (shared goals + duo/team dashboards) and **goal setting/tracking**
+- **Downgrade behavior:** if a Pro user downgrades, they become a Guest and must not break groups for others
+
+This aligns with the product positioning: not a builds app; focused on champ-select personal matchup highlights + post-game takeaways + progress over time.
+
+#### Database impact (analyze + implement if needed)
+
+Evaluate the current schema and add migrations as required to support:
+
+- A reliable source of truth for user access (e.g., `users.tier` = `free|pro`, subscription status/renewal metadata from C2)
+- Duo/Team grouping and invites (if not already covered by existing social tables/endpoints):
+  - Group entity (type: `duo|team`)
+  - Membership table (user_id, group_id, role/created_by, joined_at, left_at)
+  - Invite table (inviter, invitee/email, token, expires_at, accepted_at)
+- Shared goals/collaboration artifacts (if not already planned elsewhere): shared goals + optional voting/comments metadata
+
+#### Acceptance Criteria
+
+**Backend**
+
+- [ ] Tier model supports only **Free** and **Pro**; legacy "Team" references removed/mapped safely
+- [ ] Feature gating implemented server-side for:
+  - [ ] **Goal setting + tracking** (Pro)
+  - [ ] **Duo/Team dashboards** (Pro)
+  - [ ] **Shared goals / collaboration actions** (Pro)
+- [ ] Guest access enforced: Guests in a group can only access **their own** data; no teammate stats are returned
+- [ ] Downgrade does not break groups: Pro→Free transitions preserve memberships; user becomes Guest in groups
+- [ ] API returns clear, consistent errors for gated features (e.g., `403` + error code like `TIER_REQUIRED`)
+
+**Frontend (`client_v2`)**
+
+- [ ] Pricing page updated to show **2 tiers** (Free + Pro) with gamer-language value props
+- [ ] Upgrade prompts updated (remove "Upgrade to Team"); Pro is the only paid upgrade
+- [ ] Users can create/join Duo/Team spaces as Guests
+- [ ] In-group collaboration modules (team dashboard/shared goals/voting) show locked state + upgrade nudges for Guests
+- [ ] Goal setting/tracking UX is paywalled cleanly for Free users with upgrade path to Pro
+
+**Validation**
+
+- [ ] Add/update tests for tier gating (guest vs pro) for at least one goal endpoint and one duo/team endpoint
+- [ ] Verify that no endpoint leaks teammate data to Guests
 
 ---
 
@@ -1083,108 +1168,9 @@ Provide a cookie consent banner and preferences so users can control analytics c
 
 Modernize the Pulse database to match `docs/database_schema_v2.md` and support advanced solo/duo/team analytics.
 
+> **Completed tasks (E1–E5) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
+
 ## Issues
-
-### E1. [Database] Finalize Database v2 schema & DDL
-
-**Priority:** P0 - Critical  
-**Type:** Architecture  
-**Estimate:** 3 points  
-**Labels:** `database`, `v2`, `epic-e`
-
-#### Description
-
-Finalize the Pulse Database v2 schema (tables, columns, indexes) based on `docs/database_schema_v2.md` for matches, participants, checkpoints, metrics, duo/team analytics and AI snapshots.
-
-#### Acceptance Criteria
-
-- [x] Consolidated ERD / schema documented in `docs/database_schema_v2.md`  
-- [x] Tables defined for: `matches`, `participants`, `participant_checkpoints`, `participant_metrics`, `team_objectives`, `participant_objectives`, `duo_metrics`, `team_match_metrics`, `team_role_responsibility`, `ai_snapshots`  
-- [x] `matches.queue_id` present (numeric Riot queue id) and used for queue filtering across v2 dashboards
-- [x] Index strategy defined for common filters (puuid, queue_id, season/patch, team_id, minute_mark)
-
----
-
-### E2. [Database] Create MySQL schema scripts for Database v2
-
-**Priority:** P0 - Critical  
-**Type:** Database Migration  
-**Estimate:** 2 points  
-**Depends on:** E1  
-**Labels:** `database`, `migration`, `v2`, `epic-e`
-
-#### Description
-
-Create SQL scripts (or migrations) to create all Database v2 tables and indexes in MySQL.
-
-#### Acceptance Criteria
-
-- [x] `schema-v2.sql` (or equivalent migration) creates all v2 tables and indexes  
-- [x] Script can be applied to a clean database without errors  
-- [x] Script is safe to re-run on an empty DB (idempotent for local dev)
-
----
-
-### E3. [Repository] Implement v2 entities and repositories
-
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** E1, E2  
-**Labels:** `repository`, `v2`, `epic-e`
-
-#### Description
-
-Add entity classes and repository types for Database v2 tables under `server/Infrastructure/External/Domain/Entities/` and `server/Infrastructure/External/Database/Repositories/`.
-
-#### Acceptance Criteria
-
-- [x] Entity classes created for all v2 tables  
-- [x] Repositories expose queries aligned with product needs (solo/duo/team summaries, timelines, derived metrics)  
-- [x] New repositories use `RepositoryBase` helpers and follow existing patterns
-
----
-
-### E4. [Sync] Ingest match & participant core data into v2 tables
-
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** E3  
-**Labels:** `sync`, `riot-api`, `v2`, `epic-e`
-
-#### Description
-
-Update `MatchHistorySyncJob` (and related logic) to write match- and participant-level data from Riot match info into the v2 `matches` and `participants` tables.
-
-#### Acceptance Criteria
-
-- [x] New writes to `matches` and `participants` occur for all synced matches  
-- [x] At least one test account can be fully synced into v2 tables  
-- [x] Basic solo stats queries using v2 repositories return expected values (win rate, KDA, CS, etc.)
-
----
-
-### E5. [Sync] Ingest timeline & derived metrics into v2 tables
-
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Depends on:** E4  
-**Labels:** `sync`, `timeline`, `statistics`, `v2`, `epic-e`
-
-#### Description
-
-Extend the sync pipeline to call Riot timeline endpoints and populate `participant_checkpoints`, `participant_metrics`, `team_objectives`, `participant_objectives`, `duo_metrics`, and `team_match_metrics`.
-
-#### Acceptance Criteria
-
-- [x] Timeline data fetched for synced matches (respecting rate limits)  
-- [x] Checkpoints stored at key minute marks (10/15/20/25 etc.)  
-- [x] Derived metrics (kill participation, damage share, death timings, gold leads, duo/team metrics) are persisted  
-- [x] Core solo/duo/team analytics can be served from v2 tables without additional Riot calls
-
----
 
 ### E6. [Validation] Validate Database v2 metrics against Riot for sample accounts
 
@@ -1230,49 +1216,9 @@ Once all consumers have been migrated to v2, remove legacy tables, repositories 
 
 Expose a new HTTP API surface aligned with Database v2 and the new dashboards.
 
+> **Completed tasks (F1, F2, F7, F11 core auth) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
+
 ## Issues
-
-### F1. [Design] Define API v2 surface & versioning
-
-**Priority:** P0 - Critical  
-**Type:** Architecture  
-**Estimate:** 2 points  
-**Depends on:** E1  
-**Labels:** `api`, `v2`, `epic-f`
-
-#### Description
-
-Design the v2 API surface (routes, DTOs, versioning strategy) for solo, duo, team dashboards and AI/goal endpoints.
-
-#### Acceptance Criteria
-
-- [x] API v2 route scheme decided (e.g. `/api/v2/...`)  
-- [x] Request/response models defined for solo/duo/team summary endpoints  
-- [x] Response shapes optimized for frontend dashboards (minimal client-side aggregation)
-- [x] Standardize optional queue filtering for v2 endpoints (e.g. `queueType=ranked_solo|ranked_flex|normal|aram|all`)
-
----
-
-### F2. [API] Implement Solo dashboard v2 endpoint
-
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** E3, E4, F1  
-**Labels:** `api`, `solo`, `v2`, `epic-f`
-
-#### Description
-
-Create a v2 endpoint that returns all data required for the Solo dashboard (overall stats, champion performance, role distribution, death efficiency, match duration, etc.) from Database v2.
-
-#### Acceptance Criteria
-
-- [x] Endpoint implemented (e.g. `GET /api/v2/solo/dashboard/{userId}`)  
-- [x] Uses only v2 repositories  
-- [x] Returns a single well-structured payload consumed by the new Solo dashboard view
-- [x] Supports optional queue filtering via the standardized v2 queue filter
-
----
 
 ### F3. [API] Implement Duo dashboard v2 endpoint
 
@@ -1356,30 +1302,6 @@ Once the new frontend is migrated to API v2, mark v1 endpoints as deprecated and
 
 ---
 
-### F7. [Security] Implement authenticated access for backend
-
-**Priority:** P0 - Critical  
-**Type:** Security  
-**Estimate:** 3 points  
-**Depends on:** F1  
-**Labels:** `security`, `auth`, `api`, `epic-f`
-
-#### Description
-
-Protect the .NET backend with cookie-based session authentication so only authorized clients can call the server.
-
-#### Acceptance Criteria
-
-- [ ] Configure session middleware (httpOnly, secure, SameSite=Lax cookies) for all v2 endpoints  
-- [ ] Create a login endpoint that validates credentials and sets a session cookie  
-- [ ] Require valid session for non-public endpoints; missing/expired → `401 Unauthorized`  
-- [ ] Session timeout configurable via appsettings (default 30 min)  
-- [ ] Authorization policies can be applied per-route where needed  
-- [ ] Local development can relax cookie.SecurePolicy via configuration  
-- [ ] Authentication failures are logged without exposing user data
-
----
-
 ### F8. [API] Implement unified error handling & problem responses
 
 **Priority:** P1 - High  
@@ -1444,30 +1366,31 @@ Ensure all important async operations in the backend respect `CancellationToken`
 
 ---
 
-### F11. [API] Implement user auth, profile & social endpoints
+### F11-social. [API] Implement social endpoints (friends, teams, user search)
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Labels:** `api`, `auth`, `users`, `epic-f`
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** F11 (core auth - completed)
+**Labels:** `api`, `social`, `users`, `epic-f`
 
 #### Description
 
-Provide API endpoints for user login, user profile data, and managing friends/duos/teams so dashboards and payments are associated with a user.
+Provide API endpoints for managing friends/duos/teams and searching for LoL accounts. This is the remaining work from F11 after core auth was completed.
 
 #### Acceptance Criteria
 
-- [ ] Implement basic user authentication endpoints (e.g. `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`)  
-- [ ] Expose a `GET /api/users/me` endpoint that returns the current user's profile, subscription tier and linked LoL accounts  
-- [ ] Provide endpoints to manage friends / duo partners and team members (e.g. add/remove friends, manage team roster)  
-- [ ] Provide a user search endpoint that lets you look up LoL accounts by Riot ID / game name + tagline when creating or linking a user  
-- [ ] All new endpoints are protected by API key authentication and follow the unified error-handling conventions
+- [ ] Provide endpoints to manage friends / duo partners and team members (e.g. add/remove friends, manage team roster)
+- [ ] Provide a user search endpoint that lets you look up LoL accounts by Riot ID / game name + tagline when creating or linking a user
+- [ ] All new endpoints are protected by session authentication and follow the unified error-handling conventions
 
 ---
 
 # Epic G: Frontend v2 App & Marketing
 
 Create a new, professional user experience with a landing page, pricing, and app shell consuming API v2.
+
+> **Completed tasks (G9) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
 
 ### Decision (Jan 2026): Build a standalone `client_v2` Vue app
 - **Architecture**: Create a completely independent Vue 3 + Vite application in `/client_v2/` directory with its own `package.json`, `node_modules`, and build configuration. This is **not** nested within the legacy `/client` folder.
@@ -1641,79 +1564,57 @@ Remove old dashboard views, components and routes that are no longer used after 
 
 ---
 
-### G9. [Frontend] Implement user login, signup, verification & `/app/user` shell
-
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Depends on:** F7, F11, G2  
-**Labels:** `frontend`, `auth`, `users`, `epic-g`
-
-#### Description
-
-Provide working user authentication flows and a minimal in-app shell under `/app/user`, wired to the backend auth endpoints. Include a simple 6-digit verification page, a 7-day "keep me logged in" cookie-based session, and a basic user dropdown (logout + disabled settings) in the `/app/*` header.
-
-#### Acceptance Criteria
-
-- [x] `/auth` supports **login** and **signup** modes using `POST /api/auth/register` and `POST /api/auth/login` from F11
-- [x] Signup requires `username`, `email`, and `password` and creates a user record with `emailVerified = false` (or equivalent)
-- [x] Username is validated for uniqueness and length/format on the backend; the UI shows specific messages when:
-  - Username is already taken
-  - Username is too long / invalid
-- [x] Auth endpoints treat all user input as parameters (no string-concatenated SQL); tests (either here or in F11) exercise common SQL injection payloads and assert no SQL errors or data leakage
-- [x] After successful signup, the user is immediately redirected to a verification screen (e.g. `/auth/verify`) with a 6-digit input
-- [x] For this first version, submitting any 6-digit code marks the user as verified in the database (Option A), then routes them into `/app/user`
-- [x] Unverified users cannot access any `/app/*` routes; attempts redirect back to the verification screen with an explanatory message
-- [x] Login form includes a "Keep me logged in for 30 days" checkbox:
-  - When checked, the backend issues an HttpOnly, SameSite=Lax session cookie with a 7-day expiry
-  - Each successful login resets the 7-day expiry (new cookie is issued)
-  - When unchecked, session lifetime follows the shorter default from F7
-- [x] On app load, the frontend calls `GET /api/users/me` (or equivalent) to restore auth state from the cookie-backed session and redirect appropriately
-- [x] `/app` routing is wired through the G2 app shell and a route for `/app/user` is added
-- [x] `/app/user` renders an initial, minimal user page (welcome text and placeholders for future content such as the login heatmap from D9 and friends list)
-- [x] The `/app/*` header shows, in the upper-right corner:
-  - User icon/avatar
-  - Username
-  - Subscription tier label (e.g. "Free"), with the free/solo tier displayed in grey when not paid
-- [x] The header with user info and dropdown is only visible on `/app/*` routes (not on marketing routes)
-- [x] Clicking the main app logo/icon:
-  - Navigates to `/app/user` when the user is logged in
-  - Navigates to `/` when the user is not logged in
-- [x] Clicking the user icon/username opens a dropdown that includes:
-  - A working **Logout** item that calls `POST /api/auth/logout`, clears the session cookie, and navigates back to `/` or `/auth`
-  - A **Settings** item that is visible but visually disabled (e.g. greyed out, "Coming soon") and does not navigate yet
-
----
-
 ### G10. [Frontend] Implement user dropdown details & account settings page
 
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Depends on:** G9, C7, C10, F11  
-**Labels:** `frontend`, `auth`, `users`, `settings`, `epic-g`
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 8 points
+**Depends on:** G9, G12, C7, C10, F11, F12
+**Labels:** `frontend`, `auth`, `users`, `settings`, `subscription`, `riot-api`, `epic-g`
 
 #### Description
 
-Extend the user dropdown to show key account information and link to a new `/app/settings` page. On this settings page, users can update their username, email, password, and profile icon. Changing email reuses the verification flow and sets a flag in the database to unverified until validation is complete. The page also displays subscription tier/status and links to the existing subscription/pricing flow once Epic C is available.
+Extend the user dropdown to show key account information and link to a new `/app/settings` page. On this settings page, users can update their username, email, password, profile icon, subscription plan, and manage their linked game accounts (Riot accounts). Changing email reuses the verification flow and sets a flag in the database to unverified until validation is complete.
 
 #### Acceptance Criteria
 
-- [ ] User dropdown displays current username, email, and subscription tier/status using data from the profile endpoint (enriched by C10)  
-- [ ] The Settings item in the dropdown is now active and navigates to `/app/settings`  
-- [ ] `/app/settings` is only accessible to authenticated users and is rendered inside the G2 app shell  
+- [ ] User dropdown displays current username, email, and subscription tier/status using data from the profile endpoint (enriched by C10)
+- [ ] The Settings item in the dropdown is now active and navigates to `/app/settings`
+- [ ] `/app/settings` is only accessible to authenticated users and is rendered inside the G2 app shell
 - [ ] Users can update their **username**:
-  - Uses the same uniqueness and length/format validation rules as signup  
-  - Shows clear error messages when the username is already taken or invalid  
+  - Uses the same uniqueness and length/format validation rules as signup
+  - Shows clear error messages when the username is already taken or invalid
 - [ ] Users can update their **email**:
-  - Changing email updates the stored email and sets `emailVerified = false` (or equivalent)  
-  - The UI clearly indicates the email is pending verification and prompts the user to complete the 6-digit verification flow again  
-- [ ] Users can change their **password** using a form that includes current password, new password, and confirmation; failures (wrong current password or policy violations) are handled with clear messages  
-- [ ] Users can change their **profile icon** by selecting from a predefined set of avatar icons (no file upload yet); the chosen icon is persisted and reflected in the `/app/*` header and dropdown  
-- [ ] A Subscription section on `/app/settings` shows the current tier and status and includes a single button/link that routes to the existing pricing/subscription flow (e.g. `/pricing`), without duplicating subscription management UI  
+  - Changing email updates the stored email and sets `emailVerified = false` (or equivalent)
+  - The UI clearly indicates the email is pending verification and prompts the user to complete the 6-digit verification flow again
+- [ ] Users can change their **password** using a form that includes current password, new password, and confirmation; failures (wrong current password or policy violations) are handled with clear messages
+- [ ] Users can change their **profile icon** by selecting from a predefined set of avatar icons (no file upload yet); the chosen icon is persisted and reflected in the `/app/*` header and dropdown
+- [ ] **Subscription Management** section on `/app/settings`:
+  - Shows current subscription tier (Free, Pro) and status (active, cancelled, past_due)
+  - Shows billing period end date if subscribed
+  - "Upgrade Plan" button opens a plan selection modal or routes to `/pricing`
+  - "Change Plan" button (for existing subscribers) allows switching between tiers
+  - "Cancel Subscription" button with confirmation dialog; calls backend to cancel at period end
+  - "Reactivate" button if subscription is cancelled but still within billing period
+  - Payment method display (last 4 digits of card) with "Update Payment Method" link to Stripe portal
+- [ ] **Game Accounts** section on `/app/settings`:
+  - Lists all linked Riot accounts showing: Game Name#Tag, Region, Sync status, Last synced timestamp
+  - "Link New Account" button opens `LinkRiotAccountModal.vue` (reused from G12)
+  - Per-account actions:
+    - "Set as Primary" button to designate main account for dashboard defaults
+    - "Unlink" button with confirmation dialog; calls `DELETE /api/v2/users/me/riot-accounts/{accountId}`
+    - "Refresh Sync" button to manually trigger match sync for that account
+  - Empty state with prominent CTA if no accounts are linked
+  - Visual indicator for primary account
 - [ ] Update or add backend tests (in this issue or F11) to confirm that username/email/password update endpoints:
-  - Use parameterized queries / ORM APIs (no dynamic SQL)  
+  - Use parameterized queries / ORM APIs (no dynamic SQL)
   - Do not leak SQL error details when given malicious input
+- [ ] Add backend endpoints if not already present:
+  - `PATCH /api/v2/users/me` for profile updates (username, email, avatar)
+  - `POST /api/v2/users/me/change-password` for password changes
+  - `DELETE /api/v2/users/me/riot-accounts/{accountId}` for unlinking game accounts
+  - `PATCH /api/v2/users/me/riot-accounts/{accountId}` for setting primary account
+  - `POST /api/v2/users/me/riot-accounts/{accountId}/sync` for manual sync trigger
 
 ---
 
@@ -1835,28 +1736,20 @@ Create v2 API endpoints for linking Riot accounts to authenticated users. Store 
 
 #### Acceptance Criteria
 
-- [ ] Create `user_riot_accounts` table:
-  ```sql
-  CREATE TABLE user_riot_accounts (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    puuid VARCHAR(100) NOT NULL,
-    game_name VARCHAR(50) NOT NULL,
-    tag_line VARCHAR(10) NOT NULL,
-    region VARCHAR(10) NOT NULL,
-    sync_status ENUM('pending', 'syncing', 'completed', 'failed') DEFAULT 'pending',
-    sync_progress INT DEFAULT 0,
-    sync_total INT DEFAULT 100,
-    last_sync_at DATETIME NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    UNIQUE INDEX idx_user_riot_puuid (user_id, puuid),
-    UNIQUE INDEX idx_puuid (puuid)
-  );
-  ```
-- [ ] Create `V2UserRiotAccountsRepository` with CRUD operations
-- [ ] Create `POST /api/v2/users/me/riot-accounts` endpoint:
-  - Request: `{ "gameName": "Faker", "tagLine": "KR1", "region": "euw1" }`
+- [ ] Validate the existing `riot_accounts` table schema meets requirements:
+  | Column | Type | Nullable | Default |
+  |--------|------|----------|---------|
+  | puuid (PK) | varchar(78) | No | None |
+  | user_id | bigint unsigned | No | None |
+  | summoner_name | varchar(100) | No | None |
+  | region | varchar(10) | No | None |
+  | is_primary | tinyint(1) | Yes | 0 |
+  | created_at | timestamp | Yes | CURRENT_TIMESTAMP |
+  | updated_at | timestamp | Yes | CURRENT_TIMESTAMP ON UPDATE |
+- [ ] Use the `V2RiotAccountsRepository` with CRUD operations
+- [ ] Create `POST /api/v2/users/me/game-account` endpoint:
+  - Request: `{ "game": "lol", "gameInfo": { "gameName": "Faker", "tagLine": "KR1", "region": "euw1" }}`
+  - `game=lol` is Riot; this abstraction allows adding other games in the future
   - Validate Riot account exists via Riot API (`/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}`)
   - Check account not already linked to any user (409 Conflict if so)
   - Store link in `user_riot_accounts` with `sync_status = 'pending'`
@@ -1869,6 +1762,7 @@ Create v2 API endpoints for linking Riot accounts to authenticated users. Store 
 - [ ] Create `GET /api/v2/users/me/riot-accounts/{id}/sync-status` endpoint for polling fallback
 
 ---
+
 
 ### F13. [API] Implement WebSocket endpoint for sync progress
 

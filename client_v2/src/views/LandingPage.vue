@@ -13,13 +13,15 @@
           </div>
           
           <h1 class="hero-title">
-            The Only LoL Tracker<br />
+            The Solo Queue Improvement Tracker<br />
             Built for <span class="hero-gradient">Duos & Teams</span>
           </h1>
-          
+
           <p class="hero-description">
-            Powered by AI coaching that turns your stats into actionable goals you can actually achieve. 
-            Stop guessing what to improve. Start climbing with purpose.
+            Not just another builds app.
+          </p>
+          <p class="hero-description">
+            Better champ select picks, post-game takeaways that stick, and track your progress over time—and climb together with your duo or team.
           </p>
           
           <div class="hero-cta">
@@ -160,9 +162,7 @@
             
             <div class="footer-column">
               <h4 class="footer-heading">Connect</h4>
-              <a href="mailto:hello@pulse.gg" class="footer-link">Contact Us</a>
-              <a href="https://twitter.com/pulsegg" class="footer-link" target="_blank">Twitter</a>
-              <a href="https://discord.gg/pulse" class="footer-link" target="_blank">Discord</a>
+              <a href="mailto:hello@pulse.gg" class="footer-link">Email Us</a>
             </div>
           </div>
         </div>
@@ -186,29 +186,29 @@ const currentYear = computed(() => new Date().getFullYear());
 
 const features = [
   {
-    title: 'Solo Performance Analytics',
-    description: 'Deep dive into your individual stats with AI-powered insights. Track CS, KDA, and game-phase performance.',
-    icon: '📊'
+    title: 'Champ Select Matchup Highlights',
+    description: 'Know your matchups before you lock in. See personal win rates and tips for the champions you\'re facing.',
+    icon: '⚔️'
   },
   {
-    title: 'Duo Synergy Dashboard',
-    description: 'Discover your duo\'s strengths and weaknesses. Optimize champion picks and lane matchups together.',
+    title: 'Post-Game Takeaways',
+    description: 'After every game, get 2-3 specific things to focus on next time. No walls of stats—just what matters.',
+    icon: '📝'
+  },
+  {
+    title: 'Goal Setting & Progress',
+    description: 'Set concrete improvement goals and track them over your next 20 games. Watch your metrics trend upward.',
+    icon: '📈'
+  },
+  {
+    title: 'Duo & Team Dashboards',
+    description: 'Upgrade to Pro and unlock shared views with your duo or team. Set goals together and climb as a unit.',
     icon: '👥'
   },
   {
-    title: 'Team Coordination Tools',
-    description: 'Full 5-player analytics. Track objectives, role distribution, and macro decision-making as a unit.',
-    icon: '🎯'
-  },
-  {
-    title: 'AI Goal Recommendations',
-    description: 'Get personalized improvement goals based on your recent performance. No more guesswork.',
-    icon: '🤖'
-  },
-  {
-    title: 'Progress Tracking',
-    description: 'Watch your metrics improve over time. Celebrate milestones and stay motivated.',
-    icon: '📈'
+    title: 'Full Match History',
+    description: 'Pro users get unlimited history. Free users see your last 20 games—enough to spot patterns.',
+    icon: '📊'
   },
   {
     title: 'Queue Filtering',
@@ -219,20 +219,20 @@ const features = [
 
 const steps = [
   {
-    title: 'Create Your Account',
-    description: 'Sign up in seconds. Link your Riot account and we\'ll sync your match history automatically.'
+    title: 'Link Your Riot Account',
+    description: 'Sign up in seconds. We\'ll sync your match history automatically—no manual uploads.'
   },
   {
-    title: 'Get AI Insights',
-    description: 'Our AI analyzes your stats and gives you 3-5 personalized improvement goals each week.'
+    title: 'Get Champ Select Tips',
+    description: 'Before you lock in, see your personal matchup stats and quick reminders for the lane ahead.'
   },
   {
-    title: 'Track Your Progress',
-    description: 'Set goals, play games, and watch your metrics improve in real-time dashboards.'
+    title: 'Review Post-Game Takeaways',
+    description: 'After each game, get 2-3 actionable things to focus on. Set goals and track them over time.'
   },
   {
-    title: 'Climb Together',
-    description: 'Invite your duo or team. Share goals, coordinate strategies, and climb the ladder together.'
+    title: 'Climb Together (Pro)',
+    description: 'Invite your duo or team. Unlock shared dashboards and set goals you can achieve together.'
   }
 ];
 
@@ -244,40 +244,25 @@ const pricingTiers = [
     cta: 'Start Free',
     popular: false,
     features: [
-      'Solo stats only',
+      'Solo basics',
       'Last 20 games',
-      'Basic analytics',
-      'Ranked queue only'
+      'Champ-select personal matchup highlights',
+      'Limited post-game takeaways'
     ]
   },
   {
     name: 'Pro',
     price: '€4.99',
-    period: '/month',
+    period: '/month (€3.99/mo annual)',
     cta: 'Get Pro',
     popular: true,
     features: [
-      'Full solo & duo stats',
-      'Unlimited game history',
-      '5 AI recommendations/week',
-      'Goal tracking',
-      'All queue types',
-      'Advanced analytics'
-    ]
-  },
-  {
-    name: 'Team',
-    price: '€8.99',
-    period: '/month',
-    cta: 'Get Team',
-    popular: false,
-    features: [
-      'Everything in Pro',
-      'Team dashboard (5 players)',
-      'Shared goals',
-      'Unlimited AI recommendations',
-      'Role optimization',
-      'Macro tracking'
+      'Full solo history',
+      'Goal setting + tracking',
+      'Deeper post-game coaching',
+      'Duo & Team spaces',
+      'Duo & Team dashboards',
+      'Shared goals (Guests can join, Pro can collaborate)'
     ]
   }
 ];
