@@ -2,18 +2,33 @@
 
 ## Vision
 
-> **"Pulse is the only LoL improvement tracker built for duos and teams, powered by AI coaching that turns your stats into actionable goals you can actually achieve."**
+> **"Pulse is the solo queue improvement tracker—built to help you climb with better champ select picks and post-game takeaways, with a Premium mode that lets your duo or team set goals and improve together."**
+>
+> “Not another builds app—Pulse helps you improve between games and track progress over time.”
 
 Crafted with love by the Agile Astronaut. 
 First 500 users get free Pro tier. Keep a counter on the landing page of how many free users are left.
 
 ## Pricing Model
 
+**Key decision:** Keep pricing **simple** with **2 tiers** (Free + Pro). Collaboration is the main upsell; coaching/goals is the second.
+
+**How Duo/Team works:**
+
+- **Guests (Free users) can create and join Duo/Team spaces**
+- **Guests only see their own data** inside the group (plus generic upgrade nudges)
+- **Only Pro members** can access Duo/Team dashboards and use **shared goals** / collaboration features
+- If a Pro user downgrades, they become a Guest and **do not break the group** for others
+
 | Tier | Monthly | Annual | Features |
 |------|---------|--------|----------|
-| **Free** | €0 | - | Solo stats only, last 20 games, no AI |
-| **Pro** | €4.99 | €3.99/mo | Full solo/duo stats, 5 AI recommendations/week, goal tracking |
-| **Team** | €8.99 | €6.99/mo | Everything + team dashboard, shared goals, unlimited AI |
+| **Free** | €0 | - | Solo basics, last 20 games, champ-select personal matchup highlights, limited post-game takeaways |
+| **Pro** | €4.99 | €3.99/mo | Full solo history, goal setting + tracking, deeper post-game coaching, Duo/Team spaces, Duo/Team dashboards, shared goals (Guests can join groups but can’t collaborate) |
+
+**Primary upgrade moments to optimize for:**
+
+1. **Collaboration lock:** user creates/joins a Duo/Team and hits locked team dashboard/shared goals → upgrade
+2. **Goals lock:** user wants to set/track concrete improvement goals over the next X games → upgrade
 
 ---
 
