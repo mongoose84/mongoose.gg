@@ -55,10 +55,7 @@ namespace RiotProxy.Application
             var usersV2Endpoint = new UsersV2Endpoint(basePath_v2);
             _endpoints.Add(usersV2Endpoint);
 
-            // Game/Riot account linking endpoints (v2) - auth required
-            var gameAccountEndpoint = new GameAccountEndpoint(basePath_v2);
-            _endpoints.Add(gameAccountEndpoint);
-
+            // Riot account linking endpoints (v2) - auth required
             var riotAccountsEndpoint = new RiotAccountsEndpoint(basePath_v2);
             _endpoints.Add(riotAccountsEndpoint);
             

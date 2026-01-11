@@ -69,7 +69,7 @@ Stores Riot account identity information linked to user accounts.
 | `summoner_name` | VARCHAR(100) | NOT NULL | Display name (game_name#tag_line) |
 | `region` | VARCHAR(10) | NOT NULL | Region code (e.g., 'na1', 'euw1') |
 | `is_primary` | BOOLEAN | DEFAULT FALSE | Whether this is the user's primary account |
-| `sync_status` | ENUM | DEFAULT 'pending' | Match sync status: pending, syncing, completed, failed |
+| `sync_status` | ENUM('pending', 'syncing', 'completed', 'failed') | DEFAULT 'pending' | Match sync status |
 | `last_sync_at` | TIMESTAMP | NULL | Last successful match sync time |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update time |
@@ -80,7 +80,7 @@ Stores Riot account identity information linked to user accounts.
 - INDEX: `idx_game_name_tag` ON (`game_name`, `tag_line`)
 - INDEX: `idx_summoner_name` ON (`summoner_name`)
 - INDEX: `idx_region` ON (`region`)
-- INDEX: `idx_user_primary` ON (`user_id`, `is_primary`)
+- INDEX: `idx_user_primary_created` ON (`user_id`, `is_primary`, `created_at`) -- covers ORDER BY is_primary DESC, created_at ASC
 - INDEX: `idx_sync_status` ON (`sync_status`)
 
 **Foreign Keys:**

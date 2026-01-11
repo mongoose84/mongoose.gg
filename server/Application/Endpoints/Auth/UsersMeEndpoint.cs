@@ -58,6 +58,7 @@ public sealed class UsersMeEndpoint : IEndpoint
                     ra.Puuid,
                     ra.GameName,
                     ra.TagLine,
+                    ra.SummonerName,
                     ra.Region,
                     ra.IsPrimary,
                     ra.SyncStatus,
@@ -93,10 +94,15 @@ public sealed class UsersMeEndpoint : IEndpoint
         [property: JsonPropertyName("riotAccounts")] List<RiotAccountResponse> RiotAccounts
     );
 
+    /// <summary>
+    /// Riot account response. Includes summonerName as a convenience field
+    /// containing the pre-formatted display name (gameName#tagLine).
+    /// </summary>
     public record RiotAccountResponse(
         [property: JsonPropertyName("puuid")] string Puuid,
         [property: JsonPropertyName("gameName")] string GameName,
         [property: JsonPropertyName("tagLine")] string TagLine,
+        [property: JsonPropertyName("summonerName")] string SummonerName,
         [property: JsonPropertyName("region")] string Region,
         [property: JsonPropertyName("isPrimary")] bool IsPrimary,
         [property: JsonPropertyName("syncStatus")] string SyncStatus,

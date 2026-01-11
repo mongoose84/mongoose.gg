@@ -130,7 +130,7 @@ public abstract class RepositoryBase
     /// <summary>
     /// Execute multiple commands within a transaction.
     /// </summary>
-    protected async Task ExecuteTransactionAsync(Func<MySqlConnection, Task> action)
+    protected async Task ExecuteTransactionAsync(Func<MySqlConnection, MySqlTransaction, Task> action)
     {
         await using var conn = _factory.CreateConnection();
         await conn.OpenAsync();
@@ -138,7 +138,7 @@ public abstract class RepositoryBase
 
         try
         {
-            await action(conn);
+            await action(conn, transaction);
             await transaction.CommitAsync();
         }
         catch
@@ -149,11 +149,11 @@ public abstract class RepositoryBase
     }
 
     /// <summary>
-    /// Execute a non-query command using an existing connection (for use within transactions).
+    /// Execute a non-query command using an existing connection and transaction.
     /// </summary>
-    protected static async Task<int> ExecuteNonQueryWithConnectionAsync(MySqlConnection conn, string sql, params (string name, object? value)[] parameters)
+    protected static async Task<int> ExecuteNonQueryWithConnectionAsync(MySqlConnection conn, MySqlTransaction transaction, string sql, params (string name, object? value)[] parameters)
     {
-        await using var cmd = new MySqlCommand(sql, conn);
+        await using var cmd = new MySqlCommand(sql, conn, transaction);
 
         foreach (var (name, value) in parameters)
         {
