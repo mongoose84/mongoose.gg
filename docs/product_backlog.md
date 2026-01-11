@@ -1590,7 +1590,7 @@ Extend the user dropdown to show key account information and link to a new `/app
 - [ ] Users can change their **password** using a form that includes current password, new password, and confirmation; failures (wrong current password or policy violations) are handled with clear messages
 - [ ] Users can change their **profile icon** by selecting from a predefined set of avatar icons (no file upload yet); the chosen icon is persisted and reflected in the `/app/*` header and dropdown
 - [ ] **Subscription Management** section on `/app/settings`:
-  - Shows current subscription tier (Free, Solo, Duo, Team) and status (active, cancelled, past_due)
+  - Shows current subscription tier (Free, Pro) and status (active, cancelled, past_due)
   - Shows billing period end date if subscribed
   - "Upgrade Plan" button opens a plan selection modal or routes to `/pricing`
   - "Change Plan" button (for existing subscribers) allows switching between tiers
@@ -1722,42 +1722,40 @@ Provide real-time progress feedback when matches are being synced for a linked R
 
 ---
 
-F12. [API] Implement Riot account linking endpoints
+### F12. [API] Implement Riot account linking endpoints
 
-Priority: P0 - Critical
-Type: Feature
-Estimate: 5 points
-Depends on: F7, F11
-Labels: api, users, riot-api, epic-f
-Description
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 5 points
+**Depends on:** F7, F11
+**Labels:** `api`, `users`, `riot-api`, `epic-f`
 
-Create v2 API endpoints for linking Riot accounts to authenticated users. Store linked accounts in a new user_riot_accounts table. Validate account existence via Riot API before linking.
-Acceptance Criteria
+#### Description
 
-Current riot_account table looks like this:
+Create v2 API endpoints for linking Riot accounts to authenticated users. Store linked accounts in a new `user_riot_accounts` table. Validate account existence via Riot API before linking.
 
-Name Type Collation Attributes Null Default Comments Extra Action
+#### Acceptance Criteria
 
-1 	puuid Primary 	varchar(78) 	utf8mb4_unicode_ci 		No 	None 			Change[ Change ](https://mysql.simply.com/index.php?route=/table/structure/change&db=agileastronaut_com_db&table=riot_accounts&field=puuid&change_column=1)	Drop[ Drop ](https://mysql.simply.com/index.php?route=/sql)	
-2 	user_id Index 	bigint 		UNSIGNED 	No 	None 			Change[ Change ](https://mysql.simply.com/index.php?route=/table/structure/change&db=agileastronaut_com_db&table=riot_accounts&field=user_id&change_column=1)	Drop[ Drop ](https://mysql.simply.com/index.php?route=/sql)	
-3 	summoner_name Index 	varchar(100) 	utf8mb4_unicode_ci 		No 	None 			Change[ Change ](https://mysql.simply.com/index.php?route=/table/structure/change&db=agileastronaut_com_db&table=riot_accounts&field=summoner_name&change_column=1)	Drop[ Drop ](https://mysql.simply.com/index.php?route=/sql)	
-4 	region Index 	varchar(10) 	utf8mb4_unicode_ci 		No 	None 			Change[ Change ](https://mysql.simply.com/index.php?route=/table/structure/change&db=agileastronaut_com_db&table=riot_accounts&field=region&change_column=1)	Drop[ Drop ](https://mysql.simply.com/index.php?route=/sql)	
-5 	is_primary Index 	tinyint(1) 			Yes 	0 			Change[ Change ](https://mysql.simply.com/index.php?route=/table/structure/change&db=agileastronaut_com_db&table=riot_accounts&field=is_primary&change_column=1)	Drop[ Drop ](https://mysql.simply.com/index.php?route=/sql)	
-6 	created_at 	timestamp 			Yes 	CURRENT_TIMESTAMP 		DEFAULT_GENERATED 	Change[ Change ](https://mysql.simply.com/index.php?route=/table/structure/change&db=agileastronaut_com_db&table=riot_accounts&field=created_at&change_column=1)	Drop[ Drop ](https://mysql.simply.com/index.php?route=/sql)	
-7 	updated_at 	timestamp 		on update CURRENT_TIMESTAMP 	Yes 	CURRENT_TIMESTAMP 		DEFAULT_GENERATED ON UPDATE CURRENT_TIMESTAMP 	Change[ Change ](https://mysql.simply.com/index.php?route=/table/structure/change&db=agileastronaut_com_db&table=riot_accounts&field=updated_at&change_column=1)	Drop Drop
-
--validate the existing table to see
-
+- [ ] Validate the existing `riot_accounts` table schema meets requirements:
+  | Column | Type | Nullable | Default |
+  |--------|------|----------|---------|
+  | puuid (PK) | varchar(78) | No | None |
+  | user_id | bigint unsigned | No | None |
+  | summoner_name | varchar(100) | No | None |
+  | region | varchar(10) | No | None |
+  | is_primary | tinyint(1) | Yes | 0 |
+  | created_at | timestamp | Yes | CURRENT_TIMESTAMP |
+  | updated_at | timestamp | Yes | CURRENT_TIMESTAMP ON UPDATE |
 - [ ] Use the `V2RiotAccountsRepository` with CRUD operations
 - [ ] Create `POST /api/v2/users/me/game-account` endpoint:
-- Request: `{ "game": "lol{", "gameInfo": { "gameName": "Faker", "tagLine": "KR1", "region": "euw1" }}`
-- game=lol is riot. But this abstraction also lets us add other games in the future
-- Validate Riot account exists via Riot API (`/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}`)
-- Check account not already linked to any user (409 Conflict if so)
-- Store link in `user_riot_accounts` with `sync_status = 'pending'`
-- Trigger match sync job (enqueue or start immediately)
-- Response (201): `{ "id": 1, "gameName": "Faker", "tagLine": "KR1", "puuid": "...", "region": "euw1", "syncStatus": "pending" }`
-- Error responses: 400 (invalid input), 404 (Riot account not found), 409 (already linked)
+  - Request: `{ "game": "lol", "gameInfo": { "gameName": "Faker", "tagLine": "KR1", "region": "euw1" }}`
+  - `game=lol` is Riot; this abstraction allows adding other games in the future
+  - Validate Riot account exists via Riot API (`/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}`)
+  - Check account not already linked to any user (409 Conflict if so)
+  - Store link in `user_riot_accounts` with `sync_status = 'pending'`
+  - Trigger match sync job (enqueue or start immediately)
+  - Response (201): `{ "id": 1, "gameName": "Faker", "tagLine": "KR1", "puuid": "...", "region": "euw1", "syncStatus": "pending" }`
+  - Error responses: 400 (invalid input), 404 (Riot account not found), 409 (already linked)
 - [ ] Update `GET /api/v2/users/me` to include `riotAccounts` array with sync status
 - [ ] Create `DELETE /api/v2/users/me/riot-accounts/{id}` endpoint (for future use, can return 501 Not Implemented initially)
 - [ ] Create `POST /api/v2/users/me/riot-accounts/{id}/sync` endpoint to manually trigger sync retry
