@@ -1662,6 +1662,7 @@ Allow authenticated users to link one or more Riot accounts to their profile fro
   - Sync status badge (pending, syncing, completed, failed)
   - Progress bar when syncing
   - Last sync timestamp
+- [ ] The ui-design-guideline.md is used for the right feel
 - [ ] If no accounts are linked, show a prominent "Link Your Riot Account" card with a "+" button
 - [ ] User can dismiss/skip the prompt; preference stored in localStorage
 - [ ] Clicking "+" opens a `LinkRiotAccountModal.vue` with:
