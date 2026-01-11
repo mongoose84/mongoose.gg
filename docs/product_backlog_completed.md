@@ -290,6 +290,91 @@ Allow authenticated users to link one or more Riot accounts to their profile fro
 
 ---
 
+### F12. [API] Implement Riot account linking endpoints ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 5 points
+**Depends on:** F7, F11
+**Labels:** `api`, `users`, `riot-api`, `epic-f`
+
+#### Description
+
+Create v2 API endpoints for linking Riot accounts to authenticated users. Store linked accounts in a new `user_riot_accounts` table. Validate account existence via Riot API before linking.
+
+#### Acceptance Criteria
+
+- [x] Validate the existing `riot_accounts` table schema meets requirements:
+  | Column | Type | Nullable | Default |
+  |--------|------|----------|---------|
+  | puuid (PK) | varchar(78) | No | None |
+  | user_id | bigint unsigned | No | None |
+  | game_name | varchar(100) | No | None |
+  | tag_line | varchar(10) | No | None |
+  | summoner_name | varchar(100) | No | None |
+  | region | varchar(10) | No | None |
+  | is_primary | tinyint(1) | Yes | 0 |
+  | sync_status | enum('pending','syncing','completed','failed') | Yes | 'pending' |
+  | last_sync_at | timestamp | Yes | NULL |
+  | created_at | timestamp | Yes | CURRENT_TIMESTAMP |
+  | updated_at | timestamp | Yes | CURRENT_TIMESTAMP ON UPDATE |
+- [x] Use the `V2RiotAccountsRepository` with CRUD operations
+- [x] Create `POST /api/v2/users/me/riot-accounts` endpoint:
+  - Request: `{ "gameName": "Faker", "tagLine": "KR1", "region": "euw1" }`
+  - Validate Riot account exists via Riot API (`/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}`)
+  - Check account not already linked to any user (409 Conflict if so)
+  - Store link in `riot_accounts` with `sync_status = 'pending'`
+  - Trigger match sync job (enqueue or start immediately)
+  - Response (201): `{ "puuid": "...", "gameName": "Faker", "tagLine": "KR1", "region": "euw1", "isPrimary": true, "syncStatus": "pending" }`
+  - Error responses: 400 (invalid input), 404 (Riot account not found), 409 (already linked)
+- [x] Update `GET /api/v2/users/me` to include `riotAccounts` array with sync status
+- [x] Create `DELETE /api/v2/users/me/riot-accounts/{puuid}` endpoint
+- [x] Create `POST /api/v2/users/me/riot-accounts/{puuid}/sync` endpoint to manually trigger sync retry
+- [x] Create `GET /api/v2/users/me/riot-accounts/{puuid}/sync-status` endpoint for polling fallback
+
+---
+
+# Epic G: Frontend v2 App & Marketing (Completed Tasks)
+
+### G1. [UX] Define app v2 information architecture & routes ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** UX
+**Estimate:** 2 points
+**Labels:** `frontend`, `ux`, `epic-g`
+
+#### Description
+
+Define the high-level navigation for v2, including marketing pages and in-app routes (e.g. `/`, `/pricing`, `/app/solo`, `/app/duo`, `/app/team`, `/app/settings`).
+
+#### Acceptance Criteria
+
+- [x] Route map documented (public vs app routes)
+- [x] Decisions on authentication and how users enter the dashboards
+- [x] Mapping from legacy routes to new routes defined
+
+---
+
+### G2. [Frontend] Implement new app shell & navigation ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** G1
+**Labels:** `frontend`, `layout`, `epic-g`
+
+#### Description
+
+Create a shared layout component for all `/app/*` routes with header, navigation (solo/duo/team/goals/settings), and consistent styling.
+
+#### Acceptance Criteria
+
+- [x] New layout component created and used by all app routes
+- [x] Navigation clearly shows Free/Pro/Team feature boundaries (copy can be simple initially)
+- [x] Works responsively on desktop and common laptop resolutions
+
+---
+
 ## Summary of Completed Work
 
 | Epic | Task | Points | Completed |
@@ -303,7 +388,10 @@ Allow authenticated users to link one or more Riot accounts to their profile fro
 | F | F2 - Solo dashboard v2 endpoint | 3 | ✅ |
 | F | F7 - Session authentication | 3 | ✅ |
 | F | F11 - User auth endpoints (core) | 5 | ✅ |
+| F | F12 - Riot account linking endpoints | 5 | ✅ |
+| G | G1 - App v2 IA & routes | 2 | ✅ |
+| G | G2 - App shell & navigation | 3 | ✅ |
 | G | G9 - Login, signup, verification & user shell | 5 | ✅ |
 | G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
 
-**Total Completed Points:** 39
+**Total Completed Points:** 49

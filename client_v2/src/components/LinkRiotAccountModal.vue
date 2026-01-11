@@ -40,9 +40,10 @@
                 type="text"
                 class="form-input"
                 :class="{ 'form-input-error': errors.tagLine }"
-                placeholder="e.g. KR1"
+                placeholder="e.g. NA1"
                 :disabled="isSubmitting"
-                maxlength="10"
+                minlength="3"
+                maxlength="5"
               />
               <span v-if="errors.tagLine" class="form-error-text">{{ errors.tagLine }}</span>
             </div>
@@ -167,8 +168,8 @@ function validateForm() {
   } else if (!/^[a-zA-Z0-9]+$/.test(formData.tagLine)) {
     errors.tagLine = 'Tag line must contain only letters and numbers'
     valid = false
-  } else if (formData.tagLine.length > 10) {
-    errors.tagLine = 'Tag line must be 10 characters or less'
+  } else if (formData.tagLine.length < 3 || formData.tagLine.length > 5) {
+    errors.tagLine = 'Tag line must be 3-5 characters'
     valid = false
   }
 

@@ -135,7 +135,7 @@ const riotAccounts = computed(() => authStore.riotAccounts);
 const hasLinkedAccount = computed(() => authStore.hasLinkedAccount);
 
 const showLinkModal = ref(false);
-const linkPromptDismissed = ref(false);
+const linkPromptDismissed = ref(localStorage.getItem('linkPromptDismissed') === 'true');
 
 const tierLabel = computed(() => {
   if (tier.value === 'pro') return 'Pro';
@@ -173,26 +173,27 @@ function getRegionLabel(region) {
 
 function getSyncStatusClass(status) {
   switch (status) {
-    case 'synced': return 'sync-synced';
+    case 'completed': return 'sync-completed';
     case 'syncing': return 'sync-syncing';
     case 'pending': return 'sync-pending';
-    case 'error': return 'sync-error';
+    case 'failed': return 'sync-failed';
     default: return 'sync-pending';
   }
 }
 
 function getSyncStatusLabel(status) {
   switch (status) {
-    case 'synced': return 'Synced';
+    case 'completed': return 'Synced';
     case 'syncing': return 'Syncing...';
     case 'pending': return 'Pending';
-    case 'error': return 'Error';
+    case 'failed': return 'Error';
     default: return 'Pending';
   }
 }
 
 function dismissLinkPrompt() {
   linkPromptDismissed.value = true;
+  localStorage.setItem('linkPromptDismissed', 'true');
 }
 
 function handleLinkSuccess() {
@@ -372,7 +373,7 @@ function handleLinkSuccess() {
   font-weight: var(--font-weight-medium);
 }
 
-.sync-synced {
+.sync-completed {
   background: rgba(34, 197, 94, 0.2);
   color: #22c55e;
 }
@@ -387,7 +388,7 @@ function handleLinkSuccess() {
   color: #f59e0b;
 }
 
-.sync-error {
+.sync-failed {
   background: rgba(239, 68, 68, 0.2);
   color: #ef4444;
 }

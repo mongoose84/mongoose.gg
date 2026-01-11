@@ -27,10 +27,13 @@ For full task details, see:
 | F2 | Implement Solo dashboard v2 endpoint | API v2 | 3 | ✅ |
 | F7 | Implement authenticated access for backend | API v2 | 3 | ✅ |
 | F11 | Implement user auth endpoints (core) | API v2 | 5 | ✅ |
+| F12 | Implement Riot account linking endpoints | API v2 | 5 | ✅ |
+| G1 | Define app v2 IA & routes | Frontend v2 | 2 | ✅ |
+| G2 | Implement new app shell & navigation | Frontend v2 | 3 | ✅ |
 | G9 | Implement user login, signup, verification & `/app/user` shell | Frontend v2 | 5 | ✅ |
 | G12 | Implement Riot account linking on `/app/user` | Frontend v2 | 5 | ✅ |
 
-**Completed Total:** 39 points
+**Completed Total:** 49 points
 
 ---
 
@@ -65,17 +68,17 @@ For full task details, see:
 | F3 | Implement Duo dashboard v2 endpoint | API v2 | 3 | |
 | F7 | Implement authenticated access for backend | API v2 | 3 | ✅ |
 | F11 | Implement user auth endpoints (core) | API v2 | 5 | ✅ |
-| G1 | Define app v2 IA & routes | Frontend v2 | 2 | |
-| G2 | Implement new app shell & navigation | Frontend v2 | 3 | |
+| G1 | Define app v2 IA & routes | Frontend v2 | 2 | ✅ |
+| G2 | Implement new app shell & navigation | Frontend v2 | 3 | ✅ |
 | G5 | Implement Solo dashboard v2 view | Frontend v2 | 5 | |
 | G9 | Implement user login, signup, verification & `/app/user` shell | Frontend v2 | 5 | ✅ |
 | G12 | Implement Riot account linking on `/app/user` | Frontend v2 | 5 | ✅ |
 | G13 | Implement real-time match sync progress via WebSocket | Frontend v2 | 5 | |
-| F12 | Implement Riot account linking endpoints | API v2 | 5 | |
+| F12 | Implement Riot account linking endpoints | API v2 | 5 | ✅ |
 | F13 | Implement WebSocket endpoint for sync progress | API v2 | 5 | |
 | F14 | Implement V2 Match History Sync Job | API v2 | 8 | |
 
-**P0 Remaining:** 71 points | **P0 Completed:** 39 points | **P0 Total:** 110 points
+**P0 Remaining:** 61 points | **P0 Completed:** 49 points | **P0 Total:** 110 points
 
 ### P1 - High
 
@@ -150,8 +153,8 @@ For full task details, see:
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 141 pts |
-| **Completed** | 39 pts |
+| **Remaining** | 131 pts |
+| **Completed** | 49 pts |
 | **Grand Total** | 180 pts |
 
 ---
@@ -160,16 +163,18 @@ For full task details, see:
 
 ### Sprint 0: Platform v2 Foundation ✅ IN PROGRESS
 **Focus:** Database v2 + API v2 + Solo dashboard v2 + Auth + Account Linking
-**Points:** ~58 (34 completed)
+**Points:** ~58 (49 completed)
 
 - ✅ E1, E2, E3 (Database v2 schema & repositories)
 - ✅ E4, E5 (v2 ingestion: matches, participants, timeline & metrics)
 - ✅ F1, F2 (API v2 design + Solo dashboard endpoint)
 - ✅ F7, F11 core (Session auth + User auth endpoints)
+- ✅ F12 (Riot account linking endpoints)
+- ✅ G1, G2 (App v2 IA & shell)
 - ✅ G9 (User login, signup, verification & `/app/user` shell)
-- ⬜ G1, G2, G5 (App v2 IA, shell, Solo dashboard view)
-- ⬜ F12, F13, F14 (Riot account linking + WebSocket sync + v2 sync job)
 - ✅ G12 (Riot account linking UI)
+- ⬜ G5 (Solo dashboard view)
+- ⬜ F13, F14 (WebSocket sync + v2 sync job)
 - ⬜ G13 (real-time sync progress)
 
 ### Sprint 1: Foundation (P0 Core)

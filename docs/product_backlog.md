@@ -40,10 +40,10 @@ First 500 users get free Pro tier. Keep a counter on the landing page of how man
 | **C. Subscription & Paywall** | Mollie integration, tiers, feature flags | 34 pts | 0 pts |
 | **D. Analytics & Tracking** | User behavior tracking for product decisions | 19 pts | 0 pts |
 | **E. Database v2 & Analytics Schema** | New match/participant/timeline schema + ingestion | 4 pts | 16 pts ✅ |
-| **F. API v2** | New API surface aligned with v2 schema and dashboards | 20 pts | 13 pts ✅ |
-| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 15 pts | 10 pts ✅ |
+| **F. API v2** | New API surface aligned with v2 schema and dashboards | 15 pts | 18 pts ✅ |
+| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 10 pts | 15 pts ✅ |
 
-**Remaining:** 136 points | **Completed:** 39 points | **Grand Total:** 175 points
+**Remaining:** 126 points | **Completed:** 49 points | **Grand Total:** 175 points
 
 > Note: Platform v2 epics (E–G) are prerequisites for most feature work (B–D) and should generally be completed first.
 >
@@ -1216,7 +1216,7 @@ Once all consumers have been migrated to v2, remove legacy tables, repositories 
 
 Expose a new HTTP API surface aligned with Database v2 and the new dashboards.
 
-> **Completed tasks (F1, F2, F7, F11 core auth) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
+> **Completed tasks (F1, F2, F7, F11 core auth, F12) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
 
 ## Issues
 
@@ -1390,7 +1390,7 @@ Provide API endpoints for managing friends/duos/teams and searching for LoL acco
 
 Create a new, professional user experience with a landing page, pricing, and app shell consuming API v2.
 
-> **Completed tasks (G9, G12) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
+> **Completed tasks (G1, G2, G9, G12) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
 
 ### Decision (Jan 2026): Build a standalone `client_v2` Vue app
 - **Architecture**: Create a completely independent Vue 3 + Vite application in `/client_v2/` directory with its own `package.json`, `node_modules`, and build configuration. This is **not** nested within the legacy `/client` folder.
@@ -1404,45 +1404,6 @@ Create a new, professional user experience with a landing page, pricing, and app
 - **Scope**: Marketing landing page + app shell + solo experience first; duo/team dashboards follow once solo v2 is stable in production.
 
 ## Issues
-
-### G1. [UX] Define app v2 information architecture & routes
-
-**Priority:** P0 - Critical  
-**Type:** UX  
-**Estimate:** 2 points  
-**Labels:** `frontend`, `ux`, `epic-g`
-
-#### Description
-
-Define the high-level navigation for v2, including marketing pages and in-app routes (e.g. `/`, `/pricing`, `/app/solo`, `/app/duo`, `/app/team`, `/app/settings`).
-
-#### Acceptance Criteria
-
-- [ ] Route map documented (public vs app routes)  
-- [ ] Decisions on authentication and how users enter the dashboards  
-- [ ] Mapping from legacy routes to new routes defined
-
----
-
-### G2. [Frontend] Implement new app shell & navigation
-
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** G1  
-**Labels:** `frontend`, `layout`, `epic-g`
-
-#### Description
-
-Create a shared layout component for all `/app/*` routes with header, navigation (solo/duo/team/goals/settings), and consistent styling.
-
-#### Acceptance Criteria
-
-- [ ] New layout component created and used by all app routes  
-- [ ] Navigation clearly shows Free/Pro/Team feature boundaries (copy can be simple initially)  
-- [ ] Works responsively on desktop and common laptop resolutions
-
----
 
 ### G3. [Frontend] Implement new public landing page
 
@@ -1678,51 +1639,6 @@ Provide real-time progress feedback when matches are being synced for a linked R
 - [ ] "Retry" button calls `POST /api/v2/users/me/riot-accounts/{id}/sync` to manually trigger sync
 
 ---
-
-### F12. [API] Implement Riot account linking endpoints
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 5 points
-**Depends on:** F7, F11
-**Labels:** `api`, `users`, `riot-api`, `epic-f`
-
-#### Description
-
-Create v2 API endpoints for linking Riot accounts to authenticated users. Store linked accounts in a new `user_riot_accounts` table. Validate account existence via Riot API before linking.
-
-#### Acceptance Criteria
-
-- [x] Validate the existing `riot_accounts` table schema meets requirements:
-  | Column | Type | Nullable | Default |
-  |--------|------|----------|---------|
-  | puuid (PK) | varchar(78) | No | None |
-  | user_id | bigint unsigned | No | None |
-  | game_name | varchar(100) | No | None |
-  | tag_line | varchar(10) | No | None |
-  | summoner_name | varchar(100) | No | None |
-  | region | varchar(10) | No | None |
-  | is_primary | tinyint(1) | Yes | 0 |
-  | sync_status | enum('pending','syncing','completed','failed') | Yes | 'pending' |
-  | last_sync_at | timestamp | Yes | NULL |
-  | created_at | timestamp | Yes | CURRENT_TIMESTAMP |
-  | updated_at | timestamp | Yes | CURRENT_TIMESTAMP ON UPDATE |
-- [x] Use the `V2RiotAccountsRepository` with CRUD operations
-- [x] Create `POST /api/v2/users/me/riot-accounts` endpoint:
-  - Request: `{ "gameName": "Faker", "tagLine": "KR1", "region": "euw1" }`
-  - Validate Riot account exists via Riot API (`/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}`)
-  - Check account not already linked to any user (409 Conflict if so)
-  - Store link in `riot_accounts` with `sync_status = 'pending'`
-  - Trigger match sync job (enqueue or start immediately)
-  - Response (201): `{ "puuid": "...", "gameName": "Faker", "tagLine": "KR1", "region": "euw1", "isPrimary": true, "syncStatus": "pending" }`
-  - Error responses: 400 (invalid input), 404 (Riot account not found), 409 (already linked)
-- [x] Update `GET /api/v2/users/me` to include `riotAccounts` array with sync status
-- [x] Create `DELETE /api/v2/users/me/riot-accounts/{puuid}` endpoint
-- [x] Create `POST /api/v2/users/me/riot-accounts/{puuid}/sync` endpoint to manually trigger sync retry
-- [x] Create `GET /api/v2/users/me/riot-accounts/{puuid}/sync-status` endpoint for polling fallback
-
----
-
 
 ### F13. [API] Implement WebSocket endpoint for sync progress
 
