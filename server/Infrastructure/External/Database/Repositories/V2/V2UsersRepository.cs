@@ -116,11 +116,36 @@ public class V2UsersRepository : RepositoryBase
     /// </summary>
     private V2User MapWithDecryption(MySqlDataReader r)
     {
+        var userId = r.GetInt64(0);
         var encryptedEmail = r.GetString(1);
+
+        string decryptedEmail;
+        try
+        {
+            decryptedEmail = _emailEncryptor.Decrypt(encryptedEmail);
+        }
+        catch (FormatException ex)
+        {
+            throw new InvalidOperationException(
+                $"Email decryption failed for user {userId}: Invalid base64 format. " +
+                "This may indicate corrupted data in the database.", ex);
+        }
+        catch (System.Security.Cryptography.CryptographicException ex)
+        {
+            throw new InvalidOperationException(
+                $"Email decryption failed for user {userId}: Cryptographic error. " +
+                "This may indicate a wrong encryption key or corrupted ciphertext.", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                $"Email decryption failed for user {userId}: {ex.Message}", ex);
+        }
+
         return new V2User
         {
-            UserId = r.GetInt64(0),
-            Email = _emailEncryptor.Decrypt(encryptedEmail),
+            UserId = userId,
+            Email = decryptedEmail,
             Username = r.GetString(2),
             PasswordHash = r.GetString(3),
             EmailVerified = r.GetBoolean(4),

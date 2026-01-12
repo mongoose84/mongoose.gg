@@ -35,7 +35,6 @@ builder.Services.AddSingleton<IEmailEncryptor>(sp =>
             "Email encryption key is not configured. " +
             "Set Security:EmailEncryptionKey in appsettings.json, " +
             "EMAIL_ENCRYPTION_KEY environment variable, " +
-            "or EmailEncryptionKey.txt file. " +
             "Generate a key using: AesEmailEncryptor.GenerateKey()");
     }
     return new AesEmailEncryptor(encryptionKey);

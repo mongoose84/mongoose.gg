@@ -43,7 +43,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureAppConfiguration((_, config) =>
         {
             // Test encryption key (32 bytes base64-encoded) - only for testing
-            const string testEmailEncryptionKey = "dGVzdC1lbmNyeXB0aW9uLWtleS0zMmJ5dGVzIS0=";
+            // "test-encryption-key-32bytes!!!!!" (32 chars) -> base64
+            const string testEmailEncryptionKey = "dGVzdC1lbmNyeXB0aW9uLWtleS0zMmJ5dGVzISEhISE=";
 
             var defaults = new Dictionary<string, string?>
             {
