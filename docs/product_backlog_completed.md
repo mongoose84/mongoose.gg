@@ -417,6 +417,84 @@ Create a shared layout component for all `/app/*` routes with header, navigation
 
 ---
 
+### F13. [API] Implement WebSocket endpoint for sync progress ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 5 points
+**Depends on:** F12
+**Labels:** `api`, `websocket`, `sync`, `epic-f`
+
+#### Description
+
+Create a WebSocket endpoint that broadcasts real-time match sync progress to connected clients. Authenticate connections using the existing session cookie.
+
+#### Acceptance Criteria
+
+- [x] Create WebSocket endpoint at `/ws/sync`
+- [x] Authenticate WebSocket connections using session cookie (same auth as HTTP endpoints)
+- [x] Reject unauthenticated connections with appropriate close code (4401)
+- [x] Implement message types from server to client:
+  - `sync_progress`: progress updates during sync
+  - `sync_complete`: sync completed successfully
+  - `sync_error`: sync failed with error message
+- [x] Implement message types from client to server:
+  - `subscribe`: subscribe to updates for a specific puuid
+  - `unsubscribe`: unsubscribe from updates for a specific puuid
+- [x] Create `IWebSocketBroadcaster` service that sync job can call to push updates
+- [x] Handle client disconnection gracefully (remove from subscription list)
+- [x] Support multiple clients per user (e.g., user has app open in two tabs)
+
+#### Implementation Notes
+
+- Created `IWebSocketBroadcaster` interface in `Infrastructure/WebSocket/`
+- Implemented `SyncProgressHub` WebSocket handler with concurrent connection management
+- Added message DTOs: `SyncProgressMessage`, `SyncCompleteMessage`, `SyncErrorMessage`
+- Integrated broadcaster into `V2MatchHistorySyncJob`
+- Added WebSocket middleware to `Program.cs` with 2-minute keep-alive
+- Unit tests in `RiotProxy.Tests/SyncProgressHubTests.cs`
+
+---
+
+### G13. [Frontend] Implement real-time match sync progress via WebSocket ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 5 points
+**Depends on:** G12, F13, F14
+**Labels:** `frontend`, `websocket`, `sync`, `epic-g`
+
+#### Description
+
+Provide real-time progress feedback when matches are being synced for a linked Riot account. Use WebSocket for live updates. Handle idle detection to trigger sync checks when user returns after inactivity.
+
+#### Acceptance Criteria
+
+- [x] Create `useSyncWebSocket` composable that:
+  - Connects to `/ws/sync` WebSocket endpoint on mount
+  - Auto-reconnects on disconnect with exponential backoff
+  - Provides reactive `syncProgress` Map keyed by puuid
+  - Exposes `subscribe(puuid)` to listen for specific account updates
+  - Handles message types: `sync_progress`, `sync_complete`, `sync_error`
+- [x] `/app/user` page shows real-time progress for syncing accounts:
+  - Progress bar updates live as matches are synced
+  - Shows "45 / 100 matches synced" text
+  - On `sync_complete`: progress bar fills, badge changes to "Completed"
+  - On `sync_error`: show error message with "Retry" button
+- [x] Implement idle detection in `AppLayout.vue`:
+  - Track last active time in localStorage
+  - On `visibilitychange` to visible, check idle duration
+  - If idle > 30 minutes, call `authStore.refreshUser()` to trigger sync check
+
+#### Implementation Notes
+
+- Created `useSyncWebSocket` composable in `composables/useSyncWebSocket.js`
+- Updated `UserPage.vue` with progress bar and real-time status display
+- Added idle detection in `AppLayout.vue` with 30-minute threshold
+- Unit tests in `test/unit/useSyncWebSocket.spec.js` (19 tests)
+
+---
+
 ## Summary of Completed Work
 
 | Epic | Task | Points | Completed |
@@ -431,10 +509,12 @@ Create a shared layout component for all `/app/*` routes with header, navigation
 | F | F7 - Session authentication | 3 | ✅ |
 | F | F11 - User auth endpoints (core) | 5 | ✅ |
 | F | F12 - Riot account linking endpoints | 5 | ✅ |
+| F | F13 - WebSocket endpoint for sync progress | 5 | ✅ |
 | F | F14 - V2 Match History Sync Job | 8 | ✅ |
 | G | G1 - App v2 IA & routes | 2 | ✅ |
 | G | G2 - App shell & navigation | 3 | ✅ |
 | G | G9 - Login, signup, verification & user shell | 5 | ✅ |
 | G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
+| G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
 
-**Total Completed Points:** 57
+**Total Completed Points:** 67

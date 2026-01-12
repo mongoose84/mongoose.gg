@@ -73,12 +73,12 @@ For full task details, see:
 | G5 | Implement Solo dashboard v2 view | Frontend v2 | 5 | |
 | G9 | Implement user login, signup, verification & `/app/user` shell | Frontend v2 | 5 | ✅ |
 | G12 | Implement Riot account linking on `/app/user` | Frontend v2 | 5 | ✅ |
-| G13 | Implement real-time match sync progress via WebSocket | Frontend v2 | 5 | |
+| G13 | Implement real-time match sync progress via WebSocket | Frontend v2 | 5 | ✅ |
 | F12 | Implement Riot account linking endpoints | API v2 | 5 | ✅ |
-| F13 | Implement WebSocket endpoint for sync progress | API v2 | 5 | |
+| F13 | Implement WebSocket endpoint for sync progress | API v2 | 5 | ✅ |
 | F14 | Implement V2 Match History Sync Job | API v2 | 8 | ✅ |
 
-**P0 Remaining:** 53 points | **P0 Completed:** 57 points | **P0 Total:** 110 points
+**P0 Remaining:** 43 points | **P0 Completed:** 67 points | **P0 Total:** 110 points
 
 ### P1 - High
 
@@ -162,21 +162,21 @@ For full task details, see:
 ## Recommended Sprint Plan
 
 ### Sprint 0: Platform v2 Foundation ✅ IN PROGRESS
-**Focus:** Database v2 + API v2 + Solo dashboard v2 + Auth + Account Linking
-**Points:** ~58 (49 completed)
+**Focus:** Database v2 + API v2 + Solo dashboard v2 + Auth + Account Linking + Real-time Sync
+**Points:** ~58 (53 completed)
 
 - ✅ E1, E2, E3 (Database v2 schema & repositories)
 - ✅ E4, E5 (v2 ingestion: matches, participants, timeline & metrics)
 - ✅ F1, F2 (API v2 design + Solo dashboard endpoint)
 - ✅ F7, F11 core (Session auth + User auth endpoints)
 - ✅ F12 (Riot account linking endpoints)
+- ✅ F13 (WebSocket sync progress endpoint)
+- ✅ F14 (V2 Match History Sync Job)
 - ✅ G1, G2 (App v2 IA & shell)
 - ✅ G9 (User login, signup, verification & `/app/user` shell)
 - ✅ G12 (Riot account linking UI)
-- ✅ F14 (V2 Match History Sync Job)
+- ✅ G13 (Real-time sync progress UI)
 - ⬜ G5 (Solo dashboard view)
-- ⬜ F13 (WebSocket sync progress endpoint)
-- ⬜ G13 (real-time sync progress UI)
 
 ### Sprint 1: Foundation (P0 Core)
 **Focus:** Database + Stripe + Basic AI

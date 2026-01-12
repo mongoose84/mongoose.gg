@@ -1605,73 +1605,6 @@ Introduce a first-pass friends/social area in the app UI that defines the layout
 
 ---
 
-### G13. [Frontend] Implement real-time match sync progress via WebSocket
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 5 points
-**Depends on:** G12, F13, F14
-**Labels:** `frontend`, `websocket`, `sync`, `epic-g`
-
-#### Description
-
-Provide real-time progress feedback when matches are being synced for a linked Riot account. Use WebSocket for live updates. Handle idle detection to trigger sync checks when user returns after inactivity.
-
-#### Acceptance Criteria
-
-- [ ] Create `useSyncWebSocket` composable that:
-  - Connects to `/ws/sync` WebSocket endpoint on mount (in AppLayout)
-  - Auto-reconnects on disconnect with exponential backoff
-  - Provides reactive `syncProgress` Map keyed by riotAccountId
-  - Exposes `subscribe(riotAccountId)` to listen for specific account updates
-  - Handles message types: `sync_progress`, `sync_complete`, `sync_error`
-- [ ] `/app/user` page shows real-time progress for syncing accounts:
-  - Progress bar updates live as matches are synced
-  - Shows "45 / 100 matches synced" text
-  - On `sync_complete`: progress bar fills, badge changes to "Completed"
-  - On `sync_error`: show error message with "Retry" button
-- [ ] Implement idle detection in `AppLayout.vue`:
-  - Track last active time in localStorage
-  - On `visibilitychange` to visible, check idle duration
-  - If idle > 30 minutes, call `authStore.refreshUser()` to trigger sync check
-  - Backend should start syncing new matches if `last_sync_at` > 30 minutes ago
-- [ ] Fallback: if WebSocket unavailable, poll `GET /api/v2/users/me/riot-accounts/{id}/sync-status` every 5 seconds during active sync
-- [ ] "Retry" button calls `POST /api/v2/users/me/riot-accounts/{id}/sync` to manually trigger sync
-
----
-
-### F13. [API] Implement WebSocket endpoint for sync progress
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 5 points
-**Depends on:** F12
-**Labels:** `api`, `websocket`, `sync`, `epic-f`
-
-#### Description
-
-Create a WebSocket endpoint that broadcasts real-time match sync progress to connected clients. Authenticate connections using the existing session cookie.
-
-#### Acceptance Criteria
-
-- [ ] Create WebSocket endpoint at `/ws/sync`
-- [ ] Authenticate WebSocket connections using session cookie (same auth as HTTP endpoints)
-- [ ] Reject unauthenticated connections with appropriate close code
-- [ ] Implement message types from server to client:
-  ```json
-  { "type": "sync_progress", "riotAccountId": 1, "status": "syncing", "progress": 45, "total": 100, "matchId": "EUW1_123456789" }
-  { "type": "sync_complete", "riotAccountId": 1, "status": "completed", "totalSynced": 100 }
-  { "type": "sync_error", "riotAccountId": 1, "status": "failed", "error": "Rate limited, will retry in 60s" }
-  ```
-- [ ] Implement message types from client to server:
-  ```json
-  { "type": "subscribe", "riotAccountId": 1 }
-  { "type": "unsubscribe", "riotAccountId": 1 }
-  ```
-- [ ] Create `IWebSocketBroadcaster` service that sync job can call to push updates
-- [ ] Handle client disconnection gracefully (remove from subscription list)
-- [ ] Support multiple clients per user (e.g., user has app open in two tabs)
-
 ---
 
 # Summary
@@ -1713,11 +1646,9 @@ Create a WebSocket endpoint that broadcasts real-time match sync progress to con
 | G5 | Implement Solo dashboard v2 view | Frontend v2 | 5 |
 | G9 | Implement user login, signup, verification & `/app/user` shell | Frontend v2 | 5 |
 | G12 | Implement Riot account linking on `/app/user` | Frontend v2 | 5 |
-| G13 | Implement real-time match sync progress via WebSocket | Frontend v2 | 5 |
 | F12 | Implement Riot account linking endpoints | API v2 | 5 |
-| F13 | Implement WebSocket endpoint for sync progress | API v2 | 5 |
 
-**P0 Total:** 102 points (8 points completed: F14)
+**P0 Total:** 102 points (18 points completed: F14, F13, G13)
 
 ### P1 - High
 
