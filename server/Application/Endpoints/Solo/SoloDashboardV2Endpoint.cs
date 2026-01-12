@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Infrastructure.External.Database.Repositories;
 using RiotProxy.Infrastructure.External.Database.Repositories.V2;
-using static RiotProxy.Application.DTOs.SoloSummaryDto;
 
 namespace RiotProxy.Application.Endpoints.Solo;
 
@@ -25,7 +23,7 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string userId,
             [FromQuery] string? queueType,
-            [FromServices] UserGamerRepository userGamerRepo,
+            [FromServices] V2RiotAccountsRepository riotAccountsRepo,
             [FromServices] V2SoloStatsRepository v2SoloStatsRepo,
             [FromServices] ILogger<SoloDashboardV2Endpoint> logger
         ) =>
@@ -36,28 +34,27 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
                     return Results.Unauthorized();
 
                 // Parse userId
-                if (!int.TryParse(userId, out var userIdInt))
+                if (!long.TryParse(userId, out var userIdLong))
                 {
                     logger.LogWarning("Solo v2 dashboard: invalid userId format {UserId}", userId);
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
-                // Get gamers for this user
-                var puuIds = await userGamerRepo.GetGamersPuuIdByUserIdAsync(userIdInt);
-                var distinctPuuIds = (puuIds ?? []).Distinct().ToArray();
+                // Get riot accounts for this user from v2 schema
+                var riotAccounts = await riotAccountsRepo.GetByUserIdAsync(userIdLong);
 
-                if (distinctPuuIds.Length == 0)
+                if (riotAccounts == null || riotAccounts.Count == 0)
                 {
-                    logger.LogWarning("Solo v2 dashboard: no gamers found for userId {UserId}", userIdInt);
-                    return Results.NotFound(new { error = "No gamers found for this user" });
+                    logger.LogWarning("Solo v2 dashboard: no riot accounts found for userId {UserId}", userIdLong);
+                    return Results.NotFound(new { error = "No riot accounts found for this user" });
                 }
 
-                // Aggregate stats from all gamers (team perspective)
-                // For now, fetch for primary gamer; TODO: support team aggregation
-                var primaryPuuid = distinctPuuIds[0];
+                // Get the primary account, or fall back to first account
+                var primaryAccount = riotAccounts.FirstOrDefault(a => a.IsPrimary) ?? riotAccounts[0];
+                var primaryPuuid = primaryAccount.Puuid;
 
                 // Fetch dashboard data
-                logger.LogInformation("Solo v2 dashboard request: userId={UserId}, puuid={Puuid}, queueType={Queue}", userIdInt, primaryPuuid, queueType ?? "all");
+                logger.LogInformation("Solo v2 dashboard request: userId={UserId}, puuid={Puuid}, queueType={Queue}", userIdLong, primaryPuuid, queueType ?? "all");
                 var dashboard = await v2SoloStatsRepo.GetSoloDashboardAsync(primaryPuuid, queueType);
 
                 if (dashboard == null)

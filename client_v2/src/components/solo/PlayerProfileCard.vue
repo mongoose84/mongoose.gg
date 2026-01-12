@@ -31,7 +31,7 @@
     <!-- Quick Stats -->
     <div class="quick-stats" v-if="stats">
       <div class="stat-item">
-        <span class="stat-value">{{ stats.totalGames || 0 }}</span>
+        <span class="stat-value">{{ stats.gamesPlayed || 0 }}</span>
         <span class="stat-label">Games</span>
       </div>
       <div class="stat-item">
@@ -41,12 +41,12 @@
         <span class="stat-label">Win Rate</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">{{ formatKDA(stats.kda) }}</span>
+        <span class="stat-value">{{ formatKDA(stats.avgKda) }}</span>
         <span class="stat-label">KDA</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">{{ stats.avgCS || 0 }}</span>
-        <span class="stat-label">Avg CS/min</span>
+        <span class="stat-value">{{ formatDuration(stats.avgGameDurationMinutes) }}</span>
+        <span class="stat-label">Avg Duration</span>
       </div>
     </div>
 
@@ -102,6 +102,13 @@ function formatPercent(value) {
 function formatKDA(kda) {
   if (kda == null) return '0.00'
   return kda.toFixed(2)
+}
+
+function formatDuration(minutes) {
+  if (minutes == null) return '0:00'
+  const mins = Math.floor(minutes)
+  const secs = Math.round((minutes - mins) * 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 </script>
 

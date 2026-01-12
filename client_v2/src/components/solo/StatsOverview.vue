@@ -15,46 +15,64 @@
         <span class="stat-value">
           <span class="wins">{{ stats.wins || 0 }}W</span>
           <span class="separator"> - </span>
-          <span class="losses">{{ stats.losses || 0 }}L</span>
+          <span class="losses">{{ (stats.gamesPlayed || 0) - (stats.wins || 0) }}L</span>
         </span>
       </div>
 
-      <!-- Average Stats -->
+      <!-- Overall Stats -->
       <div class="stat-row">
-        <span class="stat-name">Avg Kills</span>
-        <span class="stat-value">{{ formatStat(stats.avgKills) }}</span>
+        <span class="stat-name">Win Rate</span>
+        <span class="stat-value" :class="getWinrateClass(stats.winRate)">{{ formatStat(stats.winRate) }}%</span>
       </div>
       <div class="stat-row">
-        <span class="stat-name">Avg Deaths</span>
-        <span class="stat-value">{{ formatStat(stats.avgDeaths) }}</span>
+        <span class="stat-name">Avg KDA</span>
+        <span class="stat-value">{{ formatStat(stats.avgKda) }}</span>
       </div>
       <div class="stat-row">
-        <span class="stat-name">Avg Assists</span>
-        <span class="stat-value">{{ formatStat(stats.avgAssists) }}</span>
+        <span class="stat-name">Avg Game Duration</span>
+        <span class="stat-value">{{ formatDuration(stats.avgGameDurationMinutes) }}</span>
       </div>
       <div class="stat-row">
-        <span class="stat-name">Avg CS/min</span>
-        <span class="stat-value">{{ formatStat(stats.avgCsPerMin) }}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-name">Avg Vision Score</span>
-        <span class="stat-value">{{ formatStat(stats.avgVisionScore) }}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-name">Avg Damage</span>
-        <span class="stat-value">{{ formatNumber(stats.avgDamage) }}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-name">Avg Gold</span>
-        <span class="stat-value">{{ formatNumber(stats.avgGold) }}</span>
+        <span class="stat-name">Champions Played</span>
+        <span class="stat-value">{{ stats.uniqueChampsPlayedCount || 0 }}</span>
       </div>
 
-      <!-- Trend indicator if available -->
-      <div v-if="trends?.winRateTrend" class="trend-section">
-        <div class="trend-header">Win Rate Trend</div>
-        <div class="trend-indicator" :class="getTrendClass(trends.winRateTrend)">
-          <span class="trend-arrow">{{ getTrendArrow(trends.winRateTrend) }}</span>
-          <span class="trend-value">{{ formatTrend(trends.winRateTrend) }}</span>
+      <!-- Side Stats -->
+      <div v-if="stats.sideStats" class="side-stats">
+        <div class="stat-row">
+          <span class="stat-name">Blue Side</span>
+          <span class="stat-value">
+            <span class="blue-side">{{ stats.sideStats.blueWins }}/{{ stats.sideStats.blueGames }}</span>
+            <span class="winrate">({{ formatStat(stats.sideStats.blueWinDistribution) }}%)</span>
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">Red Side</span>
+          <span class="stat-value">
+            <span class="red-side">{{ stats.sideStats.redWins }}/{{ stats.sideStats.redGames }}</span>
+            <span class="winrate">({{ formatStat(stats.sideStats.redWinDistribution) }}%)</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Main Champion -->
+      <div v-if="stats.mainChampion" class="main-champ-section">
+        <div class="stat-row">
+          <span class="stat-name">Main Champion</span>
+          <span class="stat-value">{{ stats.mainChampion.championName }}</span>
+        </div>
+        <div class="stat-row sub">
+          <span class="stat-name">Games / Win Rate</span>
+          <span class="stat-value">{{ stats.mainChampion.picks }} ({{ formatStat(stats.mainChampion.winRate) }}%)</span>
+        </div>
+      </div>
+
+      <!-- Recent Trend indicator if available -->
+      <div v-if="trends" class="trend-section">
+        <div class="trend-header">Last {{ trends.games }} Games</div>
+        <div class="trend-stats">
+          <span class="trend-wr" :class="getWinrateClass(trends.winRate)">{{ formatStat(trends.winRate) }}% WR</span>
+          <span class="trend-kda">{{ formatStat(trends.avgKda) }} KDA</span>
         </div>
       </div>
     </div>
@@ -86,30 +104,17 @@ function formatStat(value) {
   return value.toFixed(1)
 }
 
-function formatNumber(value) {
-  if (value == null) return '0'
-  if (value >= 1000) {
-    return (value / 1000).toFixed(1) + 'k'
-  }
-  return Math.round(value).toString()
+function formatDuration(minutes) {
+  if (minutes == null) return '0:00'
+  const mins = Math.floor(minutes)
+  const secs = Math.round((minutes - mins) * 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-function getTrendClass(trend) {
-  if (trend > 0) return 'trend-up'
-  if (trend < 0) return 'trend-down'
-  return 'trend-neutral'
-}
-
-function getTrendArrow(trend) {
-  if (trend > 0) return '↑'
-  if (trend < 0) return '↓'
-  return '→'
-}
-
-function formatTrend(trend) {
-  if (trend == null) return ''
-  const sign = trend > 0 ? '+' : ''
-  return `${sign}${trend.toFixed(1)}%`
+function getWinrateClass(winRate) {
+  if (winRate >= 55) return 'winrate-high'
+  if (winRate >= 50) return 'winrate-good'
+  return 'winrate-low'
 }
 </script>
 
@@ -167,25 +172,45 @@ function formatTrend(trend) {
   border-top: 1px solid var(--color-border);
 }
 
+.winrate-high { color: #22c55e; }
+.winrate-good { color: #3b82f6; }
+.winrate-low { color: #ef4444; }
+
+.side-stats, .main-champ-section {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.blue-side { color: #3b82f6; }
+.red-side { color: #ef4444; }
+.winrate { color: var(--color-text-secondary); margin-left: var(--spacing-xs); }
+
+.stat-row.sub .stat-name {
+  padding-left: var(--spacing-md);
+  font-size: var(--font-size-xs);
+}
+
+.trend-section {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
 .trend-header {
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-xs);
 }
 
-.trend-indicator {
+.trend-stats {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-md);
   font-weight: var(--font-weight-semibold);
 }
 
-.trend-up { color: #22c55e; }
-.trend-down { color: #ef4444; }
-.trend-neutral { color: var(--color-text-secondary); }
-
-.trend-arrow {
-  font-size: var(--font-size-lg);
+.trend-kda {
+  color: var(--color-text-secondary);
 }
 
 /* Loading skeleton */

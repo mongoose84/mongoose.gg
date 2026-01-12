@@ -9,21 +9,21 @@
     </div>
 
     <div v-else-if="roles && roles.length" class="roles-content">
-      <div 
-        v-for="role in sortedRoles" 
-        :key="role.role" 
+      <div
+        v-for="role in sortedRoles"
+        :key="role.role"
         class="role-item"
       >
         <div class="role-header">
           <span class="role-icon">{{ getRoleIcon(role.role) }}</span>
           <span class="role-name">{{ getRoleName(role.role) }}</span>
-          <span class="role-games">{{ role.games }} games</span>
+          <span class="role-games">{{ role.gamesPlayed }} games</span>
         </div>
         
         <div class="role-bar-container">
-          <div 
-            class="role-bar" 
-            :style="{ width: getBarWidth(role.games) + '%' }"
+          <div
+            class="role-bar"
+            :style="{ width: getBarWidth(role.gamesPlayed) + '%' }"
             :class="getRoleClass(role.role)"
           ></div>
         </div>
@@ -32,7 +32,7 @@
           <span class="role-winrate" :class="getWinrateClass(role.winRate)">
             {{ formatPercent(role.winRate) }} WR
           </span>
-          <span class="role-kda">{{ formatKDA(role.kda) }} KDA</span>
+          <span class="role-kda">{{ formatKDA(role.avgKda) }} KDA</span>
         </div>
 
         <!-- Top Champions for this role -->
@@ -75,12 +75,12 @@ const props = defineProps({
 
 const sortedRoles = computed(() => {
   if (!props.roles) return []
-  return [...props.roles].sort((a, b) => b.games - a.games)
+  return [...props.roles].sort((a, b) => b.gamesPlayed - a.gamesPlayed)
 })
 
 const maxGames = computed(() => {
   if (!sortedRoles.value.length) return 1
-  return Math.max(...sortedRoles.value.map(r => r.games))
+  return Math.max(...sortedRoles.value.map(r => r.gamesPlayed))
 })
 
 const roleIcons = {
@@ -111,8 +111,8 @@ function getRoleClass(role) {
   return `role-${role?.toLowerCase()}`
 }
 
-function getBarWidth(games) {
-  return (games / maxGames.value) * 100
+function getBarWidth(gamesPlayed) {
+  return (gamesPlayed / maxGames.value) * 100
 }
 
 function getWinrateClass(winRate) {

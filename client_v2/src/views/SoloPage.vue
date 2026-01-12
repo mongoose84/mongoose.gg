@@ -39,31 +39,32 @@
         </div>
 
         <!-- Player Profile Card -->
-        <PlayerProfileCard 
+        <PlayerProfileCard
           :account="selectedAccount"
-          :stats="dashboardData?.overview"
+          :stats="dashboardData"
           :loading="loading"
         />
 
         <!-- Stats Grid -->
         <div class="stats-grid">
           <!-- Stats Overview -->
-          <StatsOverview 
-            :stats="dashboardData?.stats"
+          <StatsOverview
+            :stats="dashboardData"
             :trends="trendsData"
             :loading="loading"
           />
 
           <!-- Role Breakdown -->
-          <RoleBreakdown 
-            :roles="roleData?.roles"
+          <RoleBreakdown
+            :roles="roleData"
             :loading="loading"
           />
         </div>
 
-        <!-- Champion Matchups -->
-        <ChampionMatchups 
-          :matchups="matchupsData?.matchups"
+        <!-- Champion Matchups (hidden until v2 endpoint available) -->
+        <ChampionMatchups
+          v-if="matchupsData"
+          :matchups="matchupsData"
           :loading="matchupsLoading"
         />
       </template>
@@ -74,7 +75,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
-import { getSoloDashboard, getChampionMatchups, getPerformanceTrends, getRoleBreakdown } from '../services/soloApi'
+import { getSoloDashboard } from '../services/soloApi'
 import QueueFilter from '../components/solo/QueueFilter.vue'
 import TimePeriodFilter from '../components/solo/TimePeriodFilter.vue'
 import PlayerProfileCard from '../components/solo/PlayerProfileCard.vue'
@@ -107,25 +108,27 @@ const selectedAccount = computed(() => {
 
 // Load all data
 async function loadData() {
-  if (!selectedAccount.value) return
+  if (!selectedAccount.value || !authStore.userId) return
 
   loading.value = true
   error.value = null
-  const puuid = selectedAccount.value.puuid
 
   try {
-    // Load dashboard data and role breakdown in parallel
-    const [dashboard, roles] = await Promise.all([
-      getSoloDashboard(puuid, { queueFilter: queueFilter.value, timePeriod: timePeriod.value }),
-      getRoleBreakdown(puuid, { queueFilter: queueFilter.value, timePeriod: timePeriod.value })
-    ])
-    
-    dashboardData.value = dashboard
-    roleData.value = roles
+    // Load dashboard data (includes roleBreakdown)
+    const dashboard = await getSoloDashboard(authStore.userId, {
+      queueFilter: queueFilter.value,
+      timePeriod: timePeriod.value
+    })
 
-    // Load matchups separately (can be slower)
-    loadMatchups()
-    loadTrends()
+    dashboardData.value = dashboard
+    // Extract roleBreakdown from dashboard response
+    roleData.value = dashboard.roleBreakdown || []
+
+    // Set trends from last10/last20 games in dashboard
+    trendsData.value = dashboard.last20Games || dashboard.last10Games || null
+
+    // TODO: Champion matchups v2 endpoint not yet available
+    matchupsData.value = null
   } catch (e) {
     console.error('Failed to load solo dashboard:', e)
     error.value = e.message || 'Failed to load dashboard data'
@@ -134,31 +137,8 @@ async function loadData() {
   }
 }
 
-async function loadMatchups() {
-  if (!selectedAccount.value) return
-  matchupsLoading.value = true
-  try {
-    matchupsData.value = await getChampionMatchups(selectedAccount.value.puuid, { 
-      queueFilter: queueFilter.value 
-    })
-  } catch (e) {
-    console.error('Failed to load matchups:', e)
-  } finally {
-    matchupsLoading.value = false
-  }
-}
-
-async function loadTrends() {
-  if (!selectedAccount.value) return
-  try {
-    trendsData.value = await getPerformanceTrends(selectedAccount.value.puuid, {
-      queueFilter: queueFilter.value,
-      timePeriod: timePeriod.value
-    })
-  } catch (e) {
-    console.error('Failed to load trends:', e)
-  }
-}
+// Note: Champion matchups v2 endpoint not yet available
+// These will be enabled when the backend endpoints are created
 
 // Watch for filter changes
 watch([queueFilter, timePeriod], () => {
