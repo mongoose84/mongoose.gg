@@ -142,13 +142,23 @@ set RIOT_API_KEY=RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 ##### Database connection string (local)
 Set via user-secrets:
-```
-
-
+```bash
 # user-secrets (from server/)
 dotnet user-secrets set "ConnectionStrings:Default" "Server=...;Password=...;"
 dotnet user-secrets set "ConnectionStrings:DatabaseV2" "Server=...;Password=...;"
 ```
+
+##### Email Encryption Key
+Emails are encrypted at rest in the database. Generate a key and set it via user-secrets:
+```bash
+# Generate a new key (run once, save the output securely!)
+openssl rand -base64 32
+
+# Set via user-secrets (from server/)
+dotnet user-secrets set "Security:EmailEncryptionKey" "your-generated-key-here"
+```
+
+**⚠️ Important:** Store this key securely! If lost, encrypted emails cannot be recovered. If leaked, emails can be decrypted.
 
 ##### Build and run
 

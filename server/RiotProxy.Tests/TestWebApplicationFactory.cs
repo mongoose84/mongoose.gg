@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using RiotProxy.Infrastructure.External.Database.Repositories;
 using RiotProxy.Infrastructure.External.Database.Repositories.V2;
 using RiotProxy.Infrastructure.External;
+using RiotProxy.Infrastructure.Security;
 using RiotProxy.External.Domain.Entities;
 using RiotProxy.External.Domain.Entities.V2;
 using RiotProxy.External.Domain.Enums;
@@ -41,6 +42,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureAppConfiguration((_, config) =>
         {
+            // Test encryption key (32 bytes base64-encoded) - only for testing
+            // "test-encryption-key-32bytes!!!!!" (32 chars) -> base64
+            const string testEmailEncryptionKey = "dGVzdC1lbmNyeXB0aW9uLWtleS0zMmJ5dGVzISEhISE=";
+
             var defaults = new Dictionary<string, string?>
             {
                 ["Auth:EnableMvpLogin"] = "true",
@@ -49,7 +54,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jobs:EnableMatchHistorySync"] = "false",
                 ["RIOT_API_KEY"] = "test-key",
                 ["LOL_DB_CONNECTIONSTRING"] = "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;",
-                ["LOL_DB_CONNECTIONSTRING_V2"] = "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;"
+                ["LOL_DB_CONNECTIONSTRING_V2"] = "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;",
+                ["Security:EmailEncryptionKey"] = testEmailEncryptionKey
             };
 
             config.AddInMemoryCollection(defaults);
@@ -104,7 +110,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         private readonly ConcurrentDictionary<string, V2User> _usersByEmail = new(StringComparer.OrdinalIgnoreCase);
         private long _nextId = 1;
 
-        public FakeV2UsersRepository() : base(null!)
+        public FakeV2UsersRepository() : base(null!, new FakeEmailEncryptor())
         {
             // Pre-populate with a test user (password: "test-password")
             var testUser = new V2User
@@ -145,5 +151,18 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _usersByEmail[user.Email] = user;
             return Task.FromResult(user.UserId);
         }
+    }
+
+    /// <summary>
+    /// Fake email encryptor for testing that doesn't actually encrypt.
+    /// Just passes through the email as-is (or with a simple marker).
+    /// </summary>
+    private sealed class FakeEmailEncryptor : IEmailEncryptor
+    {
+        public string Encrypt(string email) => $"encrypted:{email.ToLowerInvariant().Trim()}";
+        public string Decrypt(string encryptedEmail) =>
+            encryptedEmail.StartsWith("encrypted:")
+                ? encryptedEmail.Substring("encrypted:".Length)
+                : encryptedEmail;
     }
 }

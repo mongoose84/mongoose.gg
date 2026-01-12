@@ -72,7 +72,10 @@ jobs:
           if ([string]::IsNullOrWhiteSpace("${{ secrets.RIOT_API_KEY }}")) {
             $missingSecrets += "RIOT_API_KEY"
           }
-          
+          if ([string]::IsNullOrWhiteSpace("${{ secrets.ENCRYPTION_SECRET }}")) {
+            $missingSecrets += "ENCRYPTION_SECRET"
+          }
+
           if ($missingSecrets.Count -gt 0) {
             Write-Error "❌ Missing required GitHub secrets: $($missingSecrets -join ', ')"
             Write-Error "Please add these secrets in: Settings → Secrets and variables → Actions"
@@ -80,6 +83,7 @@ jobs:
             Write-Error "  - LOL_DB_CONNECTIONSTRING: Server=host;Port=3306;Database=db;User=user;Password=pass"
             Write-Error "  - LOL_DB_CONNECTIONSTRING_V2: Server=host;Port=3306;Database=db_v2;User=user;Password=pass"
             Write-Error "  - RIOT_API_KEY: RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            Write-Error "  - ENCRYPTION_SECRET: Base64-encoded 32-byte key (use: openssl rand -base64 32)"
             exit 1
           }
           
@@ -114,6 +118,9 @@ jobs:
             }
             "Jobs" = @{
               "EnableMatchHistorySync" = $true
+            }
+            "Security" = @{
+              "EmailEncryptionKey" = "${{ secrets.ENCRYPTION_SECRET }}"
             }
           } | ConvertTo-Json -Depth 10
           

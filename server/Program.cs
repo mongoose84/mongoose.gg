@@ -8,6 +8,7 @@ using RiotProxy.Infrastructure.External.Database.Repositories;
 using RiotProxy.Infrastructure.External.Database.Repositories.V2;
 using RiotProxy.Infrastructure.External.Riot;
 using RiotProxy.Infrastructure.External;
+using RiotProxy.Infrastructure.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,27 @@ Secrets.Initialize(builder.Configuration);
 builder.Services.AddSingleton<IRiotApiClient, RiotApiClient>();
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 builder.Services.AddSingleton<IV2DbConnectionFactory, V2DbConnectionFactory>();
+
+// Email encryption for secure storage - registered via factory to allow test override
+builder.Services.AddSingleton<IEmailEncryptor>(sp =>
+{
+    // Re-read from configuration in case tests have overridden it
+    var config = sp.GetRequiredService<IConfiguration>();
+    var encryptionKey = config["Security:EmailEncryptionKey"]
+        ?? config["EMAIL_ENCRYPTION_KEY"]
+        ?? Environment.GetEnvironmentVariable("EMAIL_ENCRYPTION_KEY")
+        ?? Secrets.EmailEncryptionKey;
+
+    if (string.IsNullOrWhiteSpace(encryptionKey))
+    {
+        throw new InvalidOperationException(
+            "Email encryption key is not configured. " +
+            "Set Security:EmailEncryptionKey in appsettings.json, " +
+            "EMAIL_ENCRYPTION_KEY environment variable, " +
+            "Generate a key using: AesEmailEncryptor.GenerateKey()");
+    }
+    return new AesEmailEncryptor(encryptionKey);
+});
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<GamerRepository>();
