@@ -12,6 +12,8 @@ public class V2RiotAccount : EntityBase
     public string Region { get; set; } = string.Empty;
     public bool IsPrimary { get; set; }
     public string SyncStatus { get; set; } = "pending";
+    public int SyncProgress { get; set; }
+    public int SyncTotal { get; set; }
     public DateTime? LastSyncAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

@@ -78,6 +78,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { getComparison } from '@/api/solo.js'
+import { sortGamerNames, getGamerColor as getGamerColorUtil } from '@/composables/useGamerColors.js'
 
 const props = defineProps({
   userId: { type: [String, Number], required: true }
@@ -156,41 +157,27 @@ function getColorClass(difference) {
   return difference > 0 ? 'positive' : 'negative'
 }
 
-// Get all unique gamer names sorted (to match RadarChart color scheme)
+// Get all unique gamer names sorted alphabetically for consistent color mapping
 const gamerNames = computed(() => {
   if (!data.value) return [];
-  const names = new Set();
+  const names = [];
 
   // Collect all gamer names from all metrics
   [data.value.winrate, data.value.kda, data.value.csPrMin, data.value.goldPrMin, data.value.gamesPlayed]
     .forEach(arr => {
       if (arr) {
         arr.forEach(item => {
-          if (item.gamerName) names.add(item.gamerName);
+          if (item.gamerName) names.push(item.gamerName);
         });
       }
     });
 
-  // Sort to ensure EUNE comes first, then EUW for consistent color mapping
-  return Array.from(names).sort((a, b) => {
-    // EUNE should come before EUW
-    if (a.includes('EUNE') && b.includes('EUW')) return -1;
-    if (a.includes('EUW') && b.includes('EUNE')) return 1;
-    return a.localeCompare(b);
-  });
+  return sortGamerNames(names);
 });
 
-// Get color for a gamer name (matching RadarChart and ChampionPerformanceSplit)
-// First gamer (EUNE) = purple, Second gamer (EUW) = green
+// Get color for a gamer name (alphabetically sorted)
 function getGamerColor(gamerName) {
-  const index = gamerNames.value.indexOf(gamerName);
-  const colors = [
-    'var(--color-primary)',      // Purple - First gamer (EUNE)
-    'var(--color-success)',      // Green - Second gamer (EUW)
-    '#f59e0b',                   // Amber
-    '#ec4899',                   // Pink
-  ];
-  return colors[index] || 'var(--color-text)';
+  return getGamerColorUtil(gamerName, gamerNames.value);
 }
 </script>
 

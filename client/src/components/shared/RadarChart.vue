@@ -82,6 +82,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import ChartCard from '@/components/shared/ChartCard.vue';
 import { getComparison } from '@/api/solo.js';
+import { sortGamerNames, GAMER_COLORS } from '@/composables/useGamerColors.js';
 
 const props = defineProps({
   userId: {
@@ -113,14 +114,7 @@ const metrics = [
   { key: 'timeDead', label: 'Time Dead', max: 300, inverse: true }, // Lower is better
 ];
 
-const colors = [
-  'var(--color-primary)',      // Purple
-  'var(--color-success)',      // Green
-  '#f59e0b',                   // Amber
-  '#ec4899',                   // Pink
-];
-
-const getColor = (index) => colors[index % colors.length];
+const getColor = (index) => GAMER_COLORS[index % GAMER_COLORS.length];
 
 // Get axis endpoint coordinates
 function getAxisPoint(index) {
@@ -164,13 +158,9 @@ function getPolygonPoints(gamer) {
 const radarData = computed(() => {
   if (!comparisonData.value) return [];
 
-  // Extract gamer names from any metric array and sort them (EUNE first, then EUW)
-  const gamerNames = (comparisonData.value.winrate?.map(g => g.gamerName) || []).sort((a, b) => {
-    // EUNE should come before EUW
-    if (a.includes('EUNE') && b.includes('EUW')) return -1;
-    if (a.includes('EUW') && b.includes('EUNE')) return 1;
-    return a.localeCompare(b);
-  });
+  // Extract gamer names from any metric array and sort them alphabetically
+  const names = comparisonData.value.winrate?.map(g => g.gamerName) || [];
+  const gamerNames = sortGamerNames(names);
 
   return gamerNames.map(name => {
     // Get actual data from the API

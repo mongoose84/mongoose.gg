@@ -1674,59 +1674,6 @@ Create a WebSocket endpoint that broadcasts real-time match sync progress to con
 
 ---
 
-### F14. [Background] Implement V2 Match History Sync Job
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 8 points
-**Depends on:** E4, E5, F12, F13
-**Labels:** `background-job`, `sync`, `riot-api`, `epic-f`
-
-#### Description
-
-Create a v2 match history sync job that fetches matches for linked Riot accounts, stores them in v2 tables, and broadcasts progress via WebSocket. Supports automatic triggering on account link, on login, and after idle periods.
-
-#### Acceptance Criteria
-
-- [ ] Create `V2MatchHistorySyncJob` background job that:
-  - Picks up accounts with `sync_status = 'pending'` or due for refresh
-  - Fetches up to 100 matches from Riot Match API
-  - Stores match data in v2 tables (matches, participants, checkpoints, metrics, etc.)
-  - Updates `sync_progress` incrementally as matches are processed
-  - Broadcasts progress via `IWebSocketBroadcaster` after each match
-  - Sets `sync_status = 'completed'` and `last_sync_at = now()` on success
-  - Sets `sync_status = 'failed'` with error details on failure
-- [ ] Sync triggers:
-  - **On account link**: Immediately queue sync for new account (100 matches)
-  - **On login**: Check if `last_sync_at` > 30 minutes ago; if so, queue sync for new matches only
-  - **On manual retry**: `POST .../sync` endpoint queues sync
-- [ ] Rate limit handling:
-  - Respect Riot API rate limits
-  - On 429 response, pause and retry with exponential backoff
-  - Update `sync_status` to indicate waiting (optional: broadcast wait message)
-- [ ] Error handling:
-  - Partial failure: save progress, mark last successful point
-  - Allow resume from last successful match on retry
-  - Log errors with context for debugging
-- [ ] Create `sync_jobs` table (optional) for job tracking and audit:
-  ```sql
-  CREATE TABLE sync_jobs (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_riot_account_id BIGINT NOT NULL,
-    status ENUM('pending', 'running', 'completed', 'failed') DEFAULT 'pending',
-    progress INT DEFAULT 0,
-    total INT DEFAULT 100,
-    started_at DATETIME NULL,
-    completed_at DATETIME NULL,
-    error_message TEXT NULL,
-    FOREIGN KEY (user_riot_account_id) REFERENCES user_riot_accounts(id)
-  );
-  ```
-- [ ] Job runs in background without blocking API responses
-- [ ] Multiple accounts can sync concurrently (with rate limit awareness)
-
----
-
 # Summary
 
 ## All Issues by Priority
@@ -1769,9 +1716,8 @@ Create a v2 match history sync job that fetches matches for linked Riot accounts
 | G13 | Implement real-time match sync progress via WebSocket | Frontend v2 | 5 |
 | F12 | Implement Riot account linking endpoints | API v2 | 5 |
 | F13 | Implement WebSocket endpoint for sync progress | API v2 | 5 |
-| F14 | Implement V2 Match History Sync Job | API v2 | 8 |
 
-**P0 Total:** 110 points
+**P0 Total:** 102 points (8 points completed: F14)
 
 ### P1 - High
 

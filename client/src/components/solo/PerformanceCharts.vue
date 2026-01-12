@@ -157,6 +157,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { getPerformance } from '@/api/solo.js';
 import ChartCard from '@/components/shared/ChartCard.vue';
+import { sortGamerNames, GAMER_COLORS } from '@/composables/useGamerColors.js';
 
 const props = defineProps({
   userId: {
@@ -361,16 +362,7 @@ const chartHeight = 220;
 const padding = { top: 28, right: 32, bottom: 38, left: 55 };
 
 
-const colors = [
-  'var(--color-primary)',      // Purple
-  'var(--color-success)',      // Green
-  '#f59e0b',                   // Amber
-  '#ec4899',                   // Pink
-  '#06b6d4',                   // Cyan
-];
-
-const getColor = (index) => colors[index % colors.length];
-
+const getColor = (index) => GAMER_COLORS[index % GAMER_COLORS.length];
 
 // Compute win-rate and loss-rate per gamer/server, using filtered data
 const chartData = computed(() => {
@@ -387,13 +379,10 @@ const chartData = computed(() => {
     };
   });
 
-  // Sort to ensure EUNE comes first, then EUW for consistent color mapping
-  return gamers.sort((a, b) => {
-    // EUNE should come before EUW
-    if (a.gamerName.includes('EUNE') && b.gamerName.includes('EUW')) return -1;
-    if (a.gamerName.includes('EUW') && b.gamerName.includes('EUNE')) return 1;
-    return a.gamerName.localeCompare(b.gamerName);
-  });
+  // Sort alphabetically for consistent color mapping
+  const gamerNamesList = gamers.map(g => g.gamerName);
+  const sortedNames = sortGamerNames(gamerNamesList);
+  return gamers.sort((a, b) => sortedNames.indexOf(a.gamerName) - sortedNames.indexOf(b.gamerName));
 });
 
 // Helper function for Y-axis positioning

@@ -56,6 +56,13 @@ if (enableMatchHistorySync)
     builder.Services.AddHostedService(provider => provider.GetRequiredService<MatchHistorySyncJob>());
 }
 
+// V2 Match History Sync Job (per-account sync for linked Riot accounts)
+var enableV2MatchHistorySync = builder.Configuration.GetValue<bool>("Jobs:EnableV2MatchHistorySync", true);
+if (enableV2MatchHistorySync)
+{
+    builder.Services.AddHostedService<V2MatchHistorySyncJob>();
+}
+
 // Add distributed cache for session storage (in-memory for dev, Redis for prod)
 builder.Services.AddDistributedMemoryCache();
 

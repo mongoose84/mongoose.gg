@@ -76,9 +76,9 @@ For full task details, see:
 | G13 | Implement real-time match sync progress via WebSocket | Frontend v2 | 5 | |
 | F12 | Implement Riot account linking endpoints | API v2 | 5 | ✅ |
 | F13 | Implement WebSocket endpoint for sync progress | API v2 | 5 | |
-| F14 | Implement V2 Match History Sync Job | API v2 | 8 | |
+| F14 | Implement V2 Match History Sync Job | API v2 | 8 | ✅ |
 
-**P0 Remaining:** 61 points | **P0 Completed:** 49 points | **P0 Total:** 110 points
+**P0 Remaining:** 53 points | **P0 Completed:** 57 points | **P0 Total:** 110 points
 
 ### P1 - High
 
@@ -173,9 +173,10 @@ For full task details, see:
 - ✅ G1, G2 (App v2 IA & shell)
 - ✅ G9 (User login, signup, verification & `/app/user` shell)
 - ✅ G12 (Riot account linking UI)
+- ✅ F14 (V2 Match History Sync Job)
 - ⬜ G5 (Solo dashboard view)
-- ⬜ F13, F14 (WebSocket sync + v2 sync job)
-- ⬜ G13 (real-time sync progress)
+- ⬜ F13 (WebSocket sync progress endpoint)
+- ⬜ G13 (real-time sync progress UI)
 
 ### Sprint 1: Foundation (P0 Core)
 **Focus:** Database + Stripe + Basic AI

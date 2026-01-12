@@ -334,6 +334,48 @@ Create v2 API endpoints for linking Riot accounts to authenticated users. Store 
 
 ---
 
+### F14. [Background] Implement V2 Match History Sync Job ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 8 points
+**Depends on:** E4, E5, F12, F13
+**Labels:** `background-job`, `sync`, `riot-api`, `epic-f`
+
+#### Description
+
+Create a v2 match history sync job that fetches matches for linked Riot accounts, stores them in v2 tables, and broadcasts progress via WebSocket. Supports automatic triggering on account link, on login, and after idle periods.
+
+#### Acceptance Criteria
+
+- [x] Create `V2MatchHistorySyncJob` background job that:
+  - Picks up accounts with `sync_status = 'pending'` or due for refresh
+  - Fetches up to 100 matches from Riot Match API
+  - Stores match data in v2 tables (matches, participants, checkpoints, metrics, etc.)
+  - Updates `sync_progress` incrementally as matches are processed
+  - Broadcasts progress via `IWebSocketBroadcaster` after each match
+  - Sets `sync_status = 'completed'` and `last_sync_at = now()` on success
+  - Sets `sync_status = 'failed'` with error details on failure
+- [x] Sync triggers:
+  - **On account link**: Immediately queue sync for new account (100 matches)
+  - **On login**: Check if `last_sync_at` > 30 minutes ago; if so, queue sync for new matches only
+  - **On manual retry**: `POST .../sync` endpoint queues sync
+- [x] Rate limit handling:
+  - Respect Riot API rate limits
+  - On 429 response, pause and retry with exponential backoff
+  - Update `sync_status` to indicate waiting (optional: broadcast wait message)
+- [x] Error handling:
+  - Partial failure: save progress, mark last successful point
+  - Allow resume from last successful match on retry
+  - Log errors with context for debugging
+- [x] Job runs in background without blocking API responses
+- [x] Multiple accounts can sync concurrently (with rate limit awareness)
+- [x] Unit tests cover core sync logic (claim pending, update status, progress tracking, stuck job reset)
+
+**Note:** WebSocket broadcasting (`IWebSocketBroadcaster`) will be integrated after F13 is complete. The sync job currently logs progress but does not broadcast yet.
+
+---
+
 # Epic G: Frontend v2 App & Marketing (Completed Tasks)
 
 ### G1. [UX] Define app v2 information architecture & routes ✅ COMPLETE
@@ -389,9 +431,10 @@ Create a shared layout component for all `/app/*` routes with header, navigation
 | F | F7 - Session authentication | 3 | ✅ |
 | F | F11 - User auth endpoints (core) | 5 | ✅ |
 | F | F12 - Riot account linking endpoints | 5 | ✅ |
+| F | F14 - V2 Match History Sync Job | 8 | ✅ |
 | G | G1 - App v2 IA & routes | 2 | ✅ |
 | G | G2 - App shell & navigation | 3 | ✅ |
 | G | G9 - Login, signup, verification & user shell | 5 | ✅ |
 | G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
 
-**Total Completed Points:** 49
+**Total Completed Points:** 57

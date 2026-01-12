@@ -55,7 +55,7 @@ public class V2ParticipantsRepository : RepositoryBase
         return ExecuteListAsync(sql, Map, ("@match_id", matchId));
     }
 
-    public async Task<ISet<string>> GetMatchIdsForPuuidAsync(string puuid)
+    public virtual async Task<ISet<string>> GetMatchIdsForPuuidAsync(string puuid)
     {
         const string sql = "SELECT match_id FROM participants WHERE puuid = @puuid";
         var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

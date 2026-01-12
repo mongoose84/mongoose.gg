@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS riot_accounts (
     region VARCHAR(10) NOT NULL,
     is_primary BOOLEAN DEFAULT FALSE,
     sync_status ENUM('pending', 'syncing', 'completed', 'failed') DEFAULT 'pending',
+    sync_progress INT NOT NULL DEFAULT 0,
+    sync_total INT NOT NULL DEFAULT 0,
     last_sync_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -43,7 +45,7 @@ CREATE TABLE IF NOT EXISTS riot_accounts (
     KEY idx_summoner_name (summoner_name),
     KEY idx_region (region),
     KEY idx_user_primary_created (user_id, is_primary, created_at),
-    KEY idx_sync_status (sync_status),
+    KEY idx_sync_status_updated (sync_status, updated_at),
     CONSTRAINT fk_riot_accounts_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

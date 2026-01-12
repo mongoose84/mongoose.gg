@@ -52,22 +52,13 @@ namespace RiotProxy.Infrastructure.External
                 var gamerRepository = scope.ServiceProvider.GetRequiredService<GamerRepository>();
                 var matchRepository = scope.ServiceProvider.GetRequiredService<LolMatchRepository>();
                 var participantRepository = scope.ServiceProvider.GetRequiredService<LolMatchParticipantRepository>();
-                // v2 repositories
-                var v2Matches = scope.ServiceProvider.GetRequiredService<V2MatchesRepository>();
-                var v2Participants = scope.ServiceProvider.GetRequiredService<V2ParticipantsRepository>();
-                var v2Checkpoints = scope.ServiceProvider.GetRequiredService<V2ParticipantCheckpointsRepository>();
-                var v2PartMetrics = scope.ServiceProvider.GetRequiredService<V2ParticipantMetricsRepository>();
-                var v2TeamObjectives = scope.ServiceProvider.GetRequiredService<V2TeamObjectivesRepository>();
-                var v2PartObjectives = scope.ServiceProvider.GetRequiredService<V2ParticipantObjectivesRepository>();
-                var v2TeamMetrics = scope.ServiceProvider.GetRequiredService<V2TeamMatchMetricsRepository>();
-                var v2DuoMetrics = scope.ServiceProvider.GetRequiredService<V2DuoMetricsRepository>();
 
                 Console.WriteLine("MatchHistorySyncJob started.");
                 var gamers = await gamerRepository.GetAllGamersAsync();
                 Console.WriteLine($"Found {gamers.Count} gamers.");
 
-                // Fetch only NEW match IDs incrementally
-                var newMatches = await GetNewMatchHistoryFromRiotApi(gamers, riotApiClient, participantRepository, v2Participants, ct);
+                // Fetch only NEW match IDs incrementally (v1 only)
+                var newMatches = await GetNewMatchHistoryFromRiotApi(gamers, riotApiClient, participantRepository, ct);
                 // De-duplicate by MatchId to avoid processing the same match multiple times across gamers
                 newMatches = newMatches
                     .GroupBy(m => m.MatchId)
@@ -80,7 +71,7 @@ namespace RiotProxy.Infrastructure.External
                     await AddMatchHistoryToDb(newMatches, matchRepository, ct);
                     Console.WriteLine("New match history added to DB.");
 
-                    // Fetch details only for new matches
+                    // Fetch details only for new matches (v1 only)
                     await AddMatchInfoToDb(
                         newMatches,
                         gamers,
@@ -88,14 +79,6 @@ namespace RiotProxy.Infrastructure.External
                         participantRepository,
                         matchRepository,
                         gamerRepository,
-                        v2Matches,
-                        v2Participants,
-                        v2Checkpoints,
-                        v2PartMetrics,
-                        v2TeamObjectives,
-                        v2PartObjectives,
-                        v2TeamMetrics,
-                        v2DuoMetrics,
                         ct);
                 }
 
@@ -115,7 +98,6 @@ namespace RiotProxy.Infrastructure.External
             IList<Gamer> gamers,
             IRiotApiClient riotApiClient,
             LolMatchParticipantRepository participantRepository,
-            V2ParticipantsRepository v2ParticipantRepository,
             CancellationToken ct)
         {
             var allNewMatches = new List<LolMatch>();
@@ -124,11 +106,10 @@ namespace RiotProxy.Infrastructure.External
 
             foreach (var gamer in gamers)
             {
-                // Get existing match IDs for this gamer
+                // Get existing match IDs for this gamer (v1 only)
                 Console.WriteLine($"Fetching match history for gamer: {gamer.GamerName}");
                 var existingMatchIds = await participantRepository.GetMatchIdsForPuuidAsync(gamer.Puuid);
                 var existingSet = new HashSet<string>(existingMatchIds);
-                var v2ExistingSet = await v2ParticipantRepository.GetMatchIdsForPuuidAsync(gamer.Puuid);
 
                 int start = 0;
                 const int pageSize = 20; // Smaller pages
@@ -153,13 +134,11 @@ namespace RiotProxy.Infrastructure.External
 
                     foreach (var match in matchHistory)
                     {
-                        var existsV1 = existingSet.Contains(match.MatchId);
-                        var existsV2 = v2ExistingSet.Contains(match.MatchId);
-                        if (existsV1 && existsV2)
+                        if (existingSet.Contains(match.MatchId))
                         {
-                            // Found a match present in both v1 and v2 - safe to stop paging for this gamer
+                            // Found a match already in v1 - safe to stop paging for this gamer
                             foundExisting = true;
-                            Console.WriteLine($"Found existing match {match.MatchId} for {gamer.GamerName} in both v1 and v2, stopping pagination.");
+                            Console.WriteLine($"Found existing match {match.MatchId} for {gamer.GamerName}, stopping pagination.");
                             break;
                         }
 
@@ -203,14 +182,6 @@ namespace RiotProxy.Infrastructure.External
                         LolMatchParticipantRepository participantRepository,
                         LolMatchRepository matchRepository,
                         GamerRepository gamerRepository,
-                        V2MatchesRepository v2Matches,
-                        V2ParticipantsRepository v2Participants,
-                        V2ParticipantCheckpointsRepository v2Checkpoints,
-                        V2ParticipantMetricsRepository v2PartMetrics,
-                        V2TeamObjectivesRepository v2TeamObjectives,
-                        V2ParticipantObjectivesRepository v2PartObjectives,
-                        V2TeamMatchMetricsRepository v2TeamMetrics,
-                        V2DuoMetricsRepository v2DuoMetrics,
                         CancellationToken ct)
         {
             var participantsAdded = 0;
@@ -220,37 +191,16 @@ namespace RiotProxy.Infrastructure.External
                 {
                     // Fetch match info from Riot API
                     var matchInfoJson = await riotApiClient.GetMatchInfoAsync(match.MatchId);
-                    
-                    // Map and update match entity and add to database (v1)
+
+                    // Map and update match entity and add to database (v1 only)
                     MapToLolMatchEntity(matchInfoJson, match);
                     await matchRepository.UpdateMatchAsync(match);
 
-                    // Map and add participants to database (v1)
+                    // Map and add participants to database (v1 only)
                     var participants = MapToParticipantEntity(matchInfoJson, match.MatchId);
                     participantsAdded += participants.Count;
                     foreach (var participant in participants)
                         await participantRepository.AddParticipantIfNotExistsAsync(participant);
-
-                    // Map and upsert into v2 tables
-                    var v2Match = MapToV2Match(matchInfoJson, match.MatchId);
-                    await v2Matches.UpsertAsync(v2Match);
-                    var v2Parts = MapToV2Participants(matchInfoJson, match.MatchId);
-                    foreach (var p in v2Parts)
-                        await v2Participants.InsertAsync(p);
-
-                    // Fetch timeline and compute derived metrics for v2; failures here should not rollback v1 data
-                    try
-                    {
-                        var timelineDoc = await riotApiClient.GetMatchTimelineAsync(match.MatchId);
-                        await PersistV2TimelineDerivedAsync(match.MatchId, matchInfoJson, timelineDoc,
-                            v2Participants, v2Checkpoints, v2PartMetrics, v2TeamObjectives, v2PartObjectives,
-                            v2TeamMetrics, v2DuoMetrics, ct);
-                    }
-                    catch (Exception ex) when (!(ex is OperationCanceledException))
-                    {
-                        // Log and continue so v1 data stays persisted; v2 timeline processing can be retried later
-                        Console.WriteLine($"Warning: timeline processing failed for match {match.MatchId}: {ex.Message}");
-                    }
 
                     // Update that a gamers info has been updated
                     var gamer = gamers.FirstOrDefault(g => g.Puuid == match.Puuid);
@@ -427,7 +377,10 @@ namespace RiotProxy.Infrastructure.External
             }
         }
 
-        private static RiotProxy.External.Domain.Entities.V2.V2Match MapToV2Match(JsonDocument matchInfo, string matchId)
+        /// <summary>
+        /// Maps Riot API match info to a V2Match entity.
+        /// </summary>
+        public static RiotProxy.External.Domain.Entities.V2.V2Match MapToV2Match(JsonDocument matchInfo, string matchId)
         {
             var v2 = new RiotProxy.External.Domain.Entities.V2.V2Match
             {
@@ -470,7 +423,10 @@ namespace RiotProxy.Infrastructure.External
             return v2;
         }
 
-        private static IList<RiotProxy.External.Domain.Entities.V2.V2Participant> MapToV2Participants(JsonDocument matchInfo, string matchId)
+        /// <summary>
+        /// Maps Riot API match info to a list of V2Participant entities.
+        /// </summary>
+        public static IList<RiotProxy.External.Domain.Entities.V2.V2Participant> MapToV2Participants(JsonDocument matchInfo, string matchId)
         {
             var list = new List<RiotProxy.External.Domain.Entities.V2.V2Participant>();
             if (matchInfo.RootElement.TryGetProperty("info", out var infoElement) &&
@@ -528,7 +484,10 @@ namespace RiotProxy.Infrastructure.External
         private static int GetMinuteFromTimestamp(long timestampMs)
             => (int)Math.Round(timestampMs / 60000.0);
 
-        private async Task PersistV2TimelineDerivedAsync(
+        /// <summary>
+        /// Persists timeline-derived data (checkpoints, metrics, objectives) to V2 tables.
+        /// </summary>
+        public static async Task PersistV2TimelineDerivedAsync(
             string matchId,
             JsonDocument matchInfo,
             JsonDocument timeline,
