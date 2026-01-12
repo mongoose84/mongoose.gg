@@ -7,7 +7,7 @@ public class V2RiotAccountsRepository : RepositoryBase
 {
     public V2RiotAccountsRepository(IV2DbConnectionFactory factory) : base(factory) {}
 
-    public Task UpsertAsync(V2RiotAccount account)
+    public virtual Task UpsertAsync(V2RiotAccount account)
     {
         const string sql = @"INSERT INTO riot_accounts
             (puuid, user_id, game_name, tag_line, summoner_name, region, is_primary, sync_status, last_sync_at, created_at, updated_at)
@@ -37,27 +37,27 @@ public class V2RiotAccountsRepository : RepositoryBase
             ("@updated_at", DateTime.UtcNow));
     }
 
-    public Task<IList<V2RiotAccount>> GetByUserIdAsync(long userId)
+    public virtual Task<IList<V2RiotAccount>> GetByUserIdAsync(long userId)
     {
         const string sql = "SELECT puuid, user_id, game_name, tag_line, summoner_name, region, is_primary, sync_status, sync_progress, sync_total, last_sync_at, created_at, updated_at FROM riot_accounts WHERE user_id = @user_id ORDER BY is_primary DESC, created_at ASC";
         return ExecuteListAsync(sql, Map, ("@user_id", userId));
     }
 
-    public async Task<V2RiotAccount?> GetByPuuidAsync(string puuid)
+    public virtual async Task<V2RiotAccount?> GetByPuuidAsync(string puuid)
     {
         const string sql = "SELECT puuid, user_id, game_name, tag_line, summoner_name, region, is_primary, sync_status, sync_progress, sync_total, last_sync_at, created_at, updated_at FROM riot_accounts WHERE puuid = @puuid";
         var results = await ExecuteListAsync(sql, Map, ("@puuid", puuid));
         return results.FirstOrDefault();
     }
 
-    public async Task<bool> ExistsByPuuidAsync(string puuid)
+    public virtual async Task<bool> ExistsByPuuidAsync(string puuid)
     {
         const string sql = "SELECT COUNT(*) FROM riot_accounts WHERE puuid = @puuid";
         var count = await ExecuteScalarAsync<long>(sql, ("@puuid", puuid));
         return count > 0;
     }
 
-    public Task DeleteAsync(string puuid, long userId)
+    public virtual Task DeleteAsync(string puuid, long userId)
     {
         const string sql = "DELETE FROM riot_accounts WHERE puuid = @puuid AND user_id = @user_id";
         return ExecuteNonQueryAsync(sql, ("@puuid", puuid), ("@user_id", userId));
@@ -68,7 +68,7 @@ public class V2RiotAccountsRepository : RepositoryBase
     /// Pass lastSyncAt explicitly when sync completes successfully.
     /// Pass null to preserve the existing last_sync_at value (e.g., when setting status to 'syncing' or 'failed').
     /// </summary>
-    public Task UpdateSyncStatusAsync(string puuid, string syncStatus, DateTime? lastSyncAt = null)
+    public virtual Task UpdateSyncStatusAsync(string puuid, string syncStatus, DateTime? lastSyncAt = null)
     {
         // Use COALESCE to preserve existing last_sync_at when null is passed
         const string sql = @"UPDATE riot_accounts
@@ -101,7 +101,7 @@ public class V2RiotAccountsRepository : RepositoryBase
     /// Uses UPDATE ... WHERE to prevent race conditions.
     /// Returns null if no pending accounts or if another worker claimed it first.
     /// </summary>
-    public async Task<V2RiotAccount?> ClaimNextPendingForSyncAsync()
+    public virtual async Task<V2RiotAccount?> ClaimNextPendingForSyncAsync()
     {
         return await ExecuteWithConnectionAsync(async conn =>
         {
@@ -161,7 +161,7 @@ public class V2RiotAccountsRepository : RepositoryBase
     /// Reset accounts stuck in 'syncing' state (crash recovery).
     /// Accounts that have been syncing for longer than the threshold are reset to 'pending'.
     /// </summary>
-    public Task ResetStuckSyncingAccountsAsync(TimeSpan threshold)
+    public virtual Task ResetStuckSyncingAccountsAsync(TimeSpan threshold)
     {
         var cutoff = DateTime.UtcNow - threshold;
         const string sql = @"
@@ -177,7 +177,7 @@ public class V2RiotAccountsRepository : RepositoryBase
     /// <summary>
     /// Updates sync progress for an account.
     /// </summary>
-    public Task UpdateSyncProgressAsync(string puuid, int progress, int total)
+    public virtual Task UpdateSyncProgressAsync(string puuid, int progress, int total)
     {
         const string sql = @"
             UPDATE riot_accounts
