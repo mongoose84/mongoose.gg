@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RiotProxy.External.Domain.Entities.V2;
 using RiotProxy.Infrastructure.External.Database.Repositories.V2;
@@ -18,13 +19,13 @@ public class SyncProgressHubTests
 {
     private readonly SyncProgressHub _hub;
     private readonly FakeLogger<SyncProgressHub> _logger;
-    private readonly FakeV2RiotAccountsRepositoryForHub _riotAccountsRepo;
+    private readonly FakeServiceScopeFactory _scopeFactory;
 
     public SyncProgressHubTests()
     {
         _logger = new FakeLogger<SyncProgressHub>();
-        _riotAccountsRepo = new FakeV2RiotAccountsRepositoryForHub();
-        _hub = new SyncProgressHub(_logger, _riotAccountsRepo);
+        _scopeFactory = new FakeServiceScopeFactory();
+        _hub = new SyncProgressHub(_logger, _scopeFactory);
     }
 
     [Fact]
@@ -164,6 +165,45 @@ public class SyncProgressHubTests
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
         public bool IsEnabled(LogLevel logLevel) => true;
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) { }
+    }
+}
+
+/// <summary>
+/// Fake IServiceScopeFactory for SyncProgressHub tests.
+/// </summary>
+internal sealed class FakeServiceScopeFactory : IServiceScopeFactory
+{
+    private readonly FakeV2RiotAccountsRepositoryForHub _repo = new();
+
+    public IServiceScope CreateScope() => new FakeServiceScope(_repo);
+
+    public void AddAccount(V2RiotAccount account) => _repo.AddAccount(account);
+
+    private sealed class FakeServiceScope : IServiceScope, IAsyncDisposable
+    {
+        public IServiceProvider ServiceProvider { get; }
+
+        public FakeServiceScope(V2RiotAccountsRepository repo)
+        {
+            ServiceProvider = new FakeServiceProvider(repo);
+        }
+
+        public void Dispose() { }
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class FakeServiceProvider : IServiceProvider
+    {
+        private readonly V2RiotAccountsRepository _repo;
+
+        public FakeServiceProvider(V2RiotAccountsRepository repo) => _repo = repo;
+
+        public object? GetService(Type serviceType)
+        {
+            if (serviceType == typeof(V2RiotAccountsRepository))
+                return _repo;
+            return null;
+        }
     }
 }
 

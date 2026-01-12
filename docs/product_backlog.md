@@ -1459,8 +1459,8 @@ Create a new Solo dashboard screen under `/app/solo` that consumes the Solo dash
 #### Acceptance Criteria
 
 - [ ] Solo v2 view implemented and wired to API v2  
-- [ ] Queue filter control implemented (Ranked Solo/Duo, Ranked Flex, Normal, ARAM, All) and wired into API requests
-- [ ] Old Solo dashboard route either redirects or is clearly deprecated  
+- [ ] Replace the "Features" box with a clickable solo dashboard link. It should show some overall stats and metrics (e.g. recent ranked winrate, KDA, main champion) to entice users to explore further
+- [ ] Queue filter control implemented (Ranked Solo/Duo, Ranked Flex, Normal, ARAM, All Ranked) and wired into API requests
 - [ ] Layout matches the new app shell and feels consistent with the product branding
 
 ---
