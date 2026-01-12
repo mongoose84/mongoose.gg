@@ -33,9 +33,12 @@ public static class SoloSummaryDto
         
         // Death efficiency
         [property: JsonPropertyName("deathEfficiency")] DeathEfficiency DeathEfficiency,
-        
+
         // Queue type
-        [property: JsonPropertyName("queueType")] string QueueType
+        [property: JsonPropertyName("queueType")] string QueueType,
+
+        // Time period filter
+        [property: JsonPropertyName("timePeriod")] string TimePeriod = "all"
     );
 
     public record SideWinDistribution(

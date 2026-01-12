@@ -23,6 +23,7 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string userId,
             [FromQuery] string? queueType,
+            [FromQuery] string? timePeriod,
             [FromServices] V2RiotAccountsRepository riotAccountsRepo,
             [FromServices] V2SoloStatsRepository v2SoloStatsRepo,
             [FromServices] ILogger<SoloDashboardV2Endpoint> logger
@@ -53,16 +54,12 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
                 var primaryAccount = riotAccounts.FirstOrDefault(a => a.IsPrimary) ?? riotAccounts[0];
                 var primaryPuuid = primaryAccount.Puuid;
 
-                // Fetch dashboard data
-                logger.LogInformation("Solo v2 dashboard request: userId={UserId}, puuid={Puuid}, queueType={Queue}", userIdLong, primaryPuuid, queueType ?? "all");
-                var dashboard = await v2SoloStatsRepo.GetSoloDashboardAsync(primaryPuuid, queueType);
+                // Fetch dashboard data (always returns a response, even if empty)
+                logger.LogInformation("Solo v2 dashboard request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timePeriod={TimePeriod}",
+                    userIdLong, primaryPuuid, queueType ?? "all", timePeriod ?? "all");
+                var dashboard = await v2SoloStatsRepo.GetSoloDashboardAsync(primaryPuuid, queueType, timePeriod);
 
-                if (dashboard == null)
-                {
-                    logger.LogInformation("Solo v2 dashboard: no match data for puuid {Puuid} with queueType {Queue}", primaryPuuid, queueType ?? "all");
-                    return Results.NotFound(new { error = "No match data found for this player" });
-                }
-
+                // Dashboard is never null - returns empty stats if no matches found
                 return Results.Ok(dashboard);
             }
             catch (ArgumentException ex)

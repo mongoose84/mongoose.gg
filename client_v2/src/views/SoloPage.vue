@@ -61,9 +61,8 @@
           />
         </div>
 
-        <!-- Champion Matchups (hidden until v2 endpoint available) -->
+        <!-- Champion Matchups -->
         <ChampionMatchups
-          v-if="matchupsData"
           :matchups="matchupsData"
           :loading="matchupsLoading"
         />
@@ -75,7 +74,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
-import { getSoloDashboard } from '../services/soloApi'
+import { getSoloDashboard, getChampionMatchups, QUEUE_IDS } from '../services/soloApi'
 import QueueFilter from '../components/solo/QueueFilter.vue'
 import TimePeriodFilter from '../components/solo/TimePeriodFilter.vue'
 import PlayerProfileCard from '../components/solo/PlayerProfileCard.vue'
@@ -106,6 +105,19 @@ const selectedAccount = computed(() => {
   return authStore.riotAccounts?.[0] || null
 })
 
+/**
+ * Map queue filter to queueId for API calls
+ */
+function getQueueIdFromFilter(filter) {
+  const mapping = {
+    'ranked_solo': QUEUE_IDS.RANKED_SOLO,
+    'ranked_flex': QUEUE_IDS.RANKED_FLEX,
+    'normal': QUEUE_IDS.NORMAL_DRAFT,
+    'aram': QUEUE_IDS.ARAM
+  }
+  return mapping[filter] || null // null = all queues (except ARAM)
+}
+
 // Load all data
 async function loadData() {
   if (!selectedAccount.value || !authStore.userId) return
@@ -127,8 +139,8 @@ async function loadData() {
     // Set trends from last10/last20 games in dashboard
     trendsData.value = dashboard.last20Games || dashboard.last10Games || null
 
-    // TODO: Champion matchups v2 endpoint not yet available
-    matchupsData.value = null
+    // Load champion matchups in parallel (non-blocking)
+    loadMatchups()
   } catch (e) {
     console.error('Failed to load solo dashboard:', e)
     error.value = e.message || 'Failed to load dashboard data'
@@ -137,8 +149,21 @@ async function loadData() {
   }
 }
 
-// Note: Champion matchups v2 endpoint not yet available
-// These will be enabled when the backend endpoints are created
+// Load champion matchups separately
+async function loadMatchups() {
+  matchupsLoading.value = true
+  try {
+    const queueId = getQueueIdFromFilter(queueFilter.value)
+    const response = await getChampionMatchups({ queueId })
+    matchupsData.value = response.matchups || []
+  } catch (e) {
+    console.error('Failed to load champion matchups:', e)
+    // Don't set error - matchups are optional
+    matchupsData.value = null
+  } finally {
+    matchupsLoading.value = false
+  }
+}
 
 // Watch for filter changes
 watch([queueFilter, timePeriod], () => {

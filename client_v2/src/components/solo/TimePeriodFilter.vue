@@ -26,7 +26,10 @@ const timeOptions = [
   { value: 'week', label: 'Last 7 Days' },
   { value: 'month', label: 'Last 30 Days' },
   { value: '3months', label: 'Last 3 Months' },
-  { value: '6months', label: 'Last 6 Months' }
+  { value: '6months', label: 'Last 6 Months' },
+  { value: 'season16', label: 'Season 16 (2026)' },
+  { value: 'season15', label: 'Season 15 (2025)' },
+  { value: 'all', label: 'All Time' }
 ]
 </script>
 

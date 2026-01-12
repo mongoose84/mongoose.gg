@@ -19,29 +19,55 @@ public class V2SoloStatsRepository : RepositoryBase
     /// <summary>
     /// Get comprehensive solo dashboard data for a player.
     /// Includes: overall stats, champion pool, performance by phase, role breakdown, death efficiency.
-    /// Supports optional queue filtering.
+    /// Supports optional queue and time period filtering.
     /// </summary>
-    public async Task<SoloDashboardResponse?> GetSoloDashboardAsync(string puuid, string? queueType = null)
+    public async Task<SoloDashboardResponse?> GetSoloDashboardAsync(string puuid, string? queueType = null, string? timePeriod = null)
     {
-        // Validate queueType
+        // Validate inputs
         queueType = ValidateQueueType(queueType);
-        _logger.LogInformation("GetSoloDashboardAsync start: puuid={Puuid}, queueType={Queue}", puuid, queueType);
-        
-        // Build base query with optional queue filter
+        timePeriod = ValidateTimePeriod(timePeriod);
+        _logger.LogInformation("GetSoloDashboardAsync start: puuid={Puuid}, queueType={Queue}, timePeriod={TimePeriod}", puuid, queueType, timePeriod);
+
+        // Build filters
         var queueFilter = BuildQueueFilter(queueType);
+        var timeFilter = BuildTimeFilter(timePeriod);
         
+        // Combined filter for SQL queries
+        var combinedFilter = $"{queueFilter} {timeFilter}";
+
         // Fetch all necessary data
         try
         {
-            var overallStats = await GetOverallStatsAsync(puuid, queueFilter);
-        if (overallStats == null)
-            return null;
+            var overallStats = await GetOverallStatsAsync(puuid, combinedFilter);
 
-        var sideStats = await GetSideStatsAsync(puuid, queueFilter);
-        var champions = await GetChampionStatsAsync(puuid, queueFilter);
-        var roleBreakdown = await GetRoleBreakdownAsync(puuid, queueFilter);
-        var deathStats = await GetDeathEfficiencyAsync(puuid, queueFilter);
-        var matchDurations = await GetMatchDurationsAsync(puuid, queueFilter);
+        // If no match data, return an empty dashboard instead of null
+        if (overallStats == null)
+        {
+            _logger.LogInformation("GetSoloDashboardAsync: no matches found for puuid={Puuid}, returning empty dashboard", puuid);
+            return new SoloDashboardResponse(
+                GamesPlayed: 0,
+                Wins: 0,
+                WinRate: 0,
+                AvgKda: 0,
+                AvgGameDurationMinutes: 0,
+                SideStats: new SideWinDistribution(0, 0, 0, 0, 0, 0, 0),
+                UniqueChampsPlayedCount: 0,
+                MainChampion: null,
+                Last10Games: null,
+                Last20Games: null,
+                PerformanceByPhase: Array.Empty<PerformancePhase>(),
+                RoleBreakdown: Array.Empty<RolePerformance>(),
+                DeathEfficiency: new DeathEfficiency(0, 0, 0, 0, null, null),
+                QueueType: queueType,
+                TimePeriod: timePeriod
+            );
+        }
+
+        var sideStats = await GetSideStatsAsync(puuid, combinedFilter);
+        var champions = await GetChampionStatsAsync(puuid, combinedFilter);
+        var roleBreakdown = await GetRoleBreakdownAsync(puuid, combinedFilter);
+        var deathStats = await GetDeathEfficiencyAsync(puuid, combinedFilter);
+        var matchDurations = await GetMatchDurationsAsync(puuid, combinedFilter);
 
         var totalGames = overallStats.Value.Games;
         
@@ -63,8 +89,8 @@ public class V2SoloStatsRepository : RepositoryBase
         var performancePhases = CalculatePerformancePhases(overallStats.Value, matchDurations);
 
         // Prepare response
-            var last10 = await GetRecentTrendAsync(puuid, queueFilter, Math.Min(10, totalGames));
-            var last20 = await GetRecentTrendAsync(puuid, queueFilter, Math.Min(20, totalGames));
+            var last10 = await GetRecentTrendAsync(puuid, combinedFilter, Math.Min(10, totalGames));
+            var last20 = await GetRecentTrendAsync(puuid, combinedFilter, Math.Min(20, totalGames));
 
             var response = new SoloDashboardResponse(
             GamesPlayed: totalGames,
@@ -80,7 +106,8 @@ public class V2SoloStatsRepository : RepositoryBase
             PerformanceByPhase: performancePhases.ToArray(),
             RoleBreakdown: roleBreakdown.ToArray(),
             DeathEfficiency: deathStats,
-            QueueType: queueType
+            QueueType: queueType,
+            TimePeriod: timePeriod
         );
             _logger.LogInformation("GetSoloDashboardAsync success: puuid={Puuid}, games={Games}", puuid, totalGames);
             return response;
@@ -335,6 +362,34 @@ public class V2SoloStatsRepository : RepositoryBase
         {
             "ranked_solo" or "ranked_flex" or "normal" or "aram" or "all" => normalized,
             _ => "all"
+        };
+    }
+
+    private string ValidateTimePeriod(string? timePeriod)
+    {
+        var normalized = timePeriod?.ToLowerInvariant() ?? "all";
+        return normalized switch
+        {
+            "week" or "month" or "3months" or "6months" or "season16" or "season15" or "all" => normalized,
+            _ => "all"
+        };
+    }
+
+    private string BuildTimeFilter(string timePeriod)
+    {
+        // game_start_time is stored as Unix epoch milliseconds (BIGINT)
+        // For seasons, use the season_code column directly
+        return timePeriod switch
+        {
+            // For relative periods, use MySQL UNIX_TIMESTAMP() * 1000 to get epoch ms
+            "week" => "AND m.game_start_time >= (UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 7 DAY)) * 1000)",
+            "month" => "AND m.game_start_time >= (UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY)) * 1000)",
+            "3months" => "AND m.game_start_time >= (UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 3 MONTH)) * 1000)",
+            "6months" => "AND m.game_start_time >= (UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 6 MONTH)) * 1000)",
+            // Use season_code column for season filters
+            "season16" => "AND m.season_code = 'S16'",
+            "season15" => "AND m.season_code = 'S15'",
+            _ => ""  // all - no time filter
         };
     }
 

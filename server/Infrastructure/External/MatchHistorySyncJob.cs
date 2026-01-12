@@ -413,10 +413,15 @@ namespace RiotProxy.Infrastructure.External
                     var parts = ver.Split('.', StringSplitOptions.RemoveEmptyEntries);
                     v2.PatchVersion = parts.Length >= 2 ? $"{parts[0]}.{parts[1]}" : ver;
 
-                    // season code derived from major patch version (e.g., "14.3.1" -> "S14")
+                    // Season code derived from major patch version
+                    // Before 2025: patch major = season (e.g., "14.3.1" -> "S14")
+                    // From 2025: year-based versioning (e.g., "25.1.1" -> S15, "26.1.1" -> S16)
                     if (parts.Length > 0 && int.TryParse(parts[0], out var majorVersion))
                     {
-                        v2.SeasonCode = $"S{majorVersion}";
+                        // Map year-based versions (25+) to seasons (subtract 10)
+                        // 25 -> S15, 26 -> S16, etc.
+                        var seasonNumber = majorVersion >= 25 ? majorVersion - 10 : majorVersion;
+                        v2.SeasonCode = $"S{seasonNumber}";
                     }
                 }
             }
