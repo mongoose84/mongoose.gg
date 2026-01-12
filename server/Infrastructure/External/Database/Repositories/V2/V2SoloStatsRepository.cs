@@ -110,15 +110,19 @@ public class V2SoloStatsRepository : RepositoryBase
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@puuid", puuid);
             await using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync() && !reader.IsDBNull(0))
+            if (await reader.ReadAsync())
             {
-                var games = reader.GetInt32(0);
-                var wins = reader.GetInt32(1);
+                // COUNT returns 0 when no matches, SUM returns NULL
+                var games = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
+                if (games == 0)
+                    return null;  // No games for this filter
+
+                var wins = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                 var avgKda = reader.IsDBNull(2) ? 0 : reader.GetDouble(2);
                 var avgDuration = reader.IsDBNull(3) ? 0 : reader.GetDouble(3);
                 var winRate = games > 0 ? Math.Round((double)wins / games * 100, 1) : 0;
 
-                return ((int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes)?)(Games: games, Wins: wins, WinRate: winRate, AvgKda: Math.Round(avgKda, 2), 
+                return ((int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes)?)(Games: games, Wins: wins, WinRate: winRate, AvgKda: Math.Round(avgKda, 2),
                     AvgGameDurationMinutes: Math.Round(avgDuration, 1));
             }
             return null;
