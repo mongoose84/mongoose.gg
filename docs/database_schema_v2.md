@@ -31,7 +31,7 @@ Stores application user accounts and authentication credentials.
 | `password_hash` | VARCHAR(255) | NOT NULL | Bcrypt/Argon2 hashed password |
 | `email_verified` | BOOLEAN | DEFAULT FALSE | Whether email has been verified |
 | `is_active` | BOOLEAN | DEFAULT TRUE | Account active status |
-| `tier` | ENUM('free', 'pro', 'team') | DEFAULT 'free' | Subscription tier for quick access |
+| `tier` | ENUM('free', 'pro') | DEFAULT 'free' | Subscription tier for quick access |
 | `mollie_customer_id` | VARCHAR(255) | NULL | Mollie customer identifier |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Account creation time |
 | `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update time |
@@ -64,18 +64,24 @@ Stores Riot account identity information linked to user accounts.
 |--------|------|-------------|-------------|
 | `puuid` | VARCHAR(78) | PRIMARY KEY | Riot Player Universally Unique Identifier |
 | `user_id` | BIGINT | NOT NULL | Foreign key to users |
-| `summoner_name` | VARCHAR(100) | NOT NULL | Current summoner name |
+| `game_name` | VARCHAR(100) | NOT NULL | Riot account game name (e.g., "Faker") |
+| `tag_line` | VARCHAR(10) | NOT NULL | Riot account tag line (e.g., "KR1") |
+| `summoner_name` | VARCHAR(100) | NOT NULL | Display name (game_name#tag_line) |
 | `region` | VARCHAR(10) | NOT NULL | Region code (e.g., 'na1', 'euw1') |
 | `is_primary` | BOOLEAN | DEFAULT FALSE | Whether this is the user's primary account |
+| `sync_status` | ENUM('pending', 'syncing', 'completed', 'failed') | DEFAULT 'pending' | Match sync status |
+| `last_sync_at` | TIMESTAMP | NULL | Last successful match sync time |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update time |
 
 **Indexes:**
 - PRIMARY KEY: `puuid`
 - INDEX: `idx_user_id` ON (`user_id`)
+- INDEX: `idx_game_name_tag` ON (`game_name`, `tag_line`)
 - INDEX: `idx_summoner_name` ON (`summoner_name`)
 - INDEX: `idx_region` ON (`region`)
-- INDEX: `idx_user_primary` ON (`user_id`, `is_primary`)
+- INDEX: `idx_user_primary_created` ON (`user_id`, `is_primary`, `created_at`) -- covers ORDER BY is_primary DESC, created_at ASC
+- INDEX: `idx_sync_status` ON (`sync_status`)
 
 **Foreign Keys:**
 - `user_id` → `users(user_id)` ON DELETE CASCADE
@@ -84,6 +90,8 @@ Stores Riot account identity information linked to user accounts.
 - One user can link multiple Riot accounts
 - One Riot account (puuid) belongs to one user
 - `is_primary` flag identifies the main account for the user
+- `sync_status` tracks match history synchronization state
+- `game_name` and `tag_line` reflect new Riot ID format (gameName#tagLine)
 
 **Source:** Riot summoner-v4 / account-v1 API
 
@@ -97,7 +105,7 @@ Tracks user subscription status, tier, and billing information.
 |--------|------|-------------|-------------|
 | `subscription_id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique subscription record ID |
 | `user_id` | BIGINT | NOT NULL | Foreign key to users |
-| `tier` | ENUM('free', 'pro', 'team') | NOT NULL | Subscription tier |
+| `tier` | ENUM('free', 'pro') | NOT NULL | Subscription tier |
 | `status` | ENUM('active', 'trialing', 'past_due', 'canceled', 'paused') | NOT NULL | Current subscription status |
 | `mollie_subscription_id` | VARCHAR(255) | NULL | Mollie subscription identifier |
 | `mollie_plan_id` | VARCHAR(255) | NULL | Mollie plan identifier |
@@ -147,8 +155,8 @@ Audit log of subscription lifecycle events.
 | `event_id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique event record ID |
 | `subscription_id` | BIGINT | NOT NULL | Foreign key to subscriptions |
 | `event_type` | VARCHAR(50) | NOT NULL | Event type (created, updated, canceled, etc.) |
-| `old_tier` | ENUM('free', 'pro', 'team') | NULL | Previous tier (for upgrades/downgrades) |
-| `new_tier` | ENUM('free', 'pro', 'team') | NULL | New tier |
+| `old_tier` | ENUM('free', 'pro') | NULL | Previous tier (for upgrades/downgrades) |
+| `new_tier` | ENUM('free', 'pro') | NULL | New tier |
 | `old_status` | VARCHAR(20) | NULL | Previous status |
 | `new_status` | VARCHAR(20) | NULL | New status |
 | `mollie_event_id` | VARCHAR(255) | NULL | Mollie webhook event ID |

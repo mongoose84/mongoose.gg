@@ -70,7 +70,7 @@ body {
   position: relative;
   min-height: 100vh;
   /* Global background image from public/ */
-  background: url('/gaming-bg.jpg') center/cover no-repeat fixed;
+  background: url('/hero-bg.svg') center/cover no-repeat fixed;
 }
 
 /* Removed global background overlay to start from a clean slate */
@@ -81,7 +81,7 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.80));
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.30), rgba(0, 0, 0, 0.30));
 }
 
 #app {

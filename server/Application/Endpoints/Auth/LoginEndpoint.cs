@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Infrastructure.External.Database.Repositories.V2;
 using static RiotProxy.Application.DTOs.LoginDto;
 
 namespace RiotProxy.Application.Endpoints.Auth;
@@ -10,6 +10,7 @@ namespace RiotProxy.Application.Endpoints.Auth;
 /// <summary>
 /// v2 Login Endpoint
 /// Validates username/password and sets an httpOnly session cookie for subsequent requests.
+/// Supports rememberMe for 7-day sessions.
 /// </summary>
 public sealed class LoginEndpoint : IEndpoint
 {
@@ -17,7 +18,7 @@ public sealed class LoginEndpoint : IEndpoint
 
     public LoginEndpoint(string basePath)
     {
-        Route = basePath + "/login";
+        Route = basePath + "/auth/login";
     }
 
     public void Configure(WebApplication app)
@@ -25,7 +26,7 @@ public sealed class LoginEndpoint : IEndpoint
         app.MapPost(Route, async (
             [FromBody] LoginRequest request,
             HttpContext httpContext,
-            [FromServices] IUserRepository userRepo,
+            [FromServices] V2UsersRepository usersRepo,
             [FromServices] ILogger<LoginEndpoint> logger,
             [FromServices] IConfiguration config
         ) =>
@@ -37,44 +38,61 @@ public sealed class LoginEndpoint : IEndpoint
                 if (!enableMvpLogin)
                 {
                     logger.LogWarning("Login attempt blocked: MVP login disabled by configuration");
-                    return Results.StatusCode(503); // Service Unavailable while auth is not ready
+                    return Results.Json(new { error = "Login is currently disabled" }, statusCode: 503);
                 }
 
                 // Validate input
                 if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
                     return Results.BadRequest(new { error = "Username and password are required" });
 
-                // Fetch user by username
-                var user = await userRepo.GetByUserNameAsync(request.Username);
+                // Normalize input to lowercase to match storage format
+                var normalizedInput = request.Username.ToLowerInvariant().Trim();
+
+                // Fetch user by username first, then try email
+                var user = await usersRepo.GetByUsernameAsync(normalizedInput);
                 if (user == null)
                 {
-                    logger.LogWarning("Login attempt with non-existent username: {Username}", request.Username);
-                    return Results.Unauthorized();
+                    // Try email as fallback (user might be logging in with email)
+                    user = await usersRepo.GetByEmailAsync(normalizedInput);
                 }
 
-                // Temporary dev-only password check: require configured DevPassword secret
-                var devPassword = config.GetValue<string>("Auth:DevPassword");
-                if (string.IsNullOrEmpty(devPassword))
+                if (user == null)
                 {
-                    logger.LogWarning("Login blocked: DevPassword not configured");
-                    return Results.StatusCode(503);
+                    logger.LogWarning("Login attempt with non-existent username/email: {Input}", request.Username);
+                    return Results.Json(new { error = "Invalid username or password" }, statusCode: 401);
                 }
 
-                if (!ValidatePassword(request.Password, devPassword))
+                // Verify password using BCrypt
+                if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
-                    logger.LogWarning("Login attempt with invalid password for username: {Username}", request.Username);
-                    return Results.Unauthorized();
+                    logger.LogWarning("Login attempt with invalid password for username: {Username}", user.Username);
+                    return Results.Json(new { error = "Invalid username or password" }, statusCode: 401);
+                }
+
+                // Check if user is active
+                if (!user.IsActive)
+                {
+                    logger.LogWarning("Login attempt for inactive user: {Username}", user.Username);
+                    return Results.Json(new { error = "This account has been deactivated" }, statusCode: 401);
                 }
 
                 // Create claims identity for cookie auth
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, user.UserName)
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim("email_verified", user.EmailVerified.ToString().ToLowerInvariant()),
+                    new Claim("tier", user.Tier)
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var sessionTimeoutMinutes = config.GetValue<int>("Auth:SessionTimeout", 30);
+
+                // Use 30 days for rememberMe, otherwise use configured session timeout
+                var sessionTimeoutMinutes = request.RememberMe
+                    ? 60 * 24 * 30 // 30 days in minutes
+                    : config.GetValue<int>("Auth:SessionTimeout", 30);
+
                 var authProperties = new AuthenticationProperties
                 {
                     IsPersistent = true,
@@ -88,11 +106,18 @@ public sealed class LoginEndpoint : IEndpoint
                     authProperties
                 );
 
-                logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", user.UserName, user.UserId);
+                // Update last login timestamp
+                user.LastLoginAt = DateTime.UtcNow;
+                await usersRepo.UpsertAsync(user);
+
+                logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", user.Username, user.UserId);
 
                 return Results.Ok(new LoginResponse(
                     user.UserId,
-                    user.UserName,
+                    user.Username,
+                    user.Email,
+                    user.EmailVerified,
+                    user.Tier,
                     "Login successful"
                 ));
             }
@@ -102,30 +127,5 @@ public sealed class LoginEndpoint : IEndpoint
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });
-    }
-
-    /// <summary>
-    /// Validates password using a configured dev secret. Replace with bcrypt/argon2 against stored hash.
-    /// </summary>
-    private static bool ValidatePassword(string password, string configuredSecret)
-    {
-        if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(configuredSecret))
-            return false;
-        // Constant-time comparison to mitigate timing attacks
-        return ConstantTimeEquals(password, configuredSecret);
-    }
-
-    private static bool ConstantTimeEquals(string a, string b)
-    {
-        if (a == null || b == null)
-            return false;
-        if (a.Length != b.Length)
-            return false;
-        var result = 0;
-        for (int i = 0; i < a.Length; i++)
-        {
-            result |= a[i] ^ b[i];
-        }
-        return result == 0;
     }
 }

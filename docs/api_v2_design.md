@@ -71,6 +71,11 @@ GET  /api/v2/users/{userId}            # Fetch user details for solo/duo/team vi
 GET  /api/v2/users/by-puuid/{puuid}    # Optional helper when PUUID is already known
 ```
 
+#### F. WebSocket - Real-time Sync Progress
+```
+WS   /ws/sync                          # WebSocket endpoint for real-time match sync progress
+```
+
 ---
 
 ## 3. Query Parameters - Queue Filtering
@@ -667,6 +672,61 @@ public record UserResponse(
 ```csharp
 // Returns UserResponse
 ```
+
+---
+
+### F. WebSocket Endpoints
+
+#### 4.F.1 `WS /ws/sync`
+**Purpose:** Real-time WebSocket endpoint for receiving match sync progress updates.
+
+**Authentication:** Session cookie (same as HTTP endpoints). Unauthenticated connections are rejected with close code 4401.
+
+**Client → Server Messages:**
+```json
+{ "type": "subscribe", "puuid": "abc123..." }
+{ "type": "unsubscribe", "puuid": "abc123..." }
+```
+
+**Server → Client Messages:**
+```csharp
+// Progress update during sync
+public record SyncProgressMessage(
+    string Type = "sync_progress",
+    string Puuid,
+    string Status,                       // "syncing"
+    int Progress,                        // Current match index
+    int Total,                           // Total matches to sync
+    string? MatchId                      // Current match being processed
+);
+
+// Sync completed
+public record SyncCompleteMessage(
+    string Type = "sync_complete",
+    string Puuid,
+    string Status = "completed",
+    int TotalSynced                      // Total matches synced
+);
+
+// Sync error
+public record SyncErrorMessage(
+    string Type = "sync_error",
+    string Puuid,
+    string Status = "failed",
+    string Error                         // Error message
+);
+```
+
+**Connection Flow:**
+1. Client connects to `/ws/sync` (session cookie included automatically)
+2. Server validates session; rejects if unauthorized
+3. Client sends `subscribe` message for each PUUID to track
+4. Server broadcasts progress updates as matches are synced
+5. On completion, server sends `sync_complete` message
+6. On error, server sends `sync_error` message
+7. Client can send `unsubscribe` to stop receiving updates
+
+**Reconnection:** Clients should implement exponential backoff reconnection (recommended: 1s, 2s, 4s, 8s, up to 30s max).
 
 ---
 

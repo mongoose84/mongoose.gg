@@ -115,39 +115,58 @@ cd server
 cd RiotProxy
 ```
 
-##### Riot API Key (local)
-Set it via .NET user-secrets (preferred). Example:
+##### Riot API Key
+Get your API key from the [Riot Developer Portal](https://developer.riotgames.com/).
+
+**Option 1: .NET user-secrets (recommended for local development)**
+```bash
+# from server/ directory
+dotnet user-secrets init  # only needed once
+dotnet user-secrets set "Riot:ApiKey" "RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 ```
 
-# or user-secrets (from server/)
-dotnet user-secrets set "Riot:ApiKey" "your-key"
+**Option 2: Environment variable**
+```bash
+# Linux/Mac (add to ~/.bashrc or ~/.zshrc for persistence)
+export RIOT_API_KEY="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Windows PowerShell (current session)
+$env:RIOT_API_KEY = "RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Windows PowerShell (permanent - user level)
+[Environment]::SetEnvironmentVariable("RIOT_API_KEY", "RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", "User")
+
+# Windows CMD (current session)
+set RIOT_API_KEY=RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
 ##### Database connection string (local)
 Set via user-secrets:
-```
-
-
+```bash
 # user-secrets (from server/)
 dotnet user-secrets set "ConnectionStrings:Default" "Server=...;Password=...;"
 dotnet user-secrets set "ConnectionStrings:DatabaseV2" "Server=...;Password=...;"
 ```
 
-Note: Secrets are read from configuration/env. Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported as a fallback for local development, but they must never be committed and are not used in production.
+##### Email Encryption Key
+Emails are encrypted at rest in the database. Generate a key and set it via user-secrets:
+```bash
+# Generate a new key (run once, save the output securely!)
+openssl rand -base64 32
+
+# Set via user-secrets (from server/)
+dotnet user-secrets set "Security:EmailEncryptionKey" "your-generated-key-here"
+```
+
+**⚠️ Important:** Store this key securely! If lost, encrypted emails cannot be recovered. If leaked, emails can be decrypted.
+
 ##### Build and run
 
-build and run the application on Windows
+build and run the application
 ```
 dotnet build
 dotnet run
-```
-build and run the application on Linux Fedora
-```
-dotnet publish -c Release -r linux-x64 --self-contained false
-dotnet bin/Release/net9.0/linux-x64/publish/RiotProxy.dll
-```
-create publishable build for the hosting server
-```
+
 dotnet publish -c Release -r win-x86 --self-contained true 
 ```
 This will create all the files needed in the folder /bin/Release/publish

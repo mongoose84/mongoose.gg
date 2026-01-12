@@ -12,7 +12,7 @@
             <h5 class="chart-title">Avg Deaths</h5>
             <div class="bar-chart">
               <div
-                v-for="record in deathData.avgDeaths"
+                v-for="record in sortedAvgDeaths"
                 :key="record.gamerName"
                 class="bar-row"
               >
@@ -36,7 +36,7 @@
             <h5 class="chart-title">Time Dead (sec)</h5>
             <div class="bar-chart">
               <div
-                v-for="record in deathData.avgTimeDeadSeconds"
+                v-for="record in sortedAvgTimeDead"
                 :key="record.gamerName"
                 class="bar-row"
               >
@@ -58,7 +58,7 @@
 
         <!-- Legend -->
         <div class="legend">
-          <div v-for="record in deathData.avgDeaths" :key="record.gamerName" class="legend-item">
+          <div v-for="record in sortedAvgDeaths" :key="record.gamerName" class="legend-item">
             <span class="legend-color" :style="{ backgroundColor: getGamerColor(record.gamerName) }"></span>
             <span class="legend-label">{{ record.gamerName }}</span>
           </div>
@@ -72,6 +72,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import ChartCard from '@/components/shared/ChartCard.vue';
 import { getComparison } from '@/api/solo.js';
+import { sortGamerNames, getGamerColor as getGamerColorUtil } from '@/composables/useGamerColors.js';
 
 const props = defineProps({
   userId: {
@@ -84,10 +85,29 @@ const loading = ref(false);
 const error = ref(null);
 const deathData = ref(null);
 
-const hasData = computed(() => 
-  deathData.value?.avgDeaths?.length > 0 && 
+const hasData = computed(() =>
+  deathData.value?.avgDeaths?.length > 0 &&
   deathData.value?.avgTimeDeadSeconds?.length > 0
 );
+
+// Get unique gamer names sorted alphabetically for consistent color mapping
+const gamerNames = computed(() => {
+  if (!deathData.value?.avgDeaths?.length) return [];
+  const names = deathData.value.avgDeaths.map(r => r.gamerName);
+  return sortGamerNames(names);
+});
+
+// Sort avgDeaths alphabetically by gamerName
+const sortedAvgDeaths = computed(() => {
+  if (!deathData.value?.avgDeaths?.length) return [];
+  return [...deathData.value.avgDeaths].sort((a, b) => a.gamerName.localeCompare(b.gamerName));
+});
+
+// Sort avgTimeDeadSeconds alphabetically by gamerName
+const sortedAvgTimeDead = computed(() => {
+  if (!deathData.value?.avgTimeDeadSeconds?.length) return [];
+  return [...deathData.value.avgTimeDeadSeconds].sort((a, b) => a.gamerName.localeCompare(b.gamerName));
+});
 
 // Calculate max values for scaling bars
 const maxDeaths = computed(() => {
@@ -106,21 +126,9 @@ function getBarWidth(value, max) {
   return Math.min((value / max) * 100, 100);
 }
 
-// Get color based on gamer name (matching app color scheme)
+// Get color based on gamer name (alphabetically sorted)
 function getGamerColor(gamerName) {
-  const allGamers = [
-    ...(deathData.value?.avgDeaths || []).map(r => r.gamerName),
-  ];
-  const uniqueGamers = [...new Set(allGamers)];
-  const index = uniqueGamers.indexOf(gamerName);
-  
-  const colors = [
-    'var(--color-primary)',      // Purple - First gamer (EUNE)
-    'var(--color-success)',      // Green - Second gamer (EUW)
-    '#f59e0b',                   // Amber
-    '#ec4899',                   // Pink
-  ];
-  return colors[index] || 'var(--color-text)';
+  return getGamerColorUtil(gamerName, gamerNames.value);
 }
 
 async function fetchData() {

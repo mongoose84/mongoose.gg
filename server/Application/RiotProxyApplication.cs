@@ -34,17 +34,30 @@ namespace RiotProxy.Application
 
             // ========== V2 API Endpoints ==========
             var basePath_v2 = "/api/v2";
-            
+
             // Auth endpoints (no auth required)
+            var registerEndpoint = new RegisterEndpoint(basePath_v2);
+            _endpoints.Add(registerEndpoint);
+
             var loginEndpoint = new LoginEndpoint(basePath_v2);
             _endpoints.Add(loginEndpoint);
-            
+
             var logoutEndpoint = new LogoutEndpoint(basePath_v2);
             _endpoints.Add(logoutEndpoint);
 
+            var verifyEndpoint = new VerifyEndpoint(basePath_v2);
+            _endpoints.Add(verifyEndpoint);
+
             // Users (v2) - auth required
+            var usersMeEndpoint = new UsersMeEndpoint(basePath_v2);
+            _endpoints.Add(usersMeEndpoint);
+
             var usersV2Endpoint = new UsersV2Endpoint(basePath_v2);
             _endpoints.Add(usersV2Endpoint);
+
+            // Riot account linking endpoints (v2) - auth required
+            var riotAccountsEndpoint = new RiotAccountsEndpoint(basePath_v2);
+            _endpoints.Add(riotAccountsEndpoint);
             
             // Solo Dashboard V2 (auth required)
             var soloDashboardV2Endpoint = new SoloDashboardV2Endpoint(basePath_v2);

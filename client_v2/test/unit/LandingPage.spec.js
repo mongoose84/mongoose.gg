@@ -30,7 +30,7 @@ describe('LandingPage.vue', () => {
 
   it('displays the hero title', () => {
     const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('The Only LoL Tracker');
+    expect(wrapper.text()).toContain('The Solo Queue Improvement Tracker');
   });
 
   it('displays features section', () => {

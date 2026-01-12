@@ -72,7 +72,10 @@ jobs:
           if ([string]::IsNullOrWhiteSpace("${{ secrets.RIOT_API_KEY }}")) {
             $missingSecrets += "RIOT_API_KEY"
           }
-          
+          if ([string]::IsNullOrWhiteSpace("${{ secrets.ENCRYPTION_SECRET }}")) {
+            $missingSecrets += "ENCRYPTION_SECRET"
+          }
+
           if ($missingSecrets.Count -gt 0) {
             Write-Error "❌ Missing required GitHub secrets: $($missingSecrets -join ', ')"
             Write-Error "Please add these secrets in: Settings → Secrets and variables → Actions"
@@ -80,6 +83,7 @@ jobs:
             Write-Error "  - LOL_DB_CONNECTIONSTRING: Server=host;Port=3306;Database=db;User=user;Password=pass"
             Write-Error "  - LOL_DB_CONNECTIONSTRING_V2: Server=host;Port=3306;Database=db_v2;User=user;Password=pass"
             Write-Error "  - RIOT_API_KEY: RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            Write-Error "  - ENCRYPTION_SECRET: Base64-encoded 32-byte key (use: openssl rand -base64 32)"
             exit 1
           }
           
@@ -114,6 +118,9 @@ jobs:
             }
             "Jobs" = @{
               "EnableMatchHistorySync" = $true
+            }
+            "Security" = @{
+              "EmailEncryptionKey" = "${{ secrets.ENCRYPTION_SECRET }}"
             }
           } | ConvertTo-Json -Depth 10
           
@@ -150,6 +157,7 @@ jobs:
       # Enter maintenance mode right before deploy (idempotent, with retries)
       # -------------------------------------------------
       - name: Bring site offline (upload app_offline.htm)
+        id: bring-offline
         shell: pwsh
         run: |
           $maxAttempts = 3
@@ -175,6 +183,7 @@ jobs:
               
               if ($LASTEXITCODE -eq 0) {
                 Write-Host "✅ Maintenance mode enabled"
+                "site_offline=true" >> $env:GITHUB_OUTPUT
                 break
               }
               elseif ($i -eq $maxAttempts) {
@@ -187,6 +196,10 @@ jobs:
                 Start-Sleep -Seconds $delay
               }
             }
+          }
+          # If already offline, also set the output so we bring it back online
+          if ($alreadyOffline) {
+            "site_offline=true" >> $env:GITHUB_OUTPUT
           }
 
       # -------------------------------------------------
@@ -217,10 +230,10 @@ jobs:
           # timeout: 30
 
       # --------------------------------------------------------------
-      # Always attempt to bring site back online (runs even if earlier steps fail)
+      # Bring site back online only if it was taken offline
       # --------------------------------------------------------------
       - name: Bring site back online (delete app_offline.htm)
-        if: ${{ always() }}
+        if: ${{ always() && steps.bring-offline.outputs.site_offline == 'true' }}
         shell: pwsh
         run: |
           $maxAttempts = 3

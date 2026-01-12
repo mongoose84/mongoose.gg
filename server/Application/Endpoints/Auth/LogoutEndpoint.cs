@@ -14,7 +14,7 @@ public sealed class LogoutEndpoint : IEndpoint
 
     public LogoutEndpoint(string basePath)
     {
-        Route = basePath + "/logout";
+        Route = basePath + "/auth/logout";
     }
 
     public void Configure(WebApplication app)

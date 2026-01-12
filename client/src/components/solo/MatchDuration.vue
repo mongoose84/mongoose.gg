@@ -54,6 +54,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import ChartCard from '@/components/shared/ChartCard.vue';
 import { getMatchDuration } from '@/api/solo.js';
+import { sortGamerNames, getGamerColor as getGamerColorUtil } from '@/composables/useGamerColors.js';
 
 const props = defineProps({
   userId: {
@@ -108,19 +109,15 @@ function getBarWidth(winrate) {
   return Math.min(100, Math.max(0, winrate));
 }
 
-// Get color for each gamer (server) - using index-based approach for consistency
-function getGamerColor(gamerName) {
-  const allGamers = durationData.value?.gamers?.map(g => g.gamerName) || [];
-  const uniqueGamers = [...new Set(allGamers)];
-  const index = uniqueGamers.indexOf(gamerName);
+// Get sorted gamer names for consistent color mapping
+const sortedGamerNames = computed(() => {
+  const names = durationData.value?.gamers?.map(g => g.gamerName) || [];
+  return sortGamerNames(names);
+});
 
-  const colors = [
-    'var(--color-primary)',      // Purple - First gamer (EUNE)
-    'var(--color-success)',      // Green - Second gamer (EUW)
-    '#f59e0b',                   // Amber
-    '#ec4899',                   // Pink
-  ];
-  return colors[index] || 'var(--color-text)';
+// Get color for each gamer (alphabetically sorted)
+function getGamerColor(gamerName) {
+  return getGamerColorUtil(gamerName, sortedGamerNames.value);
 }
 
 async function load() {

@@ -8,6 +8,9 @@ using RiotProxy.Infrastructure.External.Database.Repositories;
 using RiotProxy.Infrastructure.External.Database.Repositories.V2;
 using RiotProxy.Infrastructure.External.Riot;
 using RiotProxy.Infrastructure.External;
+using RiotProxy.Infrastructure.Security;
+using RiotProxy.Infrastructure.WebSocket;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +21,27 @@ builder.Services.AddSingleton<IRiotApiClient, RiotApiClient>();
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 builder.Services.AddSingleton<IV2DbConnectionFactory, V2DbConnectionFactory>();
 
+// Email encryption for secure storage - registered via factory to allow test override
+builder.Services.AddSingleton<IEmailEncryptor>(sp =>
+{
+    // Re-read from configuration in case tests have overridden it
+    var config = sp.GetRequiredService<IConfiguration>();
+    var encryptionKey = config["Security:EmailEncryptionKey"]
+        ?? config["EMAIL_ENCRYPTION_KEY"]
+        ?? Environment.GetEnvironmentVariable("EMAIL_ENCRYPTION_KEY")
+        ?? Secrets.EmailEncryptionKey;
+
+    if (string.IsNullOrWhiteSpace(encryptionKey))
+    {
+        throw new InvalidOperationException(
+            "Email encryption key is not configured. " +
+            "Set Security:EmailEncryptionKey in appsettings.json, " +
+            "EMAIL_ENCRYPTION_KEY environment variable, " +
+            "Generate a key using: AesEmailEncryptor.GenerateKey()");
+    }
+    return new AesEmailEncryptor(encryptionKey);
+});
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<GamerRepository>();
 builder.Services.AddScoped<UserGamerRepository>();
@@ -27,6 +51,8 @@ builder.Services.AddScoped<SoloStatsRepository>();
 builder.Services.AddScoped<DuoStatsRepository>();
 builder.Services.AddScoped<TeamStatsRepository>();
 // V2 repositories
+builder.Services.AddScoped<V2UsersRepository>();
+builder.Services.AddScoped<V2RiotAccountsRepository>();
 builder.Services.AddScoped<V2MatchesRepository>();
 builder.Services.AddScoped<V2ParticipantsRepository>();
 builder.Services.AddScoped<V2ParticipantCheckpointsRepository>();
@@ -53,6 +79,17 @@ if (enableMatchHistorySync)
     builder.Services.AddSingleton<MatchHistorySyncJob>();
     builder.Services.AddHostedService(provider => provider.GetRequiredService<MatchHistorySyncJob>());
 }
+
+// V2 Match History Sync Job (per-account sync for linked Riot accounts)
+var enableV2MatchHistorySync = builder.Configuration.GetValue<bool>("Jobs:EnableV2MatchHistorySync", true);
+if (enableV2MatchHistorySync)
+{
+    builder.Services.AddHostedService<V2MatchHistorySyncJob>();
+}
+
+// WebSocket hub for sync progress (singleton - shared across all connections)
+builder.Services.AddSingleton<SyncProgressHub>();
+builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
 
 // Add distributed cache for session storage (in-memory for dev, Redis for prod)
 builder.Services.AddDistributedMemoryCache();
@@ -107,7 +144,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("VueClientPolicy", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:5173", // <-- Vue dev server
+                "http://localhost:5173", // <-- Vue dev server (client)
+                "http://localhost:5174", // <-- Vue dev server (client_v2)
                 "http://lol.agileastronaut.com",
                 "https://lol.agileastronaut.com",
                 "http://www.lol.agileastronaut.com",
@@ -140,12 +178,44 @@ var app = builder.Build();
 // Apply the CORS policy globally
 app.UseCors("VueClientPolicy");
 
+// Enable WebSocket support
+app.UseWebSockets(new WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromMinutes(2)
+});
+
 // Session middleware (must come before routing)
 app.UseSession();
 
 // AuthN/Z middleware
 app.UseAuthentication();
 app.UseAuthorization();
+
+// WebSocket endpoint for sync progress at /ws/sync
+app.Map("/ws/sync", async (HttpContext context, SyncProgressHub hub) =>
+{
+    if (!context.WebSockets.IsWebSocketRequest)
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        return;
+    }
+
+    // Authenticate using session cookie (same as HTTP endpoints)
+    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+    if (userIdClaim == null || !long.TryParse(userIdClaim.Value, out var userId))
+    {
+        // Reject unauthenticated connections with 4001 (custom close code for auth failure)
+        var ws = await context.WebSockets.AcceptWebSocketAsync();
+        await ws.CloseAsync(
+            (System.Net.WebSockets.WebSocketCloseStatus)4001,
+            "Authentication required",
+            CancellationToken.None);
+        return;
+    }
+
+    var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+    await hub.HandleConnectionAsync(webSocket, userId, context.RequestAborted);
+});
 
 // Enable routing and map endpoints
 var riotProxyApplication = new RiotProxyApplication(app);

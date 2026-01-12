@@ -422,8 +422,7 @@ Show current location for nested routes:
 ## Decision Log
 
 ### Decisions Made
-1. ✅ **Route prefix**: `/v2/` for all new routes (keeps v1 intact)
-2. ✅ **Auth flow**: Unified `/v2/auth` page (toggle login/signup)
+2. ✅ **Auth flow**: Unified `/auth` page (toggle login/signup)
 3. ✅ **Email verification**: Required after signup (6-digit code)
 4. ✅ **Pricing**: Inline on homepage (no separate pricing page)
 5. ✅ **Invitations**: Shareable links (no username search for MVP)

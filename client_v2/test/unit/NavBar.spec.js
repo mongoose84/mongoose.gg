@@ -1,15 +1,29 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
 import NavBar from '@/components/NavBar.vue';
 import { createRouter, createMemoryHistory } from 'vue-router';
 
+// Mock the authStore
+vi.mock('@/stores/authStore', () => ({
+  useAuthStore: () => ({
+    isAuthenticated: false,
+    isVerified: false
+  })
+}));
+
 describe('NavBar.vue', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
   const createWrapper = () => {
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [
         { path: '/', component: { template: '<div>Home</div>' } },
         { path: '/auth', component: { template: '<div>Auth</div>' } },
+        { path: '/app/user', component: { template: '<div>User</div>' } },
       ]
     });
 

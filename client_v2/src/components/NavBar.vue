@@ -1,8 +1,8 @@
 <template>
   <nav class="nav-bar">
     <div class="nav-container">
-      <!-- Logo -->
-      <router-link to="/" class="nav-logo-link">
+      <!-- Logo - navigates to /app/user if logged in, / if not -->
+      <router-link :to="logoDestination" class="nav-logo-link">
         <img src="/pulse-icon.svg" alt="Pulse.gg" class="nav-logo-icon" />
         <span class="nav-logo-text">Pulse<span class="nav-logo-tld">.gg</span></span>
       </router-link>
@@ -52,9 +52,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useAuthStore } from '../stores/authStore';
 
+const authStore = useAuthStore();
 const mobileOpen = ref(false);
+
+// Logo destination based on auth state
+const logoDestination = computed(() => {
+  if (authStore.isAuthenticated && authStore.isVerified) {
+    return '/app/user';
+  }
+  return '/';
+});
 
 const toggleMobile = () => {
   mobileOpen.value = !mobileOpen.value;
