@@ -1,11 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 using RiotProxy.Infrastructure;
 using RiotProxy.Application;
 using RiotProxy.Infrastructure.External.Database;
 using RiotProxy.Infrastructure.External.Database.Repositories;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
 using RiotProxy.Infrastructure.External.Riot;
 using RiotProxy.Infrastructure.External;
 using RiotProxy.Infrastructure.Security;
@@ -19,7 +16,6 @@ Secrets.Initialize(builder.Configuration);
 
 builder.Services.AddSingleton<IRiotApiClient, RiotApiClient>();
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
-builder.Services.AddSingleton<IV2DbConnectionFactory, V2DbConnectionFactory>();
 
 // Email encryption for secure storage - registered via factory to allow test override
 builder.Services.AddSingleton<IEmailEncryptor>(sp =>
@@ -42,26 +38,18 @@ builder.Services.AddSingleton<IEmailEncryptor>(sp =>
     return new AesEmailEncryptor(encryptionKey);
 });
 
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<GamerRepository>();
-builder.Services.AddScoped<UserGamerRepository>();
-builder.Services.AddScoped<LolMatchRepository>();
-builder.Services.AddScoped<LolMatchParticipantRepository>();
-builder.Services.AddScoped<SoloStatsRepository>();
-builder.Services.AddScoped<DuoStatsRepository>();
-builder.Services.AddScoped<TeamStatsRepository>();
 // V2 repositories
-builder.Services.AddScoped<V2UsersRepository>();
-builder.Services.AddScoped<V2RiotAccountsRepository>();
-builder.Services.AddScoped<V2MatchesRepository>();
-builder.Services.AddScoped<V2ParticipantsRepository>();
-builder.Services.AddScoped<V2ParticipantCheckpointsRepository>();
-builder.Services.AddScoped<V2ParticipantMetricsRepository>();
-builder.Services.AddScoped<V2TeamObjectivesRepository>();
-builder.Services.AddScoped<V2ParticipantObjectivesRepository>();
-builder.Services.AddScoped<V2TeamMatchMetricsRepository>();
-builder.Services.AddScoped<V2DuoMetricsRepository>();
-builder.Services.AddScoped<V2SoloStatsRepository>();
+builder.Services.AddScoped<UsersRepository>();
+builder.Services.AddScoped<RiotAccountsRepository>();
+builder.Services.AddScoped<MatchesRepository>();
+builder.Services.AddScoped<ParticipantsRepository>();
+builder.Services.AddScoped<ParticipantCheckpointsRepository>();
+builder.Services.AddScoped<ParticipantMetricsRepository>();
+builder.Services.AddScoped<TeamObjectivesRepository>();
+builder.Services.AddScoped<ParticipantObjectivesRepository>();
+builder.Services.AddScoped<TeamMatchMetricsRepository>();
+builder.Services.AddScoped<DuoMetricsRepository>();
+builder.Services.AddScoped<SoloStatsRepository>();
 
 // Named HttpClient for Riot API
 builder.Services.AddHttpClient("RiotApi", client =>
@@ -73,18 +61,11 @@ builder.Services.AddHttpClient("RiotApi", client =>
         client.DefaultRequestHeaders.Add("X-Riot-Token", Secrets.ApiKey);
 });
 
-var enableMatchHistorySync = builder.Configuration.GetValue<bool>("Jobs:EnableMatchHistorySync", true);
-if (enableMatchHistorySync)
-{
-    builder.Services.AddSingleton<MatchHistorySyncJob>();
-    builder.Services.AddHostedService(provider => provider.GetRequiredService<MatchHistorySyncJob>());
-}
-
 // V2 Match History Sync Job (per-account sync for linked Riot accounts)
 var enableV2MatchHistorySync = builder.Configuration.GetValue<bool>("Jobs:EnableV2MatchHistorySync", true);
 if (enableV2MatchHistorySync)
 {
-    builder.Services.AddHostedService<V2MatchHistorySyncJob>();
+    builder.Services.AddHostedService<MatchHistorySyncJob>();
 }
 
 // WebSocket hub for sync progress (singleton - shared across all connections)

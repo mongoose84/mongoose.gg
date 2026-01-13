@@ -7,11 +7,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RiotProxy.Infrastructure.External.Database.Repositories;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
 using RiotProxy.Infrastructure.External;
 using RiotProxy.Infrastructure.Security;
 using RiotProxy.External.Domain.Entities;
-using RiotProxy.External.Domain.Entities.V2;
 using RiotProxy.External.Domain.Enums;
 using Microsoft.Extensions.Hosting;
 
@@ -20,15 +18,11 @@ namespace RiotProxy.Tests;
 internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly IDictionary<string, string?> _overrides;
-    private readonly IUserRepository _userRepository;
     private readonly FakeV2UsersRepository _v2UsersRepository;
 
-    public TestWebApplicationFactory(
-        IDictionary<string, string?>? overrides = null,
-        IUserRepository? userRepository = null)
+    public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
         _overrides = overrides ?? new Dictionary<string, string?>();
-        _userRepository = userRepository ?? new FakeUserRepository();
         _v2UsersRepository = new FakeV2UsersRepository();
     }
 
@@ -67,53 +61,24 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            // Replace the user repository with a test double to avoid DB access.
-            services.RemoveAll<IUserRepository>();
-            services.AddSingleton(_userRepository);
-
             // Replace V2UsersRepository with a fake to avoid real DB connections
-            services.RemoveAll<V2UsersRepository>();
-            services.AddSingleton<V2UsersRepository>(_v2UsersRepository);
+            services.RemoveAll<UsersRepository>();
+            services.AddSingleton<UsersRepository>(_v2UsersRepository);
         });
 
         return base.CreateHost(builder);
     }
 
-    private sealed class FakeUserRepository : IUserRepository
+    internal sealed class FakeV2UsersRepository : UsersRepository
     {
-        private readonly ConcurrentDictionary<string, User> _users = new(StringComparer.OrdinalIgnoreCase);
-
-        public FakeUserRepository()
-        {
-            _users.TryAdd("tester", new User { UserId = 1, UserName = "tester", UserType = UserTypeEnum.Solo });
-        }
-
-        public Task<IList<User>> GetAllUsersAsync() => Task.FromResult<IList<User>>(_users.Values.ToList());
-
-        public Task<User?> GetByUserNameAsync(string userName)
-        {
-            _users.TryGetValue(userName, out var user);
-            return Task.FromResult<User?>(user);
-        }
-
-        public Task<User?> CreateUserAsync(string userName, UserTypeEnum userType)
-        {
-            var user = new User { UserId = _users.Count + 1, UserName = userName, UserType = userType };
-            _users[userName] = user;
-            return Task.FromResult<User?>(user);
-        }
-    }
-
-    internal sealed class FakeV2UsersRepository : V2UsersRepository
-    {
-        private readonly ConcurrentDictionary<string, V2User> _usersByUsername = new(StringComparer.OrdinalIgnoreCase);
-        private readonly ConcurrentDictionary<string, V2User> _usersByEmail = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, User> _usersByUsername = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, User> _usersByEmail = new(StringComparer.OrdinalIgnoreCase);
         private long _nextId = 1;
 
         public FakeV2UsersRepository() : base(null!, new FakeEmailEncryptor())
         {
             // Pre-populate with a test user (password: "test-password")
-            var testUser = new V2User
+            var testUser = new User
             {
                 UserId = _nextId++,
                 Username = "tester",
@@ -129,19 +94,19 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _usersByEmail["tester@test.com"] = testUser;
         }
 
-        public override Task<V2User?> GetByUsernameAsync(string username)
+        public override Task<User?> GetByUsernameAsync(string username)
         {
             _usersByUsername.TryGetValue(username, out var user);
             return Task.FromResult(user);
         }
 
-        public override Task<V2User?> GetByEmailAsync(string email)
+        public override Task<User?> GetByEmailAsync(string email)
         {
             _usersByEmail.TryGetValue(email, out var user);
             return Task.FromResult(user);
         }
 
-        public override Task<long> UpsertAsync(V2User user)
+        public override Task<long> UpsertAsync(User user)
         {
             if (user.UserId == 0)
             {

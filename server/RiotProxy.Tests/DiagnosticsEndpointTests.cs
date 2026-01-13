@@ -31,7 +31,7 @@ public class DiagnosticsEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await client.GetAsync("/api/v1.0/diagnostics");
+        var response = await client.GetAsync("/api/v2/diagnostics");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -48,7 +48,7 @@ public class DiagnosticsEndpointTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/diagnostics");
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req.Headers.Add("Cookie", authCookie);
         var response = await client.SendAsync(req);
 
@@ -73,7 +73,7 @@ public class DiagnosticsEndpointTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/diagnostics");
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req.Headers.Add("Cookie", authCookie);
         var response = await client.SendAsync(req);
 
@@ -93,7 +93,7 @@ public class DiagnosticsEndpointTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/diagnostics");
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req.Headers.Add("Cookie", authCookie);
         var response = await client.SendAsync(req);
 
@@ -113,7 +113,7 @@ public class DiagnosticsEndpointTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/diagnostics");
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req.Headers.Add("Cookie", authCookie);
         var response = await client.SendAsync(req);
 
@@ -130,13 +130,13 @@ public class DiagnosticsEndpointTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
 
-        var req1 = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/diagnostics");
+        var req1 = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req1.Headers.Add("Cookie", authCookie);
         var res1 = await client.SendAsync(req1);
         var p1 = await res1.Content.ReadFromJsonAsync<DiagnosticsResponse>();
         var m1 = p1!.metrics.metricHits;
 
-        var req2 = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/diagnostics");
+        var req2 = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req2.Headers.Add("Cookie", authCookie);
         var res2 = await client.SendAsync(req2);
         var p2 = await res2.Content.ReadFromJsonAsync<DiagnosticsResponse>();

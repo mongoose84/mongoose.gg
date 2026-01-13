@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Infrastructure.External.Database.Repositories;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
 using static RiotProxy.Application.DTOs.SoloSummaryDto;
 
 namespace RiotProxy.Application.Endpoints.Solo;
@@ -25,8 +24,8 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string userId,
             [FromQuery] string? queueType,
-            [FromServices] UserGamerRepository userGamerRepo,
-            [FromServices] V2SoloStatsRepository v2SoloStatsRepo,
+            [FromServices] RiotAccountsRepository riotAccountRepo,
+            [FromServices] SoloStatsRepository soloStatsRepo,
             [FromServices] ILogger<SoloDashboardV2Endpoint> logger
         ) =>
         {
@@ -43,7 +42,7 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
                 }
 
                 // Get gamers for this user
-                var puuIds = await userGamerRepo.GetGamersPuuIdByUserIdAsync(userIdInt);
+                var puuIds = await riotAccountRepo.GetByUserIdAsync(userIdInt);
                 var distinctPuuIds = (puuIds ?? []).Distinct().ToArray();
 
                 if (distinctPuuIds.Length == 0)
@@ -54,11 +53,11 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
 
                 // Aggregate stats from all gamers (team perspective)
                 // For now, fetch for primary gamer; TODO: support team aggregation
-                var primaryPuuid = distinctPuuIds[0];
+                var primaryPuuid = distinctPuuIds[0].ToString();
 
                 // Fetch dashboard data
                 logger.LogInformation("Solo v2 dashboard request: userId={UserId}, puuid={Puuid}, queueType={Queue}", userIdInt, primaryPuuid, queueType ?? "all");
-                var dashboard = await v2SoloStatsRepo.GetSoloDashboardAsync(primaryPuuid, queueType);
+                var dashboard = await soloStatsRepo.GetSoloDashboardAsync(primaryPuuid, queueType);
 
                 if (dashboard == null)
                 {

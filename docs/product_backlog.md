@@ -1444,7 +1444,7 @@ Also check if profile data (icon, level, rank) has changed and update if needed.
 #### Acceptance Criteria
 
 - [ ] On successful login, check each linked account for new matches since `last_sync_at`
-- [ ] If new matches exist, set `sync_status` to 'pending' to trigger the V2MatchHistorySyncJob
+- [ ] If new matches exist, set `sync_status` to 'pending' to trigger the MatchHistorySyncJob
 - [ ] Frontend shows syncing indicator when sync is in progress after login
 - [ ] WebSocket updates flow to the logged-in user's session for real-time progress
 - [ ] Fetch current summoner data and compare icon/level; update if changed

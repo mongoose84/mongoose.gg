@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
+using RiotProxy.Infrastructure.External.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Auth;
 
@@ -29,7 +29,7 @@ public sealed class VerifyEndpoint : IEndpoint
         app.MapPost(Route, [Authorize] async (
             [FromBody] VerifyRequest request,
             HttpContext httpContext,
-            [FromServices] V2UsersRepository usersRepo,
+            [FromServices] UsersRepository usersRepo,
             [FromServices] ILogger<VerifyEndpoint> logger,
             [FromServices] IConfiguration config
         ) =>

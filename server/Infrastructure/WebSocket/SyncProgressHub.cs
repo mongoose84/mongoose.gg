@@ -1,11 +1,8 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
-using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
+using RiotProxy.Infrastructure.External.Database.Repositories;
 
 namespace RiotProxy.Infrastructure.WebSocket;
 
@@ -168,7 +165,7 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
     {
         // Verify user owns this Riot account (resolve scoped repository per call)
         using var scope = _scopeFactory.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<V2RiotAccountsRepository>();
+        var repo = scope.ServiceProvider.GetRequiredService<RiotAccountsRepository>();
         var account = await repo.GetByPuuidAsync(puuid);
         if (account == null || account.UserId != userId)
         {

@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.External.Domain.Entities.V2;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
+using RiotProxy.External.Domain.Entities;
+using RiotProxy.Infrastructure.External.Database.Repositories;
 using RiotProxy.Infrastructure.External.Riot;
 
 namespace RiotProxy.Application.Endpoints.Auth;
@@ -49,8 +49,8 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         app.MapPost(Route, [Authorize] async (
             HttpContext httpContext,
             [FromBody] LinkRiotAccountRequest request,
-            [FromServices] V2UsersRepository usersRepo,
-            [FromServices] V2RiotAccountsRepository riotAccountsRepo,
+            [FromServices] UsersRepository usersRepo,
+            [FromServices] RiotAccountsRepository riotAccountsRepo,
             [FromServices] IRiotApiClient riotApiClient,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
         ) =>
@@ -146,7 +146,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     logger.LogInformation("Updating existing Riot account {GameName}#{TagLine} (PUUID: {Puuid}) for user {UserId}",
                         request.GameName, request.TagLine, puuid, userId);
 
-                    var updatedAccount = new V2RiotAccount
+                    var updatedAccount = new RiotAccount
                     {
                         Puuid = puuid,
                         UserId = userId.Value,
@@ -178,7 +178,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 var isPrimary = existingAccounts.Count == 0;
 
                 // Create the riot account record
-                var riotAccount = new V2RiotAccount
+                var riotAccount = new RiotAccount
                 {
                     Puuid = puuid,
                     UserId = userId.Value,
@@ -218,7 +218,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         app.MapDelete(Route + "/{puuid}", [Authorize] async (
             string puuid,
             HttpContext httpContext,
-            [FromServices] V2RiotAccountsRepository riotAccountsRepo,
+            [FromServices] RiotAccountsRepository riotAccountsRepo,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
         ) =>
         {
@@ -253,7 +253,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         app.MapPost(Route + "/{puuid}/sync", [Authorize] async (
             string puuid,
             HttpContext httpContext,
-            [FromServices] V2RiotAccountsRepository riotAccountsRepo,
+            [FromServices] RiotAccountsRepository riotAccountsRepo,
             [FromServices] IRiotApiClient riotApiClient,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
         ) =>
@@ -298,7 +298,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         app.MapGet(Route + "/{puuid}/sync-status", [Authorize] async (
             string puuid,
             HttpContext httpContext,
-            [FromServices] V2RiotAccountsRepository riotAccountsRepo,
+            [FromServices] RiotAccountsRepository riotAccountsRepo,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
         ) =>
         {

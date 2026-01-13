@@ -1,6 +1,5 @@
 
 using System.Reflection;
-using System.Threading;
 
 namespace RiotProxy.Utilities
 {

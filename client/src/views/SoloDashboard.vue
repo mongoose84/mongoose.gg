@@ -1,310 +1,134 @@
 <template>
-  <section class="userview">
-    <!-- Smaller brand header -->
-    <header class="brand brand--compact" aria-labelledby="app-title-user">
-      <router-link to="/" class="brand-link">
-        <div class="brand-inner">
-          <span class="logo compact" aria-hidden="true">
-            <AppLogo :size="56" />
-          </span>
-          <div class="titles">
-            <h1 id="app-title-user" class="title compact">{{ appTitle }}</h1>
-            <p class="subtitle compact">{{ appSubtitle }}</p>
-          </div>
+  <section class="solo-dashboard">
+    <header class="dashboard-header">
+      <h1>Solo Dashboard</h1>
+      <div class="filters">
+        <div class="filter-group">
+          <label for="queue-filter">Queue</label>
+          <select id="queue-filter" v-model="queueFilter" aria-label="Filter matches by queue type">
+            <option value="all">All Queues</option>
+            <option value="ranked_solo">Ranked Solo/Duo</option>
+            <option value="ranked_flex">Ranked Flex</option>
+            <option value="normal">Normal</option>
+            <option value="aram">ARAM</option>
+          </select>
         </div>
-      </router-link>
-
-      <!-- Header right section: dev button -->
-      <div class="header-right">
-        <!-- Dev-only refresh button -->
-        <button
-          v-if="isDev"
-          class="refresh-btn"
-          :disabled="refreshing"
-          @click="handleRefresh"
-        >
-          {{ refreshing ? 'Refreshing...' : 'Fetch Games' }}
-        </button>
+        <div class="filter-group">
+          <label for="time-range-filter">Time Range</label>
+          <select id="time-range-filter" v-model="timeRange" aria-label="Filter matches by time range">
+            <option value="1w">Last Week</option>
+            <option value="1m">Last Month</option>
+            <option value="3m">Last 3 Months</option>
+            <option value="6m">Last 6 Months</option>
+          </select>
+        </div>
       </div>
     </header>
 
-    <div class="user-container">
-      <h2 v-if="hasUser">{{ userName }}</h2>
-      <h2 v-else>Missing user details</h2>
+    <div class="sections">
+      <div class="section placeholder-card">
+        <h2>Profile Header</h2>
+        <p>Profile icon, Riot ID, level, ranks, overall winrate.</p>
+      </div>
 
-      <div v-if="!hasUser">Please navigate via the Users list.</div>
-      <div v-else-if="loading">Loading…</div>
-      <div v-else-if="error">{{ error }}</div>
-      
-      <!-- Gamers list -->
-      <GamerCardsList v-else :gamers="gamers">
-        <template #after-cards>
-          <div class="comparison-strip-wrap">
-            <ComparisonStrip :userId="userId" />
-          </div>
+      <div class="section placeholder-card">
+        <h2>Main Champion Card</h2>
+        <p>Role tabs with top 3 champions per role.</p>
+      </div>
 
-          <PerformanceCharts :userId="userId" />
+      <div class="section placeholder-card">
+        <h2>Winrate Over Time</h2>
+        <p>Rolling average line chart (shared component).</p>
+      </div>
 
-          <!-- Radar Chart and Champion Performance Section -->
-          <div class="radar-champion-section">
-            <div class="radar-wrapper">
-              <RadarChart :userId="userId" />
-            </div>
-            <div class="champion-wrapper">
-              <ChampionPerformanceSplit :userId="userId" />
-            </div>
-          </div>
+      <div class="section placeholder-card">
+        <h2>LP Over Time</h2>
+        <p>Per-game LP changes with rank annotations (ranked only).</p>
+      </div>
 
-          <!-- New Row: Role Distribution, Death Efficiency, and Match Duration -->
-          <div class="new-cards-section">
-            <RoleDistribution :userId="userId" />
-            <DeathEfficiency :userId="userId" />
-            <MatchDuration :userId="userId" />
-          </div>
+      <div class="section placeholder-card">
+        <h2>Champion Matchups</h2>
+        <p>Top 5 champions with expandable opponent details.</p>
+      </div>
 
-          <!-- Side Win Rate -->
-          <div class="side-win-rate-section">
-            <SideWinDistribution :userId="userId" mode="solo" />
-          </div>
-
-          <!-- Summary Insights Panel -->
-          <SummaryInsights :userId="userId" />
-
-          <!-- Champion Matchups -->
-          <ChampionMatchups :userId="userId" />
-        </template>
-      </GamerCardsList>
+      <div class="section placeholder-card">
+        <h2>Goals Panel</h2>
+        <p>Active goals and progress (upgrade CTA for Free).</p>
+      </div>
     </div>
   </section>
-
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useGamers } from '@/composables/useGamers.js';
-import { isDevelopment } from '@/api/shared.js';
-import { refreshGames } from '@/api/solo.js';
-// Shared components
-import GamerCardsList from '@/components/shared/GamerCardsList.vue';
-import RadarChart from '@/components/shared/RadarChart.vue';
-import SideWinDistribution from '@/components/shared/SideWinDistribution.vue';
-import AppLogo from '@/components/shared/AppLogo.vue';
-// Solo components
-import PerformanceCharts from '@/components/solo/PerformanceCharts.vue';
-import ChampionPerformanceSplit from '@/components/solo/ChampionPerformanceSplit.vue';
-import RoleDistribution from '@/components/solo/RoleDistribution.vue';
-import DeathEfficiency from '@/components/solo/DeathEfficiency.vue';
-import MatchDuration from '@/components/solo/MatchDuration.vue';
-import SummaryInsights from '@/components/solo/SummaryInsights.vue';
-import ChampionMatchups from '@/components/solo/ChampionMatchups.vue';
-// Local views
-import ComparisonStrip from './ComparisonStrip.vue';
+import { ref } from 'vue'
 
-// ----- Props coming from the parent (router, other component, etc.) -----
-const props = defineProps({
-  userName: {
-    type: String,
-    required: true,
-  },
-  userId: {
-    type: [String, Number],
-    required: true,
-  },
-});
-
-// App branding - could be moved to a config file
-const appTitle = 'Do End';
-const appSubtitle = 'Cross Account LoL Statistics';
-
-// Dev mode check
-const isDev = isDevelopment;
-
-// Refresh games functionality (dev only)
-const refreshing = ref(false);
-
-async function handleRefresh() {
-  if (refreshing.value) return;
-
-  refreshing.value = true;
-  try {
-    const result = await refreshGames(props.userId);
-    console.log('Refresh result:', result);
-    // Reload the page data after refresh
-    if (result.NewGamesAdded > 0) {
-      window.location.reload();
-    }
-  } catch (err) {
-    console.error('Failed to refresh games:', err);
-  } finally {
-    refreshing.value = false;
-  }
-}
-
-const { loading, error, gamers, hasUser, load } = useGamers(() => ({
-  userName: props.userName,
-  userId: props.userId,
-}));
-
-// (Optional) expose `load` so a parent could call it manually
-defineExpose({ load });
+// UI-only state for filters (no functionality yet)
+const queueFilter = ref('all')
+const timeRange = ref('3m')
 </script>
 
 <style scoped>
-.userview {
-  width: 100%;
-  max-width: 100vw; /* Prevent horizontal overflow */
-  overflow-x: hidden; /* Prevent horizontal scroll */
-  /* full width; keep slight page padding */
-  margin: 2rem 0;
-  padding: 0 1rem;
-  box-sizing: border-box;
+.solo-dashboard {
+  padding: var(--spacing-lg);
 }
-
-.brand--compact {
-  width: 100%;
-  /* keep header left-aligned, avoid auto-centering */
-  margin: 0 0 0.5rem 0;
+.dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
 }
-
-.header-right {
+.filters {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  gap: var(--spacing-md);
 }
-
-.refresh-btn {
-  background-color: var(--color-primary);
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+.filter-group label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+.filter-group select {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   color: var(--color-text);
-  border: none;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
+  font-size: var(--font-size-sm);
   cursor: pointer;
-  font-size: 0.875rem;
-  transition: background-color 0.2s ease, opacity 0.2s ease;
+  transition: border-color 0.2s ease;
 }
-
-.refresh-btn:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+.filter-group select:hover {
+  border-color: var(--color-primary);
 }
-
-.refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
 }
-
-.brand-link {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-  transition: opacity 0.2s ease;
-}
-
-.brand-link:hover {
-  opacity: 0.8;
-  cursor: pointer;
-}
-
-.brand-inner {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* left-align logo and titles */
-  gap: 0.75rem;
-}
-
-.logo.compact {
-  display: inline-flex;
-  width: 56px;
-  height: 56px;
-  color: var(--color-primary);
-}
-
-.titles .title.compact {
-  margin: 0;
-  font-size: clamp(1.4rem, 3vw, 2rem);
-  line-height: 1.1;
-}
-
-.titles .subtitle.compact {
-  margin: 0.1rem 0 0;
-  font-size: clamp(0.8rem, 1.4vw, 1rem);
-  opacity: 0.85;
-}
-
-.titles { text-align: left; }
-
-.user-container {
-  max-width: 100%;
-  overflow-x: hidden; /* Prevent child overflow */
-}
-
-.user-container h2 { text-align: left; margin-left: 1rem; }
-
-.comparison-strip-wrap {
-  margin-top: 1.2rem;
-  /* Remove any side margins to align with cards */
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.radar-champion-section {
-  margin-top: 1.2rem;
-  display: flex;
-  gap: 1.2rem;
-  width: 100%;
-  align-items: flex-start;
-}
-
-.radar-wrapper,
-.champion-wrapper {
-  flex: 1;
-  min-width: 0; /* Allow flex items to shrink below content size */
-}
-
-/* New cards section - three cards per row */
-.new-cards-section {
-  margin-top: 1.2rem;
+.sections {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.2rem;
-  width: 100%;
-  align-items: stretch;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-lg);
 }
-
-/* Ensure all grid items have the same height */
-.new-cards-section > * {
-  height: 100%;
+.placeholder-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  background: var(--color-surface);
 }
-
-/* Side Win Rate section - one third width */
-.side-win-rate-section {
-  margin-top: 1.2rem;
-  display: flex;
-  width: 100%;
+.placeholder-card h2 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
 }
-
-/* Responsive: stack vertically on smaller screens */
-@media (max-width: 1200px) {
-  .radar-champion-section {
-    flex-direction: column;
-  }
-
-  .radar-wrapper,
-  .champion-wrapper {
-    width: 100%;
-  }
-
-  .new-cards-section {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Medium screens: 2 cards per row */
-@media (min-width: 768px) and (max-width: 1200px) {
-  .new-cards-section {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.placeholder-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
 </style>
