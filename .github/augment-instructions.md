@@ -1,27 +1,46 @@
+
 # Augment Instructions for lol-app
 
 ## Project Overview
-- **lol-app** ("Do End") is a League of Legends cross-account statistics tracker
-- Full-stack project with a Vue 3 + Vite client (in `client/`) and a C# .NET 9.0 server (in `server/RiotProxy`)
-- The client and server communicate via HTTP APIs. The server acts as a proxy to the Riot Games API and manages user/game data
-- Sensitive secrets (API keys, DB connection strings) are stored in plaintext files in the server directory and are gitignored
-- Database: MySQL for storing users, gamers, matches, and match participants
+- **lol-app** (Pulse) is a League of Legends cross-account improvement and statistics tracker.
+- Full-stack project with two clients:
+  - **Legacy client**: Vue 3 + Vite app in `client/`
+  - **Primary client (v2)**: Standalone Vue 3 + Vite app in `client_v2/` (see docs/information_architecture_v2.md)
+- The backend is a C# .NET 8/9 server in `server/RiotProxy`.
+- Client(s) and server communicate via HTTP APIs (see docs/api_v2_design.md). The server proxies the Riot Games API and manages user/game data.
+- Sensitive secrets (API keys, DB connection strings, Mollie API keys) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, LOL_DB_CONNECTIONSTRING, LOL_DB_CONNECTIONSTRING_V2, Mollie keys). Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported for local development only and must never be committed.
+- Database: MySQL for storing users, gamers, matches, and match participants.
+
 
 ## Key Workflows
-### Client (Vue 3 + Vite)
+### Client v2 (Vue 3 + Vite)
+- Install dependencies: `cd client_v2 && npm install`
+- Run dev server: `npm run dev`
+- Run unit tests: `npm run test:unit`, `npm run test:unit:watch`, `npm run test:unit:coverage`
+- Main entry: `client_v2/src/main.js`, root component: `client_v2/src/App.vue`
+- Components: `client_v2/src/components/`, Views: `client_v2/src/views/`
+- API logic: `client_v2/src/services/`, composables in `client_v2/src/composables/`
+- See docs/information_architecture_v2.md for route map and app structure.
+
+### Legacy Client (Vue 3 + Vite)
 - Install dependencies: `cd client && npm install`
-- Run dev server: `npm run dev` (runs on http://localhost:5173)
-- Run unit tests: 
-  - `npm run test:unit` - Run all test suites once
-  - `npm run test:unit:watch` - Watch mode for development
-  - `npm run test:unit:coverage` - Run with coverage report
-- Build for production: `npm run build`
+- Run dev server: `npm run dev`
 - Main entry: `client/src/main.js`, root component: `client/src/App.vue`
-- Components: `client/src/components/` (reusable UI components)
-- Views: `client/src/views/` (page-level components)
-- API logic: `client/src/assets/` (e.g., `getUsers.js`, `getGamers.js`, `getPerformance.js`)
-- Composables: `client/src/composables/` (shared reactive state/logic)
-- Routing: `client/src/router/index.js`
+- Components: `client/src/components/`, Views: `client/src/views/`
+- API logic: `client/src/assets/`, composables in `client/src/composables/`
+
+### Server (.NET 8/9)
+- Build: `cd server && dotnet build`
+- Run: `dotnet run`
+- Publish (Windows): `dotnet publish -c Release -r win-x86 --self-contained true`
+- Publish (Linux): `dotnet publish -c Release -r linux-x64 --self-contained false`
+- Secrets: Provide via env vars or user-secrets (preferred) — `RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING`, `LOL_DB_CONNECTIONSTRING_V2`, Mollie API keys. Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported for local development only and must not be committed.
+- Payments: Use Mollie (EU) for subscriptions; keep Mollie/API keys out of source (see DatabaseSecret.txt and other secrets files)
+- Main entry: `server/Program.cs`
+- Endpoints: `server/Application/Endpoints/`
+- DTOs: `server/Application/DTOs/`
+- Infrastructure: `server/Infrastructure/`
+- Backend tests: `server/RiotProxy.Tests/` (see product_plan.md for test coverage)
 
 ### Server (.NET 9.0)
 - Build: `cd server && dotnet build`
@@ -58,6 +77,7 @@
 - Testing with Vitest and Vue Test Utils
 - Styling: Custom CSS in `assets/main.css`
 
+
 ### Server
 - Endpoints are organized by resource in `Application/Endpoints/`
 - Each endpoint implements `IEndpoint` interface with a `Configure` method
@@ -66,7 +86,9 @@
 - Dependency injection for services and repositories
 - CORS configured for Vue dev server and production domains
 - Background jobs using IHostedService
+- Backend tests in `RiotProxy.Tests/`
 - Secrets are never checked into version control
+
 
 ### Database
 - MySQL database with repositories for:
@@ -77,21 +99,19 @@
   - `LolMatchParticipantRepository` - Individual player performance in matches
 - Connection string format: `Server=host;Port=port;Database=db;User Id=user;Password=pass;SslMode=Preferred;`
 
+
 ### Testing
 - Client: Vitest for unit tests, Vue Test Utils for component testing
-- Server: No formal test convention documented (opportunity for improvement)
+- Client v2: Vitest for unit tests
+- Server: Backend tests in `RiotProxy.Tests/`
 - Always run tests after making changes to ensure nothing breaks
 
+
 ## Integration Points
-- **Client <-> Server**: HTTP API calls
-  - Base path: `/api/v1.0/`
-  - See `getUsers.js`, `getGamers.js`, `getComparison.js`, `getPerformance.js`, etc.
-- **Server <-> Riot API**: Proxy logic in `RiotApiClient.cs`
-  - Fetches summoner data, match history, game versions
-  - Rate limiting and error handling
-- **Server <-> Database**: Connection via `DatabaseSecret.txt`
-  - Logic in `Infrastructure/External/Database/`
-  - Uses Dapper for data access
+- Client(s) <-> Server: HTTP API (see docs/api_v2_design.md for endpoints, queue filtering, and response shapes)
+- Server <-> Riot API: Proxy logic in `RiotApiClient.cs`
+- Server <-> Database: Connection via `LOL_DB_CONNECTIONSTRING`/`LOL_DB_CONNECTIONSTRING_V2` (env/user-secrets), logic in `Infrastructure/External/Database/`
+
 
 ## Key Features
 1. **Multi-Account Dashboards**: Solo, Duo, and Team views
@@ -99,16 +119,23 @@
 3. **Performance Timeline**: Time-series data with rolling averages (1w, 1m, 3m, 6m, all)
 4. **Account Comparison**: Compare stats across multiple accounts
 5. **Automated Match Sync**: Background job syncs match history periodically
+6. **Subscription & Paywall**: Mollie integration for Pro tier, feature gating, and upgrade prompts
+
 
 ## Common Tasks
 ### Add a new API endpoint
 1. Create a new file in `server/Application/Endpoints/` implementing `IEndpoint`
-2. Register it in `server/Application/RiotProxyApplication.cs`
+2. Register it in `server/Application/RiotProxyApplication.cs` and/or `Program.cs`
 3. Create corresponding DTO in `Application/DTOs/` if needed
-4. Add client-side API call function in `client/src/assets/`
+4. Add client-side API call function in `client_v2/src/services/` (or `client/src/assets/` for legacy)
 5. Update views/components to use the new endpoint
 
-### Add a new client view
+### Add a new client_v2 view
+1. Create a `.vue` file in `client_v2/src/views/`
+2. Add a route in `client_v2/src/router/index.js`
+3. Link to it from appropriate navigation/components
+
+### Add a new legacy client view
 1. Create a `.vue` file in `client/src/views/`
 2. Add a route in `client/src/router/index.js`
 3. Link to it from appropriate navigation/components
@@ -119,19 +146,22 @@
 3. Follow async/await pattern
 4. Handle null cases appropriately
 
+
 ## Important Notes
-- **Never commit secrets**: `RiotSecret.txt` and `DatabaseSecret.txt` are gitignored
-- **CORS**: Configured for localhost:5173 (dev) and lol.agileastronaut.com (prod)
+- **Never commit secrets**: Use env vars or user-secrets for all sensitive config; `RiotSecret.txt` and `DatabaseSecret.txt` are gitignored and only used for local dev
+- **CORS**: Configured for localhost:5173 (dev) and production domains
 - **API Rate Limiting**: Riot API has rate limits; handle 429 responses gracefully
 - **Background Jobs**: MatchHistorySyncJob runs periodically to fetch new matches
 - **Error Handling**: Always handle errors gracefully on both client and server
 - **Performance**: Consider pagination for large datasets
 - **Security**: Never expose Riot API key to client; always proxy through server
 
+lol/
+
 ## File Structure Reference
 ```
-lol/
-├── client/                    # Vue 3 frontend
+
+├── client/                    # Legacy Vue 3 frontend
 │   ├── src/
 │   │   ├── assets/           # API calls, CSS, static assets
 │   │   ├── components/       # Reusable Vue components
@@ -142,23 +172,41 @@ lol/
 │   │   └── main.js           # Entry point
 │   ├── test/                 # Unit tests
 │   └── package.json
-└── server/# .NET 9.0 backend   
-      ├── Application/      # Application layer
-      │   ├── DTOs/        # Data transfer objects
-      │   └── Endpoints/   # API endpoints
-      ├── Infrastructure/   # Infrastructure layer
-      │   ├── External/    # External services (DB, Riot API)
-      │   └── Jobs/        # Background jobs
-      └── Program.cs       # Entry point
+├── client_v2/                 # Standalone Vue 3 frontend (primary)
+│   ├── src/
+│   │   ├── components/       # Reusable Vue components
+│   │   ├── composables/      # Shared logic
+│   │   ├── layouts/          # App layouts
+│   │   ├── router/           # Vue Router configuration
+│   │   ├── services/         # API logic
+│   │   ├── stores/           # Pinia stores
+│   │   ├── views/            # Page-level components
+│   │   ├── App.vue           # Root component
+│   │   └── main.js           # Entry point
+│   ├── test/                 # Unit tests
+│   └── package.json
+└── server/                    # .NET 8/9 backend
+  ├── Application/          # Application layer
+  │   ├── DTOs/             # Data transfer objects
+  │   └── Endpoints/        # API endpoints
+  ├── Infrastructure/       # Infrastructure layer
+  │   ├── External/         # External services (DB, Riot API)
+  │   └── Jobs/             # Background jobs
+  ├── RiotProxy.Tests/      # Backend tests
+  └── Program.cs            # Entry point
 ```
 
 ## References
 - Setup instructions: [README.md](../README.md)
-- Sensitive config: `server/RiotSecret.txt`, `server/DatabaseSecret.txt`
-- Main server logic: `server/Program.cs`, `server/Application/`
-- Main client logic: `client/src/`, `client/src/assets/`, `client/src/composables/`
+- Sensitive config: set via env vars or user-secrets (`RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING`, `LOL_DB_CONNECTIONSTRING_V2`, Mollie API keys)
+- Main server logic: `server/Program.cs`, `server/Application/`, `server/Application/Endpoints/`, `server/RiotProxy.Tests/`
+- Main client_v2 logic: `client_v2/src/`, `client_v2/src/services/`, `client_v2/src/composables/`
+- Main legacy client logic: `client/src/`, `client/src/assets/`, `client/src/composables/`
 - Riot API Documentation: https://developer.riotgames.com/
+- API v2 Design: [docs/architecture/api_v2_design.md]
+- Database schema: [docs/architecture/database_schema_v2.md], [server/schema-v2.sql]
+- Information architecture: [docs/architecture/information_architecture_v2.md]
+- UI design guidelines: [docs/design/ui-design-guidelines.md]
 
----
 For new patterns or changes, update this file to keep AI agents productive and aligned with project conventions.
 
