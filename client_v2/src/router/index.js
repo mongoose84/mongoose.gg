@@ -45,20 +45,20 @@ const router = createRouter({
           redirect: '/app/user'
         },
         {
+          path: 'user',
+          name: 'app-user',
+          component: () => import('../views/UserPage.vue')
+        },
+        {
           path: 'solo',
           name: 'app-solo',
           component: () => import('../views/SoloDashboard.vue')
-        },
-        {
-          path: 'user',
+        }
+      ]
+    },
     {
       path: '/v2/app/solo',
       redirect: '/app/solo'
-    }
-          name: 'app-user',
-          component: () => import('../views/UserPage.vue')
-        }
-      ]
     }
   ],
   scrollBehavior(to, from, savedPosition) {
@@ -87,9 +87,7 @@ router.beforeEach(async (to, from, next) => {
   // Check if route requires authentication
   if (to.meta.requiresAuth) {
     if (!authStore.isAuthenticated) {
-      // Support v2 auth path per acceptance criteria
-      const targetAuth = '/auth'
-      return next({ path: targetAuth, query: { mode: 'login', redirect: to.fullPath } })
+      return next({ path: '/auth', query: { mode: 'login', redirect: to.fullPath } })
     }
 
     // Check if route requires verified email
