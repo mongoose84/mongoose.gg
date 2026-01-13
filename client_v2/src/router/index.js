@@ -16,6 +16,10 @@ const router = createRouter({
       component: () => import('../views/AuthPage.vue')
     },
     {
+      path: '/v2/auth',
+      redirect: '/auth'
+    },
+    {
       path: '/auth/verify',
       name: 'verify',
       component: () => import('../views/VerifyPage.vue'),
@@ -41,7 +45,16 @@ const router = createRouter({
           redirect: '/app/user'
         },
         {
+          path: 'solo',
+          name: 'app-solo',
+          component: () => import('../views/SoloDashboard.vue')
+        },
+        {
           path: 'user',
+    {
+      path: '/v2/app/solo',
+      redirect: '/app/solo'
+    }
           name: 'app-user',
           component: () => import('../views/UserPage.vue')
         }
@@ -74,7 +87,9 @@ router.beforeEach(async (to, from, next) => {
   // Check if route requires authentication
   if (to.meta.requiresAuth) {
     if (!authStore.isAuthenticated) {
-      return next({ path: '/auth', query: { mode: 'login', redirect: to.fullPath } })
+      // Support v2 auth path per acceptance criteria
+      const targetAuth = '/auth'
+      return next({ path: targetAuth, query: { mode: 'login', redirect: to.fullPath } })
     }
 
     // Check if route requires verified email
