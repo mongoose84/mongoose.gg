@@ -534,6 +534,45 @@ Design the `/app/user` (Dashboard Hub) page: summarize Solo + Duos + Teams and e
 
 ---
 
+### G5b0. [Design] Solo Dashboard design 
+
+**Priority:** P0 - Critical
+**Type:** Design
+**Estimate:** 2 points
+**Labels:** `frontend`, `design`, `epic-g`
+
+#### Description
+
+Design the Solo Dashboard layout and user experience for v2.
+
+#### Acceptance Criteria
+
+- [x] Wireframes created for Solo Dashboard
+- [x] Design reviewed and approved by stakeholders
+- [x] Design handed off to frontend team
+
+---
+
+### G5b1. [Frontend] Solo Dashboard implementation
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Labels:** `frontend`, `vue`, `epic-g`
+
+#### Description
+
+Implement the Solo Dashboard view in the frontend, based on the approved design.
+
+#### Acceptance Criteria
+
+- [x] Solo Dashboard view implemented in Vue
+- [x] Integrated with API v2 endpoints
+- [x] Responsive design for desktop and mobile
+- [x] Unit tests cover core functionality
+
+---
+
 ## Summary of Completed Work
 
 | Epic | Task | Points | Completed |
@@ -555,5 +594,7 @@ Design the `/app/user` (Dashboard Hub) page: summarize Solo + Duos + Teams and e
 | G | G9 - Login, signup, verification & user shell | 5 | ✅ |
 | G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
 | G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
+| G | G5b0 - Solo Dashboard design | 2 | ✅ |
+| G | G5b1 - Solo Dashboard implementation | 2 | ✅ |
 
-**Total Completed Points:** 67
+**Total Completed Points:** 69

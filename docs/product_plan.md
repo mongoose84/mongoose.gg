@@ -33,8 +33,10 @@ For full task details, see:
 | G9 | Implement user login, signup, verification & `/app/user` shell | Frontend v2 | 5 | ✅ |
 | G12 | Implement Riot account linking on `/app/user` | Frontend v2 | 5 | ✅ |
 | G5a | Dashboard Hub design (/app/user) | Frontend v2 | 2 | ✅ |
+| G5b0 | Solo Dashboard design | Frontend v2 | 2 | ✅ |
+| G5b1 | Solo Dashboard implementation | Frontend v2 | 2 | ✅ |
 
-**Completed Total:** 51 points
+**Completed Total:** 55 points
 
 ---
 
@@ -154,9 +156,9 @@ For full task details, see:
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 131 pts |
-| **Completed** | 49 pts |
-| **Grand Total** | 180 pts |
+| **Remaining** | 159 pts |
+| **Completed** | 67 pts |
+| **Grand Total** | 226 pts |
 
 ---
 

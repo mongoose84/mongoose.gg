@@ -41,15 +41,14 @@ First 500 users get free Pro tier. Keep a counter on the landing page of how man
 | **D. Analytics & Tracking** | User behavior tracking for product decisions | 19 pts | 0 pts |
 | **E. Database v2 & Analytics Schema** | New match/participant/timeline schema + ingestion | 4 pts | 16 pts ✅ |
 | **F. API v2** | New API surface aligned with v2 schema and dashboards | 23 pts | 18 pts ✅ |
-| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 28 pts | 15 pts ✅ |
+| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 35 pts | 33 pts ✅ |
 
-**Remaining:** 152 points | **Completed:** 49 points | **Grand Total:** 201 points
+**Remaining:** 159 points | **Completed:** 67 points | **Grand Total:** 226 points
 
 ### G5 Epic: Frontend Solo Dashboard v2 (Split into smaller tasks)
 
 The original G5 (5 points) has been split into **15 focused tasks** (28 points total):
 - **G5a:** Dashboard Hub design (2 pts)
-- **G5b0:** Solo Dashboard design (2 pts)
 - **G5b1-b7:** Frontend implementation (1+2+3+2+3+3+2 = 16 pts)
 - **G5b8-b15:** Backend support & endpoints (1+2+1+3+2+2+2+2 = 15 pts)
 
@@ -1513,43 +1512,6 @@ Create a `/pricing` view that presents the Free, Pro, and Team plans and integra
 
 <!-- G5a moved to completed backlog; see docs/product_backlog_completed.md -->
 
-### G5b0. [Design] Solo Dashboard - Layout, sections & component breakdown
-
-**Priority:** P0 - Critical
-**Type:** Design
-**Estimate:** 2 points
-**Depends on:** G2
-**Labels:** `design`, `frontend`, `ux`, `epic-g`
-
-#### Description
-
-Design the `/app/solo` dashboard page using a single-scroll layout (no tabs). Define the section order, component hierarchy, filters, and visual treatment for locked features (Pro tier).
-
-#### Key Requirements
-
-- Single-scroll layout: Profile Header → Main Champion Card → Winrate Chart → LP Chart → Matchups Table → Goals Panel
-- Queue filter: All Ranked (default), Ranked Solo/Duo, Ranked Flex, Normal, ARAM
-- Time range filter: Last Week, Last Month, Last 3 Months, Last 6 Months (for charts only)
-- Tier-based locking: Free users see greyed-out locked sections with CTA buttons, not a banner
-- Main Champion Card: Dynamic by role (shows roles played, top 3 champs per role with winrate)
-- Winrate Chart: Rolling average line chart, shared component (reusable for duo/team)
-- LP Chart: Per-game line chart, Ranked only
-- Matchups Table: Top 5 champions sorted by winrate, expandable rows for opponent details
-- Goals Panel: Displays active goals + progress, expandable, with "Set New Goal" CTA
-- Save documentation in `docs/design/` folder
-
-#### Acceptance Criteria
-
-- [ ] Complete layout specification with visual hierarchy and spacing
-- [ ] Section-by-section UX spec (header, charts, tables, panels)
-- [ ] Component breakdown and data flow diagram
-- [ ] Wireframe or mockup showing all sections at desktop and mobile sizes
-- [ ] API data shapes for each section clearly defined
-- [ ] Tier-based locking treatment specified (visual examples)
-- [ ] Responsive behavior documented (stacking on mobile, chart resizing, etc.)
-
----
-
 ### G5b1. [Frontend] Create empty Solo dashboard view & routing
 
 **Priority:** P0 - Critical
@@ -1746,7 +1708,7 @@ Create an LP Over Time chart that displays LP change per game (only for Ranked q
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 3 points
-**Depends on:** G5b1, F3 (new endpoint needed)
+**Depends on:** G5b1, G5b11
 **Labels:** `frontend`, `solo`, `dashboard`, `component`, `table`, `epic-g`
 
 #### Description
@@ -1943,7 +1905,7 @@ Create a new endpoint `GET /api/v2/solo/matchups/{userId}?queueType=...` that re
   ```
 - [ ] Data sourced from v2 repositories (`ParticipantRepository`, `MatchRepository`)
 - [ ] Sorted by champion winrate (descending)
-- [ ] Opponents sorted by games played (descending)
+- [ ] Opponent sorting: by games played (most played first)
 - [ ] Authenticated users only (401 if not logged in)
 - [ ] Unit tests verify correct sorting and filtering
 
