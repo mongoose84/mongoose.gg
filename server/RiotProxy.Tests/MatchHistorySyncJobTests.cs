@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
-using RiotProxy.External.Domain.Entities.V2;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
+using RiotProxy.External.Domain.Entities;
+using RiotProxy.Infrastructure.External.Database.Repositories;
 using Xunit;
 
 namespace RiotProxy.Tests;

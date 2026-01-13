@@ -7,11 +7,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RiotProxy.Infrastructure.External.Database.Repositories;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
 using RiotProxy.Infrastructure.External;
 using RiotProxy.Infrastructure.Security;
 using RiotProxy.External.Domain.Entities;
-using RiotProxy.External.Domain.Entities.V2;
 using RiotProxy.External.Domain.Enums;
 using Microsoft.Extensions.Hosting;
 
