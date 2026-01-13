@@ -577,6 +577,27 @@ Create the base `/app/solo` route and view component with basic structure (heade
 
 ---
 
+### G5b8. [Backend] Add profile_icon_id and summoner_level to riot_accounts table ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Database Migration
+**Estimate:** 1 point
+**Depends on:** None
+**Labels:** `database`, `migration`, `epic-g`
+
+#### Description
+
+Add two columns to the `riot_accounts` table: `profile_icon_id` (string) and `summoner_level` (integer). These are fetched from the Riot API during account linking and displayed on the Solo dashboard Profile Header.
+
+#### Acceptance Criteria
+
+- [x] SQL migration created and tested: `ALTER TABLE riot_accounts ADD COLUMN profile_icon_id VARCHAR(255), ADD COLUMN summoner_level INT`
+- [x] Migration is idempotent (safe to run multiple times)
+- [x] Entity class updated to include these fields
+- [x] No data loss or errors on existing records
+
+---
+
 ## Summary of Completed Work
 
 | Epic | Task | Points | Completed |
@@ -600,5 +621,6 @@ Create the base `/app/solo` route and view component with basic structure (heade
 | G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
 | G | G5b0 - Solo Dashboard design | 2 | ✅ |
 | G | G5b1 - Create empty Solo dashboard view & routing | 1 | ✅ |
+| G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
 
-**Total Completed Points:** 70
+**Total Completed Points:** 71

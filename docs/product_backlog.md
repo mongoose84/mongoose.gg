@@ -39,20 +39,25 @@ First 500 users get free Pro tier. Keep a counter on the landing page of how man
 | **B. AI Goal Recommendations** | LLM-powered improvement suggestions | 44 pts | 0 pts |
 | **C. Subscription & Paywall** | Mollie integration, tiers, feature flags | 34 pts | 0 pts |
 | **D. Analytics & Tracking** | User behavior tracking for product decisions | 19 pts | 0 pts |
-| **E. Database v2 & Analytics Schema** | New match/participant/timeline schema + ingestion | 4 pts | 16 pts ✅ |
-| **F. API v2** | New API surface aligned with v2 schema and dashboards | 23 pts | 18 pts ✅ |
-| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 35 pts | 33 pts ✅ |
+| **E. Database v2 & Analytics Schema** | New match/participant/timeline schema + ingestion | 4 pts | 17 pts ✅ |
+| **F. API v2** | New API surface aligned with v2 schema and dashboards | 31 pts | 31 pts ✅ |
+| **G. Frontend v2 App & Marketing** | New app shell, landing, and dashboards using v2 API | 55 pts | 25 pts ✅ |
 
-**Remaining:** 159 points | **Completed:** 67 points | **Grand Total:** 226 points
+**Remaining:** 187 points | **Completed:** 73 points | **Grand Total:** 260 points
 
-### G5 Epic: Frontend Solo Dashboard v2 (Split into smaller tasks)
+### G5 Epic: Frontend Solo Dashboard v2 (Vertical slices)
 
-The original G5 (5 points) has been split into **15 focused tasks** (28 points total):
-- **G5a:** Dashboard Hub design (2 pts)
-- **G5b1-b7:** Frontend implementation (1+2+3+2+3+3+2 = 16 pts)
-- **G5b8-b15:** Backend support & endpoints (1+2+1+3+2+2+2+2 = 15 pts)
+The original G5 (5 points) has been split into **11 focused tasks** (35 points total), structured as vertical slices where possible:
+- **G5a:** Dashboard Hub design (2 pts) ✅
+- **G5b0:** Solo Dashboard design (2 pts) ✅
+- **G5b1:** Empty Solo dashboard view & routing (1 pt) ✅
+- **G5b2–G5b7:** Solo dashboard components **plus their backing data** (27 pts total; profile header, main champions, winrate chart, LP chart UI, matchups table, goals panel)
+- **G5b8:** Database support for profile data (1 pt) ✅
+- **G5b14:** Backend LP trend data for Solo dashboard (2 pts)
 
-Each task is a vertical slice with clear acceptance criteria, enabling parallel frontend/backend work and incremental value delivery.
+Backend tasks **G5b9–G5b13** and **G5b15** are treated as backend **subtasks** of the corresponding vertical slices (G5b2–G5b7). In `docs/product_plan.md` their effort is rolled up into the main G5b2–G5b7 items; in this backlog they remain as separate subsections to spell out backend behaviour and acceptance criteria.
+
+Each vertical slice has clear acceptance criteria, enabling parallel frontend/backend work and incremental value delivery.
 
 > Note: Platform v2 epics (E–G) are prerequisites for most feature work (B–D) and should generally be completed first.
 >
@@ -1510,11 +1515,11 @@ Create a `/pricing` view that presents the Free, Pro, and Team plans and integra
 
 ## G5 Epic: Frontend Solo Dashboard v2
 
-### G5b2. [Frontend] Implement Profile Header Card component
+### G5b2. [FE+BE] Profile header + profile data (Solo dashboard)
 
 **Priority:** P0 - Critical
 **Type:** Feature
-**Estimate:** 2 points
+**Estimate:** 5 points (2 FE + 3 BE; rolls up backend work from G5b9 & G5b10)
 **Depends on:** G5b1, F2 (solo endpoint needs icon/level/rank data)
 **Labels:** `frontend`, `solo`, `dashboard`, `component`, `epic-g`
 
@@ -1524,6 +1529,7 @@ Create the Profile Header Card that displays user's overall stats at the top of 
 
 #### Backend Requirements
 
+- [ ] Backend subtasks **G5b9** (fetch & store profile data on account linking) and **G5b10** (expose profile data on Solo dashboard endpoint) are complete.
 - [ ] Solo dashboard v2 endpoint (F2) must return:
   - `profileIconId`, `summonerLevel`
   - `rankedSoloDuoRank`, `rankedFlexRank` (or tiers/divisions)
@@ -1770,33 +1776,12 @@ Create a Goals Panel that displays active goals (if Pro tier) or shows an upgrad
 
 ---
 
-### G5b8. [Backend] Add profile_icon_id and summoner_level to riot_accounts table
-
-**Priority:** P0 - Critical
-**Type:** Database Migration
-**Estimate:** 1 point
-**Depends on:** None
-**Labels:** `database`, `migration`, `epic-g`
-
-#### Description
-
-Add two columns to the `riot_accounts` table: `profile_icon_id` (string) and `summoner_level` (integer). These are fetched from the Riot API during account linking and displayed on the Solo dashboard Profile Header.
-
-#### Acceptance Criteria
-
-- [ ] SQL migration created and tested: `ALTER TABLE riot_accounts ADD COLUMN profile_icon_id VARCHAR(255), ADD COLUMN summoner_level INT`
-- [ ] Migration is idempotent (safe to run multiple times)
-- [ ] Entity class updated to include these fields
-- [ ] No data loss or errors on existing records
-
----
-
 ### G5b9. [Backend] Fetch and store profile data during account linking
 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 2 points
-**Depends on:** G5b8
+**Depends on:** None (G5b8 complete)
 **Labels:** `backend`, `riot-api`, `epic-g`
 
 #### Description
@@ -1819,7 +1804,7 @@ Update the account linking flow to fetch summoner profile data (icon ID, level) 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 1 point
-**Depends on:** G5b8, G5b9, F2
+**Depends on:** G5b9, F2
 **Labels:** `backend`, `api`, `epic-g`
 
 #### Description

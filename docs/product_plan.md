@@ -28,15 +28,19 @@ For full task details, see:
 | F7 | Implement authenticated access for backend | API v2 | 3 | ✅ |
 | F11 | Implement user auth endpoints (core) | API v2 | 5 | ✅ |
 | F12 | Implement Riot account linking endpoints | API v2 | 5 | ✅ |
+| F13 | Implement WebSocket endpoint for sync progress | API v2 | 5 | ✅ |
+| F14 | Implement V2 Match History Sync Job | API v2 | 8 | ✅ |
 | G1 | Define app v2 IA & routes | Frontend v2 | 2 | ✅ |
 | G2 | Implement new app shell & navigation | Frontend v2 | 3 | ✅ |
-| G9 | Implement user login, signup, verification & `/app/user` shell | Frontend v2 | 5 | ✅ |
-| G12 | Implement Riot account linking on `/app/user` | Frontend v2 | 5 | ✅ |
 | G5a | Dashboard Hub design (/app/user) | Frontend v2 | 2 | ✅ |
 | G5b0 | Solo Dashboard design | Frontend v2 | 2 | ✅ |
-| G5b1 | Solo Dashboard implementation | Frontend v2 | 2 | ✅ |
+| G5b1 | Create empty Solo dashboard view & routing | Frontend v2 | 1 | ✅ |
+| G5b8 | Add profile_icon_id and summoner_level to riot_accounts | Database v2 | 1 | ✅ |
+| G9 | Implement user login, signup, verification & `/app/user` shell | Frontend v2 | 5 | ✅ |
+| G12 | Implement Riot account linking on `/app/user` | Frontend v2 | 5 | ✅ |
+| G13 | Implement real-time match sync progress via WebSocket | Frontend v2 | 5 | ✅ |
 
-**Completed Total:** 56 points
+**Completed Total:** 73 points
 
 ---
 
@@ -53,12 +57,12 @@ For full task details, see:
 | B6 | Create goal prompt builder | AI Goals | 2 | |
 | B7 | Create goal recommendation service | AI Goals | 3 | |
 | B8 | Create recommendation endpoint | AI Goals | 2 | |
-| C1 | Set up Stripe integration | Subscription | 3 | |
+| C1 | Set up Mollie integration | Subscription | 3 | |
 | C2 | Create subscription tables | Subscription | 2 | |
 | C3 | Add tier column to User | Subscription | 1 | |
-| C4 | Create Stripe customer service | Subscription | 2 | |
+| C4 | Create Mollie customer service | Subscription | 2 | |
 | C5 | Create subscription management service | Subscription | 3 | |
-| C6 | Create Stripe webhook handler | Subscription | 3 | |
+| C6 | Create Mollie webhook handler | Subscription | 3 | |
 | C7 | Create subscription endpoints | Subscription | 2 | |
 | C8 | Create feature flag service | Subscription | 2 | |
 | E1 | Finalize Database v2 schema & DDL | Database v2 | 3 | ✅ |
@@ -71,17 +75,25 @@ For full task details, see:
 | F3 | Implement Duo dashboard v2 endpoint | API v2 | 3 | |
 | F7 | Implement authenticated access for backend | API v2 | 3 | ✅ |
 | F11 | Implement user auth endpoints (core) | API v2 | 5 | ✅ |
-| G1 | Define app v2 IA & routes | Frontend v2 | 2 | ✅ |
-| G2 | Implement new app shell & navigation | Frontend v2 | 3 | ✅ |
-| G5 | Implement Solo dashboard v2 view | Frontend v2 | 5 | |
-| G9 | Implement user login, signup, verification & `/app/user` shell | Frontend v2 | 5 | ✅ |
-| G12 | Implement Riot account linking on `/app/user` | Frontend v2 | 5 | ✅ |
-| G13 | Implement real-time match sync progress via WebSocket | Frontend v2 | 5 | ✅ |
 | F12 | Implement Riot account linking endpoints | API v2 | 5 | ✅ |
 | F13 | Implement WebSocket endpoint for sync progress | API v2 | 5 | ✅ |
 | F14 | Implement V2 Match History Sync Job | API v2 | 8 | ✅ |
+| G1 | Define app v2 IA & routes | Frontend v2 | 2 | ✅ |
+| G2 | Implement new app shell & navigation | Frontend v2 | 3 | ✅ |
+| G5a | Dashboard Hub design (/app/user) | Frontend v2 | 2 | ✅ |
+| G5b0 | Solo Dashboard design | Frontend v2 | 2 | ✅ |
+| G5b1 | Create empty Solo dashboard view & routing | Frontend v2 | 1 | ✅ |
+| G5b2 | Profile header + profile data (FE+BE, Solo dashboard) | Frontend v2 / API v2 | 5 | |
+| G5b3 | Main champion card + main champions data (FE+BE) | Frontend v2 / API v2 | 5 | |
+| G5b4 | Winrate Over Time chart + trend data (FE+BE) | Frontend v2 / API v2 | 5 | |
+| G5b5 | LP Over Time chart (frontend UI) | Frontend v2 | 2 | |
+| G5b6 | Champion matchups table + v2 endpoint (FE+BE) | Frontend v2 / API v2 | 6 | |
+| G5b8 | Add profile_icon_id and summoner_level to riot_accounts | Database v2 | 1 | ✅ |
+| G9 | Implement user login, signup, verification & `/app/user` shell | Frontend v2 | 5 | ✅ |
+| G12 | Implement Riot account linking on `/app/user` | Frontend v2 | 5 | ✅ |
+| G13 | Implement real-time match sync progress via WebSocket | Frontend v2 | 5 | ✅ |
 
-**P0 Remaining:** 43 points | **P0 Completed:** 67 points | **P0 Total:** 110 points
+**P0 Remaining:** 61 points | **P0 Completed:** 73 points | **P0 Total:** 134 points
 
 ### P1 - High
 
@@ -109,13 +121,17 @@ For full task details, see:
 | F8 | Implement unified error handling & problem responses | API v2 | 3 | |
 | F9 | Add backend tests with focus on security | API v2 | 3 | |
 | F11-social | Implement social endpoints (friends, teams, search) | API v2 | 3 | |
+| F13-lp | Implement Riot League API for rank/LP data | API v2 | 5 | |
+| F14-login | Check for new matches on user login and auto-sync | API v2 | 3 | |
 | G3 | Implement new public landing page | Frontend v2 | 2 | |
 | G4 | Implement pricing page | Frontend v2 | 2 | |
+| G5b7 | Goals panel + goals data on Solo dashboard (FE+BE) | Frontend v2 / Backend | 4 | |
+| G5b14 | Fetch LP trend data for Solo dashboard | Backend | 2 | |
 | G6 | Implement Duo dashboard v2 view | Frontend v2 | 5 | |
 | G7 | Implement Team dashboard v2 view | Frontend v2 | 5 | |
 | G10 | Implement user dropdown details & account settings page | Frontend v2 | 8 | |
 
-**P1 Total:** 71 points
+**P1 Total:** 85 points
 
 ### P2 - Medium
 
@@ -156,9 +172,9 @@ For full task details, see:
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 159 pts |
-| **Completed** | 67 pts |
-| **Grand Total** | 226 pts |
+| **Remaining** | 187 pts |
+| **Completed** | 73 pts |
+| **Grand Total** | 260 pts |
 
 ---
 
@@ -166,7 +182,7 @@ For full task details, see:
 
 ### Sprint 0: Platform v2 Foundation ✅ IN PROGRESS
 **Focus:** Database v2 + API v2 + Solo dashboard v2 + Auth + Account Linking + Real-time Sync
-**Points:** ~58 (53 completed)
+**Points:** ~96 (73 completed, 23 remaining)
 
 - ✅ E1, E2, E3 (Database v2 schema & repositories)
 - ✅ E4, E5 (v2 ingestion: matches, participants, timeline & metrics)
@@ -176,10 +192,14 @@ For full task details, see:
 - ✅ F13 (WebSocket sync progress endpoint)
 - ✅ F14 (V2 Match History Sync Job)
 - ✅ G1, G2 (App v2 IA & shell)
+- ✅ G5a, G5b0 (Dashboard Hub & Solo Dashboard design)
+- ✅ G5b1 (Empty Solo dashboard view & routing)
+- ✅ G5b8 (Add profile_icon_id and summoner_level columns)
 - ✅ G9 (User login, signup, verification & `/app/user` shell)
 - ✅ G12 (Riot account linking UI)
 - ✅ G13 (Real-time sync progress UI)
-- ⬜ G5 (Solo dashboard view)
+- ⬜ G5b2-b6 (Solo dashboard frontend components)
+- ⬜ G5b9-b13 (Solo dashboard backend endpoints)
 
 ### Sprint 1: Foundation (P0 Core)
 **Focus:** Database + Stripe + Basic AI
