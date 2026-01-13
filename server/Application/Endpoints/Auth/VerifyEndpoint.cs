@@ -29,7 +29,7 @@ public sealed class VerifyEndpoint : IEndpoint
         app.MapPost(Route, [Authorize] async (
             [FromBody] VerifyRequest request,
             HttpContext httpContext,
-            [FromServices] V2UsersRepository usersRepo,
+            [FromServices] UsersRepository usersRepo,
             [FromServices] ILogger<VerifyEndpoint> logger,
             [FromServices] IConfiguration config
         ) =>

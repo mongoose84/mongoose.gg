@@ -2,7 +2,7 @@ namespace RiotProxy.Infrastructure.WebSocket;
 
 /// <summary>
 /// Interface for broadcasting sync progress updates to connected WebSocket clients.
-/// Used by V2MatchHistorySyncJob to push real-time updates.
+/// Used by MatchHistorySyncJob to push real-time updates.
 /// </summary>
 public interface ISyncProgressBroadcaster
 {

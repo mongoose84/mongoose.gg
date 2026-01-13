@@ -178,19 +178,19 @@ public class SyncProgressHubTests : IDisposable
 /// <summary>
 /// Fake V2RiotAccountsRepository for SyncProgressHub tests.
 /// </summary>
-internal sealed class FakeV2RiotAccountsRepositoryForHub : V2RiotAccountsRepository
+internal sealed class FakeV2RiotAccountsRepositoryForHub : RiotAccountsRepository
 {
-    private readonly ConcurrentDictionary<string, V2RiotAccount> _accounts = new();
+    private readonly ConcurrentDictionary<string, RiotAccount> _accounts = new();
 
     public FakeV2RiotAccountsRepositoryForHub() : base(null!) { }
 
-    public override Task<V2RiotAccount?> GetByPuuidAsync(string puuid)
+    public override Task<RiotAccount?> GetByPuuidAsync(string puuid)
     {
         _accounts.TryGetValue(puuid, out var account);
         return Task.FromResult(account);
     }
 
-    public void AddAccount(V2RiotAccount account)
+    public void AddAccount(RiotAccount account)
     {
         _accounts[account.Puuid] = account;
     }
@@ -200,10 +200,10 @@ internal sealed class FakeScopeFactory : IServiceScopeFactory, IDisposable
 {
     private readonly ServiceProvider _provider;
 
-    public FakeScopeFactory(V2RiotAccountsRepository repo)
+    public FakeScopeFactory(RiotAccountsRepository repo)
     {
         var services = new ServiceCollection();
-        services.AddSingleton<V2RiotAccountsRepository>(repo);
+        services.AddSingleton<RiotAccountsRepository>(repo);
         _provider = services.BuildServiceProvider();
     }
 

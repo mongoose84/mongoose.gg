@@ -3,8 +3,8 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.External.Domain.Entities.V2;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
+using RiotProxy.External.Domain.Entities;
+using RiotProxy.Infrastructure.External.Database.Repositories;
 using static RiotProxy.Application.DTOs.RegisterDto;
 
 namespace RiotProxy.Application.Endpoints.Auth;
@@ -29,7 +29,7 @@ public sealed class RegisterEndpoint : IEndpoint
         app.MapPost(Route, async (
             [FromBody] RegisterRequest request,
             HttpContext httpContext,
-            [FromServices] V2UsersRepository usersRepo,
+            [FromServices] UsersRepository usersRepo,
             [FromServices] ILogger<RegisterEndpoint> logger,
             [FromServices] IConfiguration config
         ) =>

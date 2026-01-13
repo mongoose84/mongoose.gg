@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Web;
-using RiotProxy.External.Domain.Entities;
 using RiotProxy.Infrastructure.External.Riot.LimitHandler;
 using RiotProxy.Utilities;
 
@@ -73,7 +72,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             throw new InvalidOperationException("Response does not contain a 'puuid' field.");
         }
 
-        public async Task<IList<LolMatch>> GetMatchHistoryAsync(string puuid, int start = 0, int count = 100, long? startTime = null, CancellationToken ct = default)
+        public async Task<JsonDocument> GetMatchHistoryAsync(string puuid, int start = 0, int count = 100, long? startTime = null, CancellationToken ct = default)
         {
             var url = $"{RiotUrlBuilder.GetMatchUrl($"/match/v5/matches/by-puuid/{puuid}/ids")}&start={start}&count={count}";
 
@@ -86,10 +85,8 @@ namespace RiotProxy.Infrastructure.External.Riot
             response.EnsureSuccessStatusCode();
             
             var json = await response.Content.ReadAsStringAsync(ct);
-            var matchIds = JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
-            
-            var matchIdList = matchIds.Select(id => new LolMatch { MatchId = id, Puuid = puuid, InfoFetched = false }).ToList();
-            return matchIdList;
+            var matchDoc = JsonDocument.Parse(json);
+            return matchDoc;
         }
 
         public async Task<JsonDocument> GetMatchInfoAsync(string matchId, CancellationToken ct = default)
@@ -119,7 +116,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             return JsonDocument.Parse(json);
         }
 
-        public async Task<Summoner?> GetSummonerByPuuIdAsync(string tagLine, string puuid, CancellationToken ct = default)
+        public async Task<JsonDocument> GetSummonerByPuuIdAsync(string tagLine, string puuid, CancellationToken ct = default)
         {
             var encodedPuuid = HttpUtility.UrlEncode(puuid);
             var summonerUrl = RiotUrlBuilder.GetSummonerUrl(tagLine, encodedPuuid);
@@ -136,9 +133,8 @@ namespace RiotProxy.Infrastructure.External.Riot
             response.EnsureSuccessStatusCode();   // Throws if the status is not 2xx.
 
             var json = await response.Content.ReadAsStringAsync(ct);
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var summoner = JsonSerializer.Deserialize<Summoner>(json, options);
-            return summoner;
+            var jsonDoc = JsonDocument.Parse(json);
+            return jsonDoc;
         }
 
         public async Task<string> GetLolVersionAsync(CancellationToken ct = default)

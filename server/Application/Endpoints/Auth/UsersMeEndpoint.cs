@@ -23,8 +23,8 @@ public sealed class UsersMeEndpoint : IEndpoint
     {
         app.MapGet(Route, [Authorize] async (
             HttpContext httpContext,
-            [FromServices] V2UsersRepository usersRepo,
-            [FromServices] V2RiotAccountsRepository riotAccountsRepo,
+            [FromServices] UsersRepository usersRepo,
+            [FromServices] RiotAccountsRepository riotAccountsRepo,
             [FromServices] ILogger<UsersMeEndpoint> logger
         ) =>
         {

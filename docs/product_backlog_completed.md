@@ -344,14 +344,14 @@ Create v2 API endpoints for linking Riot accounts to authenticated users. Store 
 
 #### Description
 
-Create a v2 match history sync job that fetches matches for linked Riot accounts, stores them in v2 tables, and broadcasts progress via WebSocket. Supports automatic triggering on account link, on login, and after idle periods.
+Create a match history sync job that fetches matches for linked Riot accounts, stores them in tables, and broadcasts progress via WebSocket. Supports automatic triggering on account link, on login, and after idle periods.
 
 #### Acceptance Criteria
 
-- [x] Create `V2MatchHistorySyncJob` background job that:
+- [x] Create `MatchHistorySyncJob` background job that:
   - Picks up accounts with `sync_status = 'pending'` or due for refresh
   - Fetches up to 100 matches from Riot Match API
-  - Stores match data in v2 tables (matches, participants, checkpoints, metrics, etc.)
+  - Stores match data in tables (matches, participants, checkpoints, metrics, etc.)
   - Updates `sync_progress` incrementally as matches are processed
   - Broadcasts progress via `IWebSocketBroadcaster` after each match
   - Sets `sync_status = 'completed'` and `last_sync_at = now()` on success
@@ -450,7 +450,7 @@ Create a WebSocket endpoint that broadcasts real-time match sync progress to con
 - Created `IWebSocketBroadcaster` interface in `Infrastructure/WebSocket/`
 - Implemented `SyncProgressHub` WebSocket handler with concurrent connection management
 - Added message DTOs: `SyncProgressMessage`, `SyncCompleteMessage`, `SyncErrorMessage`
-- Integrated broadcaster into `V2MatchHistorySyncJob`
+- Integrated broadcaster into `MatchHistorySyncJob`
 - Added WebSocket middleware to `Program.cs` with 2-minute keep-alive
 - Unit tests in `RiotProxy.Tests/SyncProgressHubTests.cs`
 

@@ -64,23 +64,23 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             // Replace V2UsersRepository with a fake to avoid real DB connections
-            services.RemoveAll<V2UsersRepository>();
-            services.AddSingleton<V2UsersRepository>(_v2UsersRepository);
+            services.RemoveAll<UsersRepository>();
+            services.AddSingleton<UsersRepository>(_v2UsersRepository);
         });
 
         return base.CreateHost(builder);
     }
 
-    internal sealed class FakeV2UsersRepository : V2UsersRepository
+    internal sealed class FakeV2UsersRepository : UsersRepository
     {
-        private readonly ConcurrentDictionary<string, V2User> _usersByUsername = new(StringComparer.OrdinalIgnoreCase);
-        private readonly ConcurrentDictionary<string, V2User> _usersByEmail = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, User> _usersByUsername = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, User> _usersByEmail = new(StringComparer.OrdinalIgnoreCase);
         private long _nextId = 1;
 
         public FakeV2UsersRepository() : base(null!, new FakeEmailEncryptor())
         {
             // Pre-populate with a test user (password: "test-password")
-            var testUser = new V2User
+            var testUser = new User
             {
                 UserId = _nextId++,
                 Username = "tester",
@@ -96,19 +96,19 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _usersByEmail["tester@test.com"] = testUser;
         }
 
-        public override Task<V2User?> GetByUsernameAsync(string username)
+        public override Task<User?> GetByUsernameAsync(string username)
         {
             _usersByUsername.TryGetValue(username, out var user);
             return Task.FromResult(user);
         }
 
-        public override Task<V2User?> GetByEmailAsync(string email)
+        public override Task<User?> GetByEmailAsync(string email)
         {
             _usersByEmail.TryGetValue(email, out var user);
             return Task.FromResult(user);
         }
 
-        public override Task<long> UpsertAsync(V2User user)
+        public override Task<long> UpsertAsync(User user)
         {
             if (user.UserId == 0)
             {

@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 Secrets.Initialize(builder.Configuration);
 
 builder.Services.AddSingleton<IRiotApiClient, RiotApiClient>();
-builder.Services.AddSingleton<IV2DbConnectionFactory, V2DbConnectionFactory>();
+builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 
 // Email encryption for secure storage - registered via factory to allow test override
 builder.Services.AddSingleton<IEmailEncryptor>(sp =>
@@ -39,16 +39,16 @@ builder.Services.AddSingleton<IEmailEncryptor>(sp =>
 });
 
 // V2 repositories
-builder.Services.AddScoped<V2UsersRepository>();
-builder.Services.AddScoped<V2RiotAccountsRepository>();
-builder.Services.AddScoped<V2MatchesRepository>();
-builder.Services.AddScoped<V2ParticipantsRepository>();
-builder.Services.AddScoped<V2ParticipantCheckpointsRepository>();
-builder.Services.AddScoped<V2ParticipantMetricsRepository>();
-builder.Services.AddScoped<V2TeamObjectivesRepository>();
-builder.Services.AddScoped<V2ParticipantObjectivesRepository>();
-builder.Services.AddScoped<V2TeamMatchMetricsRepository>();
-builder.Services.AddScoped<V2DuoMetricsRepository>();
+builder.Services.AddScoped<UsersRepository>();
+builder.Services.AddScoped<RiotAccountsRepository>();
+builder.Services.AddScoped<MatchesRepository>();
+builder.Services.AddScoped<ParticipantsRepository>();
+builder.Services.AddScoped<ParticipantCheckpointsRepository>();
+builder.Services.AddScoped<ParticipantMetricsRepository>();
+builder.Services.AddScoped<TeamObjectivesRepository>();
+builder.Services.AddScoped<ParticipantObjectivesRepository>();
+builder.Services.AddScoped<TeamMatchMetricsRepository>();
+builder.Services.AddScoped<DuoMetricsRepository>();
 builder.Services.AddScoped<V2SoloStatsRepository>();
 
 // Named HttpClient for Riot API
@@ -65,7 +65,7 @@ builder.Services.AddHttpClient("RiotApi", client =>
 var enableV2MatchHistorySync = builder.Configuration.GetValue<bool>("Jobs:EnableV2MatchHistorySync", true);
 if (enableV2MatchHistorySync)
 {
-    builder.Services.AddHostedService<V2MatchHistorySyncJob>();
+    builder.Services.AddHostedService<MatchHistorySyncJob>();
 }
 
 // WebSocket hub for sync progress (singleton - shared across all connections)

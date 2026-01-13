@@ -26,7 +26,7 @@ public sealed class LoginEndpoint : IEndpoint
         app.MapPost(Route, async (
             [FromBody] LoginRequest request,
             HttpContext httpContext,
-            [FromServices] V2UsersRepository usersRepo,
+            [FromServices] UsersRepository usersRepo,
             [FromServices] ILogger<LoginEndpoint> logger,
             [FromServices] IConfiguration config
         ) =>

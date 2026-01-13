@@ -25,8 +25,8 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string userId,
             [FromQuery] string? queueType,
-            [FromServices] V2RiotAccountsRepository riotAccountRepo,
-            [FromServices] V2SoloStatsRepository soloStatsRepo,
+            [FromServices] RiotAccountsRepository riotAccountRepo,
+            [FromServices] SoloStatsRepository soloStatsRepo,
             [FromServices] ILogger<SoloDashboardV2Endpoint> logger
         ) =>
         {
