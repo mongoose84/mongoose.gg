@@ -90,7 +90,7 @@ public sealed class RegisterEndpoint : IEndpoint
                 var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
                 // Create user with normalized username and email
-                var newUser = new V2User
+                var newUser = new User
                 {
                     Email = request.Email.ToLowerInvariant().Trim(),
                     Username = normalizedUsername,

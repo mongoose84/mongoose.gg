@@ -21,12 +21,21 @@ namespace RiotProxy.Infrastructure.External.Riot
         {
             var wins = 0;
 
-            var matchHistory = await GetMatchHistoryAsync(puuid);
-            var totalGames = matchHistory.Count;
-            
-            foreach (var match in matchHistory)
+            using var matchHistory = await GetMatchHistoryAsync(puuid);
+            var matchIds = matchHistory.RootElement;
+
+            if (matchIds.ValueKind != JsonValueKind.Array || matchIds.GetArrayLength() == 0)
+                return 0.0;
+
+            int totalGames = matchIds.GetArrayLength();
+
+            foreach (var matchIdElement in matchIds.EnumerateArray())
             {
-                var matchDetails = await GetMatchInfoAsync(match.MatchId);
+                var matchId = matchIdElement.GetString();
+                if (string.IsNullOrEmpty(matchId))
+                    continue;
+
+                using var matchDetails = await GetMatchInfoAsync(matchId);
                 var info = matchDetails.RootElement.GetProperty("info");
                 var participants = info.GetProperty("participants").EnumerateArray();
                 foreach (var participant in participants)
@@ -39,10 +48,11 @@ namespace RiotProxy.Infrastructure.External.Riot
                         }
                         break;
                     }
-                }  
+                }
             }
+
             double winrate = (double)wins / totalGames * 100;
-            return winrate; // Placeholder value
+            return winrate;
         }
 
         public async Task<string> GetPuuIdAsync(string gameName, string tagLine, CancellationToken ct = default)

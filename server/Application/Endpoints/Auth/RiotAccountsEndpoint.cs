@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.External.Domain.Entities.V2;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
+using RiotProxy.External.Domain.Entities;
+using RiotProxy.Infrastructure.External.Database.Repositories;
 using RiotProxy.Infrastructure.External.Riot;
 
 namespace RiotProxy.Application.Endpoints.Auth;

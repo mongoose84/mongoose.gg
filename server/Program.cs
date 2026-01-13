@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using RiotProxy.Infrastructure;
 using RiotProxy.Application;
 using RiotProxy.Infrastructure.External.Database;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
+using RiotProxy.Infrastructure.External.Database.Repositories;
 using RiotProxy.Infrastructure.External.Riot;
 using RiotProxy.Infrastructure.External;
 using RiotProxy.Infrastructure.Security;
@@ -49,7 +49,7 @@ builder.Services.AddScoped<TeamObjectivesRepository>();
 builder.Services.AddScoped<ParticipantObjectivesRepository>();
 builder.Services.AddScoped<TeamMatchMetricsRepository>();
 builder.Services.AddScoped<DuoMetricsRepository>();
-builder.Services.AddScoped<V2SoloStatsRepository>();
+builder.Services.AddScoped<SoloStatsRepository>();
 
 // Named HttpClient for Riot API
 builder.Services.AddHttpClient("RiotApi", client =>

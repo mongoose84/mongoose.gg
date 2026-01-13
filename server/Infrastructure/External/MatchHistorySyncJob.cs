@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Logging;
-using RiotProxy.External.Domain.Entities.V2;
-using RiotProxy.Infrastructure.External.Database.Repositories.V2;
+using RiotProxy.External.Domain.Entities;
+using RiotProxy.Infrastructure.External.Database.Repositories;
 using RiotProxy.Infrastructure.External.Riot;
+using RiotProxy.Infrastructure.External.Riot.Mappers;
 using RiotProxy.Infrastructure.WebSocket;
 using System.Text.Json;
 
@@ -18,6 +19,12 @@ public class MatchHistorySyncJob : BackgroundService
     private readonly ILogger<MatchHistorySyncJob> _logger;
     private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(10);
     private readonly TimeSpan _stuckJobThreshold = TimeSpan.FromMinutes(10);
+
+    // Backfill configuration
+    private const int MaxBackfillMatches = 300;
+    private const int MaxIncrementalMatches = 100;
+    private const int DeepAnalysisMatchCount = 100;
+    private static readonly TimeSpan BackfillLookbackPeriod = TimeSpan.FromDays(180); // 6 months
 
     public MatchHistorySyncJob(IServiceProvider serviceProvider, ILogger<MatchHistorySyncJob> logger)
     {
@@ -136,27 +143,48 @@ public class MatchHistorySyncJob : BackgroundService
     {
         var riotApiClient = services.GetRequiredService<IRiotApiClient>();
         var riotAccountsRepo = services.GetRequiredService<RiotAccountsRepository>();
-        var v2Matches = services.GetRequiredService<MatchesRepository>();
-        var v2Participants = services.GetRequiredService<ParticipantsRepository>();
-        var v2Checkpoints = services.GetRequiredService<ParticipantCheckpointsRepository>();
-        var v2PartMetrics = services.GetRequiredService<ParticipantMetricsRepository>();
-        var v2TeamObjectives = services.GetRequiredService<TeamObjectivesRepository>();
-        var v2PartObjectives = services.GetRequiredService<ParticipantObjectivesRepository>();
-        var v2TeamMetrics = services.GetRequiredService<TeamMatchMetricsRepository>();
-        var v2DuoMetrics = services.GetRequiredService<DuoMetricsRepository>();
+        var matchesRepo = services.GetRequiredService<MatchesRepository>();
+        var participantsRepo = services.GetRequiredService<ParticipantsRepository>();
+        var checkpointsRepo = services.GetRequiredService<ParticipantCheckpointsRepository>();
+        var partMetricsRepo = services.GetRequiredService<ParticipantMetricsRepository>();
+        var teamObjectivesRepo = services.GetRequiredService<TeamObjectivesRepository>();
+        var partObjectivesRepo = services.GetRequiredService<ParticipantObjectivesRepository>();
+        var teamMetricsRepo = services.GetRequiredService<TeamMatchMetricsRepository>();
+        var duoMetricsRepo = services.GetRequiredService<DuoMetricsRepository>();
+        var teamRoleRepo = services.GetRequiredService<TeamRoleResponsibilitiesRepository>();
         var broadcaster = services.GetService<ISyncProgressBroadcaster>();
 
+        // Determine if this is an initial backfill or incremental sync
+        bool isInitialSync = !account.LastSyncAt.HasValue;
+
         // 1. Fetch existing match IDs to avoid re-processing
-        var existingMatchIds = await v2Participants.GetMatchIdsForPuuidAsync(account.Puuid);
+        var existingMatchIds = await participantsRepo.GetMatchIdsForPuuidAsync(account.Puuid);
         var existingSet = new HashSet<string>(existingMatchIds, StringComparer.OrdinalIgnoreCase);
 
-        // Use startTime filter if we have LastSyncAt
-        long? startTime = account.LastSyncAt.HasValue
-            ? new DateTimeOffset(account.LastSyncAt.Value).ToUnixTimeSeconds()
-            : null;
+        // Compute startTime based on sync type:
+        // - Initial sync: look back 6 months
+        // - Incremental sync: use LastSyncAt
+        long startTime;
+        int maxMatches;
+
+        if (isInitialSync)
+        {
+            var backfillStart = DateTime.UtcNow - BackfillLookbackPeriod;
+            startTime = new DateTimeOffset(backfillStart).ToUnixTimeSeconds();
+            maxMatches = MaxBackfillMatches;
+            _logger.LogInformation("Starting initial backfill for {Puuid} (last 6 months, max {MaxMatches} matches)",
+                account.Puuid, maxMatches);
+        }
+        else
+        {
+            startTime = new DateTimeOffset(account.LastSyncAt!.Value).ToUnixTimeSeconds();
+            maxMatches = MaxIncrementalMatches;
+            _logger.LogInformation("Starting incremental sync for {Puuid} (since {LastSync})",
+                account.Puuid, account.LastSyncAt);
+        }
 
         // 2. Fetch new match IDs from Riot
-        var matchIds = await FetchNewMatchIdsAsync(riotApiClient, account.Puuid, existingSet, startTime, ct);
+        var matchIds = await FetchNewMatchIdsAsync(riotApiClient, account.Puuid, existingSet, startTime, maxMatches, ct);
 
         _logger.LogInformation("Found {Count} new matches for {Puuid}", matchIds.Count, account.Puuid);
 
@@ -173,21 +201,45 @@ public class MatchHistorySyncJob : BackgroundService
             await broadcaster.BroadcastProgressAsync(account.Puuid, 0, total);
         }
 
-        foreach (var matchId in matchIds)
+        for (int i = 0; i < matchIds.Count; i++)
         {
+            var matchId = matchIds[i];
             ct.ThrowIfCancellationRequested();
 
             try
             {
-                // Fetch match info and timeline from Riot API (rate limited)
-                var matchInfo = await riotApiClient.GetMatchInfoAsync(matchId, ct);
-                var timeline = await riotApiClient.GetMatchTimelineAsync(matchId, ct);
+                // Fetch match info (always needed)
+                using var matchInfo = await riotApiClient.GetMatchInfoAsync(matchId, ct);
 
-                // Persist to V2 tables - reuse the mapping logic from MatchHistorySyncJob
-                // Todo: persist data 
+                // Fetch timeline only for:
+                // - All matches in incremental sync (they're recent)
+                // - First DeepAnalysisMatchCount matches in initial backfill
+                JsonDocument? timeline = null;
+                bool needsTimeline = !isInitialSync || i < DeepAnalysisMatchCount;
 
-                _logger.LogDebug("Processed match {MatchId} ({Processed}/{Total}) for {Puuid}",
-                    matchId, processed + 1, total, account.Puuid);
+                if (needsTimeline)
+                {
+                    timeline = await riotApiClient.GetMatchTimelineAsync(matchId, ct);
+                }
+
+                // Persist match and participant data
+                await PersistMatchDataAsync(
+                    matchInfo.RootElement,
+                    timeline?.RootElement,
+                    matchesRepo,
+                    participantsRepo,
+                    teamObjectivesRepo,
+                    partMetricsRepo,
+                    checkpointsRepo,
+                    partObjectivesRepo,
+                    teamMetricsRepo,
+                    teamRoleRepo);
+
+                timeline?.Dispose();
+
+                _logger.LogDebug("Processed match {MatchId} ({Processed}/{Total}) for {Puuid}{TimelineInfo}",
+                    matchId, processed + 1, total, account.Puuid,
+                    needsTimeline ? " (with timeline)" : " (info only)");
             }
             catch (TaskCanceledException)
             {
@@ -224,11 +276,23 @@ public class MatchHistorySyncJob : BackgroundService
         return processed;
     }
 
+    /// <summary>
+    /// Fetches new match IDs from the Riot API.
+    /// Stops when it hits an existing match (caught up) or reaches the maxMatches limit.
+    /// </summary>
+    /// <param name="riotApiClient">The Riot API client</param>
+    /// <param name="puuid">The player's PUUID</param>
+    /// <param name="existingMatchIds">Set of match IDs already in the database</param>
+    /// <param name="startTime">Unix timestamp (seconds) - only fetch matches after this time</param>
+    /// <param name="maxMatches">Maximum number of matches to fetch (300 for backfill, 100 for incremental)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of new match IDs, ordered from newest to oldest</returns>
     private async Task<IList<string>> FetchNewMatchIdsAsync(
         IRiotApiClient riotApiClient,
         string puuid,
         HashSet<string> existingMatchIds,
-        long? startTime,
+        long startTime,
+        int maxMatches,
         CancellationToken ct)
     {
         var newMatchIds = new List<string>();
@@ -238,16 +302,24 @@ public class MatchHistorySyncJob : BackgroundService
 
         while (keepFetching)
         {
-            var matches = await riotApiClient.GetMatchHistoryAsync(puuid, start, pageSize, startTime, ct);
+            using var matchesDoc = await riotApiClient.GetMatchHistoryAsync(puuid, start, pageSize, startTime, ct);
+            var root = matchesDoc.RootElement;
 
-            if (matches.Count == 0)
+            // Riot returns an array of match ID strings
+            if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() == 0)
                 break;
 
-            foreach (var match in matches)
+            int pageCount = root.GetArrayLength();
+
+            for (int i = 0; i < pageCount; i++)
             {
-                if (!existingMatchIds.Contains(match.MatchId))
+                var matchId = root[i].GetString();
+                if (string.IsNullOrEmpty(matchId))
+                    continue;
+
+                if (!existingMatchIds.Contains(matchId))
                 {
-                    newMatchIds.Add(match.MatchId);
+                    newMatchIds.Add(matchId);
                 }
                 else
                 {
@@ -255,22 +327,168 @@ public class MatchHistorySyncJob : BackgroundService
                     keepFetching = false;
                     break;
                 }
+
+                // Check if we've hit the cap
+                if (newMatchIds.Count >= maxMatches)
+                {
+                    keepFetching = false;
+                    break;
+                }
             }
 
             // If we got less than page size, we've reached the end
-            if (matches.Count < pageSize)
+            if (pageCount < pageSize)
                 break;
 
             start += pageSize;
-
-            // Safety limit: max 500 matches per sync
-            if (newMatchIds.Count >= 500)
-                break;
         }
 
         return newMatchIds;
     }
 
-    
+    /// <summary>
+    /// Persists match data to the database using the mappers.
+    /// </summary>
+    private async Task PersistMatchDataAsync(
+        JsonElement matchRoot,
+        JsonElement? timelineRoot,
+        MatchesRepository matchesRepo,
+        ParticipantsRepository participantsRepo,
+        TeamObjectivesRepository teamObjectivesRepo,
+        ParticipantMetricsRepository partMetricsRepo,
+        ParticipantCheckpointsRepository checkpointsRepo,
+        ParticipantObjectivesRepository partObjectivesRepo,
+        TeamMatchMetricsRepository teamMetricsRepo,
+        TeamRoleResponsibilitiesRepository teamRoleRepo)
+    {
+        // 1. Map and persist match
+        var match = RiotMatchMapper.MapMatch(matchRoot);
+        await matchesRepo.UpsertAsync(match);
+
+        // 2. Map and persist participants
+        var participants = RiotMatchMapper.MapParticipants(matchRoot);
+        var participantIdMap = new Dictionary<int, long>(); // Riot participantId (1-10) -> DB id
+        var participantTeams = new Dictionary<int, int>();
+        var participantRoles = new Dictionary<int, string?>();
+
+        var info = matchRoot.GetProperty("info");
+        var gameDurationSec = info.GetProperty("gameDuration").GetInt32();
+
+        // Calculate team totals for metrics
+        var teamKills = new Dictionary<int, int> { { 100, 0 }, { 200, 0 } };
+        var teamDamage = new Dictionary<int, int> { { 100, 0 }, { 200, 0 } };
+
+        foreach (var p in info.GetProperty("participants").EnumerateArray())
+        {
+            var teamId = p.GetProperty("teamId").GetInt32();
+            teamKills[teamId] += p.GetProperty("kills").GetInt32();
+            teamDamage[teamId] += p.GetProperty("totalDamageDealtToChampions").GetInt32();
+        }
+
+        // Insert participants and build lookup maps
+        int riotParticipantId = 1;
+        foreach (var p in info.GetProperty("participants").EnumerateArray())
+        {
+            var participant = participants.First(x => x.Puuid == p.GetProperty("puuid").GetString());
+            var dbId = await participantsRepo.InsertAsync(participant);
+
+            participantIdMap[riotParticipantId] = dbId;
+            participantTeams[riotParticipantId] = participant.TeamId;
+            participantRoles[riotParticipantId] = participant.Role;
+
+            // Map and persist participant metrics (info-derived only)
+            var teamTotalKills = teamKills[participant.TeamId];
+            var teamTotalDamage = teamDamage[participant.TeamId];
+            var metric = RiotMatchMapper.MapParticipantMetricFromInfo(p, gameDurationSec, teamTotalKills, teamTotalDamage);
+            metric.ParticipantId = dbId;
+
+            // If we have timeline, enrich with death timings
+            if (timelineRoot.HasValue)
+            {
+                var deathTimings = RiotTimelineMapper.ExtractDeathTimings(timelineRoot.Value);
+                if (deathTimings.TryGetValue(riotParticipantId, out var deathData))
+                {
+                    metric.DeathsPre10 = deathData.DeathsPre10;
+                    metric.Deaths10To20 = deathData.Deaths10To20;
+                    metric.Deaths20To30 = deathData.Deaths20To30;
+                    metric.Deaths30Plus = deathData.Deaths30Plus;
+                    metric.FirstDeathMinute = deathData.FirstDeathMinute;
+                }
+            }
+
+            await partMetricsRepo.UpsertAsync(metric);
+            riotParticipantId++;
+        }
+
+        // 3. Map and persist team objectives
+        var teamObjectives = RiotMatchMapper.MapTeamObjectives(matchRoot);
+        foreach (var obj in teamObjectives)
+        {
+            await teamObjectivesRepo.UpsertAsync(obj);
+        }
+
+        // 4. Map and persist team role responsibilities (derived from match info)
+        var roleResponsibilities = RiotMatchMapper.MapTeamRoleResponsibilities(matchRoot);
+        foreach (var rr in roleResponsibilities)
+        {
+            await teamRoleRepo.UpsertAsync(rr);
+        }
+
+        // 5. If timeline available, map and persist timeline-derived data
+        if (timelineRoot.HasValue)
+        {
+            // Checkpoints
+            var checkpoints = RiotTimelineMapper.MapCheckpoints(
+                timelineRoot.Value,
+                participantIdMap,
+                participantTeams,
+                participantRoles);
+            await checkpointsRepo.UpsertBatchAsync(checkpoints);
+
+            // Participant objective participation
+            var objParticipation = RiotTimelineMapper.ExtractObjectiveParticipation(timelineRoot.Value);
+            foreach (var (riotPid, data) in objParticipation)
+            {
+                if (!participantIdMap.TryGetValue(riotPid, out var dbPid)) continue;
+                await partObjectivesRepo.UpsertAsync(new ParticipantObjective
+                {
+                    ParticipantId = dbPid,
+                    DragonsParticipated = data.Dragons,
+                    HeraldsParticipated = data.Heralds,
+                    BaronsParticipated = data.Barons,
+                    TowersParticipated = data.Towers,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            // Team match metrics (gold leads)
+            var matchId = matchRoot.GetProperty("metadata").GetProperty("matchId").GetString()!;
+            var teamWins = new Dictionary<int, bool>();
+            foreach (var team in info.GetProperty("teams").EnumerateArray())
+            {
+                var teamId = team.GetProperty("teamId").GetInt32();
+                teamWins[teamId] = team.GetProperty("win").GetBoolean();
+            }
+
+            var teamGoldMetrics = RiotTimelineMapper.ExtractTeamGoldMetrics(
+                timelineRoot.Value,
+                participantTeams,
+                teamWins);
+
+            foreach (var (teamId, metrics) in teamGoldMetrics)
+            {
+                await teamMetricsRepo.UpsertAsync(new TeamMatchMetric
+                {
+                    MatchId = matchId,
+                    TeamId = teamId,
+                    GoldLeadAt15 = metrics.GoldLeadAt15,
+                    LargestGoldLead = metrics.LargestGoldLead,
+                    GoldSwingPost20 = metrics.GoldSwingPost20,
+                    WinWhenAheadAt20 = metrics.WinWhenAheadAt20,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+    }
 }
 
