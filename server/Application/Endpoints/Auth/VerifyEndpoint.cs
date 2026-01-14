@@ -10,7 +10,7 @@ using RiotProxy.Infrastructure.External.Database.Repositories;
 namespace RiotProxy.Application.Endpoints.Auth;
 
 /// <summary>
-/// v2 Verify Endpoint
+/// erify Endpoint
 /// Verifies user email with a 6-digit code.
 /// For MVP, accepts any valid 6-digit code.
 /// </summary>

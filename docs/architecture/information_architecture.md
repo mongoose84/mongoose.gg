@@ -1,9 +1,9 @@
-# Pulse v2 - Information Architecture & Routes
+# Pulse - Information Architecture & Routes
 
-**Last Updated:** January 10, 2026  
-**Epic:** G1 - UX  
-**Status:** Design for Standalone App (client_v2)  
-**App Location:** `client_v2/` — independent from legacy `client/` (v1)
+**Last Updated:** January 14, 2026
+**Epic:** G1 - UX
+**Status:** Production
+**App Location:** `client/`
 
 ---
 
@@ -26,15 +26,15 @@
 
 | Route | Page | Purpose | Priority |
 |-------|------|---------|----------|
-| `/v2/` | **Homepage** | Marketing landing, pricing tiers, features, contact info | **P0 - Launch** |
-| `/v2/auth` | **Auth Page** | Unified login/signup form (toggle mode) | **P0 - Launch** |
-| `/v2/verify-email` | **Email Verification** | Enter 6-digit code sent to email | **P0 - Launch** |
-| `/v2/reset-password` | **Password Reset** | Request password reset link | **P1 - Post-launch** |
-| `/v2/reset-password/:token` | **Set New Password** | Set new password via email token | **P1 - Post-launch** |
+| `/` | **Homepage** | Marketing landing, pricing tiers, features, contact info | **P0 - Launch** |
+| `/auth` | **Auth Page** | Unified login/signup form (toggle mode) | **P0 - Launch** |
+| `/verify-email` | **Email Verification** | Enter 6-digit code sent to email | **P0 - Launch** |
+| `/reset-password` | **Password Reset** | Request password reset link | **P1 - Post-launch** |
+| `/reset-password/:token` | **Set New Password** | Set new password via email token | **P1 - Post-launch** |
 
 **Notes:**
-- All public routes redirect to `/v2/app` if user is already authenticated
-- `/v2/` homepage includes inline pricing (no separate pricing page)
+- All public routes redirect to `/app` if user is already authenticated
+- `/` homepage includes inline pricing (no separate pricing page)
 - Footer on all public pages: Contact, Privacy Policy, Terms of Service
 
 ---
@@ -48,16 +48,16 @@ All authenticated routes use a shared app shell with:
 
 | Route | Page | Purpose | Priority |
 |-------|------|---------|----------|
-| `/v2/app` | **Dashboard Hub** | Summary of all active contexts (Solo + Duos + Teams) | **P0 - Launch** |
-| `/v2/app/solo` | **Solo Dashboard** | Personal stats, AI goals, performance analytics | **P0 - Launch** |
-| `/v2/app/duo/:duoId` | **Duo Dashboard** | Duo synergy stats, shared goals, matchups | **P1 - Post-launch** |
-| `/v2/app/team/:teamId` | **Team Dashboard** | Team coordination, role analysis, objectives | **P2 - Future** |
-| `/v2/app/settings` | **Settings** | Profile, security, subscription, preferences | **P0 - Launch** |
-| `/v2/app/notifications` | **Notifications Center** | All notifications (goals, invites, achievements) | **P1 - Post-launch** |
-| `/v2/app/invite/:inviteToken` | **Accept Invite** | Accept duo/team invite (redirects to context) | **P1 - Post-launch** |
+| `/app` | **Dashboard Hub** | Summary of all active contexts (Solo + Duos + Teams) | **P0 - Launch** |
+| `/app/solo` | **Solo Dashboard** | Personal stats, AI goals, performance analytics | **P0 - Launch** |
+| `/app/duo/:duoId` | **Duo Dashboard** | Duo synergy stats, shared goals, matchups | **P1 - Post-launch** |
+| `/app/team/:teamId` | **Team Dashboard** | Team coordination, role analysis, objectives | **P2 - Future** |
+| `/app/settings` | **Settings** | Profile, security, subscription, preferences | **P0 - Launch** |
+| `/app/notifications` | **Notifications Center** | All notifications (goals, invites, achievements) | **P1 - Post-launch** |
+| `/app/invite/:inviteToken` | **Accept Invite** | Accept duo/team invite (redirects to context) | **P1 - Post-launch** |
 
 **Notes:**
-- Unauthenticated users redirected to `/v2/auth`
+- Unauthenticated users redirected to `/auth`
 - Routes respect tier-based feature flags (see Authorization below)
 
 ---
@@ -67,17 +67,17 @@ All authenticated routes use a shared app shell with:
 ### 1. New User Signup & Onboarding
 
 ```
-/v2/ (Homepage)
+/ (Homepage)
   → Click "Get Started" / "Sign Up"
-  → /v2/auth (enter email, password, username)
+  → /auth (enter email, password, username)
   → POST /api/v2/auth/signup
-  → /v2/verify-email (enter 6-digit code)
+  → /verify-email (enter 6-digit code)
   → POST /api/v2/auth/verify-email
-  → /v2/app (Dashboard Hub)
+  → /app (Dashboard Hub)
   → Onboarding wizard (optional):
      - Connect Riot account (enter summoner name + region)
      - Choose tier (Free → show limited features, Pro/Team → Mollie checkout)
-  → /v2/app/solo (first dashboard)
+  → /app/solo (first dashboard)
 ```
 
 **Edge Cases:**
@@ -90,16 +90,16 @@ All authenticated routes use a shared app shell with:
 ### 2. Existing User Login
 
 ```
-/v2/ (Homepage)
+/ (Homepage)
   → Click "Login"
-  → /v2/auth (toggle to login mode)
+  → /auth (toggle to login mode)
   → POST /api/v2/auth/login
-  → /v2/app (Dashboard Hub)
+  → /app (Dashboard Hub)
 ```
 
 **Edge Cases:**
-- Email not verified → redirect to `/v2/verify-email`
-- Forgot password → link to `/v2/reset-password`
+- Email not verified → redirect to `/verify-email`
+- Forgot password → link to `/reset-password`
 
 ---
 
@@ -107,17 +107,17 @@ All authenticated routes use a shared app shell with:
 
 ```
 User A (Pro tier):
-  /v2/app/solo
+  /app/solo
     → Click "Invite Duo Partner"
     → Modal: enter buddy's summoner name or generate invite link
-    → Copy link: https://pulse.gg/v2/app/invite/abc123xyz
+    → Copy link: https://pulse.gg/app/invite/abc123xyz
     → Share link (Discord, etc.)
 
 User B (Buddy):
   Receives link → clicks
-  → /v2/app/invite/abc123xyz
-  → If not logged in: redirect to /v2/auth?redirect=/v2/app/invite/abc123xyz
-  → After login: auto-join duo, redirect to /v2/app/duo/:duoId
+  → /app/invite/abc123xyz
+  → If not logged in: redirect to /auth?redirect=/app/invite/abc123xyz
+  → After login: auto-join duo, redirect to /app/duo/:duoId
   → Notification: "You joined [User A]'s duo!"
 ```
 
@@ -132,18 +132,18 @@ User B (Buddy):
 
 ```
 User A (Team tier payer):
-  /v2/app/duo/:duoId
+  /app/duo/:duoId
     → Click "Upgrade to Team"
     → Mollie checkout (Team tier)
-    → After payment: /v2/app/team/:teamId (new team created)
+    → After payment: /app/team/:teamId (new team created)
     → Click "Invite Team Members" (up to 5 total)
     → Generate invite links × 3 (for remaining slots)
     → Share links
 
 Users B, C, D, E:
-  Receive link → /v2/app/invite/team-xyz789
+  Receive link → /app/invite/team-xyz789
   → Same flow as duo invite
-  → Redirect to /v2/app/team/:teamId
+  → Redirect to /app/team/:teamId
 ```
 
 **Edge Cases:**
@@ -155,7 +155,7 @@ Users B, C, D, E:
 ### 5. Context Switching (Solo ↔ Duo ↔ Team)
 
 ```
-User is on /v2/app/solo
+User is on /app/solo
   → Top nav: click context switcher dropdown
   → Shows:
      - Solo (you) ✓ current
@@ -163,7 +163,7 @@ User is on /v2/app/solo
      - Duo with [Partner B]
      - Team "[Team Name]"
   → Select "Duo with [Partner A]"
-  → Navigate to /v2/app/duo/:duoId
+  → Navigate to /app/duo/:duoId
 ```
 
 **Notes:**
@@ -196,7 +196,7 @@ User is on /v2/app/solo
 
 ## Settings Page Structure
 
-### `/v2/app/settings`
+### `/app/settings`
 
 **Tab-based layout** (side navigation on desktop, top tabs on mobile):
 
@@ -275,9 +275,9 @@ User is on /v2/app/solo
 **Bell Icon (Top Nav)**:
 - Badge count (unread notifications)
 - Dropdown shows last 5 notifications
-- "View All" link → `/v2/app/notifications`
+- "View All" link → `/app/notifications`
 
-**Notifications Center** (`/v2/app/notifications`):
+**Notifications Center** (`/app/notifications`):
 - Filterable by type (All, Invites, Goals, System)
 - Mark as read/unread
 - Archive old notifications
@@ -296,20 +296,20 @@ User is on /v2/app/solo
 ```
 
 **Components**:
-1. **Logo**: Click → `/v2/app` (Dashboard Hub)
+1. **Logo**: Click → `/app` (Dashboard Hub)
 2. **Context Switcher**: Dropdown showing Solo, Duos, Teams
 3. **Notifications Bell**: Badge count, dropdown preview
-4. **Settings Icon**: Click → `/v2/app/settings`
+4. **Settings Icon**: Click → `/app/settings`
 5. **Avatar Dropdown**: Profile, Settings, Logout
 
 ---
 
 ### Sidebar (Collapsible)
 
-**Dashboard Hub** (`/v2/app`):
+**Dashboard Hub** (`/app`):
 - No sidebar (uses card-based layout)
 
-**Dashboard Views** (`/v2/app/solo`, `/v2/app/duo/:id`, `/v2/app/team/:id`):
+**Dashboard Views** (`/app/solo`, `/app/duo/:id`, `/app/team/:id`):
 ```
 ┌────────────────┐
 │ Overview       │ ← Active
@@ -328,8 +328,8 @@ User is on /v2/app/solo
 ### Breadcrumbs
 
 Show current location for nested routes:
-- `/v2/app/duo/123`: **Dashboard Hub** > **Duo with [Partner]**
-- `/v2/app/team/456/goals`: **Dashboard Hub** > **Team [Name]** > **Goals**
+- `/app/duo/123`: **Dashboard Hub** > **Duo with [Partner]**
+- `/app/team/456/goals`: **Dashboard Hub** > **Team [Name]** > **Goals**
 
 ---
 
@@ -376,7 +376,7 @@ Show current location for nested routes:
 
 ### API Client
 - **Axios** (consistent with legacy client)
-- Abstracted in `client_v2/src/api/` (e.g., `auth.js`, `solo.js`, `duo.js`)
+- Abstracted in `client/src/api/` (e.g., `auth.js`, `solo.js`, `duo.js`)
 - Wrapped with Vue Query hooks (e.g., `useSoloStats()`, `useDuoStats()`)
 
 ### Forms & Validation
@@ -396,12 +396,12 @@ Show current location for nested routes:
 ## Implementation Priorities
 
 ### P0 - Launch (MVP)
-1. Public routes: Homepage (`/v2/`), Auth (`/v2/auth`), Email Verification
-2. Authenticated routes: Dashboard Hub (`/v2/app`), Solo Dashboard, Settings
+1. Public routes: Homepage (`/`), Auth (`/auth`), Email Verification
+2. Authenticated routes: Dashboard Hub (`/app`), Solo Dashboard, Settings
 3. Authentication: Login, Signup, Email verification, Session management
 4. Subscription: Mollie checkout, tier gating, settings page (subscription tab)
 5. Core UI components: Top nav, context switcher, notification bell (badge only)
-6. Solo Dashboard: Basic stats, chart cards (using v2 API, see `docs/api_v2.md`)
+6. Solo Dashboard: Basic stats, chart cards (using API endpoints, see `docs/api_design.md`)
 
 ### P1 - Post-Launch
 1. Duo Dashboard: Synergy stats, duo-specific goals
@@ -442,15 +442,6 @@ Show current location for nested routes:
 
 ## Next Steps
 
-### Important: Standalone Application
-**`client_v2/` is a completely separate, independent Vue 3 + Vite application.** It has its own:
-- Directory structure (`client_v2/src/`, `client_v2/package.json`, etc.)
-- Build process and dev server
-- Dependencies and node_modules
-- Router and state management (Pinia, Vue Query)
-
-The legacy `client/` app (v1) continues to run independently. Both apps coexist on the same infrastructure but are developed separately.
-
 ### For Product Owner (You)
 1. **Review this document**: Approve route map, user flows, settings structure
 2. **Decide on open questions**: Especially unified vs separate auth pages
@@ -458,24 +449,22 @@ The legacy `client/` app (v1) continues to run independently. Both apps coexist 
 4. **Visual design**: Create wireframes or mockups for key pages (Homepage, Dashboard Hub, Solo Dashboard)
 
 ### For Development Team
-1. **Create standalone v2 app**: Scaffold a new Vue 3 + Vite app in `client_v2/` directory (completely independent from legacy `client/`)
-2. **Initialize project structure**: Copy boilerplate (src, public, vite.config.js, package.json)
-3. **Scaffold routes**: Define Vue Router routes for all v2 pages in `client_v2/src/router/`
-4. **Build app shell**: Top nav, sidebar, layout components in `client_v2/src/components/`
-5. **Implement auth flow**: Signup, login, email verification (frontend + backend) using v2 API endpoints
-6. **Connect to v2 API**: Use v2 backend endpoints (see `docs/api_v2_design.md`)
+1. **Initialize project structure**: Update boilerplate (src, public, vite.config.js, package.json)
+2. **Scaffold routes**: Define Vue Router routes for all pages in `client/src/router/`
+3. **Build app shell**: Top nav, sidebar, layout components in `client/src/components/`
+4. **Implement auth flow**: Signup, login, email verification (frontend + backend) using API endpoints
+5. **Connect to API**: Use backend endpoints (see `docs/api_design.md`)
 
 ---
 
 ## References
 - **Product Backlog**: [docs/product_backlog.md](./product_backlog.md)
-- **API v2 Design**: [docs/api_v2_design.md](./api_v2_design.md) *(create if not exists)*
-- **Database v2 Schema**: [docs/database_schema_v2.md](./database_schema_v2.md)
+- **API Design**: [docs/api_design.md](./api_design.md)
+- **Database Schema**: [docs/database_schema.md](./database_schema.md)
 - **Copilot Instructions**: [.github/copilot-instructions.md](../.github/copilot-instructions.md)
 - **Existing Login Endpoint**: [server/Application/Endpoints/Auth/LoginEndpoint.cs](../server/Application/Endpoints/Auth/LoginEndpoint.cs)
 
 ---
 
-**Document Status**: ✅ Ready for Review  
-**Last Updated**: January 9, 2026  
-**Next Review**: After product owner approval, before G2 (scaffold app shell) begins
+**Document Status**: ✅ Current
+**Last Updated**: January 14, 2026

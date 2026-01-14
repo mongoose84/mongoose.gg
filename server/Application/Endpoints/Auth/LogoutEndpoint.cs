@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace RiotProxy.Application.Endpoints.Auth;
 
 /// <summary>
-/// v2 Logout Endpoint
+/// Logout Endpoint
 /// Clears the session cookie and signs out the user.
 /// </summary>
 public sealed class LogoutEndpoint : IEndpoint

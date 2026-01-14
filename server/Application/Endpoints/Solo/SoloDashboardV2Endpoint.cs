@@ -1,19 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Infrastructure.External.Database.Repositories;
-using static RiotProxy.Application.DTOs.SoloSummaryDto;
 
 namespace RiotProxy.Application.Endpoints.Solo;
 
 /// <summary>
-/// v2 Solo Dashboard Endpoint
+/// Solo Dashboard Endpoint
 /// Returns comprehensive solo player statistics optimized for dashboard rendering.
 /// Supports optional queue filtering (ranked_solo, ranked_flex, normal, aram, all).
 /// </summary>
-public sealed class SoloDashboardV2Endpoint : IEndpoint
+public sealed class SoloDashboardEndpoint : IEndpoint
 {
     public string Route { get; }
 
-    public SoloDashboardV2Endpoint(string basePath)
+    public SoloDashboardEndpoint(string basePath)
     {
         Route = basePath + "/solo/dashboard/{userId}";
     }
@@ -26,7 +25,7 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
             [FromQuery] string? queueType,
             [FromServices] RiotAccountsRepository riotAccountRepo,
             [FromServices] SoloStatsRepository soloStatsRepo,
-            [FromServices] ILogger<SoloDashboardV2Endpoint> logger
+            [FromServices] ILogger<SoloDashboardEndpoint> logger
         ) =>
         {
             try

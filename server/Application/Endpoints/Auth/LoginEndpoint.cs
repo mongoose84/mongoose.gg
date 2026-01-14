@@ -9,7 +9,7 @@ using static RiotProxy.Application.DTOs.LoginDto;
 namespace RiotProxy.Application.Endpoints.Auth;
 
 /// <summary>
-/// v2 Login Endpoint
+/// Login Endpoint
 /// Validates username/password and sets an httpOnly session cookie for subsequent requests.
 /// Supports rememberMe for 7-day sessions.
 /// </summary>

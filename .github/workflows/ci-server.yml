@@ -63,9 +63,6 @@ jobs:
         run: |
           $missingSecrets = @()
           
-          if ([string]::IsNullOrWhiteSpace("${{ secrets.LOL_DB_CONNECTIONSTRING }}")) {
-            $missingSecrets += "LOL_DB_CONNECTIONSTRING"
-          }
           if ([string]::IsNullOrWhiteSpace("${{ secrets.LOL_DB_CONNECTIONSTRING_V2 }}")) {
             $missingSecrets += "LOL_DB_CONNECTIONSTRING_V2"
           }
@@ -80,7 +77,6 @@ jobs:
             Write-Error "❌ Missing required GitHub secrets: $($missingSecrets -join ', ')"
             Write-Error "Please add these secrets in: Settings → Secrets and variables → Actions"
             Write-Error "Required format:"
-            Write-Error "  - LOL_DB_CONNECTIONSTRING: Server=host;Port=3306;Database=db;User=user;Password=pass"
             Write-Error "  - LOL_DB_CONNECTIONSTRING_V2: Server=host;Port=3306;Database=db_v2;User=user;Password=pass"
             Write-Error "  - RIOT_API_KEY: RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             Write-Error "  - ENCRYPTION_SECRET: Base64-encoded 32-byte key (use: openssl rand -base64 32)"
@@ -105,7 +101,6 @@ jobs:
             }
             "AllowedHosts" = "*"
             "ConnectionStrings" = @{
-              "Default" = "${{ secrets.LOL_DB_CONNECTIONSTRING }}"
               "DatabaseV2" = "${{ secrets.LOL_DB_CONNECTIONSTRING_V2 }}"
             }
             "Riot" = @{

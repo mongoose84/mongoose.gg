@@ -1,8 +1,8 @@
-# Database Schema v2 - LoL Improvement Tracker
+# Database Schema - LoL Improvement Tracker
 
 ## Overview
 
-This document defines the complete Database v2 schema for the LoL Improvement Tracker, supporting solo, duo, and team analytics with AI-powered insights. The schema is designed to store Riot match data, derive performance metrics, and power advanced dashboards with minimal real-time computation.
+This document defines the complete database schema for the LoL Improvement Tracker, supporting solo, duo, and team analytics with AI-powered insights. The schema is designed to store Riot match data, derive performance metrics, and power advanced dashboards with minimal real-time computation.
 
 **Schema Domains:**
 1. Core Identity & Season Context
@@ -248,7 +248,7 @@ Core match metadata for all game types.
 **Notes:**
 - `queue_id` stored as numeric INT for exact Riot API matching
 - Application layer maps to user-friendly names (ranked_solo, ranked_flex, normal, aram, all)
-- All v2 dashboard endpoints support queue filtering via `queue_id`
+- All dashboard endpoints support queue filtering via `queue_id`
 
 ---
 
@@ -878,15 +878,9 @@ The Timeline API is **critical** for:
 
 ---
 
-## Migration Path
+## Migration Notes
 
-### From v1 to v2
-
-1. **Phase 1:** Create v2 schema alongside v1
-2. **Phase 2:** Backfill v2 tables from existing match data (process timeline data)
-3. **Phase 3:** Deploy v2 API endpoints alongside v1
-4. **Phase 4:** Migrate frontend to v2 endpoints
-5. **Phase 5:** Deprecate and remove v1 tables
+The current schema is the production schema. Historical migration from earlier versions has been completed.
 
 ### Data Backfill Considerations
 
@@ -898,11 +892,11 @@ The Timeline API is **critical** for:
 
 ## Acceptance Criteria Summary
 
-✅ **Consolidated ERD / schema documented in docs/database_schema_v2.md**  
-✅ **Tables defined for:** users, subscriptions, subscription_events, riot_accounts, matches, participants, participant_checkpoints, participant_metrics, team_objectives, participant_objectives, duo_metrics, team_match_metrics, team_role_responsibility, ai_snapshots  
-✅ **User authentication:** users table with secure password storage (bcrypt/Argon2 hashed)  
-✅ **Subscription management:** subscriptions table with tier tracking, trial support (30 days), Mollie integration, and founding member flags  
-✅ **matches.queue_id present** (numeric Riot queue id) and used for queue filtering across v2 dashboards  
+✅ **Consolidated ERD / schema documented in docs/database_schema.md**
+✅ **Tables defined for:** users, subscriptions, subscription_events, riot_accounts, matches, participants, participant_checkpoints, participant_metrics, team_objectives, participant_objectives, duo_metrics, team_match_metrics, team_role_responsibility, ai_snapshots
+✅ **User authentication:** users table with secure password storage (bcrypt/Argon2 hashed)
+✅ **Subscription management:** subscriptions table with tier tracking, trial support (30 days), Mollie integration, and founding member flags
+✅ **matches.queue_id present** (numeric Riot queue id) and used for queue filtering across dashboards
 ✅ **Index strategy defined** for common filters (puuid, queue_id, season/patch, team_id, minute_mark)
 
 ---

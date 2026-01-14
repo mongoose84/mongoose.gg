@@ -3,24 +3,23 @@
 
 ## Project Overview
 - **lol-app** (Pulse) is a League of Legends cross-account improvement and statistics tracker.
-- Full-stack project with two clients:
-  - **Legacy client**: Vue 3 + Vite app in `client/`
-  - **Primary client (v2)**: Standalone Vue 3 + Vite app in `client_v2/` (see docs/information_architecture_v2.md)
+- Full-stack project with a single client:
+  - **Primary client**: Standalone Vue 3 + Vite app in `client/` (see docs/information_architecture.md)
 - The backend is a C# .NET 8/9 server in `server/RiotProxy`.
-- Client(s) and server communicate via HTTP APIs (see docs/api_v2_design.md). The server proxies the Riot Games API and manages user/game data.
-- Sensitive secrets (API keys, DB connection strings, Mollie API keys) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, LOL_DB_CONNECTIONSTRING, LOL_DB_CONNECTIONSTRING_V2, Mollie keys). Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported for local development only and must never be committed.
+- Client(s) and server communicate via HTTP APIs (see docs/api_design.md). The server proxies the Riot Games API and manages user/game data.
+- Sensitive secrets (API keys, DB connection strings, Mollie API keys) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, LOL_DB_CONNECTIONSTRING_V2, Mollie keys). Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported for local development only and must never be committed.
 - Database: MySQL for storing users, gamers, matches, and match participants.
 
 
 ## Key Workflows
-### Client v2 (Vue 3 + Vite)
-- Install dependencies: `cd client_v2 && npm install`
+### Client (Vue 3 + Vite)
+- Install dependencies: `cd client && npm install`
 - Run dev server: `npm run dev`
 - Run unit tests: `npm run test:unit`, `npm run test:unit:watch`, `npm run test:unit:coverage`
-- Main entry: `client_v2/src/main.js`, root component: `client_v2/src/App.vue`
-- Components: `client_v2/src/components/`, Views: `client_v2/src/views/`
-- API logic: `client_v2/src/services/`, composables in `client_v2/src/composables/`
-- See docs/information_architecture_v2.md for route map and app structure.
+- Main entry: `client/src/main.js`, root component: `client/src/App.vue`
+- Components: `client/src/components/`, Views: `client/src/views/`
+- API logic: `client/src/services/`, composables in `client/src/composables/`
+- See docs/information_architecture.md for route map and app structure.
 
 ### Legacy Client (Vue 3 + Vite)
 - Install dependencies: `cd client && npm install`
@@ -34,7 +33,7 @@
 - Run: `dotnet run`
 - Publish (Windows): `dotnet publish -c Release -r win-x86 --self-contained true`
 - Publish (Linux): `dotnet publish -c Release -r linux-x64 --self-contained false`
-- Secrets: Provide via env vars or user-secrets (preferred) — `RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING`, `LOL_DB_CONNECTIONSTRING_V2`, Mollie API keys. Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported for local development only and must not be committed.
+- Secrets: Provide via env vars or user-secrets (preferred) — `RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING_V2`, Mollie API keys. Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported for local development only and must not be committed.
 - Payments: Use Mollie (EU) for subscriptions; keep Mollie/API keys out of source (see DatabaseSecret.txt and other secrets files)
 - Main entry: `server/Program.cs`
 - Endpoints: `server/Application/Endpoints/`
@@ -101,16 +100,15 @@
 
 
 ### Testing
-- Client: Vitest for unit tests, Vue Test Utils for component testing
-- Client v2: Vitest for unit tests
+- Client: Vitest for unit tests
 - Server: Backend tests in `RiotProxy.Tests/`
 - Always run tests after making changes to ensure nothing breaks
 
 
 ## Integration Points
-- Client(s) <-> Server: HTTP API (see docs/api_v2_design.md for endpoints, queue filtering, and response shapes)
+- Client(s) <-> Server: HTTP API (see docs/api_design.md for endpoints, queue filtering, and response shapes)
 - Server <-> Riot API: Proxy logic in `RiotApiClient.cs`
-- Server <-> Database: Connection via `LOL_DB_CONNECTIONSTRING`/`LOL_DB_CONNECTIONSTRING_V2` (env/user-secrets), logic in `Infrastructure/External/Database/`
+- Server <-> Database: Connection via `LOL_DB_CONNECTIONSTRING_V2` (env/user-secrets), logic in `Infrastructure/External/Database/`
 
 
 ## Key Features
@@ -127,15 +125,10 @@
 1. Create a new file in `server/Application/Endpoints/` implementing `IEndpoint`
 2. Register it in `server/Application/RiotProxyApplication.cs` and/or `Program.cs`
 3. Create corresponding DTO in `Application/DTOs/` if needed
-4. Add client-side API call function in `client_v2/src/services/` (or `client/src/assets/` for legacy)
+4. Add client-side API call function in `client/src/services/` (or `client/src/assets/` for legacy)
 5. Update views/components to use the new endpoint
 
-### Add a new client_v2 view
-1. Create a `.vue` file in `client_v2/src/views/`
-2. Add a route in `client_v2/src/router/index.js`
-3. Link to it from appropriate navigation/components
-
-### Add a new legacy client view
+### Add a new client view
 1. Create a `.vue` file in `client/src/views/`
 2. Add a route in `client/src/router/index.js`
 3. Link to it from appropriate navigation/components
@@ -161,18 +154,8 @@ lol/
 ## File Structure Reference
 ```
 
-├── client/                    # Legacy Vue 3 frontend
-│   ├── src/
-│   │   ├── assets/           # API calls, CSS, static assets
-│   │   ├── components/       # Reusable Vue components
-│   │   ├── composables/      # Shared reactive logic
-│   │   ├── router/           # Vue Router configuration
-│   │   ├── views/            # Page-level components
-│   │   ├── App.vue           # Root component
-│   │   └── main.js           # Entry point
-│   ├── test/                 # Unit tests
-│   └── package.json
-├── client_v2/                 # Standalone Vue 3 frontend (primary)
+
+├── client/                 # Standalone Vue 3 frontend (primary)
 │   ├── src/
 │   │   ├── components/       # Reusable Vue components
 │   │   ├── composables/      # Shared logic
@@ -200,12 +183,11 @@ lol/
 - Setup instructions: [README.md](../README.md)
 - Sensitive config: set via env vars or user-secrets (`RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING`, `LOL_DB_CONNECTIONSTRING_V2`, Mollie API keys)
 - Main server logic: `server/Program.cs`, `server/Application/`, `server/Application/Endpoints/`, `server/RiotProxy.Tests/`
-- Main client_v2 logic: `client_v2/src/`, `client_v2/src/services/`, `client_v2/src/composables/`
-- Main legacy client logic: `client/src/`, `client/src/assets/`, `client/src/composables/`
+- Main client logic: `client/src/`, `client/src/services/`, `client/src/composables/`
 - Riot API Documentation: https://developer.riotgames.com/
-- API v2 Design: [docs/architecture/api_v2_design.md]
-- Database schema: [docs/architecture/database_schema_v2.md], [server/schema-v2.sql]
-- Information architecture: [docs/architecture/information_architecture_v2.md]
+- API Design: [docs/architecture/api_design.md]
+- Database schema: [docs/architecture/database_schema.md], [server/schema.sql]
+- Information architecture: [docs/architecture/information_architecture.md]
 - UI design guidelines: [docs/design/ui-design-guidelines.md]
 
 For new patterns or changes, update this file to keep AI agents productive and aligned with project conventions.

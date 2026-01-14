@@ -38,7 +38,7 @@ builder.Services.AddSingleton<IEmailEncryptor>(sp =>
     return new AesEmailEncryptor(encryptionKey);
 });
 
-// V2 repositories
+// repositories
 builder.Services.AddScoped<UsersRepository>();
 builder.Services.AddScoped<RiotAccountsRepository>();
 builder.Services.AddScoped<MatchesRepository>();
@@ -66,9 +66,9 @@ builder.Services.AddHttpClient("RiotApi", client =>
         client.DefaultRequestHeaders.Add("X-Riot-Token", Secrets.ApiKey);
 });
 
-// V2 Match History Sync Job (per-account sync for linked Riot accounts)
-var enableV2MatchHistorySync = builder.Configuration.GetValue<bool>("Jobs:EnableV2MatchHistorySync", true);
-if (enableV2MatchHistorySync)
+// Match History Sync Job (per-account sync for linked Riot accounts)
+var enableMatchHistorySync = builder.Configuration.GetValue<bool>("Jobs:EnableMatchHistorySync", true);
+if (enableMatchHistorySync)
 {
     builder.Services.AddHostedService<MatchHistorySyncJob>();
 }
@@ -130,8 +130,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("VueClientPolicy", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:5173", // <-- Vue dev server (client)
-                "http://localhost:5174", // <-- Vue dev server (client_v2)
+                "http://localhost:5174", // <-- Vue dev server (client)
                 "http://lol.agileastronaut.com",
                 "https://lol.agileastronaut.com",
                 "http://www.lol.agileastronaut.com",

@@ -10,7 +10,7 @@ using RiotProxy.Infrastructure.External.Riot;
 namespace RiotProxy.Application.Endpoints.Auth;
 
 /// <summary>
-/// v2 Riot Accounts Endpoint
+/// Riot Accounts Endpoint
 /// Provides all operations on linked Riot accounts:
 /// - POST /api/v2/users/me/riot-accounts - Link a new Riot account
 /// - DELETE /api/v2/users/me/riot-accounts/{puuid} - Unlink a Riot account

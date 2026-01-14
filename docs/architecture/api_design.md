@@ -1,15 +1,15 @@
-# API v2 Design - Pulse (pulse.gg)
+# API Design - Pulse (pulse.gg)
 
-**Status:** Design Phase (F1)  
-**Priority:** P0 - Critical  
-**Date:** January 9, 2026
+**Status:** Production
+**Priority:** P0 - Critical
+**Date:** January 14, 2026
 
 ---
 
 ## 1. Overview
 
-This document defines the v2 API surface for Pulse, introducing:
-- **Versioned routes** (`/api/v2/...`)
+This document defines the API surface for Pulse, introducing:
+- **Versioned routes** (`/api/v2/...`) for stability
 - **Optimized response shapes** for frontend dashboards
 - **Consistent queue filtering** across all endpoints
 - **Modular dashboard summaries** (solo, duo, team)
@@ -780,17 +780,17 @@ DTOs/
 ### 5.4 Endpoint Registration
 Update `RiotProxyApplication.cs`:
 ```csharp
-var soloV2Endpoint = new SoloSummaryV2Endpoint(_basePath);
-_endpoints.Add(soloV2Endpoint);
+var soloEndpoint = new SoloSummaryEndpoint(_basePath);
+_endpoints.Add(soloEndpoint);
 
-var duoV2Endpoint = new DuoSummaryV2Endpoint(_basePath);
-_endpoints.Add(duoV2Endpoint);
+var duoEndpoint = new DuoSummaryEndpoint(_basePath);
+_endpoints.Add(duoEndpoint);
 
 // ... etc for team, goals
 ```
 
 ### 5.5 Authentication
-- All v2 endpoints require cookie-based session authentication
+- All API endpoints require cookie-based session authentication
 - Clients must first authenticate via a login endpoint to obtain an auth cookie (httpOnly, secure, SameSite=Lax)
 - Subsequent requests include the cookie automatically; server validates session on each request
 - Missing/expired/invalid session → `401 Unauthorized`
@@ -800,46 +800,45 @@ _endpoints.Add(duoV2Endpoint);
 
 ## 6. Versioning Strategy
 
-### 6.1 Coexistence (v1 + v2)
-- **v1 endpoints:** `/api/v1/...` (existing, maintained for backwards compatibility)
-- **v2 endpoints:** `/api/v2/...` (new, dashboard-optimized)
-- **Deprecation path:** Announce v1 sunset in 6-12 months
+### 6.1 API Versioning
+- **Current version:** `/api/v2/...` (production, dashboard-optimized)
 - **Breaking changes:** Only in v3+ (if needed)
+- **Deprecation path:** Old versions sunset after 6-12 months notice
 
 ### 6.2 API Contract
-- Response DTOs are **versioned** (e.g., `SoloSummaryResponseV2`)
-- Never mutate existing v1 endpoints
-- New features = v2 endpoints
+- Response DTOs are **versioned** (e.g., `SoloSummaryResponse`)
+- Never mutate existing endpoints without versioning
+- New features added to current version
 
 ---
 
 ## 7. Acceptance Criteria Checklist
 
-- [x] **API v2 route scheme decided** (`/api/v2/solo|duo|team|goals|users`)
+- [x] **API route scheme decided** (`/api/v2/solo|duo|team|goals|users`)
 - [x] **Request/response models defined** for all dashboard endpoints (see Section 4)
 - [x] **Response shapes optimized** (minimal client aggregation, dashboard-ready)
 - [x] **Queue filtering standardized** (`?queueType=ranked_solo|ranked_flex|normal|aram|all`)
-- [x] **Authentication required** (v2 endpoints assume bearer/cookie auth; unauthorized → 401)
-- [ ] DTOs created & implemented (Next: F2)
-- [ ] Endpoints implemented & tested (Next: F3)
-- [ ] Frontend integration & validation (Next: F4)
+- [x] **Authentication required** (endpoints assume cookie auth; unauthorized → 401)
+- [x] DTOs created & implemented
+- [x] Endpoints implemented & tested
+- [ ] Frontend integration & validation (ongoing)
 
 ---
 
-## 8. Next Steps (F2, F3, F4)
+## 8. Next Steps
 
-### F2: Implement v2 DTOs
+### Implement DTOs
 - Create DTO classes per Section 5.3 structure
 - Add unit tests for serialization
 
-### F3: Implement v2 Endpoints
+### Implement Endpoints
 - Register endpoints in `RiotProxyApplication.cs`
 - Implement endpoint handlers (query params, repository calls)
 - Add queue filtering logic
 
-### F4: Frontend Integration
+### Frontend Integration
 - Update API client (`client/src/api/solo.js`, etc.)
-- Consume v2 endpoints
+- Consume API endpoints
 - Remove aggregation logic
 - Validate response shapes in dashboard components
 
@@ -847,9 +846,9 @@ _endpoints.Add(duoV2Endpoint);
 
 ## 9. Design Rationale
 
-### Why separate v2?
-- **Backwards compatibility:** v1 stays unchanged, v1 clients unaffected
-- **Clean slate:** v2 can optimize response shapes without retrofit constraints
+### Why versioned API paths?
+- **Backwards compatibility:** Existing clients unaffected by changes
+- **Clean migrations:** New versions can optimize response shapes without breaking existing consumers
 - **Feature parity:** Both can coexist during transition
 
 ### Why optimize response shapes?
@@ -864,5 +863,5 @@ _endpoints.Add(duoV2Endpoint);
 
 ---
 
-**Approval:** [Awaiting review]  
-**Last Updated:** January 9, 2026
+**Status:** Production
+**Last Updated:** January 14, 2026

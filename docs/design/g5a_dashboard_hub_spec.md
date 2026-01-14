@@ -17,7 +17,7 @@ Option A: Use a unified grid that mixes Duos and Teams in the same collection, w
 ### Solo Card
 - Fields: profile icon, Riot ID `gameName#tagline`, summoner level, overall winrate (respecting queue defaults), solo/duo rank, flex rank.
 - Interactions:
-  - Click card → opens Solo dashboard at `/v2/app/solo`.
+  - Click card → opens Solo dashboard at `/app/solo`.
   - Shows sync indicator when background sync is running.
   - If no linked Riot account → block with CTA "Link Riot Account" (cannot enter duos/teams).
 
@@ -171,7 +171,7 @@ Option A: Use a unified grid that mixes Duos and Teams in the same collection, w
     "type": "invite|goal|sync_progress|sync_complete|sync_error",
     "title": "Team invite from PlayerA",
     "createdAt": "2026-01-13T19:40:00Z",
-    "href": "/v2/app/notifications"
+    "href": "/app/notifications"
   }
   ```
 
@@ -199,7 +199,7 @@ Option A: Use a unified grid that mixes Duos and Teams in the same collection, w
 
 ## Backend Dependencies & Notes
 
-- Relies on API v2 endpoints for:
+- Relies on API endpoints (`/api/v2/`) for:
   - Solo summary (F2) including `profileIconId` and `summonerLevel` (see G5b8–G5b10).
   - Duo/Team summaries (F3, F4) for aggregates and invite status.
   - Social endpoints (F11-social) for invites/memberships.

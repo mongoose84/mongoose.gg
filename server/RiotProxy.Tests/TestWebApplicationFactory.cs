@@ -1,16 +1,11 @@
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RiotProxy.Infrastructure.External.Database.Repositories;
-using RiotProxy.Infrastructure.External;
 using RiotProxy.Infrastructure.Security;
 using RiotProxy.External.Domain.Entities;
-using RiotProxy.External.Domain.Enums;
 using Microsoft.Extensions.Hosting;
 
 namespace RiotProxy.Tests;
@@ -18,12 +13,12 @@ namespace RiotProxy.Tests;
 internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly IDictionary<string, string?> _overrides;
-    private readonly FakeV2UsersRepository _v2UsersRepository;
+    private readonly FakeUsersRepository _usersRepository;
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
         _overrides = overrides ?? new Dictionary<string, string?>();
-        _v2UsersRepository = new FakeV2UsersRepository();
+        _usersRepository = new FakeUsersRepository();
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -61,21 +56,21 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            // Replace V2UsersRepository with a fake to avoid real DB connections
+            // Replace sUsersRepository with a fake to avoid real DB connections
             services.RemoveAll<UsersRepository>();
-            services.AddSingleton<UsersRepository>(_v2UsersRepository);
+            services.AddSingleton<UsersRepository>(_usersRepository);
         });
 
         return base.CreateHost(builder);
     }
 
-    internal sealed class FakeV2UsersRepository : UsersRepository
+    internal sealed class FakeUsersRepository : UsersRepository
     {
         private readonly ConcurrentDictionary<string, User> _usersByUsername = new(StringComparer.OrdinalIgnoreCase);
         private readonly ConcurrentDictionary<string, User> _usersByEmail = new(StringComparer.OrdinalIgnoreCase);
         private long _nextId = 1;
 
-        public FakeV2UsersRepository() : base(null!, new FakeEmailEncryptor())
+        public FakeUsersRepository() : base(null!, new FakeEmailEncryptor())
         {
             // Pre-populate with a test user (password: "test-password")
             var testUser = new User

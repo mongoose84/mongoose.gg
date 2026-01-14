@@ -7,7 +7,7 @@ using RiotProxy.Infrastructure.External.Database.Repositories;
 namespace RiotProxy.Application.Endpoints.Auth;
 
 /// <summary>
-/// v2 Users/Me Endpoint
+/// Users/Me Endpoint
 /// Returns the current authenticated user's information including linked Riot accounts.
 /// </summary>
 public sealed class UsersMeEndpoint : IEndpoint
