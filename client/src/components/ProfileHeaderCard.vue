@@ -46,12 +46,12 @@
       <!-- Stats Row -->
       <div class="stats-row">
         <div class="stat">
-          <span class="stat-value">--</span>
+          <span class="stat-value">{{ winRateDisplay }}</span>
           <span class="stat-label">Win Rate</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat">
-          <span class="stat-value">--</span>
+          <span class="stat-value">{{ gamesPlayedDisplay }}</span>
           <span class="stat-label">Games</span>
         </div>
       </div>
@@ -80,6 +80,14 @@ const props = defineProps({
     default: null
   },
   summonerLevel: {
+    type: Number,
+    default: null
+  },
+  winRate: {
+    type: Number,
+    default: null
+  },
+  gamesPlayed: {
     type: Number,
     default: null
   },
@@ -129,6 +137,16 @@ const regionLabels = {
 }
 
 const regionLabel = computed(() => regionLabels[props.region] || props.region.toUpperCase())
+
+const winRateDisplay = computed(() => {
+  if (props.winRate === null || props.winRate === undefined) return '--'
+  return `${props.winRate.toFixed(1)}%`
+})
+
+const gamesPlayedDisplay = computed(() => {
+  if (props.gamesPlayed === null || props.gamesPlayed === undefined) return '--'
+  return props.gamesPlayed.toString()
+})
 
 function handleIconError() {
   iconError.value = true

@@ -48,8 +48,10 @@ builder.Services.AddScoped<ParticipantMetricsRepository>();
 builder.Services.AddScoped<TeamObjectivesRepository>();
 builder.Services.AddScoped<ParticipantObjectivesRepository>();
 builder.Services.AddScoped<TeamMatchMetricsRepository>();
+builder.Services.AddScoped<TeamRoleResponsibilitiesRepository>();
 builder.Services.AddScoped<DuoMetricsRepository>();
 builder.Services.AddScoped<SoloStatsRepository>();
+builder.Services.AddScoped<SeasonsRepository>();
 
 // Named HttpClient for Riot API
 builder.Services.AddHttpClient("RiotApi", client =>

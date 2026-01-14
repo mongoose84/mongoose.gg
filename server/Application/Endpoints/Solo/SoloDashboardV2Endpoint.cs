@@ -41,19 +41,18 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
-                // Get gamers for this user
-                var puuIds = await riotAccountRepo.GetByUserIdAsync(userIdInt);
-                var distinctPuuIds = (puuIds ?? []).Distinct().ToArray();
+                // Get riot accounts for this user
+                var riotAccounts = await riotAccountRepo.GetByUserIdAsync(userIdInt);
 
-                if (distinctPuuIds.Length == 0)
+                if (riotAccounts == null || riotAccounts.Count == 0)
                 {
                     logger.LogWarning("Solo v2 dashboard: no gamers found for userId {UserId}", userIdInt);
                     return Results.NotFound(new { error = "No gamers found for this user" });
                 }
 
-                // Aggregate stats from all gamers (team perspective)
-                // For now, fetch for primary gamer; TODO: support team aggregation
-                var primaryPuuid = distinctPuuIds[0].ToString();
+                // Use primary account or first account
+                var primaryAccount = riotAccounts.FirstOrDefault(a => a.IsPrimary) ?? riotAccounts[0];
+                var primaryPuuid = primaryAccount.Puuid;
 
                 // Fetch dashboard data
                 logger.LogInformation("Solo v2 dashboard request: userId={UserId}, puuid={Puuid}, queueType={Queue}", userIdInt, primaryPuuid, queueType ?? "all");

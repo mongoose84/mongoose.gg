@@ -15,6 +15,8 @@
           :region="firstRiotAccount.region"
           :profile-icon-id="firstRiotAccount.profileIconId"
           :summoner-level="firstRiotAccount.summonerLevel"
+          :win-rate="dashboardData?.winRate"
+          :games-played="dashboardData?.gamesPlayed"
           :clickable="true"
           @click="navigateToSoloDashboard"
         />
@@ -122,6 +124,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
 import { useSyncWebSocket } from '../composables/useSyncWebSocket';
+import { getSoloDashboard } from '../services/authApi';
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue';
 import ProfileHeaderCard from '../components/ProfileHeaderCard.vue';
 
@@ -137,12 +140,26 @@ const showLinkModal = ref(false);
 const linkPromptDismissed = ref(localStorage.getItem('linkPromptDismissed') === 'true');
 const isRetrying = ref(false);
 
+// Dashboard data for profile header stats
+const dashboardData = ref(null);
+
 const firstRiotAccount = computed(() => {
   return riotAccounts.value?.[0] || null;
 });
 
 function navigateToSoloDashboard() {
   router.push('/app/solo');
+}
+
+// Fetch dashboard data for profile stats
+async function fetchDashboardData() {
+  if (!authStore.userId) return;
+
+  try {
+    dashboardData.value = await getSoloDashboard(authStore.userId);
+  } catch (err) {
+    console.error('Failed to fetch solo dashboard:', err);
+  }
 }
 
 // Region labels mapping
@@ -169,11 +186,12 @@ function getRegionLabel(region) {
   return regionLabels[region] || region?.toUpperCase() || 'Unknown';
 }
 
-// Subscribe to WebSocket updates for all linked accounts
+// Subscribe to WebSocket updates for all linked accounts and fetch dashboard data
 onMounted(() => {
   for (const account of riotAccounts.value) {
     subscribe(account.puuid);
   }
+  fetchDashboardData();
 });
 
 // Watch for new accounts and subscribe

@@ -20,8 +20,8 @@ public class RiotAccountsRepository : RepositoryBase
                 region = new.region,
                 is_primary = new.is_primary,
                 sync_status = new.sync_status,
-                profile_icon_id = COALESCE(new.profile_icon_id, profile_icon_id),
-                summoner_level = COALESCE(new.summoner_level, summoner_level),
+                profile_icon_id = COALESCE(new.profile_icon_id, riot_accounts.profile_icon_id),
+                summoner_level = COALESCE(new.summoner_level, riot_accounts.summoner_level),
                 last_sync_at = new.last_sync_at,
                 updated_at = new.updated_at;";
 

@@ -34,6 +34,8 @@
         :region="primaryAccount.region"
         :profile-icon-id="primaryAccount.profileIconId"
         :summoner-level="primaryAccount.summonerLevel"
+        :win-rate="dashboardData?.winRate"
+        :games-played="dashboardData?.gamesPlayed"
       />
       <div v-else class="section placeholder-card">
         <h2>Profile Header</h2>
@@ -69,8 +71,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
+import { getSoloDashboard } from '../services/authApi'
 import ProfileHeaderCard from '../components/ProfileHeaderCard.vue'
 
 const authStore = useAuthStore()
@@ -78,9 +81,35 @@ const authStore = useAuthStore()
 // Get the primary Riot account for the profile header
 const primaryAccount = computed(() => authStore.primaryRiotAccount)
 
-// UI-only state for filters (no functionality yet)
+// Dashboard data from API
+const dashboardData = ref(null)
+const isLoading = ref(false)
+const error = ref(null)
+
+// UI state for filters
 const queueFilter = ref('all')
 const timeRange = ref('3m')
+
+// Fetch dashboard data
+async function fetchDashboardData() {
+  if (!authStore.userId) return
+
+  isLoading.value = true
+  error.value = null
+
+  try {
+    dashboardData.value = await getSoloDashboard(authStore.userId, queueFilter.value)
+  } catch (err) {
+    console.error('Failed to fetch solo dashboard:', err)
+    error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Fetch on mount and when queue filter changes
+onMounted(fetchDashboardData)
+watch(queueFilter, fetchDashboardData)
 </script>
 
 <style scoped>

@@ -152,6 +152,7 @@ public class MatchHistorySyncJob : BackgroundService
         var teamMetricsRepo = services.GetRequiredService<TeamMatchMetricsRepository>();
         var duoMetricsRepo = services.GetRequiredService<DuoMetricsRepository>();
         var teamRoleRepo = services.GetRequiredService<TeamRoleResponsibilitiesRepository>();
+        var seasonsRepo = services.GetRequiredService<SeasonsRepository>();
         var broadcaster = services.GetService<ISyncProgressBroadcaster>();
 
         // Determine if this is an initial backfill or incremental sync
@@ -233,7 +234,8 @@ public class MatchHistorySyncJob : BackgroundService
                     checkpointsRepo,
                     partObjectivesRepo,
                     teamMetricsRepo,
-                    teamRoleRepo);
+                    teamRoleRepo,
+                    seasonsRepo);
 
                 timeline?.Dispose();
 
@@ -359,10 +361,18 @@ public class MatchHistorySyncJob : BackgroundService
         ParticipantCheckpointsRepository checkpointsRepo,
         ParticipantObjectivesRepository partObjectivesRepo,
         TeamMatchMetricsRepository teamMetricsRepo,
-        TeamRoleResponsibilitiesRepository teamRoleRepo)
+        TeamRoleResponsibilitiesRepository teamRoleRepo,
+        SeasonsRepository seasonsRepo)
     {
         // 1. Map and persist match
         var match = RiotMatchMapper.MapMatch(matchRoot);
+
+        // Calculate and ensure season exists, then set on match
+        match.SeasonCode = await Riot.SeasonHelper.EnsureSeasonExistsAsync(
+            seasonsRepo,
+            match.PatchVersion,
+            match.GameStartTime);
+
         await matchesRepo.UpsertAsync(match);
 
         // 2. Map and persist participants

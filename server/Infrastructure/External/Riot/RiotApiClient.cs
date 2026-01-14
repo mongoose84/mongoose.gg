@@ -137,7 +137,7 @@ namespace RiotProxy.Infrastructure.External.Riot
             var response = await _http.GetAsync(summonerUrl, ct);
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                return null; // Summoner not found
+                return JsonDocument.Parse("{}"); // Summoner not found
             }
             
             response.EnsureSuccessStatusCode();   // Throws if the status is not 2xx.
