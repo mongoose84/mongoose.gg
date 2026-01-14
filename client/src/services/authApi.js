@@ -221,3 +221,40 @@ export async function getRiotAccountSyncStatus(puuid) {
 
   return data
 }
+
+// ============ Solo Dashboard API ============
+
+/**
+ * Get solo dashboard data for a user
+ * @param {number} userId - User ID
+ * @param {string} queueType - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
+ * @returns {Promise<Object>} Solo dashboard data
+ */
+export async function getSoloDashboard(userId, queueType = 'all') {
+  const params = new URLSearchParams()
+  if (queueType && queueType !== 'all') {
+    params.append('queueType', queueType)
+  }
+
+  const url = `${API_BASE}/solo/dashboard/${userId}${params.toString() ? '?' + params.toString() : ''}`
+
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include'
+  })
+
+  if (response.status === 404) {
+    return null // No match data found
+  }
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const error = new Error(data.error || 'Failed to get solo dashboard')
+    error.status = response.status
+    error.code = data.code
+    throw error
+  }
+
+  return data
+}

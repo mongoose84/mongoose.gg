@@ -113,12 +113,12 @@ public class SoloStatsRepository : RepositoryBase
             if (await reader.ReadAsync() && !reader.IsDBNull(0))
             {
                 var games = reader.GetInt32(0);
-                var wins = reader.GetInt32(1);
+                var wins = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                 var avgKda = reader.IsDBNull(2) ? 0 : reader.GetDouble(2);
                 var avgDuration = reader.IsDBNull(3) ? 0 : reader.GetDouble(3);
                 var winRate = games > 0 ? Math.Round((double)wins / games * 100, 1) : 0;
 
-                return ((int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes)?)(Games: games, Wins: wins, WinRate: winRate, AvgKda: Math.Round(avgKda, 2), 
+                return ((int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes)?)(Games: games, Wins: wins, WinRate: winRate, AvgKda: Math.Round(avgKda, 2),
                     AvgGameDurationMinutes: Math.Round(avgDuration, 1));
             }
             return null;

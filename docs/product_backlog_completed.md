@@ -598,6 +598,70 @@ Add two columns to the `riot_accounts` table: `profile_icon_id` (string) and `su
 
 ---
 
+### G5b2. [FE+BE] Profile header button + profile data (User dashboard) ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 5 points (2 FE + 3 BE; rolls up backend work from G5b9 & G5b10)
+**Depends on:** G5b1, F2 (user endpoint needs icon/level/rank data)
+**Labels:** `frontend`, `user`, `dashboard`, `component`, `epic-g`
+
+#### Description
+
+Create the Profile Header Card that replaces the button navigating to the solo dashboard. It must contain the user's overall stats at the top of the user dashboard (/app/user): profile icon, summoner name + tag, level, solo/duo rank, flex rank, overall winrate (respects queue filter). When clicked it should navigate to the solo dashboard.
+
+#### Acceptance Criteria
+
+- [x] ProfileHeaderCard component created with icon, name#tagline, level badge, rank badges
+- [x] Component styled consistently with app theme (/docs/design/ui-design-guidelines.md)
+- [x] Icon loads correctly from Riot CDN
+- [x] Responsive: stacks vertically on mobile
+- [x] Backend subtasks G5b9 and G5b10 are complete
+- [x] User dashboard endpoint returns profileIconId and summonerLevel
+
+---
+
+### G5b9. [Backend] Fetch and store profile data during account linking ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** None (G5b8 complete)
+**Labels:** `backend`, `riot-api`, `epic-g`
+
+#### Description
+
+Update the account linking flow to fetch summoner profile data (icon ID, level) from Riot API and store it in the `riot_accounts` table.
+
+#### Acceptance Criteria
+
+- [x] Account linking endpoint calls `GetSummonerByPuuIdAsync` (Riot API)
+- [x] Extracts `profileIconId` and `summonerLevel` from response
+- [x] Stores both in `riot_accounts` table
+- [x] If API call fails, gracefully falls back (stores NULL and logs error)
+
+---
+
+### G5b10. [Backend] Update User dashboard endpoint to include profile data ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** G5b9, F2
+**Labels:** `backend`, `api`, `epic-g`
+
+#### Description
+
+Update the User dashboard endpoint (`/api/users/me`) to include `profileIconId` and `summonerLevel` in the response. These are pulled from the `riot_accounts` table for the user's primary account.
+
+#### Acceptance Criteria
+
+- [x] Endpoint response includes `profileIconId` (integer) and `summonerLevel` (integer)
+- [x] Data fetched from `riot_accounts` table
+- [x] If no primary account, returns null (no error)
+
+---
+
 ## Summary of Completed Work
 
 | Epic | Task | Points | Completed |
@@ -621,6 +685,9 @@ Add two columns to the `riot_accounts` table: `profile_icon_id` (string) and `su
 | G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
 | G | G5b0 - Solo Dashboard design | 2 | ✅ |
 | G | G5b1 - Create empty Solo dashboard view & routing | 1 | ✅ |
+| G | G5b2 - Profile header button + profile data (FE+BE) | 5 | ✅ |
 | G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
+| G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
+| G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
 
-**Total Completed Points:** 71
+**Total Completed Points:** 79

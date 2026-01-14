@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS riot_accounts (
     sync_status ENUM('pending', 'syncing', 'completed', 'failed') DEFAULT 'pending',
     sync_progress INT NOT NULL DEFAULT 0,
     sync_total INT NOT NULL DEFAULT 0,
+    profile_icon_id INT NULL,
+    summoner_level INT NULL,
     last_sync_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

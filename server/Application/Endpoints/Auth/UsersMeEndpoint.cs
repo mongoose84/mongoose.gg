@@ -62,6 +62,8 @@ public sealed class UsersMeEndpoint : IEndpoint
                     ra.Region,
                     ra.IsPrimary,
                     ra.SyncStatus,
+                    ra.ProfileIconId,
+                    ra.SummonerLevel,
                     ra.LastSyncAt,
                     ra.CreatedAt
                 )).ToList();
@@ -106,6 +108,8 @@ public sealed class UsersMeEndpoint : IEndpoint
         [property: JsonPropertyName("region")] string Region,
         [property: JsonPropertyName("isPrimary")] bool IsPrimary,
         [property: JsonPropertyName("syncStatus")] string SyncStatus,
+        [property: JsonPropertyName("profileIconId")] int? ProfileIconId,
+        [property: JsonPropertyName("summonerLevel")] int? SummonerLevel,
         [property: JsonPropertyName("lastSyncAt")] DateTime? LastSyncAt,
         [property: JsonPropertyName("createdAt")] DateTime CreatedAt
     );

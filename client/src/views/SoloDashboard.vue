@@ -26,9 +26,20 @@
     </header>
 
     <div class="sections">
-      <div class="section placeholder-card">
+      <!-- Profile Header Card -->
+      <ProfileHeaderCard
+        v-if="primaryAccount"
+        :game-name="primaryAccount.gameName"
+        :tag-line="primaryAccount.tagLine"
+        :region="primaryAccount.region"
+        :profile-icon-id="primaryAccount.profileIconId"
+        :summoner-level="primaryAccount.summonerLevel"
+        :win-rate="dashboardData?.winRate"
+        :games-played="dashboardData?.gamesPlayed"
+      />
+      <div v-else class="section placeholder-card">
         <h2>Profile Header</h2>
-        <p>Profile icon, Riot ID, level, ranks, overall winrate.</p>
+        <p>No linked Riot account found.</p>
       </div>
 
       <div class="section placeholder-card">
@@ -60,11 +71,45 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useAuthStore } from '../stores/authStore'
+import { getSoloDashboard } from '../services/authApi'
+import ProfileHeaderCard from '../components/ProfileHeaderCard.vue'
 
-// UI-only state for filters (no functionality yet)
+const authStore = useAuthStore()
+
+// Get the primary Riot account for the profile header
+const primaryAccount = computed(() => authStore.primaryRiotAccount)
+
+// Dashboard data from API
+const dashboardData = ref(null)
+const isLoading = ref(false)
+const error = ref(null)
+
+// UI state for filters
 const queueFilter = ref('all')
 const timeRange = ref('3m')
+
+// Fetch dashboard data
+async function fetchDashboardData() {
+  if (!authStore.userId) return
+
+  isLoading.value = true
+  error.value = null
+
+  try {
+    dashboardData.value = await getSoloDashboard(authStore.userId, queueFilter.value)
+  } catch (err) {
+    console.error('Failed to fetch solo dashboard:', err)
+    error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Fetch on mount and when queue filter changes
+onMounted(fetchDashboardData)
+watch(queueFilter, fetchDashboardData)
 </script>
 
 <style scoped>

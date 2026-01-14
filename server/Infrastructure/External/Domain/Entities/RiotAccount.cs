@@ -12,6 +12,8 @@ public class RiotAccount : EntityBase
     public string SyncStatus { get; set; } = "pending";
     public int SyncProgress { get; set; }
     public int SyncTotal { get; set; }
+    public int? ProfileIconId { get; set; }
+    public int? SummonerLevel { get; set; }
     public DateTime? LastSyncAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
