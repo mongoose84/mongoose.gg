@@ -40,15 +40,17 @@ public class LoginSyncService
     /// </summary>
     public async Task CheckAccountsOnLoginAsync(long userId)
     {
+        _logger.LogInformation("Starting login sync check for user {UserId}", userId);
         try
         {
             var accounts = await _riotAccountsRepo.GetByUserIdAsync(userId);
             if (accounts == null || accounts.Count == 0)
             {
-                _logger.LogDebug("No linked Riot accounts for user {UserId}", userId);
+                _logger.LogInformation("No linked Riot accounts for user {UserId}", userId);
                 return;
             }
 
+            _logger.LogInformation("Found {Count} linked Riot accounts for user {UserId}", accounts.Count, userId);
             foreach (var account in accounts)
             {
                 await CheckAccountAsync(account);
@@ -65,25 +67,25 @@ public class LoginSyncService
     {
         try
         {
-            // Check cooldown - skip if last sync was recent
-            if (account.LastSyncAt.HasValue && 
+            // Always update profile data (icon, level, rank) from Riot API
+            await UpdateProfileDataAsync(account);
+
+            // Check cooldown - skip match sync if last sync was recent
+            if (account.LastSyncAt.HasValue &&
                 DateTime.UtcNow - account.LastSyncAt.Value < SyncCooldown)
             {
-                _logger.LogDebug("Skipping sync check for {Puuid} - last sync was {LastSync}", 
+                _logger.LogDebug("Skipping match sync check for {Puuid} - last sync was {LastSync}",
                     account.Puuid, account.LastSyncAt);
                 return;
             }
 
-            // Skip if already syncing or pending
+            // Skip match sync if already syncing or pending
             if (account.SyncStatus == "syncing" || account.SyncStatus == "pending")
             {
-                _logger.LogDebug("Skipping sync check for {Puuid} - already {Status}", 
+                _logger.LogDebug("Skipping match sync check for {Puuid} - already {Status}",
                     account.Puuid, account.SyncStatus);
                 return;
             }
-
-            // Update profile data (icon, level) from Riot API
-            await UpdateProfileDataAsync(account);
 
             // Check for new matches and trigger sync if needed
             await CheckForNewMatchesAsync(account);
@@ -97,6 +99,8 @@ public class LoginSyncService
 
     private async Task UpdateProfileDataAsync(RiotAccount account)
     {
+        _logger.LogInformation("Fetching profile data for {GameName}#{TagLine} ({Region})",
+            account.GameName, account.TagLine, account.Region);
         try
         {
             using var summonerDoc = await _riotApiClient.GetSummonerByPuuIdAsync(account.Region, account.Puuid);
@@ -115,20 +119,14 @@ public class LoginSyncService
                     _logger.LogInformation("Updated profile data for {Puuid}: icon={Icon}, level={Level}",
                         account.Puuid, profileIconId, summonerLevel);
                 }
-
-                // Extract summoner ID for rank lookup
-                string? summonerId = null;
-                if (summonerDoc.RootElement.TryGetProperty("id", out var idProp))
-                {
-                    summonerId = idProp.GetString();
-                }
-
-                // Update rank data if we have a summoner ID
-                if (!string.IsNullOrEmpty(summonerId))
-                {
-                    await UpdateRankDataAsync(account, summonerId);
-                }
             }
+            else
+            {
+                _logger.LogWarning("Invalid summoner response for {Puuid}", account.Puuid);
+            }
+
+            // Update rank data using PUUID (new Riot API endpoint)
+            await UpdateRankDataAsync(account);
         }
         catch (Exception ex)
         {
@@ -137,17 +135,25 @@ public class LoginSyncService
         }
     }
 
-    private async Task UpdateRankDataAsync(RiotAccount account, string summonerId)
+    private async Task UpdateRankDataAsync(RiotAccount account)
     {
         try
         {
-            using var leagueDoc = await _riotApiClient.GetLeagueEntriesBySummonerIdAsync(account.Region, summonerId);
+            // Use the new PUUID-based league endpoint (added to Riot API in 2025)
+            using var leagueDoc = await _riotApiClient.GetLeagueEntriesByPuuidAsync(account.Region, account.Puuid);
 
             string? soloTier = null, soloRank = null, flexTier = null, flexRank = null;
+            string? summonerId = null;
             int? soloLp = null, flexLp = null;
 
             foreach (var entry in leagueDoc.RootElement.EnumerateArray())
             {
+                // Try to extract summonerId from league entry (if available)
+                if (summonerId == null && entry.TryGetProperty("summonerId", out var summonerIdProp))
+                {
+                    summonerId = summonerIdProp.GetString();
+                }
+
                 var queueType = entry.GetProperty("queueType").GetString();
                 if (queueType == "RANKED_SOLO_5x5")
                 {
@@ -166,11 +172,12 @@ public class LoginSyncService
             // Check if rank data changed
             var rankChanged = account.SoloTier != soloTier || account.SoloRank != soloRank || account.SoloLp != soloLp ||
                               account.FlexTier != flexTier || account.FlexRank != flexRank || account.FlexLp != flexLp;
+            var summonerIdChanged = summonerId != null && account.SummonerId != summonerId;
 
-            if (rankChanged)
+            if (rankChanged || summonerIdChanged)
             {
                 await _riotAccountsRepo.UpdateRankDataAsync(
-                    account.Puuid, summonerId,
+                    account.Puuid, summonerId ?? account.SummonerId,
                     soloTier, soloRank, soloLp,
                     flexTier, flexRank, flexLp);
                 _logger.LogInformation("Updated rank data for {Puuid}: solo={SoloTier} {SoloRank}, flex={FlexTier} {FlexRank}",

@@ -34,6 +34,12 @@
         :region="primaryAccount.region"
         :profile-icon-id="primaryAccount.profileIconId"
         :summoner-level="primaryAccount.summonerLevel"
+        :solo-tier="primaryAccount.soloTier"
+        :solo-rank="primaryAccount.soloRank"
+        :solo-lp="primaryAccount.soloLp"
+        :flex-tier="primaryAccount.flexTier"
+        :flex-rank="primaryAccount.flexRank"
+        :flex-lp="primaryAccount.flexLp"
         :win-rate="dashboardData?.winRate"
         :games-played="dashboardData?.gamesPlayed"
       />

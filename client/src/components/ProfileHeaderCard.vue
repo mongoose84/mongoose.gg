@@ -132,7 +132,7 @@ function handleClick() {
 }
 
 // Data Dragon version - could be fetched dynamically in the future
-const ddVersion = '14.24.1'
+const ddVersion = '16.1.1'
 
 const riotId = computed(() => `${props.gameName}#${props.tagLine}`)
 

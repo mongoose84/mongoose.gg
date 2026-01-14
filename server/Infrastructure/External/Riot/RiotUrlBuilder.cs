@@ -54,11 +54,18 @@ namespace RiotProxy.Infrastructure.External.Riot
             return $"https://{regionCode}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}?api_key={Secrets.ApiKey}";
         }
 
-        public static string GetLeagueEntriesUrl(string region, string summonerId)
+        public static string GetLeagueEntriesBySummonerIdUrl(string region, string summonerId)
         {
             var regionCode = ResolveRegionCode(region);
             EnsureApiKey();
             return $"https://{regionCode}.api.riotgames.com/lol/league/v4/entries/by-summoner/{summonerId}?api_key={Secrets.ApiKey}";
+        }
+
+        public static string GetLeagueEntriesByPuuidUrl(string region, string puuid)
+        {
+            var regionCode = ResolveRegionCode(region);
+            EnsureApiKey();
+            return $"https://{regionCode}.api.riotgames.com/lol/league/v4/entries/by-puuid/{puuid}?api_key={Secrets.ApiKey}";
         }
 
         private static string ResolveRegionCode(string region)
