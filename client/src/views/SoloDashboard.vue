@@ -25,54 +25,63 @@
       </div>
     </header>
 
-    <div class="sections">
-      <!-- Profile Header Card -->
-      <ProfileHeaderCard
-        v-if="primaryAccount"
-        :game-name="primaryAccount.gameName"
-        :tag-line="primaryAccount.tagLine"
-        :region="primaryAccount.region"
-        :profile-icon-id="primaryAccount.profileIconId"
-        :summoner-level="primaryAccount.summonerLevel"
-        :solo-tier="primaryAccount.soloTier"
-        :solo-rank="primaryAccount.soloRank"
-        :solo-lp="primaryAccount.soloLp"
-        :flex-tier="primaryAccount.flexTier"
-        :flex-rank="primaryAccount.flexRank"
-        :flex-lp="primaryAccount.flexLp"
-        :win-rate="dashboardData?.winRate"
-        :games-played="dashboardData?.gamesPlayed"
-      />
-      <div v-else class="section placeholder-card">
-        <h2>Profile Header</h2>
-        <p>No linked Riot account found.</p>
-      </div>
-
-      <div class="section placeholder-card">
-        <h2>Main Champion Card</h2>
-        <p>Role tabs with top 3 champions per role.</p>
-      </div>
-
-      <div class="section placeholder-card">
-        <h2>Winrate Over Time</h2>
-        <p>Rolling average line chart (shared component).</p>
-      </div>
-
-      <div class="section placeholder-card">
-        <h2>LP Over Time</h2>
-        <p>Per-game LP changes with rank annotations (ranked only).</p>
-      </div>
-
-      <div class="section placeholder-card">
-        <h2>Champion Matchups</h2>
-        <p>Top 5 champions with expandable opponent details.</p>
-      </div>
-
-      <div class="section placeholder-card">
-        <h2>Goals Panel</h2>
-        <p>Active goals and progress (upgrade CTA for Free).</p>
-      </div>
-    </div>
+	<div class="sections">
+	  	<div class="top-row">
+	  	  <div class="top-row-item">
+	  	    <!-- Profile Header Card -->
+	  	    <ProfileHeaderCard
+	  	      v-if="primaryAccount"
+	  	      :game-name="primaryAccount.gameName"
+	  	      :tag-line="primaryAccount.tagLine"
+	  	      :region="primaryAccount.region"
+	  	      :profile-icon-id="primaryAccount.profileIconId"
+	  	      :summoner-level="primaryAccount.summonerLevel"
+	  	      :solo-tier="primaryAccount.soloTier"
+	  	      :solo-rank="primaryAccount.soloRank"
+	  	      :solo-lp="primaryAccount.soloLp"
+	  	      :flex-tier="primaryAccount.flexTier"
+	  	      :flex-rank="primaryAccount.flexRank"
+	  	      :flex-lp="primaryAccount.flexLp"
+	  	      :win-rate="dashboardData?.winRate"
+	  	      :games-played="dashboardData?.gamesPlayed"
+	  	    />
+	  	    <div v-else class="section placeholder-card">
+	  	      <h2>Profile Header</h2>
+	  	      <p>No linked Riot account found.</p>
+	  	    </div>
+	  	  </div>
+	  	  <div class="top-row-item">
+	  	    <MainChampionCard
+	  	      v-if="dashboardData?.mainChampions && dashboardData.mainChampions.length"
+	  	      :main-champions="dashboardData.mainChampions"
+	  	    />
+	  	    <div v-else class="section placeholder-card">
+	  	      <h2>Main Champions</h2>
+	  	      <p>No champion data yet for this filter.</p>
+	  	    </div>
+	  	  </div>
+	  	</div>
+	
+	  	<div class="section placeholder-card">
+	  	  <h2>Winrate Over Time</h2>
+	  	  <p>Rolling average line chart (shared component).</p>
+	  	</div>
+	
+	  	<div class="section placeholder-card">
+	  	  <h2>LP Over Time</h2>
+	  	  <p>Per-game LP changes with rank annotations (ranked only).</p>
+	  	</div>
+	
+	  	<div class="section placeholder-card">
+	  	  <h2>Champion Matchups</h2>
+	  	  <p>Top 5 champions with expandable opponent details.</p>
+	  	</div>
+	
+	  	<div class="section placeholder-card">
+	  	  <h2>Goals Panel</h2>
+	  	  <p>Active goals and progress (upgrade CTA for Free).</p>
+	  	</div>
+	  </div>
   </section>
 </template>
 
@@ -82,6 +91,7 @@ import { useAuthStore } from '../stores/authStore'
 import { getSoloDashboard } from '../services/authApi'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import ProfileHeaderCard from '../components/ProfileHeaderCard.vue'
+import MainChampionCard from '../components/MainChampionCard.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, subscribe, resetProgress } = useSyncWebSocket()
@@ -185,9 +195,26 @@ watch(syncProgress, (progress) => {
   box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
 }
 .sections {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--spacing-lg);
+	  display: flex;
+	  flex-direction: column;
+	  gap: var(--spacing-lg);
+	}
+
+	.top-row {
+	  display: grid;
+	  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+	  gap: var(--spacing-lg);
+	  align-items: stretch;
+	}
+
+	.top-row-item {
+	  min-width: 0;
+	}
+
+	@media (max-width: 1024px) {
+	  .top-row {
+	    grid-template-columns: 1fr;
+	  }
 }
 .placeholder-card {
   border: 1px solid var(--color-border);
