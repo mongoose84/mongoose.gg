@@ -130,9 +130,10 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     return Results.Json(new { error = "Failed to verify Riot account", code = "RIOT_API_ERROR" }, statusCode: 503);
                 }
 
-                // Fetch summoner profile data (icon, level) - gracefully handle failures
+                // Fetch summoner profile data (icon, level, summonerId) - gracefully handle failures
                 int? profileIconId = null;
                 int? summonerLevel = null;
+                string? summonerId = null;
                 try
                 {
                     var summonerDoc = await riotApiClient.GetSummonerByPuuIdAsync(request.Region.ToLowerInvariant(), puuid);
@@ -143,12 +144,46 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                             profileIconId = iconProp.GetInt32();
                         if (root.TryGetProperty("summonerLevel", out var levelProp))
                             summonerLevel = (int)levelProp.GetInt64();
+                        if (root.TryGetProperty("id", out var idProp))
+                            summonerId = idProp.GetString();
                     }
                 }
                 catch (Exception ex)
                 {
                     // Log but don't fail - profile data is optional
                     logger.LogWarning(ex, "Failed to fetch summoner profile data for {GameName}#{TagLine}", request.GameName, request.TagLine);
+                }
+
+                // Fetch ranked data if we have a summoner ID
+                string? soloTier = null, soloRank = null, flexTier = null, flexRank = null;
+                int? soloLp = null, flexLp = null;
+                if (!string.IsNullOrEmpty(summonerId))
+                {
+                    try
+                    {
+                        var leagueDoc = await riotApiClient.GetLeagueEntriesBySummonerIdAsync(request.Region.ToLowerInvariant(), summonerId);
+                        foreach (var entry in leagueDoc.RootElement.EnumerateArray())
+                        {
+                            var queueType = entry.GetProperty("queueType").GetString();
+                            if (queueType == "RANKED_SOLO_5x5")
+                            {
+                                soloTier = entry.GetProperty("tier").GetString();
+                                soloRank = entry.GetProperty("rank").GetString();
+                                soloLp = entry.GetProperty("leaguePoints").GetInt32();
+                            }
+                            else if (queueType == "RANKED_FLEX_SR")
+                            {
+                                flexTier = entry.GetProperty("tier").GetString();
+                                flexRank = entry.GetProperty("rank").GetString();
+                                flexLp = entry.GetProperty("leaguePoints").GetInt32();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log but don't fail - rank data is optional
+                        logger.LogWarning(ex, "Failed to fetch ranked data for {GameName}#{TagLine}", request.GameName, request.TagLine);
+                    }
                 }
 
                 // Check if account is already linked
@@ -175,10 +210,17 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                         TagLine = request.TagLine,
                         SummonerName = $"{request.GameName}#{request.TagLine}",
                         Region = request.Region.ToLowerInvariant(),
+                        SummonerId = summonerId ?? existingAccount.SummonerId,
                         IsPrimary = existingAccount.IsPrimary,
                         SyncStatus = existingAccount.SyncStatus,
                         ProfileIconId = profileIconId ?? existingAccount.ProfileIconId,
                         SummonerLevel = summonerLevel ?? existingAccount.SummonerLevel,
+                        SoloTier = soloTier ?? existingAccount.SoloTier,
+                        SoloRank = soloRank ?? existingAccount.SoloRank,
+                        SoloLp = soloLp ?? existingAccount.SoloLp,
+                        FlexTier = flexTier ?? existingAccount.FlexTier,
+                        FlexRank = flexRank ?? existingAccount.FlexRank,
+                        FlexLp = flexLp ?? existingAccount.FlexLp,
                         LastSyncAt = existingAccount.LastSyncAt,
                         CreatedAt = existingAccount.CreatedAt,
                         UpdatedAt = DateTime.UtcNow
@@ -209,10 +251,17 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     TagLine = request.TagLine,
                     SummonerName = $"{request.GameName}#{request.TagLine}",
                     Region = request.Region.ToLowerInvariant(),
+                    SummonerId = summonerId,
                     IsPrimary = isPrimary,
                     SyncStatus = "pending",
                     ProfileIconId = profileIconId,
                     SummonerLevel = summonerLevel,
+                    SoloTier = soloTier,
+                    SoloRank = soloRank,
+                    SoloLp = soloLp,
+                    FlexTier = flexTier,
+                    FlexRank = flexRank,
+                    FlexLp = flexLp,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };

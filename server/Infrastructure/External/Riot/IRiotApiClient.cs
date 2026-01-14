@@ -10,6 +10,7 @@ namespace RiotProxy.Infrastructure.External.Riot
         Task<JsonDocument> GetMatchInfoAsync(string matchId, CancellationToken ct = default);
         Task<JsonDocument> GetMatchTimelineAsync(string matchId, CancellationToken ct = default);
         Task<JsonDocument> GetSummonerByPuuIdAsync(string tagline, string puuid, CancellationToken ct = default);
+        Task<JsonDocument> GetLeagueEntriesBySummonerIdAsync(string region, string summonerId, CancellationToken ct = default);
         Task<string> GetLolVersionAsync(CancellationToken ct = default);
     }
 }

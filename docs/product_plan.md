@@ -40,7 +40,7 @@ For full task details, see:
 | G12 | Implement Riot account linking on `/app/user` | Frontend | 5 | ✅ |
 | G13 | Implement real-time match sync progress via WebSocket | Frontend | 5 | ✅ |
 
-**Completed Total:** 73 points
+**Completed Total:** 75 points
 
 ---
 
@@ -89,12 +89,13 @@ For full task details, see:
 | G5b5 | LP Over Time chart (frontend UI) | Frontend | 2 | |
 | G5b6 | Champion matchups table + endpoint (FE+BE) | Frontend / API | 6 | |
 | G5b8 | Add profile_icon_id and summoner_level to riot_accounts | Database | 1 | ✅ |
-| G5b16 | Update database on login (FE+BE) | Frontend / API | 2 | |
+| G5b16 | Update database on login (FE+BE) | Frontend / API | 2 | ✅ |
+| G5b17 | Implement ranked data display in ProfileHeaderCard (FE+BE) | Frontend / API | 5 | ✅ |
 | G9 | Implement user login, signup, verification & `/app/user` shell | Frontend | 5 | ✅ |
 | G12 | Implement Riot account linking on `/app/user` | Frontend | 5 | ✅ |
 | G13 | Implement real-time match sync progress via WebSocket | Frontend | 5 | ✅ |
 
-**P0 Remaining:** 63 points | **P0 Completed:** 73 points | **P0 Total:** 136 points
+**P0 Remaining:** 61 points | **P0 Completed:** 80 points | **P0 Total:** 141 points
 
 ### P1 - High
 
@@ -173,9 +174,9 @@ For full task details, see:
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 187 pts |
-| **Completed** | 73 pts |
-| **Grand Total** | 260 pts |
+| **Remaining** | 190 pts |
+| **Completed** | 75 pts |
+| **Grand Total** | 265 pts |
 
 ---
 
@@ -203,7 +204,8 @@ For full task details, see:
 - ✅ G13 (Real-time sync progress UI)
 - ⬜ G5b3-b6 (User dashboard frontend components)
 - ⬜ G5b11-b13 (User dashboard backend endpoints)
-- ⬜ G5b16 (Update database on login)
+- ✅ G5b16 (Update database on login)
+- ✅ G5b17 (Implement ranked data display in ProfileHeaderCard)
 
 ### Sprint 1: Foundation (P0 Core)
 **Focus:** Database + Stripe + Basic AI

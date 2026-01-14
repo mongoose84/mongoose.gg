@@ -100,7 +100,7 @@ public class LoginSyncService
         try
         {
             using var summonerDoc = await _riotApiClient.GetSummonerByPuuIdAsync(account.Region, account.Puuid);
-            
+
             if (summonerDoc.RootElement.ValueKind == JsonValueKind.Object &&
                 summonerDoc.RootElement.TryGetProperty("profileIconId", out var iconProp) &&
                 summonerDoc.RootElement.TryGetProperty("summonerLevel", out var levelProp))
@@ -115,12 +115,72 @@ public class LoginSyncService
                     _logger.LogInformation("Updated profile data for {Puuid}: icon={Icon}, level={Level}",
                         account.Puuid, profileIconId, summonerLevel);
                 }
+
+                // Extract summoner ID for rank lookup
+                string? summonerId = null;
+                if (summonerDoc.RootElement.TryGetProperty("id", out var idProp))
+                {
+                    summonerId = idProp.GetString();
+                }
+
+                // Update rank data if we have a summoner ID
+                if (!string.IsNullOrEmpty(summonerId))
+                {
+                    await UpdateRankDataAsync(account, summonerId);
+                }
             }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to update profile data for {Puuid}", account.Puuid);
             // Don't throw - continue with sync check
+        }
+    }
+
+    private async Task UpdateRankDataAsync(RiotAccount account, string summonerId)
+    {
+        try
+        {
+            using var leagueDoc = await _riotApiClient.GetLeagueEntriesBySummonerIdAsync(account.Region, summonerId);
+
+            string? soloTier = null, soloRank = null, flexTier = null, flexRank = null;
+            int? soloLp = null, flexLp = null;
+
+            foreach (var entry in leagueDoc.RootElement.EnumerateArray())
+            {
+                var queueType = entry.GetProperty("queueType").GetString();
+                if (queueType == "RANKED_SOLO_5x5")
+                {
+                    soloTier = entry.GetProperty("tier").GetString();
+                    soloRank = entry.GetProperty("rank").GetString();
+                    soloLp = entry.GetProperty("leaguePoints").GetInt32();
+                }
+                else if (queueType == "RANKED_FLEX_SR")
+                {
+                    flexTier = entry.GetProperty("tier").GetString();
+                    flexRank = entry.GetProperty("rank").GetString();
+                    flexLp = entry.GetProperty("leaguePoints").GetInt32();
+                }
+            }
+
+            // Check if rank data changed
+            var rankChanged = account.SoloTier != soloTier || account.SoloRank != soloRank || account.SoloLp != soloLp ||
+                              account.FlexTier != flexTier || account.FlexRank != flexRank || account.FlexLp != flexLp;
+
+            if (rankChanged)
+            {
+                await _riotAccountsRepo.UpdateRankDataAsync(
+                    account.Puuid, summonerId,
+                    soloTier, soloRank, soloLp,
+                    flexTier, flexRank, flexLp);
+                _logger.LogInformation("Updated rank data for {Puuid}: solo={SoloTier} {SoloRank}, flex={FlexTier} {FlexRank}",
+                    account.Puuid, soloTier, soloRank, flexTier, flexRank);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to update rank data for {Puuid}", account.Puuid);
+            // Don't throw - rank data is optional
         }
     }
 

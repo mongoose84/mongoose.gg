@@ -49,28 +49,42 @@ namespace RiotProxy.Infrastructure.External.Riot
 
         public static string GetSummonerUrl(string region, string puuid)
         {
+            var regionCode = ResolveRegionCode(region);
+            EnsureApiKey();
+            return $"https://{regionCode}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}?api_key={Secrets.ApiKey}";
+        }
+
+        public static string GetLeagueEntriesUrl(string region, string summonerId)
+        {
+            var regionCode = ResolveRegionCode(region);
+            EnsureApiKey();
+            return $"https://{regionCode}.api.riotgames.com/lol/league/v4/entries/by-summoner/{summonerId}?api_key={Secrets.ApiKey}";
+        }
+
+        private static string ResolveRegionCode(string region)
+        {
             var upperRegion = region.ToUpper();
 
             // First try display name mapping (NA, EUW, EUNE, etc.)
-            if (!_regionMapping.TryGetValue(upperRegion, out var regionCode))
+            if (_regionMapping.TryGetValue(upperRegion, out var regionCode))
             {
-                // Then try API code mapping (na1, euw1, eun1, etc.)
-                if (!_apiCodeMapping.TryGetValue(upperRegion, out regionCode))
-                {
-                    // If the input is already a valid API code, use it directly
-                    var lowerRegion = region.ToLowerInvariant();
-                    if (_apiCodeMapping.Values.Contains(lowerRegion) || _regionMapping.Values.Contains(lowerRegion))
-                    {
-                        regionCode = lowerRegion;
-                    }
-                    else
-                    {
-                        throw new ArgumentException($"Invalid region: {region}. Supported regions: {string.Join(", ", _regionMapping.Keys)} or API codes: {string.Join(", ", _apiCodeMapping.Keys)}");
-                    }
-                }
+                return regionCode;
             }
-            EnsureApiKey();
-            return $"https://{regionCode}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}?api_key={Secrets.ApiKey}";
+
+            // Then try API code mapping (na1, euw1, eun1, etc.)
+            if (_apiCodeMapping.TryGetValue(upperRegion, out regionCode))
+            {
+                return regionCode;
+            }
+
+            // If the input is already a valid API code, use it directly
+            var lowerRegion = region.ToLowerInvariant();
+            if (_apiCodeMapping.Values.Contains(lowerRegion) || _regionMapping.Values.Contains(lowerRegion))
+            {
+                return lowerRegion;
+            }
+
+            throw new ArgumentException($"Invalid region: {region}. Supported regions: {string.Join(", ", _regionMapping.Keys)} or API codes: {string.Join(", ", _apiCodeMapping.Keys)}");
         }
 
         private static void EnsureApiKey()

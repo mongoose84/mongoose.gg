@@ -64,6 +64,12 @@ public sealed class UsersMeEndpoint : IEndpoint
                     ra.SyncStatus,
                     ra.ProfileIconId,
                     ra.SummonerLevel,
+                    ra.SoloTier,
+                    ra.SoloRank,
+                    ra.SoloLp,
+                    ra.FlexTier,
+                    ra.FlexRank,
+                    ra.FlexLp,
                     ra.LastSyncAt,
                     ra.CreatedAt
                 )).ToList();
@@ -110,6 +116,12 @@ public sealed class UsersMeEndpoint : IEndpoint
         [property: JsonPropertyName("syncStatus")] string SyncStatus,
         [property: JsonPropertyName("profileIconId")] int? ProfileIconId,
         [property: JsonPropertyName("summonerLevel")] int? SummonerLevel,
+        [property: JsonPropertyName("soloTier")] string? SoloTier,
+        [property: JsonPropertyName("soloRank")] string? SoloRank,
+        [property: JsonPropertyName("soloLp")] int? SoloLp,
+        [property: JsonPropertyName("flexTier")] string? FlexTier,
+        [property: JsonPropertyName("flexRank")] string? FlexRank,
+        [property: JsonPropertyName("flexLp")] int? FlexLp,
         [property: JsonPropertyName("lastSyncAt")] DateTime? LastSyncAt,
         [property: JsonPropertyName("createdAt")] DateTime CreatedAt
     );

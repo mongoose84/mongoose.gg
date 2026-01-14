@@ -662,6 +662,55 @@ Update the User dashboard endpoint (`/api/users/me`) to include `profileIconId` 
 
 ---
 
+### G5b16. [FE+BE] Update database on login ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** F12, F7
+**Labels:** `frontend`, `backend`, `api`, `riot-api`, `epic-g`
+
+#### Description
+
+When a user logs in, check their linked Riot accounts for new matches and update profile data (icon, level, rank). Notify frontend via WebSocket when sync is triggered.
+
+#### Acceptance Criteria
+
+- [x] LoginSyncService checks all linked accounts on login
+- [x] Profile data (icon, level) refreshed from Riot API
+- [x] New matches trigger sync (set status to 'pending')
+- [x] Cooldown prevents excessive API calls (5 minute minimum between checks)
+- [x] WebSocket notification sent when sync starts
+- [x] Graceful error handling (login succeeds even if sync check fails)
+
+---
+
+### G5b17. [FE+BE] Implement ranked data display in ProfileHeaderCard ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 5 points
+**Depends on:** G5b2, F12
+**Labels:** `frontend`, `backend`, `api`, `riot-api`, `epic-g`
+
+#### Description
+
+Fetch and display ranked Solo/Duo and Flex queue rank data in the ProfileHeaderCard component. This requires calling the Riot League-v4 API to get league entries, storing the rank data in the `riot_accounts` table, and returning it in the `/api/v2/users/me` endpoint.
+
+#### Acceptance Criteria
+
+- [x] `GetLeagueEntriesBySummonerIdAsync` method added to `IRiotApiClient`
+- [x] Rank columns added to `riot_accounts` table: `solo_tier`, `solo_rank`, `solo_lp`, `flex_tier`, `flex_rank`, `flex_lp`
+- [x] `RiotAccount` entity updated with rank properties
+- [x] `RiotAccountsRepository` updated to read/write rank fields
+- [x] Rank data fetched and stored during account linking
+- [x] Rank data refreshed during login sync
+- [x] `UsersMeEndpoint` returns rank fields in `RiotAccountResponse`
+- [x] ProfileHeaderCard displays Solo/Duo and Flex rank badges
+- [x] Unranked accounts show "--" instead of tier/LP
+
+---
+
 ## Summary of Completed Work
 
 | Epic | Task | Points | Completed |
@@ -689,5 +738,7 @@ Update the User dashboard endpoint (`/api/users/me`) to include `profileIconId` 
 | G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
 | G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
 | G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
+| G | G5b16 - Update database on login (FE+BE) | 2 | ✅ |
+| G | G5b17 - Implement ranked data display in ProfileHeaderCard (FE+BE) | 5 | ✅ |
 
-**Total Completed Points:** 79
+**Total Completed Points:** 86
