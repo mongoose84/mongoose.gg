@@ -1524,20 +1524,22 @@ Create a `/pricing` view that presents the Free, Pro, and Team plans and integra
 
 #### Description
 
-Create the Main Champion Card that shows the user's champions grouped by role. Clicking a role tab reveals the top 3 champions for that role with their winrates and quick stats. Matches the design in the reference image (ADC, Mid, Jungle tabs with champion cards).
+Create the Main Champion Card that shows the user's champions grouped by role. Clicking a role tab reveals the top 3 champions for that role as individual champion cards. For each role, the first champion is highlighted as the **Recommended** pick based on backend-provided ordering (balancing winrate, LP per game, and sample size for the selected queue and timeframe). Each card surfaces winrate, LP per game, and games played so the user can quickly decide which champion to trust for their next game.
 
 #### Backend Requirements
 
 - [ ] Solo dashboard endpoint (F2) must return:
   - `mainChampions`: Array of roles, each with top 3 champions including:
-    - `championName`, `championId`, `role`, `winRate`, `gamesPlayed`, `wins`, `losses`
+    - `championName`, `championId`, `role`, `winRate`, `gamesPlayed`, `wins`, `losses`, `lpPerGame`
+  - Within each role, champions MUST be ordered from most to least recommended (see G5b12 scoring rules). The first champion in each role's list is treated as the **Recommended** pick by the frontend.
 
 #### Frontend Requirements
 
 - [ ] MainChampionCard component created
 - [ ] Role pill/tab UI: shows all roles user has played (default to most-played role)
 - [ ] Clicking role pill displays that role's top 3 champions
-- [ ] Each champion shows: icon, name, role badge, winrate %, W-L record, games played
+- [ ] Each champion card shows: icon, name, role badge, winrate %, LP per game for the selected range, and W-L record / games played for sample size
+- [ ] First champion in each role's list is visually emphasized as the **Recommended** pick (e.g. badge, border, or size)
 - [ ] Champion icons load from Riot CDN
 - [ ] Smooth tab switching animation
 - [ ] Responsive: role pills wrap on mobile, champion cards stack
@@ -1546,12 +1548,14 @@ Create the Main Champion Card that shows the user's champions grouped by role. C
 
 - [ ] Component displays all roles and champions without errors
 - [ ] Role pill tabs are clickable and update the displayed champions
-- [ ] Each champion card shows all required stats
+- [ ] Each champion card shows all required stats (including LP per game)
 - [ ] Icons load correctly
 - [ ] Default role is correctly selected on mount
 - [ ] Tab switching is smooth and fast
 - [ ] Mobile layout tested and responsive
 - [ ] Respects queue filter (updates when filter changes)
+- [ ] First champion per role is rendered with a distinct **Recommended** treatment
+- [ ] LP per game values update correctly when queue/time filters change
 
 ---
 
@@ -1743,7 +1747,7 @@ Create a Goals Panel that displays active goals (if Pro tier) or shows an upgrad
 
 #### Description
 
-Create a new endpoint `GET /api/v2/solo/matchups/{userId}?queueType=...` that returns champion matchup statistics based on v2 database. Returns top 5 champions by winrate, with opponent details for each.
+Create a new endpoint `GET /api/v2/solo/matchups/{userId}?queueType=...` that returns champion matchup statistics based on database. Returns top 5 champions by winrate, with opponent details for each.
 
 #### Acceptance Criteria
 
@@ -1793,7 +1797,7 @@ Create a new endpoint `GET /api/v2/solo/matchups/{userId}?queueType=...` that re
 
 #### Description
 
-Update the Solo dashboard v2 endpoint (F2) to include `mainChampions` array. Groups user's champions by role and returns top 3 champions per role sorted by winrate.
+Update the Solo dashboard v2 endpoint (F2) to include `mainChampions` array. Groups user's champions by role and returns top 3 champions per role. For each role, compute LP per game over the selected queue and timeframe and sort champions by a "recommended" score that balances winrate, LP per game, and sample size. The first champion in each role's list is considered the **Recommended** pick for that role and is used by G5b3.
 
 #### Acceptance Criteria
 
@@ -1810,7 +1814,8 @@ Update the Solo dashboard v2 endpoint (F2) to include `mainChampions` array. Gro
             "winRate": 62.5,
             "gamesPlayed": 16,
             "wins": 10,
-            "losses": 6
+            "losses": 6,
+            "lpPerGame": 14.3
           }
           // ... top 3 for this role
         ]
@@ -1819,10 +1824,11 @@ Update the Solo dashboard v2 endpoint (F2) to include `mainChampions` array. Gro
     ]
   }
   ```
-- [ ] Top 3 champions per role by winrate (minimum 2 games to qualify)
+- [ ] Top 3 champions per role ordered by recommended score (minimum 2 games to qualify)
 - [ ] Only includes roles where user has played games
 - [ ] Respects queue filter
-- [ ] Tested with sample data
+- [ ] LP per game is calculated from matches in the selected queue/timeframe
+- [ ] Tested with sample data and unit tests cover ordering and LP per game edge cases (e.g. low game counts)
 
 ---
 
