@@ -217,7 +217,8 @@ onUnmounted(() => {
   top: calc(100% + var(--spacing-sm));
   right: 0;
   min-width: 200px;
-  background: var(--color-surface);
+	  /* Solid background so the account dropdown isn't see-through */
+	  background-color: #020617;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
