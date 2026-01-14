@@ -10,7 +10,6 @@ namespace RiotProxy.Infrastructure
         private static readonly string SecretsFolder = AppDomain.CurrentDomain.BaseDirectory;
 
         public static string ApiKey { get; private set; } = string.Empty;
-        public static string DatabaseConnectionString { get; private set; } = string.Empty;
         public static string DatabaseConnectionStringV2 { get; private set; } = string.Empty;
         public static string EmailEncryptionKey { get; private set; } = string.Empty;
 
@@ -30,14 +29,6 @@ namespace RiotProxy.Infrastructure
                 config["RIOT_API_KEY"],
                 Environment.GetEnvironmentVariable("RIOT_API_KEY"),
                 ReadIfExists("RiotSecret.txt"));
-
-            var dbConnectionCandidate = FirstNonEmpty(
-                config.GetConnectionString("Default"),
-                config["ConnectionStrings:Database"],
-                config["Database:ConnectionString"],
-                config["LOL_DB_CONNECTIONSTRING"],
-                Environment.GetEnvironmentVariable("LOL_DB_CONNECTIONSTRING"),
-                ReadIfExists("DatabaseSecret.txt"));
 
             var dbConnectionV2Candidate = FirstNonEmpty(
                 config.GetConnectionString("DatabaseV2"),
@@ -60,7 +51,6 @@ namespace RiotProxy.Infrastructure
                     return;
 
                 ApiKey = apiKeyCandidate;
-                DatabaseConnectionString = dbConnectionCandidate;
                 DatabaseConnectionStringV2 = dbConnectionV2Candidate;
                 EmailEncryptionKey = emailEncryptionKeyCandidate;
 
@@ -82,20 +72,14 @@ namespace RiotProxy.Infrastructure
         private static void LogConfigurationStatus(IConfiguration config)
         {
             var isApiKeySet = !string.IsNullOrWhiteSpace(ApiKey);
-            var isDbConnectionSet = !string.IsNullOrWhiteSpace(DatabaseConnectionString);
             var isDbV2ConnectionSet = !string.IsNullOrWhiteSpace(DatabaseConnectionStringV2);
             var isEmailEncryptionKeySet = !string.IsNullOrWhiteSpace(EmailEncryptionKey);
 
             Console.WriteLine($"[Secrets.Initialize] ApiKey configured: {isApiKeySet}");
-            Console.WriteLine($"[Secrets.Initialize] DatabaseConnectionString configured: {isDbConnectionSet}");
             Console.WriteLine($"[Secrets.Initialize] DatabaseConnectionStringV2 configured: {isDbV2ConnectionSet}");
             Console.WriteLine($"[Secrets.Initialize] EmailEncryptionKey configured: {isEmailEncryptionKeySet}");
 
             // List environment variables that might be missing
-            if (!isDbConnectionSet)
-            {
-                Console.WriteLine("[Secrets.Initialize] WARNING: LOL_DB_CONNECTIONSTRING not found. Checked: appsettings, env vars, DatabaseSecret.txt");
-            }
             if (!isDbV2ConnectionSet)
             {
                 Console.WriteLine("[Secrets.Initialize] WARNING: LOL_DB_CONNECTIONSTRING_V2 not found. Checked: appsettings, env vars, DatabaseSecretV2.txt");

@@ -1,19 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Infrastructure.External.Database.Repositories;
-using static RiotProxy.Application.DTOs.SoloSummaryDto;
 
 namespace RiotProxy.Application.Endpoints.Solo;
 
 /// <summary>
-/// v2 Solo Dashboard Endpoint
+/// Solo Dashboard Endpoint
 /// Returns comprehensive solo player statistics optimized for dashboard rendering.
 /// Supports optional queue filtering (ranked_solo, ranked_flex, normal, aram, all).
 /// </summary>
-public sealed class SoloDashboardV2Endpoint : IEndpoint
+public sealed class SoloDashboardEndpoint : IEndpoint
 {
     public string Route { get; }
 
-    public SoloDashboardV2Endpoint(string basePath)
+    public SoloDashboardEndpoint(string basePath)
     {
         Route = basePath + "/solo/dashboard/{userId}";
     }
@@ -26,7 +25,7 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
             [FromQuery] string? queueType,
             [FromServices] RiotAccountsRepository riotAccountRepo,
             [FromServices] SoloStatsRepository soloStatsRepo,
-            [FromServices] ILogger<SoloDashboardV2Endpoint> logger
+            [FromServices] ILogger<SoloDashboardEndpoint> logger
         ) =>
         {
             try
@@ -37,7 +36,7 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))
                 {
-                    logger.LogWarning("Solo v2 dashboard: invalid userId format {UserId}", userId);
+                    logger.LogWarning("Solo dashboard: invalid userId format {UserId}", userId);
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
@@ -46,7 +45,7 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
 
                 if (riotAccounts == null || riotAccounts.Count == 0)
                 {
-                    logger.LogWarning("Solo v2 dashboard: no gamers found for userId {UserId}", userIdInt);
+                    logger.LogWarning("Solo dashboard: no gamers found for userId {UserId}", userIdInt);
                     return Results.NotFound(new { error = "No gamers found for this user" });
                 }
 
@@ -55,12 +54,12 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
                 var primaryPuuid = primaryAccount.Puuid;
 
                 // Fetch dashboard data
-                logger.LogInformation("Solo v2 dashboard request: userId={UserId}, puuid={Puuid}, queueType={Queue}", userIdInt, primaryPuuid, queueType ?? "all");
+                logger.LogInformation("Solo dashboard request: userId={UserId}, puuid={Puuid}, queueType={Queue}", userIdInt, primaryPuuid, queueType ?? "all");
                 var dashboard = await soloStatsRepo.GetSoloDashboardAsync(primaryPuuid, queueType);
 
                 if (dashboard == null)
                 {
-                    logger.LogInformation("Solo v2 dashboard: no match data for puuid {Puuid} with queueType {Queue}", primaryPuuid, queueType ?? "all");
+                    logger.LogInformation("Solo dashboard: no match data for puuid {Puuid} with queueType {Queue}", primaryPuuid, queueType ?? "all");
                     return Results.NotFound(new { error = "No match data found for this player" });
                 }
 
@@ -68,13 +67,13 @@ public sealed class SoloDashboardV2Endpoint : IEndpoint
             }
             catch (ArgumentException ex)
             {
-                logger.LogWarning(ex, "Solo v2 dashboard: bad request");
+                logger.LogWarning(ex, "Solo dashboard: bad request");
                 // Do not expose internal exception messages to clients
                 return Results.BadRequest(new { error = "Invalid request parameters" });
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Solo v2 dashboard: unhandled error");
+                logger.LogError(ex, "Solo dashboard: unhandled error");
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });

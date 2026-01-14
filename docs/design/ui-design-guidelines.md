@@ -1,6 +1,6 @@
 # Pulse.gg UI Design Guidelines
 
-This document defines the visual design system for the Pulse.gg client_v2 application. Include this file when developing any new UI components to ensure consistency.
+This document defines the visual design system for the Pulse.gg client application. Include this file when developing any new UI components to ensure consistency.
 
 ## Design Philosophy
 
@@ -357,7 +357,7 @@ Prefer CSS variables for consistency. Use Tailwind for layout utilities (flex, g
 
 ## Icons
 
-Use [Heroicons](https://heroicons.com/) (v2) via `@heroicons/vue`:
+Use [Heroicons](https://heroicons.com/) via `@heroicons/vue`:
 
 ```vue
 <script setup>
@@ -375,9 +375,9 @@ Standard icon sizes:
 
 ## File Reference
 
-- **CSS Variables:** `client_v2/src/style.css`
-- **Tailwind Config:** `client_v2/tailwind.config.js`
+- **CSS Variables:** `client/src/style.css`
+- **Tailwind Config:** `client/tailwind.config.js`
 - **Example Components:**
-  - Cards & Forms: `client_v2/src/views/AuthPage.vue`
-  - Header & Dropdown: `client_v2/src/components/AppHeader.vue`
-  - Landing Page: `client_v2/src/views/LandingPage.vue`
+  - Cards & Forms: `client/src/views/AuthPage.vue`
+  - Header & Dropdown: `client/src/components/AppHeader.vue`
+  - Landing Page: `client/src/views/LandingPage.vue`

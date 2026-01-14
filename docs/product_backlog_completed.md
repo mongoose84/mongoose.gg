@@ -4,95 +4,95 @@ This file contains tasks that have been completed and moved from the main [produ
 
 ---
 
-# Epic E: Database v2 & Analytics Schema (Completed Tasks)
+# Epic E: Database & Analytics Schema (Completed Tasks)
 
-### E1. [Database] Finalize Database v2 schema & DDL ✅ COMPLETE
+### E1. [Database] Finalize database schema & DDL ✅ COMPLETE
 
 **Priority:** P0 - Critical
 **Type:** Architecture
 **Estimate:** 3 points
-**Labels:** `database`, `v2`, `epic-e`
+**Labels:** `database`, `epic-e`
 
 #### Description
 
-Finalize the Pulse Database v2 schema (tables, columns, indexes) based on `docs/database_schema_v2.md` for matches, participants, checkpoints, metrics, duo/team analytics and AI snapshots.
+Finalize the Pulse database schema (tables, columns, indexes) based on `docs/database_schema.md` for matches, participants, checkpoints, metrics, duo/team analytics and AI snapshots.
 
 #### Acceptance Criteria
 
-- [x] Consolidated ERD / schema documented in `docs/database_schema_v2.md`
+- [x] Consolidated ERD / schema documented in `docs/database_schema.md`
 - [x] Tables defined for: `matches`, `participants`, `participant_checkpoints`, `participant_metrics`, `team_objectives`, `participant_objectives`, `duo_metrics`, `team_match_metrics`, `team_role_responsibility`, `ai_snapshots`
-- [x] `matches.queue_id` present (numeric Riot queue id) and used for queue filtering across v2 dashboards
+- [x] `matches.queue_id` present (numeric Riot queue id) and used for queue filtering across dashboards
 - [x] Index strategy defined for common filters (puuid, queue_id, season/patch, team_id, minute_mark)
 
 ---
 
-### E2. [Database] Create MySQL schema scripts for Database v2 ✅ COMPLETE
+### E2. [Database] Create MySQL schema scripts ✅ COMPLETE
 
 **Priority:** P0 - Critical
 **Type:** Database Migration
 **Estimate:** 2 points
 **Depends on:** E1
-**Labels:** `database`, `migration`, `v2`, `epic-e`
+**Labels:** `database`, `migration`, `epic-e`
 
 #### Description
 
-Create SQL scripts (or migrations) to create all Database v2 tables and indexes in MySQL.
+Create SQL scripts (or migrations) to create all database tables and indexes in MySQL.
 
 #### Acceptance Criteria
 
-- [x] `schema-v2.sql` (or equivalent migration) creates all v2 tables and indexes
+- [x] Schema SQL (or equivalent migration) creates all tables and indexes
 - [x] Script can be applied to a clean database without errors
 - [x] Script is safe to re-run on an empty DB (idempotent for local dev)
 
 ---
 
-### E3. [Repository] Implement v2 entities and repositories ✅ COMPLETE
+### E3. [Repository] Implement entities and repositories ✅ COMPLETE
 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 3 points
 **Depends on:** E1, E2
-**Labels:** `repository`, `v2`, `epic-e`
+**Labels:** `repository`, `epic-e`
 
 #### Description
 
-Add entity classes and repository types for Database v2 tables under `server/Infrastructure/External/Domain/Entities/` and `server/Infrastructure/External/Database/Repositories/`.
+Add entity classes and repository types for database tables under `server/Infrastructure/External/Domain/Entities/` and `server/Infrastructure/External/Database/Repositories/`.
 
 #### Acceptance Criteria
 
-- [x] Entity classes created for all v2 tables
+- [x] Entity classes created for all tables
 - [x] Repositories expose queries aligned with product needs (solo/duo/team summaries, timelines, derived metrics)
 - [x] New repositories use `RepositoryBase` helpers and follow existing patterns
 
 ---
 
-### E4. [Sync] Ingest match & participant core data into v2 tables ✅ COMPLETE
+### E4. [Sync] Ingest match & participant core data ✅ COMPLETE
 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 3 points
 **Depends on:** E3
-**Labels:** `sync`, `riot-api`, `v2`, `epic-e`
+**Labels:** `sync`, `riot-api`, `epic-e`
 
 #### Description
 
-Update `MatchHistorySyncJob` (and related logic) to write match- and participant-level data from Riot match info into the v2 `matches` and `participants` tables.
+Update `MatchHistorySyncJob` (and related logic) to write match- and participant-level data from Riot match info into the `matches` and `participants` tables.
 
 #### Acceptance Criteria
 
 - [x] New writes to `matches` and `participants` occur for all synced matches
-- [x] At least one test account can be fully synced into v2 tables
-- [x] Basic solo stats queries using v2 repositories return expected values (win rate, KDA, CS, etc.)
+- [x] At least one test account can be fully synced into tables
+- [x] Basic solo stats queries using repositories return expected values (win rate, KDA, CS, etc.)
 
 ---
 
-### E5. [Sync] Ingest timeline & derived metrics into v2 tables ✅ COMPLETE
+### E5. [Sync] Ingest timeline & derived metrics ✅ COMPLETE
 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 5 points
 **Depends on:** E4
-**Labels:** `sync`, `timeline`, `statistics`, `v2`, `epic-e`
+**Labels:** `sync`, `timeline`, `statistics`, `epic-e`
 
 #### Description
 
@@ -103,51 +103,51 @@ Extend the sync pipeline to call Riot timeline endpoints and populate `participa
 - [x] Timeline data fetched for synced matches (respecting rate limits)
 - [x] Checkpoints stored at key minute marks (10/15/20/25 etc.)
 - [x] Derived metrics (kill participation, damage share, death timings, gold leads, duo/team metrics) are persisted
-- [x] Core solo/duo/team analytics can be served from v2 tables without additional Riot calls
+- [x] Core solo/duo/team analytics can be served from tables without additional Riot calls
 
 ---
 
-# Epic F: API v2 (Completed Tasks)
+# Epic F: API (Completed Tasks)
 
-### F1. [Design] Define API v2 surface & versioning ✅ COMPLETE
+### F1. [Design] Define API surface & versioning ✅ COMPLETE
 
 **Priority:** P0 - Critical
 **Type:** Architecture
 **Estimate:** 2 points
 **Depends on:** E1
-**Labels:** `api`, `v2`, `epic-f`
+**Labels:** `api`, `epic-f`
 
 #### Description
 
-Design the v2 API surface (routes, DTOs, versioning strategy) for solo, duo, team dashboards and AI/goal endpoints.
+Design the API surface (routes, DTOs, versioning strategy) for solo, duo, team dashboards and AI/goal endpoints.
 
 #### Acceptance Criteria
 
-- [x] API v2 route scheme decided (e.g. `/api/v2/...`)
+- [x] API route scheme decided (e.g. `/api/v2/...`)
 - [x] Request/response models defined for solo/duo/team summary endpoints
 - [x] Response shapes optimized for frontend dashboards (minimal client-side aggregation)
-- [x] Standardize optional queue filtering for v2 endpoints (e.g. `queueType=ranked_solo|ranked_flex|normal|aram|all`)
+- [x] Standardize optional queue filtering for endpoints (e.g. `queueType=ranked_solo|ranked_flex|normal|aram|all`)
 
 ---
 
-### F2. [API] Implement Solo dashboard v2 endpoint ✅ COMPLETE
+### F2. [API] Implement Solo dashboard endpoint ✅ COMPLETE
 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 3 points
 **Depends on:** E3, E4, F1
-**Labels:** `api`, `solo`, `v2`, `epic-f`
+**Labels:** `api`, `solo`, `epic-f`
 
 #### Description
 
-Create a v2 endpoint that returns all data required for the Solo dashboard (overall stats, champion performance, role distribution, death efficiency, match duration, etc.) from Database v2.
+Create an endpoint that returns all data required for the Solo dashboard (overall stats, champion performance, role distribution, death efficiency, match duration, etc.).
 
 #### Acceptance Criteria
 
 - [x] Endpoint implemented (e.g. `GET /api/v2/solo/dashboard/{userId}`)
-- [x] Uses only v2 repositories
+- [x] Uses repositories
 - [x] Returns a single well-structured payload consumed by the new Solo dashboard view
-- [x] Supports optional queue filtering via the standardized v2 queue filter
+- [x] Supports optional queue filtering via the standardized queue filter
 
 ---
 
@@ -165,7 +165,7 @@ Protect the .NET backend with cookie-based session authentication so only author
 
 #### Acceptance Criteria
 
-- [x] Configure session middleware (httpOnly, secure, SameSite=Lax cookies) for all v2 endpoints
+- [x] Configure session middleware (httpOnly, secure, SameSite=Lax cookies) for all endpoints
 - [x] Create a login endpoint that validates credentials and sets a session cookie
 - [x] Require valid session for non-public endpoints; missing/expired → `401 Unauthorized`
 - [x] Session timeout configurable via appsettings (default 30 min)
@@ -198,7 +198,7 @@ Provide API endpoints for user login, user profile data, and managing friends/du
 
 ---
 
-# Epic G: Frontend v2 App & Marketing (Completed Tasks)
+# Epic G: Frontend App & Marketing (Completed Tasks)
 
 ### G9. [Frontend] Implement user login, signup, verification & `/app/user` shell ✅ COMPLETE
 
@@ -300,7 +300,7 @@ Allow authenticated users to link one or more Riot accounts to their profile fro
 
 #### Description
 
-Create v2 API endpoints for linking Riot accounts to authenticated users. Store linked accounts in a new `user_riot_accounts` table. Validate account existence via Riot API before linking.
+Create API endpoints for linking Riot accounts to authenticated users. Store linked accounts in a new `user_riot_accounts` table. Validate account existence via Riot API before linking.
 
 #### Acceptance Criteria
 
@@ -318,7 +318,7 @@ Create v2 API endpoints for linking Riot accounts to authenticated users. Store 
   | last_sync_at | timestamp | Yes | NULL |
   | created_at | timestamp | Yes | CURRENT_TIMESTAMP |
   | updated_at | timestamp | Yes | CURRENT_TIMESTAMP ON UPDATE |
-- [x] Use the `V2RiotAccountsRepository` with CRUD operations
+- [x] Use the `RiotAccountsRepository` with CRUD operations
 - [x] Create `POST /api/v2/users/me/riot-accounts` endpoint:
   - Request: `{ "gameName": "Faker", "tagLine": "KR1", "region": "euw1" }`
   - Validate Riot account exists via Riot API (`/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}`)
@@ -334,7 +334,7 @@ Create v2 API endpoints for linking Riot accounts to authenticated users. Store 
 
 ---
 
-### F14. [Background] Implement V2 Match History Sync Job ✅ COMPLETE
+### F14. [Background] Implement Match History Sync Job ✅ COMPLETE
 
 **Priority:** P0 - Critical
 **Type:** Feature
@@ -376,9 +376,9 @@ Create a match history sync job that fetches matches for linked Riot accounts, s
 
 ---
 
-# Epic G: Frontend v2 App & Marketing (Completed Tasks)
+# Epic G: Frontend App & Marketing (Completed Tasks - continued)
 
-### G1. [UX] Define app v2 information architecture & routes ✅ COMPLETE
+### G1. [UX] Define app information architecture & routes ✅ COMPLETE
 
 **Priority:** P0 - Critical
 **Type:** UX
@@ -387,7 +387,7 @@ Create a match history sync job that fetches matches for linked Riot accounts, s
 
 #### Description
 
-Define the high-level navigation for v2, including marketing pages and in-app routes (e.g. `/`, `/pricing`, `/app/solo`, `/app/duo`, `/app/team`, `/app/settings`).
+Define the high-level navigation, including marketing pages and in-app routes (e.g. `/`, `/pricing`, `/app/solo`, `/app/duo`, `/app/team`, `/app/settings`).
 
 #### Acceptance Criteria
 
@@ -534,7 +534,7 @@ Design the `/app/user` (Dashboard Hub) page: summarize Solo + Duos + Teams and e
 
 ---
 
-### G5b0. [Design] Solo Dashboard design 
+### G5b0. [Design] Solo Dashboard design
 
 **Priority:** P0 - Critical
 **Type:** Design
@@ -543,7 +543,7 @@ Design the `/app/user` (Dashboard Hub) page: summarize Solo + Duos + Teams and e
 
 #### Description
 
-Design the Solo Dashboard layout and user experience for v2.
+Design the Solo Dashboard layout and user experience.
 
 #### Acceptance Criteria
 
@@ -567,9 +567,9 @@ Create the base `/app/solo` route and view component with basic structure (heade
 
 #### Acceptance Criteria
 
-- [x] Route `/v2/app/solo` added to router configuration
+- [x] Route `/app/solo` added to router configuration
 - [x] `SoloDashboard.vue` created with basic structure (divs/sections for each upcoming section)
-- [x] View is protected by authentication (unauthenticated users redirected to `/v2/auth`)
+- [x] View is protected by authentication (unauthenticated users redirected to `/auth`)
 - [x] Rendered within the app shell (G2) with correct header and sidebar
 - [x] Queue filter dropdown and time range dropdown created (no functionality yet, just UI)
 - [x] Placeholder text or loading state for each section visible
@@ -662,23 +662,72 @@ Update the User dashboard endpoint (`/api/users/me`) to include `profileIconId` 
 
 ---
 
+### G5b16. [FE+BE] Update database on login ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** F12, F7
+**Labels:** `frontend`, `backend`, `api`, `riot-api`, `epic-g`
+
+#### Description
+
+When a user logs in, check their linked Riot accounts for new matches and update profile data (icon, level, rank). Notify frontend via WebSocket when sync is triggered.
+
+#### Acceptance Criteria
+
+- [x] LoginSyncService checks all linked accounts on login
+- [x] Profile data (icon, level) refreshed from Riot API
+- [x] New matches trigger sync (set status to 'pending')
+- [x] Cooldown prevents excessive API calls (5 minute minimum between checks)
+- [x] WebSocket notification sent when sync starts
+- [x] Graceful error handling (login succeeds even if sync check fails)
+
+---
+
+### G5b17. [FE+BE] Implement ranked data display in ProfileHeaderCard ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 5 points
+**Depends on:** G5b2, F12
+**Labels:** `frontend`, `backend`, `api`, `riot-api`, `epic-g`
+
+#### Description
+
+Fetch and display ranked Solo/Duo and Flex queue rank data in the ProfileHeaderCard component. This requires calling the Riot League-v4 API to get league entries, storing the rank data in the `riot_accounts` table, and returning it in the `/api/v2/users/me` endpoint.
+
+#### Acceptance Criteria
+
+- [x] `GetLeagueEntriesBySummonerIdAsync` method added to `IRiotApiClient`
+- [x] Rank columns added to `riot_accounts` table: `solo_tier`, `solo_rank`, `solo_lp`, `flex_tier`, `flex_rank`, `flex_lp`
+- [x] `RiotAccount` entity updated with rank properties
+- [x] `RiotAccountsRepository` updated to read/write rank fields
+- [x] Rank data fetched and stored during account linking
+- [x] Rank data refreshed during login sync
+- [x] `UsersMeEndpoint` returns rank fields in `RiotAccountResponse`
+- [x] ProfileHeaderCard displays Solo/Duo and Flex rank badges
+- [x] Unranked accounts show "--" instead of tier/LP
+
+---
+
 ## Summary of Completed Work
 
 | Epic | Task | Points | Completed |
 |------|------|--------|-----------|
-| E | E1 - Database v2 schema & DDL | 3 | ✅ |
+| E | E1 - Database schema & DDL | 3 | ✅ |
 | E | E2 - MySQL schema scripts | 2 | ✅ |
-| E | E3 - V2 entities and repositories | 3 | ✅ |
+| E | E3 - Entities and repositories | 3 | ✅ |
 | E | E4 - Match & participant ingestion | 3 | ✅ |
 | E | E5 - Timeline & derived metrics ingestion | 5 | ✅ |
-| F | F1 - API v2 surface design | 2 | ✅ |
-| F | F2 - Solo dashboard v2 endpoint | 3 | ✅ |
+| F | F1 - API surface design | 2 | ✅ |
+| F | F2 - Solo dashboard endpoint | 3 | ✅ |
 | F | F7 - Session authentication | 3 | ✅ |
 | F | F11 - User auth endpoints (core) | 5 | ✅ |
 | F | F12 - Riot account linking endpoints | 5 | ✅ |
 | F | F13 - WebSocket endpoint for sync progress | 5 | ✅ |
-| F | F14 - V2 Match History Sync Job | 8 | ✅ |
-| G | G1 - App v2 IA & routes | 2 | ✅ |
+| F | F14 - Match History Sync Job | 8 | ✅ |
+| G | G1 - App IA & routes | 2 | ✅ |
 | G | G2 - App shell & navigation | 3 | ✅ |
 | G | G9 - Login, signup, verification & user shell | 5 | ✅ |
 | G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
@@ -689,5 +738,7 @@ Update the User dashboard endpoint (`/api/users/me`) to include `profileIconId` 
 | G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
 | G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
 | G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
+| G | G5b16 - Update database on login (FE+BE) | 2 | ✅ |
+| G | G5b17 - Implement ranked data display in ProfileHeaderCard (FE+BE) | 5 | ✅ |
 
-**Total Completed Points:** 79
+**Total Completed Points:** 86

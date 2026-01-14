@@ -1,12 +1,11 @@
 using MySqlConnector;
-using RiotProxy.Application.DTOs;
 using static RiotProxy.Application.DTOs.SoloSummaryDto;
 
 namespace RiotProxy.Infrastructure.External.Database.Repositories;
 
 /// <summary>
-/// Repository for v2 solo dashboard statistics, optimized for dashboard rendering.
-/// All queries use v2 match and participant tables.
+/// Repository for solo dashboard statistics, optimized for dashboard rendering.
+/// All queries use match and participant tables.
 /// </summary>
 public class SoloStatsRepository : RepositoryBase
 {

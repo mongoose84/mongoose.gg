@@ -15,6 +15,12 @@
           :region="firstRiotAccount.region"
           :profile-icon-id="firstRiotAccount.profileIconId"
           :summoner-level="firstRiotAccount.summonerLevel"
+          :solo-tier="firstRiotAccount.soloTier"
+          :solo-rank="firstRiotAccount.soloRank"
+          :solo-lp="firstRiotAccount.soloLp"
+          :flex-tier="firstRiotAccount.flexTier"
+          :flex-rank="firstRiotAccount.flexRank"
+          :flex-lp="firstRiotAccount.flexLp"
           :win-rate="dashboardData?.winRate"
           :games-played="dashboardData?.gamesPlayed"
           :clickable="true"
@@ -198,6 +204,22 @@ onMounted(() => {
 watch(riotAccounts, (newAccounts) => {
   for (const account of newAccounts) {
     subscribe(account.puuid);
+  }
+}, { deep: true });
+
+// Watch for sync completion to refresh data
+watch(syncProgress, (progress) => {
+  // Check if any account just completed sync
+  for (const [puuid, data] of progress.entries()) {
+    if (data.status === 'completed') {
+      // Refresh user data to get updated profile icon/level
+      authStore.refreshUser();
+      // Refresh dashboard data to get updated stats
+      fetchDashboardData();
+      // Reset the status after refresh to avoid repeated refreshes
+      resetProgress(puuid);
+      break;
+    }
   }
 }, { deep: true });
 

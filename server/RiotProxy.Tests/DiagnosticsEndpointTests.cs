@@ -1,9 +1,5 @@
-using System;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
@@ -16,7 +12,7 @@ public class DiagnosticsEndpointTests
     private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
     {
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        // Use the password that matches the BCrypt hash in FakeV2UsersRepository
+        // Use the password that matches the BCrypt hash in FakeUsersRepository
         var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();

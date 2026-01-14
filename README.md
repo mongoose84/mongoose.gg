@@ -62,44 +62,20 @@ Download .NET 9.0 SDK installer
 ```
 sudo dnf install dotnet-sdk-9.0
 ```
-#### Client part
-##### Install development server
+
+#### Client (standalone app)
+**Clientis a completely separate Vue 3 + Vite application, independent of the legacy client.**
+
+- Location: `client/` 
+- Decision: Build a fresh Vue 3 + Vite app to avoid disrupting the legacy client while we develop the experience.
+- Style: Start with the Vercel developer aesthetic (dark, sharp, neon-tinged) but keep theme tokens configurable for future restyles.
+- Rollout: Develop locally until the solo dashboard is ready, then ship; legacy client continues running independently.
+- The app will have its own `package.json`, `node_modules`, and complete build setup.
+
+##### Install and run Client
 from root
 ```
 cd client
-```
-```
-npm install
-```
-```
-npm i -D vitest @vue/test-utils axios-mock-adapter;
-```
-##### Run dev
-```
-npm run dev
-```
-##### Unit test
-```
-npm run test:unit // Run all test suites once
-
-npm run test:unit:watch // Run all test suites but watch for changes and rerun tests when they change.
-
-npm run test:unit:coverage // Run all tests once and show test coverage
-```
-
-#### Client v2 (standalone app)
-**Client v2 is a completely separate Vue 3 + Vite application, independent of the legacy client.**
-
-- Location: `client_v2/` (separate directory)
-- Decision: Build a fresh Vue 3 + Vite app to avoid disrupting the legacy client while we develop the v2 experience.
-- Style: Start with the Vercel developer aesthetic (dark, sharp, neon-tinged) but keep theme tokens configurable for future restyles.
-- Rollout: Develop locally until the solo dashboard is ready, then ship v2; legacy client continues running independently.
-- The v2 app will have its own `package.json`, `node_modules`, and complete build setup.
-
-##### Install and run Client v2
-from root
-```
-cd client_v2
 ```
 ```
 npm install
@@ -144,7 +120,6 @@ set RIOT_API_KEY=RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 Set via user-secrets:
 ```bash
 # user-secrets (from server/)
-dotnet user-secrets set "ConnectionStrings:Default" "Server=...;Password=...;"
 dotnet user-secrets set "ConnectionStrings:DatabaseV2" "Server=...;Password=...;"
 ```
 

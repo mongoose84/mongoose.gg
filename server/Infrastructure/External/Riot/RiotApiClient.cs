@@ -147,6 +147,44 @@ namespace RiotProxy.Infrastructure.External.Riot
             return jsonDoc;
         }
 
+        public async Task<JsonDocument> GetLeagueEntriesBySummonerIdAsync(string region, string summonerId, CancellationToken ct = default)
+        {
+            var leagueUrl = RiotUrlBuilder.GetLeagueEntriesBySummonerIdUrl(region, summonerId);
+            Metrics.SetLastUrlCalled("RiotApiClient.cs GetLeagueEntriesBySummonerId " + leagueUrl);
+
+            await _riotLimitHandler.WaitAsync(ct);
+
+            var response = await _http.GetAsync(leagueUrl, ct);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return JsonDocument.Parse("[]"); // No league entries found
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            return JsonDocument.Parse(json);
+        }
+
+        public async Task<JsonDocument> GetLeagueEntriesByPuuidAsync(string region, string puuid, CancellationToken ct = default)
+        {
+            var leagueUrl = RiotUrlBuilder.GetLeagueEntriesByPuuidUrl(region, puuid);
+            Metrics.SetLastUrlCalled("RiotApiClient.cs GetLeagueEntriesByPuuid " + leagueUrl);
+
+            await _riotLimitHandler.WaitAsync(ct);
+
+            var response = await _http.GetAsync(leagueUrl, ct);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return JsonDocument.Parse("[]"); // No league entries found
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            return JsonDocument.Parse(json);
+        }
+
         public async Task<string> GetLolVersionAsync(CancellationToken ct = default)
         {
             var url = "https://ddragon.leagueoflegends.com/api/versions.json";

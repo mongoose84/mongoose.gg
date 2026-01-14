@@ -1,8 +1,8 @@
-# F14: V2 Match History Sync Job Design
+# F14: Match History Sync Job Design
 
 ## Overview
 
-This document describes the design for the V2 Match History Sync Job, which handles concurrent match synchronization for linked Riot accounts with proper locking and rate limiting.
+This document describes the design for the Match History Sync Job, which handles concurrent match synchronization for linked Riot accounts with proper locking and rate limiting.
 
 ## Concurrency Analysis
 
@@ -48,7 +48,7 @@ The `RiotApiClient` uses a token bucket rate limiter (`TokenBucket` with `Semaph
 │     - Fetch match IDs from Riot (rate limited)                               │
 │     - For each new match:                                                    │
 │       - Fetch match + timeline (rate limited)                                │
-│       - Upsert to v2 tables (idempotent)                                     │
+│       - Upsert to database tables (idempotent)                               │
 │       - Broadcast progress via WebSocket                                     │
 │  5. On success: syncing → completed                                          │
 │  6. On failure: syncing → failed                                             │
@@ -76,7 +76,7 @@ The `RiotApiClient` uses a token bucket rate limiter (`TokenBucket` with `Semaph
 
 ## Required Repository Methods
 
-Add to `V2RiotAccountsRepository`:
+Add to `RiotAccountsRepository`:
 
 ### ClaimNextPendingForSyncAsync
 

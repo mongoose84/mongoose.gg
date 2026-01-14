@@ -31,15 +31,15 @@
         <h2 class="riot-id">{{ riotId }}</h2>
       </div>
 
-      <!-- Rank Badges (placeholder until rank data is available) -->
+      <!-- Rank Badges -->
       <div class="rank-badges">
-        <div class="rank-badge placeholder" title="Ranked Solo/Duo">
+        <div :class="['rank-badge', { placeholder: !soloTier }]" title="Ranked Solo/Duo">
           <span class="rank-icon">🏆</span>
-          <span class="rank-text">--</span>
+          <span class="rank-text">{{ soloRankDisplay }}</span>
         </div>
-        <div class="rank-badge placeholder" title="Ranked Flex">
+        <div :class="['rank-badge', { placeholder: !flexTier }]" title="Ranked Flex">
           <span class="rank-icon">👥</span>
-          <span class="rank-text">--</span>
+          <span class="rank-text">{{ flexRankDisplay }}</span>
         </div>
       </div>
 
@@ -83,6 +83,30 @@ const props = defineProps({
     type: Number,
     default: null
   },
+  soloTier: {
+    type: String,
+    default: null
+  },
+  soloRank: {
+    type: String,
+    default: null
+  },
+  soloLp: {
+    type: Number,
+    default: null
+  },
+  flexTier: {
+    type: String,
+    default: null
+  },
+  flexRank: {
+    type: String,
+    default: null
+  },
+  flexLp: {
+    type: Number,
+    default: null
+  },
   winRate: {
     type: Number,
     default: null
@@ -108,7 +132,7 @@ function handleClick() {
 }
 
 // Data Dragon version - could be fetched dynamically in the future
-const ddVersion = '14.24.1'
+const ddVersion = '16.1.1'
 
 const riotId = computed(() => `${props.gameName}#${props.tagLine}`)
 
@@ -137,6 +161,21 @@ const regionLabels = {
 }
 
 const regionLabel = computed(() => regionLabels[props.region] || props.region.toUpperCase())
+
+// Format rank display: "GOLD II (45 LP)" or "Unranked"
+function formatRank(tier, rank, lp) {
+  if (!tier) return '--'
+  // Capitalize tier properly (GOLD -> Gold)
+  const formattedTier = tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase()
+  // For Master+ tiers, there's no division
+  if (['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(tier.toUpperCase())) {
+    return `${formattedTier} ${lp ?? 0} LP`
+  }
+  return `${formattedTier} ${rank || ''} ${lp !== null && lp !== undefined ? `(${lp} LP)` : ''}`.trim()
+}
+
+const soloRankDisplay = computed(() => formatRank(props.soloTier, props.soloRank, props.soloLp))
+const flexRankDisplay = computed(() => formatRank(props.flexTier, props.flexRank, props.flexLp))
 
 const winRateDisplay = computed(() => {
   if (props.winRate === null || props.winRate === undefined) return '--'

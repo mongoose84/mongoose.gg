@@ -36,17 +36,17 @@ namespace RiotProxy.Application
             var verifyEndpoint = new VerifyEndpoint(basePath);
             _endpoints.Add(verifyEndpoint);
 
-            // Users (v2) - auth required
+            // Users endpoint - auth required
             var usersMeEndpoint = new UsersMeEndpoint(basePath);
             _endpoints.Add(usersMeEndpoint);
 
-            // Riot account linking endpoints (v2) - auth required
+            // Riot account linking endpoints - auth required
             var riotAccountsEndpoint = new RiotAccountsEndpoint(basePath);
             _endpoints.Add(riotAccountsEndpoint);
             
-            // Solo Dashboard V2 (auth required)
-            var soloDashboardV2Endpoint = new SoloDashboardV2Endpoint(basePath);
-            _endpoints.Add(soloDashboardV2Endpoint);           
+            // Solo Dashboard (auth required)
+            var soloDashboardEndpoint = new SoloDashboardEndpoint(basePath);
+            _endpoints.Add(soloDashboardEndpoint);           
         }
 
         public void ConfigureEndpoints()

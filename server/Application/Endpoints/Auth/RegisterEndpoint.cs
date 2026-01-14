@@ -10,7 +10,7 @@ using static RiotProxy.Application.DTOs.RegisterDto;
 namespace RiotProxy.Application.Endpoints.Auth;
 
 /// <summary>
-/// v2 Register Endpoint
+/// Register Endpoint
 /// Creates a new user account with username, email, and password.
 /// Sets emailVerified=false and logs the user in with a session cookie.
 /// </summary>
