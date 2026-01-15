@@ -118,7 +118,8 @@ const queueOptions = [
   { value: 'all', label: 'All Queues' },
   { value: 'ranked_solo', label: 'Ranked Solo/Duo' },
   { value: 'ranked_flex', label: 'Ranked Flex' },
-  { value: 'normal', label: 'Normal' }
+  { value: 'normal', label: 'Normal' },
+  { value: 'aram', label: 'ARAM' }
 ]
 
   // Fetch dashboard data
