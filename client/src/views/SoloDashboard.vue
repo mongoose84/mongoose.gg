@@ -2,28 +2,32 @@
   <section class="solo-dashboard">
     <header class="dashboard-header">
       <h1>Solo Dashboard</h1>
-      <div class="filters">
-        <div class="filter-group">
-          <label for="queue-filter">Queue</label>
-          <select id="queue-filter" v-model="queueFilter" aria-label="Filter matches by queue type">
-            <option value="all">All Queues</option>
-            <option value="ranked_solo">Ranked Solo/Duo</option>
-            <option value="ranked_flex">Ranked Flex</option>
-            <option value="normal">Normal</option>
-            <option value="aram">ARAM</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label for="time-range-filter">Time Range</label>
-          <select id="time-range-filter" v-model="timeRange" aria-label="Filter matches by time range">
-            <option value="all">All Time</option>
-            <option value="1w">Last Week</option>
-            <option value="1m">Last Month</option>
-            <option value="3m">Last 3 Months</option>
-            <option value="6m">Last 6 Months</option>
-            <option value="current_season">Current Season</option>
-          </select>
-        </div>
+
+      <!-- Queue Toggle Bar -->
+      <div class="queue-toggle" role="group" aria-label="Filter by queue type">
+        <button
+          v-for="queue in queueOptions"
+          :key="queue.value"
+          type="button"
+          :class="['queue-toggle-btn', { active: queueFilter === queue.value }]"
+          @click="queueFilter = queue.value"
+          :aria-pressed="queueFilter === queue.value"
+        >
+          {{ queue.label }}
+        </button>
+      </div>
+
+      <!-- Time Range Filter -->
+      <div class="filter-group">
+        <label for="time-range-filter">Time Range</label>
+        <select id="time-range-filter" v-model="timeRange" aria-label="Filter matches by time range">
+          <option value="all">All Time</option>
+          <option value="1w">Last Week</option>
+          <option value="1m">Last Month</option>
+          <option value="3m">Last 3 Months</option>
+          <option value="6m">Last 6 Months</option>
+          <option value="current_season">Current Season</option>
+        </select>
       </div>
     </header>
 
@@ -106,9 +110,17 @@ const dashboardData = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
 
-  // UI state for filters
-	const queueFilter = ref('all')
-	const timeRange = ref('current_season')
+// UI state for filters
+const queueFilter = ref('all')
+const timeRange = ref('current_season')
+
+// Queue options for toggle bar
+const queueOptions = [
+  { value: 'all', label: 'All Queues' },
+  { value: 'ranked_solo', label: 'Ranked Solo/Duo' },
+  { value: 'ranked_flex', label: 'Ranked Flex' },
+  { value: 'normal', label: 'Normal' }
+]
 
   // Fetch dashboard data
   async function fetchDashboardData() {
@@ -165,10 +177,61 @@ watch(syncProgress, (progress) => {
   justify-content: space-between;
   margin-bottom: var(--spacing-lg);
 }
-.filters {
+
+/* Queue Toggle Bar */
+.queue-toggle {
   display: flex;
-  gap: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
 }
+
+.queue-toggle-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.queue-toggle-btn:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.queue-toggle-btn:hover:not(.active) {
+  color: var(--color-text);
+  background: var(--color-elevated);
+}
+
+.queue-toggle-btn.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.queue-toggle-btn.active::after {
+  display: none;
+}
+
+.queue-toggle-btn:has(+ .active)::after {
+  display: none;
+}
+
+.queue-toggle-btn:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-primary-soft);
+}
+
 .filter-group {
   display: flex;
   flex-direction: column;
@@ -181,8 +244,7 @@ watch(syncProgress, (progress) => {
 }
 .filter-group select {
   padding: var(--spacing-sm) var(--spacing-md);
-	  /* Use a solid background so the dropdown isn't see-through over the hero bg */
-	  background-color: #020617;
+  background-color: #020617;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text);
