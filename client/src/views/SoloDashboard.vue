@@ -135,28 +135,36 @@ const queueOptions = [
   { value: 'aram', label: 'ARAM' }
 ]
 
-  // Fetch dashboard data and winrate trend in parallel
+  // Fetch dashboard data and winrate trend in parallel (isolated failures)
   async function fetchDashboardData() {
   if (!authStore.userId) return
 
   isLoading.value = true
   error.value = null
 
-    try {
-      // Fetch dashboard and winrate trend in parallel
-      const [dashboard, winrateTrend] = await Promise.all([
-        getSoloDashboard(authStore.userId, queueFilter.value, timeRange.value),
-        getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value)
-      ])
+    // Fetch in parallel but handle errors independently
+    const [dashboardResult, trendResult] = await Promise.allSettled([
+      getSoloDashboard(authStore.userId, queueFilter.value, timeRange.value),
+      getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value)
+    ])
 
-      dashboardData.value = dashboard
-      winrateTrendData.value = winrateTrend?.winrateTrend || null
-  } catch (err) {
-    console.error('Failed to fetch solo dashboard:', err)
-    error.value = err.message
-  } finally {
-    isLoading.value = false
-  }
+    // Handle dashboard result
+    if (dashboardResult.status === 'fulfilled') {
+      dashboardData.value = dashboardResult.value
+    } else {
+      console.error('Failed to fetch solo dashboard:', dashboardResult.reason)
+      error.value = dashboardResult.reason?.message || 'Failed to load dashboard'
+    }
+
+    // Handle trend result independently
+    if (trendResult.status === 'fulfilled') {
+      winrateTrendData.value = trendResult.value?.winrateTrend || null
+    } else {
+      console.warn('Failed to fetch winrate trend:', trendResult.reason)
+      winrateTrendData.value = null
+    }
+
+  isLoading.value = false
 }
 
 // Subscribe to sync updates for primary account
