@@ -1399,6 +1399,15 @@ Create an LP Over Time chart that displays LP change per game (only for Ranked q
   - Array of: `{ gameIndex: number, lpGain: number, currentLp: number, rank: string, timestamp: timestamp }`
   - Only included if `queueFilter` includes ranked modes
   - Pre-sorted by game timestamp
+  - The window size is as follows:
+      - Current season
+      - Last week
+      - Last month
+      - Last 3 months
+      - Last 6 months
+      - All time
+      - The window size is dynamic based on the time range selected at the top of the page.
+- [ ] Use the .augment/rules/api-design.md to guide the API design
 
 #### Frontend Requirements
 
@@ -1407,18 +1416,17 @@ Create an LP Over Time chart that displays LP change per game (only for Ranked q
 - [ ] Line chart with individual game LP gains/losses marked
 - [ ] Rank badges shown where promotions/demotions occur
 - [ ] Hover shows LP change, new LP, current rank
-- [ ] Only visible for Ranked queue filters; hidden for Normal/ARAM
-- [ ] Responsive: resizes on mobile
+- [ ] Empty for non-ranked queue filters with text "Select ranked queue to view LP history"
+- [ ] Use the .augment/rules/ui-design-guidelines.md to guide the UI design
 
 #### Acceptance Criteria
 
 - [ ] Chart renders correctly for ranked games
 - [ ] LP gains/losses are accurate
 - [ ] Rank badges display at rank boundaries
-- [ ] Chart hides when queue filter is non-ranked
+- [ ] Chart is empty when queue filter is non-ranked with text "Select ranked queue to view LP history"
 - [ ] Data matches backend values
 - [ ] Tooltip shows correct LP information
-- [ ] Mobile layout readable
 
 ---
 
@@ -1432,7 +1440,7 @@ Create an LP Over Time chart that displays LP change per game (only for Ranked q
 
 #### Description
 
-Create a Champion Matchups table showing the user's top 5 most-played champions with expandable rows. Each row displays opponents faced with that champion. Sorted by winrate, expandable to show all opponents (default shows top 3). Inspired by v1 ChampionMatchups component but adapted for new data structure.
+Create a Champion Matchups table showing the user's top 5 most-played champions with expandable rows. Each row displays opponents faced with that champion. Sorted by winrate, expandable to show all opponents (default shows top 3). 
 
 #### Backend Requirements
 
@@ -1442,6 +1450,15 @@ Create a Champion Matchups table showing the user's top 5 most-played champions 
   - `totalGames`, `wins`, `winRate`
   - `opponents`: Array of `{ opponentChampionName, wins, losses, gamesPlayed, winRate }`
   - Sorted by winrate descending
+- [ ] Use the .augment/rules/api-design.md to guide the API design
+- [ ]Reactive to the time range filter:
+      - Current season
+      - Last week
+      - Last month
+      - Last 3 months
+      - Last 6 months
+      - All time
+- [ ]Reactive to the queue filter: Ranked Solo, Ranked Flex, Normal, ARAM, All
 
 #### Frontend Requirements
 
@@ -1456,16 +1473,25 @@ Create a Champion Matchups table showing the user's top 5 most-played champions 
 - [ ] Opponent sorting: by games played (most played first)
 - [ ] Responsive: table scrolls horizontally on mobile, or collapses columns
 - [ ] Icons load from Riot CDN
+- [ ] Use the .augment/rules/ui-design-guidelines.md to guide the UI design
+- [ ] Replaces the Champion Matchups placeholder in SoloDashboard.vue
+- [ ]Reactive to the time range filter:
+      - Current season
+      - Last week
+      - Last month
+      - Last 3 months
+      - Last 6 months
+      - All time
+- [ ]Reactive to the queue filter: Ranked Solo, Ranked Flex, Normal, ARAM, All
 
 #### Acceptance Criteria
 
 - [ ] Table displays all top 5 champions
-- [ ] Winrate colors (green ≥50%, red <50%)
+- [ ] Winrate colors  - use the /client/src/composables/useWinRateColor.js composable
 - [ ] Expand/collapse works smoothly
 - [ ] Opponent list shows correctly
 - [ ] All icons load
 - [ ] Table is sortable or shows correct default sort
-- [ ] Mobile layout is functional (not cramped)
 - [ ] Updates when queue filter changes
 
 ---
@@ -1580,11 +1606,13 @@ Update Solo dashboard endpoint (F2) to include `lpTrend` array. Returns LP chang
     ]
   }
   ```
+- [ ] Only called for ranked queues (solo/duo, flex)
 - [ ] Only included if queue filter includes ranked modes
 - [ ] Calculates LP gain/loss from match result
 - [ ] Tracks rank at each game
 - [ ] Marks promotions/demotions
-- [ ] Tested with sample data
+- [ ] Update the database to store lp and rank at each game. Use/update the .augment/rules/database-schema.md and /server/schema.sql files to document the changes.
+- [ ] Update the MatchHistorySyncJob to fill in the new columns when processing matches.
 
 ---
 

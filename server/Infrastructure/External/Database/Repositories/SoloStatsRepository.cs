@@ -71,6 +71,15 @@ public class SoloStatsRepository : RepositoryBase
 			            var last10 = await GetRecentTrendAsync(puuid, queueFilter, timeFilter, timeRangeStart, seasonCode, Math.Min(10, totalGames));
 			            var last20 = await GetRecentTrendAsync(puuid, queueFilter, timeFilter, timeRangeStart, seasonCode, Math.Min(20, totalGames));
 
+                // Fetch LP trend for ranked queues only
+                LpTrendPoint[] lpTrend = Array.Empty<LpTrendPoint>();
+                if (queueType is "ranked_solo" or "ranked_flex" or "all")
+                {
+                    // For "all", fetch both ranked modes; for specific ranked mode, fetch only that
+                    var lpTrendList = await GetLpTrendAsync(puuid, queueType == "all" ? null : queueType, 100);
+                    lpTrend = lpTrendList.ToArray();
+                }
+
 	            var response = new SoloDashboardResponse(
 	                GamesPlayed: totalGames,
 	                Wins: overallStats.Value.Wins,
@@ -86,7 +95,8 @@ public class SoloStatsRepository : RepositoryBase
 	                PerformanceByPhase: performancePhases.ToArray(),
 	                RoleBreakdown: roleBreakdown.ToArray(),
 		                DeathEfficiency: deathStats,
-		                QueueType: queueType
+		                QueueType: queueType,
+                    LpTrend: lpTrend
 	            );
 	            _logger.LogInformation("GetSoloDashboardAsync success: puuid={Puuid}, games={Games}", puuid, totalGames);
 	            return response;
@@ -804,5 +814,204 @@ public class SoloStatsRepository : RepositoryBase
         });
 
         return result;
+    }
+
+    /// <summary>
+    /// Get LP trend data for ranked matches with LP data available.
+    /// Returns LP points ordered from oldest to newest for chart visualization.
+    /// </summary>
+    /// <param name="puuid">Player PUUID</param>
+    /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, or null for both)</param>
+    /// <param name="limit">Maximum number of data points to return</param>
+    /// <returns>List of LP trend points ordered oldest to newest</returns>
+    public async Task<IList<LpTrendPoint>> GetLpTrendAsync(string puuid, string? queueType = null, int limit = 100)
+    {
+        // Build queue filter for ranked modes only
+        // 420 = Ranked Solo/Duo, 440 = Ranked Flex
+        var queueFilter = queueType?.ToLowerInvariant() switch
+        {
+            "ranked_solo" => "AND m.queue_id = 420",
+            "ranked_flex" => "AND m.queue_id = 440",
+            _ => "AND m.queue_id IN (420, 440)" // Both ranked modes
+        };
+
+        // Query participants with LP data, ordered by game time (oldest first for indexing)
+        var sql = $@"
+            SELECT
+                p.lp_after,
+                p.tier_after,
+                p.rank_after,
+                p.win,
+                m.game_start_time
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE p.puuid = @puuid
+              AND p.lp_after IS NOT NULL
+              AND p.tier_after IS NOT NULL
+              {queueFilter}
+            ORDER BY m.game_start_time ASC
+            LIMIT @limit";
+
+        var points = new List<LpTrendPoint>();
+
+        await ExecuteWithConnectionAsync<int>(async (conn, cmd) =>
+        {
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            cmd.Parameters.AddWithValue("@limit", limit);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            int gameIndex = 1;
+            int? previousLp = null;
+            string? previousTier = null;
+            string? previousRank = null;
+
+            while (await reader.ReadAsync())
+            {
+                var lpAfter = reader.GetInt32(0);
+                var tierAfter = reader.GetString(1);
+                var rankAfter = reader.IsDBNull(2) ? "" : reader.GetString(2);
+                var win = reader.GetBoolean(3);
+                var gameStartTime = reader.GetInt64(4);
+
+                // Format rank string (e.g., "Silver IV")
+                var rankString = FormatRankString(tierAfter, rankAfter);
+
+                // Detect promotion/demotion first (needed for LP gain calculation)
+                var isPromotion = DetectPromotion(previousTier, previousRank, tierAfter, rankAfter);
+                var isDemotion = DetectDemotion(previousTier, previousRank, tierAfter, rankAfter);
+
+                // Calculate LP gain/loss
+                // - null for first game (no previous data)
+                // - null for promotions/demotions (LP resets make the raw diff misleading)
+                int? lpGain = null;
+                if (previousLp.HasValue && !isPromotion && !isDemotion)
+                {
+                    lpGain = lpAfter - previousLp.Value;
+                }
+
+                // Convert game_start_time (milliseconds) to DateTime
+                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(gameStartTime).UtcDateTime;
+
+                points.Add(new LpTrendPoint(
+                    GameIndex: gameIndex,
+                    LpGain: lpGain,
+                    CurrentLp: lpAfter,
+                    Rank: rankString,
+                    Timestamp: timestamp,
+                    IsPromotion: isPromotion,
+                    IsDemotion: isDemotion,
+                    Win: win
+                ));
+
+                previousLp = lpAfter;
+                previousTier = tierAfter;
+                previousRank = rankAfter;
+                gameIndex++;
+            }
+
+            return 0;
+        });
+
+        return points;
+    }
+
+    /// <summary>
+    /// Formats tier and rank into a readable string (e.g., "Silver IV")
+    /// </summary>
+    private static string FormatRankString(string tier, string rank)
+    {
+        // Capitalize first letter of tier
+        var formattedTier = tier.Length > 0
+            ? char.ToUpper(tier[0]) + tier.Substring(1).ToLower()
+            : tier;
+
+        return string.IsNullOrEmpty(rank) ? formattedTier : $"{formattedTier} {rank}";
+    }
+
+    /// <summary>
+    /// Detects if a rank change represents a promotion.
+    /// </summary>
+    private static bool DetectPromotion(string? prevTier, string? prevRank, string currTier, string currRank)
+    {
+        if (string.IsNullOrEmpty(prevTier)) return false;
+
+        var prevTierLevel = GetTierLevel(prevTier);
+        var currTierLevel = GetTierLevel(currTier);
+
+        // Tier promotion
+        if (currTierLevel > prevTierLevel) return true;
+
+        // Division promotion (same tier, lower division number = higher rank)
+        if (currTierLevel == prevTierLevel)
+        {
+            var prevDivision = GetDivisionLevel(prevRank);
+            var currDivision = GetDivisionLevel(currRank);
+            return currDivision > prevDivision;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Detects if a rank change represents a demotion.
+    /// </summary>
+    private static bool DetectDemotion(string? prevTier, string? prevRank, string currTier, string currRank)
+    {
+        if (string.IsNullOrEmpty(prevTier)) return false;
+
+        var prevTierLevel = GetTierLevel(prevTier);
+        var currTierLevel = GetTierLevel(currTier);
+
+        // Tier demotion
+        if (currTierLevel < prevTierLevel) return true;
+
+        // Division demotion (same tier, higher division number = lower rank)
+        if (currTierLevel == prevTierLevel)
+        {
+            var prevDivision = GetDivisionLevel(prevRank);
+            var currDivision = GetDivisionLevel(currRank);
+            return currDivision < prevDivision;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the numeric level of a tier (higher = better).
+    /// </summary>
+    private static int GetTierLevel(string? tier)
+    {
+        return tier?.ToUpperInvariant() switch
+        {
+            "IRON" => 1,
+            "BRONZE" => 2,
+            "SILVER" => 3,
+            "GOLD" => 4,
+            "PLATINUM" => 5,
+            "EMERALD" => 6,
+            "DIAMOND" => 7,
+            "MASTER" => 8,
+            "GRANDMASTER" => 9,
+            "CHALLENGER" => 10,
+            _ => 0
+        };
+    }
+
+    /// <summary>
+    /// Gets the numeric level of a division (higher = better within tier).
+    /// IV = 1, III = 2, II = 3, I = 4
+    /// </summary>
+    private static int GetDivisionLevel(string? rank)
+    {
+        return rank?.ToUpperInvariant() switch
+        {
+            "IV" => 1,
+            "III" => 2,
+            "II" => 3,
+            "I" => 4,
+            _ => 0 // Master+ don't have divisions
+        };
     }
 }

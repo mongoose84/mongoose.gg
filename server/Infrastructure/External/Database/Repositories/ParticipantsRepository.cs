@@ -11,8 +11,8 @@ public class ParticipantsRepository : RepositoryBase
     public Task<long> InsertAsync(Participant p)
     {
         const string sql = @"INSERT INTO participants
-            (match_id, puuid, team_id, role, lane, champion_id, champion_name, win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec, created_at)
-            VALUES (@match_id, @puuid, @team_id, @role, @lane, @champion_id, @champion_name, @win, @kills, @deaths, @assists, @creep_score, @gold_earned, @time_dead_sec, @created_at) AS new
+            (match_id, puuid, team_id, role, lane, champion_id, champion_name, win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec, lp_after, tier_after, rank_after, created_at)
+            VALUES (@match_id, @puuid, @team_id, @role, @lane, @champion_id, @champion_name, @win, @kills, @deaths, @assists, @creep_score, @gold_earned, @time_dead_sec, @lp_after, @tier_after, @rank_after, @created_at) AS new
             ON DUPLICATE KEY UPDATE
                 team_id = new.team_id,
                 role = new.role,
@@ -25,7 +25,10 @@ public class ParticipantsRepository : RepositoryBase
                 assists = new.assists,
                 creep_score = new.creep_score,
                 gold_earned = new.gold_earned,
-                time_dead_sec = new.time_dead_sec;";
+                time_dead_sec = new.time_dead_sec,
+                lp_after = new.lp_after,
+                tier_after = new.tier_after,
+                rank_after = new.rank_after;";
 
         return ExecuteWithConnectionAsync(async conn =>
         {
@@ -44,6 +47,9 @@ public class ParticipantsRepository : RepositoryBase
             cmd.Parameters.AddWithValue("@creep_score", p.CreepScore);
             cmd.Parameters.AddWithValue("@gold_earned", p.GoldEarned);
             cmd.Parameters.AddWithValue("@time_dead_sec", p.TimeDeadSec);
+            cmd.Parameters.AddWithValue("@lp_after", p.LpAfter ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@tier_after", p.TierAfter ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@rank_after", p.RankAfter ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@created_at", p.CreatedAt == default ? DateTime.UtcNow : p.CreatedAt);
             await cmd.ExecuteNonQueryAsync();
             return cmd.LastInsertedId;
@@ -54,6 +60,24 @@ public class ParticipantsRepository : RepositoryBase
     {
         const string sql = "SELECT * FROM participants WHERE match_id = @match_id";
         return ExecuteListAsync(sql, Map, ("@match_id", matchId));
+    }
+
+    /// <summary>
+    /// Updates LP and rank data for a participant record.
+    /// Used to set LP/rank after syncing a ranked match.
+    /// </summary>
+    public Task UpdateLpDataAsync(string matchId, string puuid, int? lp, string? tier, string? rank)
+    {
+        const string sql = @"UPDATE participants
+            SET lp_after = @lp_after, tier_after = @tier_after, rank_after = @rank_after
+            WHERE match_id = @match_id AND puuid = @puuid";
+
+        return ExecuteNonQueryAsync(sql,
+            ("@match_id", matchId),
+            ("@puuid", puuid),
+            ("@lp_after", lp ?? (object)DBNull.Value),
+            ("@tier_after", tier ?? (object)DBNull.Value),
+            ("@rank_after", rank ?? (object)DBNull.Value));
     }
 
     public virtual async Task<ISet<string>> GetMatchIdsForPuuidAsync(string puuid)
@@ -110,6 +134,9 @@ public class ParticipantsRepository : RepositoryBase
         CreepScore = r.GetInt32(12),
         GoldEarned = r.GetInt32(13),
         TimeDeadSec = r.GetInt32(14),
-        CreatedAt = r.GetDateTime(15)
+        LpAfter = r.IsDBNull(15) ? null : r.GetInt32(15),
+        TierAfter = r.IsDBNull(16) ? null : r.GetString(16),
+        RankAfter = r.IsDBNull(17) ? null : r.GetString(17),
+        CreatedAt = r.GetDateTime(18)
     };
 }

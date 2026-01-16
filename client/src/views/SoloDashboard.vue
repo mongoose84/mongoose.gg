@@ -79,9 +79,13 @@
 	  	        <h2>Winrate Over Time</h2>
 	  	        <p>No data for selected time range.</p>
 	  	      </div>
-	  	      <div class="section placeholder-card">
+	  	      <LpTrendChart
+	  	        v-if="lpTrendData && lpTrendData.length > 0"
+	  	        :lp-trend="lpTrendData"
+	  	      />
+	  	      <div v-else-if="isRankedQueue" class="section placeholder-card">
 	  	        <h2>LP Over Time</h2>
-	  	        <p>Per-game LP changes with rank annotations (ranked only).</p>
+	  	        <p>No LP data available yet. LP tracking starts after your next ranked game.</p>
 	  	      </div>
 	  	    </div>
 	  	  </div>
@@ -109,6 +113,7 @@ import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import ProfileHeaderCard from '../components/ProfileHeaderCard.vue'
 import MainChampionCard from '../components/MainChampionCard.vue'
 import WinrateChart from '../components/WinrateChart.vue'
+import LpTrendChart from '../components/LpTrendChart.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, subscribe, resetProgress } = useSyncWebSocket()
@@ -134,6 +139,14 @@ const queueOptions = [
   { value: 'normal', label: 'Normal' },
   { value: 'aram', label: 'ARAM' }
 ]
+
+// LP trend data from dashboard response
+const lpTrendData = computed(() => dashboardData.value?.lpTrend || [])
+
+// Check if current queue filter includes ranked modes (for showing LP chart)
+const isRankedQueue = computed(() =>
+  ['all', 'ranked_solo', 'ranked_flex'].includes(queueFilter.value)
+)
 
   // Fetch dashboard data and winrate trend in parallel (isolated failures)
   async function fetchDashboardData() {

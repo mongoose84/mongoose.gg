@@ -13,30 +13,33 @@ public static class SoloSummaryDto
         [property: JsonPropertyName("winRate")] double WinRate,
         [property: JsonPropertyName("avgKda")] double AvgKda,
         [property: JsonPropertyName("avgGameDurationMinutes")] double AvgGameDurationMinutes,
-        
+
         // Side statistics (win distribution)
         [property: JsonPropertyName("sideStats")] SideWinDistribution SideStats,
-        
+
         // Champion pool summary
         [property: JsonPropertyName("uniqueChampsPlayedCount")] int UniqueChampsPlayedCount,
 	        [property: JsonPropertyName("mainChampion")] ChampionSummary? MainChampion,
 	        [property: JsonPropertyName("mainChampions")] MainChampionRoleGroup[] MainChampions,
-        
+
         // Recent trend
         [property: JsonPropertyName("last10Games")] TrendMetric? Last10Games,
         [property: JsonPropertyName("last20Games")] TrendMetric? Last20Games,
-        
+
         // Performance by phase
         [property: JsonPropertyName("performanceByPhase")] PerformancePhase[] PerformanceByPhase,
-        
+
         // Role breakdown
         [property: JsonPropertyName("roleBreakdown")] RolePerformance[] RoleBreakdown,
-        
+
         // Death efficiency
         [property: JsonPropertyName("deathEfficiency")] DeathEfficiency DeathEfficiency,
 
         // Queue type
-        [property: JsonPropertyName("queueType")] string QueueType
+        [property: JsonPropertyName("queueType")] string QueueType,
+
+        // LP trend (for ranked queues only, empty array if no LP data or non-ranked queue)
+        [property: JsonPropertyName("lpTrend")] LpTrendPoint[] LpTrend
     );
 
     public record SideWinDistribution(
@@ -115,5 +118,28 @@ public static class SoloSummaryDto
         [property: JsonPropertyName("gameIndex")] int GameIndex,
         [property: JsonPropertyName("winRate")] double WinRate,
         [property: JsonPropertyName("timestamp")] DateTime Timestamp
+    );
+
+    /// <summary>
+    /// A single data point for the LP trend chart.
+    /// Represents LP and rank after each ranked game.
+    /// </summary>
+    public record LpTrendPoint(
+        /// <summary>1-indexed game number, oldest to newest</summary>
+        [property: JsonPropertyName("gameIndex")] int GameIndex,
+        /// <summary>LP gained or lost in this game (null if unknown - first game or missing data)</summary>
+        [property: JsonPropertyName("lpGain")] int? LpGain,
+        /// <summary>Current LP after this game</summary>
+        [property: JsonPropertyName("currentLp")] int CurrentLp,
+        /// <summary>Rank string after this game (e.g., "Silver IV")</summary>
+        [property: JsonPropertyName("rank")] string Rank,
+        /// <summary>Timestamp of the game</summary>
+        [property: JsonPropertyName("timestamp")] DateTime Timestamp,
+        /// <summary>True if this game resulted in a promotion (rank changed up)</summary>
+        [property: JsonPropertyName("isPromotion")] bool IsPromotion,
+        /// <summary>True if this game resulted in a demotion (rank changed down)</summary>
+        [property: JsonPropertyName("isDemotion")] bool IsDemotion,
+        /// <summary>True if the player won this game</summary>
+        [property: JsonPropertyName("win")] bool Win
     );
 }

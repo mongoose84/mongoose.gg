@@ -279,6 +279,9 @@ Per-player, per-match base statistics.
 | `creep_score` | INT | NOT NULL | Total CS (minions + neutrals) |
 | `gold_earned` | INT | NOT NULL | Total gold earned |
 | `time_dead_sec` | INT | NOT NULL | Total time spent dead (seconds) |
+| `lp_after` | INT | NULL | LP after game completion (ranked only) |
+| `tier_after` | VARCHAR(20) | NULL | Tier after game completion (e.g., "SILVER") |
+| `rank_after` | VARCHAR(10) | NULL | Rank/division after game (e.g., "IV") |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 
 **Indexes:**
@@ -298,6 +301,7 @@ Per-player, per-match base statistics.
 - `creep_score` = `totalMinionsKilled` + `neutralMinionsKilled` from Riot API
 - `role` comes from `teamPosition` (preferred)
 - `lane` comes from `lane` (may differ due to lane swaps)
+- `lp_after`, `tier_after`, `rank_after` are only populated for ranked matches (queue_id 420 or 440) when synced via MatchHistorySyncJob. These columns enable LP trend charts showing progression over time.
 
 ---
 

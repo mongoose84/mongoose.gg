@@ -17,5 +17,11 @@ public class Participant : EntityBase
     public int CreepScore { get; set; }
     public int GoldEarned { get; set; }
     public int TimeDeadSec { get; set; }
+    /// <summary>LP after game completion (ranked matches only, null otherwise)</summary>
+    public int? LpAfter { get; set; }
+    /// <summary>Tier after game completion (e.g., "SILVER") - ranked matches only</summary>
+    public string? TierAfter { get; set; }
+    /// <summary>Rank/division after game (e.g., "IV") - ranked matches only</summary>
+    public string? RankAfter { get; set; }
     public DateTime CreatedAt { get; set; }
 }
