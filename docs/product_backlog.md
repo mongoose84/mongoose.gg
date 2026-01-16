@@ -1399,6 +1399,15 @@ Create an LP Over Time chart that displays LP change per game (only for Ranked q
   - Array of: `{ gameIndex: number, lpGain: number, currentLp: number, rank: string, timestamp: timestamp }`
   - Only included if `queueFilter` includes ranked modes
   - Pre-sorted by game timestamp
+  - The window size is as follows:
+      - Current season
+      - Last week
+      - Last month
+      - Last 3 months
+      - Last 6 months
+      - All time
+      - The window size is dynamic based on the time range selected at the top of the page.
+- [ ] Use the .augment/rules/api-design.md to guide the API design
 
 #### Frontend Requirements
 
@@ -1407,18 +1416,17 @@ Create an LP Over Time chart that displays LP change per game (only for Ranked q
 - [ ] Line chart with individual game LP gains/losses marked
 - [ ] Rank badges shown where promotions/demotions occur
 - [ ] Hover shows LP change, new LP, current rank
-- [ ] Only visible for Ranked queue filters; hidden for Normal/ARAM
-- [ ] Responsive: resizes on mobile
+- [ ] Empty for non-ranked queue filters with text "Select ranked queue to view LP history"
+- [ ] Use the .augment/rules/ui-design-guidelines.md to guide the UI design
 
 #### Acceptance Criteria
 
 - [ ] Chart renders correctly for ranked games
 - [ ] LP gains/losses are accurate
 - [ ] Rank badges display at rank boundaries
-- [ ] Chart hides when queue filter is non-ranked
+- [ ] Chart is empty when queue filter is non-ranked with text "Select ranked queue to view LP history"
 - [ ] Data matches backend values
 - [ ] Tooltip shows correct LP information
-- [ ] Mobile layout readable
 
 ---
 
