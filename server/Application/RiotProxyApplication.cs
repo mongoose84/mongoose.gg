@@ -22,7 +22,10 @@ namespace RiotProxy.Application
             var diagnosticsEndpoint = new DiagnosticsEndpoint(basePath);
             _endpoints.Add(diagnosticsEndpoint);
 
-            
+	            // Public stats endpoint (no auth required)
+	            var publicStatsEndpoint = new PublicStatsEndpoint(basePath);
+	            _endpoints.Add(publicStatsEndpoint);
+
 
             // Auth endpoints (no auth required)
             var registerEndpoint = new RegisterEndpoint(basePath);

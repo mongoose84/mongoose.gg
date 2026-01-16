@@ -97,6 +97,17 @@ public class UsersRepository : RepositoryBase
         });
     }
 
+	    /// <summary>
+	    /// Returns the number of active users (players) in the system.
+	    /// Used for public landing-page stats.
+	    /// </summary>
+	    public async Task<long> GetActiveUserCountAsync()
+	    {
+	        const string sql = "SELECT COUNT(*) FROM users WHERE is_active = TRUE";
+	        var result = await ExecuteScalarAsync<long>(sql);
+	        return result;
+	    }
+
     public async Task UpdateEmailVerifiedAsync(long userId, bool verified)
     {
         const string sql = "UPDATE users SET email_verified = @verified, updated_at = @updated_at WHERE user_id = @user_id";

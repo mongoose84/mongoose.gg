@@ -1,5 +1,5 @@
 <template>
-  <div class="landing-page">
+	<div class="landing-page">
     <NavBar />
     
     <div class="landing-wrapper">
@@ -36,20 +36,20 @@
             </a>
           </div>
           
-          <div class="hero-stats">
-            <div class="hero-stat">
-              <div class="hero-stat-value">2.5k+</div>
-              <div class="hero-stat-label">Active Players</div>
-            </div>
-            <div class="hero-stat">
-              <div class="hero-stat-value">100k+</div>
-              <div class="hero-stat-label">Games Analyzed</div>
-            </div>
-            <div class="hero-stat">
-              <div class="hero-stat-value">4.9/5</div>
-              <div class="hero-stat-label">User Rating</div>
-            </div>
-          </div>
+	          <div class="hero-stats">
+	            <div class="hero-stat">
+	              <div class="hero-stat-value">{{ activePlayersDisplay }}</div>
+	              <div class="hero-stat-label">Active Players</div>
+	            </div>
+	            <div class="hero-stat">
+	              <div class="hero-stat-value">{{ gamesAnalyzedDisplay }}</div>
+	              <div class="hero-stat-label">Games Analyzed</div>
+	            </div>
+	            <div class="hero-stat">
+	              <div class="hero-stat-value">0/5</div>
+	              <div class="hero-stat-label">User Rating</div>
+	            </div>
+	          </div>
         </div>
       </section>
 
@@ -177,12 +177,43 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue';
-import NavBar from '../components/NavBar.vue';
+	<script setup>
+	import { ref, computed, onMounted } from 'vue';
+	import NavBar from '../components/NavBar.vue';
+	import { getPublicStats } from '../services/authApi';
 
-const freeUsersLeft = ref(487);
-const currentYear = computed(() => new Date().getFullYear());
+	const freeUsersLeft = ref(493);
+	const currentYear = computed(() => new Date().getFullYear());
+
+	const gamesAnalyzed = ref(null);
+	const gamesAnalyzedDisplay = computed(() => {
+	  if (gamesAnalyzed.value == null) {
+	    return '...';
+	  }
+	  return gamesAnalyzed.value.toLocaleString();
+	});
+
+	const activePlayers = ref(null);
+	const activePlayersDisplay = computed(() => {
+	  if (activePlayers.value == null) {
+	    return '...';
+	  }
+	  return activePlayers.value.toLocaleString();
+	});
+
+	onMounted(async () => {
+	  try {
+	    const stats = await getPublicStats();
+	    if (stats && typeof stats.totalMatches === 'number') {
+	      gamesAnalyzed.value = stats.totalMatches;
+	    }
+	    if (stats && typeof stats.activePlayers === 'number') {
+	      activePlayers.value = stats.activePlayers;
+	    }
+	  } catch (error) {
+	    console.error('Failed to load public stats', error);
+	  }
+	});
 
 const features = [
   {
