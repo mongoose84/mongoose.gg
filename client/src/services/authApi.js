@@ -262,3 +262,32 @@ export async function getSoloDashboard(userId, queueType = 'all', timeRange) {
 
   return data
 }
+
+/**
+ * Get match activity data for heatmap (daily match counts for past 6 months)
+ * @param {number} userId - User ID
+ * @returns {Promise<Object>} Match activity data with dailyMatchCounts, startDate, endDate, totalMatches
+ */
+export async function getMatchActivity(userId) {
+  const url = `${API_BASE}/solo/activity/${userId}`
+
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include'
+  })
+
+  if (response.status === 404) {
+    return null // No match data found
+  }
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const error = new Error(data.error || 'Failed to get match activity')
+    error.status = response.status
+    error.code = data.code
+    throw error
+  }
+
+  return data
+}

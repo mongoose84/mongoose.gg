@@ -1,28 +1,32 @@
 <template>
   <section class="solo-dashboard">
     <header class="dashboard-header">
-      <h1>Solo Dashboard</h1>
-      <div class="filters">
-        <div class="filter-group">
-          <label for="queue-filter">Queue</label>
-          <select id="queue-filter" v-model="queueFilter" aria-label="Filter matches by queue type">
-            <option value="all">All Queues</option>
-            <option value="ranked_solo">Ranked Solo/Duo</option>
-            <option value="ranked_flex">Ranked Flex</option>
-            <option value="normal">Normal</option>
-            <option value="aram">ARAM</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label for="time-range-filter">Time Range</label>
-          <select id="time-range-filter" v-model="timeRange" aria-label="Filter matches by time range">
-            <option value="1w">Last Week</option>
-            <option value="1m">Last Month</option>
-            <option value="3m">Last 3 Months</option>
-            <option value="6m">Last 6 Months</option>
-            <option value="current_season">Current Season</option>
-          </select>
-        </div>
+      <h1 class="visually-hidden">Solo Dashboard</h1>
+
+      <!-- Queue Toggle Bar -->
+      <div class="queue-toggle" role="group" aria-label="Filter by queue type">
+        <button
+          v-for="queue in queueOptions"
+          :key="queue.value"
+          type="button"
+          :class="['queue-toggle-btn', { active: queueFilter === queue.value }]"
+          @click="queueFilter = queue.value"
+          :aria-pressed="queueFilter === queue.value"
+        >
+          {{ queue.label }}
+        </button>
+      </div>
+
+      <!-- Time Range Filter -->
+      <div class="filter-group">
+        <select id="time-range-filter" v-model="timeRange" aria-label="Filter matches by time range">
+          <option value="current_season">Current Season</option>
+          <option value="1w">Last Week</option>
+          <option value="1m">Last Month</option>
+          <option value="3m">Last 3 Months</option>
+          <option value="6m">Last 6 Months</option>
+          <option value="all">All Time</option>
+        </select>
       </div>
     </header>
 
@@ -62,22 +66,29 @@
 	  	    </div>
 	  	  </div>
 	  	</div>
-	
-	  	<div class="section placeholder-card">
-	  	  <h2>Winrate Over Time</h2>
-	  	  <p>Rolling average line chart (shared component).</p>
+
+	  	<!-- Second row: Stats charts + Champion Matchups -->
+	  	<div class="top-row">
+	  	  <div class="top-row-item">
+	  	    <div class="stacked-cards">
+	  	      <div class="section placeholder-card">
+	  	        <h2>Winrate Over Time</h2>
+	  	        <p>Rolling average line chart (shared component).</p>
+	  	      </div>
+	  	      <div class="section placeholder-card">
+	  	        <h2>LP Over Time</h2>
+	  	        <p>Per-game LP changes with rank annotations (ranked only).</p>
+	  	      </div>
+	  	    </div>
+	  	  </div>
+	  	  <div class="top-row-item">
+	  	    <div class="section placeholder-card matchups-card">
+	  	      <h2>Champion Matchups</h2>
+	  	      <p>Top 5 champions with expandable opponent details.</p>
+	  	    </div>
+	  	  </div>
 	  	</div>
-	
-	  	<div class="section placeholder-card">
-	  	  <h2>LP Over Time</h2>
-	  	  <p>Per-game LP changes with rank annotations (ranked only).</p>
-	  	</div>
-	
-	  	<div class="section placeholder-card">
-	  	  <h2>Champion Matchups</h2>
-	  	  <p>Top 5 champions with expandable opponent details.</p>
-	  	</div>
-	
+
 	  	<div class="section placeholder-card">
 	  	  <h2>Goals Panel</h2>
 	  	  <p>Active goals and progress (upgrade CTA for Free).</p>
@@ -105,9 +116,18 @@ const dashboardData = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
 
-  // UI state for filters
-	const queueFilter = ref('all')
-	const timeRange = ref('current_season')
+// UI state for filters
+const queueFilter = ref('all')
+const timeRange = ref('current_season')
+
+// Queue options for toggle bar
+const queueOptions = [
+  { value: 'all', label: 'All Queues' },
+  { value: 'ranked_solo', label: 'Ranked Solo/Duo' },
+  { value: 'ranked_flex', label: 'Ranked Flex' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'aram', label: 'ARAM' }
+]
 
   // Fetch dashboard data
   async function fetchDashboardData() {
@@ -164,10 +184,61 @@ watch(syncProgress, (progress) => {
   justify-content: space-between;
   margin-bottom: var(--spacing-lg);
 }
-.filters {
+
+/* Queue Toggle Bar */
+.queue-toggle {
   display: flex;
-  gap: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
 }
+
+.queue-toggle-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.queue-toggle-btn:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.queue-toggle-btn:hover:not(.active) {
+  color: var(--color-text);
+  background: var(--color-elevated);
+}
+
+.queue-toggle-btn.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.queue-toggle-btn.active::after {
+  display: none;
+}
+
+.queue-toggle-btn:has(+ .active)::after {
+  display: none;
+}
+
+.queue-toggle-btn:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-primary-soft);
+}
+
 .filter-group {
   display: flex;
   flex-direction: column;
@@ -180,8 +251,7 @@ watch(syncProgress, (progress) => {
 }
 .filter-group select {
   padding: var(--spacing-sm) var(--spacing-md);
-	  /* Use a solid background so the dropdown isn't see-through over the hero bg */
-	  background-color: #020617;
+  background-color: #020617;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text);
@@ -205,7 +275,7 @@ watch(syncProgress, (progress) => {
 
 	.top-row {
 	  display: grid;
-	  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+	  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
 	  gap: var(--spacing-lg);
 	  align-items: stretch;
 	}
@@ -214,11 +284,28 @@ watch(syncProgress, (progress) => {
 	  min-width: 0;
 	}
 
+	.stacked-cards {
+	  display: flex;
+	  flex-direction: column;
+	  gap: var(--spacing-lg);
+	  height: 100%;
+	}
+
+	.stacked-cards .placeholder-card {
+	  flex: 1;
+	}
+
+	.matchups-card {
+	  height: 100%;
+	  box-sizing: border-box;
+	}
+
 	@media (max-width: 1024px) {
 	  .top-row {
 	    grid-template-columns: 1fr;
 	  }
-}
+	}
+
 .placeholder-card {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);

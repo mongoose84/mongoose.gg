@@ -61,6 +61,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { getWinRateColorClass } from '../composables/useWinRateColor'
 
 const props = defineProps({
   gameName: {
@@ -188,19 +189,7 @@ const winRateDisplay = computed(() => {
 	})
 
 	// Color the win rate value with a gradient from red -> green
-	// red < 47, green > 53, with intermediate warm colors in between
-	const winRateColorClass = computed(() => {
-	  const value = props.winRate
-	  if (value === null || value === undefined || Number.isNaN(value)) {
-	    return 'stat-winrate-neutral'
-	  }
-	  if (value < 47) return 'stat-winrate-red'
-	  if (value < 49) return 'stat-winrate-redorange'
-	  if (value < 51) return 'stat-winrate-orange'
-	  if (value < 52) return 'stat-winrate-yellow'
-	  if (value < 53) return 'stat-winrate-yellowgreen'
-	  return 'stat-winrate-green'
-	})
+	const winRateColorClass = computed(() => getWinRateColorClass(props.winRate))
 
 function handleIconError() {
   iconError.value = true
@@ -210,12 +199,16 @@ function handleIconError() {
 <style scoped>
 .profile-header-card {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
   gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-xl);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  height: 100%;
+  box-sizing: border-box;
 }
 
 /* Clickable variant (button styling per ui-design-guidelines) */
@@ -279,16 +272,17 @@ function handleIconError() {
 }
 
 .profile-info {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  align-items: center;
+  gap: var(--spacing-md);
+  text-align: center;
 }
 
 .identity {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--spacing-xs);
 }
 
@@ -312,6 +306,7 @@ function handleIconError() {
 
 .rank-badges {
   display: flex;
+  justify-content: center;
   gap: var(--spacing-sm);
 }
 
@@ -340,9 +335,10 @@ function handleIconError() {
 
 .stats-row {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-xs);
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-sm);
 }
 
 .stat {
@@ -357,31 +353,31 @@ function handleIconError() {
 	}
 
 	/* Win rate coloring gradient */
-	.stat-value.stat-winrate-red {
+	.stat-value.winrate-red {
 	  color: #ef4444; /* red */
 	}
 
-	.stat-value.stat-winrate-redorange {
+	.stat-value.winrate-redorange {
 	  color: #f97316; /* red-orange */
 	}
 
-	.stat-value.stat-winrate-orange {
+	.stat-value.winrate-orange {
 	  color: #fdba74; /* orange */
 	}
 
-	.stat-value.stat-winrate-yellow {
+	.stat-value.winrate-yellow {
 	  color: #eab308; /* yellow */
 	}
 
-	.stat-value.stat-winrate-yellowgreen {
+	.stat-value.winrate-yellowgreen {
 	  color: #84cc16; /* yellow-green */
 	}
 
-	.stat-value.stat-winrate-green {
+	.stat-value.winrate-green {
 	  color: #22c55e; /* green */
 	}
 
-	.stat-value.stat-winrate-neutral {
+	.stat-value.winrate-neutral {
 	  color: var(--color-text);
 	}
 

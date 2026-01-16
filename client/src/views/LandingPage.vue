@@ -13,7 +13,7 @@
           </div>
           
           <h1 class="hero-title">
-            The Solo Queue Improvement Tracker<br />
+            The <span class="hero-gradient">Solo Queue</span> Improvement Tracker<br />
             Built for <span class="hero-gradient">Duos & Teams</span>
           </h1>
 

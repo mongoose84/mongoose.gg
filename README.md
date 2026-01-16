@@ -67,9 +67,8 @@ sudo dnf install dotnet-sdk-9.0
 **Clientis a completely separate Vue 3 + Vite application, independent of the legacy client.**
 
 - Location: `client/` 
-- Decision: Build a fresh Vue 3 + Vite app to avoid disrupting the legacy client while we develop the experience.
 - Style: Start with the Vercel developer aesthetic (dark, sharp, neon-tinged) but keep theme tokens configurable for future restyles.
-- Rollout: Develop locally until the solo dashboard is ready, then ship; legacy client continues running independently.
+- Rollout: Develop locally until the solo dashboard is ready, then ship.
 - The app will have its own `package.json`, `node_modules`, and complete build setup.
 
 ##### Install and run Client
@@ -83,37 +82,24 @@ npm install
 ```
 npm run dev
 ```
+```
+npm run test:unit
+```
 
 #### Server part
 from root
 ```
 cd server
-cd RiotProxy
 ```
 
 ##### Riot API Key
 Get your API key from the [Riot Developer Portal](https://developer.riotgames.com/).
 
-**Option 1: .NET user-secrets (recommended for local development)**
+**.NET user-secrets (recommended for local development)**
 ```bash
 # from server/ directory
 dotnet user-secrets init  # only needed once
 dotnet user-secrets set "Riot:ApiKey" "RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-```
-
-**Option 2: Environment variable**
-```bash
-# Linux/Mac (add to ~/.bashrc or ~/.zshrc for persistence)
-export RIOT_API_KEY="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-
-# Windows PowerShell (current session)
-$env:RIOT_API_KEY = "RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-
-# Windows PowerShell (permanent - user level)
-[Environment]::SetEnvironmentVariable("RIOT_API_KEY", "RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", "User")
-
-# Windows CMD (current session)
-set RIOT_API_KEY=RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
 ##### Database connection string (local)
@@ -145,3 +131,9 @@ dotnet run
 dotnet publish -c Release -r win-x86 --self-contained true 
 ```
 This will create all the files needed in the folder /bin/Release/publish
+
+##### Run server tests
+```
+cd root
+dotnet test lol.sln
+```

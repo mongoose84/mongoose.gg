@@ -37,13 +37,13 @@ First 500 users get free Pro tier. Keep a counter on the landing page of how man
 | Epic | Description | Remaining Points | Completed Points |
 |------|-------------|------------------|------------------|
 | **B. AI Goal Recommendations** | LLM-powered improvement suggestions | 44 pts | 0 pts |
-| **C. Subscription & Paywall** | Mollie integration, tiers, feature flags | 34 pts | 0 pts |
+| **C. Subscription & Paywall** | Mollie integration, tiers, feature flags | 27 pts | 7 pts ✅ |
 | **D. Analytics & Tracking** | User behavior tracking for product decisions | 19 pts | 0 pts |
-| **E. Database & Analytics Schema** | Match/participant/timeline schema + ingestion | 4 pts | 17 pts ✅ |
-| **F. API** | API surface aligned with schema and dashboards | 31 pts | 31 pts ✅ |
-| **G. Frontend App & Marketing** | App shell, landing, and dashboards using API | 55 pts | 25 pts ✅ |
+| **E. Database & Analytics Schema** | Match/participant/timeline schema + ingestion | 0 pts | 20 pts ✅ |
+| **F. API** | API surface aligned with schema and dashboards | 29 pts | 33 pts ✅ |
+| **G. Frontend App & Marketing** | App shell, landing, and dashboards using API | 32 pts | 53 pts ✅ |
 
-**Remaining:** 187 points | **Completed:** 73 points | **Grand Total:** 260 points
+**Remaining:** 151 points | **Completed:** 113 points | **Grand Total:** 264 points
 
 ### G5 Epic: Frontend Solo Dashboard (Vertical slices)
 
@@ -52,13 +52,16 @@ The original G5 (5 points) has been split into **11 focused tasks** (35 points t
 - **G5b0:** Solo Dashboard design (2 pts) ✅
 - **G5b1:** Empty Solo dashboard view & routing (1 pt) ✅
 - **G5b2:** Profile header card + profile data (5 pts, FE+BE) ✅
-- **G5b3–G5b7:** Dashboard components **plus their backing data** (22 pts total; main champions, winrate chart, LP chart UI, matchups table, goals panel)
+- **G5b3:** Main Champion Card (3 pts, FE+BE) ✅
+- **G5b4–G5b7:** Dashboard components **plus their backing data** (14 pts total; winrate chart, LP chart UI, matchups table, goals panel)
 - **G5b8:** Database support for profile data (1 pt) ✅
 - **G5b9:** Fetch and store profile data during account linking (2 pts) ✅
 - **G5b10:** Update User dashboard endpoint with profile data (1 pt) ✅
+- **G5b11:** Champion matchups endpoint (3 pts) ✅
+- **G5b12:** Main champions by role endpoint (2 pts) ✅
 - **G5b14:** Backend LP trend data for Solo dashboard (2 pts)
 
-Backend tasks **G5b11–G5b13** and **G5b15** are treated as backend **subtasks** of the corresponding vertical slices (G5b3–G5b7). In `docs/product_plan.md` their effort is rolled up into the main G5b3–G5b7 items; in this backlog they remain as separate subsections to spell out backend behaviour and acceptance criteria.
+Backend tasks **G5b13** and **G5b15** are treated as backend **subtasks** of the corresponding vertical slices (G5b4–G5b7). In `docs/product_plan.md` their effort is rolled up into the main G5b4–G5b7 items; in this backlog they remain as separate subsections to spell out backend behaviour and acceptance criteria.
 
 Each vertical slice has clear acceptance criteria, enabling parallel frontend/backend work and incremental value delivery.
 
@@ -532,24 +535,7 @@ Database schema for subscriptions and billing.
 
 ---
 
-### C3. [Database] Add tier column to User table
 
-**Priority:** P0 - Critical  
-**Type:** Database Migration  
-**Estimate:** 1 point  
-**Labels:** `database`, `migration`, `epic-c`
-
-#### Description
-
-Add subscription tier to User for quick access.
-
-#### Acceptance Criteria
-
-- [ ] `ALTER TABLE User ADD COLUMN Tier ENUM('free', 'pro') DEFAULT 'free';`
-- [ ] Update `User` entity
-- [ ] Sync tier on subscription changes
-
----
 
 ### C4. [Service] Create Mollie customer service
 
@@ -706,61 +692,6 @@ Middleware/attribute to protect endpoints by feature.
 
 ---
 
-### C10. [API] Add tier info to user endpoints
-
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 1 point  
-**Depends on:** C3  
-**Labels:** `api`, `endpoints`, `epic-c`
-
-#### Description
-
-Include subscription info in user API responses.
-
-#### Acceptance Criteria
-
-- [ ] Add to user profile response:
-  ```json
-  {
-    "user": { ... },
-    "subscription": {
-      "tier": "pro",
-      "status": "active",
-      "periodEnd": "2026-02-03",
-      "cancelAtPeriodEnd": false
-    },
-    "features": {
-      "duoDashboard": true,
-      "teamDashboard": false,
-      "aiRecommendationsRemaining": 3
-    }
-  }
-  ```
-
----
-
-### C11. [Frontend] Create subscription status component
-
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** C7, C10  
-**Labels:** `frontend`, `vue`, `epic-c`
-
-#### Description
-
-Vue component showing current subscription status.
-
-#### Acceptance Criteria
-
-- [ ] Create `SubscriptionStatus.vue`
-- [ ] Display current tier, status, renewal date
-- [ ] "Manage Subscription" button → in-app subscription management
-- [ ] Show upgrade prompts for free users
-
----
-
 ### C12. [Frontend] Create upgrade prompt component
 
 **Priority:** P1 - High  
@@ -780,29 +711,6 @@ Component to prompt users to upgrade when hitting feature limits.
 - [ ] Display benefits of upgrading
 - [ ] "Upgrade to Pro" / "Upgrade to Team" buttons
 - [ ] Redirect to Mollie checkout
-
----
-
-### C13. [Frontend] Create pricing page
-
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** C7  
-**Labels:** `frontend`, `vue`, `epic-c`
-
-#### Description
-
-Public pricing page with tier comparison.
-
-#### Acceptance Criteria
-
-- [ ] Create `PricingView.vue`
-- [ ] Display three tiers with features
-- [ ] Toggle monthly/annual pricing
-- [ ] "Get Started" / "Upgrade" buttons
-- [ ] Highlight current plan if logged in
-- [ ] FAQ section
 
 ---
 
@@ -1152,11 +1060,10 @@ Give users a GitHub-style contribution view of how many matches they played over
 #### Acceptance Criteria
 
 - [ ] Query daily match counts per user from the `matches` table (using match timestamps)
-- [ ] Implement a heatmap component that renders a 12-month day-by-day matrix similar to GitHub's contribution graph
+- [ ] Implement a heatmap component that renders a 3-month day-by-day matrix similar to GitHub's contribution graph
 - [ ] Color intensity scales with number of matches played (e.g., 0 = empty, 1-2 = light, 3-5 = medium, 6+ = intense)
 - [ ] Surface the heatmap on the user account page (Epic G9)
 - [ ] Provide tooltips showing date and number of matches played
-- [ ] Include a legend explaining the intensity levels
 
 ---
 
@@ -1183,51 +1090,11 @@ Provide a cookie consent banner and preferences so users can control analytics c
 
 ---
 
-# Epic E: Database & Analytics Schema
+# Epic E: Database & Analytics Schema ✅ COMPLETE
 
 Modernize the Pulse database to match `docs/database_schema.md` and support advanced solo/duo/team analytics.
 
-> **Completed tasks (E1–E5) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
-
-## Issues
-
-### E6. [Validation] Validate database metrics against Riot for sample accounts
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** E5
-**Labels:** `validation`, `epic-e`
-
-#### Description
-
-Spot-check metrics for a small set of accounts against Riot and/or existing dashboards to ensure correctness.
-
-#### Acceptance Criteria
-
-- [ ] Define 3–5 representative test accounts (roles, elos)
-- [ ] For each, verify key metrics (win rate, CS@10/15, kill participation, deaths timings, gold leads) match expectations
-- [ ] Any discrepancies are either fixed or documented with rationale
-
----
-
-### E7. [Cleanup] Remove legacy database tables and repositories
-
-**Priority:** P2 - Medium
-**Type:** Chore
-**Estimate:** 2 points
-**Depends on:** E6, F6
-**Labels:** `cleanup`, `database`, `epic-e`
-
-#### Description
-
-Once all consumers have been migrated, remove legacy tables, repositories and any unused DTOs/entities.
-
-#### Acceptance Criteria
-
-- [ ] No remaining code paths depend on legacy tables
-- [ ] Legacy repositories and entities are deleted
-- [ ] Current schema is the only schema used in production
+> **All tasks completed (E1–E7) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
 
 ---
 
@@ -1235,7 +1102,7 @@ Once all consumers have been migrated, remove legacy tables, repositories and an
 
 Expose the HTTP API surface aligned with the database schema and dashboards.
 
-> **Completed tasks (F1, F2, F7, F11 core auth, F12) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
+> **Completed tasks (F1, F2, F6, F7, F11 core auth, F12, F13, F14) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
 
 ## Issues
 
@@ -1298,26 +1165,6 @@ Expose an endpoint that aggregates player stats into an AI-friendly snapshot (`a
 - [ ] Endpoint implemented (e.g. `POST /api/v2/ai/snapshot`)
 - [ ] Returns or stores an `ai_snapshots` record for the requested context (solo/duo/team)
 - [ ] Contracts align with `IPlayerStatsAggregator` and `IGoalRecommendationService`
-
----
-
-### F6. [API] Deprecate or migrate legacy endpoints
-
-**Priority:** P2 - Medium
-**Type:** Chore
-**Estimate:** 2 points
-**Depends on:** F2, F3, F4, G5, G6, G7
-**Labels:** `api`, `cleanup`, `epic-f`
-
-#### Description
-
-Once the new frontend is migrated, mark legacy endpoints as deprecated and remove any unused routes.
-
-#### Acceptance Criteria
-
-- [ ] Frontend uses only current API endpoints for dashboards
-- [ ] Legacy routes removed or clearly marked as internal/testing-only
-- [ ] API documentation updated
 
 ---
 
@@ -1462,102 +1309,14 @@ Also check if profile data (icon, level, rank) has changed and update if needed.
 
 Create a professional user experience with a landing page, pricing, and app shell consuming the API.
 
-> **Completed tasks (G1, G2, G9, G12) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
+> **Completed tasks (G1, G2, G3, G4, G5a, G5b0-G5b3, G5b8-G5b12, G5b16, G5b17, G9, G12, G13) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
 
 ### Architecture Notes
 - **Framework**: Vue 3 + Vite application in `/client/` directory
 - **Style direction**: Vercel developer aesthetic (dark, sharp, neon-tinged) with theme tokens configurable via CSS variables
 - **Scope**: Marketing landing page + app shell + solo experience first; duo/team dashboards follow once solo is stable in production.
 
-## Issues
-
-### G3. [Frontend] Implement new public landing page
-
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Labels:** `frontend`, `marketing`, `epic-g`
-
-#### Description
-
-Redesign the `/` route as a marketing landing page describing the product, key benefits, and CTAs to create a dashboard or sign up.
-
-#### Acceptance Criteria
-
-- [ ] Hero section with concise value proposition  
-- [ ] Explanation of Free vs Pro vs Team tiers at a high level  
-- [ ] Primary CTA leading into the app (e.g. create dashboard / log in)
-
----
-
-### G4. [Frontend] Implement pricing page
-
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** C1, C2, C7 (for final details)  
-**Labels:** `frontend`, `pricing`, `epic-g`
-
-#### Description
-
-Create a `/pricing` view that presents the Free, Pro, and Team plans and integrates with the subscription endpoints once available.
-
-#### Acceptance Criteria
-
-- [ ] Pricing cards for Free, Pro, Team with key features  
-- [ ] Buttons wired to subscription/checkout flows when those are implemented  
-- [ ] Clear explanation of what is included in each tier
-
----
-
----
-
 ## G5 Epic: Frontend Solo Dashboard
-
-### G5b3. [Frontend] Implement Main Champion Card (role-based)
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 3 points
-**Depends on:** G5b1, F2
-**Labels:** `frontend`, `solo`, `dashboard`, `component`, `epic-g`
-
-#### Description
-
-Create the Main Champion Card that shows the user's champions grouped by role. Clicking a role tab reveals the top 3 champions for that role as individual champion cards. For each role, the first champion is highlighted as the **Recommended** pick based on backend-provided ordering (balancing winrate, LP per game, and sample size for the selected queue and timeframe). Each card surfaces winrate, LP per game, and games played so the user can quickly decide which champion to trust for their next game.
-
-#### Backend Requirements
-
-- [ ] Solo dashboard endpoint (F2) must return:
-  - `mainChampions`: Array of roles, each with top 3 champions including:
-    - `championName`, `championId`, `role`, `winRate`, `gamesPlayed`, `wins`, `losses`, `lpPerGame`
-  - Within each role, champions MUST be ordered from most to least recommended (see G5b12 scoring rules). The first champion in each role's list is treated as the **Recommended** pick by the frontend.
-
-#### Frontend Requirements
-
-- [ ] MainChampionCard component created
-- [ ] Role pill/tab UI: shows all roles user has played (default to most-played role)
-- [ ] Clicking role pill displays that role's top 3 champions
-- [ ] Each champion card shows: icon, name, role badge, winrate %, LP per game for the selected range, and W-L record / games played for sample size
-- [ ] First champion in each role's list is visually emphasized as the **Recommended** pick (e.g. badge, border, or size)
-- [ ] Champion icons load from Riot CDN
-- [ ] Smooth tab switching animation
-- [ ] Responsive: role pills wrap on mobile, champion cards stack
-
-#### Acceptance Criteria
-
-- [ ] Component displays all roles and champions without errors
-- [ ] Role pill tabs are clickable and update the displayed champions
-- [ ] Each champion card shows all required stats (including LP per game)
-- [ ] Icons load correctly
-- [ ] Default role is correctly selected on mount
-- [ ] Tab switching is smooth and fast
-- [ ] Mobile layout tested and responsive
-- [ ] Respects queue filter (updates when filter changes)
-- [ ] First champion per role is rendered with a distinct **Recommended** treatment
-- [ ] LP per game values update correctly when queue/time filters change
-
----
 
 ### G5b4. [Frontend] Implement Winrate Over Time chart component
 
@@ -1737,101 +1496,6 @@ Create a Goals Panel that displays active goals (if Pro tier) or shows an upgrad
 
 ---
 
-### G5b11. [Backend] Create champion matchups endpoint
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 3 points
-**Depends on:** E3 (repositories)
-**Labels:** `backend`, `api`, `endpoints`, `epic-g`
-
-#### Description
-
-Create a new endpoint `GET /api/v2/solo/matchups/{userId}?queueType=...` that returns champion matchup statistics based on database. Returns top 5 champions by winrate, with opponent details for each.
-
-#### Acceptance Criteria
-
-- [ ] Endpoint created and routable at `/api/v2/solo/matchups/{userId}`
-- [ ] `queueType` query parameter filters by queue (All Ranked, Solo/Duo, Flex, Normal, ARAM)
-- [ ] Returns JSON structure:
-  ```json
-  {
-    "matchups": [
-      {
-        "championName": "Caitlyn",
-        "championId": 51,
-        "role": "BOTTOM",
-        "totalGames": 45,
-        "wins": 27,
-        "winRate": 60.0,
-        "opponents": [
-          {
-            "opponentChampionName": "Ashe",
-            "wins": 5,
-            "losses": 1,
-            "gamesPlayed": 6,
-            "winRate": 83.3
-          }
-          // ... more opponents
-        ]
-      }
-      // ... up to 5 champions
-    ]
-  }
-  ```
-- [ ] Data sourced from v2 repositories (`ParticipantRepository`, `MatchRepository`)
-- [ ] Sorted by champion winrate (descending)
-- [ ] Opponent sorting: by games played (most played first)
-- [ ] Authenticated users only (401 if not logged in)
-- [ ] Unit tests verify correct sorting and filtering
-
----
-
-### G5b12. [Backend] Fetch main champions by role for Solo dashboard
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** E3, F2
-**Labels:** `backend`, `statistics`, `epic-g`
-
-#### Description
-
-Update the Solo dashboard v2 endpoint (F2) to include `mainChampions` array. Groups user's champions by role and returns top 3 champions per role. For each role, compute LP per game over the selected queue and timeframe and sort champions by a "recommended" score that balances winrate, LP per game, and sample size. The first champion in each role's list is considered the **Recommended** pick for that role and is used by G5b3.
-
-#### Acceptance Criteria
-
-- [ ] Endpoint response includes `mainChampions`:
-  ```json
-  {
-    "mainChampions": [
-      {
-        "role": "BOTTOM",
-        "champions": [
-          {
-            "championName": "Caitlyn",
-            "championId": 51,
-            "winRate": 62.5,
-            "gamesPlayed": 16,
-            "wins": 10,
-            "losses": 6,
-            "lpPerGame": 14.3
-          }
-          // ... top 3 for this role
-        ]
-      }
-      // ... one entry per role user has played
-    ]
-  }
-  ```
-- [ ] Top 3 champions per role ordered by recommended score (minimum 2 games to qualify)
-- [ ] Only includes roles where user has played games
-- [ ] Respects queue filter
-- [ ] LP per game is calculated from matches in the selected queue/timeframe
-- [ ] Tested with sample data and unit tests cover ordering and LP per game edge cases (e.g. low game counts)
-
----
-
 ### G5b13. [Backend] Fetch winrate trend data for Solo dashboard
 
 **Priority:** P0 - High
@@ -1943,35 +1607,6 @@ Update Solo dashboard endpoint (F2) to include `activeGoals` array if user is Pr
 - [ ] Progress calculated as percentage toward target
 - [ ] Estimated completion date calculated from trend
 - [ ] Tested with sample data and tier scenarios
-
----
-
-### G5b16. [FE+BE] Update database on login
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estiate:** 2 points
-**Depends on:** G5b1, F2 (user endpoint needs icon/level/rank data)
-**Labels:** `frontend`, `user`, `dashboard`, `component`, `epic-g`
-
-#### Description
-
-When the user logs in, we should fetch the newest data from RiotApi, and check if there are new matches. If so, it should add the new matches to the database. It should also check the riot account and set the current profileIconId, summonerLevel, rankedSoloRank, rankedFlexRank. 
-
-#### Backend Requirements
-
-- [ ] Backend subtasks F14, G13 completed
-- [ ] Let frontend know if there is new data so that it can query the new data. This could be done through the websocket
-- [ ] Gracefully handle errors when getting data from the riot api.
-
-#### Frontend Requirements
-
-- [ ] When notified, fetch the new profileIconId, summonerLevel, rankedSoloRank, rankedFlexRank, matches, wins, and recalculate winrate
-
-#### Acceptance Criteria
-
-- [ ] Component displays all required fields without errors
-
 
 ---
 
@@ -2132,33 +1767,16 @@ Introduce a first-pass friends/social area in the app UI that defines the layout
 | B6 | Create goal prompt builder | AI Goals | 2 |
 | B7 | Create goal recommendation service | AI Goals | 3 |
 | B8 | Create recommendation endpoint | AI Goals | 2 |
-| C1 | Set up Stripe integration | Subscription | 3 |
+| C1 | Set up Mollie integration | Subscription | 3 |
 | C2 | Create subscription tables | Subscription | 2 |
-| C3 | Add tier column to User | Subscription | 1 |
-| C4 | Create Stripe customer service | Subscription | 2 |
+| C4 | Create Mollie customer service | Subscription | 2 |
 | C5 | Create subscription management service | Subscription | 3 |
-| C6 | Create Stripe webhook handler | Subscription | 3 |
+| C6 | Create Mollie webhook handler | Subscription | 3 |
 | C7 | Create subscription endpoints | Subscription | 2 |
 | C8 | Create feature flag service | Subscription | 2 |
-
-| E1 | Finalize database schema & DDL | Database | 3 |
-| E2 | Create MySQL schema scripts | Database | 2 |
-| E3 | Implement entities and repositories | Database | 3 |
-| E4 | Ingest match & participant core data | Database | 3 |
-| E5 | Ingest timeline & derived metrics | Database | 5 |
-| F1 | Define API surface & versioning | API | 2 |
-| F2 | Implement Solo dashboard endpoint | API | 3 |
 | F3 | Implement Duo dashboard endpoint | API | 3 |
-| F7 | Implement authenticated access for backend | API | 3 |
-| F11 | Implement user auth, profile & social endpoints | API | 5 |
-| G1 | Define app IA & routes | Frontend | 2 |
-| G2 | Implement new app shell & navigation | Frontend | 3 |
-| G5 | Implement Solo dashboard view | Frontend | 5 |
-| G9 | Implement user login, signup, verification & `/app/user` shell | Frontend | 5 |
-| G12 | Implement Riot account linking on `/app/user` | Frontend | 5 |
-| F12 | Implement Riot account linking endpoints | API | 5 |
 
-**P0 Total:** 102 points (18 points completed: F14, F13, G13)
+**P0 Remaining Total:** 39 points
 
 ### P1 - High
 
@@ -2171,28 +1789,30 @@ Introduce a first-pass friends/social area in the app UI that defines the layout
 | B12 | Create progress endpoint | AI Goals | 1 |
 | B18 | Add rules-of-climbing domain context for recommendations | AI Goals | 2 |
 | C9 | Create feature gate middleware | Subscription | 2 |
-| C10 | Add tier info to user endpoints | Subscription | 1 |
-| C11 | Create subscription status component | Subscription | 2 |
 | C12 | Create upgrade prompt component | Subscription | 2 |
-| C13 | Create pricing page | Subscription | 3 |
 | C14 | Gate features based on tier | Subscription | 2 |
+| C17 | Implement 2-tier pricing (Free + Pro) | Subscription | 5 |
 | D1 | Set up analytics provider | Analytics | 2 |
 | D2 | Implement core tracking events | Analytics | 3 |
 | D3 | Track page views and sessions | Analytics | 1 |
-
-| E6 | Validate database metrics against Riot | Database | 2 |
 | F4 | Implement Team dashboard endpoint | API | 3 |
 | F5 | Implement AI snapshot/goal input endpoint | API | 3 |
 | F8 | Implement unified error handling & problem responses | API | 3 |
 | F9 | Add backend tests with focus on security | API | 3 |
-| G3 | Implement new public landing page | Frontend | 2 |
-| G4 | Implement pricing page | Frontend | 2 |
+| F11-social | Implement social endpoints (friends, teams, search) | API | 3 |
+| F13-lp | Implement Riot League API for rank/LP data | API | 5 |
+| G5b4 | Winrate Over Time chart | Frontend | 3 |
+| G5b5 | LP Over Time chart | Frontend | 2 |
+| G5b6 | Champion Matchups table | Frontend | 3 |
+| G5b7 | Goals Panel | Frontend | 2 |
+| G5b13 | Winrate trend data endpoint | Backend | 2 |
+| G5b14 | LP trend data endpoint | Backend | 2 |
+| G5b15 | Goals array in Solo endpoint | Backend | 2 |
 | G6 | Implement Duo dashboard view | Frontend | 5 |
 | G7 | Implement Team dashboard view | Frontend | 5 |
+| G10 | Implement user dropdown details & account settings page | Frontend | 8 |
 
-| G10 | Implement user dropdown details & account settings page | Frontend | 5 |
-
-**P1 Total:** 63 points
+**P1 Remaining Total:** 85 points
 
 ### P2 - Medium
 
@@ -2206,16 +1826,13 @@ Introduce a first-pass friends/social area in the app UI that defines the layout
 | D5 | Create key dashboards | Analytics | 2 |
 | D6 | Create internal metrics endpoint | Analytics | 2 |
 | D7 | Set up error tracking | Analytics | 2 |
-| D9 | Show login activity heatmap on user page | Analytics | 3 |
+| D9 | Show match activity heatmap on user page | Analytics | 3 |
 | D10 | Implement cookie consent & preferences | Analytics | 2 |
-
-| E7 | Remove legacy database tables and repositories | Database | 2 |
-| F6 | Deprecate or migrate legacy endpoints | API | 2 |
 | F10 | Audit async methods for CancellationToken usage | API | 3 |
 | G8 | Remove legacy dashboard views & routes | Frontend | 1 |
 | G11 | Implement friends management UI scaffolding | Frontend | 3 |
 
-**P2 Total:** 34 points
+**P2 Remaining Total:** 30 points
 
 ### P3 - Low
 
@@ -2226,62 +1843,64 @@ Introduce a first-pass friends/social area in the app UI that defines the layout
 | C16 | Create referral tracking | Subscription | 2 |
 | D8 | Implement A/B testing | Analytics | 2 |
 
-**P3 Total:** 11 points
+**P3 Remaining Total:** 11 points
 
 ---
 
 ## Recommended Sprint Plan
 
-### Sprint 0: Platform Foundation
+### Sprint 0: Platform Foundation ✅ COMPLETE
 **Focus:** Database + API + Solo dashboard + Auth + Account Linking
-**Points:** ~58
+**Points:** ~58 (completed)
 
-- E1, E2, E3 (Database schema & repositories)
-- E4, E5 (Ingestion: matches, participants, timeline & metrics)
-- F1, F2 (API design + Solo dashboard endpoint)
-- G1, G2, G5 (App IA, shell, Solo dashboard view)
-- G9 (User login, signup, verification & `/app/user` shell)
-- F12, F13, F14 (Riot account linking + WebSocket sync + sync job)
-- G12, G13 (Riot account linking UI + real-time sync progress)
+- ✅ E1, E2, E3 (Database schema & repositories)
+- ✅ E4, E5, E6, E7 (Ingestion: matches, participants, timeline & metrics + validation + cleanup)
+- ✅ F1, F2 (API design + Solo dashboard endpoint)
+- ✅ G1, G2, G5a-G5b3 (App IA, shell, Solo dashboard design + profile header + main champions)
+- ✅ G9 (User login, signup, verification & `/app/user` shell)
+- ✅ F12, F13, F14 (Riot account linking + WebSocket sync + sync job)
+- ✅ G12, G13 (Riot account linking UI + real-time sync progress)
+- ✅ G5b8-G5b12 (Profile data storage, fetching, endpoints, matchups, main champions)
 
-### Sprint 1: Foundation (P0 Core)
-**Focus:** Database + Mollie + Basic AI
-**Points:** ~20
+### Sprint 1: Solo Dashboard Completion
+**Focus:** Complete Solo dashboard components + backend data
+**Points:** ~14
 
-- C1, C2, C3 (Mollie + DB setup)
-- B1, B2 (LLM abstraction)
+- G5b4, G5b5, G5b6, G5b7 (Winrate chart, LP chart, Matchups table, Goals panel)
+- G5b13, G5b14, G5b15 (Backend: winrate trend, LP trend, goals data)
 
 ### Sprint 2: Subscriptions (P0 Payments)
-**Focus:** Complete payment flow  
-**Points:** ~18
+**Focus:** Mollie + payment flow
+**Points:** ~20
 
-- C4, C5, C6, C7, C8 (Subscription services + endpoints)
-- B4 (Goal tables)
+- C1, C2, C4, C5, C6, C7, C8 (Mollie + subscription services + endpoints)
+- B1, B2 (LLM abstraction)
 
 ### Sprint 3: AI Goals MVP (P0 AI)
-**Focus:** AI recommendations working  
-**Points:** ~10
+**Focus:** AI recommendations working
+**Points:** ~14
 
+- B4 (Goal tables)
 - B5, B6, B7, B8 (AI goal flow)
 
 ### Sprint 4: Polish (P1)
-**Focus:** Feature gates + analytics  
-**Points:** ~20
+**Focus:** Feature gates + analytics
+**Points:** ~18
 
-- C9, C10, C11, C12, C13, C14 (Frontend subscription)
+- C9, C12, C14, C17 (Frontend subscription + 2-tier pricing)
 - D1, D2, D3 (Analytics)
 - B3 (LLM rate limiting)
 
 ### Sprint 5: Goal Tracking (P1)
-**Focus:** Complete goal lifecycle  
+**Focus:** Complete goal lifecycle
 **Points:** ~16
 
 - B9, B10, B11, B12 (Goal CRUD + progress)
 - D4, D5, D6, D7 (Server analytics + monitoring)
 
 ### Sprint 6+: Enhancements (P2/P3)
-**Focus:** UI polish, advanced features  
-**Points:** ~41
+**Focus:** UI polish, advanced features
+**Points:** ~30
 
 - Remaining P2 and P3 items
 

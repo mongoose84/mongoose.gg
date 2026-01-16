@@ -185,7 +185,9 @@ public class MatchHistorySyncJob : BackgroundService
         }
 
         // 2. Fetch new match IDs from Riot
-        var matchIds = await FetchNewMatchIdsAsync(riotApiClient, account.Puuid, existingSet, startTime, maxMatches, ct);
+        // For initial sync: don't stop early on existing matches (they may have been created by another account's sync)
+        // For incremental sync: stop early when we hit an existing match (we trust previous syncs completed)
+        var matchIds = await FetchNewMatchIdsAsync(riotApiClient, account.Puuid, existingSet, startTime, maxMatches, isInitialSync, ct);
 
         _logger.LogInformation("Found {Count} new matches for {Puuid}", matchIds.Count, account.Puuid);
 
@@ -280,13 +282,16 @@ public class MatchHistorySyncJob : BackgroundService
 
     /// <summary>
     /// Fetches new match IDs from the Riot API.
-    /// Stops when it hits an existing match (caught up) or reaches the maxMatches limit.
+    /// For incremental syncs: stops when it hits an existing match (caught up) or reaches the maxMatches limit.
+    /// For initial syncs: fetches all matches up to the limit, filtering out existing ones
+    ///   (because existing matches may have been created by another account's sync, not this account's previous sync).
     /// </summary>
     /// <param name="riotApiClient">The Riot API client</param>
     /// <param name="puuid">The player's PUUID</param>
-    /// <param name="existingMatchIds">Set of match IDs already in the database</param>
+    /// <param name="existingMatchIds">Set of match IDs where this PUUID already has a participant record</param>
     /// <param name="startTime">Unix timestamp (seconds) - only fetch matches after this time</param>
     /// <param name="maxMatches">Maximum number of matches to fetch (300 for backfill, 100 for incremental)</param>
+    /// <param name="isInitialSync">True for initial backfill (don't stop early), false for incremental (stop on existing)</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>List of new match IDs, ordered from newest to oldest</returns>
     private async Task<IList<string>> FetchNewMatchIdsAsync(
@@ -295,12 +300,14 @@ public class MatchHistorySyncJob : BackgroundService
         HashSet<string> existingMatchIds,
         long startTime,
         int maxMatches,
+        bool isInitialSync,
         CancellationToken ct)
     {
         var newMatchIds = new List<string>();
         const int pageSize = 100;
         int start = 0;
         bool keepFetching = true;
+        int totalFetched = 0; // Track total matches fetched from API (for initial sync limit)
 
         while (keepFetching)
         {
@@ -319,20 +326,36 @@ public class MatchHistorySyncJob : BackgroundService
                 if (string.IsNullOrEmpty(matchId))
                     continue;
 
+                totalFetched++;
+
                 if (!existingMatchIds.Contains(matchId))
                 {
                     newMatchIds.Add(matchId);
                 }
-                else
+                else if (!isInitialSync)
                 {
-                    // Found an existing match - we've caught up, stop fetching
+                    // Incremental sync: found an existing match - we've caught up, stop fetching
+                    // For initial sync: continue fetching (this match may have been synced by another account)
+                    keepFetching = false;
+                    break;
+                }
+                // For initial sync: skip this match but keep fetching older ones
+
+                // Check if we've hit the cap on new matches to process
+                if (newMatchIds.Count >= maxMatches)
+                {
                     keepFetching = false;
                     break;
                 }
 
-                // Check if we've hit the cap
-                if (newMatchIds.Count >= maxMatches)
+                // For initial sync: use a generous safety cap to prevent infinite loops
+                // while still allowing completeness within the 6-month window.
+                // With 6 months and ~10 games/day max, theoretical max is ~1800 matches.
+                // Use 1500 as a reasonable safety cap that allows completeness for most players.
+                const int initialSyncSafetyCap = 1500;
+                if (isInitialSync && totalFetched >= initialSyncSafetyCap)
                 {
+                    _logger.LogWarning("Initial sync hit safety cap ({Cap}) for puuid, stopping fetch", initialSyncSafetyCap);
                     keepFetching = false;
                     break;
                 }
@@ -396,10 +419,12 @@ public class MatchHistorySyncJob : BackgroundService
         }
 
         // Insert participants and build lookup maps
+        _logger.LogDebug("Inserting {Count} participants for match {MatchId}", participants.Count, match.MatchId);
         int riotParticipantId = 1;
         foreach (var p in info.GetProperty("participants").EnumerateArray())
         {
             var participant = participants.First(x => x.Puuid == p.GetProperty("puuid").GetString());
+            _logger.LogTrace("Inserting participant {Puuid} for match {MatchId}", participant.Puuid, match.MatchId);
             var dbId = await participantsRepo.InsertAsync(participant);
 
             participantIdMap[riotParticipantId] = dbId;

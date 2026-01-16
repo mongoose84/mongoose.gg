@@ -1,12 +1,11 @@
 <template>
   <section class="main-champion-card">
     <header class="header">
-      <h2 class="title">Main Champions by Role</h2>
-      <p class="subtitle">Top picks based on your performance in the selected queue and time range.</p>
-    </header>
-
-    <div v-if="hasData" class="content">
-      <div class="role-tabs" role="tablist">
+      <div class="header-text">
+        <h2 class="title">Main Champions by Role</h2>
+        <p class="subtitle">Top picks based on your performance in the selected queue and time range.</p>
+      </div>
+      <div v-if="hasData" class="role-tabs" role="tablist">
         <button
           v-for="role in roles"
           :key="role"
@@ -20,8 +19,10 @@
           {{ roleLabel(role) }}
         </button>
       </div>
+    </header>
 
-      <Transition name="fade-slide">
+    <div v-if="hasData" class="content">
+      <Transition name="fade-slide" mode="out-in">
         <div
           v-if="selectedRole"
           :key="selectedRole"
@@ -51,7 +52,7 @@
             </div>
             <div class="champion-stats">
               <div class="stat">
-                <span class="stat-value">{{ formatWinRate(champion.winRate) }}</span>
+                <span :class="['stat-value', getWinRateColorClass(champion.winRate)]">{{ formatWinRate(champion.winRate) }}</span>
                 <span class="stat-label">Win Rate</span>
               </div>
               <div class="stat">
@@ -76,6 +77,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { getWinRateColorClass } from '../composables/useWinRateColor'
 
 const props = defineProps({
   mainChampions: {
@@ -177,10 +179,22 @@ function formatLpPerGame(value) {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
   margin-bottom: var(--spacing-md);
+}
+
+.header-text {
+  flex: 1;
 }
 
 .title {
@@ -200,7 +214,7 @@ function formatLpPerGame(value) {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  flex-shrink: 0;
 }
 
 .role-pill {
@@ -226,22 +240,31 @@ function formatLpPerGame(value) {
   color: #fff;
 }
 
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .champion-cards {
+  flex: 1;
+  align-content: center;
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-md);
 }
 
 .champion-card {
-  flex: 1 1 220px;
-  min-width: 0;
-  padding: var(--spacing-md);
+  /* Fixed width: 1/3 of container minus gaps (2 gaps for 3 cards) */
+  flex: 0 0 calc((100% - 2 * var(--spacing-md)) / 3);
+  padding: var(--spacing-xl);
   border-radius: var(--radius-md);
   background: var(--color-elevated);
   border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  justify-content: space-between;
+  gap: var(--spacing-lg);
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
@@ -269,16 +292,16 @@ function formatLpPerGame(value) {
 }
 
 .champion-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
   object-fit: cover;
 }
 
 .champion-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .champion-name-row {
@@ -288,7 +311,7 @@ function formatLpPerGame(value) {
 }
 
 .champion-name {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
 }
@@ -314,18 +337,40 @@ function formatLpPerGame(value) {
   display: flex;
   justify-content: space-between;
   gap: var(--spacing-md);
-  margin-top: var(--spacing-sm);
 }
 
 .stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .stat-value {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+/* Win rate coloring gradient */
+.stat-value.winrate-red {
+  color: #ef4444;
+}
+.stat-value.winrate-redorange {
+  color: #f97316;
+}
+.stat-value.winrate-orange {
+  color: #fdba74;
+}
+.stat-value.winrate-yellow {
+  color: #eab308;
+}
+.stat-value.winrate-yellowgreen {
+  color: #84cc16;
+}
+.stat-value.winrate-green {
+  color: #22c55e;
+}
+.stat-value.winrate-neutral {
   color: var(--color-text);
 }
 
@@ -355,10 +400,12 @@ function formatLpPerGame(value) {
 @media (max-width: 768px) {
   .champion-cards {
     flex-direction: column;
+    align-items: flex-start;
   }
 
   .champion-card {
-    flex: 1 1 auto;
+    width: 100%;
+    max-width: 280px;
   }
 }
 </style>

@@ -198,7 +198,26 @@ Provide API endpoints for user login, user profile data, and managing friends/du
 
 ---
 
-# Epic G: Frontend App & Marketing (Completed Tasks)
+# Epic G: Frontend App & Marketing (Completed Tasks) 
+
+### G3. [Frontend] Implement new public landing page ✅ COMPLETE
+
+**Priority:** P1 - High  
+**Type:** Feature  
+**Estimate:** 2 points  
+**Labels:** `frontend`, `marketing`, `epic-g`
+
+#### Description
+
+Redesign the `/` route as a marketing landing page describing the product, key benefits, and CTAs to create a dashboard or sign up.
+
+#### Acceptance Criteria
+
+- [x] Hero section with concise value proposition  
+- [x] Explanation of Free vs Pro vs Team tiers at a high level  
+- [x] Primary CTA leading into the app (e.g. create dashboard / log in)
+
+---
 
 ### G9. [Frontend] Implement user login, signup, verification & `/app/user` shell ✅ COMPLETE
 
@@ -711,17 +730,284 @@ Fetch and display ranked Solo/Duo and Flex queue rank data in the ProfileHeaderC
 
 ---
 
+# Epic C: Subscription & Paywall System (Completed Tasks)
+
+### C3. [Database] Add tier column to User table ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Database Migration
+**Estimate:** 1 point
+**Labels:** `database`, `migration`, `epic-c`
+
+#### Description
+
+Add subscription tier to User for quick access.
+
+#### Acceptance Criteria
+
+- [x] `ALTER TABLE User ADD COLUMN Tier ENUM('free', 'pro') DEFAULT 'free';`
+- [x] Update `User` entity
+- [x] Sync tier on subscription changes
+
+---
+
+### C10. [API] Add tier info to user endpoints ✅ COMPLETE
+
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** C3
+**Labels:** `api`, `endpoints`, `epic-c`
+
+#### Description
+
+Include subscription info in user API responses.
+
+#### Acceptance Criteria
+
+- [x] Add to user profile response:
+  ```json
+  {
+    "user": { ... },
+    "subscription": {
+      "tier": "pro",
+      "status": "active",
+      "periodEnd": "2026-02-03",
+      "cancelAtPeriodEnd": false
+    },
+    "features": {
+      "duoDashboard": true,
+      "teamDashboard": false,
+      "aiRecommendationsRemaining": 3
+    }
+  }
+  ```
+
+---
+
+### C11. [Frontend] Create subscription status component ✅ COMPLETE
+
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** C7, C10
+**Labels:** `frontend`, `vue`, `epic-c`
+
+#### Description
+
+Vue component showing current subscription status.
+
+#### Acceptance Criteria
+
+- [x] Create `SubscriptionStatus.vue`
+- [x] Display current tier, status, renewal date
+- [x] "Manage Subscription" button → in-app subscription management
+- [x] Show upgrade prompts for free users
+
+---
+
+### C13. [Frontend] Create pricing page ✅ COMPLETE
+
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** C7
+**Labels:** `frontend`, `vue`, `epic-c`
+
+#### Description
+
+Public pricing page with tier comparison.
+
+#### Acceptance Criteria
+
+- [x] Create `PricingView.vue`
+- [x] Display three tiers with features
+- [x] Toggle monthly/annual pricing
+- [x] "Get Started" / "Upgrade" buttons
+- [x] Highlight current plan if logged in
+- [x] FAQ section
+
+---
+
+# Epic E: Database & Analytics Schema (Completed Tasks - continued)
+
+### E6. [Validation] Validate database metrics against Riot for sample accounts ✅ COMPLETE
+
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** E5
+**Labels:** `validation`, `epic-e`
+
+#### Description
+
+Spot-check metrics for a small set of accounts against Riot and/or existing dashboards to ensure correctness.
+
+#### Acceptance Criteria
+
+- [x] Define 3–5 representative test accounts (roles, elos)
+- [x] For each, verify key metrics (win rate, CS@10/15, kill participation, deaths timings, gold leads) match expectations
+- [x] Any discrepancies are either fixed or documented with rationale
+
+---
+
+### E7. [Cleanup] Remove legacy database tables and repositories ✅ COMPLETE
+
+**Priority:** P2 - Medium
+**Type:** Chore
+**Estimate:** 2 points
+**Depends on:** E6, F6
+**Labels:** `cleanup`, `database`, `epic-e`
+
+#### Description
+
+Once all consumers have been migrated, remove legacy tables, repositories and any unused DTOs/entities.
+
+#### Acceptance Criteria
+
+- [x] No remaining code paths depend on legacy tables
+- [x] Legacy repositories and entities are deleted
+- [x] Current schema is the only schema used in production
+
+---
+
+# Epic F: API (Completed Tasks - continued)
+
+### F6. [API] Deprecate or migrate legacy endpoints ✅ COMPLETE
+
+**Priority:** P2 - Medium
+**Type:** Chore
+**Estimate:** 2 points
+**Depends on:** F2, F3, F4, G5, G6, G7
+**Labels:** `api`, `cleanup`, `epic-f`
+
+#### Description
+
+Once the new frontend is migrated, mark legacy endpoints as deprecated and remove any unused routes.
+
+#### Acceptance Criteria
+
+- [x] Frontend uses only current API endpoints for dashboards
+- [x] Legacy routes removed or clearly marked as internal/testing-only
+- [x] API documentation updated
+
+---
+
+# Epic G: Frontend App & Marketing (Completed Tasks - continued)
+
+### G4. [Frontend] Implement pricing page ✅ COMPLETE
+
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** C1, C2, C7 (for final details)
+**Labels:** `frontend`, `pricing`, `epic-g`
+
+#### Description
+
+Create a `/pricing` view that presents the Free, Pro, and Team plans and integrates with the subscription endpoints once available.
+
+#### Acceptance Criteria
+
+- [x] Pricing cards for Free, Pro, Team with key features
+- [x] Buttons wired to subscription/checkout flows when those are implemented
+- [x] Clear explanation of what is included in each tier
+
+---
+
+### G5b3. [Frontend] Implement Main Champion Card (role-based) ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** G5b1, F2
+**Labels:** `frontend`, `solo`, `dashboard`, `component`, `epic-g`
+
+#### Description
+
+Create the Main Champion Card that shows the user's champions grouped by role. Clicking a role tab reveals the top 3 champions for that role as individual champion cards. For each role, the first champion is highlighted as the **Recommended** pick based on backend-provided ordering (balancing winrate, LP per game, and sample size for the selected queue and timeframe). Each card surfaces winrate, LP per game, and games played so the user can quickly decide which champion to trust for their next game.
+
+#### Acceptance Criteria
+
+- [x] MainChampionCard component created
+- [x] Role pill/tab UI: shows all roles user has played (default to most-played role)
+- [x] Clicking role pill displays that role's top 3 champions
+- [x] Each champion card shows: icon, name, role badge, winrate %, LP per game for the selected range, and W-L record / games played for sample size
+- [x] First champion in each role's list is visually emphasized as the **Recommended** pick (e.g. badge, border, or size)
+- [x] Champion icons load from Riot CDN
+- [x] Smooth tab switching animation
+- [x] Responsive: role pills wrap on mobile, champion cards stack
+- [x] Respects queue filter (updates when filter changes)
+- [x] LP per game values update correctly when queue/time filters change
+
+---
+
+### G5b11. [Backend] Create champion matchups endpoint ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** E3 (repositories)
+**Labels:** `backend`, `api`, `endpoints`, `epic-g`
+
+#### Description
+
+Create a new endpoint `GET /api/v2/solo/matchups/{userId}?queueType=...` that returns champion matchup statistics based on database. Returns top 5 champions by winrate, with opponent details for each.
+
+#### Acceptance Criteria
+
+- [x] Endpoint created and routable at `/api/v2/solo/matchups/{userId}`
+- [x] `queueType` query parameter filters by queue (All Ranked, Solo/Duo, Flex, Normal, ARAM)
+- [x] Returns JSON structure with matchups array containing champion data and opponents
+- [x] Data sourced from v2 repositories (`ParticipantRepository`, `MatchRepository`)
+- [x] Sorted by champion winrate (descending)
+- [x] Opponent sorting: by games played (most played first)
+- [x] Authenticated users only (401 if not logged in)
+- [x] Unit tests verify correct sorting and filtering
+
+---
+
+### G5b12. [Backend] Fetch main champions by role for Solo dashboard ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** E3, F2
+**Labels:** `backend`, `statistics`, `epic-g`
+
+#### Description
+
+Update the Solo dashboard v2 endpoint (F2) to include `mainChampions` array. Groups user's champions by role and returns top 3 champions per role. For each role, compute LP per game over the selected queue and timeframe and sort champions by a "recommended" score that balances winrate, LP per game, and sample size. The first champion in each role's list is considered the **Recommended** pick for that role and is used by G5b3.
+
+#### Acceptance Criteria
+
+- [x] Endpoint response includes `mainChampions` with role and champions arrays
+- [x] Top 3 champions per role ordered by recommended score (minimum 2 games to qualify)
+- [x] Only includes roles where user has played games
+- [x] Respects queue filter
+- [x] LP per game is calculated from matches in the selected queue/timeframe
+- [x] Tested with sample data and unit tests cover ordering and LP per game edge cases (e.g. low game counts)
+
+---
+
 ## Summary of Completed Work
 
 | Epic | Task | Points | Completed |
 |------|------|--------|-----------|
+| C | C3 - Add tier column to User | 1 | ✅ |
+| C | C10 - Add tier info to user endpoints | 1 | ✅ |
+| C | C11 - Create subscription status component | 2 | ✅ |
+| C | C13 - Create pricing page | 3 | ✅ |
 | E | E1 - Database schema & DDL | 3 | ✅ |
 | E | E2 - MySQL schema scripts | 2 | ✅ |
 | E | E3 - Entities and repositories | 3 | ✅ |
 | E | E4 - Match & participant ingestion | 3 | ✅ |
 | E | E5 - Timeline & derived metrics ingestion | 5 | ✅ |
+| E | E6 - Validate database metrics against Riot | 2 | ✅ |
+| E | E7 - Remove legacy database tables and repositories | 2 | ✅ |
 | F | F1 - API surface design | 2 | ✅ |
 | F | F2 - Solo dashboard endpoint | 3 | ✅ |
+| F | F6 - Deprecate or migrate legacy endpoints | 2 | ✅ |
 | F | F7 - Session authentication | 3 | ✅ |
 | F | F11 - User auth endpoints (core) | 5 | ✅ |
 | F | F12 - Riot account linking endpoints | 5 | ✅ |
@@ -729,16 +1015,22 @@ Fetch and display ranked Solo/Duo and Flex queue rank data in the ProfileHeaderC
 | F | F14 - Match History Sync Job | 8 | ✅ |
 | G | G1 - App IA & routes | 2 | ✅ |
 | G | G2 - App shell & navigation | 3 | ✅ |
-| G | G9 - Login, signup, verification & user shell | 5 | ✅ |
-| G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
-| G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
+| G | G3 - Implement new public landing page | 2 | ✅ |
+| G | G4 - Implement pricing page | 2 | ✅ |
+| G | G5a - Dashboard Hub design | 2 | ✅ |
 | G | G5b0 - Solo Dashboard design | 2 | ✅ |
 | G | G5b1 - Create empty Solo dashboard view & routing | 1 | ✅ |
 | G | G5b2 - Profile header button + profile data (FE+BE) | 5 | ✅ |
+| G | G5b3 - Main Champion Card (FE+BE) | 3 | ✅ |
 | G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
 | G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
 | G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
+| G | G5b11 - Create champion matchups endpoint | 3 | ✅ |
+| G | G5b12 - Fetch main champions by role for Solo dashboard | 2 | ✅ |
 | G | G5b16 - Update database on login (FE+BE) | 2 | ✅ |
 | G | G5b17 - Implement ranked data display in ProfileHeaderCard (FE+BE) | 5 | ✅ |
+| G | G9 - Login, signup, verification & user shell | 5 | ✅ |
+| G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
+| G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
 
-**Total Completed Points:** 86
+**Total Completed Points:** 113

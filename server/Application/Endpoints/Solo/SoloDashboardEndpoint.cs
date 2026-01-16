@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Infrastructure.External.Database.Repositories;
 
@@ -40,6 +41,15 @@ public sealed class SoloDashboardEndpoint : IEndpoint
                 {
                     logger.LogWarning("Solo dashboard: invalid userId format {UserId}", userId);
                     return Results.BadRequest(new { error = "Invalid userId format" });
+                }
+
+                // Verify authenticated user matches route userId
+                var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
+                {
+                    logger.LogWarning("Solo dashboard: user {AuthUserId} attempted to access data for user {RouteUserId}",
+                        authenticatedUserId, userIdInt);
+                    return Results.Forbid();
                 }
 
                 // Get riot accounts for this user

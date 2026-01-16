@@ -27,6 +27,15 @@
           @click="navigateToSoloDashboard"
         />
 
+        <!-- Match Activity Heatmap -->
+        <MatchActivityHeatmap
+          v-if="hasLinkedAccount"
+          :daily-match-counts="activityData?.dailyMatchCounts ?? {}"
+          :start-date="activityData?.startDate ?? ''"
+          :end-date="activityData?.endDate ?? ''"
+          :total-matches="activityData?.totalMatches ?? 0"
+        />
+
         <!-- Riot Accounts Card -->
         <div class="user-card riot-accounts-card">
           <div class="card-header">
@@ -130,9 +139,10 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
 import { useSyncWebSocket } from '../composables/useSyncWebSocket';
-import { getSoloDashboard } from '../services/authApi';
+import { getSoloDashboard, getMatchActivity } from '../services/authApi';
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue';
 import ProfileHeaderCard from '../components/ProfileHeaderCard.vue';
+import MatchActivityHeatmap from '../components/MatchActivityHeatmap.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -148,6 +158,8 @@ const isRetrying = ref(false);
 
 // Dashboard data for profile header stats
 const dashboardData = ref(null);
+// Activity heatmap data
+const activityData = ref(null);
 
 const firstRiotAccount = computed(() => {
   return riotAccounts.value?.[0] || null;
@@ -165,6 +177,17 @@ async function fetchDashboardData() {
     dashboardData.value = await getSoloDashboard(authStore.userId);
   } catch (err) {
     console.error('Failed to fetch solo dashboard:', err);
+  }
+}
+
+// Fetch match activity data for heatmap
+async function fetchActivityData() {
+  if (!authStore.userId) return;
+
+  try {
+    activityData.value = await getMatchActivity(authStore.userId);
+  } catch (err) {
+    console.error('Failed to fetch match activity:', err);
   }
 }
 
@@ -198,6 +221,7 @@ onMounted(() => {
     subscribe(account.puuid);
   }
   fetchDashboardData();
+  fetchActivityData();
 });
 
 // Watch for new accounts and subscribe
@@ -216,6 +240,8 @@ watch(syncProgress, (progress) => {
       authStore.refreshUser();
       // Refresh dashboard data to get updated stats
       fetchDashboardData();
+      // Refresh activity heatmap data
+      fetchActivityData();
       // Reset the status after refresh to avoid repeated refreshes
       resetProgress(puuid);
       break;
@@ -316,7 +342,7 @@ function handleLinkSuccess() {
 }
 
 .user-container {
-  max-width: 1000px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
