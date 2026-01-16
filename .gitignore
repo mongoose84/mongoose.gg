@@ -30,24 +30,14 @@ client/coverage
 server/bin
 server/obj
 server/publish
-server/RiotSecret.txt
-server/DatabaseSecret.txt
 
 # If secrets or build outputs are now directly under server/ (not in a subfolder)
 /server/bin/
 /server/obj/
 /server/publish/
-/server/RiotSecret.txt
-/server/DatabaseSecret.txt
-
-# Ignore CI-Support if needed
-/CI-Support/
 
 # published files
 publish/**/*
 server/DatabaseSecretV2.txt
 server/RiotProxy.Tests/bin
 server/RiotProxy.Tests/obj
-
-playground/node_modules
-playground/dist
