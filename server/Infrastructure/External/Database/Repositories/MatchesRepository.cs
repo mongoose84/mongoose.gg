@@ -28,6 +28,13 @@ public class MatchesRepository : RepositoryBase
             ("@created_at", match.CreatedAt == default ? DateTime.UtcNow : match.CreatedAt));
     }
 
+	    public async Task<long> GetTotalMatchCountAsync()
+	    {
+	        const string sql = "SELECT COUNT(*) FROM matches";
+	        var result = await ExecuteScalarAsync<long>(sql);
+	        return result;
+	    }
+
     public Task<IList<Match>> GetRecentMatchHeadersAsync(string puuid, int? queueId, int limit)
     {
         var sql = @"SELECT m.* FROM matches m

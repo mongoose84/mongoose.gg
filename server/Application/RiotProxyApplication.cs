@@ -22,7 +22,10 @@ namespace RiotProxy.Application
             var diagnosticsEndpoint = new DiagnosticsEndpoint(basePath);
             _endpoints.Add(diagnosticsEndpoint);
 
-            
+	            // Public stats endpoint (no auth required)
+	            var publicStatsEndpoint = new PublicStatsEndpoint(basePath);
+	            _endpoints.Add(publicStatsEndpoint);
+
 
             // Auth endpoints (no auth required)
             var registerEndpoint = new RegisterEndpoint(basePath);
@@ -48,6 +51,10 @@ namespace RiotProxy.Application
             // Solo Dashboard (auth required)
             var soloDashboardEndpoint = new SoloDashboardEndpoint(basePath);
             _endpoints.Add(soloDashboardEndpoint);
+
+            // Solo Matchups (auth required)
+            var soloMatchupsEndpoint = new SoloMatchupsEndpoint(basePath);
+            _endpoints.Add(soloMatchupsEndpoint);
 
             // Match Activity Heatmap (auth required)
             var matchActivityEndpoint = new MatchActivityEndpoint(basePath);

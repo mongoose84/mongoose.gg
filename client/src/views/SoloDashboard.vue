@@ -90,9 +90,14 @@
 	  	    </div>
 	  	  </div>
 	  	  <div class="top-row-item">
-	  	    <div class="section placeholder-card matchups-card">
+	  	    <ChampionMatchupsTable
+	  	      v-if="matchupsData && matchupsData.length > 0"
+	  	      :matchups="matchupsData"
+	  	      class="matchups-card"
+	  	    />
+	  	    <div v-else class="section placeholder-card matchups-card">
 	  	      <h2>Champion Matchups</h2>
-	  	      <p>Top 5 champions with expandable opponent details.</p>
+	  	      <p>No matchup data for selected filter. Play more games to see your champion matchups.</p>
 	  	    </div>
 	  	  </div>
 	  	</div>
@@ -108,12 +113,13 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
-import { getSoloDashboard, getWinrateTrend } from '../services/authApi'
+import { getSoloDashboard, getWinrateTrend, getChampionMatchups } from '../services/authApi'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import ProfileHeaderCard from '../components/ProfileHeaderCard.vue'
 import MainChampionCard from '../components/MainChampionCard.vue'
 import WinrateChart from '../components/WinrateChart.vue'
 import LpTrendChart from '../components/LpTrendChart.vue'
+import ChampionMatchupsTable from '../components/ChampionMatchupsTable.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, subscribe, resetProgress } = useSyncWebSocket()
@@ -124,6 +130,7 @@ const primaryAccount = computed(() => authStore.primaryRiotAccount)
 // Dashboard data from API
 const dashboardData = ref(null)
 const winrateTrendData = ref(null)
+const matchupsData = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
 
@@ -148,7 +155,7 @@ const isRankedQueue = computed(() =>
   ['all', 'ranked_solo', 'ranked_flex'].includes(queueFilter.value)
 )
 
-  // Fetch dashboard data and winrate trend in parallel (isolated failures)
+  // Fetch dashboard data, winrate trend, and matchups in parallel (isolated failures)
   async function fetchDashboardData() {
   if (!authStore.userId) return
 
@@ -156,9 +163,10 @@ const isRankedQueue = computed(() =>
   error.value = null
 
     // Fetch in parallel but handle errors independently
-    const [dashboardResult, trendResult] = await Promise.allSettled([
+    const [dashboardResult, trendResult, matchupsResult] = await Promise.allSettled([
       getSoloDashboard(authStore.userId, queueFilter.value, timeRange.value),
-      getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value)
+      getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value),
+      getChampionMatchups(authStore.userId, queueFilter.value, timeRange.value)
     ])
 
     // Handle dashboard result
@@ -175,6 +183,14 @@ const isRankedQueue = computed(() =>
     } else {
       console.warn('Failed to fetch winrate trend:', trendResult.reason)
       winrateTrendData.value = null
+    }
+
+    // Handle matchups result independently
+    if (matchupsResult.status === 'fulfilled') {
+      matchupsData.value = matchupsResult.value?.matchups || null
+    } else {
+      console.warn('Failed to fetch champion matchups:', matchupsResult.reason)
+      matchupsData.value = null
     }
 
   isLoading.value = false

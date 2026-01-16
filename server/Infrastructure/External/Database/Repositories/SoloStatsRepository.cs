@@ -2,6 +2,7 @@ using System;
 using MySqlConnector;
 using RiotProxy.Application.Services;
 using static RiotProxy.Application.DTOs.SoloSummaryDto;
+using static RiotProxy.Application.DTOs.SoloMatchupsDto;
 
 namespace RiotProxy.Infrastructure.External.Database.Repositories;
 
@@ -1013,5 +1014,179 @@ public class SoloStatsRepository : RepositoryBase
             "I" => 4,
             _ => 0 // Master+ don't have divisions
         };
+    }
+
+    /// <summary>
+    /// Get champion matchups data for a player.
+    /// Returns top 5 most-played champions with their opponent matchup details.
+    /// Supports optional queue filtering and time range filtering.
+    /// </summary>
+    public async Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(string puuid, string? queueType = null, string? timeRange = null)
+    {
+        // Validate queueType and time range
+        queueType = ValidateQueueType(queueType);
+        var (timeRangeStart, seasonCode, normalizedTimeRange) = await ResolveTimeRangeAsync(timeRange);
+        var effectiveTimeRangeForLog = string.IsNullOrWhiteSpace(normalizedTimeRange) ? "all" : normalizedTimeRange;
+        _logger.LogInformation("GetChampionMatchupsAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", puuid, queueType, effectiveTimeRangeForLog);
+
+        var queueFilter = BuildQueueFilter(queueType);
+        var timeFilter = BuildTimeRangeFilter(normalizedTimeRange, timeRangeStart, seasonCode);
+
+        try
+        {
+            // Step 1: Get top 5 most-played champions with role
+            var topChampions = await GetTopChampionsForMatchupsAsync(puuid, queueFilter, timeFilter, timeRangeStart, seasonCode);
+
+            // Step 2: For each champion, get opponent matchups
+            var matchups = new List<ChampionMatchup>();
+            foreach (var champ in topChampions)
+            {
+                var opponents = await GetOpponentMatchupsAsync(puuid, champ.ChampionId, champ.Role, queueFilter, timeFilter, timeRangeStart, seasonCode);
+                matchups.Add(new ChampionMatchup(
+                    ChampionId: champ.ChampionId,
+                    ChampionName: champ.ChampionName,
+                    Role: champ.Role,
+                    TotalGames: champ.TotalGames,
+                    Wins: champ.Wins,
+                    WinRate: champ.WinRate,
+                    Opponents: opponents.ToArray()
+                ));
+            }
+
+            _logger.LogInformation("GetChampionMatchupsAsync success: puuid={Puuid}, champions={Count}", puuid, matchups.Count);
+            return new ChampionMatchupsResponse(matchups.ToArray(), queueType, effectiveTimeRangeForLog);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetChampionMatchupsAsync error: puuid={Puuid}, queueType={Queue}", puuid, queueType);
+            throw;
+        }
+    }
+
+    private async Task<List<(int ChampionId, string ChampionName, string Role, int TotalGames, int Wins, double WinRate)>> GetTopChampionsForMatchupsAsync(
+        string puuid, string queueFilter, string timeFilter, DateTime? timeRangeStart, string? seasonCode)
+    {
+        // Get top 5 champions by games played, including role
+        var sql = $@"
+            SELECT
+                p.champion_id,
+                p.champion_name,
+                COALESCE(NULLIF(p.role, ''), 'UNKNOWN') as Role,
+                COUNT(DISTINCT p.match_id) as TotalGames,
+                SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+            GROUP BY p.champion_id, p.champion_name, Role
+            ORDER BY TotalGames DESC
+            LIMIT 5";
+
+        var champions = new List<(int, string, string, int, int, double)>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            if (timeRangeStart.HasValue)
+            {
+                cmd.Parameters.AddWithValue("@startTime", new DateTimeOffset(timeRangeStart.Value).ToUnixTimeMilliseconds());
+            }
+            if (!string.IsNullOrEmpty(seasonCode))
+            {
+                cmd.Parameters.AddWithValue("@season", seasonCode);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var champId = reader.GetInt32(0);
+                var champName = reader.GetString(1);
+                var role = reader.GetString(2);
+                var totalGames = reader.GetInt32(3);
+                var wins = reader.GetInt32(4);
+                var winRate = totalGames > 0 ? Math.Round((double)wins / totalGames * 100, 1) : 0;
+                champions.Add((champId, champName, role, totalGames, wins, winRate));
+            }
+            return 0;
+        });
+
+        return champions;
+    }
+
+	    private async Task<List<OpponentMatchup>> GetOpponentMatchupsAsync(
+	        string puuid, int championId, string role, string queueFilter, string timeFilter, DateTime? timeRangeStart, string? seasonCode)
+	    {
+	        // Get opponents faced when playing this champion in this role.
+	        // We first deduplicate to one row per (match, opponent champion) to avoid
+	        // over-counting wins in modes where the opponent join can produce multiple
+	        // rows per match (e.g., when lane/role aren't unique).
+	        var sql = $@"
+	            SELECT
+	                t.OpponentChampionId,
+	                t.OpponentChampionName,
+	                COUNT(*) as GamesPlayed,
+	                SUM(CASE WHEN t.Win = 1 THEN 1 ELSE 0 END) as Wins
+	            FROM (
+	                SELECT DISTINCT
+	                    p.match_id,
+	                    p.win as Win,
+	                    opp.champion_id as OpponentChampionId,
+	                    opp.champion_name as OpponentChampionName
+	                FROM participants p
+	                INNER JOIN matches m ON m.match_id = p.match_id
+	                INNER JOIN participants opp ON opp.match_id = p.match_id
+	                    AND opp.team_id != p.team_id
+	                    AND (
+	                        (opp.role = p.role AND p.role != '' AND p.role IS NOT NULL)
+	                        OR (opp.lane = p.lane AND p.lane != '' AND p.lane IS NOT NULL AND (p.role = '' OR p.role IS NULL))
+	                    )
+	                WHERE p.puuid = @puuid
+	                    AND p.champion_id = @championId
+	                    AND COALESCE(NULLIF(p.role, ''), 'UNKNOWN') = @role
+	                    {queueFilter} {timeFilter}
+	            ) t
+	            GROUP BY t.OpponentChampionId, t.OpponentChampionName
+	            ORDER BY GamesPlayed DESC";
+
+        var opponents = new List<OpponentMatchup>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            cmd.Parameters.AddWithValue("@championId", championId);
+            cmd.Parameters.AddWithValue("@role", role);
+            if (timeRangeStart.HasValue)
+            {
+                cmd.Parameters.AddWithValue("@startTime", new DateTimeOffset(timeRangeStart.Value).ToUnixTimeMilliseconds());
+            }
+            if (!string.IsNullOrEmpty(seasonCode))
+            {
+                cmd.Parameters.AddWithValue("@season", seasonCode);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var oppChampId = reader.GetInt32(0);
+                var oppChampName = reader.GetString(1);
+                var gamesPlayed = reader.GetInt32(2);
+                var wins = reader.GetInt32(3);
+                var losses = gamesPlayed - wins;
+                var winRate = gamesPlayed > 0 ? Math.Round((double)wins / gamesPlayed * 100, 1) : 0;
+
+                opponents.Add(new OpponentMatchup(
+                    OpponentChampionId: oppChampId,
+                    OpponentChampionName: oppChampName,
+                    GamesPlayed: gamesPlayed,
+                    Wins: wins,
+                    Losses: losses,
+                    WinRate: winRate
+                ));
+            }
+            return 0;
+        });
+
+        return opponents;
     }
 }
