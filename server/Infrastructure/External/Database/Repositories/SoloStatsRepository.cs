@@ -1113,31 +1113,40 @@ public class SoloStatsRepository : RepositoryBase
         return champions;
     }
 
-    private async Task<List<OpponentMatchup>> GetOpponentMatchupsAsync(
-        string puuid, int championId, string role, string queueFilter, string timeFilter, DateTime? timeRangeStart, string? seasonCode)
-    {
-        // Get opponents faced when playing this champion in this role
-        // We join with other participants in the same match who are on the enemy team and in the same role
-        var sql = $@"
-            SELECT
-                opp.champion_id as OpponentChampionId,
-                opp.champion_name as OpponentChampionName,
-                COUNT(DISTINCT p.match_id) as GamesPlayed,
-                SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins
-            FROM participants p
-            INNER JOIN matches m ON m.match_id = p.match_id
-            INNER JOIN participants opp ON opp.match_id = p.match_id
-                AND opp.team_id != p.team_id
-                AND (
-                    (opp.role = p.role AND p.role != '' AND p.role IS NOT NULL)
-                    OR (opp.lane = p.lane AND p.lane != '' AND p.lane IS NOT NULL AND (p.role = '' OR p.role IS NULL))
-                )
-            WHERE p.puuid = @puuid
-                AND p.champion_id = @championId
-                AND COALESCE(NULLIF(p.role, ''), 'UNKNOWN') = @role
-                {queueFilter} {timeFilter}
-            GROUP BY opp.champion_id, opp.champion_name
-            ORDER BY GamesPlayed DESC";
+	    private async Task<List<OpponentMatchup>> GetOpponentMatchupsAsync(
+	        string puuid, int championId, string role, string queueFilter, string timeFilter, DateTime? timeRangeStart, string? seasonCode)
+	    {
+	        // Get opponents faced when playing this champion in this role.
+	        // We first deduplicate to one row per (match, opponent champion) to avoid
+	        // over-counting wins in modes where the opponent join can produce multiple
+	        // rows per match (e.g., when lane/role aren't unique).
+	        var sql = $@"
+	            SELECT
+	                t.OpponentChampionId,
+	                t.OpponentChampionName,
+	                COUNT(*) as GamesPlayed,
+	                SUM(CASE WHEN t.Win = 1 THEN 1 ELSE 0 END) as Wins
+	            FROM (
+	                SELECT DISTINCT
+	                    p.match_id,
+	                    p.win as Win,
+	                    opp.champion_id as OpponentChampionId,
+	                    opp.champion_name as OpponentChampionName
+	                FROM participants p
+	                INNER JOIN matches m ON m.match_id = p.match_id
+	                INNER JOIN participants opp ON opp.match_id = p.match_id
+	                    AND opp.team_id != p.team_id
+	                    AND (
+	                        (opp.role = p.role AND p.role != '' AND p.role IS NOT NULL)
+	                        OR (opp.lane = p.lane AND p.lane != '' AND p.lane IS NOT NULL AND (p.role = '' OR p.role IS NULL))
+	                    )
+	                WHERE p.puuid = @puuid
+	                    AND p.champion_id = @championId
+	                    AND COALESCE(NULLIF(p.role, ''), 'UNKNOWN') = @role
+	                    {queueFilter} {timeFilter}
+	            ) t
+	            GROUP BY t.OpponentChampionId, t.OpponentChampionName
+	            ORDER BY GamesPlayed DESC";
 
         var opponents = new List<OpponentMatchup>();
 
