@@ -1,0 +1,152 @@
+# .github/workflows/ci-e2e.yml
+name: E2E Tests - Playwright
+
+# -------------------------------------------------
+# When to run - PR requirement and post-merge validation
+# -------------------------------------------------
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: # Manual trigger from the UI
+
+# -------------------------------------------------
+# Job definition
+# -------------------------------------------------
+jobs:
+  e2e-tests:
+    name: E2E Tests (Chromium + Firefox)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # Backend configuration
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://localhost:5164
+
+    steps:
+      # -------------------------------------------------
+      # Checkout code
+      # -------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -------------------------------------------------
+      # Setup .NET for backend
+      # -------------------------------------------------
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      # -------------------------------------------------
+      # Setup Node.js for frontend
+      # -------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      # -------------------------------------------------
+      # Install client dependencies
+      # -------------------------------------------------
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
+
+      # -------------------------------------------------
+      # Install Playwright browsers
+      # -------------------------------------------------
+      - name: Install Playwright browsers
+        working-directory: client
+        run: npx playwright install --with-deps chromium firefox
+
+      # -------------------------------------------------
+      # Create backend appsettings for E2E
+      # -------------------------------------------------
+      - name: Generate appsettings.Production.json
+        working-directory: server
+        run: |
+          cat > appsettings.Production.json << 'EOF'
+          {
+            "Logging": {
+              "LogLevel": {
+                "Default": "Warning",
+                "Microsoft.AspNetCore": "Warning"
+              }
+            },
+            "AllowedHosts": "*",
+            "ConnectionStrings": {
+              "DatabaseV2": "${{ secrets.LOL_DB_CONNECTIONSTRING_V2 }}"
+            },
+            "Riot": {
+              "ApiKey": "${{ secrets.RIOT_API_KEY }}"
+            },
+            "Auth": {
+              "CookieName": "pulse-auth",
+              "SessionTimeout": 30,
+              "EnableMvpLogin": false
+            },
+            "Jobs": {
+              "EnableMatchHistorySync": false
+            },
+            "Security": {
+              "EmailEncryptionKey": "${{ secrets.ENCRYPTION_SECRET }}"
+            }
+          }
+          EOF
+
+      # -------------------------------------------------
+      # Build and start backend
+      # -------------------------------------------------
+      - name: Build backend
+        working-directory: server
+        run: dotnet build -c Release
+
+      - name: Start backend server
+        working-directory: server
+        run: |
+          dotnet run -c Release --no-build &
+          echo "Backend PID: $!"
+          # Wait for backend to be ready
+          echo "Waiting for backend to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:5164/api/v2/diagnostics > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              break
+            fi
+            echo "Attempt $i: Backend not ready yet..."
+            sleep 2
+          done
+
+      # -------------------------------------------------
+      # Run E2E tests
+      # -------------------------------------------------
+      - name: Run Playwright tests
+        working-directory: client
+        run: npx playwright test
+        env:
+          E2E_BASE_URL: http://localhost:5174
+
+      # -------------------------------------------------
+      # Upload test artifacts on failure
+      # -------------------------------------------------
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: client/playwright-report/
+          retention-days: 7
+
+      - name: Upload test traces
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: client/test-results/
+          retention-days: 7
+

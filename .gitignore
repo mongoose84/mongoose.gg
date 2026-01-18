@@ -26,6 +26,11 @@ client/dist-ssr
 client/*.local
 client/coverage
 
+# Playwright E2E test artifacts
+client/playwright-report
+client/test-results
+client/playwright/.cache
+
 # Server build outputs and secrets (after structure change)
 server/bin
 server/obj
