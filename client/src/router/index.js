@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '../views/LandingPage.vue'
 import { useAuthStore } from '../stores/authStore'
+import { trackPageView } from '../services/analyticsApi'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -102,6 +103,11 @@ router.beforeEach(async (to, from, next) => {
   }
 
   next()
+})
+
+// Track page views after navigation
+router.afterEach((to, from) => {
+  trackPageView(to.fullPath, from.fullPath || null)
 })
 
 export default router
