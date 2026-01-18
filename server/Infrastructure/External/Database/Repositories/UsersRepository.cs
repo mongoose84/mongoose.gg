@@ -29,9 +29,9 @@ public class UsersRepository : RepositoryBase
                 updated_at = new.updated_at,
                 last_login_at = new.last_login_at;";
 
-        // Encrypt email and username before storing
+        // Encrypt email (normalized) and username (case-preserving) before storing
         var encryptedEmail = _encryptor.Encrypt(user.Email);
-        var encryptedUsername = _encryptor.Encrypt(user.Username);
+        var encryptedUsername = _encryptor.EncryptPreserveCase(user.Username);
 
         return await ExecuteWithConnectionAsync(async conn =>
         {
@@ -69,15 +69,15 @@ public class UsersRepository : RepositoryBase
     public virtual Task<User?> GetByUsernameAsync(string username)
     {
         const string sql = "SELECT * FROM users WHERE username = @username LIMIT 1";
-        // Encrypt the search username to match stored encrypted value
-        var encryptedUsername = _encryptor.Encrypt(username);
+        // Use case-preserving encryption for lookup (IV derived from normalized value)
+        var encryptedUsername = _encryptor.EncryptPreserveCase(username);
         return ExecuteSingleAsync(sql, MapWithDecryption, ("@username", encryptedUsername));
     }
 
     public async Task<bool> UsernameExistsAsync(string username)
     {
-        // Encrypt the search username to match stored encrypted value
-        var encryptedUsername = _encryptor.Encrypt(username);
+        // Use case-preserving encryption for lookup (IV derived from normalized value)
+        var encryptedUsername = _encryptor.EncryptPreserveCase(username);
         const string sql = "SELECT COUNT(*) FROM users WHERE username = @username";
         return await ExecuteWithConnectionAsync(async conn =>
         {

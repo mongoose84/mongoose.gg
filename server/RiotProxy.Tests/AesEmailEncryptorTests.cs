@@ -184,5 +184,69 @@ public class AesEmailEncryptorTests
         // Assert
         Assert.Equal(email, decrypted);
     }
+
+    [Fact]
+    public void EncryptPreserveCase_PreservesOriginalCasing()
+    {
+        // Arrange
+        var encryptor = new AesEncryptor(_validKey);
+        var username = "JohnDoe";
+
+        // Act
+        var encrypted = encryptor.EncryptPreserveCase(username);
+        var decrypted = encryptor.Decrypt(encrypted);
+
+        // Assert - original casing should be preserved
+        Assert.Equal("JohnDoe", decrypted);
+    }
+
+    [Fact]
+    public void EncryptPreserveCase_DifferentCases_ProduceSameCiphertext()
+    {
+        // Arrange
+        var encryptor = new AesEncryptor(_validKey);
+        var username1 = "JohnDoe";
+        var username2 = "johndoe";
+        var username3 = "JOHNDOE";
+
+        // Act
+        var encrypted1 = encryptor.EncryptPreserveCase(username1);
+        var encrypted2 = encryptor.EncryptPreserveCase(username2);
+        var encrypted3 = encryptor.EncryptPreserveCase(username3);
+
+        // Assert - all should produce the same ciphertext (for case-insensitive lookup)
+        Assert.Equal(encrypted1, encrypted2);
+        Assert.Equal(encrypted2, encrypted3);
+    }
+
+    [Fact]
+    public void EncryptPreserveCase_DecryptsToOriginalCase()
+    {
+        // Arrange
+        var encryptor = new AesEncryptor(_validKey);
+        var username = "MixedCase_User123";
+
+        // Act
+        var encrypted = encryptor.EncryptPreserveCase(username);
+        var decrypted = encryptor.Decrypt(encrypted);
+
+        // Assert
+        Assert.Equal("MixedCase_User123", decrypted);
+    }
+
+    [Fact]
+    public void Encrypt_NormalizesToLowercase()
+    {
+        // Arrange
+        var encryptor = new AesEncryptor(_validKey);
+        var email = "TEST@EXAMPLE.COM";
+
+        // Act
+        var encrypted = encryptor.Encrypt(email);
+        var decrypted = encryptor.Decrypt(encrypted);
+
+        // Assert - should be normalized to lowercase
+        Assert.Equal("test@example.com", decrypted);
+    }
 }
 
