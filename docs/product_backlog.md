@@ -130,7 +130,7 @@ Implement OpenAI provider for LLM abstraction.
 - [ ] Create `OpenAiClient : ILlmClient`
 - [ ] Use Chat Completions API (`/v1/chat/completions`)
 - [ ] Support GPT-4 and GPT-3.5-turbo via configuration
-- [ ] Store API key in `OpenAiSecret.txt` (gitignored)
+- [ ] Store API key securely
 - [ ] Add configuration to `appsettings.json`
 
 ---
@@ -485,7 +485,7 @@ Set up Mollie SDK and configuration for payment processing (European payment pro
 #### Acceptance Criteria
 
 - [ ] Add Mollie.Api NuGet package
-- [ ] Store Mollie API keys in `MollieSecret.txt` (gitignored)
+- [ ] Store Mollie API keys securely (e.g., environment variables, user-secrets)
 - [ ] Configure Mollie client in DI container
 - [ ] Set up webhook endpoint for Mollie events
 - [ ] Add to `appsettings.json`:

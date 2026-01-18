@@ -10,7 +10,7 @@ type: "always_apply"
   - **Primary client**: Standalone Vue 3 + Vite app in `client/` (see docs/information_architecture.md)
 - The backend is a C# .NET 8/9 server in `server/RiotProxy`.
 - Client(s) and server communicate via HTTP APIs (see docs/api_design.md). The server proxies the Riot Games API and manages user/game data.
-- Sensitive secrets (API keys, DB connection strings, Mollie API keys) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, LOL_DB_CONNECTIONSTRING_V2, Mollie keys). Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported for local development only and must never be committed.
+- Sensitive secrets (API keys, DB connection strings, Mollie API keys) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, LOL_DB_CONNECTIONSTRING_V2, Mollie keys). 
 - Database: MySQL for storing users, gamers, matches, and match participants.
 
 
@@ -36,8 +36,8 @@ type: "always_apply"
 - Run: `dotnet run`
 - Publish (Windows): `dotnet publish -c Release -r win-x86 --self-contained true`
 - Publish (Linux): `dotnet publish -c Release -r linux-x64 --self-contained false`
-- Secrets: Provide via env vars or user-secrets (preferred) — `RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING_V2`, Mollie API keys. Optional local secret files (RiotSecret.txt, DatabaseSecret.txt) are supported for local development only and must not be committed.
-- Payments: Use Mollie (EU) for subscriptions; keep Mollie/API keys out of source (see DatabaseSecret.txt and other secrets files)
+- Secrets: Provide via env vars or user-secrets (preferred) — `RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING_V2`, Mollie API keys
+- Payments: Use Mollie (EU) for subscriptions; keep Mollie/API keys out of source 
 - Main entry: `server/Program.cs`
 - Endpoints: `server/Application/Endpoints/`
 - DTOs: `server/Application/DTOs/`
@@ -49,7 +49,6 @@ type: "always_apply"
 - Run: `dotnet run` (runs on configured port, typically 5000/5001)
 - Publish for Windows: `dotnet publish -c Release -r win-x86 --self-contained true`
 - Publish for Linux: `dotnet publish -c Release -r linux-x64 --self-contained false`
-- Secrets: Place `RiotSecret.txt` (Riot API key) and `DatabaseSecret.txt` (MySQL connection string) in `server/`
 - Main entry: `server/Program.cs`
 - Application layer: `server/Application/`
   - Endpoints: `Application/Endpoints/` (API endpoint definitions)
@@ -144,7 +143,7 @@ type: "always_apply"
 
 
 ## Important Notes
-- **Never commit secrets**: Use env vars or user-secrets for all sensitive config; `RiotSecret.txt` and `DatabaseSecret.txt` are gitignored and only used for local dev
+- **Never commit secrets**: Use env vars or user-secrets for all sensitive config
 - **CORS**: Configured for localhost:5173 (dev) and production domains
 - **API Rate Limiting**: Riot API has rate limits; handle 429 responses gracefully
 - **Background Jobs**: MatchHistorySyncJob runs periodically to fetch new matches

@@ -116,7 +116,7 @@ Emails are encrypted at rest in the database. Generate a key and set it via user
 openssl rand -base64 32
 
 # Set via user-secrets (from server/)
-dotnet user-secrets set "Security:EmailEncryptionKey" "your-generated-key-here"
+dotnet user-secrets set "Security:EncryptionKey" "your-generated-key-here"
 ```
 
 **⚠️ Important:** Store this key securely! If lost, encrypted emails cannot be recovered. If leaked, emails can be decrypted.

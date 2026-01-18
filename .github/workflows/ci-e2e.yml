@@ -96,7 +96,7 @@ jobs:
               "EnableMatchHistorySync": false
             },
             "Security": {
-              "EmailEncryptionKey": "${{ secrets.ENCRYPTION_SECRET }}"
+              "EncryptionSecret": "${{ secrets.ENCRYPTION_SECRET }}"
             }
           }
           EOF

@@ -115,7 +115,7 @@ jobs:
               "EnableMatchHistorySync" = $true
             }
             "Security" = @{
-              "EmailEncryptionKey" = "${{ secrets.ENCRYPTION_SECRET }}"
+              "EncryptionSecret" = "${{ secrets.ENCRYPTION_SECRET }}"
             }
           } | ConvertTo-Json -Depth 10
           

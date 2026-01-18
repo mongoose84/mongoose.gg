@@ -43,6 +43,5 @@ server/publish
 
 # published files
 publish/**/*
-server/DatabaseSecretV2.txt
 server/RiotProxy.Tests/bin
 server/RiotProxy.Tests/obj

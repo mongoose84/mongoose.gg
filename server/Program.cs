@@ -24,18 +24,18 @@ builder.Services.AddSingleton<IEncryptor>(sp =>
 {
     // Re-read from configuration in case tests have overridden it
     var config = sp.GetRequiredService<IConfiguration>();
-    var encryptionKey = config["Security:EmailEncryptionKey"]
-        ?? config["EMAIL_ENCRYPTION_KEY"]
-        ?? Environment.GetEnvironmentVariable("EMAIL_ENCRYPTION_KEY")
-        ?? Secrets.EmailEncryptionKey;
+    var encryptionKey = config["Security:EncryptionSecret"]
+        ?? config["ENCRYPTION_SECRET"]
+        ?? Environment.GetEnvironmentVariable("ENCRYPTION_SECRET")
+        ?? Secrets.EncryptionKey;
 
     if (string.IsNullOrWhiteSpace(encryptionKey))
     {
         throw new InvalidOperationException(
             "Email encryption key is not configured. " +
-            "Set Security:EmailEncryptionKey in appsettings.json, " +
-            "EMAIL_ENCRYPTION_KEY environment variable, " +
-            "Generate a key using: AesEmailEncryptor.GenerateKey()");
+            "Set Security:EncryptionSecret in appsettings.json, " +
+            "ENCRYPTION_SECRET environment variable, " +
+            "Generate a key using: AesEncryptor.GenerateKey()");
     }
     return new AesEncryptor(encryptionKey);
 });

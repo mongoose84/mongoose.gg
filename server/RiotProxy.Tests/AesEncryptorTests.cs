@@ -3,7 +3,7 @@ using Xunit;
 
 namespace RiotProxy.Tests;
 
-public class AesEmailEncryptorTests
+public class AesEncryptorTests
 {
     private readonly string _validKey = AesEncryptor.GenerateKey();
 
