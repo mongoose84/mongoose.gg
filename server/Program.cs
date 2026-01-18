@@ -31,11 +31,7 @@ builder.Services.AddSingleton<IEncryptor>(sp =>
 
     if (string.IsNullOrWhiteSpace(encryptionKey))
     {
-        throw new InvalidOperationException(
-            "Email encryption key is not configured. " +
-            "Set Security:EncryptionSecret in appsettings.json, " +
-            "ENCRYPTION_SECRET environment variable, " +
-            "Generate a key using: AesEncryptor.GenerateKey()");
+        throw new InvalidOperationException("Encryption key is not configured. ");
     }
     return new AesEncryptor(encryptionKey);
 });
