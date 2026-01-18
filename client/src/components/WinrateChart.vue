@@ -2,7 +2,7 @@
   <section class="winrate-chart-card">
     <header class="header">
       <h2 class="title">Winrate Over Time</h2>
-      <p class="subtitle">Rolling 20-game average winrate</p>
+      <p class="subtitle">Rolling average winrate</p>
     </header>
 
     <div v-if="hasData" class="chart-container">
