@@ -8,7 +8,7 @@ namespace RiotProxy.Infrastructure.Security;
 /// Uses HMAC-SHA256 to derive a consistent IV from the email, ensuring the same
 /// email always produces the same ciphertext while maintaining security.
 /// </summary>
-public sealed class AesEmailEncryptor : IEmailEncryptor
+public sealed class AesEncryptor : IEncryptor
 {
     private readonly byte[] _encryptionKey;
     private readonly byte[] _ivKey;
@@ -18,7 +18,7 @@ public sealed class AesEmailEncryptor : IEmailEncryptor
     /// </summary>
     /// <param name="encryptionKey">Base64-encoded 256-bit (32 byte) encryption key</param>
     /// <param name="ivKey">Base64-encoded key for IV derivation (can be same as encryption key or different)</param>
-    public AesEmailEncryptor(string encryptionKey, string? ivKey = null)
+    public AesEncryptor(string encryptionKey, string? ivKey = null)
     {
         if (string.IsNullOrWhiteSpace(encryptionKey))
             throw new ArgumentException("Encryption key is required", nameof(encryptionKey));
@@ -33,17 +33,39 @@ public sealed class AesEmailEncryptor : IEmailEncryptor
             : Convert.FromBase64String(ivKey);
     }
 
-    public string Encrypt(string email)
+    public string Encrypt(string input)
     {
-        if (string.IsNullOrWhiteSpace(email))
-            throw new ArgumentException("Email cannot be empty", nameof(email));
+        if (string.IsNullOrWhiteSpace(input))
+            throw new ArgumentException("Input cannot be empty", nameof(input));
 
-        // Normalize email for consistent encryption
-        var normalizedEmail = email.ToLowerInvariant().Trim();
-        var plaintext = Encoding.UTF8.GetBytes(normalizedEmail);
+        // Normalize for consistent encryption (lowercase + trim)
+        var normalized = input.ToLowerInvariant().Trim();
+        return EncryptInternal(normalized, normalized);
+    }
 
-        // Derive deterministic IV from email using HMAC
-        var iv = DeriveIv(normalizedEmail);
+    public string EncryptPreserveCase(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            throw new ArgumentException("Input cannot be empty", nameof(input));
+
+        // Derive IV from normalized version (for case-insensitive lookups)
+        // but encrypt the original casing (trimmed only)
+        var normalized = input.ToLowerInvariant().Trim();
+        var preservedCase = input.Trim();
+        return EncryptInternal(preservedCase, normalized);
+    }
+
+    /// <summary>
+    /// Internal encryption method.
+    /// </summary>
+    /// <param name="plaintextValue">The value to encrypt (may be original case or normalized)</param>
+    /// <param name="ivDerivationValue">The value to derive IV from (always normalized for consistent lookups)</param>
+    private string EncryptInternal(string plaintextValue, string ivDerivationValue)
+    {
+        var plaintext = Encoding.UTF8.GetBytes(plaintextValue);
+
+        // Derive deterministic IV from normalized value using HMAC
+        var iv = DeriveIv(ivDerivationValue);
 
         using var aes = Aes.Create();
         aes.Key = _encryptionKey;
