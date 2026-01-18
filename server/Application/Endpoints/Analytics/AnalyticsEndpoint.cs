@@ -67,6 +67,13 @@ public sealed class AnalyticsEndpoint : IEndpoint
                     }
                 }
 
+                // Validate sessionId length (VARCHAR(64) in database)
+                var sessionId = request.SessionId;
+                if (sessionId != null && sessionId.Length > 64)
+                {
+                    sessionId = sessionId[..64]; // Truncate to fit column
+                }
+
                 // Serialize payload to JSON
                 string? payloadJson = null;
                 if (request.Payload != null && request.Payload.Count > 0)
@@ -85,7 +92,7 @@ public sealed class AnalyticsEndpoint : IEndpoint
                     Tier = tier,
                     EventName = request.EventName,
                     PayloadJson = payloadJson,
-                    SessionId = request.SessionId,
+                    SessionId = sessionId,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -146,6 +153,13 @@ public sealed class AnalyticsEndpoint : IEndpoint
                     if (string.IsNullOrWhiteSpace(req.EventName) || req.EventName.Length > 100)
                         continue;
 
+                    // Validate sessionId length (VARCHAR(64) in database)
+                    var sessionId = req.SessionId;
+                    if (sessionId != null && sessionId.Length > 64)
+                    {
+                        sessionId = sessionId[..64]; // Truncate to fit column
+                    }
+
                     string? payloadJson = null;
                     if (req.Payload != null && req.Payload.Count > 0)
                     {
@@ -159,7 +173,7 @@ public sealed class AnalyticsEndpoint : IEndpoint
                         Tier = tier,
                         EventName = req.EventName,
                         PayloadJson = payloadJson,
-                        SessionId = req.SessionId,
+                        SessionId = sessionId,
                         CreatedAt = DateTime.UtcNow
                     });
                 }

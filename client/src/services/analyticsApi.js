@@ -8,8 +8,15 @@ import { getBaseApi } from './apiConfig'
 const API_BASE = getBaseApi()
 
 // Generate a unique session ID for grouping events
-const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : 
-  `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+// Fallback for older browsers or non-secure contexts where crypto may be unavailable
+const SESSION_ID = (() => {
+  try {
+    return globalThis.crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+  }
+})()
 
 /**
  * Track a single analytics event
