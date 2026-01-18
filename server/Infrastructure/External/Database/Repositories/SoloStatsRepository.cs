@@ -248,44 +248,57 @@ public class SoloStatsRepository : RepositoryBase
 
 			    private async Task<IReadOnlyList<MainChampionRoleGroup>> GetMainChampionsByRoleAsync(string puuid, string queueFilter, string timeFilter, DateTime? timeRangeStart, string? seasonCode)
 			    {
-	        var sql = $@"
-	            SELECT
-	                COALESCE(NULLIF(p.role, ''), 'UNKNOWN') as Role,
-	                p.champion_id,
-	                p.champion_name,
-	                COUNT(DISTINCT p.match_id) as Games,
-	                SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins
-	            FROM participants p
-	            INNER JOIN matches m ON m.match_id = p.match_id
-	            WHERE p.puuid = @puuid {queueFilter} {timeFilter}
-	            GROUP BY Role, p.champion_id, p.champion_name";
+            var sql = $@"
+                SELECT
+                    COALESCE(NULLIF(p.role, ''), 'UNKNOWN') as Role,
+                    p.champion_id,
+                    p.champion_name,
+                    COUNT(DISTINCT p.match_id) as Games,
+                    SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins,
+                    AVG(p.creep_score) as AvgCs,
+                    AVG(p.gold_earned / (m.game_duration_sec / 60.0)) as AvgGoldPerMin,
+                    AVG(p.kills) as AvgKills,
+                    AVG(p.deaths) as AvgDeaths,
+                    AVG(p.assists) as AvgAssists
+                FROM participants p
+                INNER JOIN matches m ON m.match_id = p.match_id
+                WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+                GROUP BY Role, p.champion_id, p.champion_name";
 
-		        var rows = new List<MainChampionRecommender.ChampionRoleStats>();
-		        await ExecuteWithConnectionAsync(async conn =>
-		        {
-		            await using var cmd = new MySqlCommand(sql, conn);
-		            cmd.Parameters.AddWithValue("@puuid", puuid);
-		            if (timeRangeStart.HasValue)
-		            {
-		                cmd.Parameters.AddWithValue("@startTime", new DateTimeOffset(timeRangeStart.Value).ToUnixTimeMilliseconds());
-		            }
-		            if (!string.IsNullOrEmpty(seasonCode))
-		            {
-		                cmd.Parameters.AddWithValue("@season", seasonCode);
-		            }
-		            await using var reader = await cmd.ExecuteReaderAsync();
-	            while (await reader.ReadAsync())
-	            {
-	                var role = reader.IsDBNull(0) ? "UNKNOWN" : reader.GetString(0);
-	                var champId = reader.GetInt32(1);
-	                var champName = reader.GetString(2);
-	                var games = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
-	                var wins = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
 
-	                rows.Add(new MainChampionRecommender.ChampionRoleStats(role, champId, champName, games, wins));
-	            }
-	            return 0;
-	        });
+                var rows = new List<MainChampionRecommender.ChampionRoleStats>();
+                await ExecuteWithConnectionAsync(async conn =>
+                {
+                    await using var cmd = new MySqlCommand(sql, conn);
+                    cmd.Parameters.AddWithValue("@puuid", puuid);
+                    if (timeRangeStart.HasValue)
+                    {
+                        cmd.Parameters.AddWithValue("@startTime", new DateTimeOffset(timeRangeStart.Value).ToUnixTimeMilliseconds());
+                    }
+                    if (!string.IsNullOrEmpty(seasonCode))
+                    {
+                        cmd.Parameters.AddWithValue("@season", seasonCode);
+                    }
+                    await using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var role = reader.IsDBNull(0) ? "UNKNOWN" : reader.GetString(0);
+                        var champId = reader.GetInt32(1);
+                        var champName = reader.GetString(2);
+                        var games = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
+                        var wins = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
+                        var avgCs = reader.IsDBNull(5) ? 0 : reader.GetDouble(5);
+                        var avgGoldPerMin = reader.IsDBNull(6) ? 0 : reader.GetDouble(6);
+                        var avgKills = reader.IsDBNull(7) ? 0 : reader.GetDouble(7);
+                        var avgDeaths = reader.IsDBNull(8) ? 0 : reader.GetDouble(8);
+                        var avgAssists = reader.IsDBNull(9) ? 0 : reader.GetDouble(9);
+
+                        rows.Add(new MainChampionRecommender.ChampionRoleStats(
+                            role, champId, champName, games, wins,
+                            avgGoldPerMin, avgCs, avgKills, avgDeaths, avgAssists));
+                    }
+                    return 0;
+                });
 
 	        if (rows.Count == 0)
 	            return Array.Empty<MainChampionRoleGroup>();

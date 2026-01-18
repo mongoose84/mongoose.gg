@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using RiotProxy.Application.DTOs;
+
 using static RiotProxy.Application.DTOs.SoloSummaryDto;
 
 namespace RiotProxy.Application.Services;
@@ -18,7 +15,12 @@ public static class MainChampionRecommender
         int ChampionId,
         string ChampionName,
         int GamesPlayed,
-        int Wins
+        int Wins,
+        double AvgGoldPerMin,
+        double AvgCs,
+        double AvgKills,
+        double AvgDeaths,
+        double AvgAssists
     );
 
     private const int MinGamesForChampion = 2;
@@ -73,7 +75,15 @@ public static class MainChampionRecommender
             : 0.0;
 
         var lpPerGame = ComputeLpPerGameApprox(wins, losses);
-        var score = ComputeRecommendedScore(winRate, games, lpPerGame);
+
+        // New stats
+        var avgGoldPerMin = s.AvgGoldPerMin;
+        var avgCs = s.AvgCs;
+        var avgKills = s.AvgKills;
+        var avgDeaths = s.AvgDeaths;
+        var avgAssists = s.AvgAssists;
+
+        var score = ComputeRecommendedScore(winRate, games, lpPerGame, avgGoldPerMin, avgCs, avgKills, avgDeaths, avgAssists, normalizedRole);
 
         var entry = new MainChampionEntry(
             ChampionName: s.ChampionName,
@@ -84,6 +94,7 @@ public static class MainChampionRecommender
             Wins: wins,
             Losses: losses,
             LpPerGame: Math.Round(lpPerGame, 1)
+            // Optionally, you can extend MainChampionEntry to include these new stats if needed
         );
 
         return (entry, score);
@@ -104,7 +115,8 @@ public static class MainChampionRecommender
         return totalLp / games;
     }
 
-    private static double ComputeRecommendedScore(double winRatePercent, int games, double lpPerGame)
+    private static double ComputeRecommendedScore(double winRatePercent, int games, double lpPerGame,
+        double avgGoldPerMin, double avgCs, double avgKills, double avgDeaths, double avgAssists, string role)
     {
         // Normalise win rate between 35% and 65% into [0,1]
         double winRateNorm;
@@ -119,8 +131,22 @@ public static class MainChampionRecommender
         // Sample size bonus, capped at 40 games
         var sampleNorm = Math.Min(1.0, games / 40.0);
 
-        // Heuristic blend – win rate is most important, then LP, then sample size
-        return 0.5 * winRateNorm + 0.3 * lpNorm + 0.2 * sampleNorm;
+        // Normalize new stats (example ranges, adjust as needed)
+        // Gold per min: 200-600
+        var goldNorm = Math.Min(1.0, Math.Max(0.0, (avgGoldPerMin - 200.0) / 400.0));
+        // CS: 0-10 per min, but ignore for supports
+        double csNorm = 0.0;
+        if (!string.Equals(role, "UTILITY", StringComparison.OrdinalIgnoreCase))
+        {
+            csNorm = Math.Min(1.0, Math.Max(0.0, (avgCs - 100.0) / 200.0));
+        }
+        // KDA: kills+assists/deaths, deaths min 1
+        var kda = (avgKills + avgAssists) / Math.Max(1.0, avgDeaths);
+        var kdaNorm = Math.Min(1.0, kda / 5.0); // 5+ is excellent
+
+        // Heuristic blend – win rate is most important, then LP, then sample size, then new stats
+        return 0.35 * winRateNorm + 0.2 * lpNorm + 0.15 * sampleNorm + 0.1 * goldNorm + 0.1 * csNorm + 0.1 * kdaNorm;
     }
+    
 }
 
