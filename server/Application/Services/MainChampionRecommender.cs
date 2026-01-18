@@ -136,9 +136,9 @@ public static class MainChampionRecommender
         var goldNorm = Math.Min(1.0, Math.Max(0.0, (avgGoldPerMin - 200.0) / 400.0));
         // CS: 0-10 per min, but ignore for supports
         double csNorm = 0.0;
-        if (!string.Equals(role, "SUPPORT", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(role, "UTILITY", StringComparison.OrdinalIgnoreCase))
         {
-            csNorm = Math.Min(1.0, Math.Max(0.0, avgCs / 10.0));
+            csNorm = Math.Min(1.0, Math.Max(0.0, (avgCs - 100.0) / 200.0));
         }
         // KDA: kills+assists/deaths, deaths min 1
         var kda = (avgKills + avgAssists) / Math.Max(1.0, avgDeaths);
