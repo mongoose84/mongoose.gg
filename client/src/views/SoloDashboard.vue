@@ -115,6 +115,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { getSoloDashboard, getWinrateTrend, getChampionMatchups } from '../services/authApi'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
+import { trackFilterChange } from '../services/analyticsApi'
 import ProfileHeaderCard from '../components/ProfileHeaderCard.vue'
 import MainChampionCard from '../components/MainChampionCard.vue'
 import WinrateChart from '../components/WinrateChart.vue'
@@ -204,9 +205,15 @@ onMounted(() => {
   }
 })
 
-  // Fetch when filters change
-  watch(queueFilter, fetchDashboardData)
-  watch(timeRange, fetchDashboardData)
+  // Fetch when filters change and track filter usage
+  watch(queueFilter, (newValue) => {
+    trackFilterChange('queue', newValue)
+    fetchDashboardData()
+  })
+  watch(timeRange, (newValue) => {
+    trackFilterChange('time', newValue)
+    fetchDashboardData()
+  })
 
 // Watch for sync completion to refresh data
 watch(syncProgress, (progress) => {

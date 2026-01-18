@@ -292,4 +292,21 @@ CREATE TABLE IF NOT EXISTS ai_snapshots (
     KEY idx_puuid_context (puuid, context_type, snapshot_date),
     CONSTRAINT fk_ai_snapshots_riot_account FOREIGN KEY (puuid) REFERENCES riot_accounts(puuid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ANALYTICS EVENTS (for user behavior tracking / Grafana dashboards)
+CREATE TABLE IF NOT EXISTS analytics_events (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NULL,
+    tier ENUM('free', 'pro') DEFAULT 'free',
+    event_name VARCHAR(100) NOT NULL,
+    payload_json JSON NULL,
+    session_id VARCHAR(64) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_user_id (user_id),
+    KEY idx_event_name (event_name),
+    KEY idx_tier (tier),
+    KEY idx_created_at (created_at),
+    KEY idx_session_id (session_id),
+    KEY idx_event_created (event_name, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- END OF SCHEMA

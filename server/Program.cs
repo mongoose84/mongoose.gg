@@ -53,6 +53,7 @@ builder.Services.AddScoped<TeamRoleResponsibilitiesRepository>();
 builder.Services.AddScoped<DuoMetricsRepository>();
 builder.Services.AddScoped<SoloStatsRepository>();
 builder.Services.AddScoped<SeasonsRepository>();
+builder.Services.AddScoped<AnalyticsEventsRepository>();
 
 // Application services
 builder.Services.AddScoped<RiotProxy.Application.Services.LoginSyncService>();

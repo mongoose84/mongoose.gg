@@ -92,6 +92,7 @@ import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import { useAuthStore } from '../stores/authStore';
+import { trackAuth } from '../services/analyticsApi';
 
 const route = useRoute();
 const router = useRouter();
@@ -182,6 +183,8 @@ const handleSubmit = async () => {
         rememberMe: formData.value.rememberMe
       });
 
+      trackAuth('login', true, { rememberMe: formData.value.rememberMe });
+
       if (!result.emailVerified) {
         router.push('/auth/verify');
       } else {
@@ -195,10 +198,15 @@ const handleSubmit = async () => {
         password: formData.value.password
       });
 
+      trackAuth('register', true);
+
       // After signup, redirect to verification
       router.push('/auth/verify');
     }
   } catch (e) {
+    // Track failed auth attempts
+    trackAuth(isLogin.value ? 'login' : 'register', false, { errorCode: e.code });
+
     // Handle specific error codes
     if (e.code === 'USERNAME_TAKEN') {
       usernameError.value = 'This username is already taken';

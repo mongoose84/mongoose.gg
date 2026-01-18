@@ -53,6 +53,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
+import { trackAuth } from '../services/analyticsApi';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -76,9 +77,11 @@ const handleLogout = async () => {
   isDropdownOpen.value = false;
   try {
     await authStore.logout();
+    trackAuth('logout', true);
     router.push('/');
   } catch (e) {
     console.error('Logout failed:', e);
+    trackAuth('logout', false);
     // Still redirect even if logout fails
     router.push('/');
   }
