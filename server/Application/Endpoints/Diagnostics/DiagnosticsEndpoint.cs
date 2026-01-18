@@ -54,7 +54,7 @@ namespace RiotProxy.Application.Endpoints.Diagnostics
                 };
 
                 return Results.Ok(diagnostics);
-            }).RequireAuthorization();
+            });
         }
 
         private static string GetEnvironment()

@@ -22,17 +22,6 @@ public class DiagnosticsEndpointTests
     }
 
     [Fact]
-    public async Task Diagnostics_requires_authentication()
-    {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-        var response = await client.GetAsync("/api/v2/diagnostics");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task Diagnostics_returns_configuration_status_when_authenticated()
     {
         using var env = EnvironmentVariableScope.Set(

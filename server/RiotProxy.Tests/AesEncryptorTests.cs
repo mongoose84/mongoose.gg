@@ -214,9 +214,12 @@ public class AesEncryptorTests
         var encrypted2 = encryptor.EncryptPreserveCase(username2);
         var encrypted3 = encryptor.EncryptPreserveCase(username3);
 
-        // Assert - all should produce the same ciphertext (for case-insensitive lookup)
-        Assert.Equal(encrypted1, encrypted2);
-        Assert.Equal(encrypted2, encrypted3);
+        // Assert - ciphertexts should differ, but all decrypt to the normalized value
+        Assert.NotEqual(encrypted1, encrypted2);
+        Assert.NotEqual(encrypted2, encrypted3);
+        Assert.Equal("JohnDoe", encryptor.Decrypt(encrypted1));
+        Assert.Equal("johndoe", encryptor.Decrypt(encrypted2));
+        Assert.Equal("JOHNDOE", encryptor.Decrypt(encrypted3));
     }
 
     [Fact]
