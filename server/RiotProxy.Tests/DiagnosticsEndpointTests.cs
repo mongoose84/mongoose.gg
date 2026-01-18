@@ -26,7 +26,6 @@ public class DiagnosticsEndpointTests
     {
         using var env = EnvironmentVariableScope.Set(
             ("RIOT_API_KEY", "test-key"),
-            ("LOL_DB_CONNECTIONSTRING", "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;"),
             ("LOL_DB_CONNECTIONSTRING_V2", "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;")
         );
         using var factory = new TestWebApplicationFactory();
@@ -68,27 +67,7 @@ public class DiagnosticsEndpointTests
         payload.configuration.allConfigured.Should().BeFalse();
     }
 
-    [Fact]
-    public async Task Diagnostics_reports_missing_database_connection()
-    {
-        using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
-        {
-            ["LOL_DB_CONNECTIONSTRING"] = string.Empty
-        });
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
-        req.Headers.Add("Cookie", authCookie);
-        var response = await client.SendAsync(req);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var payload = await response.Content.ReadFromJsonAsync<DiagnosticsResponse>();
-        payload!.configuration.databaseConfigured.Should().BeFalse();
-        payload.configuration.allConfigured.Should().BeFalse();
-    }
-
-    [Fact]
+        [Fact]
     public async Task Diagnostics_reports_missing_database_v2_connection()
     {
         using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
