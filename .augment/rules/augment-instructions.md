@@ -10,7 +10,7 @@ type: "always_apply"
   - **Primary client**: Standalone Vue 3 + Vite app in `client/` (see docs/information_architecture.md)
 - The backend is a C# .NET 8/9 server in `server/RiotProxy`.
 - Client(s) and server communicate via HTTP APIs (see docs/api_design.md). The server proxies the Riot Games API and manages user/game data.
-- Sensitive secrets (API keys, DB connection strings, Mollie API keys) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, LOL_DB_CONNECTIONSTRING_V2, Mollie keys). 
+- Sensitive secrets (API keys, DB connection strings, Mollie API keys) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, Database_test, Database_production, Mollie keys). 
 - Database: MySQL for storing users, gamers, matches, and match participants.
 
 
@@ -36,7 +36,7 @@ type: "always_apply"
 - Run: `dotnet run`
 - Publish (Windows): `dotnet publish -c Release -r win-x86 --self-contained true`
 - Publish (Linux): `dotnet publish -c Release -r linux-x64 --self-contained false`
-- Secrets: Provide via env vars or user-secrets (preferred) — `RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING_V2`, Mollie API keys
+- Secrets: Provide via env vars or user-secrets (preferred) — `RIOT_API_KEY`, `Database_test`, `Database_production`, Mollie API keys
 - Payments: Use Mollie (EU) for subscriptions; keep Mollie/API keys out of source 
 - Main entry: `server/Program.cs`
 - Endpoints: `server/Application/Endpoints/`
@@ -110,7 +110,7 @@ type: "always_apply"
 ## Integration Points
 - Client(s) <-> Server: HTTP API (see docs/api_design.md for endpoints, queue filtering, and response shapes)
 - Server <-> Riot API: Proxy logic in `RiotApiClient.cs`
-- Server <-> Database: Connection via `LOL_DB_CONNECTIONSTRING_V2` (env/user-secrets), logic in `Infrastructure/External/Database/`
+- Server <-> Database: Connection via `Database_test`, `Database_production` (env/user-secrets), logic in `Infrastructure/External/Database/`
 
 
 ## Key Features
@@ -183,7 +183,7 @@ lol/
 
 ## References
 - Setup instructions: [README.md](../README.md)
-- Sensitive config: set via env vars or user-secrets (`RIOT_API_KEY`, `LOL_DB_CONNECTIONSTRING_V2`, Mollie API keys)
+- Sensitive config: set via env vars or user-secrets (`RIOT_API_KEY`, `Database_test`, `Database_production`, Mollie API keys)
 - Main server logic: `server/Program.cs`, `server/Application/`, `server/Application/Endpoints/`, `server/RiotProxy.Tests/`
 - Main client logic: `client/src/`, `client/src/services/`, `client/src/composables/`
 - Riot API Documentation: https://developer.riotgames.com/

@@ -26,7 +26,7 @@ public class DiagnosticsEndpointTests
     {
         using var env = EnvironmentVariableScope.Set(
             ("RIOT_API_KEY", "test-key"),
-            ("LOL_DB_CONNECTIONSTRING_V2", "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;")
+            ("Database_test", "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;")
         );
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -67,12 +67,12 @@ public class DiagnosticsEndpointTests
         payload.configuration.allConfigured.Should().BeFalse();
     }
 
-        [Fact]
+    [Fact]
     public async Task Diagnostics_reports_missing_database_v2_connection()
     {
         using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
         {
-            ["LOL_DB_CONNECTIONSTRING_V2"] = string.Empty
+            ["Database_test"] = string.Empty
         });
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 

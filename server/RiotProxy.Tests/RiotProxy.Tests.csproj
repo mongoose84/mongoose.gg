@@ -4,7 +4,6 @@
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <OutputPath>bin/$(Configuration)/$(TargetFramework)/</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
