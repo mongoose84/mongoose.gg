@@ -82,7 +82,7 @@ jobs:
             },
             "AllowedHosts": "*",
             "ConnectionStrings": {
-              "DatabaseV2": "${{ secrets.LOL_DB_CONNECTIONSTRING_V2 }}"
+              "Database_test": "${{ secrets.DB_CONNECTIONSTRING_TEST }}"
             },
             "Riot": {
               "ApiKey": "${{ secrets.RIOT_API_KEY }}"
@@ -112,7 +112,7 @@ jobs:
         working-directory: server
         env:
           ENCRYPTION_SECRET: ${{ secrets.ENCRYPTION_SECRET }}
-          LOL_DB_CONNECTIONSTRING_V2: ${{ secrets.LOL_DB_CONNECTIONSTRING_V2 }}
+          Database_test: ${{ secrets.DB_CONNECTIONSTRING_TEST }}
         run: |
           dotnet run -c Release --no-build &
           echo "Backend PID: $!"

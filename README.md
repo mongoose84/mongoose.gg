@@ -1,6 +1,6 @@
-# League of Legends improvement tracker
+# Mongoose.gg - League of Legends improvement tracker
 
-> "The only LoL improvement tracker built for duos and teams, powered by AI coaching that turns your stats into actionable goals you can actually achieve."
+> The only LoL improvement tracker built for duos and teams, powered by AI coaching that turns your stats into actionable goals you can actually achieve.
 
 This project helps players (solo, duo, and full teams) understand their performance with rich match analytics, timeline-derived metrics, and AI goal recommendations.
 
@@ -91,6 +91,9 @@ Set the test environment variables in the terminal:
 ```
 export E2E_TEST_USER=<your-username>
 export E2E_TEST_PASSWORD=<your-password>
+
+$env:E2E_TEST_USER = "your-username"
+$env:E2E_TEST_PASSWORD = "your-password"
 ```
 Run the tests:
 ```
@@ -117,7 +120,8 @@ dotnet user-secrets set "Riot:ApiKey" "RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx
 Set via user-secrets:
 ```bash
 # user-secrets (from server/)
-dotnet user-secrets set "ConnectionStrings:DatabaseV2" "Server=...;Password=...;"
+dotnet user-secrets set "ConnectionStrings:Database_production" "Server=...;Password=...;"
+dotnet user-secrets set "ConnectionStrings:Database_test" "Server=...;Password=...;"
 ```
 
 ##### Email Encryption Key
@@ -141,10 +145,12 @@ dotnet run
 
 dotnet publish -c Release -r win-x86 --self-contained true 
 ```
+Make sure to also use the web.config file in the publish folder for IIS hosting.
+
 This will create all the files needed in the folder /bin/Release/publish
 
 ##### Run server tests
 ```
 cd root
-dotnet test lol.sln
+dotnet test mongoose.sln
 ```

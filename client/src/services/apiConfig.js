@@ -6,7 +6,7 @@ const development = import.meta.env.DEV
 const apiVersion = '/api/v2'
 const host = development
   ? 'http://localhost:5164'
-  : 'https://lol-api.agileastronaut.com'
+  : 'https://api.mongoose.gg'
 
 export function getHost() {
   return host

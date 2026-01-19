@@ -5,13 +5,21 @@
     <div class="landing-wrapper">
       <!-- Hero Section -->
       <section class="hero-section">
-        <div class="hero-container">
+        <div class="hero-container">  
+        <!-- Logo above hero title -->
+          <div class="hero-logo">
+            <img src="/mongoose.png" alt="Mongoose.gg logo" class="hero-logo-img" />
+          </div>
+          <h2 class="hero-logo-text">Mongoose.gg</h2>
+
           <div class="hero-badge">
             <span class="hero-badge-icon">🎮</span>
             <span>First 500 users get free Pro tier</span>
             <span class="hero-badge-count">{{ freeUsersLeft }} spots left</span>
           </div>
+
           
+
           <h1 class="hero-title">
             The <span class="hero-gradient">Solo Queue</span> Improvement Tracker<br />
             Built for <span class="hero-gradient">Duos & Teams</span>
@@ -340,8 +348,24 @@ const pricingTiers = [
   border-radius: 9999px;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-xl);
+  margin-top: var(--spacing-2xl);
+  margin-bottom: var(--spacing-2xl);
   backdrop-filter: blur(10px);
+}
+
+.hero-logo {
+  width: 210px;
+  height: 100px;
+  margin: auto;
+}
+
+.hero-logo-text {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin-top: -35px;
+  margin-left: var(--spacing-sm);
+  margin-bottom: var(--spacing-2xl);
 }
 
 .hero-badge-icon {
@@ -373,7 +397,7 @@ const pricingTiers = [
   font-size: var(--font-size-lg);
   color: var(--color-text-secondary);
   line-height: 1.6;
-  margin-bottom: var(--spacing-2xl);
+  margin-bottom: var(--spacing-xl);
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;

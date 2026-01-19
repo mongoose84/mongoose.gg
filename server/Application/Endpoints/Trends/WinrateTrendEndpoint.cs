@@ -58,8 +58,8 @@ public sealed class WinrateTrendEndpoint : IEndpoint
 
                 if (riotAccounts == null || riotAccounts.Count == 0)
                 {
-                    logger.LogWarning("Winrate trend: no gamers found for userId {UserId}", userIdInt);
-                    return Results.NotFound(new { error = "No gamers found for this user" });
+                    logger.LogWarning("Winrate trend: no riot accounts found for userId {UserId}", userIdInt);
+                    return Results.NotFound(new { error = "No riot accounts found for this user" });
                 }
 
                 // Use primary account or first account
