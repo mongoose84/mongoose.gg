@@ -10,7 +10,7 @@ namespace RiotProxy.Infrastructure
         private static readonly string SecretsFolder = AppDomain.CurrentDomain.BaseDirectory;
 
         public static string ApiKey { get; private set; } = string.Empty;
-        public static string DatabaseConnectionStringV2 { get; private set; } = string.Empty;
+        public static string DatabaseConnectionString { get; private set; } = string.Empty;
         public static string EncryptionSecret { get; private set; } = string.Empty;
 
         /// <summary>
@@ -34,23 +34,12 @@ namespace RiotProxy.Infrastructure
             if (isProduction)
             {
                 // Production: prefer production-specific connection string
-                dbConnectionV2Candidate = FirstNonEmpty(
-                    config.GetConnectionString("DatabaseV2_Prod"),
-                    config["ConnectionStrings:DatabaseV2_Prod"],
-                    config["Database:ConnectionStringV2_Prod"],
-                    config["LOL_DB_CONNECTIONSTRING_V2_PROD"],
-                    Environment.GetEnvironmentVariable("LOL_DB_CONNECTIONSTRING_V2_PROD"),
-                    // fallback to default
-                    config.GetConnectionString("DatabaseV2"),
-                    config["ConnectionStrings:DatabaseV2"],
-                    config["Database:ConnectionStringV2"],
-                    config["LOL_DB_CONNECTIONSTRING_V2"],
-                    Environment.GetEnvironmentVariable("LOL_DB_CONNECTIONSTRING_V2"));
+                dbConnectionV2Candidate = GetDatabaseConnectionString(config, "Database_production");
             }
             else if (isTesting)
             {
                 // Testing: prefer test-specific connection string
-                dbConnectionV2Candidate = GetDatabaseConnectionString(config, "Database_production");
+                dbConnectionV2Candidate = GetDatabaseConnectionString(config, "Database_test");
             }
             else
             {
@@ -69,7 +58,7 @@ namespace RiotProxy.Infrastructure
                     return;
 
                 ApiKey = apiKeyCandidate;
-                DatabaseConnectionStringV2 = dbConnectionV2Candidate;
+                DatabaseConnectionString = dbConnectionV2Candidate;
                 EncryptionSecret = encryptionSecretCandidate;
 
                 // Optional debug logging: only in Development or when explicitly enabled
@@ -77,7 +66,7 @@ namespace RiotProxy.Infrastructure
                 var isDevelopment = string.Equals(aspnetEnv, "Development", StringComparison.OrdinalIgnoreCase);
                 if (enableSecretsDebug || isDevelopment)
                 {
-                    LogConfigurationStatus(config);
+                    LogConfigurationStatus(isProduction);
                 }
 
                 _initialized = true;
@@ -87,19 +76,28 @@ namespace RiotProxy.Infrastructure
         /// <summary>
         /// Log which secrets were successfully loaded (for debugging configuration issues).
         /// </summary>
-        private static void LogConfigurationStatus(IConfiguration config)
+        private static void LogConfigurationStatus(bool isProduction)
         {
+            var isDbConnectionSet = false;
+            var dbType = isProduction ? "Production" : "Test";
+            if (isProduction)
+            {
+                isDbConnectionSet = !string.IsNullOrWhiteSpace(DatabaseConnectionString);
+            }
+            else
+            {
+                isDbConnectionSet = !string.IsNullOrWhiteSpace(DatabaseConnectionString);
+            }
             var isApiKeySet = !string.IsNullOrWhiteSpace(ApiKey);
-            var isDbV2ConnectionSet = !string.IsNullOrWhiteSpace(DatabaseConnectionStringV2);
             var isEncryptionSecretSet = !string.IsNullOrWhiteSpace(EncryptionSecret);
 
             Console.WriteLine($"[Secrets.Initialize] ApiKey configured: {isApiKeySet}");
-            Console.WriteLine($"[Secrets.Initialize] DatabaseConnectionStringV2 configured: {isDbV2ConnectionSet}");
+            Console.WriteLine($"[Secrets.Initialize] Database configured: {isDbConnectionSet} ({dbType})");
             Console.WriteLine($"[Secrets.Initialize] EncryptionSecret configured: {isEncryptionSecretSet}");
             // List environment variables that might be missing
-            if (!isDbV2ConnectionSet)
+            if (!isDbConnectionSet)
             {
-                Console.WriteLine("[Secrets.Initialize] WARNING: LOL_DB_CONNECTIONSTRING_V2 not found. Checked: appsettings, env vars");
+                Console.WriteLine("[Secrets.Initialize] WARNING: Database connection string not found. Checked: appsettings, env vars");
             }
             if (!isEncryptionSecretSet)
             {
