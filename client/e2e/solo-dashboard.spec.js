@@ -10,10 +10,10 @@ import { test, expect } from '@playwright/test';
  * 4. Verify Solo Dashboard loads with data
  */
 
-// Test credentials - pre-verified user with linked Riot account
+// Test credentials - pre-verified user with linked Riot account (from environment variables)
 const TEST_USER = {
-  username: 'tester',
-  password: 'tester1234',
+  username: process.env.E2E_TEST_USER,
+  password: process.env.E2E_TEST_PASSWORD,
 };
 
 /**
@@ -26,8 +26,8 @@ async function performLogin(page, username, password) {
   await expect(page.locator('h1')).toContainText('Welcome to Pulse.gg');
 
   // Fill in login form
-  await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Password').fill(password);
+  await page.getByLabel('Username').fill(TEST_USER.username);
+  await page.getByLabel('Password').fill(TEST_USER.password);
 
   // Submit login form
   await page.getByRole('button', { name: /sign in/i }).click();
@@ -63,20 +63,15 @@ test.describe('Solo Dashboard Flow', () => {
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
-    // Step 6: Navigate to Solo Dashboard
-    // Look for the solo dashboard navigation link/button
-    const soloDashboardLink = page.getByRole('link', { name: /solo/i }).or(
-      page.getByRole('button', { name: /solo/i })
-    ).or(
-      page.locator('[href="/app/solo"]')
-    );
+    // Step 6: Navigate to Solo Dashboard by clicking the ProfileHeaderCard (using data-testid)
+    const profileHeaderCard = page.getByTestId('profile-header-card');
+    await expect(profileHeaderCard).toBeVisible({ timeout: 10_000 });
+    await Promise.all([
+      page.waitForURL('/app/solo', { timeout: 10_000 }),
+      profileHeaderCard.click(),
+    ]);
 
-    await soloDashboardLink.first().click();
-
-    // Step 7: Verify Solo Dashboard loaded
-    await expect(page).toHaveURL('/app/solo', { timeout: 10_000 });
-
-    // Step 8: Verify dashboard content is present
+    // Step 7: Verify dashboard content is present
     // Check for profile header card (should show summoner info)
     await expect(page.locator('[class*="profile"]').or(page.locator('[class*="header"]')).first()).toBeVisible({ timeout: 15_000 });
   });

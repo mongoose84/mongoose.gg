@@ -10,6 +10,7 @@
         <!-- Solo Dashboard Card (Clickable) -->
         <ProfileHeaderCard
           v-if="firstRiotAccount"
+          data-testid="profile-header-card"
           :game-name="firstRiotAccount.gameName"
           :tag-line="firstRiotAccount.tagLine"
           :region="firstRiotAccount.region"

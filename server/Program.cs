@@ -24,16 +24,16 @@ builder.Services.AddSingleton<IEncryptor>(sp =>
 {
     // Re-read from configuration in case tests have overridden it
     var config = sp.GetRequiredService<IConfiguration>();
-    var encryptionKey = config["Security:EncryptionSecret"]
+    var encryptionSecret = config["Security:EncryptionSecret"]
         ?? config["ENCRYPTION_SECRET"]
         ?? Environment.GetEnvironmentVariable("ENCRYPTION_SECRET")
         ?? Secrets.EncryptionSecret;
 
-    if (string.IsNullOrWhiteSpace(encryptionKey))
+    if (string.IsNullOrWhiteSpace(encryptionSecret))
     {
-        throw new InvalidOperationException("Encryption key is not configured. ");
+        throw new InvalidOperationException("Encryption secret is not configured. ");
     }
-    return new AesEncryptor(encryptionKey);
+    return new AesEncryptor(encryptionSecret);
 });
 
 // repositories
