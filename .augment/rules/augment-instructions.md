@@ -5,7 +5,7 @@ type: "always_apply"
 # Augment Instructions for lol-app
 
 ## Project Overview
-- **lol-app** (Pulse) is a League of Legends cross-account improvement and statistics tracker.
+- **lol-app** (Mongoose) is a League of Legends cross-account improvement and statistics tracker.
 - Full-stack project with a single client:
   - **Primary client**: Standalone Vue 3 + Vite app in `client/` (see docs/information_architecture.md)
 - The backend is a C# .NET 8/9 server in `server/RiotProxy`.

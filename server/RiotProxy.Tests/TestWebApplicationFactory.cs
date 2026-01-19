@@ -38,7 +38,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             var defaults = new Dictionary<string, string?>
             {
                 ["Auth:EnableMvpLogin"] = "true",
-                ["Auth:CookieName"] = "pulse-auth",
+                ["Auth:CookieName"] = "mongoose-auth",
                 ["Auth:SessionTimeout"] = "30",
                 ["Jobs:EnableMatchHistorySync"] = "false",
                 ["RIOT_API_KEY"] = "test-key",

@@ -3,8 +3,8 @@
     <div class="header-content">
       <!-- Logo -->
       <router-link to="/app/user" class="header-logo">
-        <img src="/pulse-icon.svg" alt="Pulse.gg" class="logo-icon" />
-        <span class="logo-text">Pulse.gg</span>
+        <img src="/mongoose.png" alt="Mongoose" class="logo-icon" />
+        <span class="logo-text">Mongoose.gg</span>
       </router-link>
 
       <!-- User section -->
@@ -135,7 +135,7 @@ onUnmounted(() => {
 }
 
 .logo-icon {
-  width: 32px;
+  width: 64px;
   height: 32px;
 }
 
@@ -168,7 +168,7 @@ onUnmounted(() => {
 }
 
 .user-avatar {
-  width: 32px;
+  width: 64px;
   height: 32px;
   background: var(--color-primary-soft);
   border-radius: 50%;

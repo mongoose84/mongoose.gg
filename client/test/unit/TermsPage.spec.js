@@ -60,7 +60,7 @@ describe('TermsPage.vue', () => {
   it('contains contact information', () => {
     const wrapper = createWrapper();
     expect(wrapper.text()).toContain('Contact Us');
-    expect(wrapper.text()).toContain('legal@pulse.gg');
+    expect(wrapper.text()).toContain('legal@mongoose.gg');
   });
 
   it('has properly structured legal content container', () => {

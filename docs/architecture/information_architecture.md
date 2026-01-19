@@ -1,4 +1,4 @@
-# Pulse - Information Architecture & Routes
+# Mongoose - Information Architecture & Routes
 
 **Last Updated:** January 14, 2026
 **Epic:** G1 - UX
@@ -9,7 +9,7 @@
 
 ## Vision & User Evolution
 
-> **"Pulse is the only LoL improvement tracker built for duos and teams, powered by AI coaching that turns your stats into actionable goals you can actually achieve."**
+> **"Mongoose is the only LoL improvement tracker built for duos and teams, powered by AI coaching that turns your stats into actionable goals you can actually achieve."**
 
 ### User Evolution Path
 1. **Solo Player** → Creates account, buys Free/Pro tier, gets AI feedback
@@ -110,7 +110,7 @@ User A (Pro tier):
   /app/solo
     → Click "Invite Duo Partner"
     → Modal: enter buddy's summoner name or generate invite link
-    → Copy link: https://pulse.gg/app/invite/abc123xyz
+    → Copy link: https://mongoose.gg/app/invite/abc123xyz
     → Share link (Discord, etc.)
 
 User B (Buddy):

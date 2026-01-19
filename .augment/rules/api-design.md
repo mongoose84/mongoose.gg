@@ -2,7 +2,7 @@
 type: "manual"
 ---
 
-# API Design - Pulse (pulse.gg)
+# API Design - Mongoose (mongoose.gg)
 
 **Status:** Production
 **Priority:** P0 - Critical
@@ -12,7 +12,7 @@ type: "manual"
 
 ## 1. Overview
 
-This document defines the API surface for Pulse, introducing:
+This document defines the API surface for Mongoose, introducing:
 - **Versioned routes** (`/api/v2/...`) for stability
 - **Optimized response shapes** for frontend dashboards
 - **Consistent queue filtering** across all endpoints
@@ -671,7 +671,7 @@ public record UserResponse(
 ```
 
 #### 4.E.5 `GET /api/v2/users/by-puuid/{puuid}`
-**Purpose:** Helper when the client already has the PUUID (e.g., deep link) and needs Pulse user metadata.
+**Purpose:** Helper when the client already has the PUUID (e.g., deep link) and needs Mongoose user metadata.
 
 ```csharp
 // Returns UserResponse

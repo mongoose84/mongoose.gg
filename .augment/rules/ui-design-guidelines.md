@@ -2,9 +2,9 @@
 type: "manual"
 ---
 
-# Pulse.gg UI Design Guidelines
+# Mongoose.gg UI Design Guidelines
 
-This document defines the visual design system for the Pulse.gg client application. Include this file when developing any new UI components to ensure consistency.
+This document defines the visual design system for the Mongoose.gg client application. Include this file when developing any new UI components to ensure consistency.
 
 ## Design Philosophy
 

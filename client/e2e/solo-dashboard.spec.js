@@ -23,7 +23,7 @@ async function performLogin(page, username, password) {
   await page.goto('/auth');
 
   // Verify we're on the auth page
-  await expect(page.locator('h1')).toContainText('Welcome to Pulse.gg');
+  await expect(page.locator('h1')).toContainText('Welcome to Mongoose.gg');
 
   // Fill in login form
   await page.getByLabel('Username').fill(TEST_USER.username);

@@ -3,7 +3,6 @@
     <div class="user-container">
       <div class="welcome-section">
         <h1 class="welcome-title">Welcome, {{ username }}!</h1>
-        <p class="welcome-subtitle">Your Pulse.gg dashboard</p>
       </div>
 
       <div class="user-cards">

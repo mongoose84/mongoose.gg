@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-describe('Pulse.gg Client v2 - Setup Test', () => {
+describe('Mongoose Client - Setup Test', () => {
   it('should have Vitest configured correctly', () => {
     expect(true).toBe(true);
   });

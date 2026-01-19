@@ -1,8 +1,8 @@
 
-# Copilot Instructions for Pulse (pulse.gg)
+# Copilot Instructions for Mongoose (mongoose.gg)
 
 ## Project Overview
-- **Pulse** is a full-stack project with one client:
+- **Mongoose** is a full-stack project with one client:
 	- **Primary client**: Standalone Vue 3 + Vite app in `client/` (see docs/information_architecture.md)
 - The backend is a C# .NET server in `server/RiotProxy`.
 - Client(s) and server communicate via HTTP APIs (see docs/api_design.md). The server proxies the Riot Games API and manages user/game data.
@@ -38,7 +38,7 @@
 
 
 ## References
-- See [README.md](../README.md) for setup, build, and test commands (Pulse vision and domain: pulse.gg).
+- See [README.md](../README.md) for setup, build, and test commands (Mongoose vision and domain: mongoose.gg).
 - Sensitive config: set via env vars or user-secrets (`RIOT_API_KEY` `LOL_DB_CONNECTIONSTRING_V2`, Mollie API keys)
 - Main server logic: [server/Program.cs], [server/Application/Endpoints/]
 - Main client logic: [client/src/], [client/src/services/], [client/src/composables/]

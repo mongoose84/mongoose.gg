@@ -39,9 +39,9 @@ describe('NavBar.vue', () => {
     expect(wrapper.exists()).toBe(true);
   });
 
-  it('displays the Pulse.gg logo', () => {
+  it('displays the Mongoose logo', () => {
     const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Pulse');
+    expect(wrapper.text()).toContain('Mongoose');
   });
 
   it('has Get Started and Login buttons', () => {

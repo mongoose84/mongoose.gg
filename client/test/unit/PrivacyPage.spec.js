@@ -60,7 +60,7 @@ describe('PrivacyPage.vue', () => {
   it('contains contact information', () => {
     const wrapper = createWrapper();
     expect(wrapper.text()).toContain('Contact Us');
-    expect(wrapper.text()).toContain('privacy@pulse.gg');
+    expect(wrapper.text()).toContain('privacy@mongoose.gg');
   });
 
   it('has properly structured legal content container', () => {

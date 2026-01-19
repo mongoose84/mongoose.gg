@@ -14,7 +14,14 @@ export default defineConfig({
         'node_modules/',
         'test/',
       ]
-    }
+    },
+    exclude: [
+    'node_modules',
+    'dist',
+    'client/e2e/**', // Exclude all E2E tests
+    '**/e2e/**',
+    '**/playwright.config.{js,ts}'
+    ]
   },
   resolve: {
     alias: {

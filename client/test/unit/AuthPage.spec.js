@@ -50,7 +50,7 @@ describe('AuthPage.vue', () => {
 
   it('displays the welcome message', () => {
     const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Welcome to Pulse.gg');
+    expect(wrapper.text()).toContain('Welcome to Mongoose.gg');
   });
 
   it('has email and password inputs', () => {

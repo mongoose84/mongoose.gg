@@ -1,10 +1,10 @@
-# Product Backlog - Pulse (lolcoach.gg/duolytics.gg/riftgoals.gg)
+# Product Backlog - Mongoose (mongoose.gg)
 
 ## Vision
 
-> **"Pulse is the solo queue improvement tracker—built to help you climb with better champ select picks and post-game takeaways, with a Premium mode that lets your duo or team set goals and improve together."**
+> **"Mongoose is the solo queue improvement tracker—built to help you climb with better champ select picks and post-game takeaways, with a Premium mode that lets your duo or team set goals and improve together."**
 >
-> “Not another builds app—Pulse helps you improve between games and track progress over time.”
+> “Not just another builds app - Mongoose helps you improve between games and track progress over time.”
 
 Crafted with love by the Agile Astronaut. 
 First 500 users get free Pro tier. Keep a counter on the landing page of how many free users are left.
@@ -1092,7 +1092,7 @@ Provide a cookie consent banner and preferences so users can control analytics c
 
 # Epic E: Database & Analytics Schema ✅ COMPLETE
 
-Modernize the Pulse database to match `docs/database_schema.md` and support advanced solo/duo/team analytics.
+Modernize the mongoose database to match `docs/database_schema.md` and support advanced solo/duo/team analytics.
 
 > **All tasks completed (E1–E7) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
 

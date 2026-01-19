@@ -41,7 +41,7 @@ public class LoginEndpointTests
     {
         using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
         {
-            ["Auth:CookieName"] = "pulse-auth-test",
+            ["Auth:CookieName"] = "mongoose-auth-test",
             ["Auth:SessionTimeout"] = "45"
         });
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -51,7 +51,7 @@ public class LoginEndpointTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
-        var cookie = cookies!.Single(c => c.Contains("pulse-auth-test"));
+        var cookie = cookies!.Single(c => c.Contains("mongoose-auth-test"));
         cookie.Should().ContainEquivalentOf("httponly", "cookie must be httpOnly");
         cookie.Should().ContainEquivalentOf("secure", "cookie must require TLS");
         cookie.Should().ContainEquivalentOf("samesite=lax", "cookie should default to SameSite Lax");

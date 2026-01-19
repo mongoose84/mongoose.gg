@@ -16,7 +16,7 @@ const authStore = useAuthStore();
 
 // Idle detection constants
 const IDLE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
-const LAST_ACTIVE_KEY = 'pulse_last_active_time';
+const LAST_ACTIVE_KEY = 'mongoose_last_active_time';
 
 /**
  * Update the last active timestamp in localStorage

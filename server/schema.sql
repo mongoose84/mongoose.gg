@@ -1,4 +1,4 @@
--- Pulse Database schema (MySQL)
+-- Mongoose Database schema (MySQL)
 -- Idempotent for clean databases: uses CREATE TABLE IF NOT EXISTS
 -- Engine: InnoDB, Charset: utf8mb4
 

@@ -5,8 +5,8 @@
     <div class="auth-container">
       <div class="auth-card">
         <div class="auth-header">
-          <img src="/pulse-icon.svg" alt="Pulse.gg" class="auth-logo" />
-          <h1 class="auth-title">Welcome to Pulse.gg</h1>
+          <img src="/mongoose.png" alt="Mongoose" class="auth-logo" />
+          <h1 class="auth-title">Welcome to Mongoose.gg</h1>
           <p class="auth-subtitle">{{ isLogin ? 'Sign in to your account' : 'Create your account' }}</p>
         </div>
 
@@ -249,14 +249,20 @@ const handleSubmit = async () => {
 }
 
 .auth-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* This centers content vertically */
   text-align: center;
   margin-bottom: var(--spacing-xl);
+  min-height: 200px; /* Optional: set a min-height for better vertical centering */
 }
 
 .auth-logo {
-  width: 64px;
+  width: 128px;
   height: 64px;
   margin-bottom: var(--spacing-md);
+
 }
 
 .auth-title {

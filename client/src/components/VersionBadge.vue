@@ -1,6 +1,6 @@
 <template>
   <div class="version-badge" aria-label="App Version">
-    <span class="version-label">Pulse.gg</span>
+    <span class="version-label">Mongoose.gg</span>
     <span class="version-sep">•</span>
     <span class="version-value">v{{ version }}</span>
   </div>

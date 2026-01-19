@@ -107,7 +107,7 @@ jobs:
               "ApiKey" = "${{ secrets.RIOT_API_KEY }}"
             }
             "Auth" = @{
-              "CookieName" = "pulse-auth"
+              "CookieName" = "mongoose-auth"
               "SessionTimeout" = 30
               "EnableMvpLogin" = $false
             }

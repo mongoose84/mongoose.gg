@@ -10,9 +10,9 @@ For full task details, see:
 
 ## Vision
 
-> **"Pulse is the solo queue improvement tracker—built to help you climb with better champ select picks and post-game takeaways, with a Premium mode that lets your duo or team set goals and improve together."**
+> **"Mongoose is the solo queue improvement tracker—built to help you climb with better champ select picks and post-game takeaways, with a Premium mode that lets your duo or team set goals and improve together."**
 >
-> “Not another builds app—Pulse helps you improve between games and track progress over time.”
+> “Not just another builds app - Mongoose helps you improve between games and track progress over time.”
 
 ## Completed Tasks
 

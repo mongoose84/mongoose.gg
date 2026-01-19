@@ -15,7 +15,7 @@ This file contains tasks that have been completed and moved from the main [produ
 
 #### Description
 
-Finalize the Pulse database schema (tables, columns, indexes) based on `docs/database_schema.md` for matches, participants, checkpoints, metrics, duo/team analytics and AI snapshots.
+Finalize the Mongoose database schema (tables, columns, indexes) based on `docs/database_schema.md` for matches, participants, checkpoints, metrics, duo/team analytics and AI snapshots.
 
 #### Acceptance Criteria
 

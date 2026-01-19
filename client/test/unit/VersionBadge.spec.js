@@ -11,7 +11,7 @@ describe('VersionBadge.vue', () => {
   it('displays version text', () => {
     const wrapper = mount(VersionBadge);
     const text = wrapper.text();
-    expect(text).toContain('Pulse.gg');
+    expect(text).toContain('Mongoose');
     expect(text).toContain('v');
   });
 

@@ -9,7 +9,7 @@
         
         <section class="legal-section">
           <h2>Overview</h2>
-          <p>Pulse.gg ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share information about you when you use our service.</p>
+          <p>Mongoose.gg ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share information about you when you use our service.</p>
         </section>
         
         <section class="legal-section">
@@ -41,12 +41,12 @@
         
         <section class="legal-section">
           <h2>Your Rights</h2>
-          <p>You have the right to access, update, or delete your personal data. Contact us at privacy@pulse.gg for any requests.</p>
+          <p>You have the right to access, update, or delete your personal data. Contact us at privacy@mongoose.gg for any requests.</p>
         </section>
         
         <section class="legal-section">
           <h2>Contact Us</h2>
-          <p>If you have questions about this Privacy Policy, please contact us at <a href="mailto:privacy@pulse.gg">privacy@pulse.gg</a>.</p>
+          <p>If you have questions about this Privacy Policy, please contact us at <a href="mailto:privacy@mongoose.gg">privacy@mongoose.gg</a>.</p>
         </section>
       </div>
     </div>
