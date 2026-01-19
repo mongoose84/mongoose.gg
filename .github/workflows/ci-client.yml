@@ -102,7 +102,7 @@ jobs:
           port: 21
           # Because we are already inside `client/`, the path is just `dist/`
           local-dir: ./client/dist/
-          server-dir: ${{ secrets.FTP_CLIENT_PATH }}
+          server-dir: ${{ secrets.FTP_CLIENT_PATH }}/
           # optional safety flags (uncomment if you want them)
           # dry-run: false
           # timeout: 30
