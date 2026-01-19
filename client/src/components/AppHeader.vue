@@ -168,7 +168,7 @@ onUnmounted(() => {
 }
 
 .user-avatar {
-  width: 32px;
+  width: 64px;
   height: 32px;
   background: var(--color-primary-soft);
   border-radius: 50%;
