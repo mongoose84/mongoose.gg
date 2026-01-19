@@ -125,6 +125,10 @@ jobs:
             fi
             echo "Attempt $i: Backend not ready yet..."
             sleep 2
+            if [ "$i" -eq 30 ]; then
+              echo "Backend failed to start after 30 attempts. Exiting with error."
+              exit 1
+            fi
           done
 
       # -------------------------------------------------
@@ -135,6 +139,8 @@ jobs:
         run: npx playwright test
         env:
           E2E_BASE_URL: http://localhost:5174
+          E2E_TEST_USER: ${{ secrets.E2E_TEST_USER }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
 
       # -------------------------------------------------
       # Upload test artifacts on failure

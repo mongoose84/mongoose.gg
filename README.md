@@ -86,6 +86,17 @@ npm run dev
 npm run test:unit
 ```
 
+Playwright tests:
+Set the test environment variables in the terminal:
+```
+export E2E_TEST_USER=<your-username>
+export E2E_TEST_PASSWORD=<your-password>
+```
+Run the tests:
+```
+npx playwright test
+```
+
 #### Server part
 from root
 ```

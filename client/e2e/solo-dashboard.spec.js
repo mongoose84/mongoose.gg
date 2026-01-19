@@ -10,10 +10,10 @@ import { test, expect } from '@playwright/test';
  * 4. Verify Solo Dashboard loads with data
  */
 
-// Test credentials - pre-verified user with linked Riot account
+// Test credentials - pre-verified user with linked Riot account (from environment variables)
 const TEST_USER = {
-  username: 'tester',
-  password: 'tester1234',
+  username: process.env.E2E_TEST_USER,
+  password: process.env.E2E_TEST_PASSWORD,
 };
 
 /**
@@ -26,8 +26,8 @@ async function performLogin(page, username, password) {
   await expect(page.locator('h1')).toContainText('Welcome to Pulse.gg');
 
   // Fill in login form
-  await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Password').fill(password);
+  await page.getByLabel('Username').fill(TEST_USER.username);
+  await page.getByLabel('Password').fill(TEST_USER.password);
 
   // Submit login form
   await page.getByRole('button', { name: /sign in/i }).click();

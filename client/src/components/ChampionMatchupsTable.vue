@@ -203,7 +203,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, watch } from 'vue'
+import { ref, computed, reactive, watch, onUnmounted } from 'vue'
 import { getWinRateColorClass } from '../composables/useWinRateColor'
 import { trackFeature } from '../services/analyticsApi'
 
@@ -277,6 +277,13 @@ const inverseMatchups = computed(() => {
 
 // Track search when user finishes typing (debounced via watcher)
 let searchDebounceTimer = null
+
+onUnmounted(() => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+    searchDebounceTimer = null
+  }
+})
 watch(searchQuery, (newQuery) => {
   clearTimeout(searchDebounceTimer)
   if (newQuery.trim().length >= 2) {
