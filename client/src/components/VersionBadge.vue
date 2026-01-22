@@ -1,6 +1,6 @@
 <template>
   <div class="version-badge" aria-label="App Version">
-    <span class="version-label">Mongoose.gg</span>
+    <span class="version-label">Mongoose.gg <span class="beta-tag">Beta</span></span>
     <span class="version-sep">•</span>
     <span class="version-value">v{{ version }}</span>
   </div>
@@ -31,6 +31,13 @@ const version = pkg.version || '0.0.0'
 .version-label {
   color: var(--color-text);
   font-weight: var(--font-weight-medium);
+}
+
+.beta-tag {
+  font-size: 0.5em;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-normal);
+  vertical-align: top;
 }
 
 .version-sep {

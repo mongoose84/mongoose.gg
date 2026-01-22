@@ -10,7 +10,7 @@
           <div class="hero-logo">
             <img src="/mongoose.png" alt="Mongoose.gg logo" class="hero-logo-img" />
           </div>
-          <h2 class="hero-logo-text">Mongoose.gg</h2>
+          <h2 class="hero-logo-text">Mongoose.gg <span class="beta-tag">Beta</span></h2>
 
           <div class="hero-badge">
             <span class="hero-badge-icon">🎮</span>
@@ -149,7 +149,7 @@
           <div class="footer-brand">
             <div class="footer-logo">
               <img src="/mongoose.png" alt="Mongoose" class="footer-logo-icon" />
-              <span class="footer-logo-text">Mongoose.gg</span>
+              <span class="footer-logo-text">Mongoose.gg <span class="beta-tag">Beta</span></span>
             </div>
             <p class="footer-tagline">Built with ❤️ in the nordics by the Agile Astronaut</p>
           </div>
@@ -177,7 +177,7 @@
         
         <div class="footer-bottom">
           <p class="footer-copyright">
-            © {{ currentYear }} Mongoose.gg. All rights reserved. Not affiliated with Riot Games.
+            © {{ currentYear }} Mongoose.gg <span class="beta-tag">Beta</span>. All rights reserved. Not affiliated with Riot Games.
           </p>
         </div>
       </footer>
@@ -366,6 +366,13 @@ const pricingTiers = [
   margin-top: -35px;
   margin-left: var(--spacing-sm);
   margin-bottom: var(--spacing-2xl);
+}
+
+.beta-tag {
+  font-size: 0.5em;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-normal);
+  vertical-align: top;
 }
 
 .hero-badge-icon {

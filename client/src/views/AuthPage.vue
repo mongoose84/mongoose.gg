@@ -6,7 +6,7 @@
       <div class="auth-card">
         <div class="auth-header">
           <img src="/mongoose.png" alt="Mongoose" class="auth-logo" />
-          <h1 class="auth-title">Welcome to Mongoose.gg</h1>
+          <h1 class="auth-title">Welcome to Mongoose.gg <span class="beta-tag">Beta</span></h1>
           <p class="auth-subtitle">{{ isLogin ? 'Sign in to your account' : 'Create your account' }}</p>
         </div>
 
@@ -271,6 +271,13 @@ const handleSubmit = async () => {
   letter-spacing: var(--letter-spacing);
   margin-bottom: var(--spacing-xs);
   color: var(--color-text);
+}
+
+.beta-tag {
+  font-size: 0.5em;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-normal);
+  vertical-align: top;
 }
 
 .auth-subtitle {

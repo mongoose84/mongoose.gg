@@ -4,7 +4,7 @@
       <!-- Logo -->
       <router-link to="/app/user" class="header-logo">
         <img src="/mongoose.png" alt="Mongoose" class="logo-icon" />
-        <span class="logo-text">Mongoose.gg</span>
+        <span class="logo-text">Mongoose.gg <span class="beta-tag">Beta</span></span>
       </router-link>
 
       <!-- User section -->
@@ -143,6 +143,13 @@ onUnmounted(() => {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing);
+}
+
+.beta-tag {
+  font-size: 0.5em;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-normal);
+  vertical-align: top;
 }
 
 /* User section */
