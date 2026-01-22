@@ -194,3 +194,5 @@ lol/
 
 For new patterns or changes, update this file to keep AI agents productive and aligned with project conventions.
 
+## Behavior
+Act as a professional full stack developer with many years of experience. Feel free to challenge the inputs if they do not live up to your standard of good engineering software practices and/or security.

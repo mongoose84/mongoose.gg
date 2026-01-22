@@ -97,9 +97,11 @@ public sealed class VerifyEndpoint : IEndpoint
 
                 logger.LogDebug("User {UserId} submitted correct verification code", userId);
 
-                // Mark token as used and update user as verified
-                await tokensRepo.MarkTokenAsUsedAsync(token.Id);
+                // Update user as verified first, then mark token as used
+                // Order matters: if user update fails, token remains valid for retry
+                // If token marking fails, user is verified (acceptable - token can't be reused anyway)
                 await usersRepo.UpdateEmailVerifiedAsync(userId, true);
+                await tokensRepo.MarkTokenAsUsedAsync(token.Id);
 
                 // Update the session claims to reflect verified status
                 var claims = new List<Claim>

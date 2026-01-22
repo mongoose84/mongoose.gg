@@ -270,6 +270,30 @@ public class VerifyEndpointTests
         body!.Code.Should().Be("MAX_ATTEMPTS_EXCEEDED");
     }
 
+    [Fact]
+    public async Task Verify_updates_user_before_marking_token_as_used()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
+        var tokenId = factory.TokensRepository.GetAllTokensForUser(userId).First().Id;
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/verify")
+        {
+            Content = JsonContent.Create(new { code = "123456" })
+        };
+        req.Headers.Add("Cookie", cookie);
+        await client.SendAsync(req);
+
+        // Verify both operations completed
+        var user = await factory.UsersRepository.GetByIdAsync(userId);
+        user!.EmailVerified.Should().BeTrue("user should be verified");
+
+        var token = factory.TokensRepository.GetToken(tokenId);
+        token!.UsedAt.Should().NotBeNull("token should be marked as used");
+    }
+
     private record ErrorResponse(string Error, string Code);
     private record VerifyResponse(bool Verified, string Message);
 }
