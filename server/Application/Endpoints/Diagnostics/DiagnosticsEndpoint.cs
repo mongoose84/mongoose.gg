@@ -18,7 +18,7 @@ namespace RiotProxy.Application.Endpoints.Diagnostics
 
         public void Configure(WebApplication app)
         {
-            app.MapGet(Route, (HttpContext httpContext) =>
+            app.MapGet(Route, (HttpContext httpContext, IConfiguration config) =>
             {
                 // Increment metrics counter
                 Metrics.IncrementMetrics();
@@ -26,7 +26,14 @@ namespace RiotProxy.Application.Endpoints.Diagnostics
                 var isApiKeyConfigured = !string.IsNullOrWhiteSpace(Secrets.ApiKey);
                 var isDbConfigured = !string.IsNullOrWhiteSpace(Secrets.DatabaseConnectionString);
                 var isEncryptionKeyConfigured = !string.IsNullOrWhiteSpace(Secrets.EncryptionSecret);
-                var isSmtpConfigured = Environment.GetEnvironmentVariable("SMTP_HOST") is not null;
+
+                // Check SMTP configuration from multiple sources
+                var smtpHostFromEnv = Environment.GetEnvironmentVariable("SMTP_HOST");
+                var smtpHostFromConfig = config["Email:SmtpHost"];
+                var isSmtpConfigured = !string.IsNullOrWhiteSpace(smtpHostFromEnv) || !string.IsNullOrWhiteSpace(smtpHostFromConfig);
+
+                // Get configuration source details (without exposing actual values)
+                var configSources = GetConfigurationSources(config);
 
                 var diagnostics = new
                 {
@@ -39,11 +46,12 @@ namespace RiotProxy.Application.Endpoints.Diagnostics
                         databaseConfigured = isDbConfigured,
                         smtpConfigured = isSmtpConfigured,
                         emailEncryptionKeyConfigured = isEncryptionKeyConfigured,
-                        allConfigured = isApiKeyConfigured && 
-                                        isDbConfigured && 
-                                        isSmtpConfigured && 
+                        allConfigured = isApiKeyConfigured &&
+                                        isDbConfigured &&
+                                        isSmtpConfigured &&
                                         isEncryptionKeyConfigured
                     },
+                    configurationSources = configSources,
                     metrics = new
                     {
                         homeHits = Metrics.HomeHits,
@@ -55,13 +63,57 @@ namespace RiotProxy.Application.Endpoints.Diagnostics
                     notes = new string[]
                     {
                         "If 'allConfigured' is false, check README.md for environment variable setup instructions.",
-                        "Required env vars: RIOT_API_KEY, `Database_test`, `Database_production`, ENCRYPTION_SECRET.",
-                        "Or set in appsettings.json under ConnectionStrings section."
+                        "Required env vars: RIOT_API_KEY, Database_production, ENCRYPTION_SECRET, SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD.",
+                        "Or set in appsettings.Production.json under ConnectionStrings and Email sections.",
+                        "Check 'configurationSources' to see which config sources are being checked."
                     }
                 };
 
                 return Results.Ok(diagnostics);
             });
+        }
+
+        private static object GetConfigurationSources(IConfiguration config)
+        {
+            var env = GetEnvironment();
+            var isProduction = string.Equals(env, "Production", StringComparison.OrdinalIgnoreCase);
+
+            // Mask sensitive values - only show if they exist, not the actual values
+            string MaskValue(string? value) => string.IsNullOrWhiteSpace(value) ? "NOT_SET" : $"SET ({value.Length} chars)";
+
+            return new
+            {
+                database = new
+                {
+                    expectedKey = isProduction ? "Database_production" : "Database_test",
+                    connectionStringFromConfig = MaskValue(config.GetConnectionString(isProduction ? "Database_production" : "Database_test")),
+                    connectionStringDirect = MaskValue(config["ConnectionStrings:" + (isProduction ? "Database_production" : "Database_test")]),
+                    fromEnvironmentVariable = MaskValue(Environment.GetEnvironmentVariable(isProduction ? "Database_production" : "Database_test")),
+                    secretsValue = MaskValue(Secrets.DatabaseConnectionString)
+                },
+                smtp = new
+                {
+                    smtpHostFromConfig = MaskValue(config["Email:SmtpHost"]),
+                    smtpHostFromEnv = MaskValue(Environment.GetEnvironmentVariable("SMTP_HOST")),
+                    smtpUsernameFromConfig = MaskValue(config["Email:SmtpUsername"]),
+                    smtpUsernameFromEnv = MaskValue(Environment.GetEnvironmentVariable("SMTP_USERNAME")),
+                    smtpPasswordFromConfig = MaskValue(config["Email:SmtpPassword"]),
+                    smtpPasswordFromEnv = MaskValue(Environment.GetEnvironmentVariable("SMTP_PASSWORD")),
+                    smtpPortFromConfig = config.GetValue<int>("Email:SmtpPort", 0)
+                },
+                riotApi = new
+                {
+                    fromConfig = MaskValue(config["Riot:ApiKey"]),
+                    fromEnv = MaskValue(Environment.GetEnvironmentVariable("RIOT_API_KEY")),
+                    secretsValue = MaskValue(Secrets.ApiKey)
+                },
+                encryption = new
+                {
+                    fromConfig = MaskValue(config["Security:EncryptionSecret"]),
+                    fromEnv = MaskValue(Environment.GetEnvironmentVariable("ENCRYPTION_SECRET")),
+                    secretsValue = MaskValue(Secrets.EncryptionSecret)
+                }
+            };
         }
 
         private static string GetEnvironment()

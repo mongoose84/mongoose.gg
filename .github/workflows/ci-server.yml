@@ -160,7 +160,33 @@ jobs:
       - name: Publish (self-contained)
         run: |
           dotnet publish -c Release -r win-x86 --self-contained=true  -o ./${{ env.PUBLISH_DIR }}
-      
+
+      # -------------------------------------------------
+      # Copy appsettings.Production.json to publish output
+      # This file contains all production secrets and must be deployed
+      # -------------------------------------------------
+      - name: Copy appsettings.Production.json to publish output
+        shell: pwsh
+        run: |
+          $sourceFile = "./appsettings.Production.json"
+          $targetFile = "./${{ env.PUBLISH_DIR }}/appsettings.Production.json"
+
+          if (-not (Test-Path $sourceFile)) {
+            Write-Error "❌ appsettings.Production.json not found at $sourceFile"
+            exit 1
+          }
+
+          Copy-Item -Path $sourceFile -Destination $targetFile -Force
+          Write-Host "✅ appsettings.Production.json copied to publish output"
+
+          # Verify the file was copied
+          if (-not (Test-Path $targetFile)) {
+            Write-Error "❌ Failed to copy appsettings.Production.json to publish output"
+            exit 1
+          }
+
+          Write-Host "✅ Verified: appsettings.Production.json exists in publish output"
+
       # -------------------------------------------------
       # Verify publish output exists and show its contents
       # -------------------------------------------------
@@ -173,6 +199,15 @@ jobs:
           }
           Write-Host "=== Files that will be uploaded ==="
           Get-ChildItem -Recurse "./${{ env.PUBLISH_DIR }}"
+
+          # Explicitly verify appsettings.Production.json is present
+          $appSettingsPath = "./${{ env.PUBLISH_DIR }}/appsettings.Production.json"
+          if (Test-Path $appSettingsPath) {
+            Write-Host "✅ VERIFIED: appsettings.Production.json is present in publish output"
+          } else {
+            Write-Error "❌ CRITICAL: appsettings.Production.json is MISSING from publish output"
+            exit 1
+          }
 
       # -------------------------------------------------
       # Enter maintenance mode right before deploy (idempotent, with retries)
