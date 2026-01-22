@@ -23,6 +23,7 @@ jobs:
     env:
       # Folder where `dotnet publish` will drop the files
       PUBLISH_DIR: publish-output  
+      Database_production: ${{ secrets.DB_CONNECTIONSTRING }}
       
     defaults:
       # Every `run:` step will start in the project folder

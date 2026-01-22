@@ -24,7 +24,7 @@ namespace RiotProxy.Application.Endpoints.Diagnostics
                 Metrics.IncrementMetrics();
 
                 var isApiKeyConfigured = !string.IsNullOrWhiteSpace(Secrets.ApiKey);
-                var isDbV2Configured = !string.IsNullOrWhiteSpace(Secrets.DatabaseConnectionString);
+                var isDbConfigured = !string.IsNullOrWhiteSpace(Secrets.DatabaseConnectionString);
                 var isEncryptionKeyConfigured = !string.IsNullOrWhiteSpace(Secrets.EncryptionSecret);
 
                 var diagnostics = new
@@ -35,9 +35,9 @@ namespace RiotProxy.Application.Endpoints.Diagnostics
                     configuration = new
                     {
                         apiKeyConfigured = isApiKeyConfigured,
-                        databaseV2Configured = isDbV2Configured,
+                        databaseConfigured = isDbConfigured,
                         emailEncryptionKeyConfigured = isEncryptionKeyConfigured,
-                        allConfigured = isApiKeyConfigured && isDbV2Configured && isEncryptionKeyConfigured
+                        allConfigured = isApiKeyConfigured && isDbConfigured && isEncryptionKeyConfigured
                     },
                     metrics = new
                     {

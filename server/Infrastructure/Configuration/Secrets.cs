@@ -30,21 +30,21 @@ namespace RiotProxy.Infrastructure
                 config["RIOT_API_KEY"],
                 Environment.GetEnvironmentVariable("RIOT_API_KEY"));
 
-            string dbConnectionV2Candidate;
+            string dbConnectionStringCandidate;
             if (isProduction)
             {
                 // Production: prefer production-specific connection string
-                dbConnectionV2Candidate = GetDatabaseConnectionString(config, "Database_production");
+                dbConnectionStringCandidate = GetDatabaseConnectionString(config, "Database_production");
             }
             else if (isTesting)
             {
                 // Testing: prefer test-specific connection string
-                dbConnectionV2Candidate = GetDatabaseConnectionString(config, "Database_test");
+                dbConnectionStringCandidate = GetDatabaseConnectionString(config, "Database_test");
             }
             else
             {
                 // Default (Development or other): use standard connection string
-                dbConnectionV2Candidate = GetDatabaseConnectionString(config, "Database_test");
+                dbConnectionStringCandidate = GetDatabaseConnectionString(config, "Database_test");
             }
 
             var encryptionSecretCandidate = FirstNonEmpty(
@@ -58,7 +58,7 @@ namespace RiotProxy.Infrastructure
                     return;
 
                 ApiKey = apiKeyCandidate;
-                DatabaseConnectionString = dbConnectionV2Candidate;
+                DatabaseConnectionString = dbConnectionStringCandidate;
                 EncryptionSecret = encryptionSecretCandidate;
 
                 // Optional debug logging: only in Development or when explicitly enabled
