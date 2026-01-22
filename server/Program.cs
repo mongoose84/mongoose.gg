@@ -138,7 +138,8 @@ builder.Services.AddCors(options =>
                 "http://localhost:5174", // Vue dev server (alternate port)
                 "http://localhost:5175", // Vue dev server (alternate port)
                 "https://mongoose.gg",
-                "https://www.mongoose.gg"
+                "https://www.mongoose.gg",
+                "https://beta.mongoose.gg"
                )
               .AllowAnyHeader()                      // allow all custom headers (Content-Type, Authorization, etc.)
               .AllowAnyMethod()                      // GET, POST, PUT, DELETE, OPTIONS…
