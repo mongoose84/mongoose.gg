@@ -99,8 +99,8 @@ public class SmtpEmailService : IEmailService
             {
                 From = new MailAddress(fromEmail, fromName),
                 Subject = "Verify your Mongoose.gg email",
-                Body = BuildTestEmailBody(username, verificationCode),
-                IsBodyHtml = false
+                Body = BuildEmailBody(username, verificationCode),
+                IsBodyHtml = true
             };
 
             mailMessage.To.Add(toEmail);
@@ -113,11 +113,6 @@ public class SmtpEmailService : IEmailService
             _logger.LogError(ex, "Failed to send verification email to {Email}", toEmail);
             throw;
         }
-    }
-
-    private string BuildTestEmailBody(string username, string verificationCode)
-    {
-        return $"Hello {username},\n\nYour verification code is: {verificationCode}\n\nThank you,\nMongoose.gg Team";
     }
 
     private string BuildEmailBody(string username, string verificationCode)
