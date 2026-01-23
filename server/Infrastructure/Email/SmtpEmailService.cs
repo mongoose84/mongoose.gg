@@ -73,7 +73,7 @@ public class SmtpEmailService : IEmailService
             throw new InvalidOperationException(errorMessage);
         }
 
-        var fromName = _config["Email:FromName"] ?? "Mongoose.gg";
+        var fromName = "The Mongoose.gg Team";
         if (string.IsNullOrWhiteSpace(fromName))
         {
             var errorMessage = $"SMTP from name is not configured. Email not sent to {toEmail}";
@@ -99,8 +99,8 @@ public class SmtpEmailService : IEmailService
             {
                 From = new MailAddress(fromEmail, fromName),
                 Subject = "Verify your Mongoose.gg email",
-                Body = BuildEmailBody(username, verificationCode),
-                IsBodyHtml = true
+                Body = BuildTestEmailBody(username, verificationCode),
+                IsBodyHtml = false
             };
 
             mailMessage.To.Add(toEmail);
@@ -113,6 +113,11 @@ public class SmtpEmailService : IEmailService
             _logger.LogError(ex, "Failed to send verification email to {Email}", toEmail);
             throw;
         }
+    }
+
+    private string BuildTestEmailBody(string username, string verificationCode)
+    {
+        return $"Hello {username},\n\nYour verification code is: {verificationCode}\n\nThank you,\nMongoose.gg Team";
     }
 
     private string BuildEmailBody(string username, string verificationCode)
