@@ -128,6 +128,8 @@ public static class MainChampionRecommender
         var lpClamped = Math.Max(-30.0, Math.Min(30.0, lpPerGame));
         var lpNorm = (lpClamped + 30.0) / 60.0;
 
+    // note: should only be used when ranked. Add bool isRanked parameter if needed.
+
         // Sample size bonus, capped at 40 games
         var sampleNorm = Math.Min(1.0, games / 40.0);
 
