@@ -1,16 +1,20 @@
 <template>
   <div class="app-layout">
     <AppSidebar />
-    <main class="app-main">
+    <main class="app-main" :style="{ marginLeft: sidebarWidth + 'px' }">
       <router-view />
     </main>
   </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import AppSidebar from '../components/AppSidebar.vue';
 import { useAuthStore } from '../stores/authStore';
+import { useUiStore } from '../stores/uiStore';
+
+const uiStore = useUiStore();
+const sidebarWidth = computed(() => uiStore.sidebarWidth);
 
 const authStore = useAuthStore();
 
@@ -104,16 +108,8 @@ onUnmounted(() => {
 
 .app-main {
   flex: 1;
-  margin-left: 256px; /* Width of expanded sidebar */
   transition: margin-left 0.3s ease;
   min-height: 100vh;
-}
-
-/* Adjust for collapsed sidebar */
-@media (max-width: 1024px) {
-  .app-main {
-    margin-left: 64px; /* Width of collapsed sidebar */
-  }
 }
 </style>
 

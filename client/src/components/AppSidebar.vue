@@ -121,48 +121,35 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/authStore';
+import { useUiStore } from '../stores/uiStore';
 import pkg from '../../package.json';
 
 const authStore = useAuthStore();
+const uiStore = useUiStore();
 const version = pkg.version || '0.0.0';
 
-// Sidebar collapse state
-const isCollapsed = ref(false);
+// Local state
 const iconError = ref(false);
+
+// Sidebar state from store
+const isCollapsed = computed(() => uiStore.isSidebarCollapsed);
 
 // Data Dragon version for profile icons
 const ddVersion = '16.1.1';
 
-// Load collapse state from localStorage
+// Initialize sidebar state
 onMounted(() => {
-  const savedState = localStorage.getItem('sidebarCollapsed');
-  if (savedState !== null) {
-    isCollapsed.value = savedState === 'true';
-  }
-
-  // Auto-collapse on smaller screens
-  if (window.innerWidth < 1024) {
-    isCollapsed.value = true;
-  }
-
-  window.addEventListener('resize', handleResize);
+  uiStore.initializeSidebar();
+  window.addEventListener('resize', uiStore.handleResize);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
+  window.removeEventListener('resize', uiStore.handleResize);
 });
 
-// Handle window resize
-function handleResize() {
-  if (window.innerWidth < 1024 && !isCollapsed.value) {
-    isCollapsed.value = true;
-  }
-}
-
-// Toggle sidebar and save state
+// Toggle sidebar
 function toggleSidebar() {
-  isCollapsed.value = !isCollapsed.value;
-  localStorage.setItem('sidebarCollapsed', isCollapsed.value.toString());
+  uiStore.toggleSidebar();
 }
 
 // User data
@@ -441,7 +428,7 @@ function handleIconError() {
 /* Footer Section */
 .sidebar-footer {
   border-top: 1px solid var(--color-border);
-  padding: var(--spacing-md);
+  padding: var(--spacing-md) 0;
 }
 
 .user-item {
@@ -449,6 +436,7 @@ function handleIconError() {
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
+  margin: 0 var(--spacing-sm);
   color: var(--color-text);
   text-decoration: none;
   border-radius: var(--radius-md);
