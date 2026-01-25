@@ -119,7 +119,7 @@ onMounted(async () => {
     if (!authStore.isVerified) {
       router.push('/auth/verify');
     } else {
-      router.push('/app/user');
+      router.push('/app/overview');
     }
     return;
   }
@@ -188,7 +188,7 @@ const handleSubmit = async () => {
       if (!result.emailVerified) {
         router.push('/auth/verify');
       } else {
-        router.push('/app/user');
+        router.push('/app/overview');
       }
     } else {
       // Signup flow

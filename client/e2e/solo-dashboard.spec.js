@@ -36,9 +36,9 @@ async function performLogin(page, username, password) {
   await page.getByRole('button', { name: /sign in/i }).click();
 
   // Wait for either navigation OR error message
-  // After login, the app redirects to /app/user
+  // After login, the app redirects to /app/overview
   await Promise.race([
-    page.waitForURL('/app/user', { timeout: 15_000 }),
+    page.waitForURL('/app/overview', { timeout: 15_000 }),
     page.waitForSelector('.auth-error', { timeout: 15_000 }),
   ]);
 
@@ -56,16 +56,16 @@ test.describe('Solo Dashboard Flow', () => {
     await page.context().clearCookies();
   });
 
-  test('should complete login → UserPage → Solo Dashboard flow', async ({ page }) => {
+  test('should complete login → OverviewPage → Solo Dashboard flow', async ({ page }) => {
     test.skip(skipIfNoCredentials, 'E2E_TEST_USER and E2E_TEST_PASSWORD environment variables are required');
 
     // Step 1-3: Login
     await performLogin(page, TEST_USER.username, TEST_USER.password);
 
-    // Step 4: Verify we're on the User Page (login redirects here)
-    await expect(page).toHaveURL('/app/user');
+    // Step 4: Verify we're on the Overview Page (login redirects here)
+    await expect(page).toHaveURL('/app/overview');
 
-    // Step 5: Verify User Page loaded successfully
+    // Step 5: Verify Overview Page loaded successfully
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
@@ -150,7 +150,7 @@ test.describe('Solo Dashboard Content', () => {
 
   test('should display solo dashboard with stats', async ({ page }) => {
     // Navigate to solo dashboard via sidebar
-    // After login (in beforeEach), we're on /app/user
+    // After login (in beforeEach), we're on /app/overview
     await page.waitForLoadState('networkidle');
 
     // Navigate to Solo Dashboard via the sidebar navigation
