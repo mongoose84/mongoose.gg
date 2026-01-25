@@ -45,8 +45,8 @@
       </router-link>
 
       <!-- Analysis Section with Submenu -->
-      <div class="nav-section">
-        <div class="nav-item-header" :title="isCollapsed ? 'Analysis' : ''">
+      <div class="nav-section" :class="{ 'has-popout': isCollapsed }">
+        <div class="nav-item-header">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon">
             <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
           </svg>
@@ -54,6 +54,7 @@
             <span v-if="!isCollapsed" class="nav-label">Analysis</span>
           </Transition>
         </div>
+        <!-- Expanded: show inline submenu -->
         <div v-if="!isCollapsed" class="nav-submenu">
           <router-link to="/app/solo" class="nav-subitem">
             <span class="nav-sublabel">Solo</span>
@@ -64,6 +65,13 @@
           <router-link to="/app/team" class="nav-subitem">
             <span class="nav-sublabel">Team</span>
           </router-link>
+        </div>
+        <!-- Collapsed: show popout menu on hover -->
+        <div v-if="isCollapsed" class="nav-popout">
+          <div class="popout-header">Analysis</div>
+          <router-link to="/app/solo" class="popout-item">Solo</router-link>
+          <router-link to="/app/duo" class="popout-item">Duo</router-link>
+          <router-link to="/app/team" class="popout-item">Team</router-link>
         </div>
       </div>
 
@@ -195,11 +203,11 @@ function handleIconError() {
   flex-direction: column;
   transition: width 0.3s ease;
   z-index: 100;
-  overflow: hidden;
 }
 
 .app-sidebar.collapsed {
   width: 64px;
+  overflow: visible;
 }
 
 /* Header Section */
@@ -272,6 +280,10 @@ function handleIconError() {
   padding: var(--spacing-md) 0;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.app-sidebar.collapsed .sidebar-nav {
+  overflow: visible;
 }
 
 .nav-item,
@@ -363,6 +375,67 @@ function handleIconError() {
 .nav-sublabel {
   font-weight: var(--font-weight-medium);
   letter-spacing: var(--letter-spacing);
+}
+
+/* Popout Menu (for collapsed sidebar) */
+.nav-section.has-popout {
+  position: relative;
+}
+
+.nav-popout {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  min-width: 140px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  transition: all 0.2s ease;
+  z-index: 100;
+  margin-left: var(--spacing-xs);
+}
+
+.nav-section.has-popout:hover .nav-popout {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.popout-header {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--spacing-xs);
+}
+
+.popout-item {
+  display: block;
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.popout-item:hover {
+  background: var(--color-elevated);
+  color: var(--color-text);
+}
+
+.popout-item.router-link-active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 /* Footer Section */
