@@ -64,7 +64,7 @@ Analysis
   ├─ Duo
   └─ Team
 Goals
-Settings
+User
 ```
 
 ---
@@ -203,9 +203,9 @@ Overview must remain usable even when not the landing page.
 * Displayed elsewhere but managed centrally
 * Always assume users forget or partially care
 
-### Settings
+### User
 
-* Account, preferences, integrations
+* Account(profilepicture, username, email, password, tier, subscription status), preferences,
 
 ---
 
