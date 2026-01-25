@@ -87,21 +87,35 @@
 
     <!-- User Section at Bottom -->
     <div class="sidebar-footer">
-      <router-link to="/app/user" class="user-item" :title="isCollapsed ? username : ''">
+      <router-link to="/app/user" class="user-item" :title="isCollapsed ? (hasLinkedAccount ? riotAccountName : username) : ''">
+        <!-- Profile Icon with Level Badge -->
         <div class="user-avatar">
           <img
-            v-if="profileIconUrl"
-            :src="profileIconUrl"
-            :alt="`${username} profile icon`"
+            v-if="linkedAccountIconUrl"
+            :src="linkedAccountIconUrl"
+            :alt="`${hasLinkedAccount ? riotAccountName : username} profile icon`"
             class="avatar-img"
-            @error="handleIconError"
+            @error="handleLinkedIconError"
           />
           <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="avatar-icon">
             <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd" />
           </svg>
+          <span v-if="summonerLevel" class="level-badge">{{ summonerLevel }}</span>
         </div>
+
+        <!-- User Info (expanded only) -->
         <Transition name="fade">
           <div v-if="!isCollapsed" class="user-info">
+            <!-- Riot Account Info -->
+            <template v-if="hasLinkedAccount">
+              <span class="riot-account-name">{{ riotAccountName }}</span>
+              <span class="riot-account-region">{{ regionLabel }}</span>
+            </template>
+
+            <!-- Spacer -->
+            <div class="user-info-spacer"></div>
+
+            <!-- Account Info -->
             <span class="user-name">{{ username }}</span>
             <span class="user-tier">{{ tierLabel }}</span>
           </div>
@@ -129,13 +143,33 @@ const uiStore = useUiStore();
 const version = pkg.version || '0.0.0';
 
 // Local state
-const iconError = ref(false);
+const linkedIconError = ref(false);
 
 // Sidebar state from store
 const isCollapsed = computed(() => uiStore.isSidebarCollapsed);
 
 // Data Dragon version for profile icons
 const ddVersion = '16.1.1';
+
+// Region labels for display
+const regionLabels = {
+  euw1: 'EUW',
+  eun1: 'EUNE',
+  na1: 'NA',
+  kr: 'KR',
+  jp1: 'JP',
+  br1: 'BR',
+  la1: 'LAN',
+  la2: 'LAS',
+  oc1: 'OCE',
+  tr1: 'TR',
+  ru: 'RU',
+  ph2: 'PH',
+  sg2: 'SG',
+  th2: 'TH',
+  tw2: 'TW',
+  vn2: 'VN'
+};
 
 // Initialize sidebar state
 onMounted(() => {
@@ -164,14 +198,30 @@ const tierLabel = computed(() => {
 // Profile icon from first Riot account
 const primaryRiotAccount = computed(() => authStore.primaryRiotAccount);
 
-const profileIconUrl = computed(() => {
+// Linked Riot Account data
+const hasLinkedAccount = computed(() => authStore.hasLinkedAccount);
+
+const riotAccountName = computed(() => {
+  const account = primaryRiotAccount.value;
+  if (!account) return '';
+  return `${account.gameName}#${account.tagLine}`;
+});
+
+const summonerLevel = computed(() => primaryRiotAccount.value?.summonerLevel);
+
+const regionLabel = computed(() => {
+  const region = primaryRiotAccount.value?.region;
+  return region ? (regionLabels[region] || region.toUpperCase()) : '';
+});
+
+const linkedAccountIconUrl = computed(() => {
   const profileIconId = primaryRiotAccount.value?.profileIconId;
-  if (!profileIconId || iconError.value) return null;
+  if (!profileIconId || linkedIconError.value) return null;
   return `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/profileicon/${profileIconId}.png`;
 });
 
-function handleIconError() {
-  iconError.value = true;
+function handleLinkedIconError() {
+  linkedIconError.value = true;
 }
 </script>
 
@@ -459,28 +509,58 @@ function handleIconError() {
 }
 
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  position: relative;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  overflow: hidden;
-  background: var(--color-elevated);
+  overflow: visible;
+  background: var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-primary);
 }
 
 .avatar-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .avatar-icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   color: var(--color-text-secondary);
+}
+
+/* Level badge in user section */
+.user-avatar .level-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: var(--color-primary);
+  color: white;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  padding: 3px 6px;
+  border-radius: 10px;
+  min-width: 24px;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Collapsed state for user avatar */
+.app-sidebar.collapsed .user-avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.app-sidebar.collapsed .user-avatar .level-badge {
+  font-size: 10px;
+  padding: 2px 5px;
+  min-width: 20px;
 }
 
 .user-info {
@@ -491,17 +571,41 @@ function handleIconError() {
   flex: 1;
 }
 
-.user-name {
+/* Riot account info in user section */
+.riot-account-name {
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.riot-account-region {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Spacer between riot info and account info */
+.user-info-spacer {
+  height: 6px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 4px;
+}
+
+.user-name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .user-tier {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
+  font-size: 10px;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
