@@ -101,15 +101,30 @@ Overview must remain usable even when not the landing page.
 
 1. `<OverviewPlayerHeader>`
 
-   * Props: `summonerName`, `region`, `profileIconUrl`, `activeContexts`
+   * Props: `summonerName`, `level`, `region`, `profileIconUrl`, `activeContexts`
    * Shows profile icon, summoner name + region, context badges (Solo/Duo/Team)
    * Static, no interactions
 
 2. `<RankSnapshot>`
 
-   * Props: `rank`, `lp`, `rankDelta`, `winrate`, `sampleSize`
-   * Shows rank emblem, LP, delta indicator, winrate
-   * No charts, no time selectors
+   * Data scope: **Computed primary queue** (shown explicitly) + **Last 20 games** within that queue
+   * Props (suggested):
+     * `primaryQueueLabel` (e.g. "Ranked Solo/Duo", "Ranked Flex", "Normal Draft")
+     * `rank`, `lp` (current)
+     * `lpDeltaLast20` (current LP vs LP 20 games ago)
+     * `last20Wins`, `last20Losses` (sampleSize is always 20 when available)
+     * `lpDeltasLast20[]` (length 20; per-game LP change used for a micro bar-sparkline)
+     * `wlLast20[]` (length 20; W/L strip)
+   * Shows rank emblem, current LP, **ΔLP (Last 20)**, and winrate formatted as **`X% (W–L)`**
+   * Micro-visuals (must remain overview-level; no analysis UI):
+     * LP: tiny green/red bar sparkline using `lpDeltasLast20[]` (no axes, no hover required)
+     * Winrate: tiny W/L strip using `wlLast20[]` (no smoothing/rolling winrate line)
+   * Non-goals: axes, filters, time selectors, comparisons
+
+   **Primary queue selection rule (computed upstream; RankSnapshot remains formatting-only):**
+   * Determine `primaryQueue` as the queue with the **highest match count** in a recent window (recommended: last 50 matches or last 30 days).
+   * Tie-breaker (in order): Ranked Solo/Duo → Ranked Flex → Normal Draft → ARAM → other.
+   * Once selected, all "Last 20" metrics and sparklines are computed **within that primary queue only**.
 
 3. `<LastMatchCard>`
 
@@ -134,6 +149,7 @@ Overview must remain usable even when not the landing page.
 * Single-column layout
 * Enforce one-scroll maximum
 * Handles loading/empty states
+* Must keep `primaryQueueLabel` visible next to `<RankSnapshot>` (e.g. `Primary: Ranked Solo/Duo`) so the user always understands what the "Last 20" window refers to
 * Must NOT include deep graphs, champion matrices, comparative analysis, or editable controls
 
 ---
