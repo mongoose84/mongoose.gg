@@ -1,13 +1,17 @@
 <template>
   <div class="app-container">
     <RouterView />
-    <VersionBadge />
+    <VersionBadge v-if="!isInApp" />
   </div>
 </template>
 
 <script setup>
-import { RouterView } from 'vue-router'
-import VersionBadge from './components/VersionBadge.vue'
+import { computed } from 'vue';
+import { RouterView, useRoute } from 'vue-router';
+import VersionBadge from './components/VersionBadge.vue';
+
+const route = useRoute();
+const isInApp = computed(() => route.path.startsWith('/app'));
 </script>
 
 <style scoped>

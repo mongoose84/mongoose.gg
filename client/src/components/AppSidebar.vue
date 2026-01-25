@@ -5,7 +5,7 @@
       <router-link to="/app/overview" class="sidebar-logo">
         <img src="/mongoose.png" alt="Mongoose" class="logo-icon" />
         <Transition name="fade">
-          <span v-if="!isCollapsed" class="logo-text">Mongoose.gg</span>
+          <span v-if="!isCollapsed" class="logo-text">Mongoose.gg <span class="beta-tag">Beta</span></span>
         </Transition>
       </router-link>
       <button @click="toggleSidebar" class="toggle-btn" :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
@@ -99,15 +99,24 @@
           </div>
         </Transition>
       </router-link>
+
+      <!-- Version Badge -->
+      <Transition name="fade">
+        <div v-if="!isCollapsed" class="sidebar-version">
+          v{{ version }}
+        </div>
+      </Transition>
     </div>
   </aside>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/authStore';
+import pkg from '../../package.json';
 
 const authStore = useAuthStore();
+const version = pkg.version || '0.0.0';
 
 // Sidebar collapse state
 const isCollapsed = ref(false);
@@ -226,6 +235,13 @@ function handleIconError() {
   white-space: nowrap;
 }
 
+.beta-tag {
+  font-size: 0.5em;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-normal);
+  vertical-align: top;
+}
+
 .toggle-btn {
   background: transparent;
   border: none;
@@ -296,6 +312,18 @@ function handleIconError() {
   letter-spacing: var(--letter-spacing);
 }
 
+/* Center icons when collapsed */
+.app-sidebar.collapsed .nav-item,
+.app-sidebar.collapsed .nav-item-header {
+  justify-content: center;
+  padding: var(--spacing-md);
+}
+
+.app-sidebar.collapsed .nav-subitem {
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
 /* Submenu */
 .nav-section {
   margin-bottom: var(--spacing-xs);
@@ -363,6 +391,12 @@ function handleIconError() {
   background: var(--color-primary-soft);
 }
 
+/* Center user avatar when collapsed */
+.app-sidebar.collapsed .user-item {
+  justify-content: center;
+  padding: var(--spacing-md);
+}
+
 .user-avatar {
   width: 32px;
   height: 32px;
@@ -409,6 +443,15 @@ function handleIconError() {
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.sidebar-version {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: #6b7280;
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--spacing-sm);
 }
 
 /* Transitions */
