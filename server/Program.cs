@@ -198,10 +198,10 @@ app.Map("/ws/sync", async (HttpContext context, SyncProgressHub hub) =>
     var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
     if (userIdClaim == null || !long.TryParse(userIdClaim.Value, out var userId))
     {
-        // Reject unauthenticated connections with 4001 (custom close code for auth failure)
+        // Reject unauthenticated connections with standard close code 1008 (Policy Violation)
         var ws = await context.WebSockets.AcceptWebSocketAsync();
         await ws.CloseAsync(
-            (System.Net.WebSockets.WebSocketCloseStatus)4001,
+            System.Net.WebSockets.WebSocketCloseStatus.PolicyViolation,
             "Authentication required",
             CancellationToken.None);
         return;
