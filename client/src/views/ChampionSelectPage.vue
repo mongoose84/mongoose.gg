@@ -47,6 +47,9 @@
         <MainChampionCard
           v-if="dashboardData?.mainChampions && dashboardData.mainChampions.length"
           :main-champions="dashboardData.mainChampions"
+          :user-id="authStore.userId"
+          :queue-type="queueFilter"
+          :time-range="timeRange"
         />
         <div v-else-if="isLoading" class="border border-border rounded-lg p-lg bg-background-surface">
           <h2 class="m-0 mb-sm text-lg font-semibold text-text">Main Champions</h2>

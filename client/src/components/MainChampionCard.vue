@@ -65,6 +65,58 @@
                 <span class="text-2xs text-text-secondary">{{ champion.gamesPlayed }} games</span>
               </div>
             </div>
+
+            <!-- Matchups Section -->
+            <div
+              v-if="getMatchupsForChampion(champion.championId).good.length > 0 || getMatchupsForChampion(champion.championId).bad.length > 0"
+              class="flex gap-lg pt-md border-t border-border"
+            >
+              <!-- Good Matchups -->
+              <div v-if="getMatchupsForChampion(champion.championId).good.length > 0" class="flex-1">
+                <span class="text-2xs text-text-secondary uppercase tracking-wide mb-xs block">Strong vs</span>
+                <div class="flex gap-xs">
+                  <div
+                    v-for="opponent in getMatchupsForChampion(champion.championId).good"
+                    :key="opponent.opponentChampionId"
+                    class="matchup-item flex flex-col items-center gap-0.5 relative"
+                  >
+                    <img
+                      class="w-8 h-8 rounded-md object-cover border border-[#22c55e]"
+                      :src="getChampionIconUrl(opponent.opponentChampionName)"
+                      :alt="opponent.opponentChampionName"
+                    />
+                    <span class="text-2xs font-medium text-[#22c55e]">{{ Math.round(opponent.winRate) }}%</span>
+                    <div class="matchup-tooltip">
+                      <span class="font-medium">{{ opponent.opponentChampionName }}</span>
+                      <span class="text-[#22c55e]">{{ opponent.wins }}W</span>/<span class="text-[#ef4444]">{{ opponent.losses }}L</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bad Matchups -->
+              <div v-if="getMatchupsForChampion(champion.championId).bad.length > 0" class="flex-1">
+                <span class="text-2xs text-text-secondary uppercase tracking-wide mb-xs block">Weak vs</span>
+                <div class="flex gap-xs">
+                  <div
+                    v-for="opponent in getMatchupsForChampion(champion.championId).bad"
+                    :key="opponent.opponentChampionId"
+                    class="matchup-item flex flex-col items-center gap-0.5 relative"
+                  >
+                    <img
+                      class="w-8 h-8 rounded-md object-cover border border-[#ef4444]"
+                      :src="getChampionIconUrl(opponent.opponentChampionName)"
+                      :alt="opponent.opponentChampionName"
+                    />
+                    <span class="text-2xs font-medium text-[#ef4444]">{{ Math.round(opponent.winRate) }}%</span>
+                    <div class="matchup-tooltip">
+                      <span class="font-medium">{{ opponent.opponentChampionName }}</span>
+                      <span class="text-[#22c55e]">{{ opponent.wins }}W</span>/<span class="text-[#ef4444]">{{ opponent.losses }}L</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </article>
         </div>
       </Transition>
@@ -79,13 +131,30 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { getWinRateColorClass } from '../composables/useWinRateColor'
+import { getChampionMatchups } from '../services/authApi'
 
 const props = defineProps({
   mainChampions: {
     type: Array,
     default: () => []
+  },
+  userId: {
+    type: [Number, String],
+    default: null
+  },
+  queueType: {
+    type: String,
+    default: 'all'
+  },
+  timeRange: {
+    type: String,
+    default: null
   }
 })
+
+// Matchups data fetched from API
+const matchupsData = ref(null)
+const matchupsLoading = ref(false)
 
 const selectedRole = ref(null)
 
@@ -125,6 +194,56 @@ watch(
   },
   { immediate: true, deep: true }
 )
+
+// Fetch matchups data when userId/filters change
+async function fetchMatchups() {
+  if (!props.userId) return
+
+  matchupsLoading.value = true
+  try {
+    const data = await getChampionMatchups(props.userId, props.queueType, props.timeRange)
+    matchupsData.value = data
+  } catch (err) {
+    console.error('Failed to fetch matchups:', err)
+    matchupsData.value = null
+  } finally {
+    matchupsLoading.value = false
+  }
+}
+
+// Watch for prop changes to refetch matchups
+watch(
+  () => [props.userId, props.queueType, props.timeRange],
+  () => {
+    fetchMatchups()
+  },
+  { immediate: true }
+)
+
+// Get matchups for a specific champion (min 3 games filter + win rate thresholds)
+function getMatchupsForChampion(championId) {
+  if (!matchupsData.value?.matchups) return { good: [], bad: [] }
+
+  const championMatchup = matchupsData.value.matchups.find(m => m.championId === championId)
+  if (!championMatchup?.opponents) return { good: [], bad: [] }
+
+  // Filter opponents with at least 3 games
+  const validOpponents = championMatchup.opponents.filter(o => o.gamesPlayed >= 3)
+
+  // Strong matchups: win rate > 50%, sorted by highest first
+  const strongMatchups = validOpponents
+    .filter(o => o.winRate > 50)
+    .sort((a, b) => b.winRate - a.winRate)
+    .slice(0, 3)
+
+  // Weak matchups: win rate < 50%, sorted by lowest first
+  const weakMatchups = validOpponents
+    .filter(o => o.winRate < 50)
+    .sort((a, b) => a.winRate - b.winRate)
+    .slice(0, 3)
+
+  return { good: strongMatchups, bad: weakMatchups }
+}
 
 function selectRole(role) {
   selectedRole.value = role
@@ -216,5 +335,48 @@ function formatLpPerGame(value) {
     flex: 0 0 100%;
     max-width: 280px;
   }
+}
+
+/* Matchup tooltip styles */
+.matchup-item {
+  cursor: pointer;
+}
+
+.matchup-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--color-text);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.matchup-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-border);
+}
+
+.matchup-item:hover .matchup-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 </style>
