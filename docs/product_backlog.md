@@ -41,9 +41,9 @@ First 500 users get free Pro tier. Keep a counter on the landing page of how man
 | **D. Analytics & Tracking** | User behavior tracking for product decisions | 19 pts | 0 pts |
 | **E. Database & Analytics Schema** | Match/participant/timeline schema + ingestion | 0 pts | 20 pts ✅ |
 | **F. API** | API surface aligned with schema and dashboards | 29 pts | 33 pts ✅ |
-| **G. Frontend App & Marketing** | App shell, landing, and dashboards using API | 32 pts | 53 pts ✅ |
+| **G. Frontend App & Marketing** | App shell, landing, and dashboards using API | 40 pts | 53 pts ✅ |
 
-**Remaining:** 151 points | **Completed:** 113 points | **Grand Total:** 264 points
+**Remaining:** 159 points | **Completed:** 113 points | **Grand Total:** 272 points
 
 ### G5 Epic: Frontend Solo Dashboard (Vertical slices)
 
@@ -1538,6 +1538,197 @@ Create a Goals Panel that displays active goals (if Pro tier) or shows an upgrad
 - [ ] Panel collapses/expands correctly
 - [ ] Mobile layout verified
 - [ ] No errors when goals array is empty
+
+---
+
+### G14 Epic: Overview Page
+
+The Overview page (defined in `docs/ux_specification.md`) is the default landing page after login, providing situational awareness and routing in 5–15 seconds (one scroll max). All components are read-only, fast to render, and optimized for click-through.
+
+**Total estimate:** 8 points
+
+---
+
+### G14a. [Backend] Create Overview endpoint
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** F2, E3
+**Labels:** `backend`, `api`, `overview`, `epic-g`
+
+#### Description
+
+Create the backend endpoint that aggregates all data needed for the Overview page.
+
+#### Acceptance Criteria
+
+- [ ] Endpoint `GET /api/v2/overview/{userId}` implemented
+- [ ] Returns player header data: `summonerName`, `level`, `region`, `profileIconUrl`, `activeContexts` (Solo/Duo/Team badges)
+- [ ] Returns rank snapshot for primary queue: `primaryQueueLabel`, `rank`, `lp`, `lpDeltaLast20`, `last20Wins`, `last20Losses`, `lpDeltasLast20[]` (20 items), `wlLast20[]` (20 items)
+- [ ] Returns last match: `matchId`, `championIconUrl`, `result`, `kda`, `timestamp`
+- [ ] Returns active goals preview (max 3): `goalId`, `title`, `context`, `progress`
+- [ ] Returns suggested actions (max 3): `actionId`, `text`, `deepLink`, `priority`
+- [ ] Primary queue auto-selected: queue with highest match count in recent window (last 50 matches or 30 days)
+- [ ] Tie-breaker order: Ranked Solo/Duo → Ranked Flex → Normal Draft → ARAM → other
+- [ ] All "Last 20" metrics computed within the primary queue only
+- [ ] Response time under 500ms
+
+---
+
+### G14b. [Frontend] Implement OverviewPlayerHeader component
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** G14a
+**Labels:** `frontend`, `component`, `overview`, `epic-g`
+
+#### Description
+
+Create the `<OverviewPlayerHeader>` component showing player identity and active contexts.
+
+#### Acceptance Criteria
+
+- [ ] Component created at `client/src/components/overview/OverviewPlayerHeader.vue`
+- [ ] Props: `summonerName`, `level`, `region`, `profileIconUrl`, `activeContexts`
+- [ ] Shows profile icon (from Riot CDN)
+- [ ] Shows summoner name + region
+- [ ] Shows context badges (Solo/Duo/Team) based on `activeContexts`
+- [ ] Static, no interactions
+- [ ] Mobile responsive
+
+---
+
+### G14c. [Frontend] Implement RankSnapshot component
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** G14a
+**Labels:** `frontend`, `component`, `overview`, `epic-g`
+
+#### Description
+
+Create the `<RankSnapshot>` component showing rank, LP, and last 20 games performance with micro-visuals.
+
+#### Acceptance Criteria
+
+- [ ] Component created at `client/src/components/overview/RankSnapshot.vue`
+- [ ] Props: `primaryQueueLabel`, `rank`, `lp`, `lpDeltaLast20`, `last20Wins`, `last20Losses`, `lpDeltasLast20[]`, `wlLast20[]`
+- [ ] Shows rank emblem (from Riot CDN)
+- [ ] Shows current LP
+- [ ] Shows ΔLP (Last 20) with positive/negative styling
+- [ ] Shows winrate formatted as `X% (W–L)`
+- [ ] Micro-visual: LP bar sparkline using `lpDeltasLast20[]` (green/red bars, no axes, no hover required)
+- [ ] Micro-visual: W/L strip using `wlLast20[]` (simple win/loss indicators)
+- [ ] Shows `primaryQueueLabel` visibly (e.g., "Primary: Ranked Solo/Duo")
+- [ ] Non-goals: axes, filters, time selectors, comparisons
+- [ ] Mobile responsive
+
+---
+
+### G14d. [Frontend] Implement LastMatchCard component
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** G14a
+**Labels:** `frontend`, `component`, `overview`, `epic-g`
+
+#### Description
+
+Create the `<LastMatchCard>` component showing a quick summary of the most recent match.
+
+#### Acceptance Criteria
+
+- [ ] Component created at `client/src/components/overview/LastMatchCard.vue`
+- [ ] Props: `matchId`, `championIconUrl`, `result`, `kda`, `timestamp`
+- [ ] Shows champion icon (from Riot CDN)
+- [ ] Shows win/loss result with appropriate styling
+- [ ] Shows KDA
+- [ ] Shows relative time (e.g., "2 hours ago")
+- [ ] Clickable: navigates to `/matches/:matchId`
+- [ ] Empty state when no matches available
+- [ ] Mobile responsive
+
+---
+
+### G14e. [Frontend] Implement GoalProgressPreview component
+
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** G14a, B9
+**Labels:** `frontend`, `component`, `overview`, `epic-g`
+
+#### Description
+
+Create the `<GoalProgressPreview>` component showing up to 3 active goals with progress.
+
+#### Acceptance Criteria
+
+- [ ] Component created at `client/src/components/overview/GoalProgressPreview.vue`
+- [ ] Props: `goals` array (max 3 items, each with `goalId`, `title`, `context`, `progress`)
+- [ ] Shows goal title and context badge
+- [ ] Shows progress bar (0-100%)
+- [ ] CTA button: "View all goals" → navigates to `/goals`
+- [ ] No editing, no sorting
+- [ ] Empty state: "No active goals" with optional CTA to create one
+- [ ] Mobile responsive
+
+---
+
+### G14f. [Frontend] Implement SuggestedActions component
+
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** G14a
+**Labels:** `frontend`, `component`, `overview`, `epic-g`
+
+#### Description
+
+Create the `<SuggestedActions>` component showing up to 3 actionable suggestions.
+
+#### Acceptance Criteria
+
+- [ ] Component created at `client/src/components/overview/SuggestedActions.vue`
+- [ ] Props: `actions` array (max 3 items, each with `actionId`, `text`, `deepLink`, `priority`)
+- [ ] Shows short human-readable suggestion text
+- [ ] Each action is clickable and navigates to `deepLink`
+- [ ] Actions sorted by priority (handled by backend)
+- [ ] Empty state when no suggestions available
+- [ ] Mobile responsive
+
+---
+
+### G14g. [Frontend] Implement OverviewLayout and page integration
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** G14b, G14c, G14d, G14e, G14f
+**Labels:** `frontend`, `page`, `overview`, `epic-g`
+
+#### Description
+
+Create the `<OverviewLayout>` container and integrate all Overview components into the Overview page.
+
+#### Acceptance Criteria
+
+- [ ] Layout component created at `client/src/components/overview/OverviewLayout.vue`
+- [ ] Overview page created at `client/src/views/OverviewView.vue`
+- [ ] Route `/overview` configured (default after login)
+- [ ] Single-column layout
+- [ ] Enforces one-scroll maximum on desktop and mobile
+- [ ] Handles loading state (skeleton or spinner)
+- [ ] Handles empty states gracefully
+- [ ] Shows `primaryQueueLabel` visibly next to RankSnapshot
+- [ ] Must NOT include deep graphs, champion matrices, comparative analysis, or editable controls
+- [ ] Context (Solo/Duo/Team) always visible via OverviewPlayerHeader
+- [ ] Page loads in under 2 seconds
+- [ ] Mobile responsive
 
 ---
 
