@@ -188,11 +188,11 @@ Provide API endpoints for user login, user profile data, and managing friends/du
 
 #### Acceptance Criteria
 
-- [x] Implement basic user authentication endpoints (e.g. `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`)
+- [x] Implement basic user authentication endpoints (e.g. `POST /api/v2/auth/register`, `POST /api/v2/auth/login`, `POST /api/v2/auth/logout`)
 - [x] Expose a `GET /api/users/me` endpoint that returns the current user's profile, subscription tier and linked LoL accounts
 - [ ] Provide endpoints to manage friends / duo partners and team members (e.g. add/remove friends, manage team roster) *(Moved to F11-social)*
 - [ ] Provide a user search endpoint that lets you look up LoL accounts by Riot ID / game name + tagline when creating or linking a user *(Moved to F11-social)*
-- [x] All new endpoints are protected by API key authentication and follow the unified error-handling conventions
+- [x] All new endpoints are protected by cookie-based session authentication and follow the unified error-handling conventions
 
 **Note:** Social endpoints (friends, teams, user search) remain in the main backlog as incomplete work.
 
@@ -233,7 +233,7 @@ Provide working user authentication flows and a minimal in-app shell under `/app
 
 #### Acceptance Criteria
 
-- [x] `/auth` supports **login** and **signup** modes using `POST /api/auth/register` and `POST /api/auth/login` from F11
+- [x] `/auth` supports **login** and **signup** modes using `POST /api/v2/auth/register` and `POST /api/v2/auth/login` from F11
 - [x] Signup requires `username`, `email`, and `password` and creates a user record with `emailVerified = false` (or equivalent)
 - [x] Username is validated for uniqueness and length/format on the backend; the UI shows specific messages when:
   - Username is already taken
@@ -246,7 +246,7 @@ Provide working user authentication flows and a minimal in-app shell under `/app
   - When checked, the backend issues an HttpOnly, SameSite=Lax session cookie with a 7-day expiry
   - Each successful login resets the 7-day expiry (new cookie is issued)
   - When unchecked, session lifetime follows the shorter default from F7
-- [x] On app load, the frontend calls `GET /api/users/me` (or equivalent) to restore auth state from the cookie-backed session and redirect appropriately
+- [x] On app load, the frontend calls `GET /api/v2/users/me` (or equivalent) to restore auth state from the cookie-backed session and redirect appropriately
 - [x] `/app` routing is wired through the G2 app shell and a route for `/app/user` is added
 - [x] `/app/user` renders an initial, minimal user page (welcome text and placeholders for future content such as the login heatmap from D9 and friends list)
 - [x] The `/app/*` header shows, in the upper-right corner:
@@ -258,7 +258,7 @@ Provide working user authentication flows and a minimal in-app shell under `/app
   - Navigates to `/app/user` when the user is logged in
   - Navigates to `/` when the user is not logged in
 - [x] Clicking the user icon/username opens a dropdown that includes:
-  - A working **Logout** item that calls `POST /api/auth/logout`, clears the session cookie, and navigates back to `/` or `/auth`
+  - A working **Logout** item that calls `POST /api/v2/auth/logout`, clears the session cookie, and navigates back to `/` or `/auth`
   - A **Settings** item that is visible but visually disabled (e.g. greyed out, "Coming soon") and does not navigate yet
 
 ---
@@ -452,7 +452,7 @@ Create a WebSocket endpoint that broadcasts real-time match sync progress to con
 
 - [x] Create WebSocket endpoint at `/ws/sync`
 - [x] Authenticate WebSocket connections using session cookie (same auth as HTTP endpoints)
-- [x] Reject unauthenticated connections with appropriate close code (4401)
+- [x] Reject unauthenticated connections with a standard close code (1008 - Policy Violation) and a reason (e.g., "Authentication required")
 - [x] Implement message types from server to client:
   - `sync_progress`: progress updates during sync
   - `sync_complete`: sync completed successfully
@@ -718,7 +718,7 @@ Fetch and display ranked Solo/Duo and Flex queue rank data in the ProfileHeaderC
 
 #### Acceptance Criteria
 
-- [x] `GetLeagueEntriesBySummonerIdAsync` method added to `IRiotApiClient`
+- [x] `GetLeagueEntriesByPuuidAsync` method added to `IRiotApiClient`
 - [x] Rank columns added to `riot_accounts` table: `solo_tier`, `solo_rank`, `solo_lp`, `flex_tier`, `flex_rank`, `flex_lp`
 - [x] `RiotAccount` entity updated with rank properties
 - [x] `RiotAccountsRepository` updated to read/write rank fields

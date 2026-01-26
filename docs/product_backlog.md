@@ -1205,7 +1205,7 @@ Introduce automated tests for the .NET server, with emphasis on security-sensiti
 #### Acceptance Criteria
 
 - [ ] Create a test project for the backend (unit and/or integration tests)  
-- [ ] Tests cover API key authentication happy-path and failure scenarios  
+- [ ] Tests cover cookie-based session authentication happy-path and failure scenarios  
 - [ ] Tests cover at least one representative endpoint from each major area (goals, subscriptions, dashboards)  
 - [ ] Tests verify error handling behavior (4xx vs 5xx, response shape)  
 - [ ] Tests run as part of the standard CI pipeline
