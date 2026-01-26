@@ -344,6 +344,45 @@ export async function getSoloDashboard(userId, queueType = 'all', timeRange) {
 }
 
 /**
+ * Get champion select data (champion recommendations based on performance)
+ * @param {number} userId - User ID
+ * @param {string} queueType - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
+ * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
+ * @returns {Promise<Object>} Champion select data
+ */
+export async function getChampionSelectData(userId, queueType = 'all', timeRange) {
+  const params = new URLSearchParams()
+  if (queueType && queueType !== 'all') {
+    params.append('queueType', queueType)
+  }
+  if (timeRange) {
+    params.append('timeRange', timeRange)
+  }
+
+  const url = `${API_BASE}/champion-select/${userId}${params.toString() ? '?' + params.toString() : ''}`
+
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include'
+  })
+
+  if (response.status === 404) {
+    return null // No match data found
+  }
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const error = new Error(data.error || 'Failed to get champion select data')
+    error.status = response.status
+    error.code = data.code
+    throw error
+  }
+
+  return data
+}
+
+/**
  * Get match activity data for heatmap (daily match counts for past 6 months)
  * @param {number} userId - User ID
  * @returns {Promise<Object>} Match activity data with dailyMatchCounts, startDate, endDate, totalMatches
