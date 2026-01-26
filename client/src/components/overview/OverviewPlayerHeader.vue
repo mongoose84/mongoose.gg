@@ -133,6 +133,8 @@ const lastSyncDisplay = computed(() => {
   if (!props.lastSyncAt) return 'Never synced'
 
   const syncDate = new Date(props.lastSyncAt)
+  if (isNaN(syncDate.getTime())) return 'Never synced'
+
   const now = new Date()
   const diffMs = now - syncDate
   const diffMins = Math.floor(diffMs / 60000)

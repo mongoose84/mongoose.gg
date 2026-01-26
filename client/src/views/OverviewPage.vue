@@ -93,13 +93,13 @@ const currentSyncStatus = computed(() => {
 const currentSyncProgress = computed(() => {
   if (!primaryPuuid.value) return null
   const progress = syncProgress.get(primaryPuuid.value)
-  return progress?.progress || null
+  return progress?.progress ?? null
 })
 
 const currentSyncTotal = computed(() => {
   if (!primaryPuuid.value) return null
   const progress = syncProgress.get(primaryPuuid.value)
-  return progress?.total || null
+  return progress?.total ?? null
 })
 
 async function fetchOverviewData() {

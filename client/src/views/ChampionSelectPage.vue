@@ -140,6 +140,13 @@ watch([queueFilter, timeRange], () => {
   fetchData()
 })
 
+// Refetch when userId becomes available (async auth initialization)
+watch(() => authStore.userId, (newUserId, oldUserId) => {
+  if (newUserId && !oldUserId) {
+    fetchData()
+  }
+})
+
 // Handle opponent selection from search
 function onOpponentSelect(result) {
   // For now, just log the selection - can be extended later to show details
