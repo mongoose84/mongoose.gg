@@ -111,10 +111,10 @@ public class VerificationTokensRepository : RepositoryBase
         UserId = r.GetInt64(1),
         TokenType = r.GetString(2),
         Code = r.GetString(3),
-        ExpiresAt = r.GetDateTime(4),
-        UsedAt = r.IsDBNull(5) ? null : r.GetDateTime(5),
+        ExpiresAt = r.GetDateTimeUtc(4),
+        UsedAt = r.GetDateTimeUtcOrNull(5),
         Attempts = r.GetInt32(6),
-        CreatedAt = r.GetDateTime(7)
+        CreatedAt = r.GetDateTimeUtc(7)
     };
 }
 

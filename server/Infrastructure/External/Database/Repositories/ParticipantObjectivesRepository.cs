@@ -40,6 +40,6 @@ public class ParticipantObjectivesRepository : RepositoryBase
         HeraldsParticipated = r.GetInt32(3),
         BaronsParticipated = r.GetInt32(4),
         TowersParticipated = r.GetInt32(5),
-        CreatedAt = r.GetDateTime(6)
+        CreatedAt = r.GetDateTimeUtc(6)
     };
 }

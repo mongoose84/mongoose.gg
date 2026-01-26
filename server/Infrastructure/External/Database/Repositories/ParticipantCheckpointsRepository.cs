@@ -122,6 +122,6 @@ public class ParticipantCheckpointsRepository : RepositoryBase
         GoldDiffVsLane = r.IsDBNull(6) ? null : r.GetInt32(6),
         CsDiffVsLane = r.IsDBNull(7) ? null : r.GetInt32(7),
         IsAhead = r.IsDBNull(8) ? null : r.GetBoolean(8),
-        CreatedAt = r.GetDateTime(9)
+        CreatedAt = r.GetDateTimeUtc(9)
     };
 }

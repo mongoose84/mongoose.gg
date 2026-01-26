@@ -137,6 +137,6 @@ public class ParticipantsRepository : RepositoryBase
         LpAfter = r.IsDBNull(15) ? null : r.GetInt32(15),
         TierAfter = r.IsDBNull(16) ? null : r.GetString(16),
         RankAfter = r.IsDBNull(17) ? null : r.GetString(17),
-        CreatedAt = r.GetDateTime(18)
+        CreatedAt = r.GetDateTimeUtc(18)
     };
 }

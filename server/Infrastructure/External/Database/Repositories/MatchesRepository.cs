@@ -67,6 +67,6 @@ public class MatchesRepository : RepositoryBase
         GameStartTime = r.GetInt64(3),
         PatchVersion = r.GetString(4),
         SeasonCode = r.IsDBNull(5) ? null : r.GetString(5),
-        CreatedAt = r.GetDateTime(6)
+        CreatedAt = r.GetDateTimeUtc(6)
     };
 }

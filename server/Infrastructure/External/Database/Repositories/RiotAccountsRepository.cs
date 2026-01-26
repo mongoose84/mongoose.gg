@@ -291,8 +291,8 @@ public class RiotAccountsRepository : RepositoryBase
         FlexTier = r.IsDBNull(16) ? null : r.GetString(16),
         FlexRank = r.IsDBNull(17) ? null : r.GetString(17),
         FlexLp = r.IsDBNull(18) ? null : r.GetInt32(18),
-        LastSyncAt = r.IsDBNull(19) ? null : r.GetDateTime(19),
-        CreatedAt = r.GetDateTime(20),
-        UpdatedAt = r.GetDateTime(21)
+        LastSyncAt = r.GetDateTimeUtcOrNull(19),
+        CreatedAt = r.GetDateTimeUtc(20),
+        UpdatedAt = r.GetDateTimeUtc(21)
     };
 }

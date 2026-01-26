@@ -47,6 +47,6 @@ public class SubscriptionEventsRepository : RepositoryBase
         NewStatus = r.IsDBNull(6) ? null : r.GetString(6),
         MollieEventId = r.IsDBNull(7) ? null : r.GetString(7),
         MetadataJson = r.IsDBNull(8) ? null : r.GetString(8),
-        CreatedAt = r.GetDateTime(9)
+        CreatedAt = r.GetDateTimeUtc(9)
     };
 }

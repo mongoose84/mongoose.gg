@@ -42,6 +42,6 @@ public class TeamObjectivesRepository : RepositoryBase
         HeraldsTaken = r.GetInt32(4),
         BaronsTaken = r.GetInt32(5),
         TowersTaken = r.GetInt32(6),
-        CreatedAt = r.GetDateTime(7)
+        CreatedAt = r.GetDateTimeUtc(7)
     };
 }

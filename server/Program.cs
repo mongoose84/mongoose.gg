@@ -9,6 +9,7 @@ using RiotProxy.Infrastructure.Security;
 using RiotProxy.Infrastructure.WebSocket;
 using RiotProxy.Infrastructure.Middleware;
 using RiotProxy.Infrastructure.Email;
+using RiotProxy.Infrastructure.Serialization;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -164,6 +165,14 @@ if (builder.Environment.IsDevelopment())
     builder.Logging.AddDebug();
 }
 
+// Configure JSON serialization to ensure DateTime values are serialized in UTC format (ISO 8601 with Z suffix)
+// This ensures consistent timezone handling between backend and frontend
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    // Use custom DateTime converters that ensure UTC format with Z suffix
+    options.SerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+    options.SerializerOptions.Converters.Add(new UtcNullableDateTimeJsonConverter());
+});
 
 var app = builder.Build();
 

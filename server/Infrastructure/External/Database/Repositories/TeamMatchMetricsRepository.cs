@@ -42,6 +42,6 @@ public class TeamMatchMetricsRepository : RepositoryBase
         LargestGoldLead = r.IsDBNull(4) ? null : r.GetInt32(4),
         GoldSwingPost20 = r.IsDBNull(5) ? null : r.GetInt32(5),
         WinWhenAheadAt20 = r.IsDBNull(6) ? null : r.GetBoolean(6),
-        CreatedAt = r.GetDateTime(7)
+        CreatedAt = r.GetDateTimeUtc(7)
     };
 }

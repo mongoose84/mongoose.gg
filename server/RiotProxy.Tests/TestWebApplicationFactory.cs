@@ -496,9 +496,9 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         /// Sets the last match for a player.
         /// </summary>
         public void SetLastMatch(string puuid, string matchId, int championId, string championName,
-            bool win, int kills, int deaths, int assists, long gameStartTime)
+            bool win, int kills, int deaths, int assists, long gameStartTime, int queueId = 420)
         {
-            _lastMatchByPuuid[puuid] = new LastMatchData(matchId, championId, championName, win, kills, deaths, assists, gameStartTime);
+            _lastMatchByPuuid[puuid] = new LastMatchData(matchId, championId, championName, win, kills, deaths, assists, gameStartTime, queueId);
         }
     }
 }

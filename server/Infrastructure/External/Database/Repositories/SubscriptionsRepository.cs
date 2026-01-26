@@ -63,14 +63,14 @@ public class SubscriptionsRepository : RepositoryBase
         Status = r.GetString(3),
         MollieSubscriptionId = r.IsDBNull(4) ? null : r.GetString(4),
         MolliePlanId = r.IsDBNull(5) ? null : r.GetString(5),
-        CurrentPeriodStart = r.IsDBNull(6) ? null : r.GetDateTime(6),
-        CurrentPeriodEnd = r.IsDBNull(7) ? null : r.GetDateTime(7),
-        TrialStart = r.IsDBNull(8) ? null : r.GetDateTime(8),
-        TrialEnd = r.IsDBNull(9) ? null : r.GetDateTime(9),
+        CurrentPeriodStart = r.GetDateTimeUtcOrNull(6),
+        CurrentPeriodEnd = r.GetDateTimeUtcOrNull(7),
+        TrialStart = r.GetDateTimeUtcOrNull(8),
+        TrialEnd = r.GetDateTimeUtcOrNull(9),
         IsFoundingMember = r.GetBoolean(10),
         CancelAtPeriodEnd = r.GetBoolean(11),
-        CanceledAt = r.IsDBNull(12) ? null : r.GetDateTime(12),
-        CreatedAt = r.GetDateTime(13),
-        UpdatedAt = r.GetDateTime(14)
+        CanceledAt = r.GetDateTimeUtcOrNull(12),
+        CreatedAt = r.GetDateTimeUtc(13),
+        UpdatedAt = r.GetDateTimeUtc(14)
     };
 }

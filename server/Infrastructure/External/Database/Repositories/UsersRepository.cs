@@ -192,9 +192,9 @@ public class UsersRepository : RepositoryBase
             IsActive = r.GetBoolean(5),
             Tier = r.GetString(6),
             MollieCustomerId = r.IsDBNull(7) ? null : r.GetString(7),
-            CreatedAt = r.GetDateTime(8),
-            UpdatedAt = r.GetDateTime(9),
-            LastLoginAt = r.IsDBNull(10) ? null : r.GetDateTime(10)
+            CreatedAt = r.GetDateTimeUtc(8),
+            UpdatedAt = r.GetDateTimeUtc(9),
+            LastLoginAt = r.GetDateTimeUtcOrNull(10)
         };
     }
 }

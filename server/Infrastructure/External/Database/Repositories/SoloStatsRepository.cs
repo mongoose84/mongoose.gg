@@ -811,16 +811,16 @@ public class SoloStatsRepository : RepositoryBase
 
         var result = new Dictionary<string, int>();
 
-        await ExecuteWithConnectionAsync<int>(async (conn, cmd) =>
+        await ExecuteWithConnectionAsync(async conn =>
         {
-            cmd.CommandText = sql;
+            await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@puuid", puuid);
             cmd.Parameters.AddWithValue("@start_timestamp", startTimestamp);
 
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                var gameDate = reader.GetDateTime(0);
+                var gameDate = reader.GetDateTimeUtc(0);
                 var matchCount = reader.GetInt32(1);
                 result[gameDate.ToString("yyyy-MM-dd")] = matchCount;
             }

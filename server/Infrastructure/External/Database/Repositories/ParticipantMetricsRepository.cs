@@ -65,6 +65,6 @@ public class ParticipantMetricsRepository : RepositoryBase
         Deaths30Plus = r.GetInt32(11),
         FirstDeathMinute = r.IsDBNull(12) ? null : r.GetInt32(12),
         FirstKillParticipationMinute = r.IsDBNull(13) ? null : r.GetInt32(13),
-        CreatedAt = r.GetDateTime(14)
+        CreatedAt = r.GetDateTimeUtc(14)
     };
 }

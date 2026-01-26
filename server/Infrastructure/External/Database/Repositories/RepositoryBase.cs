@@ -3,6 +3,33 @@ using MySqlConnector;
 namespace RiotProxy.Infrastructure.External.Database.Repositories;
 
 /// <summary>
+/// Extension methods for MySqlDataReader to ensure DateTime values are read with UTC kind.
+/// </summary>
+public static class MySqlDataReaderExtensions
+{
+    /// <summary>
+    /// Gets a DateTime value from the reader and specifies it as UTC.
+    /// MySQL TIMESTAMP columns store UTC values, so we explicitly mark them as such.
+    /// </summary>
+    public static DateTime GetDateTimeUtc(this MySqlDataReader reader, int ordinal)
+    {
+        var dateTime = reader.GetDateTime(ordinal);
+        return DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+    }
+
+    /// <summary>
+    /// Gets a nullable DateTime value from the reader and specifies it as UTC if not null.
+    /// </summary>
+    public static DateTime? GetDateTimeUtcOrNull(this MySqlDataReader reader, int ordinal)
+    {
+        if (reader.IsDBNull(ordinal))
+            return null;
+        var dateTime = reader.GetDateTime(ordinal);
+        return DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+    }
+}
+
+/// <summary>
 /// Base class for repositories providing common database operation helpers.
 /// Reduces connection boilerplate and provides consistent patterns for queries.
 /// </summary>
@@ -20,8 +47,7 @@ public abstract class RepositoryBase
     /// </summary>
     protected async Task<T?> ExecuteScalarAsync<T>(string sql, params (string name, object? value)[] parameters)
     {
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
+        await using var conn = await _factory.CreateOpenConnectionAsync();
         await using var cmd = new MySqlCommand(sql, conn);
         
         foreach (var (name, value) in parameters)
@@ -42,8 +68,7 @@ public abstract class RepositoryBase
     /// </summary>
     protected async Task<T?> ExecuteSingleAsync<T>(string sql, Func<MySqlDataReader, T> mapper, params (string name, object? value)[] parameters) where T : class
     {
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
+        await using var conn = await _factory.CreateOpenConnectionAsync();
         await using var cmd = new MySqlCommand(sql, conn);
         
         foreach (var (name, value) in parameters)
@@ -67,8 +92,7 @@ public abstract class RepositoryBase
     protected async Task<IList<T>> ExecuteListAsync<T>(string sql, Func<MySqlDataReader, T> mapper, params (string name, object? value)[] parameters)
     {
         var results = new List<T>();
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
+        await using var conn = await _factory.CreateOpenConnectionAsync();
         await using var cmd = new MySqlCommand(sql, conn);
         
         foreach (var (name, value) in parameters)
@@ -92,8 +116,7 @@ public abstract class RepositoryBase
     /// </summary>
     protected async Task<int> ExecuteNonQueryAsync(string sql, params (string name, object? value)[] parameters)
     {
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
+        await using var conn = await _factory.CreateOpenConnectionAsync();
         await using var cmd = new MySqlCommand(sql, conn);
         
         foreach (var (name, value) in parameters)
@@ -110,8 +133,7 @@ public abstract class RepositoryBase
     /// </summary>
     protected async Task<T> ExecuteWithConnectionAsync<T>(Func<MySqlConnection, Task<T>> action)
     {
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
+        await using var conn = await _factory.CreateOpenConnectionAsync();
         return await action(conn);
     }
 
@@ -121,8 +143,7 @@ public abstract class RepositoryBase
     /// </summary>
     protected async Task<T> ExecuteWithConnectionAsync<T>(Func<MySqlConnection, MySqlCommand, Task<T>> action)
     {
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
+        await using var conn = await _factory.CreateOpenConnectionAsync();
         await using var cmd = new MySqlCommand { Connection = conn };
         return await action(conn, cmd);
     }
@@ -132,8 +153,7 @@ public abstract class RepositoryBase
     /// </summary>
     protected async Task ExecuteTransactionAsync(Func<MySqlConnection, MySqlTransaction, Task> action)
     {
-        await using var conn = _factory.CreateConnection();
-        await conn.OpenAsync();
+        await using var conn = await _factory.CreateOpenConnectionAsync();
         await using var transaction = await conn.BeginTransactionAsync();
 
         try

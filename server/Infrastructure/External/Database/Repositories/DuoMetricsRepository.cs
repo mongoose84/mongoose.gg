@@ -46,6 +46,6 @@ public class DuoMetricsRepository : RepositoryBase
         AssistSynergyPct = r.IsDBNull(6) ? null : r.GetDecimal(6),
         SharedObjectiveParticipationPct = r.IsDBNull(7) ? null : r.GetDecimal(7),
         WinWhenAheadAt15 = r.IsDBNull(8) ? null : r.GetBoolean(8),
-        CreatedAt = r.GetDateTime(9)
+        CreatedAt = r.GetDateTimeUtc(9)
     };
 }

@@ -41,6 +41,6 @@ public class TeamRoleResponsibilitiesRepository : RepositoryBase
         DeathsSharePct = r.GetDecimal(4),
         GoldSharePct = r.GetDecimal(5),
         DamageSharePct = r.GetDecimal(6),
-        CreatedAt = r.GetDateTime(7)
+        CreatedAt = r.GetDateTimeUtc(7)
     };
 }

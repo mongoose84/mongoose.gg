@@ -56,6 +56,6 @@ public class AiSnapshotsRepository : RepositoryBase
         SummaryText = r.GetString(5),
         GoalsJson = r.IsDBNull(6) ? null : r.GetString(6),
         SnapshotDate = DateOnly.FromDateTime(r.GetDateTime(7)),
-        CreatedAt = r.GetDateTime(8)
+        CreatedAt = r.GetDateTimeUtc(8)
     };
 }

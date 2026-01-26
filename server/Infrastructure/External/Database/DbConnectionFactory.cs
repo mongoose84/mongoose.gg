@@ -17,5 +17,19 @@ namespace RiotProxy.Infrastructure.External.Database
 
             return new MySqlConnection(Secrets.DatabaseConnectionString);
         }
+
+        /// <inheritdoc />
+        public async Task<MySqlConnection> CreateOpenConnectionAsync()
+        {
+            var conn = CreateConnection();
+            await conn.OpenAsync();
+
+            // Explicitly set session time zone to UTC to ensure TIMESTAMP values
+            // are returned as UTC, regardless of the server's default time zone.
+            await using var cmd = new MySqlCommand("SET time_zone = '+00:00'", conn);
+            await cmd.ExecuteNonQueryAsync();
+
+            return conn;
+        }
     }
 }

@@ -36,6 +36,6 @@ public class SeasonsRepository : RepositoryBase
         PatchVersion = r.GetString(1),
         StartDate = DateOnly.FromDateTime(r.GetDateTime(2)),
         EndDate = r.IsDBNull(3) ? null : DateOnly.FromDateTime(r.GetDateTime(3)),
-        CreatedAt = r.GetDateTime(4)
+        CreatedAt = r.GetDateTimeUtc(4)
     };
 }
