@@ -5,6 +5,13 @@
     :is-empty="!overviewData"
     @retry="fetchOverviewData"
   >
+    <!-- Empty State Action -->
+    <template #empty-action>
+      <button class="btn-link-account" @click="showLinkModal = true">
+        Link Riot Account
+      </button>
+    </template>
+
     <!-- Player Header (G14b) -->
     <OverviewPlayerHeader
       v-if="overviewData?.playerHeader"
@@ -55,6 +62,13 @@
       <p class="text-text-secondary text-sm">{{ overviewData.suggestedActions.length }} action(s) available</p>
     </div>
   </OverviewLayout>
+
+  <!-- Link Riot Account Modal -->
+  <LinkRiotAccountModal
+    :is-open="showLinkModal"
+    @close="showLinkModal = false"
+    @success="handleLinkSuccess"
+  />
 </template>
 
 <script setup>
@@ -66,14 +80,16 @@ import OverviewLayout from '../components/overview/OverviewLayout.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
 import RankSnapshot from '../components/overview/RankSnapshot.vue'
 import LastMatchCard from '../components/overview/LastMatchCard.vue'
+import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
 
 const authStore = useAuthStore()
-const { syncProgress, resetProgress } = useSyncWebSocket()
+const { syncProgress, subscribe, resetProgress } = useSyncWebSocket()
 
 // State
 const overviewData = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
+const showLinkModal = ref(false)
 
 // Get primary account PUUID for sync status tracking
 const primaryPuuid = computed(() => {
@@ -92,14 +108,20 @@ const currentSyncStatus = computed(() => {
 
 const currentSyncProgress = computed(() => {
   if (!primaryPuuid.value) return null
+  // First check WebSocket for real-time updates
   const progress = syncProgress.get(primaryPuuid.value)
-  return progress?.progress ?? null
+  if (progress?.progress != null) return progress.progress
+  // Fall back to stored progress from account (for page refresh during sync)
+  return authStore.primaryRiotAccount?.syncProgress ?? null
 })
 
 const currentSyncTotal = computed(() => {
   if (!primaryPuuid.value) return null
+  // First check WebSocket for real-time updates
   const progress = syncProgress.get(primaryPuuid.value)
-  return progress?.total ?? null
+  if (progress?.total != null) return progress.total
+  // Fall back to stored total from account (for page refresh during sync)
+  return authStore.primaryRiotAccount?.syncTotal ?? null
 })
 
 async function fetchOverviewData() {
@@ -133,8 +155,24 @@ watch(syncProgress, (progress) => {
   }
 }, { deep: true })
 
+// Handle successful account link
+async function handleLinkSuccess() {
+  // Refresh user data to get updated riot accounts list
+  await authStore.refreshUser()
+  // Subscribe to sync updates for the newly linked account
+  if (primaryPuuid.value) {
+    subscribe(primaryPuuid.value)
+  }
+  // Refresh overview data
+  fetchOverviewData()
+}
+
 onMounted(() => {
   fetchOverviewData()
+  // Subscribe to sync updates for primary account
+  if (primaryPuuid.value) {
+    subscribe(primaryPuuid.value)
+  }
 })
 </script>
 
@@ -145,6 +183,24 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   backdrop-filter: blur(10px);
+}
+
+.btn-link-account {
+  margin-top: var(--spacing-md);
+  background: var(--color-primary);
+  color: white;
+  padding: var(--spacing-sm) var(--spacing-xl);
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-link-account:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 </style>
 

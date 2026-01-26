@@ -175,14 +175,17 @@ describe('useSyncWebSocket', () => {
       });
     });
 
-    it('creates progress entry when subscribing', () => {
+    it('creates progress entry when subscribing with null values for API fallback', () => {
       const { subscribe, syncProgress } = useSyncWebSocket();
 
       MockWebSocket.lastInstance.simulateOpen();
       subscribe('test-puuid-123');
 
       expect(syncProgress.has('test-puuid-123')).toBe(true);
-      expect(syncProgress.get('test-puuid-123').status).toBe('idle');
+      // Initial values are null so UI can fall back to API data
+      expect(syncProgress.get('test-puuid-123').status).toBeNull();
+      expect(syncProgress.get('test-puuid-123').progress).toBeNull();
+      expect(syncProgress.get('test-puuid-123').total).toBeNull();
     });
 
     it('sends unsubscribe message when unsubscribing', () => {
@@ -286,7 +289,8 @@ describe('useSyncWebSocket', () => {
 
       const progress = getProgress('test-puuid');
       expect(progress).not.toBeNull();
-      expect(progress.status).toBe('idle');
+      // Initial status is null for API fallback
+      expect(progress.status).toBeNull();
     });
 
     it('getProgress returns null for unknown puuid', () => {
@@ -308,7 +312,7 @@ describe('useSyncWebSocket', () => {
       expect(isSyncing('test-puuid')).toBe(true);
     });
 
-    it('resetProgress resets progress to initial state', () => {
+    it('resetProgress resets progress to null for API fallback', () => {
       const { subscribe, resetProgress, syncProgress } = useSyncWebSocket();
 
       MockWebSocket.lastInstance.simulateOpen();
@@ -323,9 +327,10 @@ describe('useSyncWebSocket', () => {
 
       resetProgress('test-puuid');
 
-      expect(progress.status).toBe('idle');
-      expect(progress.progress).toBe(0);
-      expect(progress.total).toBe(0);
+      // Reset to null so UI falls back to API data
+      expect(progress.status).toBeNull();
+      expect(progress.progress).toBeNull();
+      expect(progress.total).toBeNull();
       expect(progress.error).toBeNull();
     });
   });
