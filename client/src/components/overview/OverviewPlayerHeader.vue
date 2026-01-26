@@ -130,10 +130,18 @@ const syncProgressPercent = computed(() => {
 
 // Format last sync time for display
 const lastSyncDisplay = computed(() => {
-  if (!props.lastSyncAt) return 'Never synced'
+  // If sync status is 'completed' but lastSyncAt is missing, show "Synced"
+  // (this can happen if the page hasn't refreshed user data yet)
+  if (!props.lastSyncAt) {
+    if (props.syncStatus === 'completed') return 'Synced'
+    return 'Never synced'
+  }
 
   const syncDate = new Date(props.lastSyncAt)
-  if (isNaN(syncDate.getTime())) return 'Never synced'
+  if (isNaN(syncDate.getTime())) {
+    if (props.syncStatus === 'completed') return 'Synced'
+    return 'Never synced'
+  }
 
   const now = new Date()
   const diffMs = now - syncDate
