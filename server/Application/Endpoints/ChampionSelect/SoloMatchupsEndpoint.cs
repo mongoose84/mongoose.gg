@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Infrastructure.External.Database.Repositories;
 
-namespace RiotProxy.Application.Endpoints.Solo;
+namespace RiotProxy.Application.Endpoints.ChampionSelect;
 
 /// <summary>
 /// Solo Matchups Endpoint
