@@ -58,10 +58,9 @@ The original G5 (5 points) has been split into **11 focused tasks** (35 points t
 - **G5b9:** Fetch and store profile data during account linking (2 pts) ✅
 - **G5b10:** Update User dashboard endpoint with profile data (1 pt) ✅
 - **G5b11:** Champion matchups endpoint (3 pts) ✅
-- **G5b12:** Main champions by role endpoint (2 pts) ✅
-- **G5b14:** Backend LP trend data for Solo dashboard (2 pts)
+    - **G5b12:** Main champions by role endpoint (2 pts) ✅
 
-Backend tasks **G5b13** and **G5b15** are treated as backend **subtasks** of the corresponding vertical slices (G5b4–G5b7). In `docs/product_plan.md` their effort is rolled up into the main G5b4–G5b7 items; in this backlog they remain as separate subsections to spell out backend behaviour and acceptance criteria.
+    Backend task **G5b15** is treated as a backend **subtask** of the corresponding vertical slices (G5b4–G5b7). In `docs/product_plan.md` its effort is rolled up into the main G5b4–G5b7 items; in this backlog it remains as a separate subsection to spell out backend behaviour and acceptance criteria.
 
 Each vertical slice has clear acceptance criteria, enabling parallel frontend/backend work and incremental value delivery.
 
@@ -842,230 +841,7 @@ Track user behavior to inform product decisions.
 
 ## Issues
 
-### D1. [Infrastructure] Set up analytics provider
-
-**Priority:** P1 - High  
-**Type:** Infrastructure  
-**Estimate:** 2 points  
-**Labels:** `infrastructure`, `analytics`, `epic-d`
-
-#### Description
-
-Integrate analytics service (PostHog recommended).
-
-#### Acceptance Criteria
-
-- [ ] Choose provider: PostHog (self-hosted or cloud)
-- [ ] Add PostHog JS SDK to client
-- [ ] Configure project and API keys
-- [ ] Set up user identification on login
-- [ ] GDPR compliance: cookie consent if needed
-
----
-
-### D2. [Frontend] Implement core tracking events
-
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** D1  
-**Labels:** `frontend`, `analytics`, `epic-d`
-
-#### Description
-
-Track core user actions.
-
-#### Acceptance Criteria
-
-- [ ] Create `useAnalytics` composable
-- [ ] Track events:
-  - `user_signed_up` (source, method)
-  - `user_logged_in`
-  - `dashboard_viewed` (type: solo/duo/team)
-  - `ai_recommendation_requested`
-  - `goal_created` (from_ai: true/false)
-  - `goal_completed`
-  - `goal_abandoned`
-  - `subscription_started` (tier, annual)
-  - `subscription_cancelled` (reason)
-  - `feature_blocked` (feature, tier)
-  - `upgrade_prompt_shown` (feature)
-  - `upgrade_prompt_clicked` (feature)
-- [ ] Include user properties: tier, signup_date, games_analyzed
-
----
-
-### D3. [Frontend] Track page views and session data
-
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 1 point  
-**Depends on:** D1  
-**Labels:** `frontend`, `analytics`, `epic-d`
-
-#### Description
-
-Automatic page view and session tracking.
-
-#### Acceptance Criteria
-
-- [ ] Track page views on route change
-- [ ] Session duration tracking
-- [ ] Referrer tracking
-- [ ] UTM parameter capture
-
----
-
-### D4. [Backend] Create server-side event tracking
-
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** D1  
-**Labels:** `backend`, `analytics`, `epic-d`
-
-#### Description
-
-Track critical events server-side for accuracy.
-
-#### Acceptance Criteria
-
-- [ ] Create `IAnalyticsService` interface
-- [ ] Track:
-  - `subscription_created` (server-side, accurate)
-  - `subscription_cancelled`
-  - `payment_failed`
-  - `match_synced` (count per user)
-  - `api_error` (endpoint, error type)
-- [ ] Use PostHog server-side SDK or HTTP API
-
----
-
-### D5. [Analytics] Create key dashboards
-
-**Priority:** P2 - Medium  
-**Type:** Configuration  
-**Estimate:** 2 points  
-**Depends on:** D2, D3, D4  
-**Labels:** `analytics`, `dashboard`, `epic-d`
-
-#### Description
-
-Set up analytics dashboards in PostHog.
-
-#### Acceptance Criteria
-
-- [ ] **Acquisition Dashboard:**
-  - Signups per day/week
-  - Signup sources
-  - Conversion funnel: Visit → Signup → First Dashboard → Paid
-- [ ] **Engagement Dashboard:**
-  - DAU/WAU/MAU
-  - Feature usage breakdown
-  - AI recommendations per user
-  - Goals created/completed
-- [ ] **Revenue Dashboard:**
-  - MRR, subscriptions by tier
-  - Churn rate
-  - Upgrade/downgrade flow
-- [ ] **Retention Dashboard:**
-  - Cohort retention
-  - Days to first goal
-  - Feature correlation with retention
-
----
-
-### D6. [Backend] Create internal metrics endpoint
-
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Labels:** `backend`, `api`, `metrics`, `epic-d`
-
-#### Description
-
-Admin endpoint for real-time metrics.
-
-#### Acceptance Criteria
-
-- [ ] Create `GET /admin/metrics` endpoint (admin auth required)
-- [ ] Return:
-  ```json
-  {
-    "users": { "total": 500, "free": 400, "pro": 80, "team": 20 },
-    "mrr": 599.20,
-    "activeGoals": 150,
-    "aiRequestsToday": 45,
-    "matchesSynced": { "today": 1200, "total": 50000 }
-  }
-  ```
-- [ ] Cache metrics (refresh every 5 min)
-
----
-
-### D7. [Infrastructure] Set up error tracking
-
-**Priority:** P2 - Medium  
-**Type:** Infrastructure  
-**Estimate:** 2 points  
-**Labels:** `infrastructure`, `monitoring`, `epic-d`
-
-#### Description
-
-Track errors for debugging and reliability.
-
-#### Acceptance Criteria
-
-- [ ] Choose provider: Sentry (recommended) or PostHog errors
-- [ ] Add Sentry SDK to client and server
-- [ ] Configure source maps for client
-- [ ] Set up error alerts (email/Slack)
-- [ ] Track: exceptions, API errors, Stripe webhook failures
-
----
-
-### D8. [Analytics] Implement A/B testing framework
-
-**Priority:** P3 - Low  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** D1  
-**Labels:** `analytics`, `ab-testing`, `epic-d`
-
-#### Description
-
-Framework for A/B testing features and pricing.
-
-#### Acceptance Criteria
-
-- [ ] Use PostHog feature flags for A/B tests
-- [ ] Create `useExperiment` composable
-- [ ] First test: pricing page variants
-- [ ] Track experiment exposure and conversion
-
----
-
-### D9. [Frontend] Show match activity heatmap on user page
-
-**Priority:** P2 - Medium
-**Type:** Feature
-**Estimate:** 3 points
-**Depends on:** G9, E4
-**Labels:** `frontend`, `analytics`, `epic-d`
-
-#### Description
-
-Give users a GitHub-style contribution view of how many matches they played over time. The heatmap color intensity increases with the number of games played on each day.
-
-#### Acceptance Criteria
-
-- [ ] Query daily match counts per user from the `matches` table (using match timestamps)
-- [ ] Implement a heatmap component that renders a 3-month day-by-day matrix similar to GitHub's contribution graph
-- [ ] Color intensity scales with number of matches played (e.g., 0 = empty, 1-2 = light, 3-5 = medium, 6+ = intense)
-- [ ] Surface the heatmap on the user account page (Epic G9)
-- [ ] Provide tooltips showing date and number of matches played
-
----
+### D10. [Frontend] Implement cookie consent & preferences
 
 ### D10. [Frontend] Implement cookie consent & preferences
 
@@ -1190,27 +966,6 @@ Provide consistent, user-friendly error responses from the API surface and avoid
 
 ---
 
-### F9. [Testing] Add backend tests with focus on security
-
-**Priority:** P1 - High  
-**Type:** Testing  
-**Estimate:** 3 points  
-**Depends on:** F7, F8  
-**Labels:** `testing`, `security`, `epic-f`
-
-#### Description
-
-Introduce automated tests for the .NET server, with emphasis on security-sensitive flows.
-
-#### Acceptance Criteria
-
-- [ ] Create a test project for the backend (unit and/or integration tests)  
-- [ ] Tests cover cookie-based session authentication happy-path and failure scenarios  
-- [ ] Tests cover at least one representative endpoint from each major area (goals, subscriptions, dashboards)  
-- [ ] Tests verify error handling behavior (4xx vs 5xx, response shape)  
-- [ ] Tests run as part of the standard CI pipeline
-
----
 
 ### F10. [Reliability] Audit async methods for CancellationToken usage
 
@@ -1250,61 +1005,6 @@ Provide API endpoints for managing friends/duos/teams and searching for LoL acco
 - [ ] Provide a user search endpoint that lets you look up LoL accounts by Riot ID / game name + tagline when creating or linking a user
 - [ ] All new endpoints are protected by session authentication and follow the unified error-handling conventions
 
----
-
-### F13. [API] Implement Riot League API for rank/LP data + LP over time graph
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 5 points
-**Depends on:** F2, G5
-**Labels:** `api`, `riot-api`, `solo`, `epic-f`
-
-#### Description
-
-Implement the Riot League API integration to fetch and store player rank data (Solo/Duo and Flex tiers, divisions, LP). Use this to power the LP over time graph on the Solo dashboard, similar to how blitz.gg displays LP progression.
-
-Reference: https://developer.riotgames.com/apis#league-v4
-
-#### Acceptance Criteria
-
-- [ ] Add `GetLeagueEntriesByPuuidAsync` method to `IRiotApiClient` that calls Riot's League-v4 API
-- [ ] Create `RankSnapshot` entity with fields: puuid, queue_type (RANKED_SOLO_5x5, RANKED_FLEX_SR), tier, rank (division), lp, wins, losses, timestamp
-- [ ] Create `rank_snapshots` table in schema.sql with appropriate indexes
-- [ ] Create `RankSnapshotsRepository` with insert and query methods
-- [ ] Store rank snapshot on account link and after each match sync completion
-- [ ] Create endpoint `GET /api/v2/solo/{puuid}/lp-history` that returns LP progression data
-- [ ] Frontend `LpChart.vue` component that displays LP over time with time period filter
-- [ ] Chart shows tier/division boundaries visually (e.g., lines at Gold 1, Plat 4, etc.)
-
----
-
-### F14. [API] Check for new matches on user login and auto-sync
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 3 points
-**Depends on:** F7, G12
-**Labels:** `api`, `sync`, `riot-api`, `epic-f`
-
-#### Description
-
-When a user logs in, automatically check if their linked Riot accounts have new matches since the last sync. If new matches are found, trigger a sync and show syncing status via WebSocket updates, just like when a new account is linked.
-
-Also check if profile data (icon, level, rank) has changed and update if needed.
-
-#### Acceptance Criteria
-
-- [ ] On successful login, check each linked account for new matches since `last_sync_at`
-- [ ] If new matches exist, set `sync_status` to 'pending' to trigger the MatchHistorySyncJob
-- [ ] Frontend shows syncing indicator when sync is in progress after login
-- [ ] WebSocket updates flow to the logged-in user's session for real-time progress
-- [ ] Fetch current summoner data and compare icon/level; update if changed
-- [ ] Fetch current rank data and store new snapshot if rank/LP has changed
-- [ ] Add reasonable cooldown (e.g., don't re-check if last sync was < 5 minutes ago)
-
----
-
 # Epic G: Frontend App & Marketing
 
 Create a professional user experience with a landing page, pricing, and app shell consuming the API.
@@ -1317,184 +1017,6 @@ Create a professional user experience with a landing page, pricing, and app shel
 - **Scope**: Marketing landing page + app shell + solo experience first; duo/team dashboards follow once solo is stable in production.
 
 ## G5 Epic: Frontend Solo Dashboard
-
-### G5b4. [Frontend] Implement Winrate Over Time chart component
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 3 points
-**Depends on:** G5b1, F2
-**Labels:** `frontend`, `solo`, `dashboard`, `component`, `chart`, `epic-g`
-
-#### Description
-
-Create a reusable Winrate Over Time chart component that displays a rolling average winrate line chart. This chart is used on solo, duo, and team dashboards, so design for reusability. Data point is per game, rolling average is calculated over a window based on the time range selected at the top of the page. The window size is as follows:
-- Current season
-- Last week
-- Last month
-- Last 3 months
-- Last 6 months
-- All time
-
-Define how many data points we show as a max, and how we downsample if we have more than that. How do we handle 300 games in the graph over a 6 month period? Please ask questions in the thread, to give the best answer.
-
-When done, add it to the SoloDashboard.vue page. It already has a placeholder for the winrate chart.
-
-#### Backend Requirements
-
-- [ ] Solo dashboard endpoint (F2) must return `winrateTrend`:
-  - Array of: `{ gameIndex: number, winRate: number, timestamp: timestamp }`
-  - Pre-calculated rolling average (20-game window) to reduce client computation
-  - Respects queue filter and time range filter
-  - The window size is as follows:
-    - Current season
-    - Last week
-    - Last month
-    - Last 3 months
-    - Last 6 months
-    - All time
-    - The window size is dynamic based on the time range selected at the top of the page.
--[ ] Use the .augment/rules/api-design.md to guide the API design
-
-#### Frontend Requirements
-
-- [ ] WinrateChart component created (generic, accepts data prop)
-- [ ] Uses Chart.js or similar library to render line chart
-- [ ] X-axis: game number or date (depending on time range)
-- [ ] Y-axis: winrate percentage (0-100%)
-- [ ] Line color: purple accent, smooth curve
-- [ ] Hover tooltip shows exact winrate, game number, date
-- [ ] Responsive: chart resizes on mobile, readable at all sizes
-- [ ] Empty state: "No data for selected time range" message
-- [ ] Use the .augment/rules/ui-design-guidelines.md to guide the UI design
-
-#### Acceptance Criteria
-
-- [ ] Chart renders without errors
-- [ ] Data points are accurate and match backend
-- [ ] Rolling average line is smooth and readable
-- [ ] Tooltip shows correct values on hover
-- [ ] Chart resizes properly on window resize
-- [ ] Mobile display is readable (not cramped)
-- [ ] Time range filter causes chart to re-fetch and update
-- [ ] No visual glitches or rendering artifacts
-
----
-
-### G5b5. [Frontend] Implement LP Over Time chart component
-
-**Priority:** P0 - High
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** G5b1, F2
-**Labels:** `frontend`, `solo`, `dashboard`, `component`, `chart`, `epic-g`
-
-#### Description
-
-Create an LP Over Time chart that displays LP change per game (only for Ranked queue). Shows individual data points connected by lines, with annotations for rank promotions/demotions. Uses same charting library as WinrateChart for consistency.
-
-#### Backend Requirements
-
-- [ ] Solo dashboard endpoint (F2) must return `lpTrend`:
-  - Array of: `{ gameIndex: number, lpGain: number, currentLp: number, rank: string, timestamp: timestamp }`
-  - Only included if `queueFilter` includes ranked modes
-  - Pre-sorted by game timestamp
-  - The window size is as follows:
-      - Current season
-      - Last week
-      - Last month
-      - Last 3 months
-      - Last 6 months
-      - All time
-      - The window size is dynamic based on the time range selected at the top of the page.
-- [ ] Use the .augment/rules/api-design.md to guide the API design
-
-#### Frontend Requirements
-
-- [ ] LpChart component created
-- [ ] X-axis: game number, Y-axis: LP (0-100 per rank, resets at promotions)
-- [ ] Line chart with individual game LP gains/losses marked
-- [ ] Rank badges shown where promotions/demotions occur
-- [ ] Hover shows LP change, new LP, current rank
-- [ ] Empty for non-ranked queue filters with text "Select ranked queue to view LP history"
-- [ ] Use the .augment/rules/ui-design-guidelines.md to guide the UI design
-
-#### Acceptance Criteria
-
-- [ ] Chart renders correctly for ranked games
-- [ ] LP gains/losses are accurate
-- [ ] Rank badges display at rank boundaries
-- [ ] Chart is empty when queue filter is non-ranked with text "Select ranked queue to view LP history"
-- [ ] Data matches backend values
-- [ ] Tooltip shows correct LP information
-
----
-
-### G5b6. [Frontend] Implement Champion Matchups table component
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 3 points
-**Depends on:** G5b1, G5b11
-**Labels:** `frontend`, `solo`, `dashboard`, `component`, `table`, `epic-g`
-
-#### Description
-
-Create a Champion Matchups table showing the user's top 5 most-played champions with expandable rows. Each row displays opponents faced with that champion. Sorted by winrate, expandable to show all opponents (default shows top 3). 
-
-#### Backend Requirements
-
-- [ ] Create new endpoint: `GET /api/v2/solo/matchups/{userId}?queueType=...`
-- [ ] Returns `matchups` array, each with:
-  - `championName`, `championId`, `role`
-  - `totalGames`, `wins`, `winRate`
-  - `opponents`: Array of `{ opponentChampionName, wins, losses, gamesPlayed, winRate }`
-  - Sorted by winrate descending
-- [ ] Use the .augment/rules/api-design.md to guide the API design
-- [ ]Reactive to the time range filter:
-      - Current season
-      - Last week
-      - Last month
-      - Last 3 months
-      - Last 6 months
-      - All time
-- [ ]Reactive to the queue filter: Ranked Solo, Ranked Flex, Normal, ARAM, All
-
-#### Frontend Requirements
-
-- [ ] ChampionMatchupsTable component created
-- [ ] Table structure:
-  - Header row: Champion | Record | Winrate | [Expand]
-  - For each champion: name, role badge, W-L, winrate %
-  - Expandable row showing top 3 opponents (default)
-  - "Show All" button to expand full opponent list
-  - Opponent rows: icon, name, W-L vs that opponent, winrate
-- [ ] Sorting: champions sorted by winrate (descending)
-- [ ] Opponent sorting: by games played (most played first)
-- [ ] Responsive: table scrolls horizontally on mobile, or collapses columns
-- [ ] Icons load from Riot CDN
-- [ ] Use the .augment/rules/ui-design-guidelines.md to guide the UI design
-- [ ] Replaces the Champion Matchups placeholder in SoloDashboard.vue
-- [ ]Reactive to the time range filter:
-      - Current season
-      - Last week
-      - Last month
-      - Last 3 months
-      - Last 6 months
-      - All time
-- [ ]Reactive to the queue filter: Ranked Solo, Ranked Flex, Normal, ARAM, All
-
-#### Acceptance Criteria
-
-- [ ] Table displays all top 5 champions
-- [ ] Winrate colors  - use the /client/src/composables/useWinRateColor.js composable
-- [ ] Expand/collapse works smoothly
-- [ ] Opponent list shows correctly
-- [ ] All icons load
-- [ ] Table is sortable or shows correct default sort
-- [ ] Updates when queue filter changes
-
----
 
 ### G5b7. [Frontend] Implement Goals Panel (basic display)
 
@@ -1546,33 +1068,6 @@ Create a Goals Panel that displays active goals (if Pro tier) or shows an upgrad
 The Overview page (defined in `docs/ux_specification.md`) is the default landing page after login, providing situational awareness and routing in 5–15 seconds (one scroll max). All components are read-only, fast to render, and optimized for click-through.
 
 **Total estimate:** 8 points
-
----
-
-### G14a. [Backend] Create Overview endpoint
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** F2, E3
-**Labels:** `backend`, `api`, `overview`, `epic-g`
-
-#### Description
-
-Create the backend endpoint that aggregates all data needed for the Overview page.
-
-#### Acceptance Criteria
-
-- [ ] Endpoint `GET /api/v2/overview/{userId}` implemented
-- [ ] Returns player header data: `summonerName`, `level`, `region`, `profileIconUrl`, `activeContexts` (Solo/Duo/Team badges)
-- [ ] Returns rank snapshot for primary queue: `primaryQueueLabel`, `rank`, `lp`, `lpDeltaLast20`, `last20Wins`, `last20Losses`, `lpDeltasLast20[]` (20 items), `wlLast20[]` (20 items)
-- [ ] Returns last match: `matchId`, `championIconUrl`, `result`, `kda`, `timestamp`
-- [ ] Returns active goals preview (max 3): `goalId`, `title`, `context`, `progress`
-- [ ] Returns suggested actions (max 3): `actionId`, `text`, `deepLink`, `priority`
-- [ ] Primary queue auto-selected: queue with highest match count in recent window (last 50 matches or 30 days)
-- [ ] Tie-breaker order: Ranked Solo/Duo → Ranked Flex → Normal Draft → ARAM → other
-- [ ] All "Last 20" metrics computed within the primary queue only
-- [ ] Response time under 500ms
 
 ---
 
@@ -1635,81 +1130,6 @@ Create the `<SuggestedActions>` component showing up to 3 actionable suggestions
 - [ ] Context (Solo/Duo/Team) always visible via OverviewPlayerHeader
 - [ ] Page loads in under 2 seconds
 - [ ] Mobile responsive
-
----
-
-### G5b13. [Backend] Fetch winrate trend data for Solo dashboard
-
-**Priority:** P0 - High
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** E3, F2
-**Labels:** `backend`, `statistics`, `epic-g`
-
-#### Description
-
-Update Solo dashboard endpoint (F2) to include `winrateTrend` array. Calculates rolling average winrate (20-game window) for each game in the result set, respecting queue and time range filters.
-
-#### Acceptance Criteria
-
-- [ ] Endpoint response includes `winrateTrend`:
-  ```json
-  {
-    "winrateTrend": [
-      {
-        "gameIndex": 1,
-        "winRate": 50.0,
-        "timestamp": "2026-01-10T14:32:00Z"
-      }
-      // ... one per game
-    ]
-  }
-  ```
-- [ ] Rolling average calculated over 20-game window
-- [ ] Respects time range filter (Last Week, Last Month, etc.)
-- [ ] Respects queue filter
-- [ ] Sorted chronologically
-- [ ] First few games may have < 20-game average (partial window)
-- [ ] Tested with sample data
-
----
-
-### G5b14. [Backend] Fetch LP trend data for Solo dashboard
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** E3, F2
-**Labels:** `backend`, `statistics`, `epic-g`
-
-#### Description
-
-Update Solo dashboard endpoint (F2) to include `lpTrend` array. Returns LP change per game for ranked matches, including rank info at each point.
-
-#### Acceptance Criteria
-
-- [ ] Endpoint response includes `lpTrend` (empty array if no ranked games):
-  ```json
-  {
-    "lpTrend": [
-      {
-        "gameIndex": 1,
-        "lpGain": 25,
-        "currentLp": 25,
-        "rank": "Silver IV",
-        "timestamp": "2026-01-10T14:32:00Z"
-      }
-      // ... one per ranked game
-    ]
-  }
-  ```
-- [ ] Only called for ranked queues (solo/duo, flex)
-- [ ] Only included if queue filter includes ranked modes
-- [ ] Calculates LP gain/loss from match result
-- [ ] Tracks rank at each game
-- [ ] Marks promotions/demotions
-- [ ] Update the database to store lp and rank at each game. Use/update the .augment/rules/database-schema.md and /server/schema.sql files to document the changes.
-- [ ] Update the MatchHistorySyncJob to fill in the new columns when processing matches.
 
 ---
 
@@ -1794,79 +1214,7 @@ Create a new Team dashboard screen under `/app/team` that consumes the Team dash
 
 ---
 
-### G8. [Cleanup] Remove legacy dashboard views & routes
-
-**Priority:** P2 - Medium
-**Type:** Chore
-**Estimate:** 1 point
-**Depends on:** G5, G6, G7
-**Labels:** `frontend`, `cleanup`, `epic-g`
-
-#### Description
-
-Remove old dashboard views, components and routes that are no longer used after migration.
-
-#### Acceptance Criteria
-
-- [ ] Legacy Solo/Duo/Team views are removed or replaced by thin redirect stubs
-- [ ] No dead routes or components remain for legacy dashboards
-- [ ] Router configuration reflects only the current navigation structure
-
----
-
-### G10. [Frontend] Implement user dropdown details & account settings page
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 8 points
-**Depends on:** G9, G12, C7, C10, F11, F12
-**Labels:** `frontend`, `auth`, `users`, `settings`, `subscription`, `riot-api`, `epic-g`
-
-#### Description
-
-Extend the user dropdown to show key account information and link to a new `/app/settings` page. On this settings page, users can update their username, email, password, profile icon, subscription plan, and manage their linked game accounts (Riot accounts). Changing email reuses the verification flow and sets a flag in the database to unverified until validation is complete.
-
-#### Acceptance Criteria
-
-- [ ] User dropdown displays current username, email, and subscription tier/status using data from the profile endpoint (enriched by C10)
-- [ ] The Settings item in the dropdown is now active and navigates to `/app/settings`
-- [ ] `/app/settings` is only accessible to authenticated users and is rendered inside the G2 app shell
-- [ ] Users can update their **username**:
-  - Uses the same uniqueness and length/format validation rules as signup
-  - Shows clear error messages when the username is already taken or invalid
-- [ ] Users can update their **email**:
-  - Changing email updates the stored email and sets `emailVerified = false` (or equivalent)
-  - The UI clearly indicates the email is pending verification and prompts the user to complete the 6-digit verification flow again
-- [ ] Users can change their **password** using a form that includes current password, new password, and confirmation; failures (wrong current password or policy violations) are handled with clear messages
-- [ ] Users can change their **profile icon** by selecting from a predefined set of avatar icons (no file upload yet); the chosen icon is persisted and reflected in the `/app/*` header and dropdown
-- [ ] **Subscription Management** section on `/app/settings`:
-  - Shows current subscription tier (Free, Pro) and status (active, cancelled, past_due)
-  - Shows billing period end date if subscribed
-  - "Upgrade Plan" button opens a plan selection modal or routes to `/pricing`
-  - "Change Plan" button (for existing subscribers) allows switching between tiers
-  - "Cancel Subscription" button with confirmation dialog; calls backend to cancel at period end
-  - "Reactivate" button if subscription is cancelled but still within billing period
-  - Payment method display (last 4 digits of card) with "Update Payment Method" link to Stripe portal
-- [ ] **Game Accounts** section on `/app/settings`:
-  - Lists all linked Riot accounts showing: Game Name#Tag, Region, Sync status, Last synced timestamp
-  - "Link New Account" button opens `LinkRiotAccountModal.vue` (reused from G12)
-  - Per-account actions:
-    - "Set as Primary" button to designate main account for dashboard defaults
-    - "Unlink" button with confirmation dialog; calls `DELETE /api/v2/users/me/riot-accounts/{accountId}`
-    - "Refresh Sync" button to manually trigger match sync for that account
-  - Empty state with prominent CTA if no accounts are linked
-  - Visual indicator for primary account
-- [ ] Update or add backend tests (in this issue or F11) to confirm that username/email/password update endpoints:
-  - Use parameterized queries / ORM APIs (no dynamic SQL)
-  - Do not leak SQL error details when given malicious input
-- [ ] Add backend endpoints if not already present:
-  - `PATCH /api/v2/users/me` for profile updates (username, email, avatar)
-  - `POST /api/v2/users/me/change-password` for password changes
-  - `DELETE /api/v2/users/me/riot-accounts/{accountId}` for unlinking game accounts
-  - `PATCH /api/v2/users/me/riot-accounts/{accountId}` for setting primary account
-  - `POST /api/v2/users/me/riot-accounts/{accountId}/sync` for manual sync trigger
-
----
+### G11. [Frontend] Implement friends management UI scaffolding
 
 ### G11. [Frontend] Implement friends management UI scaffolding
 
@@ -1936,27 +1284,16 @@ Introduce a first-pass friends/social area in the app UI that defines the layout
 | C12 | Create upgrade prompt component | Subscription | 2 |
 | C14 | Gate features based on tier | Subscription | 2 |
 | C17 | Implement 2-tier pricing (Free + Pro) | Subscription | 5 |
-| D1 | Set up analytics provider | Analytics | 2 |
-| D2 | Implement core tracking events | Analytics | 3 |
-| D3 | Track page views and sessions | Analytics | 1 |
 | F4 | Implement Team dashboard endpoint | API | 3 |
 | F5 | Implement AI snapshot/goal input endpoint | API | 3 |
 | F8 | Implement unified error handling & problem responses | API | 3 |
-| F9 | Add backend tests with focus on security | API | 3 |
 | F11-social | Implement social endpoints (friends, teams, search) | API | 3 |
-| F13-lp | Implement Riot League API for rank/LP data | API | 5 |
-| G5b4 | Winrate Over Time chart | Frontend | 3 |
-| G5b5 | LP Over Time chart | Frontend | 2 |
-| G5b6 | Champion Matchups table | Frontend | 3 |
 | G5b7 | Goals Panel | Frontend | 2 |
-| G5b13 | Winrate trend data endpoint | Backend | 2 |
-| G5b14 | LP trend data endpoint | Backend | 2 |
 | G5b15 | Goals array in Solo endpoint | Backend | 2 |
 | G6 | Implement Duo dashboard view | Frontend | 5 |
 | G7 | Implement Team dashboard view | Frontend | 5 |
-| G10 | Implement user dropdown details & account settings page | Frontend | 8 |
 
-**P1 Remaining Total:** 85 points
+    **P1 Remaining Total:** 51 points
 
 ### P2 - Medium
 
@@ -1966,17 +1303,11 @@ Introduce a first-pass friends/social area in the app UI that defines the layout
 | B14 | Create active goals display | AI Goals | 3 |
 | B15 | Create goal progress chart | AI Goals | 2 |
 | C15 | Create founding member pricing | Subscription | 2 |
-| D4 | Server-side event tracking | Analytics | 2 |
-| D5 | Create key dashboards | Analytics | 2 |
-| D6 | Create internal metrics endpoint | Analytics | 2 |
-| D7 | Set up error tracking | Analytics | 2 |
-| D9 | Show match activity heatmap on user page | Analytics | 3 |
 | D10 | Implement cookie consent & preferences | Analytics | 2 |
 | F10 | Audit async methods for CancellationToken usage | API | 3 |
-| G8 | Remove legacy dashboard views & routes | Frontend | 1 |
 | G11 | Implement friends management UI scaffolding | Frontend | 3 |
 
-**P2 Remaining Total:** 30 points
+    **P2 Remaining Total:** 18 points
 
 ### P3 - Low
 
