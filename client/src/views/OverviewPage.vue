@@ -13,6 +13,10 @@
       :region="overviewData.playerHeader.region"
       :profile-icon-url="overviewData.playerHeader.profileIconUrl"
       :active-contexts="overviewData.playerHeader.activeContexts"
+      :sync-status="currentSyncStatus"
+      :sync-progress="currentSyncProgress"
+      :sync-total="currentSyncTotal"
+      :last-sync-at="authStore.primaryRiotAccount?.lastSyncAt"
     />
 
     <!-- Rank Snapshot (G14c) -->
@@ -54,8 +58,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
+import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { getOverview } from '../services/authApi'
 import OverviewLayout from '../components/overview/OverviewLayout.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
@@ -63,11 +68,39 @@ import RankSnapshot from '../components/overview/RankSnapshot.vue'
 import LastMatchCard from '../components/overview/LastMatchCard.vue'
 
 const authStore = useAuthStore()
+const { syncProgress, resetProgress } = useSyncWebSocket()
 
 // State
 const overviewData = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
+
+// Get primary account PUUID for sync status tracking
+const primaryPuuid = computed(() => {
+  return authStore.primaryRiotAccount?.puuid || null
+})
+
+// Sync status computed from WebSocket progress, falls back to stored status
+const currentSyncStatus = computed(() => {
+  if (!primaryPuuid.value) return null
+  // First check WebSocket for real-time updates
+  const progress = syncProgress.get(primaryPuuid.value)
+  if (progress?.status) return progress.status
+  // Fall back to stored status from account
+  return authStore.primaryRiotAccount?.syncStatus || null
+})
+
+const currentSyncProgress = computed(() => {
+  if (!primaryPuuid.value) return null
+  const progress = syncProgress.get(primaryPuuid.value)
+  return progress?.progress || null
+})
+
+const currentSyncTotal = computed(() => {
+  if (!primaryPuuid.value) return null
+  const progress = syncProgress.get(primaryPuuid.value)
+  return progress?.total || null
+})
 
 async function fetchOverviewData() {
   if (!authStore.userId) return
@@ -84,6 +117,21 @@ async function fetchOverviewData() {
     isLoading.value = false
   }
 }
+
+// Watch for sync completion to refresh data
+watch(syncProgress, (progress) => {
+  for (const [puuid, data] of progress.entries()) {
+    if (data.status === 'completed') {
+      // Refresh user data to get updated profile info
+      authStore.refreshUser()
+      // Refresh overview data to get updated stats
+      fetchOverviewData()
+      // Reset the status after refresh to avoid repeated refreshes
+      resetProgress(puuid)
+      break
+    }
+  }
+}, { deep: true })
 
 onMounted(() => {
   fetchOverviewData()

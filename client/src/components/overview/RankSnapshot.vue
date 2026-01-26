@@ -30,9 +30,13 @@
       </div>
       <!-- W/L Strip -->
       <div v-if="wlLast20 && wlLast20.length > 0" class="wl-strip">
+        <div class="strip-labels">
+          <span class="strip-label">Oldest</span>
+          <span class="strip-label">Newest</span>
+        </div>
         <div class="strip-indicators">
           <div
-            v-for="(isWin, index) in wlLast20"
+            v-for="(isWin, index) in reversedWlLast20"
             :key="`wl-${index}`"
             class="wl-indicator"
             :class="isWin ? 'win' : 'loss'"
@@ -57,6 +61,11 @@ const props = defineProps({
 })
 
 const emblemError = ref(false)
+
+// Reverse the W/L array so oldest is on the left, newest on the right
+const reversedWlLast20 = computed(() => {
+  return [...props.wlLast20].reverse()
+})
 
 // Extract tier from rank string (e.g., "SILVER IV" -> "silver")
 const tierDisplay = computed(() => {
@@ -220,6 +229,19 @@ function handleEmblemError() {
 /* W/L Strip */
 .wl-strip {
   margin-top: var(--spacing-xs);
+}
+
+.strip-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.strip-label {
+  font-size: 0.625rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .strip-indicators {

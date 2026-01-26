@@ -66,15 +66,12 @@
               </div>
             </div>
 
-            <!-- Matchups Section -->
-            <div
-              v-if="getMatchupsForChampion(champion.championId).good.length > 0 || getMatchupsForChampion(champion.championId).bad.length > 0"
-              class="flex gap-lg pt-md border-t border-border"
-            >
+            <!-- Matchups Section (always shown) -->
+            <div class="flex gap-lg pt-md border-t border-border">
               <!-- Good Matchups -->
-              <div v-if="getMatchupsForChampion(champion.championId).good.length > 0" class="flex-1">
+              <div class="flex-1">
                 <span class="text-2xs text-text-secondary uppercase tracking-wide mb-xs block">Strong vs</span>
-                <div class="flex gap-xs">
+                <div v-if="getMatchupsForChampion(champion.championId).good.length > 0" class="flex gap-xs">
                   <div
                     v-for="opponent in getMatchupsForChampion(champion.championId).good"
                     :key="opponent.opponentChampionId"
@@ -92,12 +89,13 @@
                     </div>
                   </div>
                 </div>
+                <span v-else class="text-2xs text-text-secondary italic h-[52px] flex items-center">Not enough data</span>
               </div>
 
               <!-- Bad Matchups -->
-              <div v-if="getMatchupsForChampion(champion.championId).bad.length > 0" class="flex-1">
+              <div class="flex-1">
                 <span class="text-2xs text-text-secondary uppercase tracking-wide mb-xs block">Weak vs</span>
-                <div class="flex gap-xs">
+                <div v-if="getMatchupsForChampion(champion.championId).bad.length > 0" class="flex gap-xs">
                   <div
                     v-for="opponent in getMatchupsForChampion(champion.championId).bad"
                     :key="opponent.opponentChampionId"
@@ -115,6 +113,7 @@
                     </div>
                   </div>
                 </div>
+                <span v-else class="text-2xs text-text-secondary italic h-[52px] flex items-center">Not enough data</span>
               </div>
             </div>
           </article>
