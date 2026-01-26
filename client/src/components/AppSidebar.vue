@@ -2,6 +2,8 @@
   <aside
     class="fixed top-0 left-0 h-screen bg-background-surface border-r border-border backdrop-blur-[10px] flex flex-col transition-[width] duration-300 ease-out z-[100]"
     :class="isCollapsed ? 'w-16 overflow-visible' : 'w-64'"
+    data-testid="app-sidebar"
+    :data-collapsed="isCollapsed"
   >
     <!-- Logo / Toggle Section -->
     <div class="flex items-center justify-between px-md py-lg border-b border-border min-h-[64px]">
@@ -73,6 +75,7 @@
         @click="handleAnalysisSectionClick"
         @mouseenter="handleAnalysisSectionMouseEnter"
         @mouseleave="handleAnalysisSectionMouseLeave"
+        data-testid="nav-section-analysis"
       >
         <div
           class="flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-default whitespace-nowrap hover:bg-background-elevated hover:text-text"
@@ -87,13 +90,13 @@
         </div>
         <!-- Expanded: show inline submenu -->
         <div v-if="!isCollapsed" class="ml-xl mt-xs">
-          <router-link to="/app/solo" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text">
+          <router-link to="/app/solo" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text" data-testid="nav-subitem-solo">
             <span class="font-medium tracking-tight">Solo</span>
           </router-link>
-          <router-link to="/app/duo" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text">
+          <router-link to="/app/duo" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text" data-testid="nav-subitem-duo">
             <span class="font-medium tracking-tight">Duo</span>
           </router-link>
-          <router-link to="/app/team" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text">
+          <router-link to="/app/team" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text" data-testid="nav-subitem-team">
             <span class="font-medium tracking-tight">Team</span>
           </router-link>
         </div>
@@ -105,9 +108,9 @@
           @click.stop
         >
           <div class="py-sm px-md text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border mb-xs">Analysis</div>
-          <router-link to="/app/solo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="closeAnalysisPopout">Solo</router-link>
-          <router-link to="/app/duo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="closeAnalysisPopout">Duo</router-link>
-          <router-link to="/app/team" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="closeAnalysisPopout">Team</router-link>
+          <router-link to="/app/solo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="closeAnalysisPopout" data-testid="popout-item-solo">Solo</router-link>
+          <router-link to="/app/duo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="closeAnalysisPopout" data-testid="popout-item-duo">Duo</router-link>
+          <router-link to="/app/team" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="closeAnalysisPopout" data-testid="popout-item-team">Team</router-link>
         </div>
       </div>
 
@@ -265,7 +268,7 @@ function closeAnalysisPopout() {
 
 // Close popout when clicking outside
 function handleClickOutside(event) {
-  const sidebar = document.querySelector('.app-sidebar');
+  const sidebar = document.querySelector('[data-testid="app-sidebar"]');
   if (sidebar && !sidebar.contains(event.target)) {
     analysisPopoutOpen.value = false;
   }

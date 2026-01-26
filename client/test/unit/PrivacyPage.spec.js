@@ -65,12 +65,12 @@ describe('PrivacyPage.vue', () => {
 
   it('has properly structured legal content container', () => {
     const wrapper = createWrapper();
-    expect(wrapper.find('.legal-content').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="legal-content"]').exists()).toBe(true);
   });
 
   it('displays multiple legal sections', () => {
     const wrapper = createWrapper();
-    const sections = wrapper.findAll('.legal-section');
+    const sections = wrapper.findAll('section');
     expect(sections.length).toBeGreaterThan(0);
   });
 });

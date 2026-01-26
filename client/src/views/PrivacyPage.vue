@@ -3,7 +3,7 @@
     <NavBar />
 
     <div class="max-w-[800px] mx-auto py-2xl px-xl">
-      <div class="bg-background-surface border border-border rounded-lg p-2xl backdrop-blur-[10px]">
+      <div class="bg-background-surface border border-border rounded-lg p-2xl backdrop-blur-[10px]" data-testid="legal-content">
         <h1 class="text-2xl font-bold tracking-tight mb-sm text-text">Privacy Policy</h1>
         <p class="text-sm text-text-secondary mb-2xl">Last updated: {{ currentDate }}</p>
 

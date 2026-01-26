@@ -35,12 +35,12 @@ describe('LinkRiotAccountModal.vue', () => {
   describe('Rendering', () => {
     it('renders when isOpen is true', () => {
       const wrapper = createWrapper({ isOpen: true });
-      expect(wrapper.find('.modal-overlay').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="modal-overlay"]').exists()).toBe(true);
     });
 
     it('does not render when isOpen is false', () => {
       const wrapper = createWrapper({ isOpen: false });
-      expect(wrapper.find('.modal-overlay').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="modal-overlay"]').exists()).toBe(false);
     });
 
     it('displays the modal title', () => {
@@ -236,7 +236,7 @@ describe('LinkRiotAccountModal.vue', () => {
       await wrapper.find('form').trigger('submit');
 
       expect(wrapper.text()).toContain('Linking...');
-      expect(wrapper.find('.loading-spinner').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="loading-spinner"]').exists()).toBe(true);
     });
 
     it('emits success and close events on successful submit', async () => {
@@ -299,7 +299,7 @@ describe('LinkRiotAccountModal.vue', () => {
     it('emits close event when Cancel button is clicked', async () => {
       const wrapper = createWrapper();
 
-      await wrapper.find('.btn-ghost').trigger('click');
+      await wrapper.find('[data-testid="cancel-btn"]').trigger('click');
 
       expect(wrapper.emitted('close')).toBeTruthy();
     });
@@ -307,7 +307,7 @@ describe('LinkRiotAccountModal.vue', () => {
     it('emits close event when clicking overlay', async () => {
       const wrapper = createWrapper();
 
-      await wrapper.find('.modal-overlay').trigger('click');
+      await wrapper.find('[data-testid="modal-overlay"]').trigger('click');
 
       expect(wrapper.emitted('close')).toBeTruthy();
     });
@@ -315,7 +315,7 @@ describe('LinkRiotAccountModal.vue', () => {
     it('emits close event when clicking close button', async () => {
       const wrapper = createWrapper();
 
-      await wrapper.find('.close-btn').trigger('click');
+      await wrapper.find('[data-testid="close-btn"]').trigger('click');
 
       expect(wrapper.emitted('close')).toBeTruthy();
     });
@@ -323,7 +323,7 @@ describe('LinkRiotAccountModal.vue', () => {
     it('does not close when clicking modal content', async () => {
       const wrapper = createWrapper();
 
-      await wrapper.find('.modal-content').trigger('click');
+      await wrapper.find('[data-testid="modal-content"]').trigger('click');
 
       expect(wrapper.emitted('close')).toBeFalsy();
     });
@@ -353,7 +353,7 @@ describe('LinkRiotAccountModal.vue', () => {
       await wrapper.find('#region').setValue('kr');
       await wrapper.find('form').trigger('submit');
 
-      expect(wrapper.find('.close-btn').attributes('disabled')).toBeDefined();
+      expect(wrapper.find('[data-testid="close-btn"]').attributes('disabled')).toBeDefined();
     });
 
     it('disables Cancel button while submitting', async () => {
@@ -365,7 +365,7 @@ describe('LinkRiotAccountModal.vue', () => {
       await wrapper.find('#region').setValue('kr');
       await wrapper.find('form').trigger('submit');
 
-      expect(wrapper.find('.btn-ghost').attributes('disabled')).toBeDefined();
+      expect(wrapper.find('[data-testid="cancel-btn"]').attributes('disabled')).toBeDefined();
     });
 
     it('disables form inputs while submitting', async () => {

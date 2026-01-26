@@ -81,9 +81,9 @@ describe('AuthPage.vue', () => {
     expect(wrapper.text()).toContain('Sign in to your account');
     
     // Click toggle button
-    const toggleBtn = wrapper.find('button.auth-toggle');
+    const toggleBtn = wrapper.find('[data-testid="auth-toggle"]');
     await toggleBtn.trigger('click');
-    
+
     // Should now show signup text
     expect(wrapper.text()).toContain('Create your account');
   });
@@ -92,7 +92,7 @@ describe('AuthPage.vue', () => {
     const wrapper = createWrapper();
 
     // Toggle to signup
-    const toggleBtn = wrapper.find('button.auth-toggle');
+    const toggleBtn = wrapper.find('[data-testid="auth-toggle"]');
     await toggleBtn.trigger('click');
 
     // Should show username input
@@ -109,30 +109,30 @@ describe('AuthPage.vue', () => {
 
   it('displays auth card with proper styling', () => {
     const wrapper = createWrapper();
-    expect(wrapper.find('.auth-card').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="auth-card"]').exists()).toBe(true);
   });
 
   it('displays auth logo', () => {
     const wrapper = createWrapper();
-    const logo = wrapper.find('.auth-logo');
+    const logo = wrapper.find('[data-testid="auth-logo"]');
     expect(logo.exists()).toBe(true);
   });
 
   it('has proper form structure', () => {
     const wrapper = createWrapper();
-    expect(wrapper.find('.auth-form').exists()).toBe(true);
-    expect(wrapper.find('.form-group').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="auth-form"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="form-group"]').exists()).toBe(true);
   });
 
   it('submit button text changes with mode', async () => {
     const wrapper = createWrapper();
-    
+
     // Login mode
     expect(wrapper.text()).toContain('Sign In');
     expect(wrapper.text()).not.toContain('Create Account');
-    
+
     // Toggle to signup
-    const toggleBtn = wrapper.find('button.auth-toggle');
+    const toggleBtn = wrapper.find('[data-testid="auth-toggle"]');
     await toggleBtn.trigger('click');
     
     // Should show Create Account

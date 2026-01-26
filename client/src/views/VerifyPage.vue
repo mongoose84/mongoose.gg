@@ -3,7 +3,7 @@
     <NavBar />
 
     <div class="min-h-[calc(100vh-64px)] flex items-center justify-center p-xl">
-      <div class="w-full max-w-[440px] p-2xl bg-background-surface border border-border rounded-lg backdrop-blur-[10px]">
+      <div class="w-full max-w-[440px] p-2xl bg-background-surface border border-border rounded-lg backdrop-blur-[10px]" data-testid="verify-card">
         <div class="text-center mb-xl">
           <img src="/mongoose.png" alt="Mongoose" class="w-32 h-16 mb-md mx-auto" />
           <h1 class="text-2xl font-bold tracking-tight mb-xs text-text">Verify Your Email</h1>
@@ -13,17 +13,17 @@
         </div>
 
         <!-- Success message -->
-        <div v-if="successMessage" class="p-md bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.3)] rounded-md text-[#22c55e] text-sm text-center mb-md">
+        <div v-if="successMessage" class="p-md bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.3)] rounded-md text-[#22c55e] text-sm text-center mb-md" data-testid="verify-success">
           {{ successMessage }}
         </div>
 
         <!-- Error message -->
-        <div v-if="errorMessage" class="p-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-md text-[#ef4444] text-sm text-center mb-md">
+        <div v-if="errorMessage" class="p-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-md text-[#ef4444] text-sm text-center mb-md" data-testid="verify-error">
           {{ errorMessage }}
         </div>
 
-        <form @submit.prevent="handleSubmit" class="flex flex-col gap-lg">
-          <div class="flex flex-col gap-xs">
+        <form @submit.prevent="handleSubmit" class="flex flex-col gap-lg" data-testid="verify-form">
+          <div class="flex flex-col gap-xs" data-testid="form-group">
             <label for="code" class="text-sm font-medium text-text tracking-tight">Verification Code</label>
             <input
               id="code"
@@ -45,6 +45,7 @@
             type="submit"
             class="p-md bg-primary text-white font-semibold text-base tracking-tight border-none rounded-md cursor-pointer transition-all duration-200 shadow-sm mt-md flex items-center justify-center hover:shadow-md hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
             :disabled="isSubmitting || code.length !== 6"
+            data-testid="verify-btn-submit"
           >
             <span v-if="isSubmitting" class="inline-block w-4 h-4 border-2 border-[rgba(255,255,255,0.3)] rounded-full border-t-white animate-spin mr-sm"></span>
             {{ isSubmitting ? 'Verifying...' : 'Verify Email' }}
@@ -57,6 +58,7 @@
             @click="handleResend"
             class="bg-transparent border-none text-primary text-sm font-medium cursor-pointer transition-opacity duration-200 hover:opacity-80 disabled:opacity-60 disabled:cursor-not-allowed"
             :disabled="isResending || resendCooldown > 0"
+            data-testid="verify-resend"
           >
             <span v-if="isResending">Sending...</span>
             <span v-else-if="resendCooldown > 0">Resend in {{ resendCooldown }}s</span>

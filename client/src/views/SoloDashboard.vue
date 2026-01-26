@@ -1,6 +1,6 @@
 <template>
-  <section class="p-lg">
-    <header class="flex items-center justify-between mb-lg">
+  <section class="p-lg" data-testid="solo-dashboard">
+    <header class="flex items-center justify-between mb-lg" data-testid="dashboard-header">
       <h1 class="sr-only">Solo Dashboard</h1>
 
       <!-- Queue Toggle Bar -->

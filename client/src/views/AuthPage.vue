@@ -3,9 +3,9 @@
     <NavBar />
 
     <div class="min-h-[calc(100vh-64px)] flex items-center justify-center p-xl">
-      <div class="w-full max-w-[440px] p-2xl bg-background-surface border border-border rounded-lg backdrop-blur-[10px]">
+      <div class="w-full max-w-[440px] p-2xl bg-background-surface border border-border rounded-lg backdrop-blur-[10px]" data-testid="auth-card">
         <div class="flex flex-col items-center justify-center text-center mb-xl min-h-[200px]">
-          <img src="/mongoose.png" alt="Mongoose" class="w-32 h-16 mb-md" />
+          <img src="/mongoose.png" alt="Mongoose" class="w-32 h-16 mb-md" data-testid="auth-logo" />
           <h1 class="text-2xl font-bold tracking-tight mb-xs text-text">Welcome to Mongoose.gg <span class="text-[0.5em] text-text-secondary font-normal align-top">Beta</span></h1>
           <p class="text-base text-text-secondary">{{ isLogin ? 'Sign in to your account' : 'Create your account' }}</p>
         </div>
@@ -15,9 +15,9 @@
           {{ errorMessage }}
         </div>
 
-        <form @submit.prevent="handleSubmit" class="flex flex-col gap-lg">
+        <form @submit.prevent="handleSubmit" class="flex flex-col gap-lg" data-testid="auth-form">
           <!-- Username field for both login and signup -->
-          <div class="flex flex-col gap-xs">
+          <div class="flex flex-col gap-xs" data-testid="form-group">
             <label for="username" class="text-sm font-medium text-text tracking-tight">Username</label>
             <input
               id="username"
@@ -86,6 +86,7 @@
             @click="toggleMode"
             class="bg-transparent border-none text-primary text-sm font-medium cursor-pointer transition-opacity duration-200 hover:opacity-80 disabled:opacity-60 disabled:cursor-not-allowed"
             :disabled="isSubmitting"
+            data-testid="auth-toggle"
           >
             {{ isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in' }}
           </button>

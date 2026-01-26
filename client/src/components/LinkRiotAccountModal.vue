@@ -5,14 +5,16 @@
         v-if="isOpen"
         class="fixed inset-0 bg-[rgba(0,0,0,0.8)] flex items-center justify-center z-[1000] p-xl"
         @click.self="handleClose"
+        data-testid="modal-overlay"
       >
-        <div class="modal-content bg-background-surface border border-border rounded-lg w-full max-w-[400px] backdrop-blur-[10px]">
+        <div class="bg-background-surface border border-border rounded-lg w-full max-w-[400px] backdrop-blur-[10px]" data-testid="modal-content">
           <div class="flex items-center justify-between p-lg border-b border-border">
             <h2 class="text-lg font-semibold text-text">Link Riot Account</h2>
             <button
               class="bg-transparent border-none p-xs cursor-pointer text-text-secondary transition-colors duration-200 hover:text-text disabled:opacity-60 disabled:cursor-not-allowed"
               @click="handleClose"
               :disabled="isSubmitting"
+              data-testid="close-btn"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
                 <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 011.06 0L12 10.94l5.47-5.47a.75.75 0 111.06 1.06L13.06 12l5.47 5.47a.75.75 0 11-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 01-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 010-1.06z" clip-rule="evenodd" />
@@ -82,6 +84,7 @@
                 class="bg-transparent text-text-secondary py-sm px-lg border border-border rounded-md font-medium text-sm cursor-pointer transition-all duration-200 hover:border-primary hover:text-primary disabled:opacity-60 disabled:cursor-not-allowed"
                 @click="handleClose"
                 :disabled="isSubmitting"
+                data-testid="cancel-btn"
               >
                 Cancel
               </button>
@@ -90,7 +93,7 @@
                 class="bg-primary text-white py-sm px-lg border-none rounded-md font-semibold text-sm cursor-pointer transition-all duration-200 flex items-center gap-xs hover:shadow-md hover:-translate-y-px disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
                 :disabled="isSubmitting || !isFormValid"
               >
-                <span v-if="isSubmitting" class="inline-block w-3.5 h-3.5 border-2 border-[rgba(255,255,255,0.3)] border-t-white rounded-full animate-spin"></span>
+                <span v-if="isSubmitting" class="inline-block w-3.5 h-3.5 border-2 border-[rgba(255,255,255,0.3)] border-t-white rounded-full animate-spin" data-testid="loading-spinner"></span>
                 {{ isSubmitting ? 'Linking...' : 'Link Account' }}
               </button>
             </div>
