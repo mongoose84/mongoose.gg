@@ -50,6 +50,7 @@ builder.Services.AddScoped<TeamMatchMetricsRepository>();
 builder.Services.AddScoped<TeamRoleResponsibilitiesRepository>();
 builder.Services.AddScoped<DuoMetricsRepository>();
 builder.Services.AddScoped<SoloStatsRepository>();
+builder.Services.AddScoped<OverviewStatsRepository>();
 builder.Services.AddScoped<SeasonsRepository>();
 builder.Services.AddScoped<AnalyticsEventsRepository>();
 builder.Services.AddScoped<VerificationTokensRepository>();

@@ -7,6 +7,7 @@ using RiotProxy.Infrastructure.External.Database.Repositories;
 using RiotProxy.Infrastructure.Security;
 using RiotProxy.Infrastructure.Email;
 using RiotProxy.External.Domain.Entities;
+using RiotProxy.Application.DTOs.Overview;
 using Microsoft.Extensions.Hosting;
 
 namespace RiotProxy.Tests;
@@ -17,10 +18,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeUsersRepository _usersRepository;
     private readonly FakeVerificationTokensRepository _tokensRepository;
     private readonly FakeEmailService _emailService;
+    private readonly FakeRiotAccountsRepository _riotAccountsRepository;
+    private readonly FakeOverviewStatsRepository _overviewStatsRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
     public FakeEmailService EmailService => _emailService;
+    public FakeRiotAccountsRepository RiotAccountsRepository => _riotAccountsRepository;
+    public FakeOverviewStatsRepository OverviewStatsRepository => _overviewStatsRepository;
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
@@ -28,6 +33,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _usersRepository = new FakeUsersRepository();
         _tokensRepository = new FakeVerificationTokensRepository();
         _emailService = new FakeEmailService();
+        _riotAccountsRepository = new FakeRiotAccountsRepository();
+        _overviewStatsRepository = new FakeOverviewStatsRepository();
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -75,6 +82,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace IEmailService with a fake
             services.RemoveAll<IEmailService>();
             services.AddSingleton<IEmailService>(_emailService);
+
+            // Replace RiotAccountsRepository with a fake
+            services.RemoveAll<RiotAccountsRepository>();
+            services.AddSingleton<RiotAccountsRepository>(_riotAccountsRepository);
+
+            // Replace OverviewStatsRepository with a fake
+            services.RemoveAll<OverviewStatsRepository>();
+            services.AddSingleton<OverviewStatsRepository>(_overviewStatsRepository);
         });
 
         return base.CreateHost(builder);
@@ -307,5 +322,183 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public void Clear() => _sentEmails.Clear();
 
         public record SentEmail(string ToEmail, string Username, string VerificationCode);
+    }
+
+    /// <summary>
+    /// Fake Riot accounts repository for testing.
+    /// </summary>
+    internal sealed class FakeRiotAccountsRepository : RiotAccountsRepository
+    {
+        private readonly ConcurrentDictionary<string, RiotAccount> _accountsByPuuid = new();
+        private readonly ConcurrentDictionary<long, List<RiotAccount>> _accountsByUserId = new();
+
+        public FakeRiotAccountsRepository() : base(null!) { }
+
+        public override Task<IList<RiotAccount>> GetByUserIdAsync(long userId)
+        {
+            if (_accountsByUserId.TryGetValue(userId, out var accounts))
+            {
+                return Task.FromResult<IList<RiotAccount>>(accounts.ToList());
+            }
+            return Task.FromResult<IList<RiotAccount>>(new List<RiotAccount>());
+        }
+
+        public override Task<RiotAccount?> GetByPuuidAsync(string puuid)
+        {
+            _accountsByPuuid.TryGetValue(puuid, out var account);
+            return Task.FromResult(account);
+        }
+
+        public override Task<bool> ExistsByPuuidAsync(string puuid)
+        {
+            return Task.FromResult(_accountsByPuuid.ContainsKey(puuid));
+        }
+
+        public override Task UpsertAsync(RiotAccount account)
+        {
+            _accountsByPuuid[account.Puuid] = account;
+            if (!_accountsByUserId.TryGetValue(account.UserId, out var userAccounts))
+            {
+                userAccounts = new List<RiotAccount>();
+                _accountsByUserId[account.UserId] = userAccounts;
+            }
+            var existing = userAccounts.FindIndex(a => a.Puuid == account.Puuid);
+            if (existing >= 0)
+            {
+                userAccounts[existing] = account;
+            }
+            else
+            {
+                userAccounts.Add(account);
+            }
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Helper method to add a Riot account for testing.
+        /// </summary>
+        public void AddRiotAccount(long userId, string puuid, string gameName, string region, string summonerName, int summonerLevel, int profileIconId)
+        {
+            var account = new RiotAccount
+            {
+                Puuid = puuid,
+                UserId = userId,
+                GameName = gameName,
+                TagLine = summonerName.Contains('#') ? summonerName.Split('#')[1] : "NA1",
+                SummonerName = summonerName,
+                Region = region,
+                IsPrimary = true,
+                SyncStatus = "synced",
+                SummonerLevel = summonerLevel,
+                ProfileIconId = profileIconId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            UpsertAsync(account).Wait();
+        }
+
+        /// <summary>
+        /// Helper method to add a Riot account with rank data for testing.
+        /// </summary>
+        public void AddRiotAccountWithRank(long userId, string puuid, string gameName, string region, string summonerName,
+            int summonerLevel, int profileIconId, string? soloTier, string? soloRank, int? soloLp)
+        {
+            var account = new RiotAccount
+            {
+                Puuid = puuid,
+                UserId = userId,
+                GameName = gameName,
+                TagLine = summonerName.Contains('#') ? summonerName.Split('#')[1] : "NA1",
+                SummonerName = summonerName,
+                Region = region,
+                IsPrimary = true,
+                SyncStatus = "synced",
+                SummonerLevel = summonerLevel,
+                ProfileIconId = profileIconId,
+                SoloTier = soloTier,
+                SoloRank = soloRank,
+                SoloLp = soloLp,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            UpsertAsync(account).Wait();
+        }
+    }
+
+    /// <summary>
+    /// Fake overview stats repository for testing.
+    /// </summary>
+    internal sealed class FakeOverviewStatsRepository : OverviewStatsRepository
+    {
+        private readonly ConcurrentDictionary<string, List<MatchResultData>> _matchesByPuuid = new();
+        private readonly ConcurrentDictionary<string, LastMatchData> _lastMatchByPuuid = new();
+        private int _defaultQueueId = 420;
+        private string _defaultQueueLabel = "Ranked Solo/Duo";
+
+        public FakeOverviewStatsRepository() : base(null!, null!) { }
+
+        public override Task<(int QueueId, string QueueLabel, int MatchCount)> GetPrimaryQueueAsync(string puuid)
+        {
+            if (_matchesByPuuid.TryGetValue(puuid, out var matches))
+            {
+                return Task.FromResult((_defaultQueueId, _defaultQueueLabel, matches.Count));
+            }
+            return Task.FromResult((_defaultQueueId, _defaultQueueLabel, 0));
+        }
+
+        public override Task<List<MatchResultData>> GetLast20MatchesAsync(string puuid, int queueId)
+        {
+            if (_matchesByPuuid.TryGetValue(puuid, out var matches))
+            {
+                return Task.FromResult(matches.Take(20).ToList());
+            }
+            return Task.FromResult(new List<MatchResultData>());
+        }
+
+        public override Task<LastMatchData?> GetLastMatchAsync(string puuid)
+        {
+            _lastMatchByPuuid.TryGetValue(puuid, out var lastMatch);
+            return Task.FromResult(lastMatch);
+        }
+
+        public override Task<int?> GetCurrentLpAsync(string puuid, int queueId)
+        {
+            if (_matchesByPuuid.TryGetValue(puuid, out var matches) && matches.Count > 0)
+            {
+                return Task.FromResult(matches.First().LpAfter);
+            }
+            return Task.FromResult<int?>(null);
+        }
+
+        /// <summary>
+        /// Sets the default queue for the fake repository.
+        /// </summary>
+        public void SetDefaultQueue(int queueId, string queueLabel)
+        {
+            _defaultQueueId = queueId;
+            _defaultQueueLabel = queueLabel;
+        }
+
+        /// <summary>
+        /// Adds match result data for a player.
+        /// </summary>
+        public void AddMatchResult(string puuid, string matchId, bool win, int? lpAfter, long gameStartTime)
+        {
+            if (!_matchesByPuuid.TryGetValue(puuid, out var matches))
+            {
+                matches = new List<MatchResultData>();
+                _matchesByPuuid[puuid] = matches;
+            }
+            matches.Add(new MatchResultData(matchId, win, lpAfter, gameStartTime));
+        }
+
+        /// <summary>
+        /// Sets the last match for a player.
+        /// </summary>
+        public void SetLastMatch(string puuid, string matchId, int championId, string championName,
+            bool win, int kills, int deaths, int assists, long gameStartTime)
+        {
+            _lastMatchByPuuid[puuid] = new LastMatchData(matchId, championId, championName, win, kills, deaths, assists, gameStartTime);
+        }
     }
 }

@@ -2,6 +2,7 @@ using RiotProxy.Application.Endpoints;
 using RiotProxy.Application.Endpoints.Analytics;
 using RiotProxy.Application.Endpoints.Auth;
 using RiotProxy.Application.Endpoints.Diagnostics;
+using RiotProxy.Application.Endpoints.Overview;
 using RiotProxy.Application.Endpoints.Solo;
 using RiotProxy.Application.Endpoints.Trends;
 
@@ -66,6 +67,10 @@ namespace RiotProxy.Application
             // Trends endpoints (shared, auth required)
             var winrateTrendEndpoint = new WinrateTrendEndpoint(basePath);
             _endpoints.Add(winrateTrendEndpoint);
+
+            // Overview endpoint (auth required)
+            var overviewEndpoint = new OverviewEndpoint(basePath);
+            _endpoints.Add(overviewEndpoint);
 
             // Analytics endpoint (public, no auth required - captures anonymous + authenticated events)
             var analyticsEndpoint = new AnalyticsEndpoint(basePath);
