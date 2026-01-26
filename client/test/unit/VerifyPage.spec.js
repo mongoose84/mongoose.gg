@@ -83,7 +83,7 @@ describe('VerifyPage.vue', () => {
 
   it('has a submit button', async () => {
     const wrapper = await createWrapper();
-    const button = wrapper.find('.verify-btn-submit');
+    const button = wrapper.find('[data-testid="verify-btn-submit"]');
     expect(button.exists()).toBe(true);
     expect(button.text()).toContain('Verify Email');
   });
@@ -91,8 +91,8 @@ describe('VerifyPage.vue', () => {
   it('submit button is disabled when code length is not 6', async () => {
     const wrapper = await createWrapper();
     const input = wrapper.find('#code');
-    const button = wrapper.find('.verify-btn-submit');
-    
+    const button = wrapper.find('[data-testid="verify-btn-submit"]');
+
     await input.setValue('123');
     expect(button.attributes('disabled')).toBeDefined();
   });
@@ -100,8 +100,8 @@ describe('VerifyPage.vue', () => {
   it('submit button is enabled when code length is 6', async () => {
     const wrapper = await createWrapper();
     const input = wrapper.find('#code');
-    const button = wrapper.find('.verify-btn-submit');
-    
+    const button = wrapper.find('[data-testid="verify-btn-submit"]');
+
     await input.setValue('123456');
     expect(button.attributes('disabled')).toBeUndefined();
   });
@@ -120,7 +120,7 @@ describe('VerifyPage.vue', () => {
 
   it('displays resend button', async () => {
     const wrapper = await createWrapper();
-    const resendBtn = wrapper.find('.verify-resend');
+    const resendBtn = wrapper.find('[data-testid="verify-resend"]');
     expect(resendBtn.exists()).toBe(true);
     expect(resendBtn.text()).toContain('Resend Code');
   });
@@ -144,27 +144,27 @@ describe('VerifyPage.vue', () => {
     await wrapper.find('form').trigger('submit');
     await flushPromises();
     
-    expect(wrapper.find('.verify-error').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="verify-error"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Invalid code');
   });
 
   it('displays success message after resending code', async () => {
     const { resendVerification } = await import('@/services/authApi');
     resendVerification.mockResolvedValueOnce({ success: true });
-    
+
     const wrapper = await createWrapper();
-    await wrapper.find('.verify-resend').trigger('click');
+    await wrapper.find('[data-testid="verify-resend"]').trigger('click');
     await flushPromises();
-    
-    expect(wrapper.find('.verify-success').exists()).toBe(true);
+
+    expect(wrapper.find('[data-testid="verify-success"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('new verification code');
   });
 
   it('has proper form structure', async () => {
     const wrapper = await createWrapper();
-    expect(wrapper.find('.verify-card').exists()).toBe(true);
-    expect(wrapper.find('.verify-form').exists()).toBe(true);
-    expect(wrapper.find('.form-group').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="verify-card"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="form-group"]').exists()).toBe(true);
   });
 });
 

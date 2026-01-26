@@ -1,36 +1,36 @@
 <template>
-  <div class="heatmap-card">
-    <header class="header">
-      <h2 class="title">Match Activity</h2>
-      <p class="subtitle">Your gaming activity over the past 6 months</p>
+  <div class="bg-background-surface border border-border rounded-lg p-lg">
+    <header class="mb-lg">
+      <h2 class="text-lg font-semibold text-text mb-xs">Match Activity</h2>
+      <p class="text-sm text-text-secondary m-0">Your gaming activity over the past 6 months</p>
     </header>
 
-    <div v-if="hasData" class="heatmap-container">
+    <div v-if="hasData" class="relative">
       <!-- Month labels -->
-      <div class="month-labels">
-        <span v-for="month in monthLabels" :key="month.key" class="month-label" :style="{ left: month.offset + 'px' }">
+      <div class="month-labels relative h-5 mb-xs ml-6">
+        <span v-for="month in monthLabels" :key="month.key" class="absolute text-xs text-text-secondary" :style="{ left: month.offset + 'px' }">
           {{ month.name }}
         </span>
       </div>
-      
+
       <!-- Day labels (Mon, Wed, Fri) -->
-      <div class="day-labels">
-        <span class="day-label"></span>
-        <span class="day-label">Mon</span>
-        <span class="day-label"></span>
-        <span class="day-label">Wed</span>
-        <span class="day-label"></span>
-        <span class="day-label">Fri</span>
-        <span class="day-label"></span>
+      <div class="day-labels absolute left-0 top-7 flex flex-col gap-0.5 w-5">
+        <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]"></span>
+        <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]">Mon</span>
+        <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]"></span>
+        <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]">Wed</span>
+        <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]"></span>
+        <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]">Fri</span>
+        <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]"></span>
       </div>
-      
+
       <!-- Heatmap grid -->
-      <div class="heatmap-grid">
-        <div v-for="week in weeks" :key="week.weekIndex" class="heatmap-week">
+      <div class="heatmap-grid flex gap-0.5 ml-6 overflow-x-auto pb-sm">
+        <div v-for="week in weeks" :key="week.weekIndex" class="flex flex-col gap-0.5">
           <div
             v-for="day in week.days"
             :key="day.date"
-            class="heatmap-cell"
+            class="heatmap-cell w-2.5 h-2.5 rounded-[2px] cursor-pointer transition-transform duration-100 hover:scale-125"
             :class="getCellClass(day.count)"
             :title="getTooltip(day)"
             @mouseenter="showTooltip(day, $event)"
@@ -38,33 +38,33 @@
           ></div>
         </div>
       </div>
-      
+
       <!-- Legend -->
-      <div class="legend">
-        <span class="legend-label">Less</span>
-        <div class="legend-cells">
-          <div class="legend-cell level-0" title="0 matches"></div>
-          <div class="legend-cell level-1" title="1-2 matches"></div>
-          <div class="legend-cell level-2" title="3-5 matches"></div>
-          <div class="legend-cell level-3" title="6+ matches"></div>
+      <div class="flex items-center gap-xs mt-md justify-end">
+        <span class="text-xs text-text-secondary">Less</span>
+        <div class="flex gap-0.5">
+          <div class="legend-cell level-0 w-2.5 h-2.5 rounded-[2px]" title="0 matches"></div>
+          <div class="legend-cell level-1 w-2.5 h-2.5 rounded-[2px]" title="1-2 matches"></div>
+          <div class="legend-cell level-2 w-2.5 h-2.5 rounded-[2px]" title="3-5 matches"></div>
+          <div class="legend-cell level-3 w-2.5 h-2.5 rounded-[2px]" title="6+ matches"></div>
         </div>
-        <span class="legend-label">More</span>
+        <span class="text-xs text-text-secondary">More</span>
       </div>
-      
+
       <!-- Summary -->
-      <div class="summary">
-        <span class="summary-text">{{ totalMatches }} matches in the last 6 months</span>
+      <div class="mt-md text-center">
+        <span class="text-sm text-text-secondary">{{ totalMatches }} matches in the last 6 months</span>
       </div>
     </div>
-    
-    <div v-else class="empty-state">
-      <p>No match activity data available yet. Play some games to see your activity!</p>
+
+    <div v-else class="text-center py-xl text-text-secondary text-sm">
+      <p class="m-0">No match activity data available yet. Play some games to see your activity!</p>
     </div>
-    
+
     <!-- Custom tooltip -->
     <Teleport to="body">
-      <div 
-        v-if="tooltipVisible" 
+      <div
+        v-if="tooltipVisible"
         class="heatmap-tooltip"
         :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
       >
@@ -229,89 +229,7 @@ function hideTooltip() {
 </script>
 
 <style scoped>
-.heatmap-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-}
-
-.header {
-  margin-bottom: var(--spacing-lg);
-}
-
-.title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  margin-bottom: var(--spacing-xs);
-}
-
-.subtitle {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.heatmap-container {
-  position: relative;
-}
-
-.month-labels {
-  position: relative;
-  height: 20px;
-  margin-bottom: var(--spacing-xs);
-  margin-left: 24px;
-}
-
-.month-label {
-  position: absolute;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
-.day-labels {
-  position: absolute;
-  left: 0;
-  top: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 20px;
-}
-
-.day-label {
-  font-size: 9px;
-  color: var(--color-text-secondary);
-  height: 10px;
-  line-height: 10px;
-}
-
-.heatmap-grid {
-  display: flex;
-  gap: 2px;
-  margin-left: 24px;
-  overflow-x: auto;
-  padding-bottom: var(--spacing-sm);
-}
-
-.heatmap-week {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.heatmap-cell {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: transform 0.1s ease;
-}
-
-.heatmap-cell:hover {
-  transform: scale(1.2);
-}
-
+/* Heatmap cell activity levels (dynamic classes can't be done with Tailwind) */
 .level-hidden {
   background: transparent;
   cursor: default;
@@ -337,51 +255,10 @@ function hideTooltip() {
 .level-3 {
   background: #6d28d9;
 }
-
-.legend {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-md);
-  justify-content: flex-end;
-}
-
-.legend-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
-.legend-cells {
-  display: flex;
-  gap: 2px;
-}
-
-.legend-cell {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-}
-
-.summary {
-  margin-top: var(--spacing-md);
-  text-align: center;
-}
-
-.summary-text {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.empty-state {
-  text-align: center;
-  padding: var(--spacing-xl);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-}
 </style>
 
 <style>
-/* Global tooltip styles (not scoped) */
+/* Global tooltip styles (not scoped - used with Teleport) */
 .heatmap-tooltip {
   position: fixed;
   transform: translateX(-50%) translateY(-100%);

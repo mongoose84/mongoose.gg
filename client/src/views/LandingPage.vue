@@ -1,38 +1,36 @@
 <template>
-	<div class="landing-page">
+	<div class="min-h-screen bg-transparent">
     <NavBar />
-    
-    <div class="landing-wrapper">
+
+    <div class="pt-16">
       <!-- Hero Section -->
-      <section class="hero-section">
-        <div class="hero-container">  
+      <section class="min-h-[calc(100vh-64px)] flex items-center justify-center p-2xl relative overflow-hidden">
+        <div class="max-w-[800px] text-center relative z-10">
         <!-- Logo above hero title -->
-          <div class="hero-logo">
-            <img src="/mongoose.png" alt="Mongoose.gg logo" class="hero-logo-img" />
+          <div class="w-[210px] h-[100px] mx-auto">
+            <img src="/mongoose.png" alt="Mongoose.gg logo" class="w-full h-full object-contain" />
           </div>
-          <h2 class="hero-logo-text">Mongoose.gg <span class="beta-tag">Beta</span></h2>
+          <h2 class="text-2xl font-bold text-text -mt-4 ml-sm mb-2xl">Mongoose.gg <span class="beta-tag">Beta</span></h2>
 
-          <div class="hero-badge">
-            <span class="hero-badge-icon">🎮</span>
+          <div class="inline-flex items-center gap-sm py-sm px-lg bg-background-surface border border-border rounded-full text-sm text-text-secondary mt-2xl mb-2xl backdrop-blur-[10px]">
+            <span class="text-lg">🎮</span>
             <span>First 500 users get free Pro tier</span>
-            <span class="hero-badge-count">{{ freeUsersLeft }} spots left</span>
+            <span class="text-primary font-semibold">{{ freeUsersLeft }} spots left</span>
           </div>
-
-          
 
           <h1 class="hero-title">
             The <span class="hero-gradient">Solo Queue</span> Improvement Tracker<br />
             Built for <span class="hero-gradient">Duos & Teams</span>
           </h1>
 
-          <p class="hero-description">
+          <p class="text-lg text-text-secondary leading-relaxed mb-xl max-w-[600px] mx-auto">
             Not just another builds app.
           </p>
-          <p class="hero-description">
+          <p class="text-lg text-text-secondary leading-relaxed mb-xl max-w-[600px] mx-auto">
             Better champ select picks, post-game takeaways that stick, and track your progress over time—and climb together with your duo or team.
           </p>
-          
-          <div class="hero-cta">
+
+          <div class="flex gap-md justify-center flex-wrap mb-2xl">
             <router-link to="/auth?mode=signup" class="hero-btn-primary">
               Start Improving Now
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="hero-arrow">
@@ -43,140 +41,140 @@
               See How It Works
             </a>
           </div>
-          
-	          <div class="hero-stats">
-	            <div class="hero-stat">
-	              <div class="hero-stat-value">{{ activePlayersDisplay }}</div>
-	              <div class="hero-stat-label">Active Players</div>
+
+	          <div class="flex gap-2xl justify-center flex-wrap">
+	            <div class="text-center">
+	              <div class="text-2xl font-bold text-primary tracking-tight">{{ activePlayersDisplay }}</div>
+	              <div class="text-sm text-text-secondary mt-xs">Active Players</div>
 	            </div>
-	            <div class="hero-stat">
-	              <div class="hero-stat-value">{{ gamesAnalyzedDisplay }}</div>
-	              <div class="hero-stat-label">Games Analyzed</div>
+	            <div class="text-center">
+	              <div class="text-2xl font-bold text-primary tracking-tight">{{ gamesAnalyzedDisplay }}</div>
+	              <div class="text-sm text-text-secondary mt-xs">Games Analyzed</div>
 	            </div>
-	            <div class="hero-stat">
-	              <div class="hero-stat-value">0/5</div>
-	              <div class="hero-stat-label">User Rating</div>
+	            <div class="text-center">
+	              <div class="text-2xl font-bold text-primary tracking-tight">0/5</div>
+	              <div class="text-sm text-text-secondary mt-xs">User Rating</div>
 	            </div>
 	          </div>
         </div>
       </section>
 
       <!-- Features Section -->
-      <section id="features" class="features-section">
-        <div class="section-container">
-          <div class="section-header">
+      <section id="features" class="p-2xl">
+        <div class="max-w-[1200px] mx-auto">
+          <div class="text-center mb-2xl">
             <h2 class="section-title">Everything You Need to Climb</h2>
-            <p class="section-description">
+            <p class="text-lg text-text-secondary max-w-[600px] mx-auto m-0">
               From solo insights to team coordination, we've got your improvement covered.
             </p>
           </div>
-          
-          <div class="features-grid">
+
+          <div class="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-lg">
             <div v-for="feature in features" :key="feature.title" class="feature-card">
-              <div class="feature-icon" v-html="feature.icon"></div>
-              <h3 class="feature-title">{{ feature.title }}</h3>
-              <p class="feature-description">{{ feature.description }}</p>
+              <div class="text-[3rem] mb-md" v-html="feature.icon"></div>
+              <h3 class="text-xl font-bold tracking-tight mb-sm text-text m-0">{{ feature.title }}</h3>
+              <p class="text-md text-text-secondary leading-relaxed m-0">{{ feature.description }}</p>
             </div>
           </div>
         </div>
       </section>
 
       <!-- How It Works Section -->
-      <section id="how-it-works" class="how-it-works-section">
-        <div class="section-container">
-          <div class="section-header">
+      <section id="how-it-works" class="p-2xl">
+        <div class="max-w-[1200px] mx-auto">
+          <div class="text-center mb-2xl">
             <h2 class="section-title">How It Works</h2>
-            <p class="section-description">
+            <p class="text-lg text-text-secondary max-w-[600px] mx-auto m-0">
               Get started in minutes. See results in days.
             </p>
           </div>
-          
-          <div class="steps-grid">
-            <div v-for="(step, index) in steps" :key="index" class="step-card">
+
+          <div class="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-xl">
+            <div v-for="(step, index) in steps" :key="index" class="text-center p-xl">
               <div class="step-number">{{ index + 1 }}</div>
-              <h3 class="step-title">{{ step.title }}</h3>
-              <p class="step-description">{{ step.description }}</p>
+              <h3 class="text-lg font-bold tracking-tight mb-sm text-text m-0">{{ step.title }}</h3>
+              <p class="text-md text-text-secondary leading-relaxed m-0">{{ step.description }}</p>
             </div>
           </div>
         </div>
       </section>
 
       <!-- Pricing Section -->
-      <section id="pricing" class="pricing-section">
-        <div class="section-container">
-          <div class="section-header">
+      <section id="pricing" class="p-2xl">
+        <div class="max-w-[1200px] mx-auto">
+          <div class="text-center mb-2xl">
             <h2 class="section-title">Simple, Transparent Pricing</h2>
-            <p class="section-description">
+            <p class="text-lg text-text-secondary max-w-[600px] mx-auto m-0">
               Choose the plan that fits your playstyle. First 500 users get Pro for free!
             </p>
           </div>
-          
-          <div class="pricing-grid">
-            <div v-for="tier in pricingTiers" :key="tier.name" 
+
+          <div class="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-lg mb-xl">
+            <div v-for="tier in pricingTiers" :key="tier.name"
                  :class="['pricing-card', { 'pricing-popular': tier.popular }]">
               <div v-if="tier.popular" class="pricing-badge">Most Popular</div>
-              
-              <h3 class="pricing-tier-name">{{ tier.name }}</h3>
-              <div class="pricing-price">
+
+              <h3 class="text-xl font-bold tracking-tight mb-md text-text m-0">{{ tier.name }}</h3>
+              <div class="mb-xl">
                 <span class="pricing-amount">{{ tier.price }}</span>
-                <span class="pricing-period">{{ tier.period }}</span>
+                <span class="text-md text-text-secondary ml-xs">{{ tier.period }}</span>
               </div>
-              
-              <ul class="pricing-features">
-                <li v-for="feature in tier.features" :key="feature" class="pricing-feature">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="pricing-check">
+
+              <ul class="list-none mb-xl p-0">
+                <li v-for="feature in tier.features" :key="feature" class="flex items-center gap-sm py-sm text-md text-text-secondary">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-primary flex-shrink-0">
                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                   </svg>
                   {{ feature }}
                 </li>
               </ul>
-              
+
               <router-link to="/auth?mode=signup" :class="['pricing-btn', { 'pricing-btn-primary': tier.popular }]">
                 {{ tier.cta }}
               </router-link>
             </div>
           </div>
-          
-          <p class="pricing-note">
+
+          <p class="text-center text-sm text-text-secondary m-0">
             All plans include 30-day money-back guarantee. Cancel anytime.
           </p>
         </div>
       </section>
 
       <!-- Footer -->
-      <footer class="footer">
-        <div class="footer-container">
-          <div class="footer-brand">
-            <div class="footer-logo">
-              <img src="/mongoose.png" alt="Mongoose" class="footer-logo-icon" />
-              <span class="footer-logo-text">Mongoose.gg <span class="beta-tag">Beta</span></span>
+      <footer class="border-t border-border py-2xl px-xl mt-2xl">
+        <div class="max-w-[1200px] mx-auto grid grid-cols-[1fr_2fr] gap-2xl mb-xl md:grid-cols-1">
+          <div class="flex flex-col gap-md">
+            <div class="flex items-center gap-sm">
+              <img src="/mongoose.png" alt="Mongoose" class="w-16 h-8" />
+              <span class="text-xl font-bold tracking-tight text-text">Mongoose.gg <span class="beta-tag">Beta</span></span>
             </div>
-            <p class="footer-tagline">Built with ❤️ in the nordics by the Agile Astronaut</p>
+            <p class="text-sm text-text-secondary m-0">Built with ❤️ in the nordics by the Agile Astronaut</p>
           </div>
-          
-          <div class="footer-links">
-            <div class="footer-column">
-              <h4 class="footer-heading">Product</h4>
-              <a href="#features" class="footer-link">Features</a>
-              <a href="#pricing" class="footer-link">Pricing</a>
-              <a href="#how-it-works" class="footer-link">How It Works</a>
+
+          <div class="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-xl">
+            <div class="flex flex-col gap-sm">
+              <h4 class="text-sm font-semibold tracking-tight text-text mb-xs">Product</h4>
+              <a href="#features" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Features</a>
+              <a href="#pricing" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Pricing</a>
+              <a href="#how-it-works" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">How It Works</a>
             </div>
-            
-            <div class="footer-column">
-              <h4 class="footer-heading">Legal</h4>
-              <a href="/privacy" class="footer-link">Privacy Policy</a>
-              <a href="/terms" class="footer-link">Terms of Service</a>
+
+            <div class="flex flex-col gap-sm">
+              <h4 class="text-sm font-semibold tracking-tight text-text mb-xs">Legal</h4>
+              <a href="/privacy" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Privacy Policy</a>
+              <a href="/terms" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Terms of Service</a>
             </div>
-            
-            <div class="footer-column">
-              <h4 class="footer-heading">Connect</h4>
-              <a href="mailto:hello@mongoose.gg" class="footer-link">Email Us</a>
+
+            <div class="flex flex-col gap-sm">
+              <h4 class="text-sm font-semibold tracking-tight text-text mb-xs">Connect</h4>
+              <a href="mailto:hello@mongoose.gg" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Email Us</a>
             </div>
           </div>
         </div>
-        
-        <div class="footer-bottom">
-          <p class="footer-copyright">
+
+        <div class="max-w-[1200px] mx-auto pt-xl border-t border-border text-center">
+          <p class="text-xs text-text-secondary m-0">
             © {{ currentYear }} Mongoose.gg <span class="beta-tag">Beta</span>. All rights reserved. Not affiliated with Riot Games.
           </p>
         </div>
@@ -308,66 +306,7 @@ const pricingTiers = [
 </script>
 
 <style scoped>
-.landing-page {
-  min-height: 100vh;
-  background: transparent; /* Reset: no page-level background */
-}
-
-.landing-wrapper {
-  padding-top: 64px; /* Account for fixed nav */
-}
-
-/* Hero Section */
-.hero-section {
-  min-height: calc(100vh - 64px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-2xl) var(--spacing-xl);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Accent gradient overlay (purple glow) */
-/* Removed hero overlay to simplify background */
-
-.hero-container {
-  max-width: 800px;
-  text-align: center;
-  position: relative;
-  z-index: 1;
-}
-
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 9999px;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin-top: var(--spacing-2xl);
-  margin-bottom: var(--spacing-2xl);
-  backdrop-filter: blur(10px);
-}
-
-.hero-logo {
-  width: 210px;
-  height: 100px;
-  margin: auto;
-}
-
-.hero-logo-text {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
-  margin-top: -35px;
-  margin-left: var(--spacing-sm);
-  margin-bottom: var(--spacing-2xl);
-}
-
+/* Beta tag styling (can't easily do 0.5em with Tailwind) */
 .beta-tag {
   font-size: 0.5em;
   color: var(--color-text-secondary);
@@ -375,15 +314,7 @@ const pricingTiers = [
   vertical-align: top;
 }
 
-.hero-badge-icon {
-  font-size: var(--font-size-lg);
-}
-
-.hero-badge-count {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
-}
-
+/* Hero title with clamp (responsive font sizing) */
 .hero-title {
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: var(--font-weight-bold);
@@ -393,6 +324,7 @@ const pricingTiers = [
   color: var(--color-text);
 }
 
+/* Gradient text effect (can't be done with Tailwind) */
 .hero-gradient {
   background: linear-gradient(135deg, var(--color-primary), #00a8ff);
   -webkit-background-clip: text;
@@ -400,24 +332,7 @@ const pricingTiers = [
   -webkit-text-fill-color: transparent;
 }
 
-.hero-description {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: var(--spacing-xl);
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.hero-cta {
-  display: flex;
-  gap: var(--spacing-md);
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: var(--spacing-2xl);
-}
-
+/* Hero CTA buttons with hover animations */
 .hero-btn-primary {
   display: inline-flex;
   align-items: center;
@@ -470,47 +385,7 @@ const pricingTiers = [
   background: var(--color-primary-soft);
 }
 
-.hero-stats {
-  display: flex;
-  gap: var(--spacing-2xl);
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.hero-stat {
-  text-align: center;
-}
-
-.hero-stat-value {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
-  letter-spacing: var(--letter-spacing);
-}
-
-.hero-stat-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin-top: var(--spacing-xs);
-}
-
-/* Section Styles */
-.features-section,
-.how-it-works-section,
-.pricing-section {
-  padding: var(--spacing-2xl) var(--spacing-xl);
-}
-
-.section-container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.section-header {
-  text-align: center;
-  margin-bottom: var(--spacing-2xl);
-}
-
+/* Section title with clamp (responsive font sizing) */
 .section-title {
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: var(--font-weight-bold);
@@ -519,20 +394,7 @@ const pricingTiers = [
   color: var(--color-text);
 }
 
-.section-description {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-/* Features Grid */
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--spacing-lg);
-}
-
+/* Feature card with hover animation */
 .feature-card {
   padding: var(--spacing-xl);
   background: var(--color-surface);
@@ -548,37 +410,7 @@ const pricingTiers = [
   box-shadow: var(--shadow-lg);
 }
 
-.feature-icon {
-  font-size: 3rem;
-  margin-bottom: var(--spacing-md);
-}
-
-.feature-title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing);
-  margin-bottom: var(--spacing-sm);
-  color: var(--color-text);
-}
-
-.feature-description {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-}
-
-/* Steps Grid */
-.steps-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: var(--spacing-xl);
-}
-
-.step-card {
-  text-align: center;
-  padding: var(--spacing-xl);
-}
-
+/* Step number circle */
 .step-number {
   width: 60px;
   height: 60px;
@@ -594,28 +426,7 @@ const pricingTiers = [
   box-shadow: var(--shadow-md);
 }
 
-.step-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing);
-  margin-bottom: var(--spacing-sm);
-  color: var(--color-text);
-}
-
-.step-description {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-}
-
-/* Pricing Grid */
-.pricing-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
-}
-
+/* Pricing card with hover and popular state */
 .pricing-card {
   position: relative;
   padding: var(--spacing-xl);
@@ -641,6 +452,7 @@ const pricingTiers = [
   transform: scale(1.05) translateY(-4px);
 }
 
+/* Pricing badge positioned above card */
 .pricing-badge {
   position: absolute;
   top: -12px;
@@ -655,18 +467,7 @@ const pricingTiers = [
   letter-spacing: var(--letter-spacing);
 }
 
-.pricing-tier-name {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing);
-  margin-bottom: var(--spacing-md);
-  color: var(--color-text);
-}
-
-.pricing-price {
-  margin-bottom: var(--spacing-xl);
-}
-
+/* Pricing amount with clamp (responsive font sizing) */
 .pricing-amount {
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: var(--font-weight-bold);
@@ -674,33 +475,7 @@ const pricingTiers = [
   letter-spacing: var(--letter-spacing);
 }
 
-.pricing-period {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  margin-left: var(--spacing-xs);
-}
-
-.pricing-features {
-  list-style: none;
-  margin-bottom: var(--spacing-xl);
-}
-
-.pricing-feature {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) 0;
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-}
-
-.pricing-check {
-  width: 20px;
-  height: 20px;
-  color: var(--color-primary);
-  flex-shrink: 0;
-}
-
+/* Pricing buttons */
 .pricing-btn {
   display: block;
   width: 100%;
@@ -734,108 +509,10 @@ const pricingTiers = [
   transform: translateY(-2px);
 }
 
-.pricing-note {
-  text-align: center;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-/* Footer */
-.footer {
-  border-top: 1px solid var(--color-border);
-  padding: var(--spacing-2xl) var(--spacing-xl) var(--spacing-lg);
-  margin-top: var(--spacing-2xl);
-}
-
-.footer-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: var(--spacing-2xl);
-  margin-bottom: var(--spacing-xl);
-}
-
+/* Responsive footer grid */
 @media (max-width: 768px) {
-  .footer-container {
-    grid-template-columns: 1fr;
+  .md\:grid-cols-1 {
+    grid-template-columns: 1fr !important;
   }
-}
-
-.footer-brand {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.footer-logo {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.footer-logo-icon {
-  width: 64px;
-  height: 32px;
-}
-
-.footer-logo-text {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing);
-  color: var(--color-text);
-}
-
-.footer-logo-tld {
-  color: var(--color-primary);
-}
-
-.footer-tagline {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.footer-links {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--spacing-xl);
-}
-
-.footer-column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.footer-heading {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--letter-spacing);
-  color: var(--color-text);
-  margin-bottom: var(--spacing-xs);
-}
-
-.footer-link {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.footer-link:hover {
-  color: var(--color-text);
-}
-
-.footer-bottom {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding-top: var(--spacing-xl);
-  border-top: 1px solid var(--color-border);
-  text-align: center;
-}
-
-.footer-copyright {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
 }
 </style>

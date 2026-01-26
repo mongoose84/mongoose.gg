@@ -1,8 +1,12 @@
 <template>
-  <div class="version-badge" aria-label="App Version">
-    <span class="version-label">Mongoose.gg <span class="beta-tag">Beta</span></span>
-    <span class="version-sep">•</span>
-    <span class="version-value">v{{ version }}</span>
+  <div
+    class="fixed left-4 bottom-4 py-1.5 px-2.5 border border-border rounded-md bg-[rgba(0,0,0,0.6)] backdrop-blur-[8px] text-text-secondary text-xs tracking-tight z-[1000]"
+    aria-label="App Version"
+    data-testid="version-badge"
+  >
+    <span class="text-text font-medium" data-testid="version-label">Mongoose.gg <span class="text-[0.5em] text-text-secondary font-normal align-top">Beta</span></span>
+    <span class="mx-1.5 opacity-70" data-testid="version-sep">•</span>
+    <span class="text-primary font-semibold" data-testid="version-value">v{{ version }}</span>
   </div>
 </template>
 
@@ -11,42 +15,3 @@ import pkg from '../../package.json'
 
 const version = pkg.version || '0.0.0'
 </script>
-
-<style scoped>
-.version-badge {
-  position: fixed;
-  left: 16px;
-  bottom: 16px;
-  padding: 6px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  letter-spacing: var(--letter-spacing);
-  z-index: 1000;
-}
-
-.version-label {
-  color: var(--color-text);
-  font-weight: var(--font-weight-medium);
-}
-
-.beta-tag {
-  font-size: 0.5em;
-  color: var(--color-text-secondary);
-  font-weight: var(--font-weight-normal);
-  vertical-align: top;
-}
-
-.version-sep {
-  margin: 0 6px;
-  opacity: 0.7;
-}
-
-.version-value {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
-}
-</style>

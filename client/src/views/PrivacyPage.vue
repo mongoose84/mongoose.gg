@@ -1,52 +1,52 @@
 <template>
-  <div class="legal-page">
+  <div class="min-h-screen bg-transparent pt-16">
     <NavBar />
-    
-    <div class="legal-container">
-      <div class="legal-content">
-        <h1 class="legal-title">Privacy Policy</h1>
-        <p class="legal-updated">Last updated: {{ currentDate }}</p>
-        
-        <section class="legal-section">
-          <h2>Overview</h2>
-          <p>Mongoose.gg ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share information about you when you use our service.</p>
+
+    <div class="max-w-[800px] mx-auto py-2xl px-xl">
+      <div class="bg-background-surface border border-border rounded-lg p-2xl backdrop-blur-[10px]" data-testid="legal-content">
+        <h1 class="text-2xl font-bold tracking-tight mb-sm text-text">Privacy Policy</h1>
+        <p class="text-sm text-text-secondary mb-2xl">Last updated: {{ currentDate }}</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Overview</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">Mongoose.gg ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share information about you when you use our service.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Information We Collect</h2>
-          <p>We collect the following types of information:</p>
-          <ul>
-            <li>Account information (email, username)</li>
-            <li>Riot Games account data (summoner name, match history)</li>
-            <li>Usage data and analytics</li>
-            <li>Payment information (processed securely through Mollie)</li>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Information We Collect</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">We collect the following types of information:</p>
+          <ul class="list-disc ml-xl text-text-secondary">
+            <li class="text-base leading-relaxed mb-xs">Account information (email, username)</li>
+            <li class="text-base leading-relaxed mb-xs">Riot Games account data (summoner name, match history)</li>
+            <li class="text-base leading-relaxed mb-xs">Usage data and analytics</li>
+            <li class="text-base leading-relaxed mb-xs">Payment information (processed securely through Mollie)</li>
           </ul>
         </section>
-        
-        <section class="legal-section">
-          <h2>How We Use Your Information</h2>
-          <p>We use your information to:</p>
-          <ul>
-            <li>Provide and improve our services</li>
-            <li>Generate personalized insights and recommendations</li>
-            <li>Process payments and manage subscriptions</li>
-            <li>Communicate with you about updates and features</li>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">How We Use Your Information</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">We use your information to:</p>
+          <ul class="list-disc ml-xl text-text-secondary">
+            <li class="text-base leading-relaxed mb-xs">Provide and improve our services</li>
+            <li class="text-base leading-relaxed mb-xs">Generate personalized insights and recommendations</li>
+            <li class="text-base leading-relaxed mb-xs">Process payments and manage subscriptions</li>
+            <li class="text-base leading-relaxed mb-xs">Communicate with you about updates and features</li>
           </ul>
         </section>
-        
-        <section class="legal-section">
-          <h2>Data Security</h2>
-          <p>We implement industry-standard security measures to protect your data. However, no method of transmission over the internet is 100% secure.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Data Security</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">We implement industry-standard security measures to protect your data. However, no method of transmission over the internet is 100% secure.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Your Rights</h2>
-          <p>You have the right to access, update, or delete your personal data. Contact us at privacy@mongoose.gg for any requests.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Your Rights</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">You have the right to access, update, or delete your personal data. Contact us at privacy@mongoose.gg for any requests.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Contact Us</h2>
-          <p>If you have questions about this Privacy Policy, please contact us at <a href="mailto:privacy@mongoose.gg">privacy@mongoose.gg</a>.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Contact Us</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">If you have questions about this Privacy Policy, please contact us at <a href="mailto:privacy@mongoose.gg" class="text-primary no-underline transition-opacity duration-200 hover:opacity-80">privacy@mongoose.gg</a>.</p>
         </section>
       </div>
     </div>
@@ -58,87 +58,10 @@ import { computed } from 'vue';
 import NavBar from '../components/NavBar.vue';
 
 const currentDate = computed(() => {
-  return new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  return new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   });
 });
 </script>
-
-<style scoped>
-.legal-page {
-  min-height: 100vh;
-  background: transparent;
-  padding-top: 64px;
-}
-
-.legal-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: var(--spacing-2xl) var(--spacing-xl);
-}
-
-.legal-content {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-2xl);
-  backdrop-filter: blur(10px);
-}
-
-.legal-title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing);
-  margin-bottom: var(--spacing-sm);
-  color: var(--color-text);
-}
-
-.legal-updated {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-2xl);
-}
-
-.legal-section {
-  margin-bottom: var(--spacing-xl);
-}
-
-.legal-section h2 {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing);
-  margin-bottom: var(--spacing-md);
-  color: var(--color-text);
-}
-
-.legal-section p {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: var(--spacing-md);
-}
-
-.legal-section ul {
-  list-style: disc;
-  margin-left: var(--spacing-xl);
-  color: var(--color-text-secondary);
-}
-
-.legal-section li {
-  font-size: var(--font-size-md);
-  line-height: 1.6;
-  margin-bottom: var(--spacing-xs);
-}
-
-.legal-section a {
-  color: var(--color-primary);
-  text-decoration: none;
-  transition: opacity 0.2s;
-}
-
-.legal-section a:hover {
-  opacity: 0.8;
-}
-</style>

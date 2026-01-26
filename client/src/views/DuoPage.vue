@@ -1,11 +1,11 @@
 <template>
-  <div class="duo-page">
-    <div class="page-container">
-      <div class="page-header">
-        <h1 class="page-title">Duo Analysis</h1>
+  <div class="min-h-screen p-2xl">
+    <div class="max-w-[1400px] mx-auto">
+      <div class="mb-2xl">
+        <h1 class="text-2xl font-bold text-text tracking-tight">Duo Analysis</h1>
       </div>
-      <div class="page-content">
-        <p class="placeholder-text">Duo analysis feature coming soon...</p>
+      <div class="bg-background-surface border border-border rounded-lg p-2xl text-center">
+        <p class="text-lg text-text-secondary">Duo analysis feature coming soon...</p>
       </div>
     </div>
   </div>
@@ -14,40 +14,4 @@
 <script setup>
 // Duo Analysis page - to be implemented
 </script>
-
-<style scoped>
-.duo-page {
-  min-height: 100vh;
-  padding: var(--spacing-2xl);
-}
-
-.page-container {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.page-header {
-  margin-bottom: var(--spacing-2xl);
-}
-
-.page-title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
-  letter-spacing: var(--letter-spacing);
-}
-
-.page-content {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-2xl);
-  text-align: center;
-}
-
-.placeholder-text {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
-}
-</style>
 

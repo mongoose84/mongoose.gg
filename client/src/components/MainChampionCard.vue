@@ -1,17 +1,17 @@
 <template>
-  <section class="main-champion-card">
-    <header class="header">
-      <div class="header-text">
-        <h2 class="title">Main Champions by Role</h2>
-        <p class="subtitle">Top picks based on your performance in the selected queue and time range.</p>
+  <section class="bg-background-surface border border-border rounded-lg p-lg h-full flex flex-col">
+    <header class="flex justify-between items-start gap-md mb-md">
+      <div class="flex-1">
+        <h2 class="m-0 text-lg font-semibold text-text">Main Champions by Role</h2>
+        <p class="mt-1 mb-0 text-xs text-text-secondary">Top picks based on your performance in the selected queue and time range.</p>
       </div>
-      <div v-if="hasData" class="role-tabs" role="tablist">
+      <div v-if="hasData" class="flex flex-wrap gap-sm flex-shrink-0" role="tablist">
         <button
           v-for="role in roles"
           :key="role"
           type="button"
-          class="role-pill"
-          :class="{ active: role === selectedRole }"
+          class="py-1.5 px-3 rounded-full border border-border bg-background-elevated text-text-secondary text-xs font-medium cursor-pointer transition-all duration-150 hover:border-primary hover:text-text"
+          :class="{ 'bg-primary border-primary text-white': role === selectedRole }"
           @click="selectRole(role)"
           role="tab"
           :aria-selected="role === selectedRole"
@@ -21,47 +21,48 @@
       </div>
     </header>
 
-    <div v-if="hasData" class="content">
+    <div v-if="hasData" class="flex-1 flex flex-col">
       <Transition name="fade-slide" mode="out-in">
         <div
           v-if="selectedRole"
           :key="selectedRole"
-          class="champion-cards"
+          class="flex-1 content-center flex flex-wrap gap-md"
           role="tabpanel"
         >
           <article
             v-for="(champion, index) in championsForSelectedRole"
             :key="champion.championId"
-            :class="['champion-card', { recommended: index === 0 }]"
+            class="champion-card flex-[0_0_calc((100%-2*var(--spacing-md))/3)] p-xl rounded-md bg-background-elevated border border-border flex flex-col justify-between gap-lg transition-all duration-150"
+            :class="{ 'border-primary shadow-sm -translate-y-px hover:shadow-md hover:-translate-y-0.5': index === 0 }"
           >
-            <div class="champion-header">
-              <div class="champion-main">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-sm">
                 <img
-                  class="champion-icon"
+                  class="w-14 h-14 rounded-md object-cover"
                   :src="getChampionIconUrl(champion.championName)"
                   :alt="`${champion.championName} icon`"
                 />
-                <div class="champion-meta">
-                  <div class="champion-name-row">
-                    <span class="champion-name">{{ champion.championName }}</span>
-                    <span class="role-badge">{{ roleLabel(selectedRole) }}</span>
+                <div class="flex flex-col gap-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-lg font-semibold text-text">{{ champion.championName }}</span>
+                    <span class="text-xs uppercase py-0.5 px-1.5 rounded-sm bg-[rgba(148,163,184,0.2)] text-text-secondary">{{ roleLabel(selectedRole) }}</span>
                   </div>
-                  <span v-if="index === 0" class="recommended-badge">Recommended</span>
+                  <span v-if="index === 0" class="text-2xs font-semibold text-primary uppercase tracking-wide">Recommended</span>
                 </div>
               </div>
             </div>
-            <div class="champion-stats">
-              <div class="stat">
-                <span :class="['stat-value', getWinRateColorClass(champion.winRate)]">{{ formatWinRate(champion.winRate) }}</span>
-                <span class="stat-label">Win Rate</span>
+            <div class="flex justify-between gap-md">
+              <div class="flex flex-col gap-1">
+                <span :class="['stat-value text-lg font-bold text-text', getWinRateColorClass(champion.winRate)]">{{ formatWinRate(champion.winRate) }}</span>
+                <span class="text-2xs text-text-secondary">Win Rate</span>
               </div>
-              <div class="stat">
-                <span class="stat-value">{{ formatLpPerGame(champion.lpPerGame) }}</span>
-                <span class="stat-label">LP / game</span>
+              <div class="flex flex-col gap-1">
+                <span class="text-lg font-bold text-text">{{ formatLpPerGame(champion.lpPerGame) }}</span>
+                <span class="text-2xs text-text-secondary">LP / game</span>
               </div>
-              <div class="stat">
-                <span class="stat-value">{{ champion.wins }}-{{ champion.losses }}</span>
-                <span class="stat-label">{{ champion.gamesPlayed }} games</span>
+              <div class="flex flex-col gap-1">
+                <span class="text-lg font-bold text-text">{{ champion.wins }}-{{ champion.losses }}</span>
+                <span class="text-2xs text-text-secondary">{{ champion.gamesPlayed }} games</span>
               </div>
             </div>
           </article>
@@ -69,8 +70,8 @@
       </Transition>
     </div>
 
-    <div v-else class="empty-state">
-      <p>No champion data yet for this filter. Play some games to see your best picks.</p>
+    <div v-else class="pt-sm text-sm text-text-secondary">
+      <p class="m-0">No champion data yet for this filter. Play some games to see your best picks.</p>
     </div>
   </section>
 </template>
@@ -174,184 +175,7 @@ function formatLpPerGame(value) {
 </script>
 
 <style scoped>
-.main-champion-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  height: 100%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-}
-
-.header-text {
-  flex: 1;
-}
-
-.title {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-}
-
-.subtitle {
-  margin: 4px 0 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
-.role-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-  flex-shrink: 0;
-}
-
-.role-pill {
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-elevated);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.role-pill:hover {
-  border-color: var(--color-primary);
-  color: var(--color-text);
-}
-
-.role-pill.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-}
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.champion-cards {
-  flex: 1;
-  align-content: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-}
-
-.champion-card {
-  /* Fixed width: 1/3 of container minus gaps (2 gaps for 3 cards) */
-  flex: 0 0 calc((100% - 2 * var(--spacing-md)) / 3);
-  padding: var(--spacing-xl);
-  border-radius: var(--radius-md);
-  background: var(--color-elevated);
-  border: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: var(--spacing-lg);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.champion-card.recommended {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
-}
-
-.champion-card.recommended:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.champion-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.champion-main {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.champion-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-md);
-  object-fit: cover;
-}
-
-.champion-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.champion-name-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.champion-name {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-}
-
-.role-badge {
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: rgba(148, 163, 184, 0.2);
-  color: var(--color-text-secondary);
-}
-
-.recommended-badge {
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.champion-stats {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.stat-value {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
-}
-
-/* Win rate coloring gradient */
+/* Win rate coloring gradient (dynamic classes can't be done with Tailwind) */
 .stat-value.winrate-red {
   color: #ef4444;
 }
@@ -374,18 +198,7 @@ function formatLpPerGame(value) {
   color: var(--color-text);
 }
 
-.stat-label {
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-secondary);
-}
-
-.empty-state {
-  padding-top: var(--spacing-sm);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-/* Tab switching animation */
+/* Vue Transition classes for tab switching animation */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -397,14 +210,10 @@ function formatLpPerGame(value) {
   transform: translateY(4px);
 }
 
+/* Responsive layout for champion cards */
 @media (max-width: 768px) {
-  .champion-cards {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .champion-card {
-    width: 100%;
+    flex: 0 0 100%;
     max-width: 280px;
   }
 }

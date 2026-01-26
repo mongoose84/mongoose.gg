@@ -1,20 +1,20 @@
 <template>
-  <section class="lp-trend-card">
-    <header class="header">
-      <h2 class="title">LP Progression</h2>
-      <p class="subtitle">Track your ranked LP over time</p>
+  <section class="bg-background-surface border border-border rounded-lg p-lg h-full flex flex-col">
+    <header class="mb-md">
+      <h2 class="m-0 text-lg font-semibold text-text">LP Progression</h2>
+      <p class="mt-1 mb-0 text-xs text-text-secondary">Track your ranked LP over time</p>
     </header>
 
-    <div v-if="hasData" class="chart-container">
+    <div v-if="hasData" class="flex-1 min-h-[200px] relative">
       <Line
         :data="chartData"
         :options="chartOptions"
       />
     </div>
 
-    <div v-else class="empty-state">
-      <p>No LP data available yet</p>
-      <p class="empty-hint">LP tracking starts after your next ranked game</p>
+    <div v-else class="flex-1 flex flex-col items-center justify-center text-sm text-text-secondary gap-xs">
+      <p class="m-0">No LP data available yet</p>
+      <p class="m-0 text-xs opacity-70">LP tracking starts after your next ranked game</p>
     </div>
   </section>
 </template>
@@ -207,58 +207,6 @@ const chartOptions = computed(() => ({
 </script>
 
 <style scoped>
-.lp-trend-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  height: 100%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  margin-bottom: var(--spacing-md);
-}
-
-.title {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-}
-
-.subtitle {
-  margin: 4px 0 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
-.chart-container {
-  flex: 1;
-  min-height: 200px;
-  position: relative;
-}
-
-.empty-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  gap: var(--spacing-xs);
-}
-
-.empty-state p {
-  margin: 0;
-}
-
-.empty-hint {
-  font-size: var(--font-size-xs);
-  opacity: 0.7;
-}
+/* No scoped styles needed - all styling via Tailwind */
 </style>
 

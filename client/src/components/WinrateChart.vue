@@ -1,19 +1,19 @@
 <template>
-  <section class="winrate-chart-card">
-    <header class="header">
-      <h2 class="title">Winrate Over Time</h2>
-      <p class="subtitle">Rolling average winrate</p>
+  <section class="bg-background-surface border border-border rounded-lg p-lg h-full flex flex-col">
+    <header class="mb-md">
+      <h2 class="m-0 text-lg font-semibold text-text">Winrate Over Time</h2>
+      <p class="mt-1 mb-0 text-xs text-text-secondary">Rolling average winrate</p>
     </header>
 
-    <div v-if="hasData" class="chart-container">
+    <div v-if="hasData" class="flex-1 min-h-[200px] relative">
       <Line
         :data="chartData"
         :options="chartOptions"
       />
     </div>
 
-    <div v-else class="empty-state">
-      <p>No data for selected time range</p>
+    <div v-else class="flex-1 flex items-center justify-center text-sm text-text-secondary">
+      <p class="m-0">No data for selected time range</p>
     </div>
   </section>
 </template>
@@ -158,51 +158,6 @@ const chartOptions = computed(() => ({
 </script>
 
 <style scoped>
-.winrate-chart-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  height: 100%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  margin-bottom: var(--spacing-md);
-}
-
-.title {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-}
-
-.subtitle {
-  margin: 4px 0 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
-.chart-container {
-  flex: 1;
-  min-height: 200px;
-  position: relative;
-}
-
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.empty-state p {
-  margin: 0;
-}
+/* No scoped styles needed - all styling via Tailwind */
 </style>
 

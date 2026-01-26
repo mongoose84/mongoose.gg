@@ -71,17 +71,14 @@ test.describe('Solo Dashboard Flow', () => {
 
     // Step 6: Navigate to Solo Dashboard via the sidebar navigation
     // The sidebar has an "Analysis" section with "Solo" submenu item
-    const sidebarSoloLink = page.locator('.app-sidebar .nav-subitem', { hasText: 'Solo' });
-
-    // If sidebar is collapsed, we need to hover over the Analysis section to reveal the popout menu
-    const sidebar = page.locator('.app-sidebar');
-    const isCollapsed = await sidebar.evaluate((el) => el.classList.contains('collapsed'));
+    const sidebar = page.locator('[data-testid="app-sidebar"]');
+    const isCollapsed = await sidebar.getAttribute('data-collapsed') === 'true';
 
     if (isCollapsed) {
       // Hover over the Analysis section to reveal popout menu
-      const analysisSection = page.locator('.app-sidebar .nav-section.has-popout');
+      const analysisSection = page.locator('[data-testid="nav-section-analysis"]');
       await analysisSection.hover();
-      const popoutSoloLink = page.locator('.app-sidebar .popout-item', { hasText: 'Solo' });
+      const popoutSoloLink = page.locator('[data-testid="popout-item-solo"]');
       await expect(popoutSoloLink).toBeVisible({ timeout: 5_000 });
       await Promise.all([
         page.waitForURL('/app/solo', { timeout: 10_000 }),
@@ -89,6 +86,7 @@ test.describe('Solo Dashboard Flow', () => {
       ]);
     } else {
       // Sidebar is expanded, click the Solo submenu item directly
+      const sidebarSoloLink = page.locator('[data-testid="nav-subitem-solo"]');
       await expect(sidebarSoloLink).toBeVisible({ timeout: 5_000 });
       await Promise.all([
         page.waitForURL('/app/solo', { timeout: 10_000 }),
@@ -100,8 +98,8 @@ test.describe('Solo Dashboard Flow', () => {
     await expect(page).toHaveURL('/app/solo');
 
     // Step 8: Verify dashboard content is present
-    // Check for profile header card (should show summoner info)
-    await expect(page.locator('[class*="profile"]').or(page.locator('[class*="header"]')).first()).toBeVisible({ timeout: 15_000 });
+    // Check for solo dashboard section
+    await expect(page.locator('[data-testid="solo-dashboard"]')).toBeVisible({ timeout: 15_000 });
   });
 
   test('should redirect unauthenticated users to login', async ({ page }) => {
@@ -154,21 +152,19 @@ test.describe('Solo Dashboard Content', () => {
     await page.waitForLoadState('networkidle');
 
     // Navigate to Solo Dashboard via the sidebar navigation
-    const sidebarSoloLink = page.locator('.app-sidebar .nav-subitem', { hasText: 'Solo' });
-
-    // Check if sidebar is collapsed
-    const sidebar = page.locator('.app-sidebar');
-    const isCollapsed = await sidebar.evaluate((el) => el.classList.contains('collapsed'));
+    const sidebar = page.locator('[data-testid="app-sidebar"]');
+    const isCollapsed = await sidebar.getAttribute('data-collapsed') === 'true';
 
     if (isCollapsed) {
       // Hover over the Analysis section to reveal popout menu
-      const analysisSection = page.locator('.app-sidebar .nav-section.has-popout');
+      const analysisSection = page.locator('[data-testid="nav-section-analysis"]');
       await analysisSection.hover();
-      const popoutSoloLink = page.locator('.app-sidebar .popout-item', { hasText: 'Solo' });
+      const popoutSoloLink = page.locator('[data-testid="popout-item-solo"]');
       await expect(popoutSoloLink).toBeVisible({ timeout: 5_000 });
       await popoutSoloLink.click();
     } else {
       // Sidebar is expanded, click the Solo submenu item directly
+      const sidebarSoloLink = page.locator('[data-testid="nav-subitem-solo"]');
       await expect(sidebarSoloLink).toBeVisible({ timeout: 5_000 });
       await sidebarSoloLink.click();
     }

@@ -4,9 +4,9 @@ type: "manual"
 
 # API Design - Mongoose (mongoose.gg)
 
-**Status:** Production
+**Status:** Planned (spec; re-implementation in progress)
 **Priority:** P0 - Critical
-**Date:** January 14, 2026
+**Date:** January 26, 2026
 
 ---
 
@@ -34,13 +34,13 @@ This document defines the API surface for Mongoose, introducing:
 
 #### A. Solo Dashboard
 ```
-GET  /api/v2/solo/summary/{userId}
-GET  /api/v2/solo/performance/{userId}
-GET  /api/v2/solo/champions/{userId}
-GET  /api/v2/solo/matchups/{userId}
+GET  /api/v2/solo/summary/{puuid}
+GET  /api/v2/solo/performance/{puuid}
+GET  /api/v2/solo/champions/{puuid}
+GET  /api/v2/solo/matchups/{puuid}
 ```
 
-#### B. Duo Dashboard
+#### B. Duo Dashboard (Planned)
 ```
 GET  /api/v2/duo/summary/{userId1}/{userId2}
 GET  /api/v2/duo/performance/{userId1}/{userId2}
@@ -50,7 +50,7 @@ GET  /api/v2/duo/deaths/{userId1}/{userId2}
 GET  /api/v2/duo/vs-enemy/{userId1}/{userId2}
 ```
 
-#### C. Team Dashboard
+#### C. Team Dashboard (Planned)
 ```
 GET  /api/v2/team/summary
 GET  /api/v2/team/performance
@@ -59,7 +59,7 @@ GET  /api/v2/team/objectives
 GET  /api/v2/team/synergy
 ```
 
-#### D. AI & Goals (Future)
+#### D. AI & Goals (Planned)
 ```
 GET  /api/v2/goals/recommendations/{userId}
 POST /api/v2/goals/{userId}
@@ -68,11 +68,10 @@ GET  /api/v2/goals/{userId}/progress
 
 #### E. User
 ```
-POST /api/v2/login                     # Authenticate and obtain session cookie
-POST /api/v2/logout                    # Clear session
-POST /api/v2/users                     # Create/register a user for dashboards
-GET  /api/v2/users/{userId}            # Fetch user details for solo/duo/team views
-GET  /api/v2/users/by-puuid/{puuid}    # Optional helper when PUUID is already known
+POST /api/v2/auth/register             # Create a new user account
+POST /api/v2/auth/login                # Authenticate and obtain session cookie
+POST /api/v2/auth/logout               # Clear session
+GET  /api/v2/users/me                  # Current authenticated user's profile
 ```
 
 #### F. WebSocket - Real-time Sync Progress
@@ -577,7 +576,7 @@ public record TeamSynergyResponse(
 
 ---
 
-### D. AI & Goals Endpoints (Future - Placeholder)
+### D. AI & Goals Endpoints (Planned)
 
 #### 4.D.1 `GET /api/v2/goals/recommendations/{userId}`
 **Purpose:** AI-generated improvement recommendations.
@@ -608,7 +607,7 @@ public record InsightCategory(
 
 ### E. User Endpoints
 
-#### 4.E.1 `POST /api/v2/login`
+#### 4.E.1 `POST /api/v2/auth/login`
 **Purpose:** Authenticate with username and password, obtain an httpOnly session cookie for subsequent requests.
 
 ```csharp
@@ -629,7 +628,7 @@ public record LoginResponse(
 - Response sets an httpOnly, secure, SameSite=Lax cookie automatically
 - Requests without valid credentials return `401 Unauthorized`
 
-#### 4.E.2 `POST /api/v2/logout`
+#### 4.E.2 `POST /api/v2/auth/logout`
 **Purpose:** Clear the session cookie and sign out the user.
 
 ```csharp
@@ -637,44 +636,28 @@ public record LoginResponse(
 // Returns: { message: "Logged out successfully" }
 ```
 
-#### 4.E.3 `POST /api/v2/users`
-**Purpose:** Create/register a user and attach Riot identity so solo/duo/team dashboards can resolve PUUID.
+#### 4.E.3 `POST /api/v2/auth/register`
+**Purpose:** Create a new user account. Returns success and begins verification flow if enabled.
 
 ```csharp
-public record CreateUserRequest(
-    string GameName,                    // Riot game name
-    string TagLine,                     // #TAG line
-    string Region,                      // e.g., euw1, na1, kr
-    string Platform,                    // e.g., americas, europe, asia (for match routing)
-    string? SummonerNameOverride        // Optional: override display if different from gameName
+public record RegisterRequest(
+    string Username,
+    string Email,
+    string Password
 );
 
-public record UserResponse(
-    string UserId,
-    string Puuid,
-    string GameName,
-    string TagLine,
-    string Region,
-    string Platform,
-    string SummonerName,
-    int ProfileIconId,
-    DateTime CreatedAt,
-    DateTime? LastSyncedAt
+public record RegisterResponse(
+    int UserId,
+    string Username,
+    bool EmailVerificationRequired
 );
 ```
 
-#### 4.E.4 `GET /api/v2/users/{userId}`
-**Purpose:** Fetch a user for the solo view (or any dashboard) including PUUID and display info.
+#### 4.E.4 `GET /api/v2/users/me`
+**Purpose:** Return the authenticated user's profile (username, tier) and linked Riot accounts (gameName#tag, region, puuid, profileIconId, summonerLevel).
 
 ```csharp
-// Returns UserResponse
-```
-
-#### 4.E.5 `GET /api/v2/users/by-puuid/{puuid}`
-**Purpose:** Helper when the client already has the PUUID (e.g., deep link) and needs Mongoose user metadata.
-
-```csharp
-// Returns UserResponse
+// Returns the current user's profile and linked Riot accounts
 ```
 
 ---
@@ -684,7 +667,7 @@ public record UserResponse(
 #### 4.F.1 `WS /ws/sync`
 **Purpose:** Real-time WebSocket endpoint for receiving match sync progress updates.
 
-**Authentication:** Session cookie (same as HTTP endpoints). Unauthenticated connections are rejected with close code 4401.
+**Authentication:** Session cookie (same as HTTP endpoints). Unauthenticated connections are rejected with standard close code 1008 (Policy Violation) and a reason (e.g., "Authentication required").
 
 **Client → Server Messages:**
 ```json
@@ -819,13 +802,13 @@ _endpoints.Add(duoEndpoint);
 ## 7. Acceptance Criteria Checklist
 
 - [x] **API route scheme decided** (`/api/v2/solo|duo|team|goals|users`)
-- [x] **Request/response models defined** for all dashboard endpoints (see Section 4)
-- [x] **Response shapes optimized** (minimal client aggregation, dashboard-ready)
-- [x] **Queue filtering standardized** (`?queueType=ranked_solo|ranked_flex|normal|aram|all`)
-- [x] **Authentication required** (endpoints assume cookie auth; unauthorized → 401)
-- [x] DTOs created & implemented
-- [x] Endpoints implemented & tested
-- [ ] Frontend integration & validation (ongoing)
+- [ ] **Request/response models defined** for all dashboard endpoints (planned)
+- [ ] **Response shapes optimized** (planned)
+- [ ] **Queue filtering standardized** (`?queueType=ranked_solo|ranked_flex|normal|aram|all`) (planned)
+- [x] **Authentication required** (cookie-based sessions; unauthorized → 401)
+- [ ] DTOs created & implemented (planned)
+- [ ] Endpoints implemented & tested (planned)
+- [ ] Frontend integration & validation (planned)
 
 ---
 
@@ -867,5 +850,5 @@ _endpoints.Add(duoEndpoint);
 
 ---
 
-**Status:** Production
-**Last Updated:** January 14, 2026
+**Status:** Planned (spec; re-implementation in progress)
+**Last Updated:** January 26, 2026

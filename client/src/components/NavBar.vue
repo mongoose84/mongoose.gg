@@ -1,36 +1,40 @@
 <template>
-  <nav class="nav-bar">
-    <div class="nav-container">
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-[rgba(0,0,0,0.8)] backdrop-blur-[12px] border-b border-border">
+    <div class="max-w-[1280px] mx-auto flex items-center justify-between px-xl py-md h-16">
       <!-- Logo - navigates to /app/user if logged in, / if not -->
-      <router-link :to="logoDestination" class="nav-logo-link">
-        <img src="/mongoose.png" alt="Mongoose" class="nav-logo-icon" />
-        <span class="nav-logo-text">Mongoose.gg <span class="beta-tag">Beta</span></span>
+      <router-link :to="logoDestination" class="flex items-center gap-sm no-underline transition-opacity duration-200 hover:opacity-80">
+        <img src="/mongoose.png" alt="Mongoose" class="w-16 h-8" />
+        <span class="text-xl font-bold tracking-tight text-text">Mongoose.gg <span class="text-[0.5em] text-text-secondary font-normal align-top">Beta</span></span>
       </router-link>
 
       <!-- Desktop Navigation -->
-      <div class="nav-links">
-        <a href="/#features" class="nav-link">Features</a>
-        <a href="/#pricing" class="nav-link">Pricing</a>
-        <a href="/#how-it-works" class="nav-link">How It Works</a>
-        <router-link to="/auth?mode=login" class="nav-link">Login</router-link>
+      <div class="hidden md:flex gap-lg items-center">
+        <a href="/#features" class="text-sm font-medium text-text-secondary no-underline transition-colors duration-200 tracking-tight hover:text-text">Features</a>
+        <a href="/#pricing" class="text-sm font-medium text-text-secondary no-underline transition-colors duration-200 tracking-tight hover:text-text">Pricing</a>
+        <a href="/#how-it-works" class="text-sm font-medium text-text-secondary no-underline transition-colors duration-200 tracking-tight hover:text-text">How It Works</a>
+        <router-link to="/auth?mode=login" class="text-sm font-medium text-text-secondary no-underline transition-colors duration-200 tracking-tight hover:text-text">Login</router-link>
       </div>
 
       <!-- CTA Button -->
-      <div class="nav-cta">
-        <router-link to="/auth?mode=signup" class="nav-btn-primary">
+      <div class="hidden md:block">
+        <router-link to="/auth?mode=signup" class="inline-flex items-center gap-xs px-lg py-sm bg-primary text-white font-semibold text-sm tracking-tight no-underline rounded-md transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-px group">
           Get Started
-          <svg class="nav-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
           </svg>
         </router-link>
       </div>
 
       <!-- Mobile Menu Button -->
-      <button @click="toggleMobile" class="nav-mobile-toggle" aria-label="Toggle menu">
-        <svg v-if="!mobileOpen" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="nav-icon">
+      <button
+        @click="toggleMobile"
+        class="flex md:hidden items-center justify-center p-xs bg-transparent border-none text-text cursor-pointer rounded-sm transition-colors duration-200 hover:bg-background-surface"
+        aria-label="Toggle menu"
+      >
+        <svg v-if="!mobileOpen" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
         </svg>
-        <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="nav-icon">
+        <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
@@ -38,12 +42,12 @@
 
     <!-- Mobile Menu -->
     <Transition name="mobile-menu">
-      <div v-if="mobileOpen" class="nav-mobile-menu">
-        <a href="/#features" class="nav-mobile-link" @click="closeMobile">Features</a>
-        <a href="/#pricing" class="nav-mobile-link" @click="closeMobile">Pricing</a>
-        <a href="/#how-it-works" class="nav-mobile-link" @click="closeMobile">How It Works</a>
-        <router-link to="/auth?mode=login" class="nav-mobile-link" @click="closeMobile">Login</router-link>
-        <router-link to="/auth?mode=signup" class="nav-mobile-cta" @click="closeMobile">
+      <div v-if="mobileOpen" class="absolute top-full left-0 right-0 bg-[rgba(0,0,0,0.95)] backdrop-blur-[12px] border-b border-border flex flex-col p-lg gap-sm">
+        <a href="/#features" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">Features</a>
+        <a href="/#pricing" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">Pricing</a>
+        <a href="/#how-it-works" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">How It Works</a>
+        <router-link to="/auth?mode=login" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">Login</router-link>
+        <router-link to="/auth?mode=signup" class="mt-sm p-md bg-primary text-white font-semibold text-base text-center no-underline rounded-md transition-all duration-200 tracking-tight hover:shadow-md" @click="closeMobile">
           Get Started
         </router-link>
       </div>
@@ -76,220 +80,13 @@ const closeMobile = () => {
 </script>
 
 <style scoped>
-.nav-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.nav-container {
-  max-width: 1280px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-md) var(--spacing-xl);
-  height: 64px;
-}
-
-/* Logo */
-.nav-logo-link {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  text-decoration: none;
-  transition: opacity 0.2s;
-}
-
-.nav-logo-link:hover {
-  opacity: 0.8;
-}
-
-.nav-logo-icon {
-  width: 64px;
-  height: 32px;
-}
-
-.nav-logo-text {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing);
-  color: var(--color-text);
-}
-
-.nav-logo-tld {
-  color: var(--color-primary);
-}
-
-.beta-tag {
-  font-size: 0.5em;
-  color: var(--color-text-secondary);
-  font-weight: var(--font-weight-normal);
-  vertical-align: top;
-}
-
-/* Desktop Navigation */
-.nav-links {
-  display: none;
-  gap: var(--spacing-lg);
-  align-items: center;
-}
-
-@media (min-width: 768px) {
-  .nav-links {
-    display: flex;
-  }
-}
-
-.nav-link {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  transition: color 0.2s;
-  letter-spacing: var(--letter-spacing);
-}
-
-.nav-link:hover {
-  color: var(--color-text);
-}
-
-/* CTA Button */
-.nav-cta {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .nav-cta {
-    display: block;
-  }
-}
-
-.nav-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  background: var(--color-primary);
-  color: white;
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-sm);
-  letter-spacing: var(--letter-spacing);
-  text-decoration: none;
-  border-radius: var(--radius-md);
-  transition: all 0.2s;
-  box-shadow: var(--shadow-sm);
-}
-
-.nav-btn-primary:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-1px);
-}
-
-.nav-arrow {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.2s;
-}
-
-.nav-btn-primary:hover .nav-arrow {
-  transform: translateX(2px);
-}
-
-/* Mobile Toggle */
-.nav-mobile-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xs);
-  background: transparent;
-  border: none;
-  color: var(--color-text);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: background 0.2s;
-}
-
-.nav-mobile-toggle:hover {
-  background: var(--color-surface);
-}
-
-@media (min-width: 768px) {
-  .nav-mobile-toggle {
-    display: none;
-  }
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-/* Mobile Menu */
-.nav-mobile-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  padding: var(--spacing-lg);
-  gap: var(--spacing-sm);
-}
-
-.nav-mobile-link {
-  padding: var(--spacing-md);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  border-radius: var(--radius-md);
-  transition: all 0.2s;
-  letter-spacing: var(--letter-spacing);
-}
-
-.nav-mobile-link:hover {
-  color: var(--color-text);
-  background: var(--color-surface);
-}
-
-.nav-mobile-cta {
-  margin-top: var(--spacing-sm);
-  padding: var(--spacing-md);
-  background: var(--color-primary);
-  color: white;
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
-  text-align: center;
-  text-decoration: none;
-  border-radius: var(--radius-md);
-  transition: all 0.2s;
-  letter-spacing: var(--letter-spacing);
-}
-
-.nav-mobile-cta:hover {
-  box-shadow: var(--shadow-md);
-}
-
-/* Mobile Menu Transitions */
+/* Vue Transition classes for mobile menu animation */
 .mobile-menu-enter-active,
 .mobile-menu-leave-active {
   transition: all 0.3s ease;
 }
 
-.mobile-menu-enter-from {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
+.mobile-menu-enter-from,
 .mobile-menu-leave-to {
   opacity: 0;
   transform: translateY(-10px);

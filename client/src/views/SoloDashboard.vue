@@ -1,15 +1,19 @@
 <template>
-  <section class="solo-dashboard">
-    <header class="dashboard-header">
-      <h1 class="visually-hidden">Solo Dashboard</h1>
+  <section class="p-lg" data-testid="solo-dashboard">
+    <header class="flex items-center justify-between mb-lg" data-testid="dashboard-header">
+      <h1 class="sr-only">Solo Dashboard</h1>
 
       <!-- Queue Toggle Bar -->
-      <div class="queue-toggle" role="group" aria-label="Filter by queue type">
+      <div class="flex border border-border rounded-md overflow-hidden bg-background-surface" role="group" aria-label="Filter by queue type">
         <button
           v-for="queue in queueOptions"
           :key="queue.value"
           type="button"
-          :class="['queue-toggle-btn', { active: queueFilter === queue.value }]"
+          class="queue-toggle-btn py-sm px-md bg-transparent border-none text-text-secondary text-sm font-medium cursor-pointer transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-soft"
+          :class="{
+            'bg-primary text-white': queueFilter === queue.value,
+            'hover:text-text hover:bg-background-elevated': queueFilter !== queue.value
+          }"
           @click="queueFilter = queue.value"
           :aria-pressed="queueFilter === queue.value"
         >
@@ -18,8 +22,13 @@
       </div>
 
       <!-- Time Range Filter -->
-      <div class="filter-group">
-        <select id="time-range-filter" v-model="timeRange" aria-label="Filter matches by time range">
+      <div class="flex flex-col gap-xs">
+        <select
+          id="time-range-filter"
+          v-model="timeRange"
+          aria-label="Filter matches by time range"
+          class="py-sm px-md bg-[#020617] border border-border rounded-md text-text text-sm cursor-pointer transition-colors duration-200 hover:border-primary focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-[rgba(147,51,234,0.1)]"
+        >
           <option value="current_season">Current Season</option>
           <option value="1w">Last Week</option>
           <option value="1m">Last Month</option>
@@ -30,83 +39,61 @@
       </div>
     </header>
 
-	<div class="sections">
-	  	<div class="top-row">
-	  	  <div class="top-row-item">
-	  	    <!-- Profile Header Card -->
-	  	    <ProfileHeaderCard
-	  	      v-if="primaryAccount"
-	  	      :game-name="primaryAccount.gameName"
-	  	      :tag-line="primaryAccount.tagLine"
-	  	      :region="primaryAccount.region"
-	  	      :profile-icon-id="primaryAccount.profileIconId"
-	  	      :summoner-level="primaryAccount.summonerLevel"
-	  	      :solo-tier="primaryAccount.soloTier"
-	  	      :solo-rank="primaryAccount.soloRank"
-	  	      :solo-lp="primaryAccount.soloLp"
-	  	      :flex-tier="primaryAccount.flexTier"
-	  	      :flex-rank="primaryAccount.flexRank"
-	  	      :flex-lp="primaryAccount.flexLp"
-	  	      :win-rate="dashboardData?.winRate"
-	  	      :games-played="dashboardData?.gamesPlayed"
-	  	    />
-	  	    <div v-else class="section placeholder-card">
-	  	      <h2>Profile Header</h2>
-	  	      <p>No linked Riot account found.</p>
-	  	    </div>
-	  	  </div>
-	  	  <div class="top-row-item">
-	  	    <MainChampionCard
-	  	      v-if="dashboardData?.mainChampions && dashboardData.mainChampions.length"
-	  	      :main-champions="dashboardData.mainChampions"
-	  	    />
-	  	    <div v-else class="section placeholder-card">
-	  	      <h2>Main Champions</h2>
-	  	      <p>No champion data yet for this filter.</p>
-	  	    </div>
-	  	  </div>
-	  	</div>
+    <div class="flex flex-col gap-lg">
+      <!-- First row: Main Champions -->
+      <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)] gap-lg items-stretch">
+        <div class="min-w-0">
+          <MainChampionCard
+            v-if="dashboardData?.mainChampions && dashboardData.mainChampions.length"
+            :main-champions="dashboardData.mainChampions"
+          />
+          <div v-else class="border border-border rounded-lg p-lg bg-background-surface">
+            <h2 class="m-0 mb-sm text-lg font-semibold text-text">Main Champions</h2>
+            <p class="m-0 text-text-secondary text-sm">No champion data yet for this filter.</p>
+          </div>
+        </div>
+      </div>
 
-	  	<!-- Second row: Stats charts + Champion Matchups -->
-	  	<div class="top-row">
-	  	  <div class="top-row-item">
-	  	    <div class="stacked-cards">
-	  	      <WinrateChart
-	  	        v-if="winrateTrendData && winrateTrendData.length > 0"
-	  	        :winrate-trend="winrateTrendData"
-	  	      />
-	  	      <div v-else class="section placeholder-card">
-	  	        <h2>Winrate Over Time</h2>
-	  	        <p>No data for selected time range.</p>
-	  	      </div>
-	  	      <LpTrendChart
-	  	        v-if="lpTrendData && lpTrendData.length > 0"
-	  	        :lp-trend="lpTrendData"
-	  	      />
-	  	      <div v-else-if="isRankedQueue" class="section placeholder-card">
-	  	        <h2>LP Over Time</h2>
-	  	        <p>No LP data available yet. LP tracking starts after your next ranked game.</p>
-	  	      </div>
-	  	    </div>
-	  	  </div>
-	  	  <div class="top-row-item">
-	  	    <ChampionMatchupsTable
-	  	      v-if="matchupsData && matchupsData.length > 0"
-	  	      :matchups="matchupsData"
-	  	      class="matchups-card"
-	  	    />
-	  	    <div v-else class="section placeholder-card matchups-card">
-	  	      <h2>Champion Matchups</h2>
-	  	      <p>No matchup data for selected filter. Play more games to see your champion matchups.</p>
-	  	    </div>
-	  	  </div>
-	  	</div>
+      <!-- Second row: Stats charts + Champion Matchups -->
+      <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)] gap-lg items-stretch">
+        <div class="min-w-0">
+          <div class="flex flex-col gap-lg h-full">
+            <WinrateChart
+              v-if="winrateTrendData && winrateTrendData.length > 0"
+              :winrate-trend="winrateTrendData"
+            />
+            <div v-else class="flex-1 border border-border rounded-lg p-lg bg-background-surface">
+              <h2 class="m-0 mb-sm text-lg font-semibold text-text">Winrate Over Time</h2>
+              <p class="m-0 text-text-secondary text-sm">No data for selected time range.</p>
+            </div>
+            <LpTrendChart
+              v-if="lpTrendData && lpTrendData.length > 0"
+              :lp-trend="lpTrendData"
+            />
+            <div v-else-if="isRankedQueue" class="flex-1 border border-border rounded-lg p-lg bg-background-surface">
+              <h2 class="m-0 mb-sm text-lg font-semibold text-text">LP Over Time</h2>
+              <p class="m-0 text-text-secondary text-sm">No LP data available yet. LP tracking starts after your next ranked game.</p>
+            </div>
+          </div>
+        </div>
+        <div class="min-w-0">
+          <ChampionMatchupsTable
+            v-if="matchupsData && matchupsData.length > 0"
+            :matchups="matchupsData"
+            class="h-full"
+          />
+          <div v-else class="h-full border border-border rounded-lg p-lg bg-background-surface">
+            <h2 class="m-0 mb-sm text-lg font-semibold text-text">Champion Matchups</h2>
+            <p class="m-0 text-text-secondary text-sm">No matchup data for selected filter. Play more games to see your champion matchups.</p>
+          </div>
+        </div>
+      </div>
 
-	  	<div class="section placeholder-card">
-	  	  <h2>Goals Panel</h2>
-	  	  <p>Active goals and progress (upgrade CTA for Free).</p>
-	  	</div>
-	  </div>
+      <div class="border border-border rounded-lg p-lg bg-background-surface">
+        <h2 class="m-0 mb-sm text-lg font-semibold text-text">Goals Panel</h2>
+        <p class="m-0 text-text-secondary text-sm">Active goals and progress (upgrade CTA for Free).</p>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -116,7 +103,6 @@ import { useAuthStore } from '../stores/authStore'
 import { getSoloDashboard, getWinrateTrend, getChampionMatchups } from '../services/authApi'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import ProfileHeaderCard from '../components/ProfileHeaderCard.vue'
 import MainChampionCard from '../components/MainChampionCard.vue'
 import WinrateChart from '../components/WinrateChart.vue'
 import LpTrendChart from '../components/LpTrendChart.vue'
@@ -124,9 +110,6 @@ import ChampionMatchupsTable from '../components/ChampionMatchupsTable.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, subscribe, resetProgress } = useSyncWebSocket()
-
-// Get the primary Riot account for the profile header
-const primaryAccount = computed(() => authStore.primaryRiotAccount)
 
 // Dashboard data from API
 const dashboardData = ref(null)
@@ -200,9 +183,7 @@ const isRankedQueue = computed(() =>
 // Subscribe to sync updates for primary account
 onMounted(() => {
   fetchDashboardData()
-  if (primaryAccount.value?.puuid) {
-    subscribe(primaryAccount.value.puuid)
-  }
+  
 })
 
   // Fetch when filters change and track filter usage
@@ -232,37 +213,7 @@ watch(syncProgress, (progress) => {
 </script>
 
 <style scoped>
-.solo-dashboard {
-  padding: var(--spacing-lg);
-}
-.dashboard-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-lg);
-}
-
-/* Queue Toggle Bar */
-.queue-toggle {
-  display: flex;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--color-surface);
-}
-
-.queue-toggle-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
+/* Queue toggle button dividers (pseudo-elements can't be done in Tailwind) */
 .queue-toggle-btn:not(:last-child)::after {
   content: '';
   position: absolute;
@@ -273,111 +224,12 @@ watch(syncProgress, (progress) => {
   background: var(--color-border);
 }
 
-.queue-toggle-btn:hover:not(.active) {
-  color: var(--color-text);
-  background: var(--color-elevated);
-}
-
-.queue-toggle-btn.active {
-  background: var(--color-primary);
-  color: white;
-}
-
-.queue-toggle-btn.active::after {
+/* Hide divider when button is active or next to active */
+.queue-toggle-btn.bg-primary::after {
   display: none;
 }
 
-.queue-toggle-btn:has(+ .active)::after {
+.queue-toggle-btn:has(+ .bg-primary)::after {
   display: none;
-}
-
-.queue-toggle-btn:focus {
-  outline: none;
-  box-shadow: inset 0 0 0 2px var(--color-primary-soft);
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-.filter-group label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-}
-.filter-group select {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background-color: #020617;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  transition: border-color 0.2s ease;
-}
-.filter-group select:hover {
-  border-color: var(--color-primary);
-}
-.filter-group select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
-}
-.sections {
-	  display: flex;
-	  flex-direction: column;
-	  gap: var(--spacing-lg);
-	}
-
-	.top-row {
-	  display: grid;
-	  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
-	  gap: var(--spacing-lg);
-	  align-items: stretch;
-	}
-
-	.top-row-item {
-	  min-width: 0;
-	}
-
-	.stacked-cards {
-	  display: flex;
-	  flex-direction: column;
-	  gap: var(--spacing-lg);
-	  height: 100%;
-	}
-
-	.stacked-cards .placeholder-card {
-	  flex: 1;
-	}
-
-	.matchups-card {
-	  height: 100%;
-	  box-sizing: border-box;
-	}
-
-	@media (max-width: 1024px) {
-	  .top-row {
-	    grid-template-columns: 1fr;
-	  }
-	}
-
-.placeholder-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  background: var(--color-surface);
-}
-.placeholder-card h2 {
-  margin: 0 0 var(--spacing-sm) 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-}
-.placeholder-card p {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
 }
 </style>

@@ -1,55 +1,55 @@
 <template>
-  <div class="legal-page">
+  <div class="min-h-screen bg-transparent pt-16">
     <NavBar />
-    
-    <div class="legal-container">
-      <div class="legal-content">
-        <h1 class="legal-title">Terms of Service</h1>
-        <p class="legal-updated">Last updated: {{ currentDate }}</p>
-        
-        <section class="legal-section">
-          <h2>Agreement to Terms</h2>
-          <p>By accessing and using <Mongoose class="gg"></Mongoose>, you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the service.</p>
+
+    <div class="max-w-[800px] mx-auto py-2xl px-xl">
+      <div class="bg-background-surface border border-border rounded-lg p-2xl backdrop-blur-[10px]" data-testid="legal-content">
+        <h1 class="text-2xl font-bold tracking-tight mb-sm text-text">Terms of Service</h1>
+        <p class="text-sm text-text-secondary mb-2xl">Last updated: {{ currentDate }}</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Agreement to Terms</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">By accessing and using Mongoose.gg, you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the service.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Use License</h2>
-          <p>We grant you a limited, non-exclusive, non-transferable license to use Mongoose.gg for personal, non-commercial purposes, subject to these terms.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Use License</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">We grant you a limited, non-exclusive, non-transferable license to use Mongoose.gg for personal, non-commercial purposes, subject to these terms.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Riot Games Disclaimer</h2>
-          <p>Mongoose.gg is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Riot Games Disclaimer</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">Mongoose.gg is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Subscription Terms</h2>
-          <p>Subscription fees are billed in advance on a monthly or annual basis. You may cancel your subscription at any time. Cancellations take effect at the end of the current billing period.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Subscription Terms</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">Subscription fees are billed in advance on a monthly or annual basis. You may cancel your subscription at any time. Cancellations take effect at the end of the current billing period.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Refund Policy</h2>
-          <p>We offer a 30-day money-back guarantee for all paid subscriptions. Contact support@mongoose.gg within 30 days of your initial purchase for a full refund.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Refund Policy</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">We offer a 30-day money-back guarantee for all paid subscriptions. Contact support@mongoose.gg within 30 days of your initial purchase for a full refund.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Prohibited Uses</h2>
-          <p>You may not use Mongoose.gg for any unlawful purpose or to violate any laws. You may not attempt to gain unauthorized access to any part of the service.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Prohibited Uses</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">You may not use Mongoose.gg for any unlawful purpose or to violate any laws. You may not attempt to gain unauthorized access to any part of the service.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Limitation of Liability</h2>
-          <p>In no event shall Mongoose.gg be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use or inability to use the service.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Limitation of Liability</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">In no event shall Mongoose.gg be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use or inability to use the service.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Changes to Terms</h2>
-          <p>We reserve the right to modify these terms at any time. We will notify users of any material changes via email or through the service.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Changes to Terms</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">We reserve the right to modify these terms at any time. We will notify users of any material changes via email or through the service.</p>
         </section>
-        
-        <section class="legal-section">
-          <h2>Contact Us</h2>
-          <p>If you have questions about these Terms of Service, please contact us at <a href="mailto:legal@mongoose.gg">legal@mongoose.gg</a>.</p>
+
+        <section class="mb-xl">
+          <h2 class="text-xl font-bold tracking-tight mb-md text-text">Contact Us</h2>
+          <p class="text-base text-text-secondary leading-relaxed mb-md">If you have questions about these Terms of Service, please contact us at <a href="mailto:legal@mongoose.gg" class="text-primary no-underline transition-opacity duration-200 hover:opacity-80">legal@mongoose.gg</a>.</p>
         </section>
       </div>
     </div>
@@ -61,87 +61,10 @@ import { computed } from 'vue';
 import NavBar from '../components/NavBar.vue';
 
 const currentDate = computed(() => {
-  return new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  return new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   });
 });
 </script>
-
-<style scoped>
-.legal-page {
-  min-height: 100vh;
-  background: transparent;
-  padding-top: 64px;
-}
-
-.legal-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: var(--spacing-2xl) var(--spacing-xl);
-}
-
-.legal-content {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-2xl);
-  backdrop-filter: blur(10px);
-}
-
-.legal-title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing);
-  margin-bottom: var(--spacing-sm);
-  color: var(--color-text);
-}
-
-.legal-updated {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-2xl);
-}
-
-.legal-section {
-  margin-bottom: var(--spacing-xl);
-}
-
-.legal-section h2 {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing);
-  margin-bottom: var(--spacing-md);
-  color: var(--color-text);
-}
-
-.legal-section p {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: var(--spacing-md);
-}
-
-.legal-section ul {
-  list-style: disc;
-  margin-left: var(--spacing-xl);
-  color: var(--color-text-secondary);
-}
-
-.legal-section li {
-  font-size: var(--font-size-md);
-  line-height: 1.6;
-  margin-bottom: var(--spacing-xs);
-}
-
-.legal-section a {
-  color: var(--color-primary);
-  text-decoration: none;
-  transition: opacity 0.2s;
-}
-
-.legal-section a:hover {
-  opacity: 0.8;
-}
-</style>

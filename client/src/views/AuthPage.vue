@@ -1,59 +1,59 @@
 <template>
-  <div class="auth-page">
+  <div class="min-h-screen bg-transparent pt-16">
     <NavBar />
 
-    <div class="auth-container">
-      <div class="auth-card">
-        <div class="auth-header">
-          <img src="/mongoose.png" alt="Mongoose" class="auth-logo" />
-          <h1 class="auth-title">Welcome to Mongoose.gg <span class="beta-tag">Beta</span></h1>
-          <p class="auth-subtitle">{{ isLogin ? 'Sign in to your account' : 'Create your account' }}</p>
+    <div class="min-h-[calc(100vh-64px)] flex items-center justify-center p-xl">
+      <div class="w-full max-w-[440px] p-2xl bg-background-surface border border-border rounded-lg backdrop-blur-[10px]" data-testid="auth-card">
+        <div class="flex flex-col items-center justify-center text-center mb-xl min-h-[200px]">
+          <img src="/mongoose.png" alt="Mongoose" class="w-32 h-16 mb-md" data-testid="auth-logo" />
+          <h1 class="text-2xl font-bold tracking-tight mb-xs text-text">Welcome to Mongoose.gg <span class="text-[0.5em] text-text-secondary font-normal align-top">Beta</span></h1>
+          <p class="text-base text-text-secondary">{{ isLogin ? 'Sign in to your account' : 'Create your account' }}</p>
         </div>
 
         <!-- Error message -->
-        <div v-if="errorMessage" class="auth-error">
+        <div v-if="errorMessage" class="p-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-md text-[#ef4444] text-sm text-center mb-md">
           {{ errorMessage }}
         </div>
 
-        <form @submit.prevent="handleSubmit" class="auth-form">
+        <form @submit.prevent="handleSubmit" class="flex flex-col gap-lg" data-testid="auth-form">
           <!-- Username field for both login and signup -->
-          <div class="form-group">
-            <label for="username" class="form-label">Username</label>
+          <div class="flex flex-col gap-xs" data-testid="form-group">
+            <label for="username" class="text-sm font-medium text-text tracking-tight">Username</label>
             <input
               id="username"
               v-model="formData.username"
               type="text"
-              class="form-input"
-              :class="{ 'form-input-error': usernameError }"
+              class="p-md bg-background border border-border rounded-md text-base text-text transition-all duration-200 focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary-soft placeholder:text-text-secondary"
+              :class="{ 'border-[#ef4444] focus:border-[#ef4444] focus:ring-[rgba(239,68,68,0.2)]': usernameError }"
               placeholder="Your username"
               required
               minlength="3"
               maxlength="50"
               @input="validateUsername"
             />
-            <span v-if="usernameError" class="form-error">{{ usernameError }}</span>
+            <span v-if="usernameError" class="text-xs text-[#ef4444] mt-xs">{{ usernameError }}</span>
           </div>
 
           <!-- Email field only for signup -->
-          <div v-if="!isLogin" class="form-group">
-            <label for="email" class="form-label">Email</label>
+          <div v-if="!isLogin" class="flex flex-col gap-xs">
+            <label for="email" class="text-sm font-medium text-text tracking-tight">Email</label>
             <input
               id="email"
               v-model="formData.email"
               type="email"
-              class="form-input"
+              class="p-md bg-background border border-border rounded-md text-base text-text transition-all duration-200 focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary-soft placeholder:text-text-secondary"
               placeholder="you@example.com"
               required
             />
           </div>
 
-          <div class="form-group">
-            <label for="password" class="form-label">Password</label>
+          <div class="flex flex-col gap-xs">
+            <label for="password" class="text-sm font-medium text-text tracking-tight">Password</label>
             <input
               id="password"
               v-model="formData.password"
               type="password"
-              class="form-input"
+              class="p-md bg-background border border-border rounded-md text-base text-text transition-all duration-200 focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary-soft placeholder:text-text-secondary"
               placeholder="••••••••"
               required
               minlength="8"
@@ -61,24 +61,33 @@
           </div>
 
           <!-- Remember me checkbox for login -->
-          <div v-if="isLogin" class="form-checkbox-group">
+          <div v-if="isLogin" class="flex items-center gap-sm">
             <input
               id="rememberMe"
               v-model="formData.rememberMe"
               type="checkbox"
-              class="form-checkbox"
+              class="w-[18px] h-[18px] accent-primary cursor-pointer"
             />
-            <label for="rememberMe" class="form-checkbox-label">Keep me logged in for 30 days</label>
+            <label for="rememberMe" class="text-sm text-text-secondary cursor-pointer">Keep me logged in for 30 days</label>
           </div>
 
-          <button type="submit" class="auth-btn-submit" :disabled="isSubmitting">
-            <span v-if="isSubmitting" class="auth-spinner"></span>
+          <button
+            type="submit"
+            class="p-md bg-primary text-white font-semibold text-base tracking-tight border-none rounded-md cursor-pointer transition-all duration-200 shadow-sm mt-md hover:shadow-md hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+            :disabled="isSubmitting"
+          >
+            <span v-if="isSubmitting" class="inline-block w-4 h-4 border-2 border-[rgba(255,255,255,0.3)] rounded-full border-t-white animate-spin mr-sm"></span>
             {{ isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account') }}
           </button>
         </form>
 
-        <div class="auth-footer">
-          <button @click="toggleMode" class="auth-toggle" :disabled="isSubmitting">
+        <div class="mt-xl pt-xl border-t border-border text-center">
+          <button
+            @click="toggleMode"
+            class="bg-transparent border-none text-primary text-sm font-medium cursor-pointer transition-opacity duration-200 hover:opacity-80 disabled:opacity-60 disabled:cursor-not-allowed"
+            :disabled="isSubmitting"
+            data-testid="auth-toggle"
+          >
             {{ isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in' }}
           </button>
         </div>
@@ -222,215 +231,3 @@ const handleSubmit = async () => {
   }
 };
 </script>
-
-<style scoped>
-.auth-page {
-  min-height: 100vh;
-  background: transparent;
-  padding-top: 64px;
-}
-
-.auth-container {
-  min-height: calc(100vh - 64px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xl);
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 440px;
-  padding: var(--spacing-2xl);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  backdrop-filter: blur(10px);
-}
-
-.auth-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center; /* This centers content vertically */
-  text-align: center;
-  margin-bottom: var(--spacing-xl);
-  min-height: 200px; /* Optional: set a min-height for better vertical centering */
-}
-
-.auth-logo {
-  width: 128px;
-  height: 64px;
-  margin-bottom: var(--spacing-md);
-
-}
-
-.auth-title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing);
-  margin-bottom: var(--spacing-xs);
-  color: var(--color-text);
-}
-
-.beta-tag {
-  font-size: 0.5em;
-  color: var(--color-text-secondary);
-  font-weight: var(--font-weight-normal);
-  vertical-align: top;
-}
-
-.auth-subtitle {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-}
-
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.form-label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text);
-  letter-spacing: var(--letter-spacing);
-}
-
-.form-input {
-  padding: var(--spacing-md);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
-  color: var(--color-text);
-  transition: all 0.2s;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
-}
-
-.form-input::placeholder {
-  color: var(--color-text-secondary);
-}
-
-.auth-btn-submit {
-  padding: var(--spacing-md);
-  background: var(--color-primary);
-  color: white;
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
-  letter-spacing: var(--letter-spacing);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: var(--shadow-sm);
-  margin-top: var(--spacing-md);
-}
-
-.auth-btn-submit:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.auth-footer {
-  margin-top: var(--spacing-xl);
-  padding-top: var(--spacing-xl);
-  border-top: 1px solid var(--color-border);
-  text-align: center;
-}
-
-.auth-toggle {
-  background: transparent;
-  border: none;
-  color: var(--color-primary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.auth-toggle:hover {
-  opacity: 0.8;
-}
-
-.auth-toggle:disabled,
-.auth-btn-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.auth-error {
-  padding: var(--spacing-md);
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: var(--radius-md);
-  color: #ef4444;
-  font-size: var(--font-size-sm);
-  text-align: center;
-  margin-bottom: var(--spacing-md);
-}
-
-.form-input-error {
-  border-color: #ef4444;
-}
-
-.form-input-error:focus {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
-}
-
-.form-error {
-  font-size: var(--font-size-xs);
-  color: #ef4444;
-  margin-top: var(--spacing-xs);
-}
-
-.form-checkbox-group {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.form-checkbox {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-primary);
-  cursor: pointer;
-}
-
-.form-checkbox-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.auth-spinner {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 0.8s linear infinite;
-  margin-right: var(--spacing-sm);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style>

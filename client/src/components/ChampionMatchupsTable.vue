@@ -1,16 +1,16 @@
 <template>
-  <section class="matchups-card">
-    <header class="header">
-      <div class="header-left">
-        <h2 class="title">Champion Matchups</h2>
-        <p class="subtitle">{{ isSearching ? 'Your champions vs ' + searchQuery : 'Top champions with opponent performance' }}</p>
+  <section class="bg-background-surface border border-border rounded-lg p-lg">
+    <header class="flex justify-between items-start gap-md mb-md flex-wrap">
+      <div class="flex-1 min-w-[150px]">
+        <h2 class="text-lg font-semibold text-text m-0">Champion Matchups</h2>
+        <p class="text-sm text-text-secondary mt-xs mb-0">{{ isSearching ? 'Your champions vs ' + searchQuery : 'Top champions with opponent performance' }}</p>
       </div>
-      <div class="header-right">
-        <div v-if="roles.length > 0" class="role-tabs" role="tablist">
+      <div class="flex flex-col items-end gap-sm flex-shrink-0">
+        <div v-if="roles.length > 0" class="flex flex-wrap gap-xs" role="tablist">
           <button
             type="button"
-            class="role-pill"
-            :class="{ active: selectedRole === null }"
+            class="py-1 px-2.5 rounded-full border border-border bg-background-elevated text-text-secondary text-xs font-medium cursor-pointer transition-all duration-150 hover:border-primary hover:text-text"
+            :class="{ 'bg-primary border-primary text-white': selectedRole === null }"
             @click="selectRole(null)"
             role="tab"
             :aria-selected="selectedRole === null"
@@ -21,8 +21,8 @@
             v-for="role in roles"
             :key="role"
             type="button"
-            class="role-pill"
-            :class="{ active: role === selectedRole }"
+            class="py-1 px-2.5 rounded-full border border-border bg-background-elevated text-text-secondary text-xs font-medium cursor-pointer transition-all duration-150 hover:border-primary hover:text-text"
+            :class="{ 'bg-primary border-primary text-white': role === selectedRole }"
             @click="selectRole(role)"
             role="tab"
             :aria-selected="role === selectedRole"
@@ -30,18 +30,18 @@
             {{ roleLabel(role) }}
           </button>
         </div>
-        <div class="search-wrapper">
+        <div class="relative flex items-center">
           <input
             v-model="searchQuery"
             type="text"
-            class="search-input"
+            class="w-40 py-xs px-sm pr-7 text-sm border border-border rounded-sm bg-background-elevated text-text transition-all duration-150 placeholder:text-text-secondary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-soft"
             placeholder="Search opponent..."
             @input="onSearchInput"
           />
           <button
             v-if="searchQuery"
             type="button"
-            class="search-clear"
+            class="absolute right-1.5 bg-transparent border-none text-text-secondary cursor-pointer py-0.5 px-1 text-xs leading-none transition-colors duration-150 hover:text-text"
             @click="clearSearch"
             aria-label="Clear search"
           >
@@ -52,44 +52,44 @@
     </header>
 
     <!-- Inverse view: searching for opponent -->
-    <div v-if="isSearching && inverseMatchups.length > 0" class="matchups-table-wrapper">
-      <table class="matchups-table">
+    <div v-if="isSearching && inverseMatchups.length > 0" class="overflow-x-auto">
+      <table class="matchups-table w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th class="th-champion">Your Champion</th>
-            <th class="th-opponent">vs {{ searchQuery }}</th>
-            <th class="th-record">Record</th>
-            <th class="th-winrate">Winrate</th>
+            <th class="th-champion text-left font-medium text-text-secondary py-sm px-xs border-b border-border w-[40%]">Your Champion</th>
+            <th class="th-opponent text-center font-medium text-text-secondary py-sm px-xs border-b border-border w-[15%]">vs {{ searchQuery }}</th>
+            <th class="th-record text-center font-medium text-text-secondary py-sm px-xs border-b border-border w-[20%]">Record</th>
+            <th class="th-winrate text-center font-medium text-text-secondary py-sm px-xs border-b border-border w-[15%]">Winrate</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in inverseMatchups" :key="item.championId" class="inverse-row">
-            <td class="td-champion">
-              <div class="champion-info">
+          <tr v-for="item in inverseMatchups" :key="item.championId" class="transition-colors duration-150 hover:bg-background-elevated">
+            <td class="py-sm px-xs border-b border-border align-middle">
+              <div class="flex items-center gap-sm">
                 <img
-                  class="champion-icon"
+                  class="champion-icon w-9 h-9 rounded-sm object-cover"
                   :src="getChampionIconUrl(item.championName)"
                   :alt="item.championName"
                   loading="lazy"
                 />
-                <div class="champion-details">
-                  <span class="champion-name">{{ item.championName }}</span>
-                  <span class="role-badge">{{ roleLabel(item.role) }}</span>
+                <div class="flex flex-col gap-0.5">
+                  <span class="font-medium text-text">{{ item.championName }}</span>
+                  <span class="text-xs text-text-secondary">{{ roleLabel(item.role) }}</span>
                 </div>
               </div>
             </td>
-            <td class="td-opponent">
-              <div class="opponent-mini">
+            <td class="text-center align-middle py-sm px-xs border-b border-border">
+              <div class="inline-flex items-center justify-center">
                 <img
-                  class="opponent-icon-sm"
+                  class="w-7 h-7 rounded-sm object-cover"
                   :src="getChampionIconUrl(item.opponentName)"
                   :alt="item.opponentName"
                   loading="lazy"
                 />
               </div>
             </td>
-            <td class="td-record">{{ item.wins }}-{{ item.losses }}</td>
-            <td :class="['td-winrate', getWinRateColorClass(item.winRate)]">
+            <td class="text-center align-middle text-text py-sm px-xs border-b border-border">{{ item.wins }}-{{ item.losses }}</td>
+            <td :class="['text-center align-middle font-semibold py-sm px-xs border-b border-border', getWinRateColorClass(item.winRate)]">
               {{ formatWinRate(item.winRate) }}
             </td>
           </tr>
@@ -98,79 +98,79 @@
     </div>
 
     <!-- No results for search -->
-    <div v-else-if="isSearching && inverseMatchups.length === 0" class="empty-state">
-      <p>No matchups found against "{{ searchQuery }}"</p>
+    <div v-else-if="isSearching && inverseMatchups.length === 0" class="p-lg text-center text-text-secondary text-sm">
+      <p class="m-0">No matchups found against "{{ searchQuery }}"</p>
     </div>
 
     <!-- Normal view: top champions with expandable opponents -->
-    <div v-else-if="hasData && filteredMatchups.length > 0" class="matchups-table-wrapper">
-      <table class="matchups-table">
+    <div v-else-if="hasData && filteredMatchups.length > 0" class="overflow-x-auto">
+      <table class="matchups-table w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th class="th-champion">Champion</th>
-            <th class="th-record">Record</th>
-            <th class="th-winrate">Winrate</th>
-            <th class="th-expand"></th>
+            <th class="text-left font-medium text-text-secondary py-sm px-xs border-b border-border w-[40%]">Champion</th>
+            <th class="text-center font-medium text-text-secondary py-sm px-xs border-b border-border w-[20%]">Record</th>
+            <th class="text-center font-medium text-text-secondary py-sm px-xs border-b border-border w-[15%]">Winrate</th>
+            <th class="text-center font-medium text-text-secondary py-sm px-xs border-b border-border w-[10%]"></th>
           </tr>
         </thead>
         <tbody>
           <template v-for="matchup in filteredMatchups" :key="matchup.championId">
             <!-- Champion row -->
-            <tr class="champion-row" @click="toggleExpanded(matchup.championId)">
-              <td class="td-champion">
-                <div class="champion-info">
+            <tr class="cursor-pointer transition-colors duration-150 hover:bg-background-elevated" @click="toggleExpanded(matchup.championId)">
+              <td class="py-sm px-xs border-b border-border align-middle">
+                <div class="flex items-center gap-sm">
                   <img
-                    class="champion-icon"
+                    class="champion-icon w-9 h-9 rounded-sm object-cover"
                     :src="getChampionIconUrl(matchup.championName)"
                     :alt="matchup.championName"
                     loading="lazy"
                   />
-                  <div class="champion-details">
-                    <span class="champion-name">{{ matchup.championName }}</span>
-                    <span class="role-badge">{{ roleLabel(matchup.role) }}</span>
+                  <div class="flex flex-col gap-0.5">
+                    <span class="font-medium text-text">{{ matchup.championName }}</span>
+                    <span class="text-xs text-text-secondary">{{ roleLabel(matchup.role) }}</span>
                   </div>
                 </div>
               </td>
-              <td class="td-record">{{ matchup.wins }}-{{ matchup.totalGames - matchup.wins }}</td>
-              <td :class="['td-winrate', getWinRateColorClass(matchup.winRate)]">
+              <td class="text-center align-middle text-text py-sm px-xs border-b border-border">{{ matchup.wins }}-{{ matchup.totalGames - matchup.wins }}</td>
+              <td :class="['text-center align-middle font-semibold py-sm px-xs border-b border-border', getWinRateColorClass(matchup.winRate)]">
                 {{ formatWinRate(matchup.winRate) }}
               </td>
-              <td class="td-expand">
+              <td class="text-center align-middle py-sm px-xs border-b border-border">
                 <button
                   type="button"
-                  class="expand-btn"
+                  class="bg-transparent border-none cursor-pointer p-xs text-text-secondary transition-colors duration-150 hover:text-text"
                   :aria-expanded="isExpanded(matchup.championId)"
                   :aria-label="isExpanded(matchup.championId) ? 'Collapse opponents' : 'Expand opponents'"
                 >
-                  <span class="expand-icon" :class="{ rotated: isExpanded(matchup.championId) }">▼</span>
+                  <span class="inline-block text-[10px] transition-transform duration-200" :class="{ 'rotate-180': isExpanded(matchup.championId) }">▼</span>
                 </button>
               </td>
             </tr>
             <!-- Opponent rows (expandable) -->
-            <tr v-if="isExpanded(matchup.championId) && visibleOpponents(matchup).length > 0" class="opponents-row">
-              <td colspan="4" class="opponents-cell">
-                <div class="opponents-list">
+            <tr v-if="isExpanded(matchup.championId) && visibleOpponents(matchup).length > 0">
+              <td colspan="4" class="p-0 border-b border-border bg-background-elevated">
+                <div class="py-sm px-md flex flex-col gap-xs">
                   <div
                     v-for="opp in visibleOpponents(matchup)"
                     :key="opp.opponentChampionId"
-                    class="opponent-item"
+                    class="flex items-center gap-sm py-xs"
                   >
                     <img
-                      class="opponent-icon"
+                      class="w-6 h-6 rounded-sm object-cover"
                       :src="getChampionIconUrl(opp.opponentChampionName)"
                       :alt="opp.opponentChampionName"
                       loading="lazy"
                     />
-                    <span class="opponent-name">{{ opp.opponentChampionName }}</span>
-                    <span class="opponent-record">{{ opp.wins }}-{{ opp.losses }}</span>
-                    <span :class="['opponent-winrate', getWinRateColorClass(opp.winRate)]">
+                    <span class="flex-1 text-text text-sm">{{ opp.opponentChampionName }}</span>
+                    <span class="text-text-secondary text-sm min-w-[40px] text-center">{{ opp.wins }}-{{ opp.losses }}</span>
+                    <span :class="['font-semibold text-sm min-w-[50px] text-right', getWinRateColorClass(opp.winRate)]">
                       {{ formatWinRate(opp.winRate) }}
                     </span>
                   </div>
                   <button
                     v-if="matchup.opponents.length > 3 && !showAllOpponents[matchup.championId]"
                     type="button"
-                    class="show-all-btn"
+                    class="bg-transparent border border-border rounded-sm py-xs px-sm text-xs text-primary cursor-pointer mt-xs transition-all duration-150 hover:bg-primary-soft hover:border-primary"
                     @click.stop="showAllOpponents[matchup.championId] = true"
                   >
                     Show All ({{ matchup.opponents.length - 3 }} more)
@@ -178,7 +178,7 @@
                   <button
                     v-else-if="matchup.opponents.length > 3 && showAllOpponents[matchup.championId]"
                     type="button"
-                    class="show-all-btn"
+                    class="bg-transparent border border-border rounded-sm py-xs px-sm text-xs text-primary cursor-pointer mt-xs transition-all duration-150 hover:bg-primary-soft hover:border-primary"
                     @click.stop="showAllOpponents[matchup.championId] = false"
                   >
                     Show Less
@@ -192,12 +192,12 @@
     </div>
 
     <!-- No data for selected role -->
-    <div v-else-if="hasData && filteredMatchups.length === 0" class="empty-state">
-      <p>No matchups found for this role.</p>
+    <div v-else-if="hasData && filteredMatchups.length === 0" class="p-lg text-center text-text-secondary text-sm">
+      <p class="m-0">No matchups found for this role.</p>
     </div>
 
-    <div v-else class="empty-state">
-      <p>No matchup data available for this filter.</p>
+    <div v-else class="p-lg text-center text-text-secondary text-sm">
+      <p class="m-0">No matchup data available for this filter.</p>
     </div>
   </section>
 </template>
@@ -354,313 +354,7 @@ function formatWinRate(value) {
 </script>
 
 <style scoped>
-.matchups-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-  flex-wrap: wrap;
-}
-
-.header-left {
-  flex: 1;
-  min-width: 150px;
-}
-
-.header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--spacing-sm);
-  flex-shrink: 0;
-}
-
-.title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  margin: 0;
-}
-
-.subtitle {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin: var(--spacing-xs) 0 0 0;
-}
-
-.role-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-}
-
-.role-pill {
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-elevated);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.role-pill:hover {
-  border-color: var(--color-primary);
-  color: var(--color-text);
-}
-
-.role-pill.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-}
-
-.search-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-input {
-  width: 160px;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  padding-right: 28px;
-  font-size: var(--font-size-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-elevated);
-  color: var(--color-text);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.search-input::placeholder {
-  color: var(--color-text-secondary);
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-soft);
-}
-
-.search-clear {
-  position: absolute;
-  right: 6px;
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  padding: 2px 4px;
-  font-size: 12px;
-  line-height: 1;
-  transition: color 0.15s ease;
-}
-
-.search-clear:hover {
-  color: var(--color-text);
-}
-
-.matchups-table-wrapper {
-  overflow-x: auto;
-}
-
-.matchups-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-sm);
-}
-
-.matchups-table th {
-  text-align: left;
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-  padding: var(--spacing-sm) var(--spacing-xs);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.th-champion { width: 40%; }
-.th-opponent { width: 15%; text-align: center; }
-.th-record { width: 20%; text-align: center; }
-.th-winrate { width: 15%; text-align: center; }
-.th-expand { width: 10%; text-align: center; }
-
-.champion-row,
-.inverse-row {
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.champion-row:hover,
-.inverse-row:hover {
-  background: var(--color-elevated);
-}
-
-.champion-row td,
-.inverse-row td {
-  padding: var(--spacing-sm) var(--spacing-xs);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.inverse-row {
-  cursor: default;
-}
-
-.td-champion { vertical-align: middle; }
-.td-opponent { text-align: center; vertical-align: middle; }
-.td-record { text-align: center; vertical-align: middle; color: var(--color-text); }
-.td-winrate { text-align: center; vertical-align: middle; font-weight: var(--font-weight-semibold); }
-.td-expand { text-align: center; vertical-align: middle; }
-
-.opponent-mini {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.opponent-icon-sm {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-}
-
-.champion-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.champion-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-}
-
-.champion-details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.champion-name {
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text);
-}
-
-.role-badge {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
-.expand-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: var(--spacing-xs);
-  color: var(--color-text-secondary);
-  transition: color 0.15s ease;
-}
-
-.expand-btn:hover {
-  color: var(--color-text);
-}
-
-.expand-icon {
-  display: inline-block;
-  font-size: 10px;
-  transition: transform 0.2s ease;
-}
-
-.expand-icon.rotated {
-  transform: rotate(180deg);
-}
-
-.opponents-row td {
-  padding: 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.opponents-cell {
-  background: var(--color-elevated);
-}
-
-.opponents-list {
-  padding: var(--spacing-sm) var(--spacing-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.opponent-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xs) 0;
-}
-
-.opponent-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-}
-
-.opponent-name {
-  flex: 1;
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-}
-
-.opponent-record {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  min-width: 40px;
-  text-align: center;
-}
-
-.opponent-winrate {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-sm);
-  min-width: 50px;
-  text-align: right;
-}
-
-.show-all-btn {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--font-size-xs);
-  color: var(--color-primary);
-  cursor: pointer;
-  margin-top: var(--spacing-xs);
-  transition: all 0.15s ease;
-}
-
-.show-all-btn:hover {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-}
-
-.empty-state {
-  padding: var(--spacing-lg);
-  text-align: center;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-}
-
-/* Win rate color classes */
+/* Win rate color classes (dynamic classes can't be done with Tailwind) */
 .winrate-red { color: #ef4444; }
 .winrate-redorange { color: #f97316; }
 .winrate-orange { color: #fdba74; }
@@ -669,6 +363,7 @@ function formatWinRate(value) {
 .winrate-green { color: #22c55e; }
 .winrate-neutral { color: var(--color-text); }
 
+/* Responsive styles for table */
 @media (max-width: 640px) {
   .matchups-table {
     font-size: var(--font-size-xs);
@@ -677,11 +372,6 @@ function formatWinRate(value) {
   .champion-icon {
     width: 28px;
     height: 28px;
-  }
-
-  .th-record,
-  .th-winrate {
-    width: auto;
   }
 }
 </style>

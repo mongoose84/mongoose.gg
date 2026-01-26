@@ -56,8 +56,29 @@ For full task details, see:
 | G9 | Implement user login, signup, verification & `/app/user` shell | Frontend | 5 | ✅ |
 | G12 | Implement Riot account linking on `/app/user` | Frontend | 5 | ✅ |
 | G13 | Implement real-time match sync progress via WebSocket | Frontend | 5 | ✅ |
+    | G14b | Implement OverviewPlayerHeader component | Frontend | 1 | ✅ |
+    | G14c | Implement RankSnapshot component | Frontend | 2 | ✅ |
+    | G14d | Implement LastMatchCard component | Frontend | 1 | ✅ |
+    | G14g | Implement OverviewLayout and page integration | Frontend | 1 | ✅ |
+    | D1 | Set up analytics provider | Analytics | 2 | ✅ |
+    | D2 | Implement core tracking events | Analytics | 3 | ✅ |
+    | D3 | Track page views and sessions | Analytics | 1 | ✅ |
+    | D4 | Server-side event tracking | Analytics | 2 | ✅ |
+    | D5 | Create key dashboards | Analytics | 2 | ✅ |
+    | D6 | Create internal metrics endpoint | Analytics | 2 | ✅ |
+    | D7 | Set up error tracking | Analytics | 2 | ✅ |
+    | D9 | Show match activity heatmap on user page | Analytics | 3 | ✅ |
+    | F9 | Add backend tests with focus on security | API | 3 | ✅ |
+    | G14a | Create Overview endpoint | Backend | 2 | ✅ |
+    | G5b4 | Implement Winrate Over Time chart component | Frontend | 3 | ✅ |
+    | G5b5 | Implement LP Over Time chart component | Frontend | 2 | ✅ |
+    | G5b6 | Implement Champion Matchups table component | Frontend | 3 | ✅ |
+    | G5b13 | Fetch winrate trend data for Solo dashboard | Backend | 2 | ✅ |
+    | G5b14 | Fetch LP trend data for Solo dashboard | Backend | 2 | ✅ |
+    | G8 | Remove legacy dashboard views & routes | Frontend | 1 | ✅ |
+    | G10 | Implement user dropdown details & account settings page | Frontend | 8 | ✅ |
 
-**Completed Total:** 113 points
+    **Completed Total:** 161 points
 
 ---
 
@@ -198,8 +219,8 @@ For full task details, see:
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 151 pts |
-| **Completed** | 113 pts |
+    | **Remaining** | 146 pts |
+    | **Completed** | 118 pts |
 | **Grand Total** | 264 pts |
 
 ---

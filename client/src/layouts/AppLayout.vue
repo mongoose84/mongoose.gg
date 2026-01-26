@@ -1,7 +1,7 @@
 <template>
-  <div class="app-layout">
+  <div class="min-h-screen flex">
     <AppSidebar />
-    <main class="app-main" :style="{ marginLeft: sidebarWidth + 'px' }">
+    <main class="flex-1 transition-[margin-left] duration-300 ease-out min-h-screen" :style="{ marginLeft: sidebarWidth + 'px' }">
       <router-view />
     </main>
   </div>
@@ -100,16 +100,5 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
-.app-layout {
-  min-height: 100vh;
-  display: flex;
-}
-
-.app-main {
-  flex: 1;
-  transition: margin-left 0.3s ease;
-  min-height: 100vh;
-}
-</style>
+<!-- Tailwind utilities used: min-h-screen, flex, flex-1, transition-[margin-left], duration-300, ease-out -->
 

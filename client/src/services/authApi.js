@@ -271,6 +271,37 @@ export async function getRiotAccountSyncStatus(puuid) {
   return data
 }
 
+// ============ Overview API ============
+
+/**
+ * Get overview dashboard data for a user
+ * @param {number} userId - User ID
+ * @returns {Promise<Object>} Overview data including playerHeader, rankSnapshot, lastMatch, activeGoals, suggestedActions
+ */
+export async function getOverview(userId) {
+  const url = `${API_BASE}/overview/${userId}`
+
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include'
+  })
+
+  if (response.status === 404) {
+    return null // No linked Riot accounts
+  }
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const error = new Error(data.error || 'Failed to get overview data')
+    error.status = response.status
+    error.code = data.code
+    throw error
+  }
+
+  return data
+}
+
 // ============ Solo Dashboard API ============
 
 /**

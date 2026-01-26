@@ -154,36 +154,39 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     logger.LogWarning(ex, "Failed to fetch summoner profile data for {GameName}#{TagLine}", request.GameName, request.TagLine);
                 }
 
-                // Fetch ranked data if we have a summoner ID
+                // Fetch ranked data using PUUID (standardized approach)
                 string? soloTier = null, soloRank = null, flexTier = null, flexRank = null;
                 int? soloLp = null, flexLp = null;
-                if (!string.IsNullOrEmpty(summonerId))
+                try
                 {
-                    try
+                    using var leagueDoc = await riotApiClient.GetLeagueEntriesByPuuidAsync(request.Region.ToLowerInvariant(), puuid);
+                    foreach (var entry in leagueDoc.RootElement.EnumerateArray())
                     {
-                        var leagueDoc = await riotApiClient.GetLeagueEntriesBySummonerIdAsync(request.Region.ToLowerInvariant(), summonerId);
-                        foreach (var entry in leagueDoc.RootElement.EnumerateArray())
+                        // Extract summonerId from league entry if available (for backwards compatibility)
+                        if (summonerId == null && entry.TryGetProperty("summonerId", out var summonerIdProp))
                         {
-                            var queueType = entry.GetProperty("queueType").GetString();
-                            if (queueType == "RANKED_SOLO_5x5")
-                            {
-                                soloTier = entry.GetProperty("tier").GetString();
-                                soloRank = entry.GetProperty("rank").GetString();
-                                soloLp = entry.GetProperty("leaguePoints").GetInt32();
-                            }
-                            else if (queueType == "RANKED_FLEX_SR")
-                            {
-                                flexTier = entry.GetProperty("tier").GetString();
-                                flexRank = entry.GetProperty("rank").GetString();
-                                flexLp = entry.GetProperty("leaguePoints").GetInt32();
-                            }
+                            summonerId = summonerIdProp.GetString();
+                        }
+
+                        var queueType = entry.GetProperty("queueType").GetString();
+                        if (queueType == "RANKED_SOLO_5x5")
+                        {
+                            soloTier = entry.GetProperty("tier").GetString();
+                            soloRank = entry.GetProperty("rank").GetString();
+                            soloLp = entry.GetProperty("leaguePoints").GetInt32();
+                        }
+                        else if (queueType == "RANKED_FLEX_SR")
+                        {
+                            flexTier = entry.GetProperty("tier").GetString();
+                            flexRank = entry.GetProperty("rank").GetString();
+                            flexLp = entry.GetProperty("leaguePoints").GetInt32();
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        // Log but don't fail - rank data is optional
-                        logger.LogWarning(ex, "Failed to fetch ranked data for {GameName}#{TagLine}", request.GameName, request.TagLine);
-                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail - rank data is optional
+                    logger.LogWarning(ex, "Failed to fetch ranked data for {GameName}#{TagLine}", request.GameName, request.TagLine);
                 }
 
                 // Check if account is already linked

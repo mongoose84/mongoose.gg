@@ -15,15 +15,15 @@ describe('VersionBadge.vue', () => {
     expect(text).toContain('v');
   });
 
-  it('has correct class name applied', () => {
+  it('has correct aria-label for accessibility', () => {
     const wrapper = mount(VersionBadge);
-    expect(wrapper.find('.version-badge').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="App Version"]').exists()).toBe(true);
   });
 
   it('displays all version parts', () => {
     const wrapper = mount(VersionBadge);
-    expect(wrapper.find('.version-label').exists()).toBe(true);
-    expect(wrapper.find('.version-sep').exists()).toBe(true);
-    expect(wrapper.find('.version-value').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="version-label"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="version-sep"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="version-value"]').exists()).toBe(true);
   });
 });
