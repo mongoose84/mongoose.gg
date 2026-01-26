@@ -1576,83 +1576,11 @@ Create the backend endpoint that aggregates all data needed for the Overview pag
 
 ---
 
-### G14b. [Frontend] Implement OverviewPlayerHeader component
+    
 
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 1 point
-**Depends on:** G14a
-**Labels:** `frontend`, `component`, `overview`, `epic-g`
+    
 
-#### Description
-
-Create the `<OverviewPlayerHeader>` component showing player identity and active contexts.
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/OverviewPlayerHeader.vue`
-- [ ] Props: `summonerName`, `level`, `region`, `profileIconUrl`, `activeContexts`
-- [ ] Shows profile icon (from Riot CDN)
-- [ ] Shows summoner name + region
-- [ ] Shows context badges (Solo/Duo/Team) based on `activeContexts`
-- [ ] Static, no interactions
-- [ ] Mobile responsive
-
----
-
-### G14c. [Frontend] Implement RankSnapshot component
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** G14a
-**Labels:** `frontend`, `component`, `overview`, `epic-g`
-
-#### Description
-
-Create the `<RankSnapshot>` component showing rank, LP, and last 20 games performance with micro-visuals.
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/RankSnapshot.vue`
-- [ ] Props: `primaryQueueLabel`, `rank`, `lp`, `lpDeltaLast20`, `last20Wins`, `last20Losses`, `lpDeltasLast20[]`, `wlLast20[]`
-- [ ] Shows rank emblem (from Riot CDN)
-- [ ] Shows current LP
-- [ ] Shows ΔLP (Last 20) with positive/negative styling
-- [ ] Shows winrate formatted as `X% (W–L)`
-- [ ] Micro-visual: LP bar sparkline using `lpDeltasLast20[]` (green/red bars, no axes, no hover required)
-- [ ] Micro-visual: W/L strip using `wlLast20[]` (simple win/loss indicators)
-- [ ] Shows `primaryQueueLabel` visibly (e.g., "Primary: Ranked Solo/Duo")
-- [ ] Non-goals: axes, filters, time selectors, comparisons
-- [ ] Mobile responsive
-
----
-
-### G14d. [Frontend] Implement LastMatchCard component
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 1 point
-**Depends on:** G14a
-**Labels:** `frontend`, `component`, `overview`, `epic-g`
-
-#### Description
-
-Create the `<LastMatchCard>` component showing a quick summary of the most recent match.
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/LastMatchCard.vue`
-- [ ] Props: `matchId`, `championIconUrl`, `result`, `kda`, `timestamp`
-- [ ] Shows champion icon (from Riot CDN)
-- [ ] Shows win/loss result with appropriate styling
-- [ ] Shows KDA
-- [ ] Shows relative time (e.g., "2 hours ago")
-- [ ] Clickable: navigates to `/matches/:matchId`
-- [ ] Empty state when no matches available
-- [ ] Mobile responsive
-
----
+    
 
 ### G14e. [Frontend] Implement GoalProgressPreview component
 
@@ -1703,29 +1631,7 @@ Create the `<SuggestedActions>` component showing up to 3 actionable suggestions
 
 ---
 
-### G14g. [Frontend] Implement OverviewLayout and page integration
-
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 1 point
-**Depends on:** G14b, G14c, G14d, G14e, G14f
-**Labels:** `frontend`, `page`, `overview`, `epic-g`
-
-#### Description
-
-Create the `<OverviewLayout>` container and integrate all Overview components into the Overview page.
-
-#### Acceptance Criteria
-
-- [ ] Layout component created at `client/src/components/overview/OverviewLayout.vue`
-- [ ] Overview page created at `client/src/views/OverviewView.vue`
-- [ ] Route `/overview` configured (default after login)
-- [ ] Single-column layout
-- [ ] Enforces one-scroll maximum on desktop and mobile
-- [ ] Handles loading state (skeleton or spinner)
-- [ ] Handles empty states gracefully
-- [ ] Shows `primaryQueueLabel` visibly next to RankSnapshot
-- [ ] Must NOT include deep graphs, champion matrices, comparative analysis, or editable controls
+    
 - [ ] Context (Solo/Duo/Team) always visible via OverviewPlayerHeader
 - [ ] Page loads in under 2 seconds
 - [ ] Mobile responsive

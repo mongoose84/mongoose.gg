@@ -56,8 +56,12 @@ For full task details, see:
 | G9 | Implement user login, signup, verification & `/app/user` shell | Frontend | 5 | ✅ |
 | G12 | Implement Riot account linking on `/app/user` | Frontend | 5 | ✅ |
 | G13 | Implement real-time match sync progress via WebSocket | Frontend | 5 | ✅ |
+    | G14b | Implement OverviewPlayerHeader component | Frontend | 1 | ✅ |
+    | G14c | Implement RankSnapshot component | Frontend | 2 | ✅ |
+    | G14d | Implement LastMatchCard component | Frontend | 1 | ✅ |
+    | G14g | Implement OverviewLayout and page integration | Frontend | 1 | ✅ |
 
-**Completed Total:** 113 points
+    **Completed Total:** 118 points
 
 ---
 
@@ -198,8 +202,8 @@ For full task details, see:
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 151 pts |
-| **Completed** | 113 pts |
+    | **Remaining** | 146 pts |
+    | **Completed** | 118 pts |
 | **Grand Total** | 264 pts |
 
 ---

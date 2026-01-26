@@ -990,6 +990,118 @@ Update the Solo dashboard v2 endpoint (F2) to include `mainChampions` array. Gro
 
 ---
 
+### G14b. [Frontend] Implement OverviewPlayerHeader component ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** G14a
+**Labels:** `frontend`, `component`, `overview`, `epic-g`
+
+#### Description
+
+Create the `<OverviewPlayerHeader>` component showing player identity and active contexts.
+
+#### Acceptance Criteria
+
+- [x] Component created at `client/src/components/overview/OverviewPlayerHeader.vue`
+- [x] Props: `summonerName`, `level`, `region`, `profileIconUrl`, `activeContexts`
+- [x] Shows profile icon (from Riot CDN)
+- [x] Shows summoner name + region
+- [x] Shows context badges (Solo/Duo/Team) based on `activeContexts`
+- [x] Static, no interactions
+- [x] Mobile responsive
+
+#### Implementation Notes
+- Region label mapping converts API region codes (e.g., `eun1`, `euw1`, `na1`) to friendly labels (`EUNE`, `EUW`, `NA`).
+
+---
+
+### G14c. [Frontend] Implement RankSnapshot component ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** G14a
+**Labels:** `frontend`, `component`, `overview`, `epic-g`
+
+#### Description
+
+Create the `<RankSnapshot>` component showing rank, LP, and last 20 games performance.
+
+#### Acceptance Criteria
+
+- [x] Component created at `client/src/components/overview/RankSnapshot.vue`
+- [x] Props: `primaryQueueLabel`, `rank`, `lp`, `lpDeltaLast20`, `last20Wins`, `last20Losses`, `lpDeltasLast20[]`, `wlLast20[]`
+- [x] Shows rank emblem (cropped local assets at `/assets/ranked`)
+- [x] Shows current LP
+- [x] Shows ΔLP (Last 20) with positive/negative styling
+- [x] Shows winrate formatted as `X% (W–L)`
+- [x] W/L strip using `wlLast20[]` (simple win/loss indicators)
+- [x] Shows `primaryQueueLabel` visibly (e.g., "Primary: Ranked Solo/Duo")
+- [x] Mobile responsive
+
+#### Implementation Notes
+- LP bar sparkline was intentionally omitted per product decision; the W/L strip is retained.
+- Community Dragon rank emblems were cropped and stored locally to remove padding; displayed consistently at 72×72px.
+
+---
+
+### G14d. [Frontend] Implement LastMatchCard component ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** G14a
+**Labels:** `frontend`, `component`, `overview`, `epic-g`
+
+#### Description
+
+Create the `<LastMatchCard>` component showing a quick summary of the most recent match.
+
+#### Acceptance Criteria
+
+- [x] Component created at `client/src/components/overview/LastMatchCard.vue`
+- [x] Props: `matchId`, `championIconUrl`, `championName`, `result`, `kda`, `timestamp`, `queueType`
+- [x] Shows champion icon (from Riot CDN)
+- [x] Shows win/loss result with appropriate styling
+- [x] Shows KDA
+- [x] Shows queue type (Ranked Solo/Duo, Ranked Flex, Normal Draft, ARAM)
+- [x] Shows relative time (e.g., "2 hours ago")
+- [x] Clickable: navigates to `/app/matches/:matchId`
+- [x] Empty state when no matches available
+- [x] Mobile responsive
+
+---
+
+### G14g. [Frontend] Implement OverviewLayout and page integration ✅ COMPLETE
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** G14b, G14c, G14d
+**Labels:** `frontend`, `page`, `overview`, `epic-g`
+
+#### Description
+
+Create the `<OverviewLayout>` container and integrate Overview components into the Overview page.
+
+#### Acceptance Criteria
+
+- [x] Layout component created at `client/src/components/overview/OverviewLayout.vue`
+- [x] Overview page created at `client/src/views/OverviewPage.vue`
+- [x] Single-column layout
+- [x] Enforces one-scroll maximum on desktop and mobile
+- [x] Handles loading state (skeleton or spinner)
+- [x] Handles empty states gracefully
+- [x] Shows `primaryQueueLabel` visibly next to RankSnapshot
+- [x] Must NOT include deep graphs, champion matrices, comparative analysis, or editable controls
+
+#### Implementation Notes
+- Integrated `OverviewPlayerHeader`, `RankSnapshot`, and `LastMatchCard`. Placeholders will be replaced with `GoalProgressPreview` (G14e) and `SuggestedActions` (G14f) when those ship.
+
+---
+
 ## Summary of Completed Work
 
 | Epic | Task | Points | Completed |
@@ -1032,5 +1144,9 @@ Update the Solo dashboard v2 endpoint (F2) to include `mainChampions` array. Gro
 | G | G9 - Login, signup, verification & user shell | 5 | ✅ |
 | G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
 | G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
+| G | G14b - OverviewPlayerHeader component | 1 | ✅ |
+| G | G14c - RankSnapshot component | 2 | ✅ |
+| G | G14d - LastMatchCard component | 1 | ✅ |
+| G | G14g - OverviewLayout and page integration | 1 | ✅ |
 
-**Total Completed Points:** 113
+**Total Completed Points:** 118
