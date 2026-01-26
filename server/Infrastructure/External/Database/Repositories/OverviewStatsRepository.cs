@@ -142,7 +142,7 @@ public class OverviewStatsRepository : RepositoryBase
     public virtual async Task<LastMatchData?> GetLastMatchAsync(string puuid)
     {
         const string sql = @"
-            SELECT 
+            SELECT
                 p.match_id,
                 p.champion_id,
                 p.champion_name,
@@ -150,7 +150,8 @@ public class OverviewStatsRepository : RepositoryBase
                 p.kills,
                 p.deaths,
                 p.assists,
-                m.game_start_time
+                m.game_start_time,
+                m.queue_id
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE p.puuid = @puuid
@@ -175,7 +176,8 @@ public class OverviewStatsRepository : RepositoryBase
                     Kills: reader.GetInt32(4),
                     Deaths: reader.GetInt32(5),
                     Assists: reader.GetInt32(6),
-                    GameStartTime: reader.GetInt64(7)
+                    GameStartTime: reader.GetInt64(7),
+                    QueueId: reader.GetInt32(8)
                 );
             }
             return 0;
@@ -212,7 +214,10 @@ public class OverviewStatsRepository : RepositoryBase
         });
     }
 
-    private static string GetQueueLabel(int queueId) => queueId switch
+    /// <summary>
+    /// Converts a queue ID to a human-readable label.
+    /// </summary>
+    public static string GetQueueLabel(int queueId) => queueId switch
     {
         420 => "Ranked Solo/Duo",
         440 => "Ranked Flex",

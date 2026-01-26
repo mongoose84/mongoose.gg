@@ -47,7 +47,8 @@ public record LastMatch(
     [property: JsonPropertyName("championName")] string ChampionName,
     [property: JsonPropertyName("result")] string Result,
     [property: JsonPropertyName("kda")] string Kda,
-    [property: JsonPropertyName("timestamp")] long Timestamp
+    [property: JsonPropertyName("timestamp")] long Timestamp,
+    [property: JsonPropertyName("queueType")] string QueueType
 );
 
 /// <summary>
@@ -89,7 +90,8 @@ public record LastMatchData(
     int Kills,
     int Deaths,
     int Assists,
-    long GameStartTime
+    long GameStartTime,
+    int QueueId
 );
 
 /// <summary>

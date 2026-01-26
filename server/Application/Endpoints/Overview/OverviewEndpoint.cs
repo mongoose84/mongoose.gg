@@ -244,6 +244,7 @@ public sealed class OverviewEndpoint : IEndpoint
         var championIconUrl = BuildChampionIconUrl(data.ChampionName);
         var result = data.Win ? "Victory" : "Defeat";
         var kda = $"{data.Kills}/{data.Deaths}/{data.Assists}";
+        var queueType = OverviewStatsRepository.GetQueueLabel(data.QueueId);
 
         return new LastMatch(
             MatchId: data.MatchId,
@@ -251,7 +252,8 @@ public sealed class OverviewEndpoint : IEndpoint
             ChampionName: data.ChampionName,
             Result: result,
             Kda: kda,
-            Timestamp: data.GameStartTime
+            Timestamp: data.GameStartTime,
+            QueueType: queueType
         );
     }
 

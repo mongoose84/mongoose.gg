@@ -27,11 +27,17 @@
       :wl-last20="overviewData.rankSnapshot.wlLast20"
     />
 
-    <!-- Placeholder for LastMatchCard (G14d) -->
-    <div v-if="overviewData?.lastMatch" class="placeholder-card">
-      <h3 class="text-lg font-semibold text-text mb-xs">Last Match</h3>
-      <p class="text-text-secondary text-sm">{{ overviewData.lastMatch.championName }} • {{ overviewData.lastMatch.result }} • {{ overviewData.lastMatch.kda }}</p>
-    </div>
+    <!-- Last Match Card (G14d) -->
+    <LastMatchCard
+      v-if="overviewData?.lastMatch"
+      :match-id="overviewData.lastMatch.matchId"
+      :champion-icon-url="overviewData.lastMatch.championIconUrl"
+      :champion-name="overviewData.lastMatch.championName"
+      :result="overviewData.lastMatch.result"
+      :kda="overviewData.lastMatch.kda"
+      :timestamp="overviewData.lastMatch.timestamp"
+      :queue-type="overviewData.lastMatch.queueType"
+    />
 
     <!-- Placeholder for GoalProgressPreview (G14e) -->
     <div v-if="overviewData?.activeGoals && overviewData.activeGoals.length > 0" class="placeholder-card">
@@ -54,6 +60,7 @@ import { getOverview } from '../services/authApi'
 import OverviewLayout from '../components/overview/OverviewLayout.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
 import RankSnapshot from '../components/overview/RankSnapshot.vue'
+import LastMatchCard from '../components/overview/LastMatchCard.vue'
 
 const authStore = useAuthStore()
 
