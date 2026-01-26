@@ -32,29 +32,7 @@
 
 	<div class="sections">
 	  	<div class="top-row">
-	  	  <div class="top-row-item">
-	  	    <!-- Profile Header Card -->
-	  	    <ProfileHeaderCard
-	  	      v-if="primaryAccount"
-	  	      :game-name="primaryAccount.gameName"
-	  	      :tag-line="primaryAccount.tagLine"
-	  	      :region="primaryAccount.region"
-	  	      :profile-icon-id="primaryAccount.profileIconId"
-	  	      :summoner-level="primaryAccount.summonerLevel"
-	  	      :solo-tier="primaryAccount.soloTier"
-	  	      :solo-rank="primaryAccount.soloRank"
-	  	      :solo-lp="primaryAccount.soloLp"
-	  	      :flex-tier="primaryAccount.flexTier"
-	  	      :flex-rank="primaryAccount.flexRank"
-	  	      :flex-lp="primaryAccount.flexLp"
-	  	      :win-rate="dashboardData?.winRate"
-	  	      :games-played="dashboardData?.gamesPlayed"
-	  	    />
-	  	    <div v-else class="section placeholder-card">
-	  	      <h2>Profile Header</h2>
-	  	      <p>No linked Riot account found.</p>
-	  	    </div>
-	  	  </div>
+	  	    
 	  	  <div class="top-row-item">
 	  	    <MainChampionCard
 	  	      v-if="dashboardData?.mainChampions && dashboardData.mainChampions.length"
@@ -116,7 +94,6 @@ import { useAuthStore } from '../stores/authStore'
 import { getSoloDashboard, getWinrateTrend, getChampionMatchups } from '../services/authApi'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import ProfileHeaderCard from '../components/ProfileHeaderCard.vue'
 import MainChampionCard from '../components/MainChampionCard.vue'
 import WinrateChart from '../components/WinrateChart.vue'
 import LpTrendChart from '../components/LpTrendChart.vue'
@@ -124,9 +101,6 @@ import ChampionMatchupsTable from '../components/ChampionMatchupsTable.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, subscribe, resetProgress } = useSyncWebSocket()
-
-// Get the primary Riot account for the profile header
-const primaryAccount = computed(() => authStore.primaryRiotAccount)
 
 // Dashboard data from API
 const dashboardData = ref(null)
@@ -200,9 +174,7 @@ const isRankedQueue = computed(() =>
 // Subscribe to sync updates for primary account
 onMounted(() => {
   fetchDashboardData()
-  if (primaryAccount.value?.puuid) {
-    subscribe(primaryAccount.value.puuid)
-  }
+  
 })
 
   // Fetch when filters change and track filter usage
