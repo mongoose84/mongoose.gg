@@ -167,11 +167,13 @@ export function useSyncWebSocket() {
     if (!puuid) return
 
     // Initialize progress entry if not exists
+    // Use null for progress/total so the UI can fall back to API data
+    // until we receive actual WebSocket updates
     if (!syncProgress.has(puuid)) {
       syncProgress.set(puuid, {
-        status: 'idle',
-        progress: 0,
-        total: 0,
+        status: null,
+        progress: null,
+        total: null,
         matchId: null,
         error: null,
         totalSynced: null
@@ -257,14 +259,15 @@ export function useSyncWebSocket() {
   }
 
   /**
-   * Reset progress for a puuid (e.g., before retry)
+   * Reset progress for a puuid (e.g., after sync completes)
+   * Uses null values so the UI falls back to API data
    */
   function resetProgress(puuid) {
     if (syncProgress.has(puuid)) {
       const progress = syncProgress.get(puuid)
-      progress.status = 'idle'
-      progress.progress = 0
-      progress.total = 0
+      progress.status = null
+      progress.progress = null
+      progress.total = null
       progress.matchId = null
       progress.error = null
       progress.totalSynced = null
