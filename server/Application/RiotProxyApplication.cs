@@ -1,6 +1,7 @@
 using RiotProxy.Application.Endpoints;
 using RiotProxy.Application.Endpoints.Analytics;
 using RiotProxy.Application.Endpoints.Auth;
+using RiotProxy.Application.Endpoints.ChampionSelect;
 using RiotProxy.Application.Endpoints.Diagnostics;
 using RiotProxy.Application.Endpoints.Overview;
 using RiotProxy.Application.Endpoints.Solo;
@@ -55,6 +56,10 @@ namespace RiotProxy.Application
             // Solo Dashboard (auth required)
             var soloDashboardEndpoint = new SoloDashboardEndpoint(basePath);
             _endpoints.Add(soloDashboardEndpoint);
+
+            // Champion Select (auth required)
+            var championSelectEndpoint = new ChampionSelectEndpoint(basePath);
+            _endpoints.Add(championSelectEndpoint);
 
             // Solo Matchups (auth required)
             var soloMatchupsEndpoint = new SoloMatchupsEndpoint(basePath);
