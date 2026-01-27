@@ -29,4 +29,12 @@
     <EmbeddedResource Remove="RiotProxy.Tests/**" />
     <None Remove="RiotProxy.Tests/**" />
   </ItemGroup>
+
+  <!-- Copy email assets to output and publish directories -->
+  <ItemGroup>
+    <None Update="Infrastructure/Email/mongoose.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
 </Project>
