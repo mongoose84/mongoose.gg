@@ -55,6 +55,7 @@ builder.Services.AddScoped<OverviewStatsRepository>();
 builder.Services.AddScoped<SeasonsRepository>();
 builder.Services.AddScoped<AnalyticsEventsRepository>();
 builder.Services.AddScoped<VerificationTokensRepository>();
+builder.Services.AddScoped<LpSnapshotsRepository>();
 
 // Application services
 builder.Services.AddScoped<RiotProxy.Application.Services.LoginSyncService>();
