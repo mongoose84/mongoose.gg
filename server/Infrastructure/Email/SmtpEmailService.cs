@@ -125,6 +125,14 @@ public class SmtpEmailService : IEmailService
         // Load and embed the logo as base64
         var logoBase64 = GetLogoBase64();
 
+        // Build logo HTML - only include image if we have valid base64 data
+        var logoImageHtml = !string.IsNullOrEmpty(logoBase64)
+            ? $@"<img src=""data:image/png;base64,{logoBase64}"" alt=""Mongoose.gg"" width=""128"" height=""64"" style=""display: block; width: 128px; height: 64px; margin: 0 auto;"" />"
+            : "";
+
+        // Adjust margin based on whether logo is present
+        var textMarginTop = !string.IsNullOrEmpty(logoBase64) ? "-4px" : "0";
+
         return $@"
 <!DOCTYPE html>
 <html>
@@ -142,8 +150,8 @@ public class SmtpEmailService : IEmailService
                     <tr>
                         <td align=""center"" style=""padding: 40px 40px 10px 40px;"">
                             <div style=""display: inline-block; text-align: center;"">
-                                <img src=""data:image/png;base64,{logoBase64}"" alt=""Mongoose.gg"" width=""128"" height=""64"" style=""display: block; width: 128px; height: 64px; margin: 0 auto;"" />
-                                <div style=""margin-top: -4px;"">
+                                {logoImageHtml}
+                                <div style=""margin-top: {textMarginTop};"">
                                     <span style=""font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.025em;"">Mongoose.gg </span><span style=""font-size: 10px; font-weight: 400; color: #808080; vertical-align: top;"">Beta</span>
                                 </div>
                             </div>
@@ -209,15 +217,18 @@ public class SmtpEmailService : IEmailService
     }
 
     /// <summary>
-    /// Loads the mongoose logo from embedded resource or file and returns as base64 string
+    /// Loads the mongoose logo from the filesystem and returns as base64 string.
+    /// Checks both the assembly output directory and the current working directory.
+    /// Returns empty string if the logo file is not found.
     /// </summary>
     private string GetLogoBase64()
     {
         try
         {
             // Try to load from file path relative to the assembly location
+            // (may be empty/null in single-file publish scenarios)
             var assemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            if (assemblyLocation != null)
+            if (!string.IsNullOrEmpty(assemblyLocation))
             {
                 var logoPath = Path.Combine(assemblyLocation, "Infrastructure", "Email", "mongoose.png");
                 if (File.Exists(logoPath))
@@ -225,17 +236,17 @@ public class SmtpEmailService : IEmailService
                     var bytes = File.ReadAllBytes(logoPath);
                     return Convert.ToBase64String(bytes);
                 }
-
-                // Also try relative to current directory (for development)
-                logoPath = Path.Combine(Directory.GetCurrentDirectory(), "Infrastructure", "Email", "mongoose.png");
-                if (File.Exists(logoPath))
-                {
-                    var bytes = File.ReadAllBytes(logoPath);
-                    return Convert.ToBase64String(bytes);
-                }
             }
 
-            _logger.LogWarning("Logo file not found, using empty placeholder");
+            // Fallback: try relative to current working directory (for development or single-file publish)
+            var cwdLogoPath = Path.Combine(Directory.GetCurrentDirectory(), "Infrastructure", "Email", "mongoose.png");
+            if (File.Exists(cwdLogoPath))
+            {
+                var bytes = File.ReadAllBytes(cwdLogoPath);
+                return Convert.ToBase64String(bytes);
+            }
+
+            _logger.LogWarning("Logo file not found at assembly location or current directory");
             return string.Empty;
         }
         catch (Exception ex)
