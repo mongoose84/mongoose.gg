@@ -36,7 +36,7 @@ public class LpSnapshotsRepository : RepositoryBase
     /// <summary>
     /// Gets LP snapshots for a player in a specific queue, ordered by recorded_at descending.
     /// </summary>
-    public async Task<IList<LpSnapshot>> GetByPuuidAndQueueAsync(string puuid, string queueType, int limit = 100)
+    public virtual async Task<IList<LpSnapshot>> GetByPuuidAndQueueAsync(string puuid, string queueType, int limit = 100)
     {
         const string sql = @"SELECT id, puuid, queue_type, tier, division, lp, recorded_at, created_at
             FROM lp_snapshots
@@ -66,7 +66,7 @@ public class LpSnapshotsRepository : RepositoryBase
     /// Gets the most recent LP snapshot for a player in a specific queue.
     /// Returns null if no snapshot exists.
     /// </summary>
-    public async Task<LpSnapshot?> GetLatestByPuuidAndQueueAsync(string puuid, string queueType)
+    public virtual async Task<LpSnapshot?> GetLatestByPuuidAndQueueAsync(string puuid, string queueType)
     {
         const string sql = @"SELECT id, puuid, queue_type, tier, division, lp, recorded_at, created_at
             FROM lp_snapshots
@@ -92,7 +92,7 @@ public class LpSnapshotsRepository : RepositoryBase
     /// <summary>
     /// Gets all LP snapshots for a player (both queues), ordered by recorded_at descending.
     /// </summary>
-    public async Task<IList<LpSnapshot>> GetByPuuidAsync(string puuid, int limit = 100)
+    public virtual async Task<IList<LpSnapshot>> GetByPuuidAsync(string puuid, int limit = 100)
     {
         const string sql = @"SELECT id, puuid, queue_type, tier, division, lp, recorded_at, created_at
             FROM lp_snapshots
@@ -122,7 +122,7 @@ public class LpSnapshotsRepository : RepositoryBase
     /// Used to find "what was the LP at the time of match X".
     /// Returns null if no snapshot exists before the given timestamp.
     /// </summary>
-    public async Task<LpSnapshot?> GetSnapshotAtOrBeforeAsync(string puuid, string queueType, DateTime timestamp)
+    public virtual async Task<LpSnapshot?> GetSnapshotAtOrBeforeAsync(string puuid, string queueType, DateTime timestamp)
     {
         const string sql = @"SELECT id, puuid, queue_type, tier, division, lp, recorded_at, created_at
             FROM lp_snapshots
