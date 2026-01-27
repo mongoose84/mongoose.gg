@@ -11,9 +11,8 @@
     <!-- Match details content -->
     <div v-else class="details-content">
       <MatchHeader :match="match" />
-      
+
       <div class="details-sections">
-        <MatchHighlights :match="match" :baseline="baseline" />
         <StatSnapshot :match="match" :baseline="baseline" />
         <MatchActions />
       </div>
@@ -23,7 +22,6 @@
 
 <script setup>
 import MatchHeader from './MatchHeader.vue'
-import MatchHighlights from './MatchHighlights.vue'
 import StatSnapshot from './StatSnapshot.vue'
 import MatchActions from './MatchActions.vue'
 

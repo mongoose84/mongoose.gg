@@ -132,18 +132,22 @@ const relativeTime = computed(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition: all 0.15s ease;
   min-height: 68px;
+  position: relative;
 }
 
-.match-row:hover {
-  border-color: var(--color-primary);
+.match-row:hover:not(.selected) {
+  border-color: var(--color-border);
   background: var(--color-elevated);
 }
 
 .match-row.selected {
+  background: var(--color-elevated);
   border-color: var(--color-primary);
-  background: var(--color-primary-soft);
+  border-width: 2px;
+  box-shadow: 0 0 0 1px var(--color-primary), 0 4px 12px rgba(147, 51, 234, 0.15);
+  z-index: 1;
 }
 
 /* Win/Loss left border indicator */
@@ -153,6 +157,14 @@ const relativeTime = computed(() => {
 
 .match-row.loss {
   border-left: 3px solid #ef4444;
+}
+
+.match-row.selected.win {
+  border-left: 4px solid #22c55e;
+}
+
+.match-row.selected.loss {
+  border-left: 4px solid #ef4444;
 }
 
 /* Champion Icon */

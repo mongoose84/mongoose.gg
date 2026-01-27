@@ -35,15 +35,19 @@
         />
       </div>
 
-      <!-- Right Column: Match Details -->
+      <!-- Right Column: Match Details Card -->
       <div class="match-details-column">
-        <div class="column-header">
-          <h2 class="column-title">Match Details</h2>
+        <div class="details-card">
+          <div class="details-card-header">
+            <h2 class="column-title">Match Details</h2>
+          </div>
+          <div class="details-card-content">
+            <MatchDetails
+              :match="selectedMatch"
+              :baseline="selectedBaseline"
+            />
+          </div>
         </div>
-        <MatchDetails
-          :match="selectedMatch"
-          :baseline="selectedBaseline"
-        />
       </div>
     </div>
   </section>
@@ -135,8 +139,7 @@ onMounted(() => {
   flex-direction: column;
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
-  height: 100%;
-  max-height: calc(100vh - 64px); /* Account for header */
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -211,11 +214,18 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.match-list-column,
-.match-details-column {
+.match-list-column {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.match-details-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -236,6 +246,32 @@ onMounted(() => {
 .match-count {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+}
+
+/* Details Card */
+.details-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.details-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-elevated);
+}
+
+.details-card-content {
+  flex: 1;
+  padding: var(--spacing-lg);
+  overflow-y: auto;
 }
 
 /* Responsive: Stack on mobile */

@@ -38,6 +38,8 @@ public record MatchListItem(
     [property: JsonPropertyName("damageTaken")] int DamageTaken,
     [property: JsonPropertyName("visionScore")] int VisionScore,
     [property: JsonPropertyName("killParticipation")] double KillParticipation,
+    [property: JsonPropertyName("damageShare")] double DamageShare,
+    [property: JsonPropertyName("deathsPre10")] int DeathsPre10,
     [property: JsonPropertyName("csPerMin")] double CsPerMin,
     [property: JsonPropertyName("goldPerMin")] double GoldPerMin,
     [property: JsonPropertyName("trendBadge")] TrendBadge? TrendBadge
@@ -98,6 +100,8 @@ public record MatchListRawData(
     int DamageDealt,
     int DamageTaken,
     int VisionScore,
-    decimal KillParticipation
+    decimal KillParticipation,
+    decimal DamageShare,
+    int DeathsPre10
 );
 

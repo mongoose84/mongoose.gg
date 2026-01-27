@@ -105,9 +105,8 @@ const relativeTime = computed(() => {
   align-items: center;
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background: var(--color-elevated);
+  border-radius: var(--radius-md);
 }
 
 .match-header.win {

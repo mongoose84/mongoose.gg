@@ -57,7 +57,8 @@ function handleSelect(matchId) {
 .match-list {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -65,6 +66,7 @@ function handleSelect(matchId) {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  flex: 1;
   overflow-y: auto;
   padding-right: var(--spacing-xs);
 }

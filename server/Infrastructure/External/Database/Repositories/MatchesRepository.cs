@@ -102,7 +102,9 @@ public class MatchesRepository : RepositoryBase
                 COALESCE(pm.damage_dealt, 0) as damage_dealt,
                 COALESCE(pm.damage_taken, 0) as damage_taken,
                 COALESCE(pm.vision_score, 0) as vision_score,
-                COALESCE(pm.kill_participation_pct, 0) as kill_participation
+                COALESCE(pm.kill_participation_pct, 0) as kill_participation,
+                COALESCE(pm.damage_share_pct, 0) as damage_share,
+                COALESCE(pm.deaths_pre_10, 0) as deaths_pre_10
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
@@ -151,6 +153,8 @@ public class MatchesRepository : RepositoryBase
                 DamageTaken: raw.DamageTaken,
                 VisionScore: raw.VisionScore,
                 KillParticipation: (double)raw.KillParticipation,
+                DamageShare: (double)raw.DamageShare,
+                DeathsPre10: raw.DeathsPre10,
                 CsPerMin: csPerMin,
                 GoldPerMin: goldPerMin,
                 TrendBadge: trendBadge
@@ -335,7 +339,9 @@ public class MatchesRepository : RepositoryBase
         DamageDealt: r.GetInt32(14),
         DamageTaken: r.GetInt32(15),
         VisionScore: r.GetInt32(16),
-        KillParticipation: r.GetDecimal(17)
+        KillParticipation: r.GetDecimal(17),
+        DamageShare: r.GetDecimal(18),
+        DeathsPre10: r.GetInt32(19)
     );
 
     private static string GetQueueLabel(int queueId) => queueId switch
