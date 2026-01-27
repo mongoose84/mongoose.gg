@@ -55,12 +55,14 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { getMatchList } from '../services/authApi'
 import { trackFilterChange } from '../services/analyticsApi'
 import MatchList from '../components/matches/MatchList.vue'
 import MatchDetails from '../components/matches/MatchDetails.vue'
 
+const route = useRoute()
 const authStore = useAuthStore()
 
 // State
@@ -103,8 +105,11 @@ async function fetchMatches() {
     const result = await getMatchList(authStore.userId, queueFilter.value)
     data.value = result
 
-    // Auto-select first match if none selected
-    if (result?.matches?.length > 0 && !selectedMatchId.value) {
+    // Use matchId from query param if provided, otherwise auto-select first match
+    const queryMatchId = route.query.matchId
+    if (queryMatchId && result?.matches?.some(m => m.matchId === queryMatchId)) {
+      selectedMatchId.value = queryMatchId
+    } else if (result?.matches?.length > 0 && !selectedMatchId.value) {
       selectedMatchId.value = result.matches[0].matchId
     }
   } catch (err) {

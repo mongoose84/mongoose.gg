@@ -1,7 +1,7 @@
 <template>
   <router-link
     v-if="matchId"
-    :to="`/app/matches/${matchId}`"
+    :to="{ path: '/app/matches', query: { matchId } }"
     class="last-match-card"
     :class="resultClass"
   >
