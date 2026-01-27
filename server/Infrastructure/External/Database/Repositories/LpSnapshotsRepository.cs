@@ -117,6 +117,35 @@ public class LpSnapshotsRepository : RepositoryBase
         return snapshots;
     }
 
+    /// <summary>
+    /// Gets the LP snapshot closest to (but not after) a specific timestamp for a player and queue.
+    /// Used to find "what was the LP at the time of match X".
+    /// Returns null if no snapshot exists before the given timestamp.
+    /// </summary>
+    public async Task<LpSnapshot?> GetSnapshotAtOrBeforeAsync(string puuid, string queueType, DateTime timestamp)
+    {
+        const string sql = @"SELECT id, puuid, queue_type, tier, division, lp, recorded_at, created_at
+            FROM lp_snapshots
+            WHERE puuid = @puuid AND queue_type = @queue_type AND recorded_at <= @timestamp
+            ORDER BY recorded_at DESC
+            LIMIT 1";
+
+        return await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            cmd.Parameters.AddWithValue("@queue_type", queueType);
+            cmd.Parameters.AddWithValue("@timestamp", timestamp);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return Map(reader);
+            }
+            return null;
+        });
+    }
+
     private static LpSnapshot Map(MySqlDataReader r) => new()
     {
         Id = r.GetInt64(0),

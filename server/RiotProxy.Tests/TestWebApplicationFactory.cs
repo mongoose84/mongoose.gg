@@ -20,12 +20,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeEmailService _emailService;
     private readonly FakeRiotAccountsRepository _riotAccountsRepository;
     private readonly FakeOverviewStatsRepository _overviewStatsRepository;
+    private readonly FakeLpSnapshotsRepository _lpSnapshotsRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
     public FakeEmailService EmailService => _emailService;
     public FakeRiotAccountsRepository RiotAccountsRepository => _riotAccountsRepository;
     public FakeOverviewStatsRepository OverviewStatsRepository => _overviewStatsRepository;
+    public FakeLpSnapshotsRepository LpSnapshotsRepository => _lpSnapshotsRepository;
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
@@ -35,6 +37,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _emailService = new FakeEmailService();
         _riotAccountsRepository = new FakeRiotAccountsRepository();
         _overviewStatsRepository = new FakeOverviewStatsRepository();
+        _lpSnapshotsRepository = new FakeLpSnapshotsRepository();
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -90,6 +93,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace OverviewStatsRepository with a fake
             services.RemoveAll<OverviewStatsRepository>();
             services.AddSingleton<OverviewStatsRepository>(_overviewStatsRepository);
+
+            // Replace LpSnapshotsRepository with a fake
+            services.RemoveAll<LpSnapshotsRepository>();
+            services.AddSingleton<LpSnapshotsRepository>(_lpSnapshotsRepository);
         });
 
         return base.CreateHost(builder);
@@ -499,6 +506,108 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             bool win, int kills, int deaths, int assists, long gameStartTime, int queueId = 420)
         {
             _lastMatchByPuuid[puuid] = new LastMatchData(matchId, championId, championName, win, kills, deaths, assists, gameStartTime, queueId);
+        }
+    }
+
+    /// <summary>
+    /// Fake LP snapshots repository for testing.
+    /// </summary>
+    internal sealed class FakeLpSnapshotsRepository : LpSnapshotsRepository
+    {
+        private readonly ConcurrentDictionary<string, List<LpSnapshot>> _snapshotsByPuuid = new();
+        private long _nextId = 1;
+
+        public FakeLpSnapshotsRepository() : base(null!) { }
+
+        public new Task<long> InsertAsync(LpSnapshot snapshot)
+        {
+            var key = snapshot.Puuid;
+            if (!_snapshotsByPuuid.TryGetValue(key, out var snapshots))
+            {
+                snapshots = new List<LpSnapshot>();
+                _snapshotsByPuuid[key] = snapshots;
+            }
+            snapshot.Id = _nextId++;
+            snapshots.Add(snapshot);
+            return Task.FromResult(snapshot.Id);
+        }
+
+        public override Task<IList<LpSnapshot>> GetByPuuidAndQueueAsync(string puuid, string queueType, int limit = 100)
+        {
+            if (_snapshotsByPuuid.TryGetValue(puuid, out var snapshots))
+            {
+                var filtered = snapshots
+                    .Where(s => s.QueueType == queueType)
+                    .OrderByDescending(s => s.RecordedAt)
+                    .Take(limit)
+                    .ToList();
+                return Task.FromResult<IList<LpSnapshot>>(filtered);
+            }
+            return Task.FromResult<IList<LpSnapshot>>(new List<LpSnapshot>());
+        }
+
+        public override Task<LpSnapshot?> GetLatestByPuuidAndQueueAsync(string puuid, string queueType)
+        {
+            if (_snapshotsByPuuid.TryGetValue(puuid, out var snapshots))
+            {
+                var latest = snapshots
+                    .Where(s => s.QueueType == queueType)
+                    .OrderByDescending(s => s.RecordedAt)
+                    .FirstOrDefault();
+                return Task.FromResult(latest);
+            }
+            return Task.FromResult<LpSnapshot?>(null);
+        }
+
+        public override Task<IList<LpSnapshot>> GetByPuuidAsync(string puuid, int limit = 100)
+        {
+            if (_snapshotsByPuuid.TryGetValue(puuid, out var snapshots))
+            {
+                var result = snapshots
+                    .OrderByDescending(s => s.RecordedAt)
+                    .Take(limit)
+                    .ToList();
+                return Task.FromResult<IList<LpSnapshot>>(result);
+            }
+            return Task.FromResult<IList<LpSnapshot>>(new List<LpSnapshot>());
+        }
+
+        public override Task<LpSnapshot?> GetSnapshotAtOrBeforeAsync(string puuid, string queueType, DateTime timestamp)
+        {
+            if (_snapshotsByPuuid.TryGetValue(puuid, out var snapshots))
+            {
+                var snapshot = snapshots
+                    .Where(s => s.QueueType == queueType && s.RecordedAt <= timestamp)
+                    .OrderByDescending(s => s.RecordedAt)
+                    .FirstOrDefault();
+                return Task.FromResult(snapshot);
+            }
+            return Task.FromResult<LpSnapshot?>(null);
+        }
+
+        /// <summary>
+        /// Adds an LP snapshot for testing.
+        /// </summary>
+        public void AddSnapshot(string puuid, string queueType, string tier, string division, int lp, DateTime recordedAt)
+        {
+            var snapshot = new LpSnapshot
+            {
+                Id = _nextId++,
+                Puuid = puuid,
+                QueueType = queueType,
+                Tier = tier,
+                Division = division,
+                Lp = lp,
+                RecordedAt = recordedAt,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            if (!_snapshotsByPuuid.TryGetValue(puuid, out var snapshots))
+            {
+                snapshots = new List<LpSnapshot>();
+                _snapshotsByPuuid[puuid] = snapshots;
+            }
+            snapshots.Add(snapshot);
         }
     }
 }
