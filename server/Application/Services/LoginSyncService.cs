@@ -13,6 +13,7 @@ namespace RiotProxy.Application.Services;
 public class LoginSyncService
 {
     private readonly RiotAccountsRepository _riotAccountsRepo;
+    private readonly LpSnapshotsRepository _lpSnapshotsRepo;
     private readonly IRiotApiClient _riotApiClient;
     private readonly ISyncProgressBroadcaster _syncBroadcaster;
     private readonly ILogger<LoginSyncService> _logger;
@@ -24,11 +25,13 @@ public class LoginSyncService
 
     public LoginSyncService(
         RiotAccountsRepository riotAccountsRepo,
+        LpSnapshotsRepository lpSnapshotsRepo,
         IRiotApiClient riotApiClient,
         ISyncProgressBroadcaster syncBroadcaster,
         ILogger<LoginSyncService> logger)
     {
         _riotAccountsRepo = riotAccountsRepo;
+        _lpSnapshotsRepo = lpSnapshotsRepo;
         _riotApiClient = riotApiClient;
         _syncBroadcaster = syncBroadcaster;
         _logger = logger;
@@ -183,11 +186,71 @@ public class LoginSyncService
                 _logger.LogInformation("Updated rank data for {Puuid}: solo={SoloTier} {SoloRank}, flex={FlexTier} {FlexRank}",
                     account.Puuid, soloTier, soloRank, flexTier, flexRank);
             }
+
+            // Record LP snapshots for time-series tracking (always, on every login)
+            // This builds LP history independent of match syncs
+            await RecordLpSnapshotsAsync(account.Puuid, soloTier, soloRank, soloLp, flexTier, flexRank, flexLp);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to update rank data for {Puuid}", account.Puuid);
             // Don't throw - rank data is optional
+        }
+    }
+
+    /// <summary>
+    /// Records LP snapshots for Solo and Flex queues if the player has ranked data.
+    /// Called on every login to build LP progression history.
+    /// </summary>
+    private async Task RecordLpSnapshotsAsync(
+        string puuid,
+        string? soloTier, string? soloRank, int? soloLp,
+        string? flexTier, string? flexRank, int? flexLp)
+    {
+        var now = DateTime.UtcNow;
+
+        try
+        {
+            // Record Solo Queue snapshot if player has solo rank
+            if (!string.IsNullOrEmpty(soloTier) && !string.IsNullOrEmpty(soloRank) && soloLp.HasValue)
+            {
+                var soloSnapshot = new LpSnapshot
+                {
+                    Puuid = puuid,
+                    QueueType = "RANKED_SOLO_5x5",
+                    Tier = soloTier,
+                    Division = soloRank,
+                    Lp = soloLp.Value,
+                    RecordedAt = now,
+                    CreatedAt = now
+                };
+                await _lpSnapshotsRepo.InsertAsync(soloSnapshot);
+                _logger.LogDebug("Recorded LP snapshot for {Puuid} in Solo: {Tier} {Division} {LP} LP",
+                    puuid, soloTier, soloRank, soloLp);
+            }
+
+            // Record Flex Queue snapshot if player has flex rank
+            if (!string.IsNullOrEmpty(flexTier) && !string.IsNullOrEmpty(flexRank) && flexLp.HasValue)
+            {
+                var flexSnapshot = new LpSnapshot
+                {
+                    Puuid = puuid,
+                    QueueType = "RANKED_FLEX_SR",
+                    Tier = flexTier,
+                    Division = flexRank,
+                    Lp = flexLp.Value,
+                    RecordedAt = now,
+                    CreatedAt = now
+                };
+                await _lpSnapshotsRepo.InsertAsync(flexSnapshot);
+                _logger.LogDebug("Recorded LP snapshot for {Puuid} in Flex: {Tier} {Division} {LP} LP",
+                    puuid, flexTier, flexRank, flexLp);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail login if LP snapshot recording fails
+            _logger.LogWarning(ex, "Failed to record LP snapshots for {Puuid}", puuid);
         }
     }
 

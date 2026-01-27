@@ -116,6 +116,24 @@ CREATE TABLE IF NOT EXISTS subscription_events (
     CONSTRAINT fk_subscription_events_subscription FOREIGN KEY (subscription_id) REFERENCES subscriptions(subscription_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- LP SNAPSHOTS (time-series rank tracking)
+-- Records LP at each sync to track rank progression over time.
+-- Not tied to specific matches since Riot API only provides current rank.
+CREATE TABLE IF NOT EXISTS lp_snapshots (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    puuid VARCHAR(78) NOT NULL,
+    queue_type ENUM('RANKED_SOLO_5x5', 'RANKED_FLEX_SR') NOT NULL,
+    tier VARCHAR(20) NOT NULL,
+    division VARCHAR(10) NOT NULL,
+    lp INT NOT NULL,
+    recorded_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_puuid_queue_recorded (puuid, queue_type, recorded_at),
+    KEY idx_puuid_recorded (puuid, recorded_at),
+    KEY idx_recorded_at (recorded_at),
+    CONSTRAINT fk_lp_snapshots_riot_account FOREIGN KEY (puuid) REFERENCES riot_accounts(puuid) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS seasons (
     season_code VARCHAR(20) PRIMARY KEY,
     patch_version VARCHAR(20) NOT NULL,
