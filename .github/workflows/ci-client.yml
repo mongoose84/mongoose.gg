@@ -63,12 +63,19 @@ jobs:
       - name: Run Vitest with coverage
         run: npm run test:unit:coverage
 
+
       # -------------------------------------------------
       # **Build the production bundle**
       # -------------------------------------------------
       - name: Build client
         run: npm run build          # make sure your package.json defines a "build" script
         # After this step a folder called `dist/` will exist inside `client/`
+
+      # -------------------------------------------------
+      # Copy web.config to dist/ for IIS deployments
+      # -------------------------------------------------
+      - name: Copy web.config to dist
+        run: cp web.config dist/web.config
 
       # -------------------------------------------------
       # Verify that the build output exists (fails fast if not)
