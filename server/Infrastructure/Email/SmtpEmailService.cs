@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using System.Reflection;
 
 namespace RiotProxy.Infrastructure.Email;
 
@@ -121,6 +122,17 @@ public class SmtpEmailService : IEmailService
         var encodedUsername = WebUtility.HtmlEncode(username);
         var encodedCode = WebUtility.HtmlEncode(verificationCode);
 
+        // Load and embed the logo as base64
+        var logoBase64 = GetLogoBase64();
+
+        // Build logo HTML - only include image if we have valid base64 data
+        var logoImageHtml = !string.IsNullOrEmpty(logoBase64)
+            ? $@"<img src=""data:image/png;base64,{logoBase64}"" alt=""Mongoose.gg"" width=""128"" height=""64"" style=""display: block; width: 128px; height: 64px; margin: 0 auto;"" />"
+            : "";
+
+        // Adjust margin based on whether logo is present
+        var textMarginTop = !string.IsNullOrEmpty(logoBase64) ? "-4px" : "0";
+
         return $@"
 <!DOCTYPE html>
 <html>
@@ -134,9 +146,21 @@ public class SmtpEmailService : IEmailService
         <tr>
             <td align=""center"" style=""padding: 40px 0;"">
                 <table role=""presentation"" style=""width: 600px; max-width: 100%; border-collapse: collapse; background-color: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;"">
+                    <!-- Logo -->
+                    <tr>
+                        <td align=""center"" style=""padding: 40px 40px 10px 40px;"">
+                            <div style=""display: inline-block; text-align: center;"">
+                                {logoImageHtml}
+                                <div style=""margin-top: {textMarginTop};"">
+                                    <span style=""font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.025em;"">Mongoose.gg </span><span style=""font-size: 10px; font-weight: 400; color: #808080; vertical-align: top;"">Beta</span>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
                     <!-- Header -->
                     <tr>
-                        <td align=""center"" style=""padding: 40px 40px 20px 40px;"">
+                        <td align=""center"" style=""padding: 20px 40px 20px 40px;"">
                             <h1 style=""margin: 0; font-size: 24px; font-weight: 700; color: #ffffff;"">Verify Your Email</h1>
                         </td>
                     </tr>
@@ -190,6 +214,46 @@ public class SmtpEmailService : IEmailService
     </table>
 </body>
 </html>";
+    }
+
+    /// <summary>
+    /// Loads the mongoose logo from the filesystem and returns as base64 string.
+    /// Checks both the assembly output directory and the current working directory.
+    /// Returns empty string if the logo file is not found.
+    /// </summary>
+    private string GetLogoBase64()
+    {
+        try
+        {
+            // Try to load from file path relative to the assembly location
+            // (may be empty/null in single-file publish scenarios)
+            var assemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            if (!string.IsNullOrEmpty(assemblyLocation))
+            {
+                var logoPath = Path.Combine(assemblyLocation, "Infrastructure", "Email", "mongoose.png");
+                if (File.Exists(logoPath))
+                {
+                    var bytes = File.ReadAllBytes(logoPath);
+                    return Convert.ToBase64String(bytes);
+                }
+            }
+
+            // Fallback: try relative to current working directory (for development or single-file publish)
+            var cwdLogoPath = Path.Combine(Directory.GetCurrentDirectory(), "Infrastructure", "Email", "mongoose.png");
+            if (File.Exists(cwdLogoPath))
+            {
+                var bytes = File.ReadAllBytes(cwdLogoPath);
+                return Convert.ToBase64String(bytes);
+            }
+
+            _logger.LogWarning("Logo file not found at assembly location or current directory");
+            return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load logo file");
+            return string.Empty;
+        }
     }
 }
 
