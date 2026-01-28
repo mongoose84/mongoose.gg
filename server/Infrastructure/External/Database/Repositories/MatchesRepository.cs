@@ -104,10 +104,15 @@ public class MatchesRepository : RepositoryBase
                 COALESCE(pm.vision_score, 0) as vision_score,
                 COALESCE(pm.kill_participation_pct, 0) as kill_participation,
                 COALESCE(pm.damage_share_pct, 0) as damage_share,
-                COALESCE(pm.deaths_pre_10, 0) as deaths_pre_10
+                COALESCE(pm.deaths_pre_10, 0) as deaths_pre_10,
+                p.team_id,
+                COALESCE((SELECT SUM(p2.kills) FROM participants p2 WHERE p2.match_id = p.match_id AND p2.team_id = p.team_id), 0) as team_kills,
+                COALESCE((SELECT SUM(p2.kills) FROM participants p2 WHERE p2.match_id = p.match_id AND p2.team_id != p.team_id), 0) as enemy_team_kills,
+                pc15.gold_diff_vs_lane as gold_diff_at_15
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
+            LEFT JOIN participant_checkpoints pc15 ON pc15.participant_id = p.id AND pc15.minute_mark = 15
             WHERE p.puuid = @puuid
             {queueFilter}
             ORDER BY m.game_start_time DESC
@@ -157,6 +162,9 @@ public class MatchesRepository : RepositoryBase
                 DeathsPre10: raw.DeathsPre10,
                 CsPerMin: csPerMin,
                 GoldPerMin: goldPerMin,
+                TeamKills: raw.TeamKills,
+                EnemyTeamKills: raw.EnemyTeamKills,
+                GoldDiffAt15: raw.GoldDiffAt15,
                 TrendBadge: trendBadge
             ));
         }
@@ -341,7 +349,11 @@ public class MatchesRepository : RepositoryBase
         VisionScore: r.GetInt32(16),
         KillParticipation: r.GetDecimal(17),
         DamageShare: r.GetDecimal(18),
-        DeathsPre10: r.GetInt32(19)
+        DeathsPre10: r.GetInt32(19),
+        TeamId: r.GetInt32(20),
+        TeamKills: r.GetInt32(21),
+        EnemyTeamKills: r.GetInt32(22),
+        GoldDiffAt15: r.IsDBNull(23) ? null : r.GetInt32(23)
     );
 
     private static string GetQueueLabel(int queueId) => queueId switch

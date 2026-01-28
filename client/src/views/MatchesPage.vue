@@ -291,7 +291,7 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-elevated);
 }

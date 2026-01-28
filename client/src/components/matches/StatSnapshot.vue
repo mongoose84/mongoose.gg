@@ -1,7 +1,10 @@
 <template>
   <div class="stat-snapshot">
-    <h3 class="section-title">Stats</h3>
-    <div class="stats-grid">
+    <button type="button" class="section-header" @click="expanded = !expanded">
+      <h3 class="section-title">Stats</h3>
+      <span class="expand-icon" :class="{ expanded }">›</span>
+    </button>
+    <div v-if="expanded" class="stats-grid">
       <div class="stat-item" v-for="stat in stats" :key="stat.label" :class="stat.trend">
         <div class="stat-header">
           <span class="stat-label">{{ stat.label }}</span>
@@ -19,7 +22,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+
+const expanded = ref(false)
 
 const props = defineProps({
   match: {
@@ -40,10 +45,27 @@ const stats = computed(() => {
     return m.deaths === 0 ? (m.kills + m.assists) : (m.kills + m.assists) / m.deaths
   }
 
+  // Calculate duration ratio for adjusting baseline expectations
+  const getDurationRatio = () => {
+    if (!b || b.avgGameDurationSec === 0) return 1
+    return m.gameDurationSec / b.avgGameDurationSec
+  }
+
   const getTrend = (value, avgValue, threshold = 0.1) => {
     if (!b || b.gamesCount === 0) return null
     if (avgValue === 0) return null // Avoid division by zero, treat as neutral
     const diff = (value - avgValue) / avgValue
+    if (diff >= threshold) return 'up'
+    if (diff <= -threshold) return 'down'
+    return null
+  }
+
+  // Duration-adjusted trend: compares value against baseline scaled by game duration
+  const getTrendDurationAdjusted = (value, avgValue, threshold = 0.1) => {
+    if (!b || b.gamesCount === 0) return null
+    const expectedValue = avgValue * getDurationRatio()
+    if (expectedValue === 0) return null
+    const diff = (value - expectedValue) / expectedValue
     if (diff >= threshold) return 'up'
     if (diff <= -threshold) return 'down'
     return null
@@ -60,6 +82,23 @@ const stats = computed(() => {
       return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} vs avg`
     } else if (format === 'int' && Math.abs(diff) >= threshold) {
       return `${diff >= 0 ? '+' : ''}${Math.round(diff)} vs avg`
+    }
+    return null
+  }
+
+  // Duration-adjusted comparison: compares value against baseline scaled by game duration
+  const getComparisonDurationAdjusted = (value, avgValue, threshold, format = 'diff') => {
+    if (!b || b.gamesCount === 0) return null
+    const expectedValue = avgValue * getDurationRatio()
+    const diff = value - expectedValue
+    const pctDiff = expectedValue > 0 ? (diff / expectedValue) * 100 : 0
+
+    if (format === 'pct' && Math.abs(pctDiff) >= threshold) {
+      return `${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(0)}% vs expected`
+    } else if (format === 'diff' && Math.abs(diff) >= threshold) {
+      return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} vs expected`
+    } else if (format === 'int' && Math.abs(diff) >= threshold) {
+      return `${diff >= 0 ? '+' : ''}${Math.round(diff)} vs expected`
     }
     return null
   }
@@ -94,8 +133,8 @@ const stats = computed(() => {
     {
       label: 'Damage Dealt',
       value: formatNumber(m.damageDealt),
-      trend: b ? getTrend(m.damageDealt, b.avgDamageDealt, 0.15) : null,
-      comparison: b ? getComparison(m.damageDealt, b.avgDamageDealt, 10, 'pct') : null
+      trend: b ? getTrendDurationAdjusted(m.damageDealt, b.avgDamageDealt, 0.15) : null,
+      comparison: b ? getComparisonDurationAdjusted(m.damageDealt, b.avgDamageDealt, 10, 'pct') : null
     },
     {
       label: 'Dmg Share',
@@ -106,8 +145,8 @@ const stats = computed(() => {
     {
       label: 'CS',
       value: m.creepScore.toString(),
-      trend: null,
-      comparison: null
+      trend: b ? getTrendDurationAdjusted(m.creepScore, b.avgCreepScore, 0.1) : null,
+      comparison: b ? getComparisonDurationAdjusted(m.creepScore, b.avgCreepScore, 10, 'int') : null
     },
     {
       label: 'CS/min',
@@ -118,8 +157,8 @@ const stats = computed(() => {
     {
       label: 'Gold',
       value: formatNumber(m.goldEarned),
-      trend: b ? getTrend(m.goldEarned, b.avgGoldEarned, 0.1) : null,
-      comparison: b ? getComparison(m.goldEarned, b.avgGoldEarned, 10, 'pct') : null
+      trend: b ? getTrendDurationAdjusted(m.goldEarned, b.avgGoldEarned, 0.1) : null,
+      comparison: b ? getComparisonDurationAdjusted(m.goldEarned, b.avgGoldEarned, 10, 'pct') : null
     },
     {
       label: 'Gold/min',
@@ -130,14 +169,14 @@ const stats = computed(() => {
     {
       label: 'Vision Score',
       value: m.visionScore.toString(),
-      trend: b ? getTrend(m.visionScore, b.avgVisionScore, 0.15) : null,
-      comparison: b ? getComparison(m.visionScore, b.avgVisionScore, 3, 'int') : null
+      trend: b ? getTrendDurationAdjusted(m.visionScore, b.avgVisionScore, 0.15) : null,
+      comparison: b ? getComparisonDurationAdjusted(m.visionScore, b.avgVisionScore, 3, 'int') : null
     },
     {
       label: 'Dmg Taken',
       value: formatNumber(m.damageTaken),
-      trend: null,
-      comparison: null
+      trend: b ? getTrendDurationAdjusted(m.damageTaken, b.avgDamageTaken, 0.15) : null,
+      comparison: b ? getComparisonDurationAdjusted(m.damageTaken, b.avgDamageTaken, 10, 'pct') : null
     }
   ]
 })
@@ -157,11 +196,39 @@ function formatNumber(num) {
   gap: var(--spacing-sm);
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.section-header:hover .section-title {
+  color: var(--color-text);
+}
+
 .section-title {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
+  color: var(--color-text-secondary);
   margin: 0;
+  transition: color 0.15s ease;
+}
+
+.expand-icon {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  transition: transform 0.2s ease;
+  transform: rotate(0deg);
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
 }
 
 .stats-grid {

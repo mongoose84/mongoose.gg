@@ -18,13 +18,11 @@
           {{ match.win ? 'Victory' : 'Defeat' }}
         </span>
       </div>
-      <div class="kda-row">
-        <span class="kda-value">{{ match.kills }}</span>
-        <span class="kda-separator">/</span>
-        <span class="kda-value">{{ match.deaths }}</span>
-        <span class="kda-separator">/</span>
-        <span class="kda-value">{{ match.assists }}</span>
-        <span class="kda-ratio">{{ kdaRatio }} KDA</span>
+      <div class="game-result-row">
+        <span class="team-kills" :class="{ 'win': match.win }">{{ match.teamKills }}</span>
+        <span class="result-separator">-</span>
+        <span class="team-kills" :class="{ 'loss': !match.win }">{{ match.enemyTeamKills }}</span>
+        <span class="result-label">Game Result</span>
       </div>
       <div class="secondary-row">
         <span class="role">{{ formatRole(match.role) }}</span>
@@ -72,13 +70,6 @@ function formatDuration(seconds) {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-const kdaRatio = computed(() => {
-  const m = props.match
-  if (m.deaths === 0) return 'Perfect'
-  const ratio = (m.kills + m.assists) / m.deaths
-  return ratio.toFixed(2)
-})
-
 const relativeTime = computed(() => {
   if (!props.match.gameStartTime) return ''
 
@@ -104,7 +95,7 @@ const relativeTime = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-xs);
   background: var(--color-elevated);
   border-radius: var(--radius-md);
 }
@@ -170,25 +161,33 @@ const relativeTime = computed(() => {
   color: #ef4444;
 }
 
-.kda-row {
+.game-result-row {
   display: flex;
   align-items: baseline;
-  gap: 2px;
+  gap: 4px;
 }
 
-.kda-value {
+.team-kills {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
 }
 
-.kda-separator {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
-  margin: 0 2px;
+.team-kills.win {
+  color: #22c55e;
 }
 
-.kda-ratio {
+.team-kills.loss {
+  color: #ef4444;
+}
+
+.result-separator {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  margin: 0 4px;
+}
+
+.result-label {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   margin-left: var(--spacing-sm);
