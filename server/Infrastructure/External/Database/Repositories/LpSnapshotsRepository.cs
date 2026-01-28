@@ -3,7 +3,7 @@ using RiotProxy.External.Domain.Entities;
 
 namespace RiotProxy.Infrastructure.External.Database.Repositories;
 
-public class LpSnapshotsRepository : RepositoryBase
+public class LpSnapshotsRepository : RepositoryBase, ILpSnapshotsRepository
 {
     public LpSnapshotsRepository(IDbConnectionFactory factory) : base(factory) { }
 

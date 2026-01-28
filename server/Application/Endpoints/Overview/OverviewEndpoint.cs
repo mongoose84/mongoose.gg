@@ -30,7 +30,7 @@ public sealed class OverviewEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromServices] RiotAccountsRepository riotAccountRepo,
             [FromServices] OverviewStatsRepository overviewStatsRepo,
-            [FromServices] LpSnapshotsRepository lpSnapshotsRepo,
+            [FromServices] ILpSnapshotsRepository lpSnapshotsRepo,
             [FromServices] ILogger<OverviewEndpoint> logger
         ) =>
         {
@@ -137,7 +137,7 @@ public sealed class OverviewEndpoint : IEndpoint
         int primaryQueueId,
         string primaryQueueLabel,
         List<MatchResultData> last20Matches,
-        LpSnapshotsRepository lpSnapshotsRepo)
+        ILpSnapshotsRepository lpSnapshotsRepo)
     {
         // Get current rank based on primary queue
         string? rank = null;
@@ -217,7 +217,7 @@ public sealed class OverviewEndpoint : IEndpoint
         string? currentDivision,
         int? currentLp,
         List<MatchResultData> last20Matches,
-        LpSnapshotsRepository lpSnapshotsRepo)
+        ILpSnapshotsRepository lpSnapshotsRepo)
     {
         // If no current LP or no queue type, we can't calculate delta
         if (currentLp == null || queueType == null || last20Matches.Count == 0)
