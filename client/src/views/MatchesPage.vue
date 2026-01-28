@@ -60,7 +60,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { getMatchList } from '../services/authApi'
-import { trackFilterChange } from '../services/analyticsApi'
+import { trackFilterChange, trackMatchSelect } from '../services/analyticsApi'
 import MatchList from '../components/matches/MatchList.vue'
 import MatchDetails from '../components/matches/MatchDetails.vue'
 
@@ -125,6 +125,10 @@ async function fetchMatches() {
 // Handlers
 function handleMatchSelect(matchId) {
   selectedMatchId.value = matchId
+
+  // Track match selection with position in list
+  const matchIndex = data.value?.matches?.findIndex(m => m.matchId === matchId) ?? -1
+  trackMatchSelect(matchId, matchIndex, queueFilter.value)
 }
 
 function handleQueueChange(value) {

@@ -133,3 +133,61 @@ export function getSessionId() {
   return SESSION_ID
 }
 
+// ============ Match Details Analytics ============
+
+/**
+ * Track match selection in the matches list
+ * @param {string} matchId - The selected match ID
+ * @param {number} matchIndex - Position in the list (0-based)
+ * @param {string} queueType - Current queue filter
+ */
+export function trackMatchSelect(matchId, matchIndex, queueType) {
+  track('match:select', { matchId, matchIndex, queueType })
+}
+
+/**
+ * Track match details view (when details panel loads)
+ * @param {string} matchId - The match ID being viewed
+ * @param {string} role - User's role in the match
+ * @param {boolean} win - Whether the user won
+ */
+export function trackMatchDetailsView(matchId, role, win) {
+  track('match:details_view', { matchId, role, win })
+}
+
+/**
+ * Track section expand/collapse in match details
+ * @param {'personal_stats' | 'match_narrative'} section - Section name
+ * @param {boolean} expanded - Whether section is now expanded
+ * @param {Object} [extra] - Additional data (e.g., role for narrative)
+ */
+export function trackSectionToggle(section, expanded, extra = {}) {
+  track('match:section_toggle', { section, expanded, ...extra })
+}
+
+/**
+ * Track lane matchup expansion in Match Narrative
+ * @param {string} role - The role that was expanded (TOP, JUNGLE, etc.)
+ * @param {boolean} isUserRole - Whether this is the user's own role
+ * @param {string} laneWinner - Who won the lane (ally, enemy, even)
+ */
+export function trackLaneExpand(role, isUserRole, laneWinner) {
+  track('match:lane_expand', { role, isUserRole, laneWinner })
+}
+
+/**
+ * Track Team Comparison section interactions
+ * @param {string} metric - The metric interacted with (damage, gold, objectives)
+ */
+export function trackTeamComparisonView(metric) {
+  track('match:team_comparison', { metric })
+}
+
+/**
+ * Track Impact Stats section view
+ * @param {string} role - User's role (affects which metrics are shown)
+ */
+export function trackImpactStatsView(role) {
+  track('match:impact_stats_view', { role })
+}
+

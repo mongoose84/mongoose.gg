@@ -74,6 +74,10 @@ namespace RiotProxy.Application
             var matchListEndpoint = new MatchListEndpoint(basePath);
             _endpoints.Add(matchListEndpoint);
 
+            // Match Narrative (auth required)
+            var matchNarrativeEndpoint = new MatchNarrativeEndpoint(basePath);
+            _endpoints.Add(matchNarrativeEndpoint);
+
             // Trends endpoints (shared, auth required)
             var winrateTrendEndpoint = new WinrateTrendEndpoint(basePath);
             _endpoints.Add(winrateTrendEndpoint);

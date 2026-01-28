@@ -12,7 +12,7 @@ public class AnalyticsEventsRepository : RepositoryBase
     /// <summary>
     /// Insert a single analytics event.
     /// </summary>
-    public Task<int> InsertAsync(AnalyticsEvent evt)
+    public virtual Task<int> InsertAsync(AnalyticsEvent evt)
     {
         const string sql = @"
             INSERT INTO analytics_events (user_id, tier, event_name, payload_json, session_id, created_at)
@@ -30,7 +30,7 @@ public class AnalyticsEventsRepository : RepositoryBase
     /// <summary>
     /// Insert multiple analytics events in a batch (for future buffered writes).
     /// </summary>
-    public async Task<int> InsertBatchAsync(IEnumerable<AnalyticsEvent> events)
+    public virtual async Task<int> InsertBatchAsync(IEnumerable<AnalyticsEvent> events)
     {
         var eventList = events.ToList();
         if (eventList.Count == 0) return 0;
@@ -48,12 +48,12 @@ public class AnalyticsEventsRepository : RepositoryBase
     /// <summary>
     /// Get event count by event name within a time range (for basic analytics).
     /// </summary>
-    public Task<long> GetEventCountAsync(string eventName, DateTime from, DateTime to)
+    public virtual Task<long> GetEventCountAsync(string eventName, DateTime from, DateTime to)
     {
         const string sql = @"
-            SELECT COUNT(*) FROM analytics_events 
-            WHERE event_name = @event_name 
-              AND created_at >= @from 
+            SELECT COUNT(*) FROM analytics_events
+            WHERE event_name = @event_name
+              AND created_at >= @from
               AND created_at <= @to";
 
         return ExecuteScalarAsync<long>(sql,
@@ -65,12 +65,12 @@ public class AnalyticsEventsRepository : RepositoryBase
     /// <summary>
     /// Get distinct user count for an event within a time range.
     /// </summary>
-    public Task<long> GetUniqueUserCountAsync(string eventName, DateTime from, DateTime to)
+    public virtual Task<long> GetUniqueUserCountAsync(string eventName, DateTime from, DateTime to)
     {
         const string sql = @"
-            SELECT COUNT(DISTINCT user_id) FROM analytics_events 
-            WHERE event_name = @event_name 
-              AND created_at >= @from 
+            SELECT COUNT(DISTINCT user_id) FROM analytics_events
+            WHERE event_name = @event_name
+              AND created_at >= @from
               AND created_at <= @to
               AND user_id IS NOT NULL";
 

@@ -9,6 +9,7 @@ using RiotProxy.Infrastructure.Email;
 using RiotProxy.External.Domain.Entities;
 using RiotProxy.Application.DTOs.Overview;
 using Microsoft.Extensions.Hosting;
+using System.Collections.Generic;
 
 namespace RiotProxy.Tests;
 
@@ -21,6 +22,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeRiotAccountsRepository _riotAccountsRepository;
     private readonly FakeOverviewStatsRepository _overviewStatsRepository;
     private readonly FakeLpSnapshotsRepository _lpSnapshotsRepository;
+    private readonly FakeAnalyticsEventsRepository _analyticsEventsRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
@@ -28,6 +30,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeRiotAccountsRepository RiotAccountsRepository => _riotAccountsRepository;
     public FakeOverviewStatsRepository OverviewStatsRepository => _overviewStatsRepository;
     public FakeLpSnapshotsRepository LpSnapshotsRepository => _lpSnapshotsRepository;
+    public FakeAnalyticsEventsRepository AnalyticsEventsRepository => _analyticsEventsRepository;
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
@@ -38,6 +41,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _riotAccountsRepository = new FakeRiotAccountsRepository();
         _overviewStatsRepository = new FakeOverviewStatsRepository();
         _lpSnapshotsRepository = new FakeLpSnapshotsRepository();
+        _analyticsEventsRepository = new FakeAnalyticsEventsRepository();
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -97,6 +101,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace LpSnapshotsRepository with a fake
             services.RemoveAll<LpSnapshotsRepository>();
             services.AddSingleton<LpSnapshotsRepository>(_lpSnapshotsRepository);
+
+            // Replace AnalyticsEventsRepository with a fake
+            services.RemoveAll<AnalyticsEventsRepository>();
+            services.AddSingleton<AnalyticsEventsRepository>(_analyticsEventsRepository);
         });
 
         return base.CreateHost(builder);
@@ -609,5 +617,61 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             }
             snapshots.Add(snapshot);
         }
+    }
+
+    /// <summary>
+    /// Fake analytics events repository for testing.
+    /// </summary>
+    internal sealed class FakeAnalyticsEventsRepository : AnalyticsEventsRepository
+    {
+        private readonly ConcurrentDictionary<long, AnalyticsEvent> _events = new();
+        private long _nextId = 1;
+
+        public FakeAnalyticsEventsRepository() : base(null!) { }
+
+        public override Task<int> InsertAsync(AnalyticsEvent evt)
+        {
+            evt.Id = _nextId++;
+            _events[evt.Id] = evt;
+            return Task.FromResult(1);
+        }
+
+        public override Task<int> InsertBatchAsync(IEnumerable<AnalyticsEvent> events)
+        {
+            var count = 0;
+            foreach (var evt in events)
+            {
+                evt.Id = _nextId++;
+                _events[evt.Id] = evt;
+                count++;
+            }
+            return Task.FromResult(count);
+        }
+
+        public override Task<long> GetEventCountAsync(string eventName, DateTime from, DateTime to)
+        {
+            var count = _events.Values.Count(e =>
+                e.EventName == eventName &&
+                e.CreatedAt >= from &&
+                e.CreatedAt <= to);
+            return Task.FromResult((long)count);
+        }
+
+        public override Task<long> GetUniqueUserCountAsync(string eventName, DateTime from, DateTime to)
+        {
+            var count = _events.Values
+                .Where(e => e.EventName == eventName &&
+                           e.CreatedAt >= from &&
+                           e.CreatedAt <= to &&
+                           e.UserId != null)
+                .Select(e => e.UserId)
+                .Distinct()
+                .Count();
+            return Task.FromResult((long)count);
+        }
+
+        public IReadOnlyCollection<AnalyticsEvent> GetAllEvents() => _events.Values.ToList();
+
+        public void Clear() => _events.Clear();
     }
 }

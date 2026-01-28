@@ -1,8 +1,11 @@
 <template>
-  <div class="stat-snapshot">
+  <div class="stat-snapshot" :class="{ expanded }">
     <button type="button" class="section-header" @click="expanded = !expanded">
-      <h3 class="section-title">Personal Stats</h3>
-      <span class="expand-icon" :class="{ expanded }">›</span>
+      <span class="header-left">
+        <h3 class="section-title">Personal Stats</h3>
+        <span class="stat-count">{{ stats.length }} metrics</span>
+      </span>
+      <span class="expand-icon">{{ expanded ? '▼' : '▶' }}</span>
     </button>
     <div v-if="expanded" class="stats-grid">
       <div class="stat-item" v-for="stat in stats" :key="stat.label" :class="stat.trend">
@@ -22,9 +25,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { trackSectionToggle } from '../../services/analyticsApi'
 
 const expanded = ref(false)
+
+// Track when section is expanded/collapsed
+watch(expanded, (isExpanded) => {
+  trackSectionToggle('personal_stats', isExpanded)
+})
 
 const props = defineProps({
   match: {
@@ -193,7 +202,18 @@ function formatNumber(num) {
 .stat-snapshot {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.stat-snapshot:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.stat-snapshot.expanded {
+  border-color: var(--color-primary);
 }
 
 .section-header {
@@ -201,40 +221,42 @@ function formatNumber(num) {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
   background: none;
   border: none;
   cursor: pointer;
   text-align: left;
 }
 
-.section-header:hover .section-title {
-  color: var(--color-text);
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
 }
 
 .section-title {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   margin: 0;
-  transition: color 0.15s ease;
+}
+
+.stat-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
 }
 
 .expand-icon {
-  font-size: var(--font-size-md);
+  font-size: 10px;
   color: var(--color-text-secondary);
-  transition: transform 0.2s ease;
-  transform: rotate(0deg);
-}
-
-.expand-icon.expanded {
-  transform: rotate(90deg);
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--spacing-xs);
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
 }
 
 .stat-item {
@@ -242,7 +264,7 @@ function formatNumber(num) {
   flex-direction: column;
   gap: 2px;
   padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--color-surface);
+  background: var(--color-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
