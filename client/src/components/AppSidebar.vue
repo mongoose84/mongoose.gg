@@ -167,13 +167,10 @@
               <span class="text-sm font-semibold text-text overflow-hidden text-ellipsis whitespace-nowrap">{{ riotAccountName }}</span>
               <span class="text-xs text-text-secondary uppercase tracking-wider">{{ regionLabel }}</span>
             </template>
-
-            <!-- Spacer -->
-            <div class="h-1.5 border-b border-border mb-1"></div>
-
-            <!-- Account Info -->
-            <span class="text-xs font-medium text-text-secondary overflow-hidden text-ellipsis">{{ username }}</span>
-            <span class="text-[10px] text-text-muted uppercase tracking-wider">{{ tierLabel }}</span>
+            <template v-else>
+              <span class="text-sm font-semibold text-text overflow-hidden text-ellipsis whitespace-nowrap">{{ username }}</span>
+              <span class="text-xs text-text-secondary">No account linked</span>
+            </template>
           </div>
         </Transition>
       </router-link>
@@ -284,12 +281,6 @@ onUnmounted(() => {
 
 // User data
 const username = computed(() => authStore.username || 'User');
-const tierLabel = computed(() => {
-  const tier = authStore.tier;
-  if (tier === 'pro') return 'Pro';
-  if (tier === 'premium') return 'Premium';
-  return 'Free';
-});
 
 // Profile icon from first Riot account
 const primaryRiotAccount = computed(() => authStore.primaryRiotAccount);

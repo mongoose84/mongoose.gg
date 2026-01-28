@@ -24,14 +24,6 @@
             </span>
           </div>
         </div>
-        <div class="stat-row">
-          <span class="stat-label">Solo Kills</span>
-          <div class="stat-comparison">
-            <span class="stat-value">{{ matchup.allyParticipant.soloKills }}</span>
-            <span class="vs-separator">vs</span>
-            <span class="stat-value">{{ matchup.enemyParticipant.soloKills }}</span>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -145,7 +137,8 @@ function formatCsDiff(diff) {
 }
 
 function formatPercent(value) {
-  return `${(value * 100).toFixed(0)}%`
+  // Values from database are already percentages (e.g., 25.50 means 25.50%)
+  return `${value.toFixed(0)}%`
 }
 </script>
 
