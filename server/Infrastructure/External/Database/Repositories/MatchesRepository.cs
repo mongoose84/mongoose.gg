@@ -424,4 +424,70 @@ public class MatchesRepository : RepositoryBase
             _ => "all"
         };
     }
+
+    /// <summary>
+    /// Gets all 10 participants for a match with their metrics and 15-minute checkpoints.
+    /// Used for the Match Narrative feature to show lane matchups.
+    /// </summary>
+    public async Task<IList<MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId)
+    {
+        const string sql = @"
+            SELECT
+                p.id as participant_id,
+                p.puuid,
+                p.champion_id,
+                p.champion_name,
+                p.team_id,
+                COALESCE(p.role, 'UNKNOWN') as role,
+                p.win,
+                p.kills,
+                p.deaths,
+                p.assists,
+                p.creep_score,
+                p.gold_earned,
+                COALESCE(pm.kill_participation_pct, 0) as kill_participation,
+                COALESCE(pm.damage_share_pct, 0) as damage_share,
+                COALESCE(pm.vision_score, 0) as vision_score,
+                pc15.gold as gold_at_15,
+                pc15.cs as cs_at_15,
+                pc15.gold_diff_vs_lane as gold_diff_at_15,
+                pc15.cs_diff_vs_lane as cs_diff_at_15
+            FROM participants p
+            LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
+            LEFT JOIN participant_checkpoints pc15 ON pc15.participant_id = p.id AND pc15.minute_mark = 15
+            WHERE p.match_id = @match_id
+            ORDER BY p.team_id,
+                CASE p.role
+                    WHEN 'TOP' THEN 1
+                    WHEN 'JUNGLE' THEN 2
+                    WHEN 'MIDDLE' THEN 3
+                    WHEN 'BOTTOM' THEN 4
+                    WHEN 'UTILITY' THEN 5
+                    ELSE 6
+                END";
+
+        return await ExecuteListAsync(sql, MapMatchupParticipantRaw, ("@match_id", matchId));
+    }
+
+    private static MatchupParticipantRaw MapMatchupParticipantRaw(MySqlDataReader r) => new(
+        ParticipantId: r.GetInt64(0),
+        Puuid: r.GetString(1),
+        ChampionId: r.GetInt32(2),
+        ChampionName: r.GetString(3),
+        TeamId: r.GetInt32(4),
+        Role: r.GetString(5),
+        Win: r.GetBoolean(6),
+        Kills: r.GetInt32(7),
+        Deaths: r.GetInt32(8),
+        Assists: r.GetInt32(9),
+        CreepScore: r.GetInt32(10),
+        GoldEarned: r.GetInt32(11),
+        KillParticipation: r.GetDecimal(12),
+        DamageShare: r.GetDecimal(13),
+        VisionScore: r.GetInt32(14),
+        GoldAt15: r.IsDBNull(15) ? null : r.GetInt32(15),
+        CsAt15: r.IsDBNull(16) ? null : r.GetInt32(16),
+        GoldDiffAt15: r.IsDBNull(17) ? null : r.GetInt32(17),
+        CsDiffAt15: r.IsDBNull(18) ? null : r.GetInt32(18)
+    );
 }

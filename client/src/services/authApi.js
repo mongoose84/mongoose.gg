@@ -528,3 +528,34 @@ export async function getMatchList(userId, queueType = 'all') {
 
   return data
 }
+
+/**
+ * Get match narrative (lane matchups) for a specific match
+ * @param {string} matchId - The match ID
+ * @param {string} puuid - The user's PUUID
+ * @returns {Promise<{ matchId: string, laneMatchups: Array } | null>}
+ */
+export async function getMatchNarrative(matchId, puuid) {
+  const params = new URLSearchParams({ puuid })
+  const url = `${API_BASE}/matches/${matchId}/narrative?${params.toString()}`
+
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include'
+  })
+
+  if (response.status === 404) {
+    return null // No narrative data found
+  }
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const error = new Error(data.error || 'Failed to get match narrative')
+    error.status = response.status
+    error.code = data.code
+    throw error
+  }
+
+  return data
+}
