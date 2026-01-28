@@ -544,10 +544,6 @@ export async function getMatchNarrative(matchId, puuid) {
     credentials: 'include'
   })
 
-  if (response.status === 404) {
-    return null // No narrative data found
-  }
-
   const data = await response.json()
 
   if (!response.ok) {

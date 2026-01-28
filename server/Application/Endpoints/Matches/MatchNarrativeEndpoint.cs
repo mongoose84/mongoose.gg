@@ -26,6 +26,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
             [FromRoute] string matchId,
             [FromQuery] string? puuid,
             [FromServices] MatchesRepository matchesRepo,
+            [FromServices] RiotAccountsRepository riotAccountsRepo,
             [FromServices] ILogger<MatchNarrativeEndpoint> logger
         ) =>
         {
@@ -42,6 +43,21 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                 if (string.IsNullOrWhiteSpace(puuid))
                 {
                     return Results.BadRequest(new { error = "puuid query parameter is required" });
+                }
+
+                // Verify the puuid belongs to the authenticated user
+                var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+                {
+                    return Results.Unauthorized();
+                }
+
+                var userRiotAccounts = await riotAccountsRepo.GetByUserIdAsync(userId);
+                if (userRiotAccounts == null || !userRiotAccounts.Any(a => a.Puuid == puuid))
+                {
+                    logger.LogWarning("Match narrative: user {UserId} attempted to access data for unowned puuid {Puuid}",
+                        userId, puuid);
+                    return Results.Forbid();
                 }
 
                 logger.LogInformation("Match narrative request: matchId={MatchId}, puuid={Puuid}",
@@ -111,15 +127,30 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
 
     private static string DetermineLaneWinner(int? allyGoldDiff, int? enemyGoldDiff)
     {
-        // Use ally's gold diff (positive means ally ahead)
-        if (!allyGoldDiff.HasValue) return "even";
-
-        return allyGoldDiff.Value switch
+        // Prefer ally's gold diff (positive means ally ahead)
+        if (allyGoldDiff.HasValue)
         {
-            >= 500 => "ally",
-            <= -500 => "enemy",
-            _ => "even"
-        };
+            return allyGoldDiff.Value switch
+            {
+                >= 500 => "ally",
+                <= -500 => "enemy",
+                _ => "even"
+            };
+        }
+
+        // Fall back to enemy's gold diff (inverted: positive enemy diff means ally behind)
+        if (enemyGoldDiff.HasValue)
+        {
+            return enemyGoldDiff.Value switch
+            {
+                >= 500 => "enemy",  // Enemy ahead means ally lost lane
+                <= -500 => "ally",  // Enemy behind means ally won lane
+                _ => "even"
+            };
+        }
+
+        // No data available for either side
+        return "even";
     }
 
     private MatchupParticipant ToMatchupParticipant(MatchupParticipantRaw raw) => new(

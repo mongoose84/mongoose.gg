@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { getMatchNarrative } from '../../services/authApi'
 import { trackLaneExpand } from '../../services/analyticsApi'
@@ -91,17 +91,18 @@ const error = ref(null)
 const narrativeData = ref(null)
 const expandedRole = ref(null)
 
-// Fetch narrative data when matchId changes
+// Watch both matchId and puuid - puuid may be populated asynchronously after mount
+const puuid = computed(() => authStore.primaryRiotAccount?.puuid)
+
 watch(
-  () => props.matchId,
-  async (newMatchId) => {
+  [() => props.matchId, puuid],
+  async ([newMatchId, newPuuid]) => {
     if (!newMatchId) {
       narrativeData.value = null
       return
     }
 
-    const puuid = authStore.primaryRiotAccount?.puuid
-    if (!puuid) {
+    if (!newPuuid) {
       error.value = 'No linked Riot account'
       return
     }
@@ -110,7 +111,7 @@ watch(
     error.value = null
 
     try {
-      narrativeData.value = await getMatchNarrative(newMatchId, puuid)
+      narrativeData.value = await getMatchNarrative(newMatchId, newPuuid)
     } catch (err) {
       console.error('Failed to fetch match narrative:', err)
       error.value = err.message || 'Failed to load lane matchups'
