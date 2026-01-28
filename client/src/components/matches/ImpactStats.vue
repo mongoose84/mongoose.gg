@@ -2,9 +2,9 @@
   <div class="impact-stats">
     <h3 class="section-title">Impact</h3>
     <div class="impact-grid">
-      <div 
-        v-for="stat in impactStats" 
-        :key="stat.label" 
+      <div
+        v-for="stat in impactStats"
+        :key="stat.label"
         class="impact-item"
         :class="stat.sentiment"
       >

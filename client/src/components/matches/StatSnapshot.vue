@@ -1,7 +1,10 @@
 <template>
   <div class="stat-snapshot">
-    <h3 class="section-title">Stats</h3>
-    <div class="stats-grid">
+    <button class="section-header" @click="expanded = !expanded">
+      <h3 class="section-title">Stats</h3>
+      <span class="expand-icon" :class="{ expanded }">›</span>
+    </button>
+    <div v-if="expanded" class="stats-grid">
       <div class="stat-item" v-for="stat in stats" :key="stat.label" :class="stat.trend">
         <div class="stat-header">
           <span class="stat-label">{{ stat.label }}</span>
@@ -19,7 +22,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+
+const expanded = ref(false)
 
 const props = defineProps({
   match: {
@@ -191,11 +196,39 @@ function formatNumber(num) {
   gap: var(--spacing-sm);
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.section-header:hover .section-title {
+  color: var(--color-text);
+}
+
 .section-title {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
+  color: var(--color-text-secondary);
   margin: 0;
+  transition: color 0.15s ease;
+}
+
+.expand-icon {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  transition: transform 0.2s ease;
+  transform: rotate(0deg);
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
 }
 
 .stats-grid {
