@@ -30,7 +30,7 @@ public sealed class OverviewEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromServices] RiotAccountsRepository riotAccountRepo,
             [FromServices] OverviewStatsRepository overviewStatsRepo,
-            [FromServices] LpSnapshotsRepository lpSnapshotsRepo,
+            [FromServices] ILpSnapshotsRepository lpSnapshotsRepo,
             [FromServices] ILogger<OverviewEndpoint> logger
         ) =>
         {
@@ -137,7 +137,7 @@ public sealed class OverviewEndpoint : IEndpoint
         int primaryQueueId,
         string primaryQueueLabel,
         List<MatchResultData> last20Matches,
-        LpSnapshotsRepository lpSnapshotsRepo)
+        ILpSnapshotsRepository lpSnapshotsRepo)
     {
         // Get current rank based on primary queue
         string? rank = null;
@@ -208,6 +208,7 @@ public sealed class OverviewEndpoint : IEndpoint
     /// Calculates LP delta by comparing current rank/LP to the LP snapshot from around the time
     /// of the oldest match in the last 20. Accounts for tier/division changes by converting
     /// to absolute LP values.
+    /// Falls back to the oldest available snapshot if no snapshot exists before the oldest match.
     /// </summary>
     private static async Task<int> CalculateLpDeltaFromSnapshotsAsync(
         string puuid,
@@ -216,7 +217,7 @@ public sealed class OverviewEndpoint : IEndpoint
         string? currentDivision,
         int? currentLp,
         List<MatchResultData> last20Matches,
-        LpSnapshotsRepository lpSnapshotsRepo)
+        ILpSnapshotsRepository lpSnapshotsRepo)
     {
         // If no current LP or no queue type, we can't calculate delta
         if (currentLp == null || queueType == null || last20Matches.Count == 0)
@@ -233,8 +234,15 @@ public sealed class OverviewEndpoint : IEndpoint
 
         if (oldSnapshot == null)
         {
-            // No snapshot before the oldest match - can't calculate delta
-            return 0;
+            // No snapshot before the oldest match - fall back to the oldest available snapshot
+            // This handles the case where LP tracking started after matches were already played
+            oldSnapshot = await lpSnapshotsRepo.GetOldestByPuuidAndQueueAsync(puuid, queueType);
+
+            if (oldSnapshot == null)
+            {
+                // No snapshots at all - can't calculate delta
+                return 0;
+            }
         }
 
         // Convert both current and old rank to absolute LP for accurate comparison

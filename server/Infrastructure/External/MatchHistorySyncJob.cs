@@ -153,7 +153,7 @@ public class MatchHistorySyncJob : BackgroundService
         var duoMetricsRepo = services.GetRequiredService<DuoMetricsRepository>();
         var teamRoleRepo = services.GetRequiredService<TeamRoleResponsibilitiesRepository>();
         var seasonsRepo = services.GetRequiredService<SeasonsRepository>();
-        var lpSnapshotsRepo = services.GetRequiredService<LpSnapshotsRepository>();
+        var lpSnapshotsRepo = services.GetRequiredService<ILpSnapshotsRepository>();
         var broadcaster = services.GetService<ISyncProgressBroadcaster>();
 
         // Determine if this is an initial backfill or incremental sync
@@ -384,7 +384,7 @@ public class MatchHistorySyncJob : BackgroundService
     /// </summary>
     private async Task RecordLpSnapshotsAsync(
         IRiotApiClient riotApiClient,
-        LpSnapshotsRepository lpSnapshotsRepo,
+        ILpSnapshotsRepository lpSnapshotsRepo,
         RiotAccount account,
         CancellationToken ct)
     {

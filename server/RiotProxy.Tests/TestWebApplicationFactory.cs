@@ -99,8 +99,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<OverviewStatsRepository>(_overviewStatsRepository);
 
             // Replace LpSnapshotsRepository with a fake
-            services.RemoveAll<LpSnapshotsRepository>();
-            services.AddSingleton<LpSnapshotsRepository>(_lpSnapshotsRepository);
+            services.RemoveAll<ILpSnapshotsRepository>();
+            services.AddSingleton<ILpSnapshotsRepository>(_lpSnapshotsRepository);
 
             // Replace AnalyticsEventsRepository with a fake
             services.RemoveAll<AnalyticsEventsRepository>();
@@ -519,15 +519,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
     /// <summary>
     /// Fake LP snapshots repository for testing.
+    /// Implements ILpSnapshotsRepository to ensure all interface methods are covered.
     /// </summary>
-    internal sealed class FakeLpSnapshotsRepository : LpSnapshotsRepository
+    internal sealed class FakeLpSnapshotsRepository : ILpSnapshotsRepository
     {
         private readonly ConcurrentDictionary<string, List<LpSnapshot>> _snapshotsByPuuid = new();
         private long _nextId = 1;
 
-        public FakeLpSnapshotsRepository() : base(null!) { }
-
-        public override Task<long> InsertAsync(LpSnapshot snapshot)
+        public Task<long> InsertAsync(LpSnapshot snapshot)
         {
             var key = snapshot.Puuid;
             if (!_snapshotsByPuuid.TryGetValue(key, out var snapshots))
@@ -540,7 +539,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(snapshot.Id);
         }
 
-        public override Task<IList<LpSnapshot>> GetByPuuidAndQueueAsync(string puuid, string queueType, int limit = 100)
+        public Task<IList<LpSnapshot>> GetByPuuidAndQueueAsync(string puuid, string queueType, int limit = 100)
         {
             if (_snapshotsByPuuid.TryGetValue(puuid, out var snapshots))
             {
@@ -554,7 +553,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult<IList<LpSnapshot>>(new List<LpSnapshot>());
         }
 
-        public override Task<LpSnapshot?> GetLatestByPuuidAndQueueAsync(string puuid, string queueType)
+        public Task<LpSnapshot?> GetLatestByPuuidAndQueueAsync(string puuid, string queueType)
         {
             if (_snapshotsByPuuid.TryGetValue(puuid, out var snapshots))
             {
@@ -567,7 +566,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult<LpSnapshot?>(null);
         }
 
-        public override Task<IList<LpSnapshot>> GetByPuuidAsync(string puuid, int limit = 100)
+        public Task<IList<LpSnapshot>> GetByPuuidAsync(string puuid, int limit = 100)
         {
             if (_snapshotsByPuuid.TryGetValue(puuid, out var snapshots))
             {
@@ -580,7 +579,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult<IList<LpSnapshot>>(new List<LpSnapshot>());
         }
 
-        public override Task<LpSnapshot?> GetSnapshotAtOrBeforeAsync(string puuid, string queueType, DateTime timestamp)
+        public Task<LpSnapshot?> GetSnapshotAtOrBeforeAsync(string puuid, string queueType, DateTime timestamp)
         {
             if (_snapshotsByPuuid.TryGetValue(puuid, out var snapshots))
             {
@@ -589,6 +588,19 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                     .OrderByDescending(s => s.RecordedAt)
                     .FirstOrDefault();
                 return Task.FromResult(snapshot);
+            }
+            return Task.FromResult<LpSnapshot?>(null);
+        }
+
+        public Task<LpSnapshot?> GetOldestByPuuidAndQueueAsync(string puuid, string queueType)
+        {
+            if (_snapshotsByPuuid.TryGetValue(puuid, out var snapshots))
+            {
+                var oldest = snapshots
+                    .Where(s => s.QueueType == queueType)
+                    .OrderBy(s => s.RecordedAt)
+                    .FirstOrDefault();
+                return Task.FromResult(oldest);
             }
             return Task.FromResult<LpSnapshot?>(null);
         }

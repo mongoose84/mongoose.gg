@@ -13,7 +13,7 @@ namespace RiotProxy.Application.Services;
 public class LoginSyncService
 {
     private readonly RiotAccountsRepository _riotAccountsRepo;
-    private readonly LpSnapshotsRepository _lpSnapshotsRepo;
+    private readonly ILpSnapshotsRepository _lpSnapshotsRepo;
     private readonly IRiotApiClient _riotApiClient;
     private readonly ISyncProgressBroadcaster _syncBroadcaster;
     private readonly ILogger<LoginSyncService> _logger;
@@ -25,7 +25,7 @@ public class LoginSyncService
 
     public LoginSyncService(
         RiotAccountsRepository riotAccountsRepo,
-        LpSnapshotsRepository lpSnapshotsRepo,
+        ILpSnapshotsRepository lpSnapshotsRepo,
         IRiotApiClient riotApiClient,
         ISyncProgressBroadcaster syncBroadcaster,
         ILogger<LoginSyncService> logger)
