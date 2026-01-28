@@ -44,6 +44,7 @@ public record MatchListItem(
     [property: JsonPropertyName("goldPerMin")] double GoldPerMin,
     [property: JsonPropertyName("teamKills")] int TeamKills,
     [property: JsonPropertyName("enemyTeamKills")] int EnemyTeamKills,
+    [property: JsonPropertyName("goldDiffAt15")] int? GoldDiffAt15,
     [property: JsonPropertyName("trendBadge")] TrendBadge? TrendBadge
 );
 
@@ -107,6 +108,7 @@ public record MatchListRawData(
     int DeathsPre10,
     int TeamId,
     int TeamKills,
-    int EnemyTeamKills
+    int EnemyTeamKills,
+    int? GoldDiffAt15
 );
 
