@@ -145,6 +145,34 @@ public class LpSnapshotsRepository : RepositoryBase
         });
     }
 
+    /// <summary>
+    /// Gets the oldest LP snapshot for a player in a specific queue.
+    /// Used as a fallback when no snapshot exists before a specific timestamp.
+    /// Returns null if no snapshots exist.
+    /// </summary>
+    public virtual async Task<LpSnapshot?> GetOldestByPuuidAndQueueAsync(string puuid, string queueType)
+    {
+        const string sql = @"SELECT id, puuid, queue_type, tier, division, lp, recorded_at, created_at
+            FROM lp_snapshots
+            WHERE puuid = @puuid AND queue_type = @queue_type
+            ORDER BY recorded_at ASC
+            LIMIT 1";
+
+        return await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            cmd.Parameters.AddWithValue("@queue_type", queueType);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return Map(reader);
+            }
+            return null;
+        });
+    }
+
     private static LpSnapshot Map(MySqlDataReader r) => new()
     {
         Id = r.GetInt64(0),
