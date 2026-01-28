@@ -45,6 +45,16 @@ public record MatchListItem(
     [property: JsonPropertyName("teamKills")] int TeamKills,
     [property: JsonPropertyName("enemyTeamKills")] int EnemyTeamKills,
     [property: JsonPropertyName("goldDiffAt15")] int? GoldDiffAt15,
+    // Team comparison data
+    [property: JsonPropertyName("teamTotalDamage")] int TeamTotalDamage,
+    [property: JsonPropertyName("enemyTeamTotalDamage")] int EnemyTeamTotalDamage,
+    [property: JsonPropertyName("teamGoldLeadAt15")] int? TeamGoldLeadAt15,
+    [property: JsonPropertyName("teamDragons")] int TeamDragons,
+    [property: JsonPropertyName("enemyTeamDragons")] int EnemyTeamDragons,
+    [property: JsonPropertyName("teamBarons")] int TeamBarons,
+    [property: JsonPropertyName("enemyTeamBarons")] int EnemyTeamBarons,
+    [property: JsonPropertyName("teamTowers")] int TeamTowers,
+    [property: JsonPropertyName("enemyTeamTowers")] int EnemyTeamTowers,
     [property: JsonPropertyName("trendBadge")] TrendBadge? TrendBadge
 );
 
@@ -109,6 +119,16 @@ public record MatchListRawData(
     int TeamId,
     int TeamKills,
     int EnemyTeamKills,
-    int? GoldDiffAt15
+    int? GoldDiffAt15,
+    // Team comparison data
+    int TeamTotalDamage,
+    int EnemyTeamTotalDamage,
+    int? TeamGoldLeadAt15,
+    int TeamDragons,
+    int EnemyTeamDragons,
+    int TeamBarons,
+    int EnemyTeamBarons,
+    int TeamTowers,
+    int EnemyTeamTowers
 );
 

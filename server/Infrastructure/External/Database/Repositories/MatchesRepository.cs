@@ -108,11 +108,24 @@ public class MatchesRepository : RepositoryBase
                 p.team_id,
                 COALESCE((SELECT SUM(p2.kills) FROM participants p2 WHERE p2.match_id = p.match_id AND p2.team_id = p.team_id), 0) as team_kills,
                 COALESCE((SELECT SUM(p2.kills) FROM participants p2 WHERE p2.match_id = p.match_id AND p2.team_id != p.team_id), 0) as enemy_team_kills,
-                pc15.gold_diff_vs_lane as gold_diff_at_15
+                pc15.gold_diff_vs_lane as gold_diff_at_15,
+                -- Team comparison data
+                COALESCE((SELECT SUM(pm2.damage_dealt) FROM participants p2 INNER JOIN participant_metrics pm2 ON pm2.participant_id = p2.id WHERE p2.match_id = p.match_id AND p2.team_id = p.team_id), 0) as team_total_damage,
+                COALESCE((SELECT SUM(pm2.damage_dealt) FROM participants p2 INNER JOIN participant_metrics pm2 ON pm2.participant_id = p2.id WHERE p2.match_id = p.match_id AND p2.team_id != p.team_id), 0) as enemy_team_total_damage,
+                tmm.gold_lead_at_15 as team_gold_lead_at_15,
+                COALESCE(tobj.dragons_taken, 0) as team_dragons,
+                COALESCE(tobj_enemy.dragons_taken, 0) as enemy_team_dragons,
+                COALESCE(tobj.barons_taken, 0) as team_barons,
+                COALESCE(tobj_enemy.barons_taken, 0) as enemy_team_barons,
+                COALESCE(tobj.towers_taken, 0) as team_towers,
+                COALESCE(tobj_enemy.towers_taken, 0) as enemy_team_towers
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
             LEFT JOIN participant_checkpoints pc15 ON pc15.participant_id = p.id AND pc15.minute_mark = 15
+            LEFT JOIN team_match_metrics tmm ON tmm.match_id = p.match_id AND tmm.team_id = p.team_id
+            LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
+            LEFT JOIN team_objectives tobj_enemy ON tobj_enemy.match_id = p.match_id AND tobj_enemy.team_id != p.team_id
             WHERE p.puuid = @puuid
             {queueFilter}
             ORDER BY m.game_start_time DESC
@@ -165,6 +178,15 @@ public class MatchesRepository : RepositoryBase
                 TeamKills: raw.TeamKills,
                 EnemyTeamKills: raw.EnemyTeamKills,
                 GoldDiffAt15: raw.GoldDiffAt15,
+                TeamTotalDamage: raw.TeamTotalDamage,
+                EnemyTeamTotalDamage: raw.EnemyTeamTotalDamage,
+                TeamGoldLeadAt15: raw.TeamGoldLeadAt15,
+                TeamDragons: raw.TeamDragons,
+                EnemyTeamDragons: raw.EnemyTeamDragons,
+                TeamBarons: raw.TeamBarons,
+                EnemyTeamBarons: raw.EnemyTeamBarons,
+                TeamTowers: raw.TeamTowers,
+                EnemyTeamTowers: raw.EnemyTeamTowers,
                 TrendBadge: trendBadge
             ));
         }
@@ -353,7 +375,16 @@ public class MatchesRepository : RepositoryBase
         TeamId: r.GetInt32(20),
         TeamKills: r.GetInt32(21),
         EnemyTeamKills: r.GetInt32(22),
-        GoldDiffAt15: r.IsDBNull(23) ? null : r.GetInt32(23)
+        GoldDiffAt15: r.IsDBNull(23) ? null : r.GetInt32(23),
+        TeamTotalDamage: r.GetInt32(24),
+        EnemyTeamTotalDamage: r.GetInt32(25),
+        TeamGoldLeadAt15: r.IsDBNull(26) ? null : r.GetInt32(26),
+        TeamDragons: r.GetInt32(27),
+        EnemyTeamDragons: r.GetInt32(28),
+        TeamBarons: r.GetInt32(29),
+        EnemyTeamBarons: r.GetInt32(30),
+        TeamTowers: r.GetInt32(31),
+        EnemyTeamTowers: r.GetInt32(32)
     );
 
     private static string GetQueueLabel(int queueId) => queueId switch

@@ -1,6 +1,6 @@
 <template>
   <div class="impact-stats">
-    <h3 class="section-title">Impact</h3>
+    <h3 class="section-title">Personal Impact</h3>
     <div class="impact-grid">
       <div
         v-for="stat in impactStats"

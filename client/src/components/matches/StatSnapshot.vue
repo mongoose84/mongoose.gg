@@ -1,7 +1,7 @@
 <template>
   <div class="stat-snapshot">
     <button type="button" class="section-header" @click="expanded = !expanded">
-      <h3 class="section-title">Stats</h3>
+      <h3 class="section-title">Personal Stats</h3>
       <span class="expand-icon" :class="{ expanded }">›</span>
     </button>
     <div v-if="expanded" class="stats-grid">

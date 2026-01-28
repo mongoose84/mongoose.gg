@@ -13,6 +13,7 @@
       <MatchHeader :match="match" />
 
       <div class="details-sections">
+        <TeamComparison :match="match" />
         <ImpactStats :match="match" />
         <StatSnapshot :match="match" :baseline="baseline" />
         <MatchActions />
@@ -23,6 +24,7 @@
 
 <script setup>
 import MatchHeader from './MatchHeader.vue'
+import TeamComparison from './TeamComparison.vue'
 import ImpactStats from './ImpactStats.vue'
 import StatSnapshot from './StatSnapshot.vue'
 import MatchActions from './MatchActions.vue'
