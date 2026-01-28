@@ -25,9 +25,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { trackSectionToggle } from '../../services/analyticsApi'
 
 const expanded = ref(false)
+
+// Track when section is expanded/collapsed
+watch(expanded, (isExpanded) => {
+  trackSectionToggle('personal_stats', isExpanded)
+})
 
 const props = defineProps({
   match: {

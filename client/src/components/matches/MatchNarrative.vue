@@ -73,6 +73,7 @@
 import { ref, watch } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { getMatchNarrative } from '../../services/authApi'
+import { trackLaneExpand } from '../../services/analyticsApi'
 import LaneMatchupDetails from './LaneMatchupDetails.vue'
 
 const props = defineProps({
@@ -122,7 +123,16 @@ watch(
 
 // Toggle expanded state
 function toggleExpand(role) {
-  expandedRole.value = expandedRole.value === role ? null : role
+  const isExpanding = expandedRole.value !== role
+  expandedRole.value = isExpanding ? role : null
+
+  // Track lane expansion (only when expanding, not collapsing)
+  if (isExpanding) {
+    const matchup = narrativeData.value?.laneMatchups?.find(m => m.role === role)
+    if (matchup) {
+      trackLaneExpand(role, isUserRole(role), matchup.laneWinner)
+    }
+  }
 }
 
 // Helpers

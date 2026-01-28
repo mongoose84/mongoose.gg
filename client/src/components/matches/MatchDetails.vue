@@ -24,14 +24,16 @@
 </template>
 
 <script setup>
+import { watch } from 'vue'
 import MatchHeader from './MatchHeader.vue'
 import TeamComparison from './TeamComparison.vue'
 import ImpactStats from './ImpactStats.vue'
 import StatSnapshot from './StatSnapshot.vue'
 import MatchNarrative from './MatchNarrative.vue'
 import MatchActions from './MatchActions.vue'
+import { trackMatchDetailsView } from '../../services/analyticsApi'
 
-defineProps({
+const props = defineProps({
   match: {
     type: Object,
     default: null
@@ -42,6 +44,17 @@ defineProps({
     // Expected: RoleBaseline for the selected match's role
   }
 })
+
+// Track when match details are viewed
+watch(
+  () => props.match?.matchId,
+  (matchId) => {
+    if (matchId && props.match) {
+      trackMatchDetailsView(matchId, props.match.role, props.match.win)
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
