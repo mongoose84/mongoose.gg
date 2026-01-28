@@ -113,11 +113,12 @@ const impactStats = computed(() => {
     // NON-SUPPORT METRICS
 
     // 1. Kill Participation - "Was I part of the plays?"
+    // Typical KP is ~20% (1/5 players). 30%+ is high, <25% is low.
     const kp = m.killParticipation
-    const kpSentiment = kp >= 70 ? 'positive' : kp < 50 ? 'negative' : 'neutral'
-    const kpDescription = kp >= 70
+    const kpSentiment = kp >= 30 ? 'positive' : kp < 25 ? 'negative' : 'neutral'
+    const kpDescription = kp >= 30
       ? 'High involvement'
-      : kp < 50
+      : kp < 25
         ? 'Low involvement'
         : 'Average involvement'
 
