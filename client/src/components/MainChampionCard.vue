@@ -405,22 +405,16 @@ function formatMScore(score) {
   return Math.round(score)
 }
 
-// Get bar color class for M-Score stat row
+// Get bar color class for M-Score stat row (always blue - it's a recommendation score, not good/bad)
 function getMScoreBarClass(score) {
   if (score == null) return 'bg-[rgba(255,255,255,0.2)]'
-  if (score >= 70) return 'bg-success'
-  if (score >= 50) return 'bg-[#84cc16]'
-  if (score >= 30) return 'bg-[#eab308]'
-  return 'bg-error'
+  return 'bg-info'
 }
 
-// Get text color class for M-Score value
+// Get text color class for M-Score value (always blue to match bar)
 function getMScoreTextClass(score) {
   if (score == null) return 'text-text-secondary'
-  if (score >= 70) return 'text-success'
-  if (score >= 50) return 'text-[#84cc16]'
-  if (score >= 30) return 'text-[#eab308]'
-  return 'text-error'
+  return 'text-info'
 }
 </script>
 
