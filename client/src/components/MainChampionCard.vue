@@ -76,9 +76,9 @@
               <!-- Good Matchups -->
               <div class="flex-1">
                 <span class="text-2xs text-text-secondary uppercase tracking-wide mb-xs block">Strong vs</span>
-                <div v-if="getMatchupsForChampion(champion.championId).good.length > 0" class="flex gap-xs">
+                <div v-if="getMatchupsForChampion(champion.championId, role).good.length > 0" class="flex gap-xs">
                   <div
-                    v-for="opponent in getMatchupsForChampion(champion.championId).good"
+                    v-for="opponent in getMatchupsForChampion(champion.championId, role).good"
                     :key="opponent.opponentChampionId"
                     class="matchup-item flex flex-col items-center gap-0.5 relative"
                   >
@@ -100,9 +100,9 @@
               <!-- Bad Matchups -->
               <div class="flex-1">
                 <span class="text-2xs text-text-secondary uppercase tracking-wide mb-xs block">Weak vs</span>
-                <div v-if="getMatchupsForChampion(champion.championId).bad.length > 0" class="flex gap-xs">
+                <div v-if="getMatchupsForChampion(champion.championId, role).bad.length > 0" class="flex gap-xs">
                   <div
-                    v-for="opponent in getMatchupsForChampion(champion.championId).bad"
+                    v-for="opponent in getMatchupsForChampion(champion.championId, role).bad"
                     :key="opponent.opponentChampionId"
                     class="matchup-item flex flex-col items-center gap-0.5 relative"
                   >
@@ -248,15 +248,36 @@ watch(
   { immediate: true }
 )
 
-// Get matchups for a specific champion (min 3 games filter + win rate thresholds)
-function getMatchupsForChampion(championId) {
+// Helper to calculate derived matchup stats from raw in-lane data
+function calculateInLaneStats(opponent) {
+  const wins = opponent.inLaneWins
+  const losses = opponent.inLaneLosses
+  const gamesPlayed = wins + losses
+  const winRate = gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : 0
+  return {
+    ...opponent,
+    wins,
+    losses,
+    gamesPlayed,
+    winRate
+  }
+}
+
+// Get matchups for a specific champion in a specific role (min 3 in-lane games filter + win rate thresholds)
+function getMatchupsForChampion(championId, role) {
   if (!matchupsData.value?.matchups) return { good: [], bad: [] }
 
-  const championMatchup = matchupsData.value.matchups.find(m => m.championId === championId)
+  // Find matchup entry that matches BOTH championId AND role
+  // This ensures we get the correct matchups when a champion is played in multiple roles
+  const championMatchup = matchupsData.value.matchups.find(
+    m => m.championId === championId && m.role === role
+  )
   if (!championMatchup?.opponents) return { good: [], bad: [] }
 
-  // Filter opponents with at least 3 games
-  const validOpponents = championMatchup.opponents.filter(o => o.gamesPlayed >= 3)
+  // Calculate in-lane stats and filter opponents with at least 3 in-lane games
+  const validOpponents = championMatchup.opponents
+    .map(calculateInLaneStats)
+    .filter(o => o.gamesPlayed >= 3)
 
   // Strong matchups: win rate > 50%, sorted by highest first
   const strongMatchups = validOpponents

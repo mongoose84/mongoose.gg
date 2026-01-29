@@ -32,14 +32,16 @@ public static class SoloMatchupsDto
 
     /// <summary>
     /// Matchup data against a specific opponent champion.
+    /// Contains in-lane and out-of-lane win/loss counts.
+    /// Frontend calculates derived values (games played, win rates, totals).
     /// </summary>
     public record OpponentMatchup(
         [property: JsonPropertyName("opponentChampionId")] int OpponentChampionId,
         [property: JsonPropertyName("opponentChampionName")] string OpponentChampionName,
-        [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
-        [property: JsonPropertyName("wins")] int Wins,
-        [property: JsonPropertyName("losses")] int Losses,
-        [property: JsonPropertyName("winRate")] double WinRate
+        [property: JsonPropertyName("inLaneWins")] int InLaneWins,
+        [property: JsonPropertyName("inLaneLosses")] int InLaneLosses,
+        [property: JsonPropertyName("outOfLaneWins")] int OutOfLaneWins,
+        [property: JsonPropertyName("outOfLaneLosses")] int OutOfLaneLosses
     );
 }
 

@@ -243,6 +243,21 @@ const filteredMatchups = computed(() => {
   return props.matchups.filter(m => m.role === selectedRole.value)
 })
 
+// Helper to calculate derived stats from raw DTO data
+function calculateOpponentStats(opp) {
+  const wins = opp.inLaneWins + opp.outOfLaneWins
+  const losses = opp.inLaneLosses + opp.outOfLaneLosses
+  const gamesPlayed = wins + losses
+  const winRate = gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : 0
+  return {
+    ...opp,
+    wins,
+    losses,
+    gamesPlayed,
+    winRate
+  }
+}
+
 // Inverse matchups: when searching, find all my champions that faced the searched opponent
 const inverseMatchups = computed(() => {
   if (!isSearching.value || !props.matchups) return []
@@ -257,16 +272,18 @@ const inverseMatchups = computed(() => {
     for (const opp of matchup.opponents) {
       // Match opponent name (partial, case-insensitive)
       if (opp.opponentChampionName.toLowerCase().includes(query)) {
+        // Calculate derived stats from raw data
+        const stats = calculateOpponentStats(opp)
         results.push({
           championId: matchup.championId,
           championName: matchup.championName,
           role: matchup.role,
           opponentId: opp.opponentChampionId,
           opponentName: opp.opponentChampionName,
-          wins: opp.wins,
-          losses: opp.losses,
-          gamesPlayed: opp.gamesPlayed,
-          winRate: opp.winRate
+          wins: stats.wins,
+          losses: stats.losses,
+          gamesPlayed: stats.gamesPlayed,
+          winRate: stats.winRate
         })
       }
     }
@@ -315,11 +332,14 @@ function toggleExpanded(championId) {
 }
 
 function visibleOpponents(matchup) {
+  // Calculate derived stats for all opponents
+  const opponentsWithStats = matchup.opponents.map(calculateOpponentStats)
+
   if (showAllOpponents[matchup.championId]) {
-    return matchup.opponents
+    return opponentsWithStats
   }
   // Sort by games played descending, then show top 3
-  const sorted = [...matchup.opponents].sort((a, b) => b.gamesPlayed - a.gamesPlayed)
+  const sorted = [...opponentsWithStats].sort((a, b) => b.gamesPlayed - a.gamesPlayed)
   return sorted.slice(0, 3)
 }
 
