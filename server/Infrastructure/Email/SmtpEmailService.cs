@@ -111,7 +111,7 @@ public class SmtpEmailService : IEmailService
 
             var htmlView = AlternateView.CreateAlternateViewFromString(htmlBody, null, "text/html");
 
-            if (hasLogo)
+            if (hasLogo && logoPath != null)
             {
                 var logoResource = new LinkedResource(logoPath, new System.Net.Mime.ContentType("image/png"))
                 {

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using static RiotProxy.Application.DTOs.MainChampionDto;
 
 namespace RiotProxy.Application.DTOs;
 
@@ -59,22 +60,6 @@ public static class SoloSummaryDto
         [property: JsonPropertyName("winRate")] double WinRate,
         [property: JsonPropertyName("pickRate")] double PickRate
     );
-
-	    public record MainChampionRoleGroup(
-	        [property: JsonPropertyName("role")] string Role,
-	        [property: JsonPropertyName("champions")] MainChampionEntry[] Champions
-	    );
-
-	    public record MainChampionEntry(
-	        [property: JsonPropertyName("championName")] string ChampionName,
-	        [property: JsonPropertyName("championId")] int ChampionId,
-	        [property: JsonPropertyName("role")] string Role,
-	        [property: JsonPropertyName("winRate")] double WinRate,
-	        [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
-	        [property: JsonPropertyName("wins")] int Wins,
-	        [property: JsonPropertyName("losses")] int Losses,
-	        [property: JsonPropertyName("lpPerGame")] double LpPerGame
-	    );
 
     public record TrendMetric(
         [property: JsonPropertyName("games")] int Games,
