@@ -40,7 +40,14 @@
       <div v-if="syncStatus === 'syncing'" class="sync-status syncing">
         <div class="sync-spinner"></div>
         <div class="sync-info">
-          <span class="sync-text">Syncing matches</span>
+          <!--
+            TEMPORARY: Show rate limited message when waiting on Riot API
+            TODO: Remove this once we have a more sophisticated rate limiting UX.
+          -->
+          <span v-if="isRateLimited" class="sync-text sync-text-rate-limited">
+            Waiting on Riot API...
+          </span>
+          <span v-else class="sync-text">Syncing matches</span>
           <div v-if="syncTotal" class="sync-progress-wrapper">
             <div class="sync-progress-bar">
               <div
@@ -117,6 +124,12 @@ const props = defineProps({
   lastSyncAt: {
     type: String, // ISO timestamp
     default: null
+  },
+  // TEMPORARY: Flag indicating sync is waiting on Riot API rate limit
+  // TODO: Remove this once we have a more sophisticated rate limiting UX.
+  isRateLimited: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -357,6 +370,14 @@ function contextLabel(context) {
 
 .sync-text {
   font-weight: var(--font-weight-medium);
+}
+
+/*
+ * TEMPORARY: Rate limited text styling
+ * TODO: Remove this once we have a more sophisticated rate limiting UX.
+ */
+.sync-text-rate-limited {
+  color: var(--warning-color, #f59e0b);
 }
 
 .sync-spinner {

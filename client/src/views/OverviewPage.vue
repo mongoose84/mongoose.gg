@@ -25,6 +25,7 @@
         :sync-progress="currentSyncProgress"
         :sync-total="currentSyncTotal"
         :last-sync-at="authStore.primaryRiotAccount?.lastSyncAt"
+        :is-rate-limited="isSyncRateLimited"
       />
     </template>
 
@@ -129,6 +130,14 @@ const currentSyncTotal = computed(() => {
   if (progress?.total != null) return progress.total
   // Fall back to stored total from account (for page refresh during sync)
   return authStore.primaryRiotAccount?.syncTotal ?? null
+})
+
+// TEMPORARY: Flag indicating sync is waiting on Riot API rate limit
+// TODO: Remove this once we have a more sophisticated rate limiting UX.
+const isSyncRateLimited = computed(() => {
+  if (!primaryPuuid.value) return false
+  const progress = syncProgress.get(primaryPuuid.value)
+  return progress?.isRateLimited ?? false
 })
 
 async function fetchData() {

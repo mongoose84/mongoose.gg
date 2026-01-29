@@ -23,5 +23,12 @@ public interface ISyncProgressBroadcaster
     /// </summary>
     /// <param name="puuid">The Riot account PUUID (primary key)</param>
     Task BroadcastErrorAsync(string puuid, string error);
+
+    /// <summary>
+    /// TEMPORARY: Broadcasts that sync is waiting due to Riot API rate limiting.
+    /// TODO: Remove this once we have a more sophisticated rate limiting UX.
+    /// </summary>
+    /// <param name="puuid">The Riot account PUUID (primary key)</param>
+    Task BroadcastRateLimitedAsync(string puuid);
 }
 

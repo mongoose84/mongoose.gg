@@ -45,9 +45,18 @@ public sealed record SyncCompleteMessage : SyncServerMessage
 public sealed record SyncErrorMessage : SyncServerMessage
 {
     public override string Type => "sync_error";
-    
+
     [JsonPropertyName("error")]
     public required string Error { get; init; }
+}
+
+/// <summary>
+/// TEMPORARY: Message indicating sync is waiting due to Riot API rate limiting.
+/// TODO: Remove this once we have a more sophisticated rate limiting UX.
+/// </summary>
+public sealed record SyncRateLimitedMessage : SyncServerMessage
+{
+    public override string Type => "sync_rate_limited";
 }
 
 /// <summary>

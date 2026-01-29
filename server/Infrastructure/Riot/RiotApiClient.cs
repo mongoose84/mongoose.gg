@@ -11,10 +11,20 @@ public class RiotApiClient : IRiotApiClient
     private readonly HttpClient _http;
     private readonly IRiotLimitHandler _riotLimitHandler;
 
+    /// <summary>
+    /// TEMPORARY: Event raised when rate limiting causes a wait.
+    /// TODO: Remove this once we have a more sophisticated rate limiting UX.
+    /// </summary>
+    public event EventHandler? RateLimitWaitStarted;
+
     public RiotApiClient(IHttpClientFactory httpClientFactory)
     {
         _http = httpClientFactory.CreateClient("RiotApi");
         _riotLimitHandler = new RiotLimitHandler();
+
+        // TEMPORARY: Forward rate limit events from the limit handler
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        _riotLimitHandler.RateLimitWaitStarted += (sender, e) => RateLimitWaitStarted?.Invoke(this, e);
     }
 
     public async Task<double> GetWinrateAsync(string puuid)
