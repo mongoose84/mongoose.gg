@@ -133,13 +133,14 @@
     <div class="border-t border-border py-md">
       <router-link
         to="/app/user"
-        class="user-item flex items-center gap-md p-md mx-sm text-text no-underline rounded-md transition-all duration-200 whitespace-nowrap hover:bg-background-elevated"
+        class="user-item flex items-center gap-md mx-sm text-text no-underline rounded-md whitespace-nowrap hover:bg-background-elevated"
+        :class="isCollapsed ? 'justify-center py-sm px-xs' : 'p-md'"
         :title="isCollapsed ? (hasLinkedAccount ? riotAccountName : username) : ''"
       >
         <!-- Profile Icon with Level Badge -->
         <div
           class="relative rounded-full overflow-visible bg-background-surface flex items-center justify-center shrink-0 border-2 border-primary transition-[width,height] duration-300 ease-out"
-          :class="isCollapsed ? 'w-11 h-11' : 'w-[52px] h-[52px]'"
+          :class="isCollapsed ? 'w-9 h-9' : 'w-[52px] h-[52px]'"
         >
           <img
             v-if="linkedAccountIconUrl"
@@ -310,6 +311,10 @@ function handleLinkedIconError() {
 .popout-item.router-link-active {
   background: var(--color-primary-soft);
   color: var(--color-primary);
+}
+
+.user-item {
+  transition: background-color 0.2s ease, padding 0.3s ease-out;
 }
 
 .user-item.router-link-active {
