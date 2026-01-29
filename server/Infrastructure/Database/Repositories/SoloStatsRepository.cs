@@ -249,6 +249,7 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
 
 			    private async Task<IReadOnlyList<MainChampionRoleGroup>> GetMainChampionsByRoleAsync(string puuid, string queueFilter, string timeFilter, DateTime? timeRangeStart, string? seasonCode)
 			    {
+            // Query joins with participant_checkpoints (for @15 min stats) and participant_metrics (for early deaths, vision)
             var sql = $@"
                 SELECT
                     COALESCE(NULLIF(p.role, ''), 'UNKNOWN') as Role,
@@ -260,9 +261,15 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
                     AVG(p.gold_earned / (m.game_duration_sec / 60.0)) as AvgGoldPerMin,
                     AVG(p.kills) as AvgKills,
                     AVG(p.deaths) as AvgDeaths,
-                    AVG(p.assists) as AvgAssists
+                    AVG(p.assists) as AvgAssists,
+                    -- Early-game laning stats
+                    AVG(cp15.gold_diff_vs_lane) as AvgGoldDiff15,
+                    AVG(pm.deaths_pre_10) as AvgDeathsPre10,
+                    AVG(pm.vision_per_min) as AvgVisionPerMin
                 FROM participants p
                 INNER JOIN matches m ON m.match_id = p.match_id
+                LEFT JOIN participant_checkpoints cp15 ON cp15.participant_id = p.id AND cp15.minute_mark = 15
+                LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
                 WHERE p.puuid = @puuid {queueFilter} {timeFilter}
                 GROUP BY Role, p.champion_id, p.champion_name";
 
@@ -293,10 +300,15 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
                         var avgKills = reader.IsDBNull(7) ? 0 : reader.GetDouble(7);
                         var avgDeaths = reader.IsDBNull(8) ? 0 : reader.GetDouble(8);
                         var avgAssists = reader.IsDBNull(9) ? 0 : reader.GetDouble(9);
+                        // New early-game stats (default to 0 if NULL - no checkpoint/metrics data)
+                        var avgGoldDiff15 = reader.IsDBNull(10) ? 0 : reader.GetDouble(10);
+                        var avgDeathsPre10 = reader.IsDBNull(11) ? 0 : reader.GetDouble(11);
+                        var avgVisionPerMin = reader.IsDBNull(12) ? 0 : reader.GetDouble(12);
 
                         rows.Add(new MainChampionRecommender.ChampionRoleStats(
                             role, champId, champName, games, wins,
-                            avgGoldPerMin, avgCs, avgKills, avgDeaths, avgAssists));
+                            avgGoldPerMin, avgCs, avgKills, avgDeaths, avgAssists,
+                            avgGoldDiff15, avgDeathsPre10, avgVisionPerMin));
                     }
                     return 0;
                 });
