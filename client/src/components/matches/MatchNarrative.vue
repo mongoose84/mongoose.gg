@@ -262,6 +262,10 @@ function getRoleIconUrl(role) {
   gap: var(--spacing-xs);
 }
 
+.champion-info.ally {
+  margin-left: var(--spacing-md);
+}
+
 .champion-info.winner .champion-icon {
   box-shadow: 0 0 0 2px var(--color-success);
 }

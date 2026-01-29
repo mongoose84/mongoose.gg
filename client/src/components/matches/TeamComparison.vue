@@ -3,7 +3,7 @@
     <div class="comparison-grid">
       <h3 class="section-title">Team Summary</h3>
       <!-- Total Damage -->
-      <div class="comparison-row damage-row">
+      <div class="comparison-row damage-row" v-if="hasDamageData">
         <span class="metric-label">Total Damage</span>
         <div class="bar-wrapper team-bar">
           <div class="bar team" :style="{ width: teamDamagePercent + '%' }"></div>
@@ -15,6 +15,11 @@
         <div class="bar-wrapper enemy-bar">
           <div class="bar enemy" :style="{ width: enemyDamagePercent + '%' }"></div>
         </div>
+      </div>
+      <div class="comparison-row" v-else>
+        <span class="metric-label">Total Damage</span>
+        <div class="value-cell empty">-</div>
+        <div class="value-cell empty">-</div>
       </div>
 
       <!-- Gold @ 15 -->
@@ -84,13 +89,20 @@ function getObjectiveIconUrl(objective, team) {
   return `${objectiveIconBaseUrl}/${objective}-${teamSuffix}.png`
 }
 
+// Check if damage data is available
+const hasDamageData = computed(() => {
+  const team = props.match.teamTotalDamage
+  const enemy = props.match.enemyTeamTotalDamage
+  return team != null && enemy != null && (team > 0 || enemy > 0)
+})
+
 // Damage bar percentages
-const totalDamage = computed(() => props.match.teamTotalDamage + props.match.enemyTeamTotalDamage)
+const totalDamage = computed(() => (props.match.teamTotalDamage || 0) + (props.match.enemyTeamTotalDamage || 0))
 const teamDamagePercent = computed(() =>
-  totalDamage.value > 0 ? (props.match.teamTotalDamage / totalDamage.value) * 100 : 50
+  totalDamage.value > 0 ? ((props.match.teamTotalDamage || 0) / totalDamage.value) * 100 : 50
 )
 const enemyDamagePercent = computed(() =>
-  totalDamage.value > 0 ? (props.match.enemyTeamTotalDamage / totalDamage.value) * 100 : 50
+  totalDamage.value > 0 ? ((props.match.enemyTeamTotalDamage || 0) / totalDamage.value) * 100 : 50
 )
 
 // Gold lead - only show the positive side
@@ -167,14 +179,16 @@ const enemyHasGoldLead = computed(() => {
 
 .damage-values {
   display: flex;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   justify-content: center;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .bar-value {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  min-width: 40px;
+  min-width: 45px;
 }
 
 .team-value { color: var(--color-info); text-align: right; }

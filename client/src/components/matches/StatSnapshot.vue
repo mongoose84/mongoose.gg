@@ -105,6 +105,7 @@ const stats = computed(() => {
   }
 
   const kda = getKda()
+  const isSupport = m.role === 'UTILITY'
 
   return [
     {
@@ -122,14 +123,14 @@ const stats = computed(() => {
     {
       label: 'Damage Dealt',
       value: formatNumber(m.damageDealt),
-      trend: b ? getTrendDurationAdjusted(m.damageDealt, b.avgDamageDealt, 0.15) : null,
-      comparison: b ? getComparisonDurationAdjusted(m.damageDealt, b.avgDamageDealt, 10, 'pct') : null
+      trend: isSupport ? null : (b ? getTrendDurationAdjusted(m.damageDealt, b.avgDamageDealt, 0.15) : null),
+      comparison: isSupport ? null : (b ? getComparisonDurationAdjusted(m.damageDealt, b.avgDamageDealt, 10, 'pct') : null)
     },
     {
       label: 'Damage Share',
       value: `${m.damageShare.toFixed(0)}%`,
-      trend: m.damageShare >= 25 ? 'up' : m.damageShare < 15 ? 'down' : null,
-      comparison: m.damageShare >= 25 ? 'Carry performance' : null
+      trend: isSupport ? null : (m.damageShare >= 25 ? 'up' : m.damageShare < 15 ? 'down' : null),
+      comparison: isSupport ? null : (m.damageShare >= 25 ? 'Carry performance' : null)
     },
     {
       label: 'Damage Taken',
@@ -140,14 +141,14 @@ const stats = computed(() => {
     {
       label: 'CS',
       value: m.creepScore.toString(),
-      trend: b ? getTrendDurationAdjusted(m.creepScore, b.avgCreepScore, 0.1) : null,
-      comparison: b ? getComparisonDurationAdjusted(m.creepScore, b.avgCreepScore, 10, 'int') : null
+      trend: isSupport ? null : (b ? getTrendDurationAdjusted(m.creepScore, b.avgCreepScore, 0.1) : null),
+      comparison: isSupport ? null : (b ? getComparisonDurationAdjusted(m.creepScore, b.avgCreepScore, 10, 'int') : null)
     },
     {
       label: 'CS/min',
       value: m.csPerMin.toFixed(1),
-      trend: b ? getTrend(m.csPerMin, b.avgCsPerMin, 0.1) : null,
-      comparison: b ? getComparison(m.csPerMin, b.avgCsPerMin, 0.3, 'diff') : null
+      trend: isSupport ? null : (b ? getTrend(m.csPerMin, b.avgCsPerMin, 0.1) : null),
+      comparison: isSupport ? null : (b ? getComparison(m.csPerMin, b.avgCsPerMin, 0.3, 'diff') : null)
     },
     {
       label: 'Gold',
