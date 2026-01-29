@@ -88,7 +88,7 @@ const isLoading = ref(false)
 const error = ref(null)
 
 // UI state for filters
-const queueFilter = ref('ranked_solo')
+const queueFilter = ref('all')
 const timeRange = ref('current_season')
 
 // Queue options for toggle bar
