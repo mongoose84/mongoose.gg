@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RiotProxy.Core.Entities;
 using RiotProxy.Core.Interfaces;
+using RiotProxy.Core.QueryModels;
 using RiotProxy.Infrastructure.Database.Repositories;
 using RiotProxy.Infrastructure.Security;
 using RiotProxy.Infrastructure.Email;

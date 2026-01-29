@@ -1,10 +1,7 @@
-using RiotProxy.Application.DTOs.Matches;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.QueryModels;
 
 namespace RiotProxy.Core.Interfaces;
-
-// MatchListItem, RoleBaseline from MatchListDto.cs
-// MatchupParticipantRaw from MatchNarrativeDto.cs
 
 public interface IMatchesRepository
 {

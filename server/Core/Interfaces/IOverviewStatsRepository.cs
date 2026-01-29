@@ -1,4 +1,4 @@
-using RiotProxy.Application.DTOs.Overview;
+using RiotProxy.Core.QueryModels;
 
 namespace RiotProxy.Core.Interfaces;
 
