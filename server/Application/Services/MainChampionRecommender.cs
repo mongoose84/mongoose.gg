@@ -114,10 +114,11 @@ public static class MainChampionRecommender
 
     /// <summary>
     /// Computes a recommendation score for a champion based on:
-    /// - Win rate (40%): The ultimate measure of success
-    /// - Laning score (25%): Early game competence (gold diff @15, deaths pre-10, vision)
-    /// - Sample size (20%): Confidence in the data
-    /// - Overall KDA (15%): General performance indicator
+    /// - Performance score: Combination of win rate (50%), laning (30%), and KDA (20%)
+    /// - Confidence factor: Scales performance based on sample size
+    ///
+    /// Key insight: Sample size is a MULTIPLIER on performance, not an additive term.
+    /// This prevents 1 lucky win from outranking 66 games of experience.
     /// </summary>
     private static double ComputeRecommendedScore(
         double winRatePercent, int games,
@@ -125,31 +126,36 @@ public static class MainChampionRecommender
         double avgGoldDiff15, double avgDeathsPre10, double avgVisionPerMin,
         string role)
     {
-        // === Win Rate (40%) ===
+        // === Confidence Factor ===
+        // Ramps from 0.25 (1 game) to 1.0 (20+ games)
+        // Even with minimal games, you get some score (not zero), but it's heavily discounted.
+        // Formula: 0.25 + 0.75 * (games / 20), capped at 1.0
+        var confidence = Math.Min(1.0, 0.25 + 0.75 * (games / 20.0));
+
+        // === Win Rate ===
         // Normalise win rate between 35% and 65% into [0,1]
         double winRateNorm;
         if (winRatePercent <= 35) winRateNorm = 0;
         else if (winRatePercent >= 65) winRateNorm = 1;
         else winRateNorm = (winRatePercent - 35) / 30.0;
 
-        // === Sample Size (20%) ===
-        // Capped at 40 games for full confidence
-        var sampleNorm = Math.Min(1.0, games / 40.0);
-
-        // === KDA (15%) ===
+        // === KDA ===
         // KDA ratio: (kills + assists) / deaths, with deaths min 1
         var kda = (avgKills + avgAssists) / Math.Max(1.0, avgDeaths);
         var kdaNorm = Math.Min(1.0, kda / 5.0); // 5+ KDA is excellent
 
-        // === Laning Score (25%) ===
+        // === Laning Score ===
         // Composed of role-specific early-game metrics
         var laningScore = ComputeLaningScore(role, avgGoldDiff15, avgDeathsPre10, avgVisionPerMin);
 
-        // Final weighted score
-        return 0.40 * winRateNorm
-             + 0.25 * laningScore
-             + 0.20 * sampleNorm
-             + 0.15 * kdaNorm;
+        // === Performance Score ===
+        // Weighted combination of all performance metrics
+        var performanceScore = 0.50 * winRateNorm + 0.30 * laningScore + 0.20 * kdaNorm;
+
+        // Final score: Performance multiplied by confidence
+        // This ensures that a 1-game 100% winrate champion (~0.25 confidence)
+        // cannot outrank a 66-game 47% winrate champion (1.0 confidence)
+        return performanceScore * confidence;
     }
 
     /// <summary>
