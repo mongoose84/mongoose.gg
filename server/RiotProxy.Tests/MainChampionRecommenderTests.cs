@@ -7,13 +7,28 @@ namespace RiotProxy.Tests;
 
 public class MainChampionRecommenderTests
 {
-    [Fact]
-    public void Filters_out_champions_below_minimum_games()
+    // Helper to create ChampionRoleStats with default early-game values
+    private static MainChampionRecommender.ChampionRoleStats CreateStats(
+        string role, int championId, string championName,
+        int gamesPlayed, int wins,
+        double avgGoldPerMin = 350.0, double avgCs = 150.0,
+        double avgKills = 5.0, double avgDeaths = 3.0, double avgAssists = 4.0,
+        double avgGoldDiff15 = 0.0, double avgDeathsPre10 = 1.0, double avgVisionPerMin = 0.8)
     {
+        return new MainChampionRecommender.ChampionRoleStats(
+            role, championId, championName, gamesPlayed, wins,
+            avgGoldPerMin, avgCs, avgKills, avgDeaths, avgAssists,
+            avgGoldDiff15, avgDeathsPre10, avgVisionPerMin);
+    }
+
+    [Fact]
+    public void Includes_champions_with_single_game()
+    {
+        // No minimum games filter - even 1 game champions should be included
         var stats = new[]
         {
-            new MainChampionRecommender.ChampionRoleStats("TOP", 1, "Garen", 1, 1, 350.0, 150.0, 5.0, 3.0, 4.0),
-            new MainChampionRecommender.ChampionRoleStats("TOP", 2, "Darius", 3, 2, 380.0, 160.0, 6.0, 4.0, 5.0)
+            CreateStats("TOP", 1, "Garen", gamesPlayed: 1, wins: 1),
+            CreateStats("TOP", 2, "Darius", gamesPlayed: 3, wins: 2)
         };
 
         var result = MainChampionRecommender.BuildMainChampionsByRole(stats);
@@ -21,8 +36,7 @@ public class MainChampionRecommenderTests
         result.Should().HaveCount(1);
         var topRole = result.Single();
         topRole.Role.Should().Be("TOP");
-        topRole.Champions.Should().HaveCount(1);
-        topRole.Champions[0].ChampionId.Should().Be(2);
+        topRole.Champions.Should().HaveCount(2); // Both champions included
     }
 
     [Fact]
@@ -30,17 +44,47 @@ public class MainChampionRecommenderTests
     {
         var stats = new[]
         {
-            // Strong performer: high win rate, decent sample, good stats
-            new MainChampionRecommender.ChampionRoleStats("JUNGLE", 1, "CarryJg", 10, 9, 400.0, 120.0, 8.0, 2.0, 10.0),
+            // Strong performer: high win rate, decent sample, good stats, good laning
+            CreateStats("JUNGLE", 1, "CarryJg", gamesPlayed: 20, wins: 16,
+                avgKills: 8.0, avgDeaths: 2.0, avgAssists: 10.0,
+                avgGoldDiff15: 500, avgDeathsPre10: 0.5, avgVisionPerMin: 1.0),
             // Weaker performer: mediocre win rate, smaller sample, worse stats
-            new MainChampionRecommender.ChampionRoleStats("JUNGLE", 2, "OtherJg", 4, 2, 320.0, 100.0, 4.0, 5.0, 6.0)
+            CreateStats("JUNGLE", 2, "OtherJg", gamesPlayed: 10, wins: 5,
+                avgKills: 4.0, avgDeaths: 5.0, avgAssists: 6.0,
+                avgGoldDiff15: -200, avgDeathsPre10: 2.0, avgVisionPerMin: 0.5)
         };
 
         var result = MainChampionRecommender.BuildMainChampionsByRole(stats);
 
         var jungle = result.Single();
         jungle.Champions.Should().HaveCount(2);
-        jungle.Champions[0].ChampionId.Should().Be(1);
+        jungle.Champions[0].ChampionId.Should().Be(1); // CarryJg should be first
+    }
+
+    [Fact]
+    public void High_games_mediocre_winrate_beats_single_game_perfect_winrate()
+    {
+        // This is the key test: confidence-based scoring should prevent
+        // a single lucky win from outranking an experienced champion
+        var stats = new[]
+        {
+            // 1 game, 100% win rate - should NOT be ranked first
+            CreateStats("BOTTOM", 1, "MissFortune", gamesPlayed: 1, wins: 1,
+                avgKills: 10.0, avgDeaths: 1.0, avgAssists: 5.0,
+                avgGoldDiff15: 1000, avgDeathsPre10: 0, avgVisionPerMin: 0.8),
+            // 66 games, 47% win rate - should be ranked first due to confidence
+            CreateStats("BOTTOM", 2, "Tristana", gamesPlayed: 66, wins: 31,
+                avgKills: 6.0, avgDeaths: 4.0, avgAssists: 7.0,
+                avgGoldDiff15: 100, avgDeathsPre10: 1.0, avgVisionPerMin: 0.7)
+        };
+
+        var result = MainChampionRecommender.BuildMainChampionsByRole(stats);
+
+        var bottom = result.Single();
+        bottom.Champions.Should().HaveCount(2);
+        // Tristana (66 games) should rank higher than MissFortune (1 game)
+        bottom.Champions[0].ChampionId.Should().Be(2, "66 games at 47% WR should beat 1 game at 100% WR");
+        bottom.Champions[0].ChampionName.Should().Be("Tristana");
     }
 
     [Fact]
@@ -48,7 +92,7 @@ public class MainChampionRecommenderTests
     {
         var stats = new[]
         {
-            new MainChampionRecommender.ChampionRoleStats("MID", 10, "Ahri", 4, 3, 360.0, 180.0, 7.0, 3.0, 8.0)
+            CreateStats("MID", 10, "Ahri", gamesPlayed: 4, wins: 3)
         };
 
         var result = MainChampionRecommender.BuildMainChampionsByRole(stats);
@@ -72,14 +116,36 @@ public class MainChampionRecommenderTests
     {
         var stats = new[]
         {
-            new MainChampionRecommender.ChampionRoleStats("UNKNOWN", ChampionId: 1, ChampionName: "SomeChamp", GamesPlayed: 20, Wins: 10, AvgGoldPerMin: 350.0, AvgCs: 150.0, AvgKills: 5.0, AvgDeaths: 3.0, AvgAssists: 4.0),
-            new MainChampionRecommender.ChampionRoleStats("TOP", ChampionId: 2, ChampionName: "Garen", GamesPlayed: 15, Wins: 12, AvgGoldPerMin: 380.0, AvgCs: 160.0, AvgKills: 6.0, AvgDeaths: 2.0, AvgAssists: 5.0)
+            CreateStats("UNKNOWN", 1, "SomeChamp", gamesPlayed: 20, wins: 10),
+            CreateStats("TOP", 2, "Garen", gamesPlayed: 15, wins: 12)
         };
 
         var result = MainChampionRecommender.BuildMainChampionsByRole(stats);
 
         result.Should().HaveCount(1);
         result[0].Role.Should().Be("TOP");
+    }
+
+    [Fact]
+    public void Support_role_weights_vision_more_heavily()
+    {
+        // For supports, vision should be weighted more heavily than gold diff
+        var stats = new[]
+        {
+            // High vision, low gold diff
+            CreateStats("UTILITY", 1, "Thresh", gamesPlayed: 20, wins: 12,
+                avgGoldDiff15: -500, avgDeathsPre10: 1.0, avgVisionPerMin: 1.5),
+            // Low vision, high gold diff
+            CreateStats("UTILITY", 2, "Brand", gamesPlayed: 20, wins: 12,
+                avgGoldDiff15: 500, avgDeathsPre10: 1.0, avgVisionPerMin: 0.3)
+        };
+
+        var result = MainChampionRecommender.BuildMainChampionsByRole(stats);
+
+        var support = result.Single();
+        support.Champions.Should().HaveCount(2);
+        // Thresh (high vision) should rank higher for support role
+        support.Champions[0].ChampionId.Should().Be(1, "Support should value vision over gold diff");
     }
 }
 
