@@ -337,16 +337,11 @@ function getChampionIconUrl(name) {
 }
 </script>
 
-<style scoped>
-/* Win rate color classes (dynamic classes can't be done with Tailwind) */
-.winrate-red { color: #ef4444; }
-.winrate-redorange { color: #f97316; }
-.winrate-orange { color: #fdba74; }
-.winrate-yellow { color: #eab308; }
-.winrate-yellowgreen { color: #84cc16; }
-.winrate-green { color: #22c55e; }
-.winrate-neutral { color: var(--color-text); }
+<style>
+/* Note: Using non-scoped style block to access global winrate-* classes from style.css */
+</style>
 
+<style scoped>
 /* Responsive styles for table */
 @media (max-width: 640px) {
   .matchups-table {

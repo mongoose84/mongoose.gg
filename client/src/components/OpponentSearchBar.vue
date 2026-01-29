@@ -176,13 +176,6 @@ function getChampionIconUrl(name) {
   transform: translateY(-8px);
 }
 
-/* Win rate color classes */
-.winrate-red { color: #ef4444; }
-.winrate-redorange { color: #f97316; }
-.winrate-orange { color: #fdba74; }
-.winrate-yellow { color: #eab308; }
-.winrate-yellowgreen { color: #84cc16; }
-.winrate-green { color: #22c55e; }
-.winrate-neutral { color: var(--color-text); }
+/* Note: winrate-* classes are defined globally in style.css */
 </style>
 

@@ -184,10 +184,10 @@ const contextualInsight = computed(() => {
   text-align: center;
 }
 
-.stat-value.ally { color: #3b82f6; }
-.stat-value.enemy { color: #ef4444; }
-.stat-value.positive { color: #22c55e; }
-.stat-value.negative { color: #ef4444; }
+.stat-value.ally { color: var(--color-info); }
+.stat-value.enemy { color: var(--color-error); }
+.stat-value.positive { color: var(--color-success); }
+.stat-value.negative { color: var(--color-error); }
 .stat-value.neutral { color: var(--color-text); }
 
 .vs-separator {
@@ -209,8 +209,8 @@ const contextualInsight = computed(() => {
   transition: width 0.3s ease;
 }
 
-.diff-bar.ally { background: #22c55e; }
-.diff-bar.enemy { background: #ef4444; }
+.diff-bar.ally { background: var(--color-success); }
+.diff-bar.enemy { background: var(--color-error); }
 
 .insight-section {
   padding: var(--spacing-sm);

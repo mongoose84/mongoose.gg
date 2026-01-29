@@ -71,11 +71,11 @@ const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime
 }
 
 .match-header.win {
-  border-left: 4px solid #22c55e;
+  border-left: 4px solid var(--color-success);
 }
 
 .match-header.loss {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid var(--color-error);
 }
 
 .champion-section {
@@ -103,15 +103,15 @@ const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime
 }
 
 .kda-kills {
-  color: #22c55e;
+  color: var(--color-success);
 }
 
 .kda-deaths {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .kda-assists {
-  color: #3b82f6;
+  color: var(--color-info);
 }
 
 .kda-separator {
@@ -154,13 +154,13 @@ const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime
 }
 
 .result-badge.win {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .result-badge.loss {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--color-error-soft);
+  color: var(--color-error);
 }
 
 .game-result-row {
@@ -176,11 +176,11 @@ const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime
 }
 
 .team-kills.win {
-  color: #22c55e;
+  color: var(--color-success);
 }
 
 .team-kills.loss {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .result-separator {

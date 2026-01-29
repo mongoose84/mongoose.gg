@@ -270,30 +270,11 @@ const championsForSelectedRole = computed(() => {
 })
 </script>
 
-<style scoped>
-/* Win rate coloring gradient (dynamic classes can't be done with Tailwind) */
-.stat-value.winrate-red {
-  color: #ef4444;
-}
-.stat-value.winrate-redorange {
-  color: #f97316;
-}
-.stat-value.winrate-orange {
-  color: #fdba74;
-}
-.stat-value.winrate-yellow {
-  color: #eab308;
-}
-.stat-value.winrate-yellowgreen {
-  color: #84cc16;
-}
-.stat-value.winrate-green {
-  color: #22c55e;
-}
-.stat-value.winrate-neutral {
-  color: var(--color-text);
-}
+<style>
+/* Note: Using non-scoped style block to access global winrate-* classes from style.css */
+</style>
 
+<style scoped>
 /* Vue Transition classes for tab switching animation */
 .fade-slide-enter-active,
 .fade-slide-leave-active {

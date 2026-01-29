@@ -28,8 +28,8 @@
                 <span
                   class="text-sm px-3 py-1 rounded-sm font-semibold uppercase text-xs tracking-wide"
                   :class="{
-                    'bg-[rgba(136,136,136,0.2)] text-[#888888]': tier === 'free',
-                    'bg-[rgba(59,130,246,0.2)] text-[#3b82f6]': tier === 'premium',
+                    'bg-muted-soft text-muted': tier === 'free',
+                    'bg-info-soft text-info': tier === 'premium',
                     'bg-primary-soft text-primary': tier === 'pro'
                   }"
                 >{{ tierLabel }}</span>
@@ -45,7 +45,7 @@
             <button
               @click="handleLogout"
               :disabled="isLoggingOut"
-              class="flex items-center gap-sm py-md px-lg bg-transparent border border-[rgba(239,68,68,0.3)] rounded-md text-[#ef4444] text-sm font-semibold cursor-pointer transition-all duration-200 hover:bg-[rgba(239,68,68,0.1)] hover:border-[#ef4444] disabled:opacity-60 disabled:cursor-not-allowed"
+              class="flex items-center gap-sm py-md px-lg bg-transparent border border-error-border rounded-md text-error text-sm font-semibold cursor-pointer transition-all duration-200 hover:bg-error-soft hover:border-error disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                 <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clip-rule="evenodd" />

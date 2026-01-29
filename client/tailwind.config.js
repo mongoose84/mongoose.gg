@@ -11,6 +11,9 @@ export default {
         primary: {
           DEFAULT: 'var(--color-primary)',
           soft: 'var(--color-primary-soft)',
+          dark: 'var(--color-primary-dark)',
+          light: 'var(--color-primary-light)',
+          accent: 'var(--color-primary-accent)',
         },
         background: {
           DEFAULT: 'var(--color-bg)',
@@ -39,6 +42,24 @@ export default {
           DEFAULT: 'var(--color-warning)',
           soft: 'var(--color-warning-soft)',
           border: 'var(--color-warning-border)',
+        },
+        info: {
+          DEFAULT: 'var(--color-info)',
+          soft: 'var(--color-info-soft)',
+          border: 'var(--color-info-border)',
+        },
+        muted: {
+          DEFAULT: 'var(--color-muted)',
+          soft: 'var(--color-muted-soft)',
+        },
+        // Win rate gradient colors
+        winrate: {
+          terrible: 'var(--color-winrate-terrible)',
+          bad: 'var(--color-winrate-bad)',
+          poor: 'var(--color-winrate-poor)',
+          average: 'var(--color-winrate-average)',
+          good: 'var(--color-winrate-good)',
+          great: 'var(--color-winrate-great)',
         },
       },
       fontFamily: {

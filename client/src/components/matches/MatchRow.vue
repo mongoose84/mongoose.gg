@@ -107,19 +107,19 @@ const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime
 
 /* Win/Loss left border indicator */
 .match-row.win {
-  border-left: 3px solid #22c55e;
+  border-left: 3px solid var(--color-success);
 }
 
 .match-row.loss {
-  border-left: 3px solid #ef4444;
+  border-left: 3px solid var(--color-error);
 }
 
 .match-row.selected.win {
-  border-left: 4px solid #22c55e;
+  border-left: 4px solid var(--color-success);
 }
 
 .match-row.selected.loss {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid var(--color-error);
 }
 
 /* Champion Icon */

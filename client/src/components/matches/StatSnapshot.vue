@@ -291,11 +291,11 @@ const stats = computed(() => {
 }
 
 .trend-arrow.up {
-  color: #22c55e;
+  color: var(--color-success);
 }
 
 .trend-arrow.down {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .stat-value {
@@ -310,11 +310,11 @@ const stats = computed(() => {
 }
 
 .stat-comparison.up {
-  color: #22c55e;
+  color: var(--color-success);
 }
 
 .stat-comparison.down {
-  color: #ef4444;
+  color: var(--color-error);
 }
 </style>
 

@@ -112,11 +112,11 @@ const relativeTime = computed(() => {
 }
 
 .last-match-card.win {
-  border-left: 3px solid #22c55e;
+  border-left: 3px solid var(--color-success);
 }
 
 .last-match-card.loss {
-  border-left: 3px solid #ef4444;
+  border-left: 3px solid var(--color-error);
 }
 
 .last-match-card.empty {
@@ -192,13 +192,13 @@ const relativeTime = computed(() => {
 }
 
 .result-badge.win {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .result-badge.loss {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--color-error-soft);
+  color: var(--color-error);
 }
 
 .match-details {
