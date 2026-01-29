@@ -8,7 +8,7 @@
           <span class="stat-label">Gold Diff</span>
           <div class="stat-comparison">
             <span class="stat-value ally" :class="goldDiffSentiment">
-              {{ formatGoldDiff(matchup.allyParticipant.goldDiffAt15) }}
+              {{ formatGoldDiff(matchup.allyParticipant.goldDiffAt15, { useLocale: true }) }}
             </span>
             <div class="diff-bar-wrapper">
               <div class="diff-bar ally" :style="{ width: allyGoldBarWidth + '%' }"></div>
@@ -67,6 +67,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { formatGoldDiff, formatCsDiff, formatPercent } from '@/utils/formatters'
 
 const props = defineProps({
   matchup: {
@@ -124,22 +125,6 @@ const contextualInsight = computed(() => {
   return `Even lane matchup. Both players had similar impact on the game.`
 })
 
-function formatGoldDiff(diff) {
-  if (diff === null || diff === undefined) return 'N/A'
-  const sign = diff >= 0 ? '+' : ''
-  return `${sign}${diff.toLocaleString()}`
-}
-
-function formatCsDiff(diff) {
-  if (diff === null || diff === undefined) return 'N/A'
-  const sign = diff >= 0 ? '+' : ''
-  return `${sign}${diff} CS`
-}
-
-function formatPercent(value) {
-  // Values from database are already percentages (e.g., 25.50 means 25.50%)
-  return `${value.toFixed(0)}%`
-}
 </script>
 
 <style scoped>
@@ -199,10 +184,10 @@ function formatPercent(value) {
   text-align: center;
 }
 
-.stat-value.ally { color: #3b82f6; }
-.stat-value.enemy { color: #ef4444; }
-.stat-value.positive { color: #22c55e; }
-.stat-value.negative { color: #ef4444; }
+.stat-value.ally { color: var(--color-info); }
+.stat-value.enemy { color: var(--color-error); }
+.stat-value.positive { color: var(--color-success); }
+.stat-value.negative { color: var(--color-error); }
 .stat-value.neutral { color: var(--color-text); }
 
 .vs-separator {
@@ -224,8 +209,8 @@ function formatPercent(value) {
   transition: width 0.3s ease;
 }
 
-.diff-bar.ally { background: #22c55e; }
-.diff-bar.enemy { background: #ef4444; }
+.diff-bar.ally { background: var(--color-success); }
+.diff-bar.enemy { background: var(--color-error); }
 
 .insight-section {
   padding: var(--spacing-sm);

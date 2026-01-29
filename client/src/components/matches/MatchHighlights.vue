@@ -17,6 +17,7 @@
 <script setup>
 import { computed } from 'vue'
 import HighlightTile from './HighlightTile.vue'
+import { formatNumber } from '@/utils/formatters'
 
 const props = defineProps({
   match: {
@@ -92,13 +93,6 @@ const computedHighlights = computed(() => {
 
   return highlights
 })
-
-function formatNumber(num) {
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'k'
-  }
-  return num.toString()
-}
 </script>
 
 <style scoped>

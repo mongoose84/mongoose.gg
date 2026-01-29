@@ -57,6 +57,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { formatRelativeTime } from '@/utils/formatters'
 
 const props = defineProps({
   matchId: { type: String, default: null },
@@ -86,23 +87,7 @@ const resultClass = computed(() => {
 // Calculate relative time from timestamp
 const relativeTime = computed(() => {
   if (!props.timestamp) return ''
-  
-  const now = Date.now()
-  const matchTime = props.timestamp
-  const diffMs = now - matchTime
-  const diffSec = Math.floor(diffMs / 1000)
-  const diffMin = Math.floor(diffSec / 60)
-  const diffHour = Math.floor(diffMin / 60)
-  const diffDay = Math.floor(diffHour / 24)
-  const diffWeek = Math.floor(diffDay / 7)
-  const diffMonth = Math.floor(diffDay / 30)
-
-  if (diffMin < 1) return 'Just now'
-  if (diffMin < 60) return `${diffMin} min ago`
-  if (diffHour < 24) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`
-  if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`
-  if (diffWeek < 4) return `${diffWeek} week${diffWeek > 1 ? 's' : ''} ago`
-  return `${diffMonth} month${diffMonth > 1 ? 's' : ''} ago`
+  return formatRelativeTime(props.timestamp)
 })
 </script>
 
@@ -127,11 +112,11 @@ const relativeTime = computed(() => {
 }
 
 .last-match-card.win {
-  border-left: 3px solid #22c55e;
+  border-left: 3px solid var(--color-success);
 }
 
 .last-match-card.loss {
-  border-left: 3px solid #ef4444;
+  border-left: 3px solid var(--color-error);
 }
 
 .last-match-card.empty {
@@ -207,13 +192,13 @@ const relativeTime = computed(() => {
 }
 
 .result-badge.win {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .result-badge.loss {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--color-error-soft);
+  color: var(--color-error);
 }
 
 .match-details {

@@ -53,6 +53,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import TrendBadge from './TrendBadge.vue'
+import { formatRole, formatKda, formatDuration, formatRelativeTime } from '@/utils/formatters'
 
 const props = defineProps({
   match: {
@@ -73,53 +74,7 @@ function handleIconError() {
   iconError.value = true
 }
 
-function formatRole(role) {
-  if (!role) return ''
-  const roleMap = {
-    'TOP': 'Top',
-    'JUNGLE': 'Jungle', 
-    'MIDDLE': 'Mid',
-    'MID': 'Mid',
-    'BOTTOM': 'Bot',
-    'ADC': 'Bot',
-    'UTILITY': 'Support',
-    'SUPPORT': 'Support',
-    'NONE': '',
-    'UNKNOWN': ''
-  }
-  return roleMap[role.toUpperCase()] || role
-}
-
-function formatKda(kills, deaths, assists) {
-  return `${kills}/${deaths}/${assists}`
-}
-
-function formatDuration(seconds) {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
-
-const relativeTime = computed(() => {
-  if (!props.match.gameStartTime) return ''
-  
-  const now = Date.now()
-  const matchTime = props.match.gameStartTime
-  const diffMs = now - matchTime
-  const diffSec = Math.floor(diffMs / 1000)
-  const diffMin = Math.floor(diffSec / 60)
-  const diffHour = Math.floor(diffMin / 60)
-  const diffDay = Math.floor(diffHour / 24)
-  const diffWeek = Math.floor(diffDay / 7)
-  const diffMonth = Math.floor(diffDay / 30)
-
-  if (diffMin < 1) return 'Just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  if (diffHour < 24) return `${diffHour}h ago`
-  if (diffDay < 7) return `${diffDay}d ago`
-  if (diffWeek < 4) return `${diffWeek}w ago`
-  return `${diffMonth}mo ago`
-})
+const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime, { short: true }))
 </script>
 
 <style scoped>
@@ -152,19 +107,19 @@ const relativeTime = computed(() => {
 
 /* Win/Loss left border indicator */
 .match-row.win {
-  border-left: 3px solid #22c55e;
+  border-left: 3px solid var(--color-success);
 }
 
 .match-row.loss {
-  border-left: 3px solid #ef4444;
+  border-left: 3px solid var(--color-error);
 }
 
 .match-row.selected.win {
-  border-left: 4px solid #22c55e;
+  border-left: 4px solid var(--color-success);
 }
 
 .match-row.selected.loss {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid var(--color-error);
 }
 
 /* Champion Icon */

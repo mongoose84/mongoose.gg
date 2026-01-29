@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Infrastructure.WebSocket;
 

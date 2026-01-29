@@ -1,4 +1,4 @@
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints
 {

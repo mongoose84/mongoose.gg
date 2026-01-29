@@ -13,12 +13,12 @@
         </div>
 
         <!-- Success message -->
-        <div v-if="successMessage" class="p-md bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.3)] rounded-md text-[#22c55e] text-sm text-center mb-md" data-testid="verify-success">
+        <div v-if="successMessage" class="p-md bg-success-soft border border-success-border rounded-md text-success text-sm text-center mb-md" data-testid="verify-success">
           {{ successMessage }}
         </div>
 
         <!-- Error message -->
-        <div v-if="errorMessage" class="p-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-md text-[#ef4444] text-sm text-center mb-md" data-testid="verify-error">
+        <div v-if="errorMessage" class="p-md bg-error-soft border border-error-border rounded-md text-error text-sm text-center mb-md" data-testid="verify-error">
           {{ errorMessage }}
         </div>
 

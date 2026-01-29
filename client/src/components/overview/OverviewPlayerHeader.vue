@@ -299,13 +299,13 @@ function contextLabel(context) {
 }
 
 .context-duo {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .context-team {
-  background: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
+  background: var(--color-info-soft);
+  color: var(--color-info);
 }
 
 /* Sync Section */
@@ -326,23 +326,23 @@ function contextLabel(context) {
 }
 
 .sync-status.syncing {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: var(--color-info-soft);
+  color: var(--color-info);
 }
 
 .sync-status.completed {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .sync-status.pending {
-  background: rgba(251, 191, 36, 0.1);
-  color: #fbbf24;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
 }
 
 .sync-status.failed {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: var(--color-error-soft);
+  color: var(--color-error);
 }
 
 .sync-status.idle {
@@ -387,21 +387,21 @@ function contextLabel(context) {
 .sync-progress-bar {
   width: 80px;
   height: 4px;
-  background: rgba(59, 130, 246, 0.2);
+  background: var(--color-info-soft);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .sync-progress-fill {
   height: 100%;
-  background: #3b82f6;
+  background: var(--color-info);
   border-radius: 2px;
   transition: width 0.3s ease;
 }
 
 .sync-progress-text {
   font-size: 0.625rem;
-  color: #3b82f6;
+  color: var(--color-info);
   font-weight: var(--font-weight-medium);
 }
 

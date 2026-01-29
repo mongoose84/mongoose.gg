@@ -1,5 +1,5 @@
 using FluentAssertions;
-using RiotProxy.External.Domain.Entities;
+using RiotProxy.Core.Entities;
 using Xunit;
 
 namespace RiotProxy.Tests;

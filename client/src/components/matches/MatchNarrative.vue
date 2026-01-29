@@ -74,6 +74,7 @@ import { ref, watch, computed } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { getMatchNarrative } from '../../services/authApi'
 import { trackLaneExpand } from '../../services/analyticsApi'
+import { formatRole, formatKdaFromParticipant as formatKda } from '@/utils/formatters'
 import LaneMatchupDetails from './LaneMatchupDetails.vue'
 
 const props = defineProps({
@@ -146,14 +147,7 @@ function getRoleIcon(role) {
   return icons[role] || '❓'
 }
 
-function formatRole(role) {
-  const names = { TOP: 'Top', JUNGLE: 'Jungle', MIDDLE: 'Mid', BOTTOM: 'Bot', UTILITY: 'Support' }
-  return names[role] || role
-}
 
-function formatKda(participant) {
-  return `${participant.kills}/${participant.deaths}/${participant.assists}`
-}
 </script>
 
 <style scoped>
@@ -177,7 +171,7 @@ function formatKda(participant) {
   font-size: var(--font-size-sm);
 }
 
-.error-state { color: #ef4444; }
+.error-state { color: var(--color-error); }
 
 .lane-matchups {
   display: flex;
@@ -241,7 +235,7 @@ function formatKda(participant) {
 }
 
 .champion-info.winner .champion-icon {
-  box-shadow: 0 0 0 2px #22c55e;
+  box-shadow: 0 0 0 2px var(--color-success);
 }
 
 .champion-icon {
@@ -272,8 +266,8 @@ function formatKda(participant) {
   width: 20px;
   text-align: center;
 }
-.winner-badge.ally { color: #22c55e; }
-.winner-badge.enemy { color: #ef4444; }
+.winner-badge.ally { color: var(--color-success); }
+.winner-badge.enemy { color: var(--color-error); }
 .winner-badge.even { color: var(--color-text-secondary); }
 
 .expand-icon {

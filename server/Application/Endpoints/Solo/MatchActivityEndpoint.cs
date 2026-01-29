@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Solo;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Solo;
 

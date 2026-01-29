@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using RiotProxy.External.Domain.Entities;
+using RiotProxy.Core.Entities;
 using Xunit;
 
 namespace RiotProxy.Tests;

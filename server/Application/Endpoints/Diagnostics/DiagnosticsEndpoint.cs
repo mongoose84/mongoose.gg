@@ -1,5 +1,5 @@
 using RiotProxy.Infrastructure;
-using RiotProxy.Utilities;
+using RiotProxy.Infrastructure.Telemetry;
 
 namespace RiotProxy.Application.Endpoints.Diagnostics
 {

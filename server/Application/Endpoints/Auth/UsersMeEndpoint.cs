@@ -2,7 +2,7 @@ using System.Security.Claims;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Auth;
 

@@ -1,7 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Matches;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Core.QueryModels;
+using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Matches;
 

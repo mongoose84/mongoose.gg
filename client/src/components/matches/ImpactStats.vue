@@ -214,11 +214,11 @@ const impactStats = computed(() => {
 }
 
 .sentiment-indicator.positive {
-  color: #22c55e;
+  color: var(--color-success);
 }
 
 .sentiment-indicator.negative {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .impact-value {

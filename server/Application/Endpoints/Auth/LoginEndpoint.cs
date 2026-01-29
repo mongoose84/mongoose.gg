@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.Services;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Infrastructure.Database.Repositories;
 using static RiotProxy.Application.DTOs.LoginDto;
 
 namespace RiotProxy.Application.Endpoints.Auth;

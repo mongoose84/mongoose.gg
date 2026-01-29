@@ -48,6 +48,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { formatRole, formatDuration, formatRelativeTime } from '@/utils/formatters'
 
 const props = defineProps({
   match: {
@@ -56,47 +57,7 @@ const props = defineProps({
   }
 })
 
-function formatRole(role) {
-  if (!role) return ''
-  const roleMap = {
-    'TOP': 'Top',
-    'JUNGLE': 'Jungle',
-    'MIDDLE': 'Mid',
-    'MID': 'Mid',
-    'BOTTOM': 'Bot',
-    'ADC': 'Bot',
-    'UTILITY': 'Support',
-    'SUPPORT': 'Support',
-    'NONE': '',
-    'UNKNOWN': ''
-  }
-  return roleMap[role.toUpperCase()] || role
-}
-
-function formatDuration(seconds) {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
-
-const relativeTime = computed(() => {
-  if (!props.match.gameStartTime) return ''
-
-  const now = Date.now()
-  const matchTime = props.match.gameStartTime
-  const diffMs = now - matchTime
-  const diffSec = Math.floor(diffMs / 1000)
-  const diffMin = Math.floor(diffSec / 60)
-  const diffHour = Math.floor(diffMin / 60)
-  const diffDay = Math.floor(diffHour / 24)
-  const diffWeek = Math.floor(diffDay / 7)
-
-  if (diffMin < 1) return 'Just now'
-  if (diffMin < 60) return `${diffMin} min ago`
-  if (diffHour < 24) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`
-  if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`
-  return `${diffWeek} week${diffWeek > 1 ? 's' : ''} ago`
-})
+const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime))
 </script>
 
 <style scoped>
@@ -110,11 +71,11 @@ const relativeTime = computed(() => {
 }
 
 .match-header.win {
-  border-left: 4px solid #22c55e;
+  border-left: 4px solid var(--color-success);
 }
 
 .match-header.loss {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid var(--color-error);
 }
 
 .champion-section {
@@ -142,15 +103,15 @@ const relativeTime = computed(() => {
 }
 
 .kda-kills {
-  color: #22c55e;
+  color: var(--color-success);
 }
 
 .kda-deaths {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .kda-assists {
-  color: #3b82f6;
+  color: var(--color-info);
 }
 
 .kda-separator {
@@ -193,13 +154,13 @@ const relativeTime = computed(() => {
 }
 
 .result-badge.win {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .result-badge.loss {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--color-error-soft);
+  color: var(--color-error);
 }
 
 .game-result-row {
@@ -215,11 +176,11 @@ const relativeTime = computed(() => {
 }
 
 .team-kills.win {
-  color: #22c55e;
+  color: var(--color-success);
 }
 
 .team-kills.loss {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .result-separator {

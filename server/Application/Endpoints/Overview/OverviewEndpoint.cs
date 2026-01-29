@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Overview;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Core.Interfaces;
+using RiotProxy.Core.QueryModels;
+using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Overview;
 
@@ -133,7 +135,7 @@ public sealed class OverviewEndpoint : IEndpoint
     }
 
     private static async Task<RankSnapshot> BuildRankSnapshotAsync(
-        RiotProxy.External.Domain.Entities.RiotAccount account,
+        RiotProxy.Core.Entities.RiotAccount account,
         int primaryQueueId,
         string primaryQueueLabel,
         List<MatchResultData> last20Matches,

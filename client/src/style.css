@@ -15,6 +15,37 @@
   --color-text: #ffffff;
   --color-text-secondary: #888888;
   --color-border: rgba(109, 40, 217, 0.15);
+
+  /* Semantic Colors */
+  --color-success: #22c55e;
+  --color-success-soft: rgba(34, 197, 94, 0.1);
+  --color-success-border: rgba(34, 197, 94, 0.3);
+  --color-error: #ef4444;
+  --color-error-soft: rgba(239, 68, 68, 0.1);
+  --color-error-border: rgba(239, 68, 68, 0.3);
+  --color-warning: #f59e0b;
+  --color-warning-soft: rgba(245, 158, 11, 0.1);
+  --color-warning-border: rgba(245, 158, 11, 0.3);
+  --color-info: #3b82f6;
+  --color-info-soft: rgba(59, 130, 246, 0.1);
+  --color-info-border: rgba(59, 130, 246, 0.3);
+
+  /* Neutral/Muted Colors */
+  --color-muted: #6b7280;
+  --color-muted-soft: rgba(107, 114, 128, 0.2);
+
+  /* Primary Variants */
+  --color-primary-dark: #5b21b6;
+  --color-primary-light: #7c3aed;
+  --color-primary-accent: #a855f7;
+
+  /* Win Rate Gradient Colors (for dynamic coloring based on performance) */
+  --color-winrate-terrible: #ef4444;
+  --color-winrate-bad: #f97316;
+  --color-winrate-poor: #fdba74;
+  --color-winrate-average: #eab308;
+  --color-winrate-good: #84cc16;
+  --color-winrate-great: #22c55e;
   
   /* Typography */
   --font-size-xs: 0.75rem;
@@ -120,4 +151,23 @@ body::before {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Win rate color classes - used for dynamic coloring based on performance */
+@layer components {
+  .winrate-terrible { color: var(--color-winrate-terrible); }
+  .winrate-bad { color: var(--color-winrate-bad); }
+  .winrate-poor { color: var(--color-winrate-poor); }
+  .winrate-average { color: var(--color-winrate-average); }
+  .winrate-good { color: var(--color-winrate-good); }
+  .winrate-great { color: var(--color-winrate-great); }
+  .winrate-neutral { color: var(--color-text); }
+
+  /* Legacy aliases for backward compatibility */
+  .winrate-red { color: var(--color-winrate-terrible); }
+  .winrate-redorange { color: var(--color-winrate-bad); }
+  .winrate-orange { color: var(--color-winrate-poor); }
+  .winrate-yellow { color: var(--color-winrate-average); }
+  .winrate-yellowgreen { color: var(--color-winrate-good); }
+  .winrate-green { color: var(--color-winrate-great); }
 }

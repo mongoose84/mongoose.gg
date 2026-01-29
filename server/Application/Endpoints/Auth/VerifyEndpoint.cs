@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.External.Domain.Entities;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Core.Entities;
+using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Auth;
 

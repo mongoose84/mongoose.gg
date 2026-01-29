@@ -268,6 +268,13 @@ jobs:
             "site_offline=true" >> $env:GITHUB_OUTPUT
           }
 
+          # Wait for IIS to detect app_offline.htm and shut down the worker process
+          # IIS typically checks for this file every few seconds, but the worker process
+          # may take additional time to release file locks on DLLs
+          Write-Host "⏳ Waiting 15 seconds for IIS to shut down the application..."
+          Start-Sleep -Seconds 15
+          Write-Host "✅ Proceeding with deployment"
+
       # -------------------------------------------------
       # Deploy new files via FTPS (publish folder only)
       # -------------------------------------------------
@@ -290,6 +297,7 @@ jobs:
           exclude: |
             RiotProxy.Tests/**
             **/RiotProxy.Tests/**
+            app_offline.htm
           server-dir: ${{ secrets.FTP_API_PATH }}/
           # optional safety flags
           # dry-run: false

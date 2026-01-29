@@ -6,6 +6,16 @@ type: "manual"
 
 This document defines the visual design system for the Mongoose.gg client application. Include this file when developing any new UI components to ensure consistency.
 
+## Tech Stack
+
+- **Vue 3** with Composition API (`<script setup>`)
+- **Tailwind CSS** for utility-first styling
+- **Headless UI** (`@headlessui/vue`) for accessible, unstyled UI primitives
+- **Heroicons** (`@heroicons/vue`) for consistent iconography
+- **CSS Variables** for design tokens (defined in `style.css`)
+- **TanStack Vue Query** for server state management
+- **Chart.js + vue-chartjs** for data visualization
+
 ## Design Philosophy
 
 **Theme:** Vercel Developer aesthetic adapted for gaming — dark, technical, cutting-edge with a premium feel.
@@ -18,8 +28,8 @@ This document defines the visual design system for the Mongoose.gg client applic
 - Tight typography with the Inter font family
 
 **Background Treatment:**
-- Background image: `/gaming-bg.jpg` (fixed, cover)
-- Dark overlay: `linear-gradient(135deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.80))`
+- Background image: `/hero-bg.svg` (fixed, cover)
+- Dark overlay: `linear-gradient(135deg, rgba(0, 0, 0, 0.30), rgba(0, 0, 0, 0.30))`
 - Applied via `body::before` pseudo-element for consistent layering
 
 ---
@@ -47,6 +57,18 @@ This document defines the visual design system for the Mongoose.gg client applic
 | Error | `#ef4444` | Losses, errors, destructive actions |
 | Warning | `#f59e0b` | Cautions, pending states |
 | Info | `#3b82f6` | Informational messages |
+| Muted | `#6b7280` | Neutral/muted text and elements |
+
+### Win Rate Gradient Colors
+
+| Token | Color | Usage |
+|-------|-------|-------|
+| `--color-winrate-terrible` | `#ef4444` | < 40% win rate |
+| `--color-winrate-bad` | `#f97316` | 40-45% win rate |
+| `--color-winrate-poor` | `#fdba74` | 45-48% win rate |
+| `--color-winrate-average` | `#eab308` | 48-52% win rate |
+| `--color-winrate-good` | `#84cc16` | 52-55% win rate |
+| `--color-winrate-great` | `#22c55e` | > 55% win rate |
 
 ---
 
@@ -350,12 +372,86 @@ Prefer CSS variables for consistency. Use Tailwind for layout utilities (flex, g
 
 ---
 
+## Base Components
+
+The project includes reusable base components in `client/src/components/base/`:
+
+### BaseButton
+Flexible button component with variants, sizes, loading states, and router-link support.
+
+```vue
+<BaseButton variant="primary" size="md" :loading="isLoading">
+  Save Changes
+</BaseButton>
+
+<BaseButton variant="secondary" to="/dashboard">
+  Go to Dashboard
+</BaseButton>
+```
+
+**Variants:** `primary`, `secondary`, `ghost`, `destructive`
+**Sizes:** `sm`, `md`, `lg`
+
+### BaseCard
+Card container with header, body, and footer slots.
+
+```vue
+<BaseCard title="Statistics" variant="interactive">
+  <p>Card content goes here</p>
+</BaseCard>
+```
+
+**Variants:** `default`, `interactive`, `highlighted`, `elevated`
+
+### BaseModal
+Accessible modal using Headless UI Dialog.
+
+```vue
+<BaseModal :is-open="showModal" title="Confirm Action" @close="showModal = false">
+  <p>Modal content</p>
+  <template #footer>
+    <BaseButton @click="showModal = false">Cancel</BaseButton>
+    <BaseButton variant="primary" @click="confirm">Confirm</BaseButton>
+  </template>
+</BaseModal>
+```
+
+**Sizes:** `sm`, `md`, `lg`, `xl`, `full`
+
+### BaseInput
+Form input with label, error states, and icon support.
+
+---
+
+## Headless UI Components
+
+Use Headless UI for complex interactive components:
+
+```vue
+<script setup>
+import {
+  Dialog,
+  DialogPanel,
+  DialogTitle,
+  TransitionRoot,
+  TransitionChild,
+  Menu,
+  MenuButton,
+  MenuItems,
+  MenuItem
+} from '@headlessui/vue'
+</script>
+```
+
+---
+
 ## Accessibility
 
 - **Focus states:** Always visible with `box-shadow: 0 0 0 3px var(--color-primary-soft)`
 - **Color contrast:** Ensure 4.5:1 ratio for text on backgrounds
 - **Disabled states:** Use `opacity: 0.6` and `cursor: not-allowed`
 - **Interactive elements:** Minimum touch target of 44x44px on mobile
+- **Screen reader support:** Use `.visually-hidden` class for accessible text
 
 ---
 
@@ -371,9 +467,9 @@ import { UserIcon, CogIcon, ArrowRightIcon } from '@heroicons/vue/24/solid';
 ```
 
 Standard icon sizes:
-- Small: `16x16px`
-- Medium: `20x20px`
-- Large: `24x24px`
+- Small: `16x16px` (w-4 h-4)
+- Medium: `20x20px` (w-5 h-5)
+- Large: `24x24px` (w-6 h-6)
 
 ---
 
@@ -381,7 +477,13 @@ Standard icon sizes:
 
 - **CSS Variables:** `client/src/style.css`
 - **Tailwind Config:** `client/tailwind.config.js`
-- **Example Components:**
-  - Cards & Forms: `client/src/views/AuthPage.vue`
-  - Header & Dropdown: `client/src/components/AppHeader.vue`
-  - Landing Page: `client/src/views/LandingPage.vue`
+- **Base Components:** `client/src/components/base/` (BaseButton, BaseCard, BaseModal, BaseInput)
+- **Feature Components:**
+  - Matches: `client/src/components/matches/`
+  - Overview: `client/src/components/overview/`
+- **Example Views:**
+  - Auth: `client/src/views/AuthPage.vue`
+  - Landing: `client/src/views/LandingPage.vue`
+  - Dashboard: `client/src/views/SoloDashboard.vue`
+- **Layouts:** `client/src/layouts/AppLayout.vue`
+- **Composables:** `client/src/composables/` (useSyncWebSocket, useWinRateColor)

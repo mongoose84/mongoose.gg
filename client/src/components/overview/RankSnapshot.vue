@@ -212,8 +212,8 @@ function handleEmblemError() {
   font-weight: var(--font-weight-medium);
 }
 
-.lp-delta.positive { color: #22c55e; }
-.lp-delta.negative { color: #ef4444; }
+.lp-delta.positive { color: var(--color-success); }
+.lp-delta.negative { color: var(--color-error); }
 .lp-delta.neutral { color: var(--color-text-secondary); }
 
 .separator {
@@ -255,8 +255,8 @@ function handleEmblemError() {
   border-radius: 2px;
 }
 
-.wl-indicator.win { background: #22c55e; }
-.wl-indicator.loss { background: #ef4444; }
+.wl-indicator.win { background: var(--color-success); }
+.wl-indicator.loss { background: var(--color-error); }
 
 /* Mobile Responsive */
 @media (max-width: 480px) {

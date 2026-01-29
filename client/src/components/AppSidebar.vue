@@ -69,27 +69,17 @@
       </router-link>
 
       <!-- Analysis Section with Submenu -->
-      <div
-        class="mb-xs"
-        :class="{ 'relative': isCollapsed, 'popout-open': isCollapsed && analysisPopoutOpen }"
-        @click="handleAnalysisSectionClick"
-        @mouseenter="handleAnalysisSectionMouseEnter"
-        @mouseleave="handleAnalysisSectionMouseLeave"
-        data-testid="nav-section-analysis"
-      >
+      <!-- Expanded: show inline submenu -->
+      <div v-if="!isCollapsed" class="mb-xs" data-testid="nav-section-analysis">
         <div
           class="flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-default whitespace-nowrap hover:bg-background-elevated hover:text-text"
-          :class="{ 'justify-center': isCollapsed }"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
             <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
           </svg>
-          <Transition name="fade">
-            <span v-if="!isCollapsed" class="text-sm font-medium tracking-tight">Analysis</span>
-          </Transition>
+          <span class="text-sm font-medium tracking-tight">Analysis</span>
         </div>
-        <!-- Expanded: show inline submenu -->
-        <div v-if="!isCollapsed" class="ml-xl mt-xs">
+        <div class="ml-xl mt-xs">
           <router-link to="/app/solo" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text" data-testid="nav-subitem-solo">
             <span class="font-medium tracking-tight">Solo</span>
           </router-link>
@@ -100,19 +90,37 @@
             <span class="font-medium tracking-tight">Team</span>
           </router-link>
         </div>
-        <!-- Collapsed: show popout menu on hover/click -->
-        <div
-          v-if="isCollapsed"
-          class="nav-popout absolute left-full top-0 min-w-[140px] bg-background-surface border border-border rounded-md p-xs shadow-[0_4px_12px_rgba(0,0,0,0.3)] opacity-0 invisible -translate-x-2 transition-all duration-200 z-[100] ml-xs"
-          :class="{ 'opacity-100 visible translate-x-0': analysisPopoutOpen }"
-          @click.stop
-        >
-          <div class="py-sm px-md text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border mb-xs">Analysis</div>
-          <router-link to="/app/solo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="closeAnalysisPopout" data-testid="popout-item-solo">Solo</router-link>
-          <router-link to="/app/duo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="closeAnalysisPopout" data-testid="popout-item-duo">Duo</router-link>
-          <router-link to="/app/team" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="closeAnalysisPopout" data-testid="popout-item-team">Team</router-link>
-        </div>
       </div>
+
+      <!-- Collapsed: show popout menu using HeadlessUI Popover -->
+      <Popover v-else class="relative mb-xs" data-testid="nav-section-analysis">
+        <PopoverButton
+          class="flex items-center justify-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text w-[calc(100%-1rem)] focus:outline-none"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
+            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+          </svg>
+        </PopoverButton>
+
+        <transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 -translate-x-2"
+          enter-to-class="opacity-100 translate-x-0"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100 translate-x-0"
+          leave-to-class="opacity-0 -translate-x-2"
+        >
+          <PopoverPanel
+            class="absolute left-full top-0 min-w-[140px] bg-background-surface border border-border rounded-md p-xs shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[100] ml-xs focus:outline-none"
+            v-slot="{ close }"
+          >
+            <div class="py-sm px-md text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border mb-xs">Analysis</div>
+            <router-link to="/app/solo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="close" data-testid="popout-item-solo">Solo</router-link>
+            <router-link to="/app/duo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="close" data-testid="popout-item-duo">Duo</router-link>
+            <router-link to="/app/team" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="close" data-testid="popout-item-team">Team</router-link>
+          </PopoverPanel>
+        </transition>
+      </Popover>
 
       <router-link
         to="/app/goals"
@@ -187,6 +195,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import pkg from '../../package.json';
@@ -197,7 +206,6 @@ const version = pkg.version || '0.0.0';
 
 // Local state
 const linkedIconError = ref(false);
-const analysisPopoutOpen = ref(false);
 
 // Sidebar state from store
 const isCollapsed = computed(() => uiStore.isSidebarCollapsed);
@@ -239,45 +247,6 @@ onUnmounted(() => {
 function toggleSidebar() {
   uiStore.toggleSidebar();
 }
-
-// Analysis popout handlers for touch device support
-function handleAnalysisSectionClick() {
-  if (isCollapsed.value) {
-    analysisPopoutOpen.value = !analysisPopoutOpen.value;
-  }
-}
-
-function handleAnalysisSectionMouseEnter() {
-  if (isCollapsed.value) {
-    analysisPopoutOpen.value = true;
-  }
-}
-
-function handleAnalysisSectionMouseLeave() {
-  if (isCollapsed.value) {
-    analysisPopoutOpen.value = false;
-  }
-}
-
-function closeAnalysisPopout() {
-  analysisPopoutOpen.value = false;
-}
-
-// Close popout when clicking outside
-function handleClickOutside(event) {
-  const sidebar = document.querySelector('[data-testid="app-sidebar"]');
-  if (sidebar && !sidebar.contains(event.target)) {
-    analysisPopoutOpen.value = false;
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
-});
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
-});
 
 // User data
 const username = computed(() => authStore.username || 'User');

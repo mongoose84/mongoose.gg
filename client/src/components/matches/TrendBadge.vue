@@ -51,14 +51,14 @@ const typeClass = computed(() => {
 
 /* Positive - subtle green */
 .trend-positive {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 /* Negative - subtle red */
 .trend-negative {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  background: var(--color-error-soft);
+  color: var(--color-error);
 }
 
 /* Neutral - subtle gray */

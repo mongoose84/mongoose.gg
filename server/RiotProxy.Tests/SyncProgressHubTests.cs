@@ -5,8 +5,8 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using RiotProxy.External.Domain.Entities;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Core.Entities;
+using RiotProxy.Infrastructure.Database.Repositories;
 using RiotProxy.Infrastructure.WebSocket;
 using Xunit;
 

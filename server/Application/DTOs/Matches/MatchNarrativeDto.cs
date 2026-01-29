@@ -23,7 +23,7 @@ public record LaneMatchup(
 );
 
 /// <summary>
-/// Participant data for a lane matchup.
+/// Participant data for a lane matchup (API response DTO).
 /// </summary>
 public record MatchupParticipant(
     [property: JsonPropertyName("puuid")] string Puuid,
@@ -49,32 +49,5 @@ public record MatchupParticipant(
     [property: JsonPropertyName("visionScore")] int VisionScore,
     [property: JsonPropertyName("creepScore")] int CreepScore,
     [property: JsonPropertyName("goldEarned")] int GoldEarned
-);
-
-/// <summary>
-/// Internal DTO for raw participant data from database query.
-/// </summary>
-public record MatchupParticipantRaw(
-    long ParticipantId,
-    string Puuid,
-    int ChampionId,
-    string ChampionName,
-    int TeamId,
-    string? Role,
-    bool Win,
-    int Kills,
-    int Deaths,
-    int Assists,
-    int CreepScore,
-    int GoldEarned,
-    // From participant_metrics
-    decimal KillParticipation,
-    decimal DamageShare,
-    int VisionScore,
-    // From participant_checkpoints at minute 15
-    int? GoldAt15,
-    int? CsAt15,
-    int? GoldDiffAt15,
-    int? CsDiffAt15
 );
 

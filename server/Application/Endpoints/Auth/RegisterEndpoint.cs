@@ -3,8 +3,8 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.External.Domain.Entities;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Core.Entities;
+using RiotProxy.Infrastructure.Database.Repositories;
 using RiotProxy.Infrastructure.Email;
 using static RiotProxy.Application.DTOs.RegisterDto;
 

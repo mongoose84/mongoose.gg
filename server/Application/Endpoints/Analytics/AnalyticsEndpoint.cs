@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.External.Domain.Entities;
-using RiotProxy.Infrastructure.External.Database.Repositories;
+using RiotProxy.Core.Entities;
+using RiotProxy.Infrastructure.Database.Repositories;
 using static RiotProxy.Application.DTOs.AnalyticsDto;
 
 namespace RiotProxy.Application.Endpoints.Analytics;

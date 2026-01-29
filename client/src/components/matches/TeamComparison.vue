@@ -66,6 +66,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { formatNumber, formatGoldDiff as formatGoldLead } from '@/utils/formatters'
 
 const props = defineProps({
   match: {
@@ -76,10 +77,10 @@ const props = defineProps({
 
 // Damage bar percentages
 const totalDamage = computed(() => props.match.teamTotalDamage + props.match.enemyTeamTotalDamage)
-const teamDamagePercent = computed(() => 
+const teamDamagePercent = computed(() =>
   totalDamage.value > 0 ? (props.match.teamTotalDamage / totalDamage.value) * 100 : 50
 )
-const enemyDamagePercent = computed(() => 
+const enemyDamagePercent = computed(() =>
   totalDamage.value > 0 ? (props.match.enemyTeamTotalDamage / totalDamage.value) * 100 : 50
 )
 
@@ -92,19 +93,6 @@ const enemyHasGoldLead = computed(() => {
   const gold = props.match.teamGoldLeadAt15
   return gold !== null && gold !== undefined && gold < 0
 })
-
-// Formatters
-const formatNumber = (num) => {
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
-  return num?.toString() ?? '0'
-}
-
-const formatGoldLead = (gold) => {
-  if (gold === null || gold === undefined) return 'N/A'
-  const sign = gold >= 0 ? '+' : ''
-  if (Math.abs(gold) >= 1000) return sign + (gold / 1000).toFixed(1) + 'k'
-  return sign + gold
-}
 </script>
 
 <style scoped>
@@ -165,8 +153,8 @@ const formatGoldLead = (gold) => {
   transition: width 0.3s ease;
 }
 
-.bar.team { background: #3b82f6; }
-.bar.enemy { background: #ef4444; }
+.bar.team { background: var(--color-info); }
+.bar.enemy { background: var(--color-error); }
 
 .damage-values {
   display: flex;
@@ -180,8 +168,8 @@ const formatGoldLead = (gold) => {
   min-width: 40px;
 }
 
-.team-value { color: #3b82f6; text-align: right; }
-.enemy-value { color: #ef4444; text-align: left; }
+.team-value { color: var(--color-info); text-align: right; }
+.enemy-value { color: var(--color-error); text-align: left; }
 
 .value-cell {
   font-size: var(--font-size-sm);
@@ -191,8 +179,8 @@ const formatGoldLead = (gold) => {
   border-radius: var(--radius-sm);
 }
 
-.value-cell.positive { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
-.value-cell.negative { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+.value-cell.positive { color: var(--color-success); background: var(--color-success-soft); }
+.value-cell.negative { color: var(--color-error); background: var(--color-error-soft); }
 .value-cell.neutral { color: var(--color-text-secondary); }
 .value-cell.empty { background: transparent; }
 
@@ -215,9 +203,9 @@ const formatGoldLead = (gold) => {
   height: 18px;
 }
 
-.obj-icon.dragon { color: #f59e0b; }
-.obj-icon.baron { color: #a855f7; }
-.obj-icon.tower { color: #6b7280; }
+.obj-icon.dragon { color: var(--color-warning); }
+.obj-icon.baron { color: var(--color-primary-accent); }
+.obj-icon.tower { color: var(--color-muted); }
 
 .obj-count {
   font-size: var(--font-size-sm);

@@ -134,13 +134,13 @@ const iconComponent = computed(() => icons[props.icon] || icons.chart)
 }
 
 .trend-indicator.trend-positive {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .trend-indicator.trend-negative {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  background: var(--color-error-soft);
+  color: var(--color-error);
 }
 
 .trend-indicator.trend-neutral {
