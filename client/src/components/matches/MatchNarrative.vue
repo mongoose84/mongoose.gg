@@ -31,7 +31,7 @@
       >
         <!-- Collapsed View -->
         <div class="lane-header">
-          <span class="role-icon">{{ getRoleIcon(matchup.role) }}</span>
+          <img :src="getRoleIconUrl(matchup.role)" :alt="matchup.role" class="role-icon" />
           <span class="role-name">
             {{ formatRole(matchup.role) }}
             <span v-if="isUserRole(matchup.role)" class="you-badge">YOU</span>

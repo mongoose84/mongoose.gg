@@ -14,10 +14,12 @@
 
       <div class="details-sections">
         <TeamComparison :match="match" />
-        <ImpactStats :match="match" />
-        <StatSnapshot :match="match" :baseline="baseline" />
+        <div class="impact-card">
+          <ImpactStats :match="match" />
+          <MatchActions />
+        </div>
         <MatchNarrative :matchId="match?.matchId" />
-        <MatchActions />
+        <StatSnapshot :match="match" :baseline="baseline" />
       </div>
     </div>
   </div>
@@ -77,6 +79,17 @@ watch(
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xl);
+}
+
+/* Impact Card */
+.impact-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 /* Empty State */

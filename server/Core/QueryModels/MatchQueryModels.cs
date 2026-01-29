@@ -141,10 +141,11 @@ public record MatchupParticipantRaw(
     decimal KillParticipation,
     decimal DamageShare,
     int VisionScore,
-    // From participant_checkpoints at minute 15
-    int? GoldAt15,
-    int? CsAt15,
-    int? GoldDiffAt15,
-    int? CsDiffAt15
+    int DeathsPre10,
+    // From participant_checkpoints at minute 10
+    int? GoldAt10,
+    int? CsAt10,
+    int? GoldDiffAt10,
+    int? CsDiffAt10
 );
 

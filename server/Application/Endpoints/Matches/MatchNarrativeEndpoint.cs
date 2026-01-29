@@ -113,7 +113,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
             if (ally == null || enemy == null)
                 continue;
 
-            var laneWinner = DetermineLaneWinner(ally.GoldDiffAt15, enemy.GoldDiffAt15);
+            var laneWinner = DetermineLaneWinner(ally.GoldDiffAt10, enemy.GoldDiffAt10);
 
             matchups.Add(new LaneMatchup(
                 Role: role,
@@ -131,10 +131,11 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
         // Prefer ally's gold diff (positive means ally ahead)
         if (allyGoldDiff.HasValue)
         {
+            // Use 300g threshold for 10-minute checkpoint (lower than 15m threshold)
             return allyGoldDiff.Value switch
             {
-                >= 500 => "ally",
-                <= -500 => "enemy",
+                >= 300 => "ally",
+                <= -300 => "enemy",
                 _ => "even"
             };
         }
@@ -144,8 +145,8 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
         {
             return enemyGoldDiff.Value switch
             {
-                >= 500 => "enemy",  // Enemy ahead means ally lost lane
-                <= -500 => "ally",  // Enemy behind means ally won lane
+                >= 300 => "enemy",  // Enemy ahead means ally lost lane
+                <= -300 => "ally",  // Enemy behind means ally won lane
                 _ => "even"
             };
         }
@@ -165,10 +166,11 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
         Kills: raw.Kills,
         Deaths: raw.Deaths,
         Assists: raw.Assists,
-        GoldAt15: raw.GoldAt15,
-        CsAt15: raw.CsAt15,
-        GoldDiffAt15: raw.GoldDiffAt15,
-        CsDiffAt15: raw.CsDiffAt15,
+        GoldAt10: raw.GoldAt10,
+        CsAt10: raw.CsAt10,
+        GoldDiffAt10: raw.GoldDiffAt10,
+        CsDiffAt10: raw.CsDiffAt10,
+        DeathsPre10: raw.DeathsPre10,
         SoloKills: 0, // TODO: Add solo kills calculation
         DamageShare: (double)raw.DamageShare,
         KillParticipation: (double)raw.KillParticipation,

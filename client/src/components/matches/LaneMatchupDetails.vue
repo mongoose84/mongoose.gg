@@ -1,14 +1,14 @@
 <template>
   <div class="lane-matchup-details">
-    <!-- Phase 1: Laning (0-15m) -->
+    <!-- Phase 1: Early Laning (0-10m) -->
     <div class="phase-section">
-      <h4 class="phase-title">🏰 Laning Phase (0-15m)</h4>
+      <h4 class="phase-title">🏰 Early Laning (0-10m)</h4>
       <div class="stats-grid">
         <div class="stat-row">
           <span class="stat-label">Gold Diff</span>
           <div class="stat-comparison">
             <span class="stat-value ally" :class="goldDiffSentiment">
-              {{ formatGoldDiff(matchup.allyParticipant.goldDiffAt15, { useLocale: true }) }}
+              {{ formatGoldDiff(matchup.allyParticipant.goldDiffAt10, { useLocale: true }) }}
             </span>
             <div class="diff-bar-wrapper">
               <div class="diff-bar ally" :style="{ width: allyGoldBarWidth + '%' }"></div>
@@ -20,8 +20,16 @@
           <span class="stat-label">CS Diff</span>
           <div class="stat-comparison">
             <span class="stat-value" :class="csDiffSentiment">
-              {{ formatCsDiff(matchup.allyParticipant.csDiffAt15) }}
+              {{ formatCsDiff(matchup.allyParticipant.csDiffAt10) }}
             </span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Deaths</span>
+          <div class="stat-comparison">
+            <span class="stat-value ally">{{ matchup.allyParticipant.deathsPre10 ?? 0 }}</span>
+            <span class="vs-separator">vs</span>
+            <span class="stat-value enemy">{{ matchup.enemyParticipant.deathsPre10 ?? 0 }}</span>
           </div>
         </div>
       </div>
@@ -76,12 +84,13 @@ const props = defineProps({
   }
 })
 
-const goldDiff = computed(() => props.matchup.allyParticipant.goldDiffAt15 || 0)
-const csDiff = computed(() => props.matchup.allyParticipant.csDiffAt15 || 0)
+const goldDiff = computed(() => props.matchup.allyParticipant.goldDiffAt10 || 0)
+const csDiff = computed(() => props.matchup.allyParticipant.csDiffAt10 || 0)
 
 const goldDiffSentiment = computed(() => {
-  if (goldDiff.value >= 500) return 'positive'
-  if (goldDiff.value <= -500) return 'negative'
+  // Use 300g threshold for 10-minute checkpoint (lower than 15m threshold)
+  if (goldDiff.value >= 300) return 'positive'
+  if (goldDiff.value <= -300) return 'negative'
   return 'neutral'
 })
 

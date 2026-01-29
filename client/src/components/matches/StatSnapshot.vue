@@ -1,13 +1,12 @@
 <template>
-  <div class="stat-snapshot" :class="{ expanded }">
-    <button type="button" class="section-header" @click="expanded = !expanded">
+  <div class="stat-snapshot">
+    <div class="section-header">
       <span class="header-left">
         <h3 class="section-title">Personal Stats</h3>
         <span class="stat-count">{{ stats.length }} metrics</span>
       </span>
-      <span class="expand-icon">{{ expanded ? '▼' : '▶' }}</span>
-    </button>
-    <div v-if="expanded" class="stats-grid">
+    </div>
+    <div class="stats-grid">
       <div class="stat-item" v-for="stat in stats" :key="stat.label" :class="stat.trend">
         <div class="stat-header">
           <span class="stat-label">{{ stat.label }}</span>
@@ -25,16 +24,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { trackSectionToggle } from '../../services/analyticsApi'
+import { computed } from 'vue'
 import { formatNumber } from '@/utils/formatters'
-
-const expanded = ref(false)
-
-// Track when section is expanded/collapsed
-watch(expanded, (isExpanded) => {
-  trackSectionToggle('personal_stats', isExpanded)
-})
 
 const props = defineProps({
   match: {
@@ -117,12 +108,6 @@ const stats = computed(() => {
 
   return [
     {
-      label: 'KDA',
-      value: `${m.kills}/${m.deaths}/${m.assists}`,
-      trend: null,
-      comparison: null
-    },
-    {
       label: 'KDA Ratio',
       value: kda.toFixed(2),
       trend: b ? getTrend(kda, b.avgKda, 0.15) : null,
@@ -135,12 +120,6 @@ const stats = computed(() => {
       comparison: b ? getComparison(m.killParticipation, b.avgKillParticipation, 5, 'int') : null
     },
     {
-      label: 'Deaths <10m',
-      value: m.deathsPre10.toString(),
-      trend: m.deathsPre10 === 0 ? 'up' : m.deathsPre10 >= 2 ? 'down' : null,
-      comparison: m.deathsPre10 === 0 ? 'Clean early game' : null
-    },
-    {
       label: 'Damage Dealt',
       value: formatNumber(m.damageDealt),
       trend: b ? getTrendDurationAdjusted(m.damageDealt, b.avgDamageDealt, 0.15) : null,
@@ -151,6 +130,12 @@ const stats = computed(() => {
       value: `${m.damageShare.toFixed(0)}%`,
       trend: m.damageShare >= 25 ? 'up' : m.damageShare < 15 ? 'down' : null,
       comparison: m.damageShare >= 25 ? 'Carry performance' : null
+    },
+    {
+      label: 'Dmg Taken',
+      value: formatNumber(m.damageTaken),
+      trend: b ? getTrendDurationAdjusted(m.damageTaken, b.avgDamageTaken, 0.15) : null,
+      comparison: b ? getComparisonDurationAdjusted(m.damageTaken, b.avgDamageTaken, 10, 'pct') : null
     },
     {
       label: 'CS',
@@ -181,12 +166,6 @@ const stats = computed(() => {
       value: m.visionScore.toString(),
       trend: b ? getTrendDurationAdjusted(m.visionScore, b.avgVisionScore, 0.15) : null,
       comparison: b ? getComparisonDurationAdjusted(m.visionScore, b.avgVisionScore, 3, 'int') : null
-    },
-    {
-      label: 'Dmg Taken',
-      value: formatNumber(m.damageTaken),
-      trend: b ? getTrendDurationAdjusted(m.damageTaken, b.avgDamageTaken, 0.15) : null,
-      comparison: b ? getComparisonDurationAdjusted(m.damageTaken, b.avgDamageTaken, 10, 'pct') : null
     }
   ]
 })
@@ -200,15 +179,6 @@ const stats = computed(() => {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
-}
-
-.stat-snapshot:hover {
-  border-color: var(--color-text-secondary);
-}
-
-.stat-snapshot.expanded {
-  border-color: var(--color-primary);
 }
 
 .section-header {
@@ -217,10 +187,6 @@ const stats = computed(() => {
   justify-content: space-between;
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
 }
 
 .header-left {
@@ -241,14 +207,9 @@ const stats = computed(() => {
   color: var(--color-text-secondary);
 }
 
-.expand-icon {
-  font-size: 10px;
-  color: var(--color-text-secondary);
-}
-
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--spacing-xs);
   padding: var(--spacing-md);
   border-top: 1px solid var(--color-border);

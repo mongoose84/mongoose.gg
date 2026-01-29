@@ -428,7 +428,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
     }
 
     /// <summary>
-    /// Gets all 10 participants for a match with their metrics and 15-minute checkpoints.
+    /// Gets all 10 participants for a match with their metrics and 10-minute checkpoints.
     /// Used for the Match Narrative feature to show lane matchups.
     /// </summary>
     public async Task<IList<MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId)
@@ -450,13 +450,14 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 COALESCE(pm.kill_participation_pct, 0) as kill_participation,
                 COALESCE(pm.damage_share_pct, 0) as damage_share,
                 COALESCE(pm.vision_score, 0) as vision_score,
-                pc15.gold as gold_at_15,
-                pc15.cs as cs_at_15,
-                pc15.gold_diff_vs_lane as gold_diff_at_15,
-                pc15.cs_diff_vs_lane as cs_diff_at_15
+                COALESCE(pm.deaths_pre_10, 0) as deaths_pre_10,
+                pc10.gold as gold_at_10,
+                pc10.cs as cs_at_10,
+                pc10.gold_diff_vs_lane as gold_diff_at_10,
+                pc10.cs_diff_vs_lane as cs_diff_at_10
             FROM participants p
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
-            LEFT JOIN participant_checkpoints pc15 ON pc15.participant_id = p.id AND pc15.minute_mark = 15
+            LEFT JOIN participant_checkpoints pc10 ON pc10.participant_id = p.id AND pc10.minute_mark = 10
             WHERE p.match_id = @match_id
             ORDER BY p.team_id,
                 CASE p.role
@@ -487,9 +488,10 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         KillParticipation: r.GetDecimal(12),
         DamageShare: r.GetDecimal(13),
         VisionScore: r.GetInt32(14),
-        GoldAt15: r.IsDBNull(15) ? null : r.GetInt32(15),
-        CsAt15: r.IsDBNull(16) ? null : r.GetInt32(16),
-        GoldDiffAt15: r.IsDBNull(17) ? null : r.GetInt32(17),
-        CsDiffAt15: r.IsDBNull(18) ? null : r.GetInt32(18)
+        DeathsPre10: r.GetInt32(15),
+        GoldAt10: r.IsDBNull(16) ? null : r.GetInt32(16),
+        CsAt10: r.IsDBNull(17) ? null : r.GetInt32(17),
+        GoldDiffAt10: r.IsDBNull(18) ? null : r.GetInt32(18),
+        CsDiffAt10: r.IsDBNull(19) ? null : r.GetInt32(19)
     );
 }
