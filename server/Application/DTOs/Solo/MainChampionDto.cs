@@ -19,7 +19,8 @@ public static class MainChampionDto
         [property: JsonPropertyName("winRate")] double WinRate,
         [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
         [property: JsonPropertyName("wins")] int Wins,
-        [property: JsonPropertyName("losses")] int Losses
+        [property: JsonPropertyName("losses")] int Losses,
+        [property: JsonPropertyName("mScore")] double MScore
     );
 }
 

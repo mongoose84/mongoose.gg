@@ -77,6 +77,10 @@ public static class MainChampionRecommender
             s.AvgGoldDiff15, s.AvgDeathsPre10, s.AvgVisionPerMin,
             normalizedRole);
 
+        // Convert score to 0-100 scale for display (M-Score)
+        // Score ranges from 0 to 1, so multiply by 100 and round
+        var mScore = Math.Round(score * 100, 1);
+
         var entry = new MainChampionEntry(
             ChampionName: s.ChampionName,
             ChampionId: s.ChampionId,
@@ -84,7 +88,8 @@ public static class MainChampionRecommender
             WinRate: winRate,
             GamesPlayed: games,
             Wins: wins,
-            Losses: losses
+            Losses: losses,
+            MScore: mScore
         );
 
         return (entry, score);

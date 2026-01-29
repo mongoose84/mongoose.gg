@@ -43,8 +43,8 @@
               class="trump-card relative flex flex-col rounded-xl overflow-hidden border-2 transition-all duration-200"
               :class="[
                 index === 0
-                  ? 'border-primary shadow-lg shadow-primary/20'
-                  : 'border-border hover:border-primary/50 hover:shadow-md'
+                  ? 'trump-card-featured border-primary shadow-lg shadow-primary/20'
+                  : 'trump-card-standard border-border hover:border-primary/50 hover:shadow-md'
               ]"
             >
               <!-- Card header with champion image -->
@@ -66,6 +66,7 @@
                 >
                   #{{ index + 1 }}
                 </div>
+
                 <img
                   class="w-24 h-24 rounded-lg object-cover shadow-xl"
                   :class="index === 0 ? 'ring-2 ring-primary ring-offset-2 ring-offset-transparent' : ''"
@@ -125,6 +126,23 @@
                     ></div>
                   </div>
                   <span class="stat-value text-text">{{ champion.gamesPlayed }}</span>
+                </div>
+
+                <!-- M-Score -->
+                <div class="stat-row mscore-stat-row group relative">
+                  <span class="stat-label">M-Score</span>
+                  <div class="stat-bar-container">
+                    <div
+                      class="stat-bar"
+                      :class="getMScoreBarClass(champion.mScore)"
+                      :style="{ width: `${Math.min(champion.mScore, 100)}%` }"
+                    ></div>
+                  </div>
+                  <span :class="['stat-value', getMScoreTextClass(champion.mScore)]">{{ formatMScore(champion.mScore) }}</span>
+                  <!-- Inline tooltip on hover -->
+                  <div class="stat-row-tooltip">
+                    Composite rating based on win rate, sample size, laning performance, and KDA. Higher = better pick.
+                  </div>
                 </div>
               </div>
 
@@ -380,6 +398,30 @@ function getWinRateBarClass(winRate) {
   if (winRate >= 45) return 'bg-[#f97316]'
   return 'bg-error'
 }
+
+// Format M-Score for display
+function formatMScore(score) {
+  if (score == null) return '—'
+  return Math.round(score)
+}
+
+// Get bar color class for M-Score stat row
+function getMScoreBarClass(score) {
+  if (score == null) return 'bg-[rgba(255,255,255,0.2)]'
+  if (score >= 70) return 'bg-success'
+  if (score >= 50) return 'bg-[#84cc16]'
+  if (score >= 30) return 'bg-[#eab308]'
+  return 'bg-error'
+}
+
+// Get text color class for M-Score value
+function getMScoreTextClass(score) {
+  if (score == null) return 'text-text-secondary'
+  if (score >= 70) return 'text-success'
+  if (score >= 50) return 'text-[#84cc16]'
+  if (score >= 30) return 'text-[#eab308]'
+  return 'text-error'
+}
 </script>
 
 <style>
@@ -433,6 +475,49 @@ function getWinRateBarClass(winRate) {
   text-align: right;
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+/* M-Score stat row with tooltip */
+.mscore-stat-row {
+  cursor: help;
+}
+
+.stat-row-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  padding: 8px 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.625rem;
+  color: var(--color-text-secondary);
+  white-space: normal;
+  width: max-content;
+  max-width: 200px;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 50;
+}
+
+.stat-row-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-border);
+}
+
+.mscore-stat-row:hover .stat-row-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Matchup tooltip styles */
