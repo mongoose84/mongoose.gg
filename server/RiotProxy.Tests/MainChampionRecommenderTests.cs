@@ -8,12 +8,13 @@ namespace RiotProxy.Tests;
 public class MainChampionRecommenderTests
 {
     // Helper to create ChampionRoleStats with default early-game values
+    // Early-game stats are nullable - null means no data available
     private static MainChampionRecommender.ChampionRoleStats CreateStats(
         string role, int championId, string championName,
         int gamesPlayed, int wins,
         double avgGoldPerMin = 350.0, double avgCs = 150.0,
         double avgKills = 5.0, double avgDeaths = 3.0, double avgAssists = 4.0,
-        double avgGoldDiff15 = 0.0, double avgDeathsPre10 = 1.0, double avgVisionPerMin = 0.8)
+        double? avgGoldDiff15 = 0.0, double? avgDeathsPre10 = 1.0, double? avgVisionPerMin = 0.8)
     {
         return new MainChampionRecommender.ChampionRoleStats(
             role, championId, championName, gamesPlayed, wins,
@@ -146,6 +147,30 @@ public class MainChampionRecommenderTests
         support.Champions.Should().HaveCount(2);
         // Thresh (high vision) should rank higher for support role
         support.Champions[0].ChampionId.Should().Be(1, "Support should value vision over gold diff");
+    }
+
+    [Fact]
+    public void Missing_laning_data_uses_neutral_score_not_best_score()
+    {
+        // This tests that null early-game data (no metrics populated) doesn't
+        // artificially inflate scores like defaulting to 0 deaths would
+        var stats = new[]
+        {
+            // Champion with laning data: genuinely 0 deaths pre-10 (excellent)
+            CreateStats("MID", 1, "Ahri", gamesPlayed: 20, wins: 12,
+                avgGoldDiff15: 200, avgDeathsPre10: 0, avgVisionPerMin: 0.8),
+            // Champion without laning data: null values (should use neutral scores)
+            CreateStats("MID", 2, "Syndra", gamesPlayed: 20, wins: 12,
+                avgGoldDiff15: null, avgDeathsPre10: null, avgVisionPerMin: null)
+        };
+
+        var result = MainChampionRecommender.BuildMainChampionsByRole(stats);
+
+        var mid = result.Single();
+        mid.Champions.Should().HaveCount(2);
+        // Ahri (with genuine 0 deaths = excellent laning) should rank higher
+        // than Syndra (missing data = neutral score)
+        mid.Champions[0].ChampionId.Should().Be(1, "Champion with genuine 0 deaths should beat champion with missing data");
     }
 }
 

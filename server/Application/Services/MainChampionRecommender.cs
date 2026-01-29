@@ -21,10 +21,10 @@ public static class MainChampionRecommender
         double AvgKills,
         double AvgDeaths,
         double AvgAssists,
-        // Early-game laning stats
-        double AvgGoldDiff15,      // Average gold difference vs lane opponent at 15 min
-        double AvgDeathsPre10,     // Average deaths before 10 minutes
-        double AvgVisionPerMin     // Average vision score per minute (important for support)
+        // Early-game laning stats (nullable - null means no data available)
+        double? AvgGoldDiff15,      // Average gold difference vs lane opponent at 15 min
+        double? AvgDeathsPre10,     // Average deaths before 10 minutes
+        double? AvgVisionPerMin     // Average vision score per minute (important for support)
     );
 
     private const int MaxChampionsPerRole = 3;
@@ -123,7 +123,7 @@ public static class MainChampionRecommender
     private static double ComputeRecommendedScore(
         double winRatePercent, int games,
         double avgKills, double avgDeaths, double avgAssists,
-        double avgGoldDiff15, double avgDeathsPre10, double avgVisionPerMin,
+        double? avgGoldDiff15, double? avgDeathsPre10, double? avgVisionPerMin,
         string role)
     {
         // === Confidence Factor ===
@@ -146,11 +146,21 @@ public static class MainChampionRecommender
 
         // === Laning Score ===
         // Composed of role-specific early-game metrics
+        // Returns null if no early-game data is available
         var laningScore = ComputeLaningScore(role, avgGoldDiff15, avgDeathsPre10, avgVisionPerMin);
 
         // === Performance Score ===
-        // Weighted combination of all performance metrics
-        var performanceScore = 0.50 * winRateNorm + 0.30 * laningScore + 0.20 * kdaNorm;
+        // If laning data is missing, use only win rate and KDA (reweight to 60/40)
+        double performanceScore;
+        if (laningScore.HasValue)
+        {
+            performanceScore = 0.50 * winRateNorm + 0.30 * laningScore.Value + 0.20 * kdaNorm;
+        }
+        else
+        {
+            // No laning data: fall back to win rate (60%) + KDA (40%)
+            performanceScore = 0.60 * winRateNorm + 0.40 * kdaNorm;
+        }
 
         // Final score: Performance multiplied by confidence
         // This ensures that a 1-game 100% winrate champion (~0.25 confidence)
@@ -160,23 +170,42 @@ public static class MainChampionRecommender
 
     /// <summary>
     /// Computes a normalized laning score [0,1] based on role-specific metrics.
+    /// Returns null if no early-game data is available (all inputs are null).
+    /// Missing individual metrics use neutral values (0.5) to avoid inflating scores.
     /// </summary>
-    private static double ComputeLaningScore(
+    private static double? ComputeLaningScore(
         string role,
-        double avgGoldDiff15,
-        double avgDeathsPre10,
-        double avgVisionPerMin)
+        double? avgGoldDiff15,
+        double? avgDeathsPre10,
+        double? avgVisionPerMin)
     {
+        // If all early-game stats are missing, return null (no laning data)
+        if (!avgGoldDiff15.HasValue && !avgDeathsPre10.HasValue && !avgVisionPerMin.HasValue)
+        {
+            return null;
+        }
+
+        // For missing individual metrics, use neutral value (0.5)
+        // This prevents missing data from inflating or deflating the score
+        const double neutralScore = 0.5;
+
         // Gold diff @15: Normalize from [-1500, +1500] to [0, 1]
         // Being 1500+ gold ahead is excellent, 1500+ behind is terrible
-        var goldDiff15Norm = Math.Clamp((avgGoldDiff15 + 1500.0) / 3000.0, 0.0, 1.0);
+        var goldDiff15Norm = avgGoldDiff15.HasValue
+            ? Math.Clamp((avgGoldDiff15.Value + 1500.0) / 3000.0, 0.0, 1.0)
+            : neutralScore;
 
         // Deaths pre-10: 0 is best, 3+ is bad → invert to [0, 1]
         // 0 deaths = 1.0, 3+ deaths = 0.0
-        var earlyDeathsNorm = Math.Clamp(1.0 - (avgDeathsPre10 / 3.0), 0.0, 1.0);
+        // IMPORTANT: null means "no data", not "0 deaths" - use neutral score
+        var earlyDeathsNorm = avgDeathsPre10.HasValue
+            ? Math.Clamp(1.0 - (avgDeathsPre10.Value / 3.0), 0.0, 1.0)
+            : neutralScore;
 
         // Vision per min: 1.5+ is excellent for supports, normalize to [0, 1]
-        var visionNorm = Math.Clamp(avgVisionPerMin / 1.5, 0.0, 1.0);
+        var visionNorm = avgVisionPerMin.HasValue
+            ? Math.Clamp(avgVisionPerMin.Value / 1.5, 0.0, 1.0)
+            : neutralScore;
 
         // Role-specific weighting
         return role.ToUpperInvariant() switch

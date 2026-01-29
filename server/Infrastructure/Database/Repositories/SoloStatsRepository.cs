@@ -300,10 +300,11 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
                         var avgKills = reader.IsDBNull(7) ? 0 : reader.GetDouble(7);
                         var avgDeaths = reader.IsDBNull(8) ? 0 : reader.GetDouble(8);
                         var avgAssists = reader.IsDBNull(9) ? 0 : reader.GetDouble(9);
-                        // New early-game stats (default to 0 if NULL - no checkpoint/metrics data)
-                        var avgGoldDiff15 = reader.IsDBNull(10) ? 0 : reader.GetDouble(10);
-                        var avgDeathsPre10 = reader.IsDBNull(11) ? 0 : reader.GetDouble(11);
-                        var avgVisionPerMin = reader.IsDBNull(12) ? 0 : reader.GetDouble(12);
+                        // New early-game stats (null if no checkpoint/metrics data available)
+                        // Using null distinguishes "no data" from "genuinely 0" (e.g., 0 deaths is excellent, not missing)
+                        double? avgGoldDiff15 = reader.IsDBNull(10) ? null : reader.GetDouble(10);
+                        double? avgDeathsPre10 = reader.IsDBNull(11) ? null : reader.GetDouble(11);
+                        double? avgVisionPerMin = reader.IsDBNull(12) ? null : reader.GetDouble(12);
 
                         rows.Add(new MainChampionRecommender.ChampionRoleStats(
                             role, champId, champName, games, wins,
