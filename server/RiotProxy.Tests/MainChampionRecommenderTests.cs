@@ -148,5 +148,67 @@ public class MainChampionRecommenderTests
         // than Syndra (missing data = neutral score)
         mid.Champions[0].ChampionId.Should().Be(1, "Champion with genuine 0 deaths should beat champion with missing data");
     }
+
+    [Fact]
+    public void MScore_is_scaled_to_0_100_range()
+    {
+        // Test that MScore output is properly scaled to 0-100 range
+        var stats = new[]
+        {
+            // Strong performer: should have high MScore
+            CreateStats("TOP", 1, "Garen", gamesPlayed: 20, wins: 16,
+                avgKills: 8.0, avgDeaths: 2.0, avgAssists: 10.0,
+                avgGoldDiff15: 500, avgDeathsPre10: 0.5, avgVisionPerMin: 1.0),
+            // Weak performer: should have low MScore
+            CreateStats("TOP", 2, "Teemo", gamesPlayed: 20, wins: 4,
+                avgKills: 2.0, avgDeaths: 8.0, avgAssists: 3.0,
+                avgGoldDiff15: -500, avgDeathsPre10: 3.0, avgVisionPerMin: 0.3)
+        };
+
+        var result = MainChampionRecommender.BuildMainChampionsByRole(stats);
+
+        var top = result.Single();
+        foreach (var champion in top.Champions)
+        {
+            champion.MScore.Should().BeGreaterThanOrEqualTo(0, $"{champion.ChampionName} MScore should be >= 0");
+            champion.MScore.Should().BeLessThanOrEqualTo(100, $"{champion.ChampionName} MScore should be <= 100");
+        }
+
+        // Strong performer should have higher MScore than weak performer
+        var garen = top.Champions.Single(c => c.ChampionId == 1);
+        var teemo = top.Champions.Single(c => c.ChampionId == 2);
+        garen.MScore.Should().BeGreaterThan(teemo.MScore, "Strong performer should have higher MScore");
+    }
+
+    [Fact]
+    public void MScore_is_reduced_by_confidence_for_low_game_counts()
+    {
+        // Test that low game counts result in lower MScore due to confidence factor
+        var stats = new[]
+        {
+            // Single game with perfect stats
+            CreateStats("MID", 1, "Zed", gamesPlayed: 1, wins: 1,
+                avgKills: 15.0, avgDeaths: 0.0, avgAssists: 10.0,
+                avgGoldDiff15: 1000, avgDeathsPre10: 0, avgVisionPerMin: 1.0),
+            // Many games with good (but not perfect) stats
+            CreateStats("MID", 2, "Yasuo", gamesPlayed: 30, wins: 20,
+                avgKills: 7.0, avgDeaths: 3.0, avgAssists: 6.0,
+                avgGoldDiff15: 300, avgDeathsPre10: 0.8, avgVisionPerMin: 0.7)
+        };
+
+        var result = MainChampionRecommender.BuildMainChampionsByRole(stats);
+
+        var mid = result.Single();
+        var zed = mid.Champions.Single(c => c.ChampionId == 1);
+        var yasuo = mid.Champions.Single(c => c.ChampionId == 2);
+
+        // Despite perfect stats, Zed's MScore should be capped by low confidence
+        // Yasuo with 30 games should have higher MScore due to full confidence
+        yasuo.MScore.Should().BeGreaterThan(zed.MScore,
+            "30 games with good stats should have higher MScore than 1 game with perfect stats");
+
+        // Zed's MScore should still be positive (not zero)
+        zed.MScore.Should().BeGreaterThan(0, "Single game champion should still have positive MScore");
+    }
 }
 

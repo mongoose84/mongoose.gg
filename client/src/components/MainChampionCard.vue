@@ -103,11 +103,11 @@
                     <div class="flex-1 h-1.5 rounded-full bg-[rgba(255,255,255,0.1)] overflow-hidden flex">
                       <div
                         class="h-full bg-success"
-                        :style="{ width: `${(champion.wins / champion.gamesPlayed) * 100}%` }"
+                        :style="{ width: `${champion.gamesPlayed > 0 ? (champion.wins / champion.gamesPlayed) * 100 : 0}%` }"
                       ></div>
                       <div
                         class="h-full bg-error"
-                        :style="{ width: `${(champion.losses / champion.gamesPlayed) * 100}%` }"
+                        :style="{ width: `${champion.gamesPlayed > 0 ? (champion.losses / champion.gamesPlayed) * 100 : 0}%` }"
                       ></div>
                     </div>
                   </div>
@@ -135,7 +135,7 @@
                     <div
                       class="stat-bar"
                       :class="getMScoreBarClass(champion.mScore)"
-                      :style="{ width: `${Math.min(champion.mScore, 100)}%` }"
+                      :style="{ width: `${Math.min(champion.mScore ?? 0, 100)}%` }"
                     ></div>
                   </div>
                   <span :class="['stat-value', getMScoreTextClass(champion.mScore)]">{{ formatMScore(champion.mScore) }}</span>
