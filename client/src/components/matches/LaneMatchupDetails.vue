@@ -8,7 +8,7 @@
           <span class="stat-label">Gold Diff</span>
           <div class="stat-comparison">
             <span class="stat-value ally" :class="goldDiffSentiment">
-              {{ formatGoldDiff(matchup.allyParticipant.goldDiffAt15) }}
+              {{ formatGoldDiff(matchup.allyParticipant.goldDiffAt15, { useLocale: true }) }}
             </span>
             <div class="diff-bar-wrapper">
               <div class="diff-bar ally" :style="{ width: allyGoldBarWidth + '%' }"></div>
@@ -67,6 +67,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { formatGoldDiff, formatCsDiff, formatPercent } from '@/utils/formatters'
 
 const props = defineProps({
   matchup: {
@@ -124,22 +125,6 @@ const contextualInsight = computed(() => {
   return `Even lane matchup. Both players had similar impact on the game.`
 })
 
-function formatGoldDiff(diff) {
-  if (diff === null || diff === undefined) return 'N/A'
-  const sign = diff >= 0 ? '+' : ''
-  return `${sign}${diff.toLocaleString()}`
-}
-
-function formatCsDiff(diff) {
-  if (diff === null || diff === undefined) return 'N/A'
-  const sign = diff >= 0 ? '+' : ''
-  return `${sign}${diff} CS`
-}
-
-function formatPercent(value) {
-  // Values from database are already percentages (e.g., 25.50 means 25.50%)
-  return `${value.toFixed(0)}%`
-}
 </script>
 
 <style scoped>

@@ -27,6 +27,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { trackSectionToggle } from '../../services/analyticsApi'
+import { formatNumber } from '@/utils/formatters'
 
 const expanded = ref(false)
 
@@ -190,12 +191,6 @@ const stats = computed(() => {
   ]
 })
 
-function formatNumber(num) {
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'k'
-  }
-  return num.toString()
-}
 </script>
 
 <style scoped>

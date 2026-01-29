@@ -131,6 +131,7 @@
 import { computed, ref, watch } from 'vue'
 import { getWinRateColorClass } from '../composables/useWinRateColor'
 import { getChampionMatchups } from '../services/authApi'
+import { formatRoleWithAdc as roleLabel, formatWinRate, formatLpPerGame } from '@/utils/formatters'
 
 const props = defineProps({
   mainChampions: {
@@ -262,34 +263,11 @@ function getChampionIconUrl(name) {
   return `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${normalized}.png`
 }
 
-function roleLabel(role) {
-  const map = {
-    TOP: 'Top',
-    JUNGLE: 'Jungle',
-    MIDDLE: 'Mid',
-    BOTTOM: 'ADC',
-    UTILITY: 'Support'
-  }
-  return map[role] || role
-}
-
 const championsForSelectedRole = computed(() => {
   if (!selectedRole.value) return []
   const entry = props.mainChampions.find((r) => r.role === selectedRole.value)
   return entry ? entry.champions || [] : []
 })
-
-function formatWinRate(value) {
-  if (value === null || value === undefined || Number.isNaN(value)) return '--'
-  return `${value.toFixed(1)}%`
-}
-
-function formatLpPerGame(value) {
-  if (value === null || value === undefined || Number.isNaN(value)) return '--'
-  const rounded = value.toFixed(1)
-  const sign = value > 0 ? '+' : ''
-  return `${sign}${rounded}`
-}
 </script>
 
 <style scoped>

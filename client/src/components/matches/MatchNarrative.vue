@@ -74,6 +74,7 @@ import { ref, watch, computed } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { getMatchNarrative } from '../../services/authApi'
 import { trackLaneExpand } from '../../services/analyticsApi'
+import { formatRole, formatKdaFromParticipant as formatKda } from '@/utils/formatters'
 import LaneMatchupDetails from './LaneMatchupDetails.vue'
 
 const props = defineProps({
@@ -146,14 +147,7 @@ function getRoleIcon(role) {
   return icons[role] || '❓'
 }
 
-function formatRole(role) {
-  const names = { TOP: 'Top', JUNGLE: 'Jungle', MIDDLE: 'Mid', BOTTOM: 'Bot', UTILITY: 'Support' }
-  return names[role] || role
-}
 
-function formatKda(participant) {
-  return `${participant.kills}/${participant.deaths}/${participant.assists}`
-}
 </script>
 
 <style scoped>

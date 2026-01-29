@@ -48,6 +48,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { formatRole, formatDuration, formatRelativeTime } from '@/utils/formatters'
 
 const props = defineProps({
   match: {
@@ -56,47 +57,7 @@ const props = defineProps({
   }
 })
 
-function formatRole(role) {
-  if (!role) return ''
-  const roleMap = {
-    'TOP': 'Top',
-    'JUNGLE': 'Jungle',
-    'MIDDLE': 'Mid',
-    'MID': 'Mid',
-    'BOTTOM': 'Bot',
-    'ADC': 'Bot',
-    'UTILITY': 'Support',
-    'SUPPORT': 'Support',
-    'NONE': '',
-    'UNKNOWN': ''
-  }
-  return roleMap[role.toUpperCase()] || role
-}
-
-function formatDuration(seconds) {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
-
-const relativeTime = computed(() => {
-  if (!props.match.gameStartTime) return ''
-
-  const now = Date.now()
-  const matchTime = props.match.gameStartTime
-  const diffMs = now - matchTime
-  const diffSec = Math.floor(diffMs / 1000)
-  const diffMin = Math.floor(diffSec / 60)
-  const diffHour = Math.floor(diffMin / 60)
-  const diffDay = Math.floor(diffHour / 24)
-  const diffWeek = Math.floor(diffDay / 7)
-
-  if (diffMin < 1) return 'Just now'
-  if (diffMin < 60) return `${diffMin} min ago`
-  if (diffHour < 24) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`
-  if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`
-  return `${diffWeek} week${diffWeek > 1 ? 's' : ''} ago`
-})
+const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime))
 </script>
 
 <style scoped>

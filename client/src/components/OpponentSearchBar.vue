@@ -77,6 +77,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getWinRateColorClass } from '../composables/useWinRateColor'
+import { formatRoleWithAdc as roleLabel, formatWinRate } from '@/utils/formatters'
 
 const props = defineProps({
   matchups: {
@@ -161,16 +162,6 @@ function normalizeChampionName(name) {
 function getChampionIconUrl(name) {
   const normalized = normalizeChampionName(name)
   return `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${normalized}.png`
-}
-
-function roleLabel(role) {
-  const map = { TOP: 'Top', JUNGLE: 'Jungle', MIDDLE: 'Mid', BOTTOM: 'ADC', UTILITY: 'Support', UNKNOWN: 'Fill' }
-  return map[role] || role
-}
-
-function formatWinRate(value) {
-  if (value === null || value === undefined || Number.isNaN(value)) return '--'
-  return `${value.toFixed(1)}%`
 }
 </script>
 

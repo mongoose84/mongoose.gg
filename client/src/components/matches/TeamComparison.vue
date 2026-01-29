@@ -66,6 +66,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { formatNumber, formatGoldDiff as formatGoldLead } from '@/utils/formatters'
 
 const props = defineProps({
   match: {
@@ -76,10 +77,10 @@ const props = defineProps({
 
 // Damage bar percentages
 const totalDamage = computed(() => props.match.teamTotalDamage + props.match.enemyTeamTotalDamage)
-const teamDamagePercent = computed(() => 
+const teamDamagePercent = computed(() =>
   totalDamage.value > 0 ? (props.match.teamTotalDamage / totalDamage.value) * 100 : 50
 )
-const enemyDamagePercent = computed(() => 
+const enemyDamagePercent = computed(() =>
   totalDamage.value > 0 ? (props.match.enemyTeamTotalDamage / totalDamage.value) * 100 : 50
 )
 
@@ -92,19 +93,6 @@ const enemyHasGoldLead = computed(() => {
   const gold = props.match.teamGoldLeadAt15
   return gold !== null && gold !== undefined && gold < 0
 })
-
-// Formatters
-const formatNumber = (num) => {
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
-  return num?.toString() ?? '0'
-}
-
-const formatGoldLead = (gold) => {
-  if (gold === null || gold === undefined) return 'N/A'
-  const sign = gold >= 0 ? '+' : ''
-  if (Math.abs(gold) >= 1000) return sign + (gold / 1000).toFixed(1) + 'k'
-  return sign + gold
-}
 </script>
 
 <style scoped>
