@@ -32,7 +32,7 @@
     <nav class="flex-1 py-md overflow-y-auto overflow-x-hidden" :class="{ 'overflow-visible': isCollapsed }">
       <router-link
         to="/app/overview"
-        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Overview' : ''"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
@@ -43,7 +43,7 @@
 
       <router-link
         to="/app/champion-select"
-        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Champion Select' : ''"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
@@ -54,7 +54,7 @@
 
       <router-link
         to="/app/matches"
-        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Matches' : ''"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
@@ -90,9 +90,9 @@
       <!-- Collapsed: show popout menu using HeadlessUI Popover -->
       <Popover v-else class="relative mb-xs" data-testid="nav-section-analysis">
         <PopoverButton
-          class="flex items-center justify-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text w-[calc(100%-1rem)] focus:outline-none"
+          class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text w-[calc(100%-1rem)] focus:outline-none"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
             <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
           </svg>
         </PopoverButton>
@@ -119,16 +119,13 @@
 
       <router-link
         to="/app/goals"
-        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :class="{ 'justify-center': isCollapsed }"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Goals' : ''"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
         </svg>
-        <Transition name="fade">
-          <span v-if="!isCollapsed" class="text-sm font-medium tracking-tight">Goals</span>
-        </Transition>
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Goals</span>
       </router-link>
     </nav>
 
@@ -137,12 +134,11 @@
       <router-link
         to="/app/user"
         class="user-item flex items-center gap-md p-md mx-sm text-text no-underline rounded-md transition-all duration-200 whitespace-nowrap hover:bg-background-elevated"
-        :class="{ 'justify-center': isCollapsed }"
         :title="isCollapsed ? (hasLinkedAccount ? riotAccountName : username) : ''"
       >
         <!-- Profile Icon with Level Badge -->
         <div
-          class="relative rounded-full overflow-visible bg-background-surface flex items-center justify-center shrink-0 border-2 border-primary"
+          class="relative rounded-full overflow-visible bg-background-surface flex items-center justify-center shrink-0 border-2 border-primary transition-[width,height] duration-300 ease-out"
           :class="isCollapsed ? 'w-11 h-11' : 'w-[52px] h-[52px]'"
         >
           <img
@@ -287,6 +283,17 @@ function handleLinkedIconError() {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Nav item transitions - only for hover states, not layout */
+.nav-item {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Nav label smooth hide/show - synced with sidebar width transition */
+.nav-label {
+  opacity: 1;
+  transition: opacity 0.15s ease-out;
 }
 
 /* Router-link-active state styles */
