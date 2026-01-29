@@ -99,12 +99,29 @@ public class SmtpEmailService : IEmailService
             using var mailMessage = new MailMessage
             {
                 From = new MailAddress(fromEmail, fromName),
-                Subject = "Verify your Mongoose.gg email",
-                Body = BuildEmailBody(username, verificationCode),
-                IsBodyHtml = true
+                Subject = "Verify your Mongoose.gg email"
             };
 
             mailMessage.To.Add(toEmail);
+
+            // Build HTML body and attach logo as linked resource for Gmail compatibility
+            var logoPath = GetLogoPath();
+            var hasLogo = !string.IsNullOrEmpty(logoPath);
+            var htmlBody = BuildEmailBody(username, verificationCode, hasLogo);
+
+            var htmlView = AlternateView.CreateAlternateViewFromString(htmlBody, null, "text/html");
+
+            if (hasLogo)
+            {
+                var logoResource = new LinkedResource(logoPath, new System.Net.Mime.ContentType("image/png"))
+                {
+                    ContentId = "logo",
+                    TransferEncoding = System.Net.Mime.TransferEncoding.Base64
+                };
+                htmlView.LinkedResources.Add(logoResource);
+            }
+
+            mailMessage.AlternateViews.Add(htmlView);
 
             await smtpClient.SendMailAsync(mailMessage);
             _logger.LogInformation("Verification email sent to {Email}", toEmail);
@@ -116,22 +133,19 @@ public class SmtpEmailService : IEmailService
         }
     }
 
-    private string BuildEmailBody(string username, string verificationCode)
+    private string BuildEmailBody(string username, string verificationCode, bool hasLogo)
     {
         // HTML-encode user-controlled data to prevent HTML injection
         var encodedUsername = WebUtility.HtmlEncode(username);
         var encodedCode = WebUtility.HtmlEncode(verificationCode);
 
-        // Load and embed the logo as base64
-        var logoBase64 = GetLogoBase64();
-
-        // Build logo HTML - only include image if we have valid base64 data
-        var logoImageHtml = !string.IsNullOrEmpty(logoBase64)
-            ? $@"<img src=""data:image/png;base64,{logoBase64}"" alt=""Mongoose.gg"" width=""128"" height=""64"" style=""display: block; width: 128px; height: 64px; margin: 0 auto;"" />"
+        // Build logo HTML - use CID reference for Gmail compatibility
+        var logoImageHtml = hasLogo
+            ? @"<img src=""cid:logo"" alt=""Mongoose.gg"" width=""128"" height=""64"" style=""display: block; width: 128px; height: 64px; margin: 0 auto;"" />"
             : "";
 
         // Adjust margin based on whether logo is present
-        var textMarginTop = !string.IsNullOrEmpty(logoBase64) ? "-4px" : "0";
+        var textMarginTop = hasLogo ? "-4px" : "0";
 
         return $@"
 <!DOCTYPE html>
@@ -217,11 +231,11 @@ public class SmtpEmailService : IEmailService
     }
 
     /// <summary>
-    /// Loads the mongoose logo from the filesystem and returns as base64 string.
+    /// Gets the path to the mongoose logo file.
     /// Checks both the assembly output directory and the current working directory.
-    /// Returns empty string if the logo file is not found.
+    /// Returns null if the logo file is not found.
     /// </summary>
-    private string GetLogoBase64()
+    private string? GetLogoPath()
     {
         try
         {
@@ -233,8 +247,7 @@ public class SmtpEmailService : IEmailService
                 var logoPath = Path.Combine(assemblyLocation, "Infrastructure", "Email", "mongoose.png");
                 if (File.Exists(logoPath))
                 {
-                    var bytes = File.ReadAllBytes(logoPath);
-                    return Convert.ToBase64String(bytes);
+                    return logoPath;
                 }
             }
 
@@ -242,17 +255,16 @@ public class SmtpEmailService : IEmailService
             var cwdLogoPath = Path.Combine(Directory.GetCurrentDirectory(), "Infrastructure", "Email", "mongoose.png");
             if (File.Exists(cwdLogoPath))
             {
-                var bytes = File.ReadAllBytes(cwdLogoPath);
-                return Convert.ToBase64String(bytes);
+                return cwdLogoPath;
             }
 
             _logger.LogWarning("Logo file not found at assembly location or current directory");
-            return string.Empty;
+            return null;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load logo file");
-            return string.Empty;
+            _logger.LogWarning(ex, "Failed to find logo file");
+            return null;
         }
     }
 }
