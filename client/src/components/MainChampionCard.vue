@@ -40,11 +40,11 @@
             <article
               v-for="(champion, index) in championsForRole(role)"
               :key="champion.championId"
-              class="trump-card relative flex flex-col rounded-xl overflow-hidden border-2 transition-all duration-200"
+              class="trump-card trump-card-bg relative flex flex-col rounded-xl overflow-hidden border-2 transition-all duration-200"
               :class="[
                 index === 0
-                  ? 'trump-card-featured border-primary shadow-lg shadow-primary/20'
-                  : 'trump-card-standard border-border hover:border-primary/50 hover:shadow-md'
+                  ? 'border-primary shadow-lg shadow-primary/20'
+                  : 'border-border hover:border-primary/50 hover:shadow-md'
               ]"
             >
               <!-- Card header with champion image -->
@@ -432,6 +432,76 @@ function getMScoreTextClass(score) {
 /* Trump card styling */
 .trump-card {
   min-height: 380px;
+  position: relative;
+}
+
+/* Gaming-inspired card background */
+.trump-card-bg {
+  background:
+    /* Subtle diagonal lines */
+    repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 4px
+    ),
+    /* Corner accents */
+    radial-gradient(
+      ellipse at top right,
+      rgba(255, 255, 255, 0.05) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at bottom left,
+      rgba(255, 255, 255, 0.03) 0%,
+      transparent 40%
+    ),
+    /* Hex grid pattern */
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5L55 17.5V42.5L30 55L5 42.5V17.5L30 5z' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1'/%3E%3C/svg%3E"),
+    /* Base gradient */
+    linear-gradient(
+      160deg,
+      rgba(20, 20, 25, 0.95) 0%,
+      rgba(15, 15, 20, 0.98) 50%,
+      rgba(10, 10, 15, 1) 100%
+    );
+  background-size: auto, auto, auto, 60px 60px, auto;
+}
+
+.trump-card-bg:hover {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 92, 246, 0.02) 2px,
+      rgba(139, 92, 246, 0.02) 4px
+    ),
+    radial-gradient(
+      ellipse at top right,
+      rgba(139, 92, 246, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at bottom left,
+      rgba(139, 92, 246, 0.05) 0%,
+      transparent 40%
+    ),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5L55 17.5V42.5L30 55L5 42.5V17.5L30 5z' fill='none' stroke='rgba(139,92,246,0.05)' stroke-width='1'/%3E%3C/svg%3E"),
+    linear-gradient(
+      160deg,
+      rgba(20, 15, 30, 0.95) 0%,
+      rgba(15, 12, 25, 0.98) 50%,
+      rgba(10, 8, 18, 1) 100%
+    );
+  background-size: auto, auto, auto, 60px 60px, auto;
+}
+
+/* Ensure card content stays above the pseudo-element */
+.trump-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Stat row - Top Trumps style */
