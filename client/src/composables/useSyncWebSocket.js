@@ -254,7 +254,9 @@ export function useSyncWebSocket() {
       // TEMPORARY: Handle rate limited status from Riot API
       // TODO: Remove this once we have a more sophisticated rate limiting UX.
       case 'sync_rate_limited':
-        // Keep syncing status but add a flag to indicate rate limiting
+        // Ensure status is 'syncing' so the UI renders the rate limit message
+        // (rate limit can only occur during an active sync)
+        progress.status = 'syncing'
         progress.isRateLimited = true
         break
 
