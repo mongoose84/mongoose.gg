@@ -1,4 +1,5 @@
 using System.Text.Json;
+using RiotProxy.Infrastructure.Riot.LimitHandler;
 
 namespace RiotProxy.Infrastructure.Riot;
 
@@ -16,7 +17,8 @@ public interface IRiotApiClient : IDisposable
 
     /// <summary>
     /// TEMPORARY: Event raised when rate limiting causes a wait.
+    /// Includes PUUID context to identify which account triggered the rate limit.
     /// TODO: Remove this once we have a more sophisticated rate limiting UX.
     /// </summary>
-    event EventHandler? RateLimitWaitStarted;
+    event EventHandler<RateLimitWaitEventArgs>? RateLimitWaitStarted;
 }
