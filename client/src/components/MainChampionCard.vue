@@ -1,12 +1,13 @@
 <template>
-  <section class="bg-background-surface border border-border rounded-lg p-lg h-full flex flex-col">
+  <section class="bg-background-surface border border-border rounded-lg p-lg h-full flex flex-col backdrop-blur-sm">
     <TabGroup v-if="hasData" :selected-index="selectedTabIndex" @change="handleTabChange" as="div" class="flex-1 flex flex-col">
-      <header class="flex justify-between items-start gap-md mb-md">
-        <div class="flex-1">
-          <h2 class="m-0 text-lg font-semibold text-text">Main Champions by Role</h2>
-          <p class="mt-1 mb-0 text-xs text-text-secondary">Top picks based on your performance in the selected queue and time range.</p>
+      <!-- Header with role tabs -->
+      <header class="flex items-center justify-between gap-md mb-lg">
+        <div>
+          <h2 class="m-0 text-lg font-semibold text-text">Your Champions</h2>
+          <p class="mt-1 mb-0 text-xs text-text-secondary">Top picks based on your performance</p>
         </div>
-        <TabList class="flex flex-wrap gap-sm flex-shrink-0">
+        <TabList class="flex gap-1 p-1 bg-background-elevated rounded-lg border border-border">
           <Tab
             v-for="role in roles"
             :key="role"
@@ -16,10 +17,10 @@
             <button
               type="button"
               :class="[
-                'py-1.5 px-3 rounded-full border text-xs font-medium cursor-pointer transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-surface',
+                'py-1.5 px-3 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 selected
-                  ? 'bg-primary border-primary text-white'
-                  : 'border-border bg-background-elevated text-text-secondary hover:border-primary hover:text-text'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-text-secondary hover:text-text hover:bg-[rgba(255,255,255,0.05)]'
               ]"
             >
               {{ roleLabel(role) }}
@@ -28,114 +29,142 @@
         </TabList>
       </header>
 
-      <TabPanels class="flex-1 flex flex-col">
+      <TabPanels class="flex-1">
         <TabPanel
           v-for="role in roles"
           :key="role"
-          class="flex-1 content-center flex flex-wrap gap-md focus:outline-none"
+          class="focus:outline-none h-full"
         >
-          <article
-            v-for="(champion, index) in championsForRole(role)"
-            :key="champion.championId"
-            class="champion-card flex-[0_0_calc((100%-2*var(--spacing-md))/3)] p-xl rounded-md bg-background-elevated border border-border flex flex-col justify-between gap-lg transition-all duration-150"
-            :class="{ 'border-primary shadow-sm -translate-y-px hover:shadow-md hover:-translate-y-0.5': index === 0 }"
-          >
-            <div class="flex justify-between items-center">
-              <div class="flex items-center gap-sm">
+          <!-- 3 Champion Cards in a row -->
+          <div class="grid grid-cols-3 gap-md h-full">
+            <article
+              v-for="(champion, index) in championsForRole(role)"
+              :key="champion.championId"
+              class="player-card relative flex flex-col rounded-lg overflow-hidden border transition-all duration-200"
+              :class="[
+                index === 0
+                  ? 'bg-gradient-to-b from-primary/15 via-background-elevated to-background-elevated border-primary/40 shadow-md'
+                  : 'bg-background-elevated border-border hover:border-primary/30 hover:shadow-sm'
+              ]"
+            >
+              <!-- Recommended badge for first card -->
+              <div
+                v-if="index === 0"
+                class="absolute top-0 left-0 right-0 py-1 bg-primary text-center text-2xs font-semibold text-white uppercase tracking-wider"
+              >
+                Recommended
+              </div>
+
+              <!-- Champion portrait header -->
+              <div class="relative pt-8 pb-4 px-4 flex flex-col items-center" :class="{ 'pt-10': index === 0 }">
                 <img
-                  class="w-14 h-14 rounded-md object-cover"
+                  class="w-20 h-20 rounded-lg object-cover shadow-lg"
+                  :class="index === 0 ? 'ring-2 ring-primary/60' : 'ring-1 ring-border'"
                   :src="getChampionIconUrl(champion.championName)"
                   :alt="`${champion.championName} icon`"
                 />
-                <div class="flex flex-col gap-1">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-lg font-semibold text-text">{{ champion.championName }}</span>
-                    <span class="text-xs uppercase py-0.5 px-1.5 rounded-sm bg-[rgba(148,163,184,0.2)] text-text-secondary">{{ roleLabel(role) }}</span>
-                  </div>
-                  <span v-if="index === 0" class="text-2xs font-semibold text-primary uppercase tracking-wide">Recommended</span>
-                </div>
-              </div>
-            </div>
-            <div class="flex justify-between gap-md">
-              <div class="flex flex-col gap-1">
-                <span :class="['stat-value text-lg font-bold text-text', getWinRateColorClass(champion.winRate)]">{{ formatWinRate(champion.winRate) }}</span>
-                <span class="text-2xs text-text-secondary">Win Rate</span>
-              </div>
-              <div class="flex flex-col gap-1">
-                <span class="text-lg font-bold text-text">{{ formatLpPerGame(champion.lpPerGame) }}</span>
-                <span class="text-2xs text-text-secondary">LP / game</span>
-              </div>
-              <div class="flex flex-col gap-1">
-                <span class="text-lg font-bold text-text">{{ champion.wins }}-{{ champion.losses }}</span>
-                <span class="text-2xs text-text-secondary">{{ champion.gamesPlayed }} games</span>
-              </div>
-            </div>
-
-            <!-- Matchups Section (always shown) -->
-            <div class="flex gap-lg pt-md border-t border-border">
-              <!-- Good Matchups -->
-              <div class="flex-1">
-                <span class="text-2xs text-text-secondary uppercase tracking-wide mb-xs block">Strong vs</span>
-                <div v-if="getMatchupsForChampion(champion.championId, role).good.length > 0" class="flex gap-xs">
-                  <div
-                    v-for="opponent in getMatchupsForChampion(champion.championId, role).good"
-                    :key="opponent.opponentChampionId"
-                    class="matchup-item flex flex-col items-center gap-0.5 relative"
-                  >
-                    <img
-                      class="w-8 h-8 rounded-md object-cover border border-success"
-                      :src="getChampionIconUrl(opponent.opponentChampionName)"
-                      :alt="opponent.opponentChampionName"
-                    />
-                    <span class="text-2xs font-medium text-success">{{ Math.round(opponent.winRate) }}%</span>
-                    <div class="matchup-tooltip">
-                      <span class="font-medium">{{ opponent.opponentChampionName }}</span>
-                      <span class="text-success">{{ opponent.wins }}W</span>/<span class="text-error">{{ opponent.losses }}L</span>
-                    </div>
-                  </div>
-                </div>
-                <span v-else class="text-2xs text-text-secondary italic h-[52px] flex items-center">Not enough data</span>
+                <h3 class="mt-3 mb-0 text-base font-bold text-text text-center">{{ champion.championName }}</h3>
+                <span class="text-2xs text-text-secondary uppercase tracking-wide">{{ roleLabel(role) }}</span>
               </div>
 
-              <!-- Bad Matchups -->
-              <div class="flex-1">
-                <span class="text-2xs text-text-secondary uppercase tracking-wide mb-xs block">Weak vs</span>
-                <div v-if="getMatchupsForChampion(champion.championId, role).bad.length > 0" class="flex gap-xs">
-                  <div
-                    v-for="opponent in getMatchupsForChampion(champion.championId, role).bad"
-                    :key="opponent.opponentChampionId"
-                    class="matchup-item flex flex-col items-center gap-0.5 relative"
-                  >
-                    <img
-                      class="w-8 h-8 rounded-md object-cover border border-error"
-                      :src="getChampionIconUrl(opponent.opponentChampionName)"
-                      :alt="opponent.opponentChampionName"
-                    />
-                    <span class="text-2xs font-medium text-error">{{ Math.round(opponent.winRate) }}%</span>
-                    <div class="matchup-tooltip">
-                      <span class="font-medium">{{ opponent.opponentChampionName }}</span>
-                      <span class="text-success">{{ opponent.wins }}W</span>/<span class="text-error">{{ opponent.losses }}L</span>
-                    </div>
+              <!-- Stats section -->
+              <div class="px-4 py-3 bg-[rgba(0,0,0,0.2)]">
+                <div class="grid grid-cols-3 gap-2 text-center">
+                  <div class="flex flex-col">
+                    <span :class="['text-lg font-bold', getWinRateColorClass(champion.winRate)]">
+                      {{ formatWinRate(champion.winRate) }}
+                    </span>
+                    <span class="text-2xs text-text-secondary">WR</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-lg font-bold text-text">{{ formatLpPerGame(champion.lpPerGame) }}</span>
+                    <span class="text-2xs text-text-secondary">LP/G</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-lg font-bold text-text">
+                      <span class="text-success">{{ champion.wins }}</span><span class="text-text-secondary">-</span><span class="text-error">{{ champion.losses }}</span>
+                    </span>
+                    <span class="text-2xs text-text-secondary">{{ champion.gamesPlayed }}G</span>
                   </div>
                 </div>
-                <span v-else class="text-2xs text-text-secondary italic h-[52px] flex items-center">Not enough data</span>
               </div>
-            </div>
-          </article>
+
+              <!-- Matchups section -->
+              <div class="flex-1 px-4 py-3 flex flex-col gap-3">
+                <!-- Strong vs -->
+                <div>
+                  <div class="flex items-center gap-1.5 mb-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
+                    <span class="text-2xs text-text-secondary uppercase tracking-wide font-medium">Strong vs</span>
+                  </div>
+                  <div v-if="getMatchupsForChampion(champion.championId, role).good.length > 0" class="flex gap-1.5">
+                    <div
+                      v-for="opponent in getMatchupsForChampion(champion.championId, role).good"
+                      :key="opponent.opponentChampionId"
+                      class="matchup-item relative flex flex-col items-center"
+                    >
+                      <img
+                        class="w-8 h-8 rounded object-cover ring-1 ring-success/40"
+                        :src="getChampionIconUrl(opponent.opponentChampionName)"
+                        :alt="opponent.opponentChampionName"
+                      />
+                      <span class="text-2xs font-medium text-success mt-0.5">{{ Math.round(opponent.winRate) }}%</span>
+                      <span class="text-2xs text-text-secondary">{{ opponent.wins }}-{{ opponent.losses }}</span>
+                      <div class="matchup-tooltip">
+                        <span class="font-medium">{{ opponent.opponentChampionName }}</span>
+                        <span class="text-success">{{ Math.round(opponent.winRate) }}%</span>
+                        <span class="text-text-secondary">({{ opponent.wins }}W-{{ opponent.losses }}L)</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span v-else class="text-2xs text-text-secondary italic">No data yet</span>
+                </div>
+
+                <!-- Weak vs -->
+                <div>
+                  <div class="flex items-center gap-1.5 mb-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                    <span class="text-2xs text-text-secondary uppercase tracking-wide font-medium">Weak vs</span>
+                  </div>
+                  <div v-if="getMatchupsForChampion(champion.championId, role).bad.length > 0" class="flex gap-1.5">
+                    <div
+                      v-for="opponent in getMatchupsForChampion(champion.championId, role).bad"
+                      :key="opponent.opponentChampionId"
+                      class="matchup-item relative flex flex-col items-center"
+                    >
+                      <img
+                        class="w-8 h-8 rounded object-cover ring-1 ring-error/40"
+                        :src="getChampionIconUrl(opponent.opponentChampionName)"
+                        :alt="opponent.opponentChampionName"
+                      />
+                      <span class="text-2xs font-medium text-error mt-0.5">{{ Math.round(opponent.winRate) }}%</span>
+                      <span class="text-2xs text-text-secondary">{{ opponent.wins }}-{{ opponent.losses }}</span>
+                      <div class="matchup-tooltip">
+                        <span class="font-medium">{{ opponent.opponentChampionName }}</span>
+                        <span class="text-error">{{ Math.round(opponent.winRate) }}%</span>
+                        <span class="text-text-secondary">({{ opponent.wins }}W-{{ opponent.losses }}L)</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span v-else class="text-2xs text-text-secondary italic">No data yet</span>
+                </div>
+              </div>
+            </article>
+          </div>
         </TabPanel>
       </TabPanels>
     </TabGroup>
 
     <!-- Empty state when no data -->
     <template v-else>
-      <header class="flex justify-between items-start gap-md mb-md">
-        <div class="flex-1">
-          <h2 class="m-0 text-lg font-semibold text-text">Main Champions by Role</h2>
-          <p class="mt-1 mb-0 text-xs text-text-secondary">Top picks based on your performance in the selected queue and time range.</p>
+      <header class="flex justify-between items-center gap-md mb-lg">
+        <div>
+          <h2 class="m-0 text-lg font-semibold text-text">Your Champions</h2>
+          <p class="mt-1 mb-0 text-xs text-text-secondary">Top picks based on your performance</p>
         </div>
       </header>
-      <div class="pt-sm text-sm text-text-secondary">
-        <p class="m-0">No champion data yet for this filter. Play some games to see your best picks.</p>
+      <div class="flex-1 flex items-center justify-center">
+        <p class="m-0 text-sm text-text-secondary">No champion data yet. Play some games to see your best picks.</p>
       </div>
     </template>
   </section>
@@ -283,13 +312,13 @@ function getMatchupsForChampion(championId, role) {
   const strongMatchups = validOpponents
     .filter(o => o.winRate > 50)
     .sort((a, b) => b.winRate - a.winRate)
-    .slice(0, 3)
+    .slice(0, 4)
 
   // Weak matchups: win rate < 50%, sorted by lowest first
   const weakMatchups = validOpponents
     .filter(o => o.winRate < 50)
     .sort((a, b) => a.winRate - b.winRate)
-    .slice(0, 3)
+    .slice(0, 4)
 
   return { good: strongMatchups, bad: weakMatchups }
 }
@@ -314,17 +343,20 @@ function getChampionIconUrl(name) {
 </style>
 
 <style scoped>
-/* Responsive layout for champion cards */
-@media (max-width: 768px) {
-  .champion-card {
-    flex: 0 0 100%;
-    max-width: 280px;
-  }
+/* Player card styling */
+.player-card {
+  min-height: 360px;
 }
 
 /* Matchup tooltip styles */
 .matchup-item {
   cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.matchup-item:hover {
+  transform: scale(1.1);
+  z-index: 5;
 }
 
 .matchup-tooltip {
@@ -332,21 +364,21 @@ function getChampionIconUrl(name) {
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-bottom: 6px;
-  padding: 6px 10px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   white-space: nowrap;
   font-size: 0.75rem;
   color: var(--color-text);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s ease, visibility 0.15s ease;
-  z-index: 10;
+  z-index: 50;
   display: flex;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
 }
 
@@ -363,5 +395,22 @@ function getChampionIconUrl(name) {
 .matchup-item:hover .matchup-tooltip {
   opacity: 1;
   visibility: visible;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .player-card {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .player-card {
+    min-height: auto;
+  }
 }
 </style>

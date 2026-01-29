@@ -10,10 +10,10 @@
           v-for="queue in queueOptions"
           :key="queue.value"
           type="button"
-          class="queue-toggle-btn py-sm px-md bg-transparent border-none text-text-secondary text-sm font-medium cursor-pointer transition-colors duration-200 relative focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-soft"
+          class="queue-toggle-btn py-sm px-md bg-transparent border-none text-text-secondary text-sm font-medium cursor-pointer transition-all duration-200 relative focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-soft"
           :class="{
             'queue-toggle-btn--active': queueFilter === queue.value,
-            'hover:text-text hover:bg-background-elevated': queueFilter !== queue.value
+            'queue-toggle-btn--inactive': queueFilter !== queue.value
           }"
           @click="queueFilter = queue.value"
           :aria-pressed="queueFilter === queue.value"
@@ -161,6 +161,17 @@ function onOpponentSelect(result) {
   color: white;
 }
 
+/* Inactive state with hover border effect matching time selector */
+.queue-toggle-btn--inactive {
+  color: var(--color-text-secondary);
+}
+
+.queue-toggle-btn--inactive:hover {
+  color: var(--color-text);
+  background-color: var(--color-elevated);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
 /* Queue toggle button dividers (pseudo-elements can't be done in Tailwind) */
 .queue-toggle-btn:not(:last-child)::after {
   content: '';
@@ -178,6 +189,15 @@ function onOpponentSelect(result) {
 }
 
 .queue-toggle-btn:has(+ .queue-toggle-btn--active)::after {
+  display: none;
+}
+
+/* Hide divider on hovered buttons */
+.queue-toggle-btn--inactive:hover::after {
+  display: none;
+}
+
+.queue-toggle-btn:has(+ .queue-toggle-btn--inactive:hover)::after {
   display: none;
 }
 </style>
