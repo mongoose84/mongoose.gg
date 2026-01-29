@@ -11,54 +11,45 @@
         </div>
 
         <!-- Error message -->
-        <div v-if="errorMessage" class="p-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-md text-[#ef4444] text-sm text-center mb-md">
+        <div v-if="errorMessage" class="p-md bg-error-soft border border-error-border rounded-md text-error text-sm text-center mb-md" role="alert">
           {{ errorMessage }}
         </div>
 
         <form @submit.prevent="handleSubmit" class="flex flex-col gap-lg" data-testid="auth-form">
           <!-- Username field for both login and signup -->
-          <div class="flex flex-col gap-xs" data-testid="form-group">
-            <label for="username" class="text-sm font-medium text-text tracking-tight">Username</label>
-            <input
-              id="username"
-              v-model="formData.username"
-              type="text"
-              class="p-md bg-background border border-border rounded-md text-base text-text transition-all duration-200 focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary-soft placeholder:text-text-secondary"
-              :class="{ 'border-[#ef4444] focus:border-[#ef4444] focus:ring-[rgba(239,68,68,0.2)]': usernameError }"
-              placeholder="Your username"
-              required
-              minlength="3"
-              maxlength="50"
-              @input="validateUsername"
-            />
-            <span v-if="usernameError" class="text-xs text-[#ef4444] mt-xs">{{ usernameError }}</span>
-          </div>
+          <BaseInput
+            id="username"
+            v-model="formData.username"
+            label="Username"
+            placeholder="Your username"
+            :error="usernameError"
+            required
+            minlength="3"
+            maxlength="50"
+            data-testid="form-group"
+            @input="validateUsername"
+          />
 
           <!-- Email field only for signup -->
-          <div v-if="!isLogin" class="flex flex-col gap-xs">
-            <label for="email" class="text-sm font-medium text-text tracking-tight">Email</label>
-            <input
-              id="email"
-              v-model="formData.email"
-              type="email"
-              class="p-md bg-background border border-border rounded-md text-base text-text transition-all duration-200 focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary-soft placeholder:text-text-secondary"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
+          <BaseInput
+            v-if="!isLogin"
+            id="email"
+            v-model="formData.email"
+            type="email"
+            label="Email"
+            placeholder="you@example.com"
+            required
+          />
 
-          <div class="flex flex-col gap-xs">
-            <label for="password" class="text-sm font-medium text-text tracking-tight">Password</label>
-            <input
-              id="password"
-              v-model="formData.password"
-              type="password"
-              class="p-md bg-background border border-border rounded-md text-base text-text transition-all duration-200 focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary-soft placeholder:text-text-secondary"
-              placeholder="••••••••"
-              required
-              minlength="8"
-            />
-          </div>
+          <BaseInput
+            id="password"
+            v-model="formData.password"
+            type="password"
+            label="Password"
+            placeholder="••••••••"
+            required
+            minlength="8"
+          />
 
           <!-- Remember me checkbox for login -->
           <div v-if="isLogin" class="flex items-center gap-sm">
@@ -71,25 +62,27 @@
             <label for="rememberMe" class="text-sm text-text-secondary cursor-pointer">Keep me logged in for 30 days</label>
           </div>
 
-          <button
+          <BaseButton
             type="submit"
-            class="p-md bg-primary text-white font-semibold text-base tracking-tight border-none rounded-md cursor-pointer transition-all duration-200 shadow-sm mt-md hover:shadow-md hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
-            :disabled="isSubmitting"
+            variant="primary"
+            size="lg"
+            :loading="isSubmitting"
+            class="mt-md"
           >
-            <span v-if="isSubmitting" class="inline-block w-4 h-4 border-2 border-[rgba(255,255,255,0.3)] rounded-full border-t-white animate-spin mr-sm"></span>
             {{ isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account') }}
-          </button>
+          </BaseButton>
         </form>
 
         <div class="mt-xl pt-xl border-t border-border text-center">
-          <button
-            @click="toggleMode"
-            class="bg-transparent border-none text-primary text-sm font-medium cursor-pointer transition-opacity duration-200 hover:opacity-80 disabled:opacity-60 disabled:cursor-not-allowed"
+          <BaseButton
+            variant="ghost"
+            size="sm"
             :disabled="isSubmitting"
             data-testid="auth-toggle"
+            @click="toggleMode"
           >
             {{ isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </div>
@@ -100,6 +93,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
+import { BaseInput, BaseButton } from '@/components/base';
 import { useAuthStore } from '../stores/authStore';
 import { trackAuth } from '../services/analyticsApi';
 

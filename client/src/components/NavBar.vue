@@ -17,12 +17,14 @@
 
       <!-- CTA Button -->
       <div class="hidden md:block">
-        <router-link to="/auth?mode=signup" class="inline-flex items-center gap-xs px-lg py-sm bg-primary text-white font-semibold text-sm tracking-tight no-underline rounded-md transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-px group">
+        <BaseButton variant="primary" size="sm" to="/auth?mode=signup" class="group">
           Get Started
-          <svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
-          </svg>
-        </router-link>
+          <template #icon-right>
+            <svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+            </svg>
+          </template>
+        </BaseButton>
       </div>
 
       <!-- Mobile Menu Button -->
@@ -47,9 +49,9 @@
         <a href="/#pricing" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">Pricing</a>
         <a href="/#how-it-works" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">How It Works</a>
         <router-link to="/auth?mode=login" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">Login</router-link>
-        <router-link to="/auth?mode=signup" class="mt-sm p-md bg-primary text-white font-semibold text-base text-center no-underline rounded-md transition-all duration-200 tracking-tight hover:shadow-md" @click="closeMobile">
+        <BaseButton variant="primary" size="md" to="/auth?mode=signup" class="mt-sm w-full justify-center" @click="closeMobile">
           Get Started
-        </router-link>
+        </BaseButton>
       </div>
     </Transition>
   </nav>
@@ -58,6 +60,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/authStore';
+import { BaseButton } from '@/components/base';
 
 const authStore = useAuthStore();
 const mobileOpen = ref(false);

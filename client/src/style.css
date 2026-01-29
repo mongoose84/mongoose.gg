@@ -15,6 +15,17 @@
   --color-text: #ffffff;
   --color-text-secondary: #888888;
   --color-border: rgba(109, 40, 217, 0.15);
+
+  /* Semantic Colors */
+  --color-success: #22c55e;
+  --color-success-soft: rgba(34, 197, 94, 0.1);
+  --color-success-border: rgba(34, 197, 94, 0.3);
+  --color-error: #ef4444;
+  --color-error-soft: rgba(239, 68, 68, 0.1);
+  --color-error-border: rgba(239, 68, 68, 0.3);
+  --color-warning: #f59e0b;
+  --color-warning-soft: rgba(245, 158, 11, 0.1);
+  --color-warning-border: rgba(245, 158, 11, 0.3);
   
   /* Typography */
   --font-size-xs: 0.75rem;

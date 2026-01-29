@@ -24,6 +24,22 @@ export default {
         border: {
           DEFAULT: 'var(--color-border)',
         },
+        // Semantic colors
+        success: {
+          DEFAULT: 'var(--color-success)',
+          soft: 'var(--color-success-soft)',
+          border: 'var(--color-success-border)',
+        },
+        error: {
+          DEFAULT: 'var(--color-error)',
+          soft: 'var(--color-error-soft)',
+          border: 'var(--color-error-border)',
+        },
+        warning: {
+          DEFAULT: 'var(--color-warning)',
+          soft: 'var(--color-warning-soft)',
+          border: 'var(--color-warning-border)',
+        },
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
