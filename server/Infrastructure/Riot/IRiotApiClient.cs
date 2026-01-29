@@ -1,4 +1,5 @@
 using System.Text.Json;
+using RiotProxy.Infrastructure.Riot.LimitHandler;
 
 namespace RiotProxy.Infrastructure.Riot;
 
@@ -13,4 +14,11 @@ public interface IRiotApiClient : IDisposable
     Task<JsonDocument> GetLeagueEntriesBySummonerIdAsync(string region, string summonerId, CancellationToken ct = default);
     Task<JsonDocument> GetLeagueEntriesByPuuidAsync(string region, string puuid, CancellationToken ct = default);
     Task<string> GetLolVersionAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// TEMPORARY: Event raised when rate limiting causes a wait.
+    /// Includes PUUID context to identify which account triggered the rate limit.
+    /// TODO: Remove this once we have a more sophisticated rate limiting UX.
+    /// </summary>
+    event EventHandler<RateLimitWaitEventArgs>? RateLimitWaitStarted;
 }

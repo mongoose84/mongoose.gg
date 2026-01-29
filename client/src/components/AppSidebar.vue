@@ -18,8 +18,12 @@
         class="bg-transparent border-none text-text-secondary cursor-pointer p-xs rounded-sm flex items-center justify-center transition-all duration-200 shrink-0 hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-          <path fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10zm0 5.25a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z" clip-rule="evenodd" />
+        <!-- Chevron right (>) when collapsed, chevron left (<) when expanded -->
+        <svg v-if="isCollapsed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+          <path fill-rule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+          <path fill-rule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd" />
         </svg>
       </button>
     </div>
@@ -28,44 +32,35 @@
     <nav class="flex-1 py-md overflow-y-auto overflow-x-hidden" :class="{ 'overflow-visible': isCollapsed }">
       <router-link
         to="/app/overview"
-        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :class="{ 'justify-center': isCollapsed }"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Overview' : ''"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
           <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
         </svg>
-        <Transition name="fade">
-          <span v-if="!isCollapsed" class="text-sm font-medium tracking-tight">Overview</span>
-        </Transition>
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Overview</span>
       </router-link>
 
       <router-link
         to="/app/champion-select"
-        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :class="{ 'justify-center': isCollapsed }"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Champion Select' : ''"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
         </svg>
-        <Transition name="fade">
-          <span v-if="!isCollapsed" class="text-sm font-medium tracking-tight">Champion Select</span>
-        </Transition>
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Champion Select</span>
       </router-link>
 
       <router-link
         to="/app/matches"
-        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :class="{ 'justify-center': isCollapsed }"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Matches' : ''"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
           <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-3 3a1 1 0 100 2h.01a1 1 0 100-2H10zm-4 1a1 1 0 011-1h.01a1 1 0 110 2H7a1 1 0 01-1-1zm1-4a1 1 0 100 2h.01a1 1 0 100-2H7zm2 1a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zm4-4a1 1 0 100 2h.01a1 1 0 100-2H13zM9 9a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zM7 8a1 1 0 000 2h.01a1 1 0 000-2H7z" clip-rule="evenodd" />
         </svg>
-        <Transition name="fade">
-          <span v-if="!isCollapsed" class="text-sm font-medium tracking-tight">Matches</span>
-        </Transition>
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Matches</span>
       </router-link>
 
       <!-- Analysis Section with Submenu -->
@@ -95,9 +90,9 @@
       <!-- Collapsed: show popout menu using HeadlessUI Popover -->
       <Popover v-else class="relative mb-xs" data-testid="nav-section-analysis">
         <PopoverButton
-          class="flex items-center justify-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text w-[calc(100%-1rem)] focus:outline-none"
+          class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text w-[calc(100%-1rem)] focus:outline-none"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
             <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
           </svg>
         </PopoverButton>
@@ -124,16 +119,13 @@
 
       <router-link
         to="/app/goals"
-        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :class="{ 'justify-center': isCollapsed }"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Goals' : ''"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
         </svg>
-        <Transition name="fade">
-          <span v-if="!isCollapsed" class="text-sm font-medium tracking-tight">Goals</span>
-        </Transition>
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Goals</span>
       </router-link>
     </nav>
 
@@ -141,14 +133,14 @@
     <div class="border-t border-border py-md">
       <router-link
         to="/app/user"
-        class="user-item flex items-center gap-md p-md mx-sm text-text no-underline rounded-md transition-all duration-200 whitespace-nowrap hover:bg-background-elevated"
-        :class="{ 'justify-center': isCollapsed }"
+        class="user-item flex items-center gap-md mx-sm text-text no-underline rounded-md whitespace-nowrap hover:bg-background-elevated"
+        :class="isCollapsed ? 'justify-center py-sm px-xs' : 'p-md'"
         :title="isCollapsed ? (hasLinkedAccount ? riotAccountName : username) : ''"
       >
         <!-- Profile Icon with Level Badge -->
         <div
-          class="relative rounded-full overflow-visible bg-background-surface flex items-center justify-center shrink-0 border-2 border-primary"
-          :class="isCollapsed ? 'w-11 h-11' : 'w-[52px] h-[52px]'"
+          class="relative rounded-full overflow-visible bg-background-surface flex items-center justify-center shrink-0 border-2 border-primary transition-[width,height] duration-300 ease-out"
+          :class="isCollapsed ? 'w-9 h-9' : 'w-[52px] h-[52px]'"
         >
           <img
             v-if="linkedAccountIconUrl"
@@ -294,6 +286,17 @@ function handleLinkedIconError() {
   opacity: 0;
 }
 
+/* Nav item transitions - only for hover states, not layout */
+.nav-item {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Nav label smooth hide/show - synced with sidebar width transition */
+.nav-label {
+  opacity: 1;
+  transition: opacity 0.15s ease-out;
+}
+
 /* Router-link-active state styles */
 .nav-item.router-link-active {
   background: var(--color-primary-soft);
@@ -308,6 +311,10 @@ function handleLinkedIconError() {
 .popout-item.router-link-active {
   background: var(--color-primary-soft);
   color: var(--color-primary);
+}
+
+.user-item {
+  transition: background-color 0.2s ease, padding 0.3s ease-out;
 }
 
 .user-item.router-link-active {

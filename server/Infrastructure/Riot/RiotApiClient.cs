@@ -11,10 +11,21 @@ public class RiotApiClient : IRiotApiClient
     private readonly HttpClient _http;
     private readonly IRiotLimitHandler _riotLimitHandler;
 
+    /// <summary>
+    /// TEMPORARY: Event raised when rate limiting causes a wait.
+    /// Includes PUUID context to identify which account triggered the rate limit.
+    /// TODO: Remove this once we have a more sophisticated rate limiting UX.
+    /// </summary>
+    public event EventHandler<RateLimitWaitEventArgs>? RateLimitWaitStarted;
+
     public RiotApiClient(IHttpClientFactory httpClientFactory)
     {
         _http = httpClientFactory.CreateClient("RiotApi");
         _riotLimitHandler = new RiotLimitHandler();
+
+        // TEMPORARY: Forward rate limit events from the limit handler
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        _riotLimitHandler.RateLimitWaitStarted += (sender, e) => RateLimitWaitStarted?.Invoke(this, e);
     }
 
     public async Task<double> GetWinrateAsync(string puuid)
@@ -89,7 +100,9 @@ public class RiotApiClient : IRiotApiClient
         if (startTime.HasValue)
             url += $"&startTime={startTime.Value}";
 
-        await _riotLimitHandler.WaitAsync(ct);
+        // TEMPORARY: Pass PUUID for rate limit event context
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        await _riotLimitHandler.WaitAsync(puuid, ct);
 
         var response = await _http.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
@@ -132,7 +145,9 @@ public class RiotApiClient : IRiotApiClient
         var summonerUrl = RiotUrlBuilder.GetSummonerUrl(tagLine, encodedPuuid);
         Metrics.SetLastUrlCalled("RiotServices.cs ln 134" + summonerUrl);
 
-        await _riotLimitHandler.WaitAsync(ct);
+        // TEMPORARY: Pass PUUID for rate limit event context
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        await _riotLimitHandler.WaitAsync(puuid, ct);
 
         var response = await _http.GetAsync(summonerUrl, ct);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -171,7 +186,9 @@ public class RiotApiClient : IRiotApiClient
         var leagueUrl = RiotUrlBuilder.GetLeagueEntriesByPuuidUrl(region, puuid);
         Metrics.SetLastUrlCalled("RiotApiClient.cs GetLeagueEntriesByPuuid " + leagueUrl);
 
-        await _riotLimitHandler.WaitAsync(ct);
+        // TEMPORARY: Pass PUUID for rate limit event context
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        await _riotLimitHandler.WaitAsync(puuid, ct);
 
         var response = await _http.GetAsync(leagueUrl, ct);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)

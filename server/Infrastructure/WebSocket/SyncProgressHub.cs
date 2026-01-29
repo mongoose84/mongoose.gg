@@ -224,6 +224,20 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
         await BroadcastToSubscribersAsync(puuid, message);
     }
 
+    /// <summary>
+    /// TEMPORARY: Broadcasts that sync is waiting due to Riot API rate limiting.
+    /// TODO: Remove this once we have a more sophisticated rate limiting UX.
+    /// </summary>
+    public async Task BroadcastRateLimitedAsync(string puuid)
+    {
+        var message = new SyncRateLimitedMessage
+        {
+            Puuid = puuid,
+            Status = "rate_limited"
+        };
+        await BroadcastToSubscribersAsync(puuid, message);
+    }
+
     private async Task BroadcastToSubscribersAsync<T>(string puuid, T message) where T : SyncServerMessage
     {
         if (!_subscriptions.TryGetValue(puuid, out var subscribers))

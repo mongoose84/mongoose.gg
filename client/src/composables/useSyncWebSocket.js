@@ -176,7 +176,10 @@ export function useSyncWebSocket() {
         total: null,
         matchId: null,
         error: null,
-        totalSynced: null
+        totalSynced: null,
+        // TEMPORARY: Flag for rate limiting status
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        isRateLimited: false
       })
     }
 
@@ -210,7 +213,10 @@ export function useSyncWebSocket() {
         total: 0,
         matchId: null,
         error: null,
-        totalSynced: null
+        totalSynced: null,
+        // TEMPORARY: Flag for rate limiting status
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        isRateLimited: false
       }
       syncProgress.set(puuid, progress)
     }
@@ -222,6 +228,9 @@ export function useSyncWebSocket() {
         progress.total = message.total ?? progress.total
         progress.matchId = message.matchId ?? progress.matchId
         progress.error = null
+        // TEMPORARY: Clear rate limited flag when progress resumes
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        progress.isRateLimited = false
         break
 
       case 'sync_complete':
@@ -229,11 +238,26 @@ export function useSyncWebSocket() {
         progress.totalSynced = message.totalSynced ?? progress.progress
         progress.progress = progress.total // Fill the bar
         progress.error = null
+        // TEMPORARY: Clear rate limited flag on completion
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        progress.isRateLimited = false
         break
 
       case 'sync_error':
         progress.status = 'failed'
         progress.error = message.error || 'Sync failed'
+        // TEMPORARY: Clear rate limited flag on error
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        progress.isRateLimited = false
+        break
+
+      // TEMPORARY: Handle rate limited status from Riot API
+      // TODO: Remove this once we have a more sophisticated rate limiting UX.
+      case 'sync_rate_limited':
+        // Ensure status is 'syncing' so the UI renders the rate limit message
+        // (rate limit can only occur during an active sync)
+        progress.status = 'syncing'
+        progress.isRateLimited = true
         break
 
       default:
@@ -271,6 +295,9 @@ export function useSyncWebSocket() {
       progress.matchId = null
       progress.error = null
       progress.totalSynced = null
+      // TEMPORARY: Reset rate limited flag
+      // TODO: Remove this once we have a more sophisticated rate limiting UX.
+      progress.isRateLimited = false
     }
   }
 

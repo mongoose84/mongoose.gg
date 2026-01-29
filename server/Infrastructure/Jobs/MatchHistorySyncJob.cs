@@ -3,6 +3,7 @@ using RiotProxy.Core.Entities;
 using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
 using RiotProxy.Infrastructure.Riot;
+using RiotProxy.Infrastructure.Riot.LimitHandler;
 using RiotProxy.Infrastructure.Riot.Mappers;
 using RiotProxy.Infrastructure.WebSocket;
 using System.Text.Json;
@@ -157,6 +158,64 @@ public class MatchHistorySyncJob : BackgroundService
         var lpSnapshotsRepo = services.GetRequiredService<ILpSnapshotsRepository>();
         var broadcaster = services.GetService<ISyncProgressBroadcaster>();
 
+        // TEMPORARY: Subscribe to rate limit events to notify UI when waiting on Riot API
+        // When any rate limit is hit, all syncing accounts are affected since they share the rate limiter.
+        // We broadcast to this account's UI regardless of which PUUID triggered the rate limit.
+        // TODO: Remove this once we have a more sophisticated rate limiting UX.
+        EventHandler<RateLimitWaitEventArgs>? rateLimitHandler = null;
+        if (broadcaster != null)
+        {
+            rateLimitHandler = (sender, e) =>
+            {
+                // Fire-and-forget broadcast (event handler is synchronous)
+                // All syncing accounts should see the rate limit message since they share the limiter
+                _ = broadcaster.BroadcastRateLimitedAsync(account.Puuid);
+            };
+            riotApiClient.RateLimitWaitStarted += rateLimitHandler;
+        }
+
+        try
+        {
+            return await SyncAccountMatchesInternalAsync(
+                riotApiClient, riotAccountsRepo, matchesRepo, participantsRepo, checkpointsRepo,
+                partMetricsRepo, teamObjectivesRepo, partObjectivesRepo, teamMetricsRepo, duoMetricsRepo,
+                teamRoleRepo, seasonsRepo, lpSnapshotsRepo, broadcaster, account, ct);
+        }
+        finally
+        {
+            // TEMPORARY: Unsubscribe from rate limit events
+            // TODO: Remove this once we have a more sophisticated rate limiting UX.
+            if (rateLimitHandler != null)
+            {
+                riotApiClient.RateLimitWaitStarted -= rateLimitHandler;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Internal implementation of match sync logic.
+    /// Extracted to allow proper event handler cleanup in the calling method.
+    /// TEMPORARY: This extraction is for rate limit event handling.
+    /// TODO: Merge back into SyncAccountMatchesAsync once rate limiting UX is removed.
+    /// </summary>
+    private async Task<int> SyncAccountMatchesInternalAsync(
+        IRiotApiClient riotApiClient,
+        RiotAccountsRepository riotAccountsRepo,
+        MatchesRepository matchesRepo,
+        ParticipantsRepository participantsRepo,
+        ParticipantCheckpointsRepository checkpointsRepo,
+        ParticipantMetricsRepository partMetricsRepo,
+        TeamObjectivesRepository teamObjectivesRepo,
+        ParticipantObjectivesRepository partObjectivesRepo,
+        TeamMatchMetricsRepository teamMetricsRepo,
+        DuoMetricsRepository duoMetricsRepo,
+        TeamRoleResponsibilitiesRepository teamRoleRepo,
+        SeasonsRepository seasonsRepo,
+        ILpSnapshotsRepository lpSnapshotsRepo,
+        ISyncProgressBroadcaster? broadcaster,
+        RiotAccount account,
+        CancellationToken ct)
+    {
         // Determine if this is an initial backfill or incremental sync
         bool isInitialSync = !account.LastSyncAt.HasValue;
 
