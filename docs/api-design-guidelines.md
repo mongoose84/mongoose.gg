@@ -4,9 +4,9 @@ type: "manual"
 
 # API Design - Mongoose (mongoose.gg)
 
-**Status:** Planned (spec; re-implementation in progress)
+**Status:** Implementation in progress (Clean Architecture refactor complete)
 **Priority:** P0 - Critical
-**Date:** January 26, 2026
+**Date:** January 29, 2026
 
 ---
 
@@ -21,6 +21,8 @@ This document defines the API surface for Mongoose, introducing:
 
 **Design Principle:** Response shapes should require **minimal client-side aggregation**. The backend returns dashboard-ready data.
 
+**Architecture:** Clean Architecture with endpoints in `Application/Endpoints/`, organized by feature (Auth, Overview, Solo, Matches, etc.).
+
 ---
 
 ## 2. Route Scheme & Structure
@@ -32,51 +34,79 @@ This document defines the API surface for Mongoose, introducing:
 
 ### Route Organization by Feature
 
-#### A. Solo Dashboard
+#### A. Overview Dashboard (Implemented)
 ```
-GET  /api/v2/solo/summary/{puuid}
-GET  /api/v2/solo/performance/{puuid}
-GET  /api/v2/solo/champions/{puuid}
-GET  /api/v2/solo/matchups/{puuid}
+GET  /api/v2/overview/{userId}         # Aggregated overview with player header, rank, last match
 ```
 
-#### B. Duo Dashboard (Planned)
+#### B. Solo Dashboard (Implemented)
 ```
-GET  /api/v2/duo/summary/{userId1}/{userId2}
-GET  /api/v2/duo/performance/{userId1}/{userId2}
-GET  /api/v2/duo/synergy/{userId1}/{userId2}
-GET  /api/v2/duo/kills/{userId1}/{userId2}
-GET  /api/v2/duo/deaths/{userId1}/{userId2}
-GET  /api/v2/duo/vs-enemy/{userId1}/{userId2}
+GET  /api/v2/solo/{userId}             # Solo dashboard summary
+GET  /api/v2/solo/match-activity/{userId}  # Match activity heatmap
+GET  /api/v2/solo/matchups/{puuid}     # Champion matchups table
 ```
 
-#### C. Team Dashboard (Planned)
+#### C. Matches (Implemented)
 ```
-GET  /api/v2/team/summary
-GET  /api/v2/team/performance
-GET  /api/v2/team/composition
-GET  /api/v2/team/objectives
-GET  /api/v2/team/synergy
+GET  /api/v2/matches                   # Match list with filtering
+GET  /api/v2/matches/{matchId}/narrative  # Match narrative details
 ```
 
-#### D. AI & Goals (Planned)
+#### D. Trends (Implemented)
 ```
-GET  /api/v2/goals/recommendations/{userId}
-POST /api/v2/goals/{userId}
-GET  /api/v2/goals/{userId}/progress
+GET  /api/v2/trends/winrate/{puuid}    # Winrate trend data for charts
 ```
 
-#### E. User
+#### E. Champion Select (Implemented)
+```
+GET  /api/v2/champion-select           # Champion select recommendations
+```
+
+#### F. Auth (Implemented)
 ```
 POST /api/v2/auth/register             # Create a new user account
 POST /api/v2/auth/login                # Authenticate and obtain session cookie
 POST /api/v2/auth/logout               # Clear session
+POST /api/v2/auth/verify               # Email verification
+POST /api/v2/auth/resend-verification  # Resend verification email
 GET  /api/v2/users/me                  # Current authenticated user's profile
+GET  /api/v2/riot-accounts             # List linked Riot accounts
 ```
 
-#### F. WebSocket - Real-time Sync Progress
+#### G. Analytics (Implemented)
 ```
-WS   /ws/sync                          # WebSocket endpoint for real-time match sync progress
+POST /api/v2/analytics                 # Track analytics events
+```
+
+#### H. Diagnostics (Implemented)
+```
+GET  /api/v2/diagnostics               # Health check and system diagnostics
+```
+
+#### I. WebSocket - Real-time Sync Progress (Implemented)
+```
+WS   /ws/sync                          # SignalR hub for real-time match sync progress
+```
+
+#### J. Duo Dashboard (Planned)
+```
+GET  /api/v2/duo/summary/{userId1}/{userId2}
+GET  /api/v2/duo/performance/{userId1}/{userId2}
+GET  /api/v2/duo/synergy/{userId1}/{userId2}
+```
+
+#### K. Team Dashboard (Planned)
+```
+GET  /api/v2/team/summary
+GET  /api/v2/team/performance
+GET  /api/v2/team/objectives
+```
+
+#### L. AI & Goals (Planned)
+```
+GET  /api/v2/goals/recommendations/{userId}
+POST /api/v2/goals/{userId}
+GET  /api/v2/goals/{userId}/progress
 ```
 
 ---
@@ -731,49 +761,40 @@ public record SyncErrorMessage(
 3. Pass to repository layer for SQL filtering
 4. Default to `all` if omitted
 
-### 5.3 DTO Modules
-Organize DTOs by feature:
+### 5.3 Clean Architecture DTOs
+DTOs are organized by feature in `Application/DTOs/`:
 ```
-DTOs/
-├── Solo/
-│   ├── SoloSummaryDto.cs
-│   ├── SoloPerformanceDto.cs
-│   ├── SoloChampionDto.cs
-│   └── SoloMatchupDto.cs
-├── Duo/
-│   ├── DuoSummaryDto.cs
-│   ├── DuoPerformanceDto.cs
-│   ├── DuoSynergyDto.cs
-│   ├── DuoKillsDto.cs
-│   ├── DuoDeathsDto.cs
-│   └── DuoVsEnemyDto.cs
-├── User/
-│   ├── CreateUserDto.cs
-│   └── UserResponseDto.cs
-├── Team/
-│   ├── TeamSummaryDto.cs
-│   ├── TeamPerformanceDto.cs
-│   ├── TeamCompositionDto.cs
-│   ├── TeamObjectivesDto.cs
-│   └── TeamSynergyDto.cs
-├── Shared/
-│   ├── TrendMetricDto.cs
-│   ├── SideWinDistributionDto.cs
-│   └── ChampionDetailDto.cs
-└── Goals/
-    └── GoalRecommendationDto.cs (future)
+Application/DTOs/
+├── Auth/              # Login, register, verification DTOs
+├── Overview/          # Overview dashboard response models
+├── Solo/              # Solo dashboard DTOs
+├── Matches/           # Match list and detail DTOs
+├── Trends/            # Winrate trend DTOs
+└── Shared/            # Common DTOs used across features
 ```
 
-### 5.4 Endpoint Registration
-Update `RiotProxyApplication.cs`:
+### 5.4 Endpoint Structure
+Each endpoint implements `IEndpoint` interface:
 ```csharp
-var soloEndpoint = new SoloSummaryEndpoint(_basePath);
-_endpoints.Add(soloEndpoint);
+public interface IEndpoint
+{
+    string Route { get; }
+    void Configure(WebApplication app);
+}
+```
 
-var duoEndpoint = new DuoSummaryEndpoint(_basePath);
-_endpoints.Add(duoEndpoint);
-
-// ... etc for team, goals
+Endpoints are organized by feature in `Application/Endpoints/`:
+```
+Application/Endpoints/
+├── Auth/              # LoginEndpoint, RegisterEndpoint, etc.
+├── Overview/          # OverviewEndpoint
+├── Solo/              # SoloDashboardEndpoint, MatchActivityEndpoint
+├── Matches/           # MatchListEndpoint, MatchNarrativeEndpoint
+├── Trends/            # WinrateTrendEndpoint
+├── ChampionSelect/    # ChampionSelectEndpoint
+├── Analytics/         # AnalyticsEndpoint
+├── Diagnostics/       # DiagnosticsEndpoint
+└── Shared/            # IEndpoint, HomeEndpoint, PublicStatsEndpoint
 ```
 
 ### 5.5 Authentication
@@ -781,7 +802,7 @@ _endpoints.Add(duoEndpoint);
 - Clients must first authenticate via a login endpoint to obtain an auth cookie (httpOnly, secure, SameSite=Lax)
 - Subsequent requests include the cookie automatically; server validates session on each request
 - Missing/expired/invalid session → `401 Unauthorized`
-- Authorization policies can further restrict access per endpoint as needed
+- Use `.RequireAuthorization()` on endpoint mappings for protected routes
 
 ---
 
@@ -801,33 +822,37 @@ _endpoints.Add(duoEndpoint);
 
 ## 7. Acceptance Criteria Checklist
 
-- [x] **API route scheme decided** (`/api/v2/solo|duo|team|goals|users`)
-- [ ] **Request/response models defined** for all dashboard endpoints (planned)
-- [ ] **Response shapes optimized** (planned)
-- [ ] **Queue filtering standardized** (`?queueType=ranked_solo|ranked_flex|normal|aram|all`) (planned)
+- [x] **API route scheme decided** (`/api/v2/overview|solo|matches|trends|auth|analytics`)
+- [x] **Request/response models defined** for core dashboard endpoints
+- [x] **Response shapes optimized** (dashboard-ready, minimal client aggregation)
+- [x] **Queue filtering standardized** (`?queueType=ranked_solo|ranked_flex|normal|aram|all`)
 - [x] **Authentication required** (cookie-based sessions; unauthorized → 401)
-- [ ] DTOs created & implemented (planned)
-- [ ] Endpoints implemented & tested (planned)
-- [ ] Frontend integration & validation (planned)
+- [x] **Core DTOs created & implemented** (Overview, Solo, Matches, Auth)
+- [x] **Core endpoints implemented & tested** (Overview, Solo, Matches, Auth, Analytics)
+- [x] **Frontend integration complete** (Vue 3 + Tailwind + Headless UI)
+- [ ] Duo dashboard endpoints (planned)
+- [ ] Team dashboard endpoints (planned)
+- [ ] AI/Goals endpoints (planned)
 
 ---
 
-## 8. Next Steps
+## 8. Current Implementation Status
 
-### Implement DTOs
-- Create DTO classes per Section 5.3 structure
-- Add unit tests for serialization
+### Implemented Endpoints
+- **Auth**: Login, Logout, Register, Verify, ResendVerification, UsersMeEndpoint
+- **Overview**: OverviewEndpoint (aggregated dashboard data)
+- **Solo**: SoloDashboardEndpoint, MatchActivityEndpoint, SoloMatchupsEndpoint
+- **Matches**: MatchListEndpoint, MatchNarrativeEndpoint
+- **Trends**: WinrateTrendEndpoint
+- **ChampionSelect**: ChampionSelectEndpoint
+- **Analytics**: AnalyticsEndpoint
+- **Diagnostics**: DiagnosticsEndpoint
+- **WebSocket**: SyncProgressHub (SignalR)
 
-### Implement Endpoints
-- Register endpoints in `RiotProxyApplication.cs`
-- Implement endpoint handlers (query params, repository calls)
-- Add queue filtering logic
-
-### Frontend Integration
-- Update API client (`client/src/api/solo.js`, etc.)
-- Consume API endpoints
-- Remove aggregation logic
-- Validate response shapes in dashboard components
+### Next Steps
+- Implement Duo dashboard endpoints
+- Implement Team dashboard endpoints
+- Implement AI/Goals recommendation endpoints
 
 ---
 
@@ -848,7 +873,12 @@ _endpoints.Add(duoEndpoint);
 - **Analytics:** Server can track query patterns
 - **Future dashboards:** New features inherit filtering automatically
 
+### Why Clean Architecture?
+- **Separation of concerns:** Core domain logic isolated from infrastructure
+- **Testability:** Business logic easily unit tested without database dependencies
+- **Maintainability:** Clear boundaries between layers prevent coupling
+
 ---
 
-**Status:** Planned (spec; re-implementation in progress)
-**Last Updated:** January 26, 2026
+**Status:** Core implementation complete; Duo/Team/Goals planned
+**Last Updated:** January 29, 2026
