@@ -248,15 +248,32 @@ watch(
   { immediate: true }
 )
 
-// Get matchups for a specific champion (min 3 games filter + win rate thresholds)
+// Helper to calculate derived matchup stats from raw in-lane data
+function calculateInLaneStats(opponent) {
+  const wins = opponent.inLaneWins
+  const losses = opponent.inLaneLosses
+  const gamesPlayed = wins + losses
+  const winRate = gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : 0
+  return {
+    ...opponent,
+    wins,
+    losses,
+    gamesPlayed,
+    winRate
+  }
+}
+
+// Get matchups for a specific champion (min 3 in-lane games filter + win rate thresholds)
 function getMatchupsForChampion(championId) {
   if (!matchupsData.value?.matchups) return { good: [], bad: [] }
 
   const championMatchup = matchupsData.value.matchups.find(m => m.championId === championId)
   if (!championMatchup?.opponents) return { good: [], bad: [] }
 
-  // Filter opponents with at least 3 games
-  const validOpponents = championMatchup.opponents.filter(o => o.gamesPlayed >= 3)
+  // Calculate in-lane stats and filter opponents with at least 3 in-lane games
+  const validOpponents = championMatchup.opponents
+    .map(calculateInLaneStats)
+    .filter(o => o.gamesPlayed >= 3)
 
   // Strong matchups: win rate > 50%, sorted by highest first
   const strongMatchups = validOpponents

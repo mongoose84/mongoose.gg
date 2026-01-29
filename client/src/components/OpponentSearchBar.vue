@@ -74,12 +74,29 @@
               />
               <span class="text-sm text-text flex-1">{{ result.opponentName }}</span>
 
-              <!-- Win Rate -->
-              <div class="flex flex-col items-end">
-                <span :class="['text-sm font-semibold', getWinRateColorClass(result.winRate)]">
-                  {{ formatWinRate(result.winRate) }}
-                </span>
-                <span class="text-2xs text-text-secondary">{{ result.wins }}-{{ result.losses }}</span>
+              <!-- Stats: In-lane and Out-of-lane -->
+              <div class="flex items-center gap-md ml-auto">
+                <!-- In-lane stats -->
+                <div v-if="result.inLaneGames > 0" class="flex flex-col items-center min-w-[60px]">
+                  <span :class="['text-sm font-semibold', getWinRateColorClass(result.inLaneWinRate)]">
+                    {{ formatWinRate(result.inLaneWinRate) }}
+                  </span>
+                  <span class="text-2xs text-text-secondary">{{ result.inLaneWins }}-{{ result.inLaneLosses }} lane</span>
+                </div>
+                <!-- Out-of-lane stats -->
+                <div v-if="result.outOfLaneGames > 0" class="flex flex-col items-center min-w-[60px]">
+                  <span :class="['text-sm font-semibold', getWinRateColorClass(result.outOfLaneWinRate)]">
+                    {{ formatWinRate(result.outOfLaneWinRate) }}
+                  </span>
+                  <span class="text-2xs text-text-secondary">{{ result.outOfLaneWins }}-{{ result.outOfLaneLosses }} other</span>
+                </div>
+                <!-- Overall stats (always shown) -->
+                <div class="flex flex-col items-end min-w-[60px] pl-sm border-l border-border">
+                  <span :class="['text-sm font-bold', getWinRateColorClass(result.totalWinRate)]">
+                    {{ formatWinRate(result.totalWinRate) }}
+                  </span>
+                  <span class="text-2xs text-text-secondary">{{ result.totalWins }}-{{ result.totalLosses }} total</span>
+                </div>
               </div>
             </div>
           </ComboboxOption>
@@ -111,6 +128,11 @@ const searchQuery = ref('')
 
 const isSearching = computed(() => searchQuery.value.trim().length >= 2)
 
+// Helper to calculate win rate
+function calcWinRate(wins, games) {
+  return games > 0 ? (wins / games) * 100 : 0
+}
+
 // Search through all matchups and find opponents matching the query
 const searchResults = computed(() => {
   if (!isSearching.value || !props.matchups) return []
@@ -121,22 +143,41 @@ const searchResults = computed(() => {
   for (const matchup of props.matchups) {
     for (const opp of matchup.opponents) {
       if (opp.opponentChampionName.toLowerCase().includes(query)) {
+        // Calculate derived values from raw data
+        const inLaneGames = opp.inLaneWins + opp.inLaneLosses
+        const outOfLaneGames = opp.outOfLaneWins + opp.outOfLaneLosses
+        const totalGames = inLaneGames + outOfLaneGames
+        const totalWins = opp.inLaneWins + opp.outOfLaneWins
+        const totalLosses = opp.inLaneLosses + opp.outOfLaneLosses
+
         results.push({
           championId: matchup.championId,
           championName: matchup.championName,
           role: matchup.role,
           opponentId: opp.opponentChampionId,
           opponentName: opp.opponentChampionName,
-          wins: opp.wins,
-          losses: opp.losses,
-          gamesPlayed: opp.gamesPlayed,
-          winRate: opp.winRate
+          // In-lane stats
+          inLaneWins: opp.inLaneWins,
+          inLaneLosses: opp.inLaneLosses,
+          inLaneGames,
+          inLaneWinRate: calcWinRate(opp.inLaneWins, inLaneGames),
+          // Out-of-lane stats
+          outOfLaneWins: opp.outOfLaneWins,
+          outOfLaneLosses: opp.outOfLaneLosses,
+          outOfLaneGames,
+          outOfLaneWinRate: calcWinRate(opp.outOfLaneWins, outOfLaneGames),
+          // Total stats
+          totalWins,
+          totalLosses,
+          totalGames,
+          totalWinRate: calcWinRate(totalWins, totalGames)
         })
       }
     }
   }
 
-  return results.sort((a, b) => b.winRate - a.winRate)
+  // Sort by total games played (most relevant matchups first)
+  return results.sort((a, b) => b.totalGames - a.totalGames)
 })
 
 function clearSearch() {

@@ -1130,46 +1130,47 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
 	    private async Task<List<OpponentMatchup>> GetOpponentMatchupsAsync(
 	        string puuid, int championId, string role, string queueFilter, string timeFilter, DateTime? timeRangeStart, string? seasonCode)
 	    {
-	        // Get opponents faced when playing this champion in this role.
-	        // We first deduplicate to one row per (match, opponent champion) to avoid
-	        // over-counting wins in modes where the opponent join can produce multiple
-	        // rows per match (e.g., when lane/role aren't unique).
+	        // Get ALL opponents faced when playing this champion in this role.
+	        // Returns in-lane and out-of-lane win/loss counts separately.
 	        //
-	        // Special handling for bot lane:
-	        // - When playing BOTTOM (ADC), show matchups vs both enemy BOTTOM and UTILITY
-	        // - When playing UTILITY (Support), show matchups vs both enemy UTILITY and BOTTOM
-	        // This is because bot lane players are affected by both enemy laners.
+	        // In-lane definition:
+	        // - For BOTTOM/UTILITY: opponent is also BOTTOM or UTILITY (bot lane matchup)
+	        // - For other roles: opponent has the same role
+	        // - Fallback to lane matching when role is empty/null
 	        var sql = $@"
 	            SELECT
 	                t.OpponentChampionId,
 	                t.OpponentChampionName,
-	                COUNT(*) as GamesPlayed,
-	                SUM(CASE WHEN t.Win = 1 THEN 1 ELSE 0 END) as Wins
+	                SUM(CASE WHEN t.IsInLane = 1 AND t.Win = 1 THEN 1 ELSE 0 END) as InLaneWins,
+	                SUM(CASE WHEN t.IsInLane = 1 AND t.Win = 0 THEN 1 ELSE 0 END) as InLaneLosses,
+	                SUM(CASE WHEN t.IsInLane = 0 AND t.Win = 1 THEN 1 ELSE 0 END) as OutOfLaneWins,
+	                SUM(CASE WHEN t.IsInLane = 0 AND t.Win = 0 THEN 1 ELSE 0 END) as OutOfLaneLosses
 	            FROM (
 	                SELECT DISTINCT
 	                    p.match_id,
 	                    p.win as Win,
 	                    opp.champion_id as OpponentChampionId,
-	                    opp.champion_name as OpponentChampionName
+	                    opp.champion_name as OpponentChampionName,
+	                    CASE
+	                        -- Bot lane special case: ADC (BOTTOM) and Support (UTILITY) are in-lane with each other
+	                        WHEN p.role IN ('BOTTOM', 'UTILITY') AND opp.role IN ('BOTTOM', 'UTILITY') THEN 1
+	                        -- Standard case: same role = in-lane
+	                        WHEN p.role NOT IN ('BOTTOM', 'UTILITY') AND opp.role = p.role AND p.role != '' AND p.role IS NOT NULL THEN 1
+	                        -- Fallback to lane matching when role is empty/null
+	                        WHEN opp.lane = p.lane AND p.lane != '' AND p.lane IS NOT NULL AND (p.role = '' OR p.role IS NULL) THEN 1
+	                        ELSE 0
+	                    END as IsInLane
 	                FROM participants p
 	                INNER JOIN matches m ON m.match_id = p.match_id
 	                INNER JOIN participants opp ON opp.match_id = p.match_id
 	                    AND opp.team_id != p.team_id
-	                    AND (
-	                        -- Bot lane special case: ADC (BOTTOM) and Support (UTILITY) see both enemy bot laners
-	                        (p.role IN ('BOTTOM', 'UTILITY') AND opp.role IN ('BOTTOM', 'UTILITY'))
-	                        -- Standard case: match same role
-	                        OR (p.role NOT IN ('BOTTOM', 'UTILITY') AND opp.role = p.role AND p.role != '' AND p.role IS NOT NULL)
-	                        -- Fallback to lane matching when role is empty/null
-	                        OR (opp.lane = p.lane AND p.lane != '' AND p.lane IS NOT NULL AND (p.role = '' OR p.role IS NULL))
-	                    )
 	                WHERE p.puuid = @puuid
 	                    AND p.champion_id = @championId
 	                    AND COALESCE(NULLIF(p.role, ''), 'UNKNOWN') = @role
 	                    {queueFilter} {timeFilter}
 	            ) t
 	            GROUP BY t.OpponentChampionId, t.OpponentChampionName
-	            ORDER BY GamesPlayed DESC";
+	            ORDER BY (SUM(CASE WHEN t.IsInLane = 1 THEN 1 ELSE 0 END) + SUM(CASE WHEN t.IsInLane = 0 THEN 1 ELSE 0 END)) DESC";
 
         var opponents = new List<OpponentMatchup>();
 
@@ -1191,20 +1192,13 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                var oppChampId = reader.GetInt32(0);
-                var oppChampName = reader.GetString(1);
-                var gamesPlayed = reader.GetInt32(2);
-                var wins = reader.GetInt32(3);
-                var losses = gamesPlayed - wins;
-                var winRate = gamesPlayed > 0 ? Math.Round((double)wins / gamesPlayed * 100, 1) : 0;
-
                 opponents.Add(new OpponentMatchup(
-                    OpponentChampionId: oppChampId,
-                    OpponentChampionName: oppChampName,
-                    GamesPlayed: gamesPlayed,
-                    Wins: wins,
-                    Losses: losses,
-                    WinRate: winRate
+                    OpponentChampionId: reader.GetInt32(0),
+                    OpponentChampionName: reader.GetString(1),
+                    InLaneWins: reader.GetInt32(2),
+                    InLaneLosses: reader.GetInt32(3),
+                    OutOfLaneWins: reader.GetInt32(4),
+                    OutOfLaneLosses: reader.GetInt32(5)
                 ));
             }
             return 0;
