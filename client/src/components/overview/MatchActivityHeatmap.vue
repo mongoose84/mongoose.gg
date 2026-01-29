@@ -15,14 +15,14 @@
           </span>
         </div>
 
-        <!-- Day labels (Mon, Wed, Fri) -->
+        <!-- Day labels (Tue, Thu, Sat) - for Monday-start weeks -->
         <div class="day-labels absolute left-0 top-7 flex flex-col gap-0.5 w-5">
           <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]"></span>
-          <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]">Mon</span>
+          <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]">Tue</span>
           <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]"></span>
-          <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]">Wed</span>
+          <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]">Thu</span>
           <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]"></span>
-          <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]">Fri</span>
+          <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]">Sat</span>
           <span class="text-[9px] text-text-secondary h-2.5 leading-[10px]"></span>
         </div>
 
@@ -133,6 +133,7 @@ const hasData = computed(() => {
 })
 
 // Generate weeks array for the heatmap grid (GitHub-style: columns are weeks, rows are days)
+// Weeks start on Monday (ISO week standard)
 const weeks = computed(() => {
   if (!props.startDate || !props.endDate) return []
 
@@ -140,9 +141,12 @@ const weeks = computed(() => {
   const start = parseUTCDate(props.startDate)
   const end = parseUTCDate(props.endDate)
 
-  // Align to start of week (Sunday) using UTC
+  // Align to start of week (Monday) using UTC
+  // getUTCDay() returns 0 for Sunday, 1 for Monday, etc.
+  // To get days since Monday: (day + 6) % 7 gives 0 for Monday, 6 for Sunday
   const current = new Date(start.getTime())
-  current.setUTCDate(current.getUTCDate() - current.getUTCDay())
+  const daysSinceMonday = (current.getUTCDay() + 6) % 7
+  current.setUTCDate(current.getUTCDate() - daysSinceMonday)
 
   let weekIndex = 0
   while (current <= end) {
