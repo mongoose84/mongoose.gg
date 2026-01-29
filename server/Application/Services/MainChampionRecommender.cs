@@ -1,12 +1,10 @@
 
-using static RiotProxy.Application.DTOs.SoloSummaryDto;
+using static RiotProxy.Application.DTOs.MainChampionDto;
 
 namespace RiotProxy.Application.Services;
 
 /// <summary>
 /// Builds per-role "main champion" recommendations from aggregated match stats.
-/// LP per game is approximated from wins/losses only, since historical LP snapshots
-/// are not available in the data model.
 /// </summary>
 public static class MainChampionRecommender
 {
@@ -28,8 +26,6 @@ public static class MainChampionRecommender
     );
 
     private const int MaxChampionsPerRole = 3;
-    private const double ApproxLpOnWin = 20.0;
-    private const double ApproxLpOnLoss = -15.0;
 
     public static IReadOnlyList<MainChampionRoleGroup> BuildMainChampionsByRole(
         IEnumerable<ChampionRoleStats> stats)
@@ -75,8 +71,6 @@ public static class MainChampionRecommender
             ? Math.Round((double)wins / games * 100, 1)
             : 0.0;
 
-        var lpPerGame = ComputeLpPerGameApprox(wins, losses);
-
         var score = ComputeRecommendedScore(
             winRate, games,
             s.AvgKills, s.AvgDeaths, s.AvgAssists,
@@ -90,8 +84,7 @@ public static class MainChampionRecommender
             WinRate: winRate,
             GamesPlayed: games,
             Wins: wins,
-            Losses: losses,
-            LpPerGame: Math.Round(lpPerGame, 1)
+            Losses: losses
         );
 
         return (entry, score);
@@ -101,15 +94,6 @@ public static class MainChampionRecommender
     {
         if (string.IsNullOrWhiteSpace(role)) return "UNKNOWN";
         return role.Trim().ToUpperInvariant();
-    }
-
-    private static double ComputeLpPerGameApprox(int wins, int losses)
-    {
-        var games = wins + losses;
-        if (games == 0) return 0;
-
-        var totalLp = wins * ApproxLpOnWin + losses * ApproxLpOnLoss;
-        return totalLp / games;
     }
 
     /// <summary>

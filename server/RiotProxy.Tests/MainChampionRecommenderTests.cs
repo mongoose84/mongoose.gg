@@ -89,30 +89,6 @@ public class MainChampionRecommenderTests
     }
 
     [Fact]
-    public void Computes_lp_per_game_from_wins_and_losses()
-    {
-        var stats = new[]
-        {
-            CreateStats("MID", 10, "Ahri", gamesPlayed: 4, wins: 3)
-        };
-
-        var result = MainChampionRecommender.BuildMainChampionsByRole(stats);
-
-        var mid = result.Single();
-        var champ = mid.Champions.Single();
-
-        var wins = 3;
-        var losses = 1;
-        const double winLp = 20.0;
-        const double lossLp = -15.0;
-
-        var raw = (wins * winLp + losses * lossLp) / (wins + losses);
-        var expected = System.Math.Round(raw, 1);
-
-        champ.LpPerGame.Should().BeApproximately(expected, 1e-9);
-    }
-
-    [Fact]
     public void BuildMainChampionsByRole_IgnoresUnknownRole()
     {
         var stats = new[]
