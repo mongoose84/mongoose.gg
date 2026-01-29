@@ -1134,6 +1134,11 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
 	        // We first deduplicate to one row per (match, opponent champion) to avoid
 	        // over-counting wins in modes where the opponent join can produce multiple
 	        // rows per match (e.g., when lane/role aren't unique).
+	        //
+	        // Special handling for bot lane:
+	        // - When playing BOTTOM (ADC), show matchups vs both enemy BOTTOM and UTILITY
+	        // - When playing UTILITY (Support), show matchups vs both enemy UTILITY and BOTTOM
+	        // This is because bot lane players are affected by both enemy laners.
 	        var sql = $@"
 	            SELECT
 	                t.OpponentChampionId,
@@ -1151,7 +1156,11 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
 	                INNER JOIN participants opp ON opp.match_id = p.match_id
 	                    AND opp.team_id != p.team_id
 	                    AND (
-	                        (opp.role = p.role AND p.role != '' AND p.role IS NOT NULL)
+	                        -- Bot lane special case: ADC (BOTTOM) and Support (UTILITY) see both enemy bot laners
+	                        (p.role IN ('BOTTOM', 'UTILITY') AND opp.role IN ('BOTTOM', 'UTILITY'))
+	                        -- Standard case: match same role
+	                        OR (p.role NOT IN ('BOTTOM', 'UTILITY') AND opp.role = p.role AND p.role != '' AND p.role IS NOT NULL)
+	                        -- Fallback to lane matching when role is empty/null
 	                        OR (opp.lane = p.lane AND p.lane != '' AND p.lane IS NOT NULL AND (p.role = '' OR p.role IS NULL))
 	                    )
 	                WHERE p.puuid = @puuid
