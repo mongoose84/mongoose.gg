@@ -23,7 +23,6 @@ public static class MainChampionRecommender
         double AvgAssists
     );
 
-    private const int MinGamesForChampion = 2;
     private const int MaxChampionsPerRole = 3;
     private const double ApproxLpOnWin = 20.0;
     private const double ApproxLpOnLoss = -15.0;
@@ -33,11 +32,9 @@ public static class MainChampionRecommender
     {
         if (stats == null) throw new ArgumentNullException(nameof(stats));
 
-        var eligible = stats.Where(s => s.GamesPlayed >= MinGamesForChampion);
-
         var roleGroups = new List<MainChampionRoleGroup>();
 
-	        foreach (var group in eligible.GroupBy(s => NormalizeRole(s.Role)))
+	        foreach (var group in stats.GroupBy(s => NormalizeRole(s.Role)))
 	        {
 	            // Ignore unknown/unassigned roles – only show meaningful lanes
 	            if (group.Key == "UNKNOWN")
