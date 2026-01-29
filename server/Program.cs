@@ -1,15 +1,16 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using RiotProxy.Infrastructure;
 using RiotProxy.Application;
+using RiotProxy.Core.Interfaces;
+using RiotProxy.Infrastructure;
 using RiotProxy.Infrastructure.Database;
 using RiotProxy.Infrastructure.Database.Repositories;
-using RiotProxy.Infrastructure.Riot;
-using RiotProxy.Infrastructure.Jobs;
-using RiotProxy.Infrastructure.Security;
-using RiotProxy.Infrastructure.WebSocket;
-using RiotProxy.Infrastructure.Middleware;
 using RiotProxy.Infrastructure.Email;
+using RiotProxy.Infrastructure.Jobs;
+using RiotProxy.Infrastructure.Middleware;
+using RiotProxy.Infrastructure.Riot;
+using RiotProxy.Infrastructure.Security;
 using RiotProxy.Infrastructure.Serialization;
+using RiotProxy.Infrastructure.WebSocket;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);

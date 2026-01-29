@@ -1,9 +1,10 @@
 using MySqlConnector;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
-public class TeamMatchMetricsRepository : RepositoryBase
+public class TeamMatchMetricsRepository : RepositoryBase, ITeamMatchMetricsRepository
 {
     public TeamMatchMetricsRepository(IDbConnectionFactory factory) : base(factory) {}
 

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
 using RiotProxy.Infrastructure.Riot;
 using RiotProxy.Infrastructure.Riot.Mappers;

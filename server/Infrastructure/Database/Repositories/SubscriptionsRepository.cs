@@ -1,9 +1,10 @@
 using MySqlConnector;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
-public class SubscriptionsRepository : RepositoryBase
+public class SubscriptionsRepository : RepositoryBase, ISubscriptionsRepository
 {
     public SubscriptionsRepository(IDbConnectionFactory factory) : base(factory) {}
 

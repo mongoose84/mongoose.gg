@@ -1,5 +1,6 @@
 using MySqlConnector;
 using RiotProxy.Application.DTOs.Overview;
+using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
@@ -7,7 +8,7 @@ namespace RiotProxy.Infrastructure.Database.Repositories;
 /// Repository for overview page statistics.
 /// Provides primary queue detection, last 20 games metrics, and last match data.
 /// </summary>
-public class OverviewStatsRepository : RepositoryBase
+public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
 {
     private readonly ILogger<OverviewStatsRepository> _logger;
 

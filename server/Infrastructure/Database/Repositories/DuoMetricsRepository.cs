@@ -1,9 +1,10 @@
 using MySqlConnector;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
-public class DuoMetricsRepository : RepositoryBase
+public class DuoMetricsRepository : RepositoryBase, IDuoMetricsRepository
 {
     public DuoMetricsRepository(IDbConnectionFactory factory) : base(factory) {}
 

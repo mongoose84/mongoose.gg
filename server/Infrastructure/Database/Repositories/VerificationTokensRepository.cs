@@ -1,9 +1,10 @@
 using MySqlConnector;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
-public class VerificationTokensRepository : RepositoryBase
+public class VerificationTokensRepository : RepositoryBase, IVerificationTokensRepository
 {
     public VerificationTokensRepository(IDbConnectionFactory factory) : base(factory) { }
 

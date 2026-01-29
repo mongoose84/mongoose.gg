@@ -1,10 +1,12 @@
 using MySqlConnector;
 using RiotProxy.Application.DTOs.Matches;
+using RiotProxy.Application.QueryModels;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
-public class MatchesRepository : RepositoryBase
+public class MatchesRepository : RepositoryBase, IMatchesRepository
 {
     private const string DataDragonVersion = "16.1.1";
 

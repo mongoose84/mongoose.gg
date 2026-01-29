@@ -1,9 +1,10 @@
 using MySqlConnector;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
-public class TeamRoleResponsibilitiesRepository : RepositoryBase
+public class TeamRoleResponsibilitiesRepository : RepositoryBase, ITeamRoleResponsibilitiesRepository
 {
     public TeamRoleResponsibilitiesRepository(IDbConnectionFactory factory) : base(factory) {}
 

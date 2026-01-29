@@ -1,11 +1,12 @@
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
 /// <summary>
 /// Repository for analytics events. Optimized for high-volume inserts.
 /// </summary>
-public class AnalyticsEventsRepository : RepositoryBase
+public class AnalyticsEventsRepository : RepositoryBase, IAnalyticsEventsRepository
 {
     public AnalyticsEventsRepository(IDbConnectionFactory factory) : base(factory) { }
 

@@ -1,6 +1,7 @@
 using System;
 using MySqlConnector;
 using RiotProxy.Application.Services;
+using RiotProxy.Core.Interfaces;
 using static RiotProxy.Application.DTOs.SoloSummaryDto;
 using static RiotProxy.Application.DTOs.SoloMatchupsDto;
 
@@ -10,7 +11,7 @@ namespace RiotProxy.Infrastructure.Database.Repositories;
 /// Repository for solo dashboard statistics, optimized for dashboard rendering.
 /// All queries use match and participant tables.
 /// </summary>
-public class SoloStatsRepository : RepositoryBase
+public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
 {
     private readonly ILogger<SoloStatsRepository> _logger;
     public SoloStatsRepository(IDbConnectionFactory factory, ILogger<SoloStatsRepository> logger) : base(factory)

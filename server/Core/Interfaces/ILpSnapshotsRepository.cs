@@ -1,6 +1,6 @@
 using RiotProxy.Core.Entities;
 
-namespace RiotProxy.Infrastructure.Database.Repositories;
+namespace RiotProxy.Core.Interfaces;
 
 /// <summary>
 /// Interface for LP snapshots repository operations.

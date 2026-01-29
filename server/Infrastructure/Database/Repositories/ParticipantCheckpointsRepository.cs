@@ -1,10 +1,11 @@
 using MySqlConnector;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 using System.Text;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
-public class ParticipantCheckpointsRepository : RepositoryBase
+public class ParticipantCheckpointsRepository : RepositoryBase, IParticipantCheckpointsRepository
 {
     public ParticipantCheckpointsRepository(IDbConnectionFactory factory) : base(factory) {}
 
