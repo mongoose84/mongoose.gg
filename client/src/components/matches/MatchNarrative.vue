@@ -1,24 +1,25 @@
 <template>
   <div class="match-narrative">
-    <h3 class="section-title">Match Narrative</h3>
+    <div class="narrative-card">
+      <h3 class="section-title">Match Narrative</h3>
 
-    <!-- Loading state -->
-    <div v-if="loading" class="loading-state">
-      <span class="loading-text">Loading lane matchups...</span>
-    </div>
+      <!-- Loading state -->
+      <div v-if="loading" class="loading-state">
+        <span class="loading-text">Loading lane matchups...</span>
+      </div>
 
-    <!-- Error state -->
-    <div v-else-if="error" class="error-state">
-      <span class="error-text">{{ error }}</span>
-    </div>
+      <!-- Error state -->
+      <div v-else-if="error" class="error-state">
+        <span class="error-text">{{ error }}</span>
+      </div>
 
-    <!-- No data state -->
-    <div v-else-if="!narrativeData || narrativeData.laneMatchups.length === 0" class="empty-state">
-      <span class="empty-text">No lane matchup data available</span>
-    </div>
+      <!-- No data state -->
+      <div v-else-if="!narrativeData || narrativeData.laneMatchups.length === 0" class="empty-state">
+        <span class="empty-text">No lane matchup data available</span>
+      </div>
 
-    <!-- Lane matchups -->
-    <div v-else class="lane-matchups">
+      <!-- Lane matchups -->
+      <div v-else class="lane-matchups">
       <div
         v-for="matchup in narrativeData.laneMatchups"
         :key="matchup.role"
@@ -65,6 +66,7 @@
           <LaneMatchupDetails :matchup="matchup" />
         </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -142,9 +144,19 @@ function isUserRole(role) {
   return narrativeData.value?.userRole === role
 }
 
-function getRoleIcon(role) {
-  const icons = { TOP: '⚔️', JUNGLE: '🌲', MIDDLE: '🎯', BOTTOM: '🏹', UTILITY: '🛡️' }
-  return icons[role] || '❓'
+// Community Dragon CDN for official League role icons
+const roleIconBaseUrl = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions'
+
+function getRoleIconUrl(role) {
+  const roleMap = {
+    TOP: 'top',
+    JUNGLE: 'jungle',
+    MIDDLE: 'middle',
+    BOTTOM: 'bottom',
+    UTILITY: 'utility'
+  }
+  const roleName = roleMap[role] || 'fill'
+  return `${roleIconBaseUrl}/icon-position-${roleName}.png`
 }
 
 
@@ -155,6 +167,16 @@ function getRoleIcon(role) {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+}
+
+.narrative-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
 }
 
 .section-title {
@@ -216,7 +238,13 @@ function getRoleIcon(role) {
   flex-shrink: 0;
 }
 
-.role-icon { font-size: 16px; }
+.role-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  filter: brightness(0) invert(1); /* Make icons white for dark theme */
+  opacity: 0.8;
+}
 .role-name {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);

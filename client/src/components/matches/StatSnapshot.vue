@@ -78,11 +78,11 @@ const stats = computed(() => {
     const pctDiff = avgValue > 0 ? (diff / avgValue) * 100 : 0
 
     if (format === 'pct' && Math.abs(pctDiff) >= threshold) {
-      return `${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(0)}% vs avg`
+      return `${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(0)}% vs average`
     } else if (format === 'diff' && Math.abs(diff) >= threshold) {
-      return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} vs avg`
+      return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} vs average`
     } else if (format === 'int' && Math.abs(diff) >= threshold) {
-      return `${diff >= 0 ? '+' : ''}${Math.round(diff)} vs avg`
+      return `${diff >= 0 ? '+' : ''}${Math.round(diff)} vs average`
     }
     return null
   }
@@ -95,11 +95,11 @@ const stats = computed(() => {
     const pctDiff = expectedValue > 0 ? (diff / expectedValue) * 100 : 0
 
     if (format === 'pct' && Math.abs(pctDiff) >= threshold) {
-      return `${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(0)}% vs expected`
+      return `${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(0)}% vs average`
     } else if (format === 'diff' && Math.abs(diff) >= threshold) {
-      return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} vs expected`
+      return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} vs average`
     } else if (format === 'int' && Math.abs(diff) >= threshold) {
-      return `${diff >= 0 ? '+' : ''}${Math.round(diff)} vs expected`
+      return `${diff >= 0 ? '+' : ''}${Math.round(diff)} vs average`
     }
     return null
   }
@@ -114,7 +114,7 @@ const stats = computed(() => {
       comparison: b ? getComparison(kda, b.avgKda, 0.3, 'diff') : null
     },
     {
-      label: 'Kill Part.',
+      label: 'Kill Participation',
       value: `${m.killParticipation.toFixed(0)}%`,
       trend: b ? getTrend(m.killParticipation, b.avgKillParticipation, 0.1) : null,
       comparison: b ? getComparison(m.killParticipation, b.avgKillParticipation, 5, 'int') : null
@@ -126,13 +126,13 @@ const stats = computed(() => {
       comparison: b ? getComparisonDurationAdjusted(m.damageDealt, b.avgDamageDealt, 10, 'pct') : null
     },
     {
-      label: 'Dmg Share',
+      label: 'Damage Share',
       value: `${m.damageShare.toFixed(0)}%`,
       trend: m.damageShare >= 25 ? 'up' : m.damageShare < 15 ? 'down' : null,
       comparison: m.damageShare >= 25 ? 'Carry performance' : null
     },
     {
-      label: 'Dmg Taken',
+      label: 'Damage Taken',
       value: formatNumber(m.damageTaken),
       trend: b ? getTrendDurationAdjusted(m.damageTaken, b.avgDamageTaken, 0.15) : null,
       comparison: b ? getComparisonDurationAdjusted(m.damageTaken, b.avgDamageTaken, 10, 'pct') : null

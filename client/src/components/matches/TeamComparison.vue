@@ -1,7 +1,7 @@
 <template>
   <div class="team-comparison">
-    <h3 class="section-title">Team Summary</h3>
     <div class="comparison-grid">
+      <h3 class="section-title">Team Summary</h3>
       <!-- Total Damage -->
       <div class="comparison-row damage-row">
         <span class="metric-label">Total Damage</span>
@@ -33,29 +33,29 @@
         <span class="metric-label">Objectives</span>
         <div class="objectives-cell">
           <span class="obj-item" :title="`Dragons killed: ${match.teamDragons}`">
-            <svg class="obj-icon dragon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            <img :src="getObjectiveIconUrl('dragon', 'team')" alt="Dragon" class="obj-icon" />
             <span class="obj-count">{{ match.teamDragons }}</span>
           </span>
           <span class="obj-item" :title="`Barons killed: ${match.teamBarons}`">
-            <svg class="obj-icon baron" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <img :src="getObjectiveIconUrl('baron', 'team')" alt="Baron" class="obj-icon" />
             <span class="obj-count">{{ match.teamBarons }}</span>
           </span>
           <span class="obj-item" :title="`Towers destroyed: ${match.teamTowers}`">
-            <svg class="obj-icon tower" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm6 9.09c0 4-2.55 7.7-6 8.83-3.45-1.13-6-4.82-6-8.83V6.31l6-2.25 6 2.25v4.78z"/></svg>
+            <img :src="getObjectiveIconUrl('tower', 'team')" alt="Tower" class="obj-icon" />
             <span class="obj-count">{{ match.teamTowers }}</span>
           </span>
         </div>
         <div class="objectives-cell">
           <span class="obj-item" :title="`Dragons killed: ${match.enemyTeamDragons}`">
-            <svg class="obj-icon dragon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            <img :src="getObjectiveIconUrl('dragon', 'enemy')" alt="Dragon" class="obj-icon" />
             <span class="obj-count">{{ match.enemyTeamDragons }}</span>
           </span>
           <span class="obj-item" :title="`Barons killed: ${match.enemyTeamBarons}`">
-            <svg class="obj-icon baron" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <img :src="getObjectiveIconUrl('baron', 'enemy')" alt="Baron" class="obj-icon" />
             <span class="obj-count">{{ match.enemyTeamBarons }}</span>
           </span>
           <span class="obj-item" :title="`Towers destroyed: ${match.enemyTeamTowers}`">
-            <svg class="obj-icon tower" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm6 9.09c0 4-2.55 7.7-6 8.83-3.45-1.13-6-4.82-6-8.83V6.31l6-2.25 6 2.25v4.78z"/></svg>
+            <img :src="getObjectiveIconUrl('tower', 'enemy')" alt="Tower" class="obj-icon" />
             <span class="obj-count">{{ match.enemyTeamTowers }}</span>
           </span>
         </div>
@@ -74,6 +74,15 @@ const props = defineProps({
     required: true
   }
 })
+
+// Community Dragon CDN for official League objective icons
+const objectiveIconBaseUrl = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default'
+
+function getObjectiveIconUrl(objective, team) {
+  // 100 = blue team (ally), 200 = red team (enemy)
+  const teamSuffix = team === 'team' ? '100' : '200'
+  return `${objectiveIconBaseUrl}/${objective}-${teamSuffix}.png`
+}
 
 // Damage bar percentages
 const totalDamage = computed(() => props.match.teamTotalDamage + props.match.enemyTeamTotalDamage)
@@ -199,13 +208,10 @@ const enemyHasGoldLead = computed(() => {
 }
 
 .obj-icon {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
-
-.obj-icon.dragon { color: var(--color-warning); }
-.obj-icon.baron { color: var(--color-primary-accent); }
-.obj-icon.tower { color: var(--color-muted); }
 
 .obj-count {
   font-size: var(--font-size-sm);
