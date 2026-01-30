@@ -105,7 +105,7 @@ const stats = computed(() => {
   }
 
   const kda = getKda()
-  const isSupport = m.role === 'UTILITY'
+  const isSupport = m.role === 'UTILITY' || m.role === 'SUPPORT'
 
   return [
     {
