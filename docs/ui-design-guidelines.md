@@ -484,6 +484,6 @@ Standard icon sizes:
 - **Example Views:**
   - Auth: `client/src/views/AuthPage.vue`
   - Landing: `client/src/views/LandingPage.vue`
-  - Dashboard: `client/src/views/SoloDashboard.vue`
+  - Solo: `client/src/views/SoloPage.vue`
 - **Layouts:** `client/src/layouts/AppLayout.vue`
 - **Composables:** `client/src/composables/` (useSyncWebSocket, useWinRateColor)

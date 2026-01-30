@@ -63,7 +63,7 @@ const router = createRouter({
         {
           path: 'solo',
           name: 'app-solo',
-          component: () => import('../views/SoloDashboard.vue')
+          component: () => import('../views/SoloPage.vue')
         },
         {
           path: 'duo',
