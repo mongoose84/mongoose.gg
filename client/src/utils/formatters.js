@@ -25,7 +25,8 @@ export function formatRole(role) {
     SUPPORT: 'Support',
     NONE: '',
     UNKNOWN: '',
-    FILL: 'Fill'
+    FILL: 'Fill',
+    ARAM: 'ARAM'
   }
   return roleMap[role.toUpperCase()] || role
 }
@@ -48,7 +49,8 @@ export function formatRoleWithAdc(role) {
     SUPPORT: 'Support',
     NONE: '',
     UNKNOWN: 'Fill',
-    FILL: 'Fill'
+    FILL: 'Fill',
+    ARAM: 'ARAM'
   }
   return roleMap[role.toUpperCase()] || role
 }
