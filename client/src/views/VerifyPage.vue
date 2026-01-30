@@ -100,7 +100,7 @@ onMounted(async () => {
 
   // Redirect if already verified
   if (authStore.isVerified) {
-    router.push('/app/user');
+    router.push('/app/overview');
   }
 });
 
@@ -118,7 +118,7 @@ const handleSubmit = async () => {
 
   try {
     await authStore.verify(code.value);
-    router.push('/app/user');
+    router.push('/app/overview');
   } catch (e) {
     errorMessage.value = e.message || 'Invalid verification code. Please try again.';
   } finally {
