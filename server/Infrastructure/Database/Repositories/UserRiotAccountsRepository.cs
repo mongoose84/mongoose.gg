@@ -58,21 +58,24 @@ public class UserRiotAccountsRepository : RepositoryBase, IUserRiotAccountsRepos
         return await ExecuteListAsync(sql, r => r.GetInt64(0), ("@puuid", puuid));
     }
 
-    public async Task SetPrimaryAsync(long userId, string puuid)
+    public Task SetPrimaryAsync(long userId, string puuid)
     {
-        // First, unset all primary flags for this user
+        // Unset all primary flags for this user, then set the specified account as primary
+        // Wrapped in a transaction to ensure atomicity
         const string unsetSql = "UPDATE user_riot_accounts SET is_primary = FALSE WHERE user_id = @user_id";
-        await ExecuteNonQueryAsync(unsetSql, ("@user_id", userId));
-
-        // Then set the specified account as primary
         const string setSql = "UPDATE user_riot_accounts SET is_primary = TRUE WHERE user_id = @user_id AND puuid = @puuid";
-        await ExecuteNonQueryAsync(setSql, ("@user_id", userId), ("@puuid", puuid));
+
+        return ExecuteTransactionAsync(async (conn, transaction) =>
+        {
+            await ExecuteNonQueryWithConnectionAsync(conn, transaction, unsetSql, ("@user_id", userId));
+            await ExecuteNonQueryWithConnectionAsync(conn, transaction, setSql, ("@user_id", userId), ("@puuid", puuid));
+        });
     }
 
     public async Task<(UserRiotAccountLink Link, RiotAccount Account)?> GetPrimaryByUserIdAsync(long userId)
     {
         const string sql = @"
-            SELECT 
+            SELECT
                 ura.user_id, ura.puuid, ura.is_primary, ura.linked_at,
                 ra.puuid, ra.game_name, ra.tag_line, ra.summoner_name, ra.region, ra.summoner_id,
                 ra.sync_status, ra.sync_progress, ra.sync_total, ra.profile_icon_id, ra.summoner_level,
@@ -84,7 +87,7 @@ public class UserRiotAccountsRepository : RepositoryBase, IUserRiotAccountsRepos
             LIMIT 1";
 
         var results = await ExecuteListAsync(sql, MapLinkWithAccount, ("@user_id", userId));
-        return results.FirstOrDefault();
+        return results.Count > 0 ? results[0] : null;
     }
 
     public async Task<bool> HasAnyLinksAsync(string puuid)
@@ -107,7 +110,7 @@ public class UserRiotAccountsRepository : RepositoryBase, IUserRiotAccountsRepos
             UserId = r.GetInt64(0),
             Puuid = r.GetString(1),
             IsPrimary = r.GetBoolean(2),
-            LinkedAt = r.GetDateTime(3)
+            LinkedAt = r.GetDateTimeUtc(3)
         };
 
         var account = new RiotAccount
@@ -129,9 +132,9 @@ public class UserRiotAccountsRepository : RepositoryBase, IUserRiotAccountsRepos
             FlexTier = r.IsDBNull(18) ? null : r.GetString(18),
             FlexRank = r.IsDBNull(19) ? null : r.GetString(19),
             FlexLp = r.IsDBNull(20) ? null : r.GetInt32(20),
-            LastSyncAt = r.IsDBNull(21) ? null : r.GetDateTime(21),
-            CreatedAt = r.GetDateTime(22),
-            UpdatedAt = r.GetDateTime(23)
+            LastSyncAt = r.GetDateTimeUtcOrNull(21),
+            CreatedAt = r.GetDateTimeUtc(22),
+            UpdatedAt = r.GetDateTimeUtc(23)
         };
 
         return (link, account);
