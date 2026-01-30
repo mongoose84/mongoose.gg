@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.ChampionSelect;
@@ -26,7 +27,7 @@ public sealed class ChampionSelectEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
-            [FromServices] RiotAccountsRepository riotAccountRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] SoloStatsRepository soloStatsRepo,
             [FromServices] ILogger<ChampionSelectEndpoint> logger
         ) =>
@@ -52,17 +53,18 @@ public sealed class ChampionSelectEndpoint : IEndpoint
                     return Results.Forbid();
                 }
 
-                // Get riot accounts for this user
-                var riotAccounts = await riotAccountRepo.GetByUserIdAsync(userIdInt);
+                // Get linked riot accounts for this user via junction table
+                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
 
-                if (riotAccounts == null || riotAccounts.Count == 0)
+                if (linkedAccounts == null || linkedAccounts.Count == 0)
                 {
                     logger.LogWarning("Champion select: no riot accounts found for userId {UserId}", userIdInt);
                     return Results.NotFound(new { error = "No riot accounts found for this user" });
                 }
 
                 // Use primary account or first account
-                var primaryAccount = riotAccounts.FirstOrDefault(a => a.IsPrimary) ?? riotAccounts[0];
+                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
+                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
                 // Fetch dashboard data (reusing solo stats for now - can be optimized later)

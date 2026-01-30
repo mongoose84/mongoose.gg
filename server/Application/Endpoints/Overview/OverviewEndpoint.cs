@@ -16,7 +16,7 @@ namespace RiotProxy.Application.Endpoints.Overview;
 public sealed class OverviewEndpoint : IEndpoint
 {
     public string Route { get; }
-    
+
     // Data Dragon version for icon URLs
     private const string DataDragonVersion = "16.1.1";
 
@@ -30,7 +30,7 @@ public sealed class OverviewEndpoint : IEndpoint
         var endpoint = app.MapGet(Route, async (
             HttpContext httpContext,
             [FromRoute] string userId,
-            [FromServices] RiotAccountsRepository riotAccountRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] OverviewStatsRepository overviewStatsRepo,
             [FromServices] ILpSnapshotsRepository lpSnapshotsRepo,
             [FromServices] ILogger<OverviewEndpoint> logger
@@ -48,23 +48,24 @@ public sealed class OverviewEndpoint : IEndpoint
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
-                // Get riot accounts for the user
-                var riotAccounts = await riotAccountRepo.GetByUserIdAsync(userIdInt);
-                if (riotAccounts == null || riotAccounts.Count == 0)
+                // Get riot accounts for the user via junction table
+                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
+                if (linkedAccounts == null || linkedAccounts.Count == 0)
                 {
                     logger.LogWarning("Overview: no Riot accounts found for userId {UserId}", userIdInt);
                     return Results.NotFound(new { error = "No linked Riot accounts found" });
                 }
 
                 // Use primary account or first account
-                var primaryAccount = riotAccounts.FirstOrDefault(a => a.IsPrimary) ?? riotAccounts[0];
+                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
+                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
                 logger.LogInformation("Overview request: userId={UserId}, puuid={Puuid}", userIdInt, primaryPuuid);
 
                 // Build player header
                 var profileIconUrl = BuildProfileIconUrl(primaryAccount.ProfileIconId);
-                var activeContexts = DetermineActiveContexts(riotAccounts.Count);
+                var activeContexts = DetermineActiveContexts(linkedAccounts.Count);
                 var playerHeader = new PlayerHeader(
                     SummonerName: primaryAccount.SummonerName,
                     Level: primaryAccount.SummonerLevel ?? 0,

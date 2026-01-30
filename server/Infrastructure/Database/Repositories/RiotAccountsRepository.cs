@@ -4,23 +4,25 @@ using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
+/// <summary>
+/// Repository for Riot account data (shared across users).
+/// User-specific linking is handled by UserRiotAccountsRepository.
+/// </summary>
 public class RiotAccountsRepository : RepositoryBase, IRiotAccountsRepository
 {
-    public RiotAccountsRepository(IDbConnectionFactory factory) : base(factory) {}
+    public RiotAccountsRepository(IDbConnectionFactory factory) : base(factory) { }
 
     public virtual Task UpsertAsync(RiotAccount account)
     {
         const string sql = @"INSERT INTO riot_accounts
-            (puuid, user_id, game_name, tag_line, summoner_name, region, summoner_id, is_primary, sync_status, profile_icon_id, summoner_level, solo_tier, solo_rank, solo_lp, flex_tier, flex_rank, flex_lp, last_sync_at, created_at, updated_at)
-            VALUES (@puuid, @user_id, @game_name, @tag_line, @summoner_name, @region, @summoner_id, @is_primary, @sync_status, @profile_icon_id, @summoner_level, @solo_tier, @solo_rank, @solo_lp, @flex_tier, @flex_rank, @flex_lp, @last_sync_at, @created_at, @updated_at) AS new
+            (puuid, game_name, tag_line, summoner_name, region, summoner_id, sync_status, profile_icon_id, summoner_level, solo_tier, solo_rank, solo_lp, flex_tier, flex_rank, flex_lp, last_sync_at, created_at, updated_at)
+            VALUES (@puuid, @game_name, @tag_line, @summoner_name, @region, @summoner_id, @sync_status, @profile_icon_id, @summoner_level, @solo_tier, @solo_rank, @solo_lp, @flex_tier, @flex_rank, @flex_lp, @last_sync_at, @created_at, @updated_at) AS new
             ON DUPLICATE KEY UPDATE
-                user_id = new.user_id,
                 game_name = new.game_name,
                 tag_line = new.tag_line,
                 summoner_name = new.summoner_name,
                 region = new.region,
                 summoner_id = COALESCE(new.summoner_id, riot_accounts.summoner_id),
-                is_primary = new.is_primary,
                 sync_status = new.sync_status,
                 profile_icon_id = COALESCE(new.profile_icon_id, riot_accounts.profile_icon_id),
                 summoner_level = COALESCE(new.summoner_level, riot_accounts.summoner_level),
@@ -35,13 +37,11 @@ public class RiotAccountsRepository : RepositoryBase, IRiotAccountsRepository
 
         return ExecuteNonQueryAsync(sql,
             ("@puuid", account.Puuid),
-            ("@user_id", account.UserId),
             ("@game_name", account.GameName),
             ("@tag_line", account.TagLine),
             ("@summoner_name", account.SummonerName),
             ("@region", account.Region),
             ("@summoner_id", (object?)account.SummonerId ?? DBNull.Value),
-            ("@is_primary", account.IsPrimary),
             ("@sync_status", account.SyncStatus),
             ("@profile_icon_id", (object?)account.ProfileIconId ?? DBNull.Value),
             ("@summoner_level", (object?)account.SummonerLevel ?? DBNull.Value),
@@ -56,16 +56,10 @@ public class RiotAccountsRepository : RepositoryBase, IRiotAccountsRepository
             ("@updated_at", DateTime.UtcNow));
     }
 
-    private const string SelectColumns = @"puuid, user_id, game_name, tag_line, summoner_name, region, summoner_id,
-        is_primary, sync_status, sync_progress, sync_total, profile_icon_id, summoner_level,
+    private const string SelectColumns = @"puuid, game_name, tag_line, summoner_name, region, summoner_id,
+        sync_status, sync_progress, sync_total, profile_icon_id, summoner_level,
         solo_tier, solo_rank, solo_lp, flex_tier, flex_rank, flex_lp,
         last_sync_at, created_at, updated_at";
-
-    public virtual Task<IList<RiotAccount>> GetByUserIdAsync(long userId)
-    {
-        var sql = $"SELECT {SelectColumns} FROM riot_accounts WHERE user_id = @user_id ORDER BY is_primary DESC, created_at ASC";
-        return ExecuteListAsync(sql, Map, ("@user_id", userId));
-    }
 
     public virtual async Task<RiotAccount?> GetByPuuidAsync(string puuid)
     {
@@ -81,10 +75,10 @@ public class RiotAccountsRepository : RepositoryBase, IRiotAccountsRepository
         return count > 0;
     }
 
-    public virtual Task DeleteAsync(string puuid, long userId)
+    public virtual Task DeleteAsync(string puuid)
     {
-        const string sql = "DELETE FROM riot_accounts WHERE puuid = @puuid AND user_id = @user_id";
-        return ExecuteNonQueryAsync(sql, ("@puuid", puuid), ("@user_id", userId));
+        const string sql = "DELETE FROM riot_accounts WHERE puuid = @puuid";
+        return ExecuteNonQueryAsync(sql, ("@puuid", puuid));
     }
 
     /// <summary>
@@ -105,19 +99,6 @@ public class RiotAccountsRepository : RepositoryBase, IRiotAccountsRepository
             ("@sync_status", syncStatus),
             ("@last_sync_at", (object?)lastSyncAt ?? DBNull.Value),
             ("@updated_at", DateTime.UtcNow));
-    }
-
-    public Task SetPrimaryAsync(string puuid, long userId)
-    {
-        // First, unset all other accounts as primary for this user, then set the new primary
-        const string unsql = "UPDATE riot_accounts SET is_primary = FALSE, updated_at = @updated_at WHERE user_id = @user_id";
-        const string setsql = "UPDATE riot_accounts SET is_primary = TRUE, updated_at = @updated_at WHERE puuid = @puuid AND user_id = @user_id";
-
-        return ExecuteTransactionAsync(async (conn, transaction) =>
-        {
-            await ExecuteNonQueryWithConnectionAsync(conn, transaction, unsql, ("@user_id", userId), ("@updated_at", DateTime.UtcNow));
-            await ExecuteNonQueryWithConnectionAsync(conn, transaction, setsql, ("@puuid", puuid), ("@user_id", userId), ("@updated_at", DateTime.UtcNow));
-        });
     }
 
     /// <summary>
@@ -267,33 +248,31 @@ public class RiotAccountsRepository : RepositoryBase, IRiotAccountsRepository
             ("@now", DateTime.UtcNow));
     }
 
-    // Column order: puuid, user_id, game_name, tag_line, summoner_name, region, summoner_id,
-    //               is_primary, sync_status, sync_progress, sync_total, profile_icon_id, summoner_level,
+    // Column order: puuid, game_name, tag_line, summoner_name, region, summoner_id,
+    //               sync_status, sync_progress, sync_total, profile_icon_id, summoner_level,
     //               solo_tier, solo_rank, solo_lp, flex_tier, flex_rank, flex_lp,
     //               last_sync_at, created_at, updated_at
     private static RiotAccount Map(MySqlDataReader r) => new()
     {
         Puuid = r.GetString(0),
-        UserId = r.GetInt64(1),
-        GameName = r.GetString(2),
-        TagLine = r.GetString(3),
-        SummonerName = r.GetString(4),
-        Region = r.GetString(5),
-        SummonerId = r.IsDBNull(6) ? null : r.GetString(6),
-        IsPrimary = r.GetBoolean(7),
-        SyncStatus = r.GetString(8),
-        SyncProgress = r.GetInt32(9),
-        SyncTotal = r.GetInt32(10),
-        ProfileIconId = r.IsDBNull(11) ? null : r.GetInt32(11),
-        SummonerLevel = r.IsDBNull(12) ? null : r.GetInt32(12),
-        SoloTier = r.IsDBNull(13) ? null : r.GetString(13),
-        SoloRank = r.IsDBNull(14) ? null : r.GetString(14),
-        SoloLp = r.IsDBNull(15) ? null : r.GetInt32(15),
-        FlexTier = r.IsDBNull(16) ? null : r.GetString(16),
-        FlexRank = r.IsDBNull(17) ? null : r.GetString(17),
-        FlexLp = r.IsDBNull(18) ? null : r.GetInt32(18),
-        LastSyncAt = r.GetDateTimeUtcOrNull(19),
-        CreatedAt = r.GetDateTimeUtc(20),
-        UpdatedAt = r.GetDateTimeUtc(21)
+        GameName = r.GetString(1),
+        TagLine = r.GetString(2),
+        SummonerName = r.GetString(3),
+        Region = r.GetString(4),
+        SummonerId = r.IsDBNull(5) ? null : r.GetString(5),
+        SyncStatus = r.GetString(6),
+        SyncProgress = r.GetInt32(7),
+        SyncTotal = r.GetInt32(8),
+        ProfileIconId = r.IsDBNull(9) ? null : r.GetInt32(9),
+        SummonerLevel = r.IsDBNull(10) ? null : r.GetInt32(10),
+        SoloTier = r.IsDBNull(11) ? null : r.GetString(11),
+        SoloRank = r.IsDBNull(12) ? null : r.GetString(12),
+        SoloLp = r.IsDBNull(13) ? null : r.GetInt32(13),
+        FlexTier = r.IsDBNull(14) ? null : r.GetString(14),
+        FlexRank = r.IsDBNull(15) ? null : r.GetString(15),
+        FlexLp = r.IsDBNull(16) ? null : r.GetInt32(16),
+        LastSyncAt = r.GetDateTimeUtcOrNull(17),
+        CreatedAt = r.GetDateTimeUtc(18),
+        UpdatedAt = r.GetDateTimeUtc(19)
     };
 }

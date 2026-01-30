@@ -41,15 +41,14 @@ CREATE TABLE IF NOT EXISTS verification_tokens (
     INDEX idx_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Riot accounts store shared Riot identity data (not tied to a specific user)
 CREATE TABLE IF NOT EXISTS riot_accounts (
     puuid VARCHAR(78) PRIMARY KEY,
-    user_id BIGINT UNSIGNED NOT NULL,
     game_name VARCHAR(100) NOT NULL,
     tag_line VARCHAR(10) NOT NULL,
     summoner_name VARCHAR(100) NOT NULL,
     region VARCHAR(10) NOT NULL,
     summoner_id VARCHAR(100) NULL,
-    is_primary BOOLEAN DEFAULT FALSE,
     sync_status ENUM('pending', 'syncing', 'completed', 'failed') DEFAULT 'pending',
     sync_progress INT NOT NULL DEFAULT 0,
     sync_total INT NOT NULL DEFAULT 0,
@@ -64,13 +63,24 @@ CREATE TABLE IF NOT EXISTS riot_accounts (
     last_sync_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    KEY idx_user_id (user_id),
     KEY idx_game_name_tag (game_name, tag_line),
     KEY idx_summoner_name (summoner_name),
     KEY idx_region (region),
-    KEY idx_user_primary_created (user_id, is_primary, created_at),
-    KEY idx_sync_status_updated (sync_status, updated_at),
-    CONSTRAINT fk_riot_accounts_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    KEY idx_sync_status_updated (sync_status, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Junction table for M:M relationship between users and riot_accounts
+-- Multiple users can link the same Riot account
+CREATE TABLE IF NOT EXISTS user_riot_accounts (
+    user_id BIGINT UNSIGNED NOT NULL,
+    puuid VARCHAR(78) NOT NULL,
+    is_primary BOOLEAN DEFAULT FALSE,
+    linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, puuid),
+    KEY idx_puuid (puuid),
+    KEY idx_user_primary (user_id, is_primary),
+    CONSTRAINT fk_user_riot_accounts_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_riot_accounts_riot FOREIGN KEY (puuid) REFERENCES riot_accounts(puuid) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS subscriptions (

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Infrastructure.WebSocket;
@@ -163,13 +164,13 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
     /// </summary>
     private async Task<bool> TrySubscribeAsync(string connectionId, long userId, string puuid)
     {
-        // Verify user owns this Riot account (resolve scoped repository per call)
+        // Verify user has this Riot account linked (resolve scoped repository per call)
         using var scope = _scopeFactory.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<RiotAccountsRepository>();
-        var account = await repo.GetByPuuidAsync(puuid);
-        if (account == null || account.UserId != userId)
+        var repo = scope.ServiceProvider.GetRequiredService<IUserRiotAccountsRepository>();
+        var isLinked = await repo.IsLinkedAsync(userId, puuid);
+        if (!isLinked)
         {
-            _logger.LogWarning("User {UserId} attempted to subscribe to unowned account {Puuid}", userId, puuid);
+            _logger.LogWarning("User {UserId} attempted to subscribe to unlinked account {Puuid}", userId, puuid);
             return false;
         }
 

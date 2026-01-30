@@ -14,6 +14,7 @@ namespace RiotProxy.Application.Services;
 public class LoginSyncService
 {
     private readonly RiotAccountsRepository _riotAccountsRepo;
+    private readonly IUserRiotAccountsRepository _userRiotAccountsRepo;
     private readonly ILpSnapshotsRepository _lpSnapshotsRepo;
     private readonly IRiotApiClient _riotApiClient;
     private readonly ISyncProgressBroadcaster _syncBroadcaster;
@@ -26,12 +27,14 @@ public class LoginSyncService
 
     public LoginSyncService(
         RiotAccountsRepository riotAccountsRepo,
+        IUserRiotAccountsRepository userRiotAccountsRepo,
         ILpSnapshotsRepository lpSnapshotsRepo,
         IRiotApiClient riotApiClient,
         ISyncProgressBroadcaster syncBroadcaster,
         ILogger<LoginSyncService> logger)
     {
         _riotAccountsRepo = riotAccountsRepo;
+        _userRiotAccountsRepo = userRiotAccountsRepo;
         _lpSnapshotsRepo = lpSnapshotsRepo;
         _riotApiClient = riotApiClient;
         _syncBroadcaster = syncBroadcaster;
@@ -47,15 +50,16 @@ public class LoginSyncService
         _logger.LogInformation("Starting login sync check for user {UserId}", userId);
         try
         {
-            var accounts = await _riotAccountsRepo.GetByUserIdAsync(userId);
-            if (accounts == null || accounts.Count == 0)
+            // Get linked accounts via junction table
+            var linkedAccounts = await _userRiotAccountsRepo.GetByUserIdAsync(userId);
+            if (linkedAccounts == null || linkedAccounts.Count == 0)
             {
                 _logger.LogInformation("No linked Riot accounts for user {UserId}", userId);
                 return;
             }
 
-            _logger.LogInformation("Found {Count} linked Riot accounts for user {UserId}", accounts.Count, userId);
-            foreach (var account in accounts)
+            _logger.LogInformation("Found {Count} linked Riot accounts for user {UserId}", linkedAccounts.Count, userId);
+            foreach (var (_, account) in linkedAccounts)
             {
                 await CheckAccountAsync(account);
             }

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Solo;
+using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Solo;
@@ -24,7 +25,7 @@ public sealed class MatchActivityEndpoint : IEndpoint
         var endpoint = app.MapGet(Route, async (
             HttpContext httpContext,
             [FromRoute] string userId,
-            [FromServices] RiotAccountsRepository riotAccountRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] SoloStatsRepository soloStatsRepo,
             [FromServices] ILogger<MatchActivityEndpoint> logger
         ) =>
@@ -50,17 +51,18 @@ public sealed class MatchActivityEndpoint : IEndpoint
                     return Results.Forbid();
                 }
 
-                // Get riot accounts for this user
-                var riotAccounts = await riotAccountRepo.GetByUserIdAsync(userIdInt);
+                // Get riot accounts for this user via junction table
+                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
 
-                if (riotAccounts == null || riotAccounts.Count == 0)
+                if (linkedAccounts == null || linkedAccounts.Count == 0)
                 {
                     logger.LogWarning("Match activity: no riot accounts found for userId {UserId}", userIdInt);
                     return Results.NotFound(new { error = "No riot accounts found for this user" });
                 }
 
                 // Use primary account or first account
-                var primaryAccount = riotAccounts.FirstOrDefault(a => a.IsPrimary) ?? riotAccounts[0];
+                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
+                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
                 // Fetch daily match counts for past 6 months (182 days)

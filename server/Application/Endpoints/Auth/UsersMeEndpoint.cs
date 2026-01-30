@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Auth;
@@ -24,7 +25,7 @@ public sealed class UsersMeEndpoint : IEndpoint
         app.MapGet(Route, [Authorize] async (
             HttpContext httpContext,
             [FromServices] UsersRepository usersRepo,
-            [FromServices] RiotAccountsRepository riotAccountsRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ILogger<UsersMeEndpoint> logger
         ) =>
         {
@@ -52,28 +53,28 @@ public sealed class UsersMeEndpoint : IEndpoint
                     return Results.Unauthorized();
                 }
 
-                // Get linked Riot accounts
-                var riotAccounts = await riotAccountsRepo.GetByUserIdAsync(userId);
-                var riotAccountResponses = riotAccounts.Select(ra => new RiotAccountResponse(
-                    ra.Puuid,
-                    ra.GameName,
-                    ra.TagLine,
-                    ra.SummonerName,
-                    ra.Region,
-                    ra.IsPrimary,
-                    ra.SyncStatus,
-                    ra.SyncProgress,
-                    ra.SyncTotal,
-                    ra.ProfileIconId,
-                    ra.SummonerLevel,
-                    ra.SoloTier,
-                    ra.SoloRank,
-                    ra.SoloLp,
-                    ra.FlexTier,
-                    ra.FlexRank,
-                    ra.FlexLp,
-                    ra.LastSyncAt,
-                    ra.CreatedAt
+                // Get linked Riot accounts via junction table
+                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userId);
+                var riotAccountResponses = linkedAccounts.Select(la => new RiotAccountResponse(
+                    la.Account.Puuid,
+                    la.Account.GameName,
+                    la.Account.TagLine,
+                    la.Account.SummonerName,
+                    la.Account.Region,
+                    la.Link.IsPrimary,
+                    la.Account.SyncStatus,
+                    la.Account.SyncProgress,
+                    la.Account.SyncTotal,
+                    la.Account.ProfileIconId,
+                    la.Account.SummonerLevel,
+                    la.Account.SoloTier,
+                    la.Account.SoloRank,
+                    la.Account.SoloLp,
+                    la.Account.FlexTier,
+                    la.Account.FlexRank,
+                    la.Account.FlexLp,
+                    la.Account.LastSyncAt,
+                    la.Account.CreatedAt
                 )).ToList();
 
                 return Results.Ok(new UserMeResponse(

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Matches;
+using RiotProxy.Core.Interfaces;
 using RiotProxy.Core.QueryModels;
 using RiotProxy.Infrastructure.Database.Repositories;
 
@@ -27,7 +28,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
             [FromRoute] string matchId,
             [FromQuery] string? puuid,
             [FromServices] MatchesRepository matchesRepo,
-            [FromServices] RiotAccountsRepository riotAccountsRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ILogger<MatchNarrativeEndpoint> logger
         ) =>
         {
@@ -53,8 +54,9 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                     return Results.Unauthorized();
                 }
 
-                var userRiotAccounts = await riotAccountsRepo.GetByUserIdAsync(userId);
-                if (userRiotAccounts == null || !userRiotAccounts.Any(a => a.Puuid == puuid))
+                // Check if user has this puuid linked via junction table
+                var isLinked = await userRiotAccountsRepo.IsLinkedAsync(userId, puuid);
+                if (!isLinked)
                 {
                     logger.LogWarning("Match narrative: user {UserId} attempted to access data for unowned puuid {Puuid}",
                         userId, puuid);
