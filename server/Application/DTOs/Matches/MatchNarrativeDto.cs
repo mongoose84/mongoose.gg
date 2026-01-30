@@ -37,11 +37,12 @@ public record MatchupParticipant(
     [property: JsonPropertyName("kills")] int Kills,
     [property: JsonPropertyName("deaths")] int Deaths,
     [property: JsonPropertyName("assists")] int Assists,
-    // Laning phase (0-15m)
-    [property: JsonPropertyName("goldAt15")] int? GoldAt15,
-    [property: JsonPropertyName("csAt15")] int? CsAt15,
-    [property: JsonPropertyName("goldDiffAt15")] int? GoldDiffAt15,
-    [property: JsonPropertyName("csDiffAt15")] int? CsDiffAt15,
+    // Early laning phase (0-10m)
+    [property: JsonPropertyName("goldAt10")] int? GoldAt10,
+    [property: JsonPropertyName("csAt10")] int? CsAt10,
+    [property: JsonPropertyName("goldDiffAt10")] int? GoldDiffAt10,
+    [property: JsonPropertyName("csDiffAt10")] int? CsDiffAt10,
+    [property: JsonPropertyName("deathsPre10")] int DeathsPre10,
     [property: JsonPropertyName("soloKills")] int SoloKills,
     // Game impact (post-laning)
     [property: JsonPropertyName("damageShare")] double DamageShare,
