@@ -22,6 +22,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeVerificationTokensRepository _tokensRepository;
     private readonly FakeEmailService _emailService;
     private readonly FakeRiotAccountsRepository _riotAccountsRepository;
+    private readonly FakeUserRiotAccountsRepository _userRiotAccountsRepository;
     private readonly FakeOverviewStatsRepository _overviewStatsRepository;
     private readonly FakeLpSnapshotsRepository _lpSnapshotsRepository;
     private readonly FakeAnalyticsEventsRepository _analyticsEventsRepository;
@@ -30,6 +31,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
     public FakeEmailService EmailService => _emailService;
     public FakeRiotAccountsRepository RiotAccountsRepository => _riotAccountsRepository;
+    public FakeUserRiotAccountsRepository UserRiotAccountsRepository => _userRiotAccountsRepository;
     public FakeOverviewStatsRepository OverviewStatsRepository => _overviewStatsRepository;
     public FakeLpSnapshotsRepository LpSnapshotsRepository => _lpSnapshotsRepository;
     public FakeAnalyticsEventsRepository AnalyticsEventsRepository => _analyticsEventsRepository;
@@ -41,6 +43,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _tokensRepository = new FakeVerificationTokensRepository();
         _emailService = new FakeEmailService();
         _riotAccountsRepository = new FakeRiotAccountsRepository();
+        _userRiotAccountsRepository = new FakeUserRiotAccountsRepository(_riotAccountsRepository);
         _overviewStatsRepository = new FakeOverviewStatsRepository();
         _lpSnapshotsRepository = new FakeLpSnapshotsRepository();
         _analyticsEventsRepository = new FakeAnalyticsEventsRepository();
@@ -95,6 +98,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace RiotAccountsRepository with a fake
             services.RemoveAll<RiotAccountsRepository>();
             services.AddSingleton<RiotAccountsRepository>(_riotAccountsRepository);
+
+            // Replace UserRiotAccountsRepository with a fake
+            services.RemoveAll<IUserRiotAccountsRepository>();
+            services.AddSingleton<IUserRiotAccountsRepository>(_userRiotAccountsRepository);
 
             // Replace OverviewStatsRepository with a fake
             services.RemoveAll<OverviewStatsRepository>();
@@ -347,18 +354,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     internal sealed class FakeRiotAccountsRepository : RiotAccountsRepository
     {
         private readonly ConcurrentDictionary<string, RiotAccount> _accountsByPuuid = new();
-        private readonly ConcurrentDictionary<long, List<RiotAccount>> _accountsByUserId = new();
 
         public FakeRiotAccountsRepository() : base(null!) { }
-
-        public override Task<IList<RiotAccount>> GetByUserIdAsync(long userId)
-        {
-            if (_accountsByUserId.TryGetValue(userId, out var accounts))
-            {
-                return Task.FromResult<IList<RiotAccount>>(accounts.ToList());
-            }
-            return Task.FromResult<IList<RiotAccount>>(new List<RiotAccount>());
-        }
 
         public override Task<RiotAccount?> GetByPuuidAsync(string puuid)
         {
@@ -374,37 +371,22 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public override Task UpsertAsync(RiotAccount account)
         {
             _accountsByPuuid[account.Puuid] = account;
-            if (!_accountsByUserId.TryGetValue(account.UserId, out var userAccounts))
-            {
-                userAccounts = new List<RiotAccount>();
-                _accountsByUserId[account.UserId] = userAccounts;
-            }
-            var existing = userAccounts.FindIndex(a => a.Puuid == account.Puuid);
-            if (existing >= 0)
-            {
-                userAccounts[existing] = account;
-            }
-            else
-            {
-                userAccounts.Add(account);
-            }
             return Task.CompletedTask;
         }
 
         /// <summary>
         /// Helper method to add a Riot account for testing.
+        /// Note: userId parameter kept for API compatibility but not stored on RiotAccount (use UserRiotAccountLink for user-account relationships).
         /// </summary>
         public void AddRiotAccount(long userId, string puuid, string gameName, string region, string summonerName, int summonerLevel, int profileIconId)
         {
             var account = new RiotAccount
             {
                 Puuid = puuid,
-                UserId = userId,
                 GameName = gameName,
                 TagLine = summonerName.Contains('#') ? summonerName.Split('#')[1] : "NA1",
                 SummonerName = summonerName,
                 Region = region,
-                IsPrimary = true,
                 SyncStatus = "synced",
                 SummonerLevel = summonerLevel,
                 ProfileIconId = profileIconId,
@@ -416,6 +398,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         /// <summary>
         /// Helper method to add a Riot account with rank data for testing.
+        /// Note: userId parameter kept for API compatibility but not stored on RiotAccount (use UserRiotAccountLink for user-account relationships).
         /// </summary>
         public void AddRiotAccountWithRank(long userId, string puuid, string gameName, string region, string summonerName,
             int summonerLevel, int profileIconId, string? soloTier, string? soloRank, int? soloLp)
@@ -423,12 +406,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             var account = new RiotAccount
             {
                 Puuid = puuid,
-                UserId = userId,
                 GameName = gameName,
                 TagLine = summonerName.Contains('#') ? summonerName.Split('#')[1] : "NA1",
                 SummonerName = summonerName,
                 Region = region,
-                IsPrimary = true,
                 SyncStatus = "synced",
                 SummonerLevel = summonerLevel,
                 ProfileIconId = profileIconId,
@@ -439,6 +420,123 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 UpdatedAt = DateTime.UtcNow
             };
             UpsertAsync(account).Wait();
+        }
+    }
+
+    /// <summary>
+    /// Fake user-riot accounts repository for testing the M:M junction table.
+    /// </summary>
+    internal sealed class FakeUserRiotAccountsRepository : IUserRiotAccountsRepository
+    {
+        private readonly ConcurrentDictionary<(long UserId, string Puuid), UserRiotAccountLink> _links = new();
+        private readonly FakeRiotAccountsRepository _riotAccountsRepo;
+
+        public FakeUserRiotAccountsRepository(FakeRiotAccountsRepository riotAccountsRepo)
+        {
+            _riotAccountsRepo = riotAccountsRepo;
+        }
+
+        public Task LinkAsync(long userId, string puuid, bool isPrimary)
+        {
+            var link = new UserRiotAccountLink
+            {
+                UserId = userId,
+                Puuid = puuid,
+                IsPrimary = isPrimary,
+                LinkedAt = DateTime.UtcNow
+            };
+            _links[(userId, puuid)] = link;
+            return Task.CompletedTask;
+        }
+
+        public Task UnlinkAsync(long userId, string puuid)
+        {
+            _links.TryRemove((userId, puuid), out _);
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> IsLinkedAsync(long userId, string puuid)
+        {
+            return Task.FromResult(_links.ContainsKey((userId, puuid)));
+        }
+
+        public async Task<IList<(UserRiotAccountLink Link, RiotAccount Account)>> GetByUserIdAsync(long userId)
+        {
+            var results = new List<(UserRiotAccountLink, RiotAccount)>();
+            var userLinks = _links.Where(kvp => kvp.Key.UserId == userId)
+                .OrderByDescending(kvp => kvp.Value.IsPrimary)
+                .ThenBy(kvp => kvp.Value.LinkedAt);
+
+            foreach (var kvp in userLinks)
+            {
+                var account = await _riotAccountsRepo.GetByPuuidAsync(kvp.Key.Puuid);
+                if (account != null)
+                {
+                    results.Add((kvp.Value, account));
+                }
+            }
+
+            return results;
+        }
+
+        public Task<IList<long>> GetUserIdsByPuuidAsync(string puuid)
+        {
+            var userIds = _links.Where(kvp => kvp.Key.Puuid == puuid)
+                .Select(kvp => kvp.Key.UserId)
+                .ToList();
+            return Task.FromResult<IList<long>>(userIds);
+        }
+
+        public Task SetPrimaryAsync(long userId, string puuid)
+        {
+            // Unset all primary flags for this user
+            foreach (var kvp in _links.Where(kvp => kvp.Key.UserId == userId))
+            {
+                kvp.Value.IsPrimary = false;
+            }
+
+            // Set the specified account as primary
+            if (_links.TryGetValue((userId, puuid), out var link))
+            {
+                link.IsPrimary = true;
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public async Task<(UserRiotAccountLink Link, RiotAccount Account)?> GetPrimaryByUserIdAsync(long userId)
+        {
+            var primaryLink = _links.FirstOrDefault(kvp => kvp.Key.UserId == userId && kvp.Value.IsPrimary);
+            if (primaryLink.Value == null)
+            {
+                return null;
+            }
+
+            var account = await _riotAccountsRepo.GetByPuuidAsync(primaryLink.Key.Puuid);
+            if (account == null)
+            {
+                return null;
+            }
+
+            return (primaryLink.Value, account);
+        }
+
+        public Task<bool> HasAnyLinksAsync(string puuid)
+        {
+            return Task.FromResult(_links.Any(kvp => kvp.Key.Puuid == puuid));
+        }
+
+        public Task<int> GetLinkCountAsync(string puuid)
+        {
+            return Task.FromResult(_links.Count(kvp => kvp.Key.Puuid == puuid));
+        }
+
+        /// <summary>
+        /// Helper method to link a Riot account to a user for testing.
+        /// </summary>
+        public void LinkAccount(long userId, string puuid, bool isPrimary = true)
+        {
+            LinkAsync(userId, puuid, isPrimary).Wait();
         }
     }
 
