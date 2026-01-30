@@ -5,22 +5,7 @@
     <!-- Header with centered Queue Toggle and Time Filter on right -->
     <header class="relative flex items-center justify-center mb-lg" data-testid="champion-select-header">
       <!-- Queue Toggle Bar (centered) -->
-      <div class="flex border border-border rounded-md overflow-hidden bg-background-surface" role="group" aria-label="Filter by queue type">
-        <button
-          v-for="queue in queueOptions"
-          :key="queue.value"
-          type="button"
-          class="queue-toggle-btn py-sm px-md bg-transparent border-none text-text-secondary text-sm font-medium cursor-pointer transition-all duration-200 relative focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-soft"
-          :class="{
-            'queue-toggle-btn--active': queueFilter === queue.value,
-            'queue-toggle-btn--inactive': queueFilter !== queue.value
-          }"
-          @click="queueFilter = queue.value"
-          :aria-pressed="queueFilter === queue.value"
-        >
-          {{ queue.label }}
-        </button>
-      </div>
+      <BaseQueueToggle v-model="queueFilter" />
 
       <!-- Time Range Filter (positioned right) -->
       <div class="absolute right-0 flex flex-col gap-xs">
@@ -78,6 +63,7 @@ import { useAuthStore } from '../stores/authStore'
 import { getChampionSelectData, getChampionMatchups } from '../services/authApi'
 import MainChampionCard from '../components/MainChampionCard.vue'
 import OpponentSearchBar from '../components/OpponentSearchBar.vue'
+import { BaseQueueToggle } from '../components/base'
 
 const authStore = useAuthStore()
 
@@ -90,15 +76,6 @@ const error = ref(null)
 // UI state for filters
 const queueFilter = ref('all')
 const timeRange = ref('current_season')
-
-// Queue options for toggle bar
-const queueOptions = [
-  { value: 'all', label: 'All Queues' },
-  { value: 'ranked_solo', label: 'Ranked Solo/Duo' },
-  { value: 'ranked_flex', label: 'Ranked Flex' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'aram', label: 'ARAM' }
-]
 
 // Fetch champion select data and matchups in parallel
 async function fetchData() {
@@ -154,50 +131,4 @@ function onOpponentSelect(result) {
 }
 </script>
 
-<style scoped>
-/* Active state with darker purple for better visibility */
-.queue-toggle-btn--active {
-  background-color: #5b21b6; /* Darker purple (violet-800) */
-  color: white;
-}
 
-/* Inactive state with hover border effect matching time selector */
-.queue-toggle-btn--inactive {
-  color: var(--color-text-secondary);
-}
-
-.queue-toggle-btn--inactive:hover {
-  color: var(--color-text);
-  background-color: var(--color-elevated);
-  box-shadow: inset 0 0 0 1px var(--color-primary);
-}
-
-/* Queue toggle button dividers (pseudo-elements can't be done in Tailwind) */
-.queue-toggle-btn:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 25%;
-  height: 50%;
-  width: 1px;
-  background: var(--color-border);
-}
-
-/* Hide divider when button is active or next to active */
-.queue-toggle-btn--active::after {
-  display: none;
-}
-
-.queue-toggle-btn:has(+ .queue-toggle-btn--active)::after {
-  display: none;
-}
-
-/* Hide divider on hovered buttons */
-.queue-toggle-btn--inactive:hover::after {
-  display: none;
-}
-
-.queue-toggle-btn:has(+ .queue-toggle-btn--inactive:hover)::after {
-  display: none;
-}
-</style>

@@ -190,12 +190,10 @@ public class MatchHistorySyncJobTests
         return new RiotAccount
         {
             Puuid = puuid,
-            UserId = 1,
             GameName = gameName,
             TagLine = tagLine,
             SummonerName = $"{gameName}#{tagLine}",
             Region = "na1",
-            IsPrimary = false,
             SyncStatus = syncStatus,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -222,12 +220,6 @@ internal sealed class FakeRiotAccountsRepository : RiotAccountsRepository
     {
         _accounts.TryGetValue(puuid, out var account);
         return Task.FromResult(account);
-    }
-
-    public override Task<IList<RiotAccount>> GetByUserIdAsync(long userId)
-    {
-        var result = _accounts.Values.Where(a => a.UserId == userId).ToList();
-        return Task.FromResult<IList<RiotAccount>>(result);
     }
 
     public override Task<RiotAccount?> ClaimNextPendingForSyncAsync()

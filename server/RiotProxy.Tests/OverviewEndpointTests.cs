@@ -63,14 +63,16 @@ public class OverviewEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
-        
+
         // Add a Riot account for the tester user (userId = 1)
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
-        
+        // Link the account to the user (M:M relationship)
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
         req.Headers.Add("Cookie", authCookie);
-        
+
         var response = await client.SendAsync(req);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -88,25 +90,27 @@ public class OverviewEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
-        
+
         // Add a Riot account with solo rank
         factory.RiotAccountsRepository.AddRiotAccountWithRank(
-            userId: 1, 
-            puuid: "test-puuid-123", 
-            gameName: "TestPlayer", 
-            region: "NA1", 
+            userId: 1,
+            puuid: "test-puuid-123",
+            gameName: "TestPlayer",
+            region: "NA1",
             summonerName: "TestPlayer#NA1",
-            summonerLevel: 100, 
+            summonerLevel: 100,
             profileIconId: 42,
             soloTier: "GOLD",
             soloRank: "II",
             soloLp: 75
         );
-        
+        // Link the account to the user (M:M relationship)
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
         req.Headers.Add("Cookie", authCookie);
-        
+
         var response = await client.SendAsync(req);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -121,13 +125,15 @@ public class OverviewEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
-        
+
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
-        
+        // Link the account to the user (M:M relationship)
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
         req.Headers.Add("Cookie", authCookie);
-        
+
         var response = await client.SendAsync(req);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
