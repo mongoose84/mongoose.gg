@@ -20,7 +20,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
         { 400, 3 },  // Normal Draft
         { 430, 3 },  // Normal Blind (same priority as Draft)
         { 450, 4 },  // ARAM
-        { 2400, 4 }, // ARAM: Mayhem (same priority as regular ARAM)
+        { 1700, 4 }, // ARAM: Mayhem (same priority as regular ARAM)
     };
 
     public OverviewStatsRepository(IDbConnectionFactory factory, ILogger<OverviewStatsRepository> logger) : base(factory)
@@ -226,7 +226,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
         400 => "Normal Draft",
         430 => "Normal Blind",
         450 => "ARAM",
-        2400 => "ARAM: Mayhem",
+        1700 => "ARAM: Mayhem",
         _ => $"Queue {queueId}"
     };
 }

@@ -396,7 +396,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         400 => "Normal Draft",
         430 => "Normal Blind",
         450 => "ARAM",
-        2400 => "ARAM: Mayhem",
+        1700 => "ARAM: Mayhem",
         _ => $"Queue {queueId}"
     };
 
@@ -413,7 +413,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             "ranked_solo" => "AND m.queue_id = 420",
             "ranked_flex" => "AND m.queue_id = 440",
             "normal" => "AND m.queue_id IN (430, 400)",
-            "aram" => "AND m.queue_id IN (450, 2400)",  // 450 = ARAM, 2400 = ARAM: Mayhem
+            "aram" => "AND m.queue_id IN (450, 1700)",  // 450 = ARAM, 1700 = ARAM: Mayhem
             _ => ""  // all
         };
     }

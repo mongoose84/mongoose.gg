@@ -462,7 +462,7 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
             "ranked_solo" => "AND m.queue_id = 420",
             "ranked_flex" => "AND m.queue_id = 440",
             "normal" => "AND m.queue_id IN (430, 400)",
-            "aram" => "AND m.queue_id IN (450, 2400)",  // 450 = ARAM, 2400 = ARAM: Mayhem
+            "aram" => "AND m.queue_id IN (450, 1700)",  // 450 = ARAM, 1700 = ARAM: Mayhem
 	            _ => ""  // all
 	        };
 	    }

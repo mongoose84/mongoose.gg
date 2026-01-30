@@ -27,8 +27,10 @@
       <!-- Row 1: Champion + Context -->
       <div class="match-header">
         <span class="champion-name">{{ match.championName }}</span>
-        <span class="context-separator">·</span>
-        <span class="role-badge">{{ formatRole(match.role) }}</span>
+        <template v-if="match.role && match.role !== 'UNKNOWN'">
+          <span class="context-separator">·</span>
+          <span class="role-badge">{{ formatRole(match.role) }}</span>
+        </template>
         <span class="context-separator">·</span>
         <span class="queue-type">{{ match.queueType }}</span>
       </div>
