@@ -27,18 +27,28 @@ public static class MainChampionRecommender
 
     private const int MaxChampionsPerRole = 3;
 
+    /// <summary>
+    /// Builds main champion recommendations grouped by role.
+    /// For ARAM queue, treats all champions as a single "ARAM" role group.
+    /// For other queues, filters out UNKNOWN roles and groups by lane.
+    /// </summary>
+    /// <param name="stats">Champion statistics to process</param>
+    /// <param name="queueType">Queue type filter (e.g., "aram", "ranked_solo", "all")</param>
     public static IReadOnlyList<MainChampionRoleGroup> BuildMainChampionsByRole(
-        IEnumerable<ChampionRoleStats> stats)
+        IEnumerable<ChampionRoleStats> stats,
+        string? queueType = null)
     {
         if (stats == null) throw new ArgumentNullException(nameof(stats));
 
+        var isAram = string.Equals(queueType, "aram", StringComparison.OrdinalIgnoreCase);
         var roleGroups = new List<MainChampionRoleGroup>();
 
-	        foreach (var group in stats.GroupBy(s => NormalizeRole(s.Role)))
-	        {
-	            // Ignore unknown/unassigned roles – only show meaningful lanes
-	            if (group.Key == "UNKNOWN")
-	                continue;
+        foreach (var group in stats.GroupBy(s => NormalizeRole(s.Role, isAram)))
+        {
+            // For non-ARAM queues, ignore unknown/unassigned roles – only show meaningful lanes
+            // For ARAM, we've already normalized UNKNOWN to "ARAM" so this won't filter anything
+            if (group.Key == "UNKNOWN")
+                continue;
 
             var champions = group
                 .Select(s => BuildEntryForChampion(group.Key, s))
@@ -95,8 +105,13 @@ public static class MainChampionRecommender
         return (entry, score);
     }
 
-    private static string NormalizeRole(string role)
+    private static string NormalizeRole(string role, bool isAram = false)
     {
+        // For ARAM, all champions are treated as a single "ARAM" role group
+        // since there are no lane assignments in ARAM
+        if (isAram)
+            return "ARAM";
+
         if (string.IsNullOrWhiteSpace(role)) return "UNKNOWN";
         return role.Trim().ToUpperInvariant();
     }

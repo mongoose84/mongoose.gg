@@ -46,7 +46,7 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
 
 		            var sideStats = await GetSideStatsAsync(puuid, queueFilter, timeFilter, timeRangeStart, seasonCode);
 		            var champions = await GetChampionStatsAsync(puuid, queueFilter, timeFilter, timeRangeStart, seasonCode);
-		            var mainChampionsByRole = await GetMainChampionsByRoleAsync(puuid, queueFilter, timeFilter, timeRangeStart, seasonCode);
+		            var mainChampionsByRole = await GetMainChampionsByRoleAsync(puuid, queueType, queueFilter, timeFilter, timeRangeStart, seasonCode);
 		            var roleBreakdown = await GetRoleBreakdownAsync(puuid, queueFilter, timeFilter, timeRangeStart, seasonCode);
 		            var deathStats = await GetDeathEfficiencyAsync(puuid, queueFilter, timeFilter, timeRangeStart, seasonCode);
 		            var matchDurations = await GetMatchDurationsAsync(puuid, queueFilter, timeFilter, timeRangeStart, seasonCode);
@@ -248,7 +248,7 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
         return champs;
     }
 
-			    private async Task<IReadOnlyList<MainChampionRoleGroup>> GetMainChampionsByRoleAsync(string puuid, string queueFilter, string timeFilter, DateTime? timeRangeStart, string? seasonCode)
+			    private async Task<IReadOnlyList<MainChampionRoleGroup>> GetMainChampionsByRoleAsync(string puuid, string queueType, string queueFilter, string timeFilter, DateTime? timeRangeStart, string? seasonCode)
 			    {
             // Query joins with participant_checkpoints (for @15 min stats) and participant_metrics (for early deaths, vision)
             var sql = $@"
@@ -318,7 +318,7 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
 	        if (rows.Count == 0)
 	            return Array.Empty<MainChampionRoleGroup>();
 
-	        return MainChampionRecommender.BuildMainChampionsByRole(rows);
+	        return MainChampionRecommender.BuildMainChampionsByRole(rows, queueType);
 	    }
 
 		    private async Task<List<RolePerformance>> GetRoleBreakdownAsync(string puuid, string queueFilter, string timeFilter, DateTime? timeRangeStart, string? seasonCode)
@@ -462,7 +462,7 @@ public class SoloStatsRepository : RepositoryBase, ISoloStatsRepository
             "ranked_solo" => "AND m.queue_id = 420",
             "ranked_flex" => "AND m.queue_id = 440",
             "normal" => "AND m.queue_id IN (430, 400)",
-            "aram" => "AND m.queue_id = 450",
+            "aram" => "AND m.queue_id IN (450, 2400)",  // 450 = ARAM, 2400 = ARAM: Mayhem
 	            _ => ""  // all
 	        };
 	    }

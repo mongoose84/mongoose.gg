@@ -51,7 +51,7 @@ const props = defineProps({
       { value: 'normal', label: 'Normal' },
       { value: 'aram', label: 'ARAM' }
     ],
-    validator: (options) => options.every(o => 'value' in o && 'label' in o)
+    validator: (options) => Array.isArray(options) && options.every(o => 'value' in o && 'label' in o)
   },
   /** Accessible label for the button group */
   ariaLabel: {
