@@ -86,10 +86,21 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                 var userTeamId = userParticipant.TeamId;
                 var userRole = userParticipant.Role ?? "UNKNOWN";
 
-                // Group participants by role and create lane matchups
-                var laneMatchups = CreateLaneMatchups(participants, userTeamId);
+                // Detect ARAM: all participants have role = "UNKNOWN"
+                var isAram = participants.All(p => p.Role == "UNKNOWN");
 
-                var response = new MatchNarrativeResponse(matchId, userRole, laneMatchups);
+                // Create matchups based on game type
+                LaneMatchup[] matchups;
+                if (isAram)
+                {
+                    matchups = CreateAramMatchups(participants, userTeamId);
+                }
+                else
+                {
+                    matchups = CreateLaneMatchups(participants, userTeamId);
+                }
+
+                var response = new MatchNarrativeResponse(matchId, userRole, matchups, isAram);
                 return Results.Ok(response);
             }
             catch (Exception ex)
@@ -126,6 +137,64 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
         }
 
         return matchups.ToArray();
+    }
+
+    /// <summary>
+    /// Creates 5v5 matchups for ARAM games by pairing participants by damage share rank.
+    /// Highest damage dealer on ally team faces highest on enemy team, etc.
+    /// </summary>
+    private LaneMatchup[] CreateAramMatchups(IList<MatchupParticipantRaw> participants, int userTeamId)
+    {
+        // Sort each team by damage share (highest first)
+        var allies = participants
+            .Where(p => p.TeamId == userTeamId)
+            .OrderByDescending(p => p.DamageShare)
+            .ToList();
+
+        var enemies = participants
+            .Where(p => p.TeamId != userTeamId)
+            .OrderByDescending(p => p.DamageShare)
+            .ToList();
+
+        var matchups = new List<LaneMatchup>();
+
+        // Create 5 matchups by position
+        for (int i = 0; i < Math.Min(allies.Count, enemies.Count); i++)
+        {
+            var ally = allies[i];
+            var enemy = enemies[i];
+
+            // For ARAM, determine winner by overall performance (damage share comparison)
+            var laneWinner = DetermineAramWinner(ally, enemy);
+
+            matchups.Add(new LaneMatchup(
+                Role: $"ARAM_{i + 1}",  // ARAM_1, ARAM_2, etc.
+                AllyParticipant: ToMatchupParticipant(ally),
+                EnemyParticipant: ToMatchupParticipant(enemy),
+                LaneWinner: laneWinner
+            ));
+        }
+
+        return matchups.ToArray();
+    }
+
+    /// <summary>
+    /// Determines the winner in an ARAM matchup based on damage share and KDA.
+    /// </summary>
+    private static string DetermineAramWinner(MatchupParticipantRaw ally, MatchupParticipantRaw enemy)
+    {
+        // Compare damage share - higher damage share = better performance
+        var allyScore = (double)ally.DamageShare + ((double)ally.KillParticipation * 0.5);
+        var enemyScore = (double)enemy.DamageShare + ((double)enemy.KillParticipation * 0.5);
+
+        // Use 5% threshold for "winning"
+        var diff = allyScore - enemyScore;
+        return diff switch
+        {
+            >= 5 => "ally",
+            <= -5 => "enemy",
+            _ => "even"
+        };
     }
 
     private static string DetermineLaneWinner(int? allyGoldDiff, int? enemyGoldDiff)

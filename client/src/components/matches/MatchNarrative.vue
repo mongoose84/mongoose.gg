@@ -18,7 +18,40 @@
         <span class="empty-text">No lane matchup data available</span>
       </div>
 
-      <!-- Lane matchups -->
+      <!-- ARAM Player List -->
+      <div v-else-if="narrativeData.isAram" class="aram-players">
+        <!-- Your Team -->
+        <div class="team-header ally">Your Team</div>
+        <div
+          v-for="participant in allyParticipants"
+          :key="participant.puuid"
+          class="aram-player-row"
+          :class="{ 'user-row': isUserChampion(participant) }"
+        >
+          <img :src="participant.championIconUrl" :alt="participant.championName" class="champion-icon" />
+          <span class="champion-name">
+            {{ participant.championName }}
+            <span v-if="isUserChampion(participant)" class="you-badge">YOU</span>
+          </span>
+          <span class="kda">{{ formatKda(participant) }}</span>
+          <span class="damage">{{ formatPercent(participant.damageShare) }} dmg</span>
+        </div>
+
+        <!-- Enemy Team -->
+        <div class="team-header enemy">Enemy Team</div>
+        <div
+          v-for="participant in enemyParticipants"
+          :key="participant.puuid"
+          class="aram-player-row enemy"
+        >
+          <img :src="participant.championIconUrl" :alt="participant.championName" class="champion-icon" />
+          <span class="champion-name">{{ participant.championName }}</span>
+          <span class="kda">{{ formatKda(participant) }}</span>
+          <span class="damage">{{ formatPercent(participant.damageShare) }} dmg</span>
+        </div>
+      </div>
+
+      <!-- Lane matchups (non-ARAM) -->
       <div v-else class="lane-matchups">
       <div
         v-for="matchup in narrativeData.laneMatchups"
@@ -76,7 +109,7 @@ import { ref, watch, computed } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { getMatchNarrative } from '../../services/authApi'
 import { trackLaneExpand } from '../../services/analyticsApi'
-import { formatRole, formatKdaFromParticipant as formatKda } from '@/utils/formatters'
+import { formatRole, formatKdaFromParticipant as formatKda, formatPercent } from '@/utils/formatters'
 import LaneMatchupDetails from './LaneMatchupDetails.vue'
 
 const props = defineProps({
@@ -143,6 +176,30 @@ function toggleExpand(role) {
 function isUserRole(role) {
   return narrativeData.value?.userRole === role
 }
+
+// Check if the participant is the user (for ARAM where roles are all UNKNOWN)
+function isUserChampion(participant) {
+  return participant?.puuid === puuid.value
+}
+
+// ARAM participants grouped by team, sorted by damage share
+const allyParticipants = computed(() => {
+  if (!narrativeData.value?.isAram || !narrativeData.value?.laneMatchups) {
+    return []
+  }
+  return narrativeData.value.laneMatchups
+    .map(m => m.allyParticipant)
+    .sort((a, b) => b.damageShare - a.damageShare)
+})
+
+const enemyParticipants = computed(() => {
+  if (!narrativeData.value?.isAram || !narrativeData.value?.laneMatchups) {
+    return []
+  }
+  return narrativeData.value.laneMatchups
+    .map(m => m.enemyParticipant)
+    .sort((a, b) => b.damageShare - a.damageShare)
+})
 
 // Community Dragon CDN for official League role icons
 const roleIconBaseUrl = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions'
@@ -311,6 +368,79 @@ function getRoleIconUrl(role) {
 .lane-details {
   border-top: 1px solid var(--color-border);
   padding: var(--spacing-md);
+}
+
+/* ARAM Player List Styles */
+.aram-players {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.team-header {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--spacing-xs) 0;
+  margin-top: var(--spacing-sm);
+}
+
+.team-header:first-child {
+  margin-top: 0;
+}
+
+.team-header.ally { color: var(--color-success); }
+.team-header.enemy { color: var(--color-error); }
+
+.aram-player-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.aram-player-row.enemy {
+  opacity: 0.8;
+}
+
+.aram-player-row.user-row {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.08) 0%, var(--color-surface) 100%);
+  border-color: var(--color-primary);
+  border-left-color: var(--color-primary);
+}
+
+.aram-player-row .champion-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+}
+
+.aram-player-row .champion-name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.aram-player-row .kda {
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+  min-width: 60px;
+  text-align: right;
+}
+
+.aram-player-row .damage {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  min-width: 60px;
+  text-align: right;
 }
 </style>
 

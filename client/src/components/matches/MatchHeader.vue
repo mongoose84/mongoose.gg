@@ -34,8 +34,10 @@
         <span class="result-label">Game Result</span>
       </div>
       <div class="secondary-row">
-        <span class="role">{{ formatRole(match.role) }}</span>
-        <span class="separator">·</span>
+        <template v-if="match.role && match.role !== 'UNKNOWN'">
+          <span class="role">{{ formatRole(match.role) }}</span>
+          <span class="separator">·</span>
+        </template>
         <span class="queue">{{ match.queueType }}</span>
         <span class="separator">·</span>
         <span class="duration">{{ formatDuration(match.gameDurationSec) }}</span>

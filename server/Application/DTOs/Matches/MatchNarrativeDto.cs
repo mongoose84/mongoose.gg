@@ -5,11 +5,13 @@ namespace RiotProxy.Application.DTOs.Matches;
 /// <summary>
 /// Response for the match narrative endpoint.
 /// Contains lane matchups for all 5 roles with detailed stats.
+/// For ARAM games, matchups are paired by damage share instead of role.
 /// </summary>
 public record MatchNarrativeResponse(
     [property: JsonPropertyName("matchId")] string MatchId,
     [property: JsonPropertyName("userRole")] string UserRole,
-    [property: JsonPropertyName("laneMatchups")] LaneMatchup[] LaneMatchups
+    [property: JsonPropertyName("laneMatchups")] LaneMatchup[] LaneMatchups,
+    [property: JsonPropertyName("isAram")] bool IsAram = false
 );
 
 /// <summary>
