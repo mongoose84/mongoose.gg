@@ -4,22 +4,7 @@
       <h1 class="sr-only">Solo Dashboard</h1>
 
       <!-- Queue Toggle Bar -->
-      <div class="flex border border-border rounded-md overflow-hidden bg-background-surface" role="group" aria-label="Filter by queue type">
-        <button
-          v-for="queue in queueOptions"
-          :key="queue.value"
-          type="button"
-          class="queue-toggle-btn py-sm px-md bg-transparent border-none text-text-secondary text-sm font-medium cursor-pointer transition-colors duration-200 relative focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-soft"
-          :class="{
-            'queue-toggle-btn--active': queueFilter === queue.value,
-            'hover:text-text hover:bg-background-elevated': queueFilter !== queue.value
-          }"
-          @click="queueFilter = queue.value"
-          :aria-pressed="queueFilter === queue.value"
-        >
-          {{ queue.label }}
-        </button>
-      </div>
+      <BaseQueueToggle v-model="queueFilter" />
 
       <!-- Time Range Filter -->
       <div class="flex flex-col gap-xs">
@@ -50,6 +35,7 @@ import { ref, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
+import { BaseQueueToggle } from '../components/base'
 
 const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
@@ -57,15 +43,6 @@ const { syncProgress, resetProgress } = useSyncWebSocket()
 // UI state for filters
 const queueFilter = ref('all')
 const timeRange = ref('current_season')
-
-// Queue options for toggle bar
-const queueOptions = [
-  { value: 'all', label: 'All Queues' },
-  { value: 'ranked_solo', label: 'Ranked Solo/Duo' },
-  { value: 'ranked_flex', label: 'Ranked Flex' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'aram', label: 'ARAM' }
-]
 
 // Track filter changes
 watch(queueFilter, (newValue) => {
@@ -89,30 +66,4 @@ watch(syncProgress, (progress) => {
 }, { deep: true })
 </script>
 
-<style scoped>
-/* Active state with darker purple for better visibility */
-.queue-toggle-btn--active {
-  background-color: #5b21b6; /* Darker purple (violet-800) */
-  color: white;
-}
 
-/* Queue toggle button dividers (pseudo-elements can't be done in Tailwind) */
-.queue-toggle-btn:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 25%;
-  height: 50%;
-  width: 1px;
-  background: var(--color-border);
-}
-
-/* Hide divider when button is active or next to active */
-.queue-toggle-btn--active::after {
-  display: none;
-}
-
-.queue-toggle-btn:has(+ .queue-toggle-btn--active)::after {
-  display: none;
-}
-</style>

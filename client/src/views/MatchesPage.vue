@@ -4,19 +4,7 @@
       <h1 class="sr-only">Matches</h1>
 
       <!-- Queue Toggle Bar -->
-      <div class="queue-toggle-group" role="group" aria-label="Filter by queue type">
-        <button
-          v-for="queue in queueOptions"
-          :key="queue.value"
-          type="button"
-          class="queue-toggle-btn"
-          :class="{ 'queue-toggle-btn--active': queueFilter === queue.value }"
-          @click="handleQueueChange(queue.value)"
-          :aria-pressed="queueFilter === queue.value"
-        >
-          {{ queue.label }}
-        </button>
-      </div>
+      <BaseQueueToggle v-model="queueFilter" />
     </header>
 
     <!-- Main Content: Two Column Layout -->
@@ -75,6 +63,7 @@ import { getMatchList } from '../services/authApi'
 import { trackFilterChange, trackMatchSelect } from '../services/analyticsApi'
 import MatchList from '../components/matches/MatchList.vue'
 import MatchDetails from '../components/matches/MatchDetails.vue'
+import { BaseQueueToggle } from '../components/base'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -86,15 +75,6 @@ const data = ref(null)
 const queueFilter = ref('all')
 const selectedMatchId = ref(null)
 const matchDetailsRef = ref(null)
-
-// Queue options for toggle bar
-const queueOptions = [
-  { value: 'all', label: 'All Queues' },
-  { value: 'ranked_solo', label: 'Ranked Solo/Duo' },
-  { value: 'ranked_flex', label: 'Ranked Flex' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'aram', label: 'ARAM' }
-]
 
 // Computed: Selected match object
 const selectedMatch = computed(() => {
@@ -144,16 +124,15 @@ function handleMatchSelect(matchId) {
   trackMatchSelect(matchId, matchIndex, queueFilter.value)
 }
 
-function handleQueueChange(value) {
-  queueFilter.value = value
-  selectedMatchId.value = null // Reset selection on filter change
-  trackFilterChange('queue', value)
-  fetchMatches()
-}
-
-
 // Initial load
 onMounted(() => {
+  fetchMatches()
+})
+
+// Watch queue filter changes - reset selection, track, and refetch
+watch(queueFilter, (newValue) => {
+  selectedMatchId.value = null
+  trackFilterChange('queue', newValue)
   fetchMatches()
 })
 
@@ -193,60 +172,6 @@ watch(
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-/* Queue Toggle Group */
-.queue-toggle-group {
-  display: flex;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--color-surface);
-}
-
-.queue-toggle-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.queue-toggle-btn:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 25%;
-  height: 50%;
-  width: 1px;
-  background: var(--color-border);
-}
-
-.queue-toggle-btn:hover:not(.queue-toggle-btn--active) {
-  color: var(--color-text);
-  background: var(--color-elevated);
-}
-
-.queue-toggle-btn--active {
-  background: var(--color-primary);
-  color: white;
-}
-
-.queue-toggle-btn--active::after {
-  display: none;
-}
-
-.queue-toggle-btn:has(+ .queue-toggle-btn--active)::after {
-  display: none;
-}
-
-.queue-toggle-btn:focus {
-  outline: none;
-  box-shadow: inset 0 0 0 2px var(--color-primary-soft);
 }
 
 /* Main Content Layout */
