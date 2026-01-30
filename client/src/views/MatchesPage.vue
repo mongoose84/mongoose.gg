@@ -42,9 +42,21 @@
         <div class="details-card">
           <div class="details-card-header">
             <h2 class="column-title">Match Details</h2>
+            <button
+              v-if="selectedMatch"
+              class="download-btn"
+              title="Download match data"
+              @click="matchDetailsRef?.downloadMatchData()"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
+                <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+              </svg>
+            </button>
           </div>
           <div class="details-card-content">
             <MatchDetails
+              ref="matchDetailsRef"
               :match="selectedMatch"
               :baseline="selectedBaseline"
             />
@@ -73,6 +85,7 @@ const error = ref(null)
 const data = ref(null)
 const queueFilter = ref('all')
 const selectedMatchId = ref(null)
+const matchDetailsRef = ref(null)
 
 // Queue options for toggle bar
 const queueOptions = [
@@ -298,6 +311,33 @@ watch(
   padding: var(--spacing-md);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-elevated);
+}
+
+.download-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.download-btn:hover {
+  background: var(--color-elevated);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.download-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .details-card-content {

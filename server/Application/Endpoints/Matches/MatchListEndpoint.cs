@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Matches;
+using RiotProxy.Core.Interfaces;
 using RiotProxy.Core.QueryModels;
 using RiotProxy.Infrastructure.Database.Repositories;
 
@@ -27,7 +28,7 @@ public sealed class MatchListEndpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string userId,
             [FromQuery] string? queueType,
-            [FromServices] RiotAccountsRepository riotAccountRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] MatchesRepository matchesRepo,
             [FromServices] ILogger<MatchListEndpoint> logger
         ) =>
@@ -53,17 +54,18 @@ public sealed class MatchListEndpoint : IEndpoint
                     return Results.Forbid();
                 }
 
-                // Get riot accounts for this user
-                var riotAccounts = await riotAccountRepo.GetByUserIdAsync(userIdInt);
+                // Get riot accounts for this user via junction table
+                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
 
-                if (riotAccounts == null || riotAccounts.Count == 0)
+                if (linkedAccounts == null || linkedAccounts.Count == 0)
                 {
                     logger.LogWarning("Match list: no riot accounts found for userId {UserId}", userIdInt);
                     return Results.NotFound(new { error = "No riot accounts found for this user" });
                 }
 
                 // Use primary account or first account
-                var primaryAccount = riotAccounts.FirstOrDefault(a => a.IsPrimary) ?? riotAccounts[0];
+                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
+                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
                 // Validate and build queue filter

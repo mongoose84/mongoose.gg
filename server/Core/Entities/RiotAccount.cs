@@ -1,15 +1,17 @@
 namespace RiotProxy.Core.Entities;
 
+/// <summary>
+/// Represents a Riot Games account with profile and rank data.
+/// This is shared data - multiple users can link to the same Riot account via UserRiotAccountLink.
+/// </summary>
 public class RiotAccount : EntityBase
 {
     public string Puuid { get; set; } = string.Empty;
-    public long UserId { get; set; }
     public string GameName { get; set; } = string.Empty;
     public string TagLine { get; set; } = string.Empty;
     public string SummonerName { get; set; } = string.Empty;
     public string Region { get; set; } = string.Empty;
     public string? SummonerId { get; set; }
-    public bool IsPrimary { get; set; }
     public string SyncStatus { get; set; } = "pending";
     public int SyncProgress { get; set; }
     public int SyncTotal { get; set; }

@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
 using RiotProxy.Infrastructure.Riot;
 
@@ -51,6 +52,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             [FromBody] LinkRiotAccountRequest request,
             [FromServices] UsersRepository usersRepo,
             [FromServices] RiotAccountsRepository riotAccountsRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] IRiotApiClient riotApiClient,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
         ) =>
@@ -130,6 +132,28 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     return Results.Json(new { error = "Failed to verify Riot account", code = "RIOT_API_ERROR" }, statusCode: 503);
                 }
 
+                // Check if user already has this account linked
+                var alreadyLinked = await userRiotAccountsRepo.IsLinkedAsync(userId.Value, puuid);
+                if (alreadyLinked)
+                {
+                    // Already linked to this user - just return success
+                    var existingAccount = await riotAccountsRepo.GetByPuuidAsync(puuid);
+                    var existingLinks = await userRiotAccountsRepo.GetByUserIdAsync(userId.Value);
+                    var existingLink = existingLinks.FirstOrDefault(l => l.Link.Puuid == puuid);
+
+                    logger.LogInformation("Account {GameName}#{TagLine} already linked to user {UserId}",
+                        request.GameName, request.TagLine, userId);
+
+                    return Results.Ok(new LinkRiotAccountResponse(
+                        puuid,
+                        existingAccount?.GameName ?? request.GameName,
+                        existingAccount?.TagLine ?? request.TagLine,
+                        existingAccount?.Region ?? request.Region.ToLowerInvariant(),
+                        existingLink.Link.IsPrimary,
+                        existingAccount?.SyncStatus ?? "pending"
+                    ));
+                }
+
                 // Fetch summoner profile data (icon, level, summonerId) - gracefully handle failures
                 int? profileIconId = null;
                 int? summonerLevel = null;
@@ -189,73 +213,40 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     logger.LogWarning(ex, "Failed to fetch ranked data for {GameName}#{TagLine}", request.GameName, request.TagLine);
                 }
 
-                // Check if account is already linked
-                var existingAccount = await riotAccountsRepo.GetByPuuidAsync(puuid);
-                if (existingAccount != null)
+                // Check if this Riot account already exists (linked by another user)
+                var existingRiotAccount = await riotAccountsRepo.GetByPuuidAsync(puuid);
+
+                // Check if this is the user's first account (to set as primary)
+                var userLinks = await userRiotAccountsRepo.GetByUserIdAsync(userId.Value);
+                var isPrimary = userLinks.Count == 0;
+
+                if (existingRiotAccount != null)
                 {
-                    if (existingAccount.UserId != userId)
-                    {
-                        // Account belongs to another user
-                        logger.LogWarning("Attempted to link already-linked account. PUUID: {Puuid}, existing user: {ExistingUserId}, requesting user: {UserId}",
-                            puuid, existingAccount.UserId, userId);
-                        return Results.Conflict(new { error = "This Riot account is already linked to another user", code = "ACCOUNT_ALREADY_LINKED" });
-                    }
+                    // Account already exists - just link it to this user (M:M relationship)
+                    await userRiotAccountsRepo.LinkAsync(userId.Value, puuid, isPrimary);
 
-                    // Account already linked to this user - update it but preserve isPrimary and syncStatus
-                    logger.LogInformation("Updating existing Riot account {GameName}#{TagLine} (PUUID: {Puuid}) for user {UserId}",
-                        request.GameName, request.TagLine, puuid, userId);
+                    logger.LogInformation("Linked existing Riot account {GameName}#{TagLine} (PUUID: {Puuid}) to user {UserId}",
+                        existingRiotAccount.GameName, existingRiotAccount.TagLine, puuid, userId);
 
-                    var updatedAccount = new RiotAccount
-                    {
-                        Puuid = puuid,
-                        UserId = userId.Value,
-                        GameName = request.GameName,
-                        TagLine = request.TagLine,
-                        SummonerName = $"{request.GameName}#{request.TagLine}",
-                        Region = request.Region.ToLowerInvariant(),
-                        SummonerId = summonerId ?? existingAccount.SummonerId,
-                        IsPrimary = existingAccount.IsPrimary,
-                        SyncStatus = existingAccount.SyncStatus,
-                        ProfileIconId = profileIconId ?? existingAccount.ProfileIconId,
-                        SummonerLevel = summonerLevel ?? existingAccount.SummonerLevel,
-                        SoloTier = soloTier ?? existingAccount.SoloTier,
-                        SoloRank = soloRank ?? existingAccount.SoloRank,
-                        SoloLp = soloLp ?? existingAccount.SoloLp,
-                        FlexTier = flexTier ?? existingAccount.FlexTier,
-                        FlexRank = flexRank ?? existingAccount.FlexRank,
-                        FlexLp = flexLp ?? existingAccount.FlexLp,
-                        LastSyncAt = existingAccount.LastSyncAt,
-                        CreatedAt = existingAccount.CreatedAt,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-
-                    await riotAccountsRepo.UpsertAsync(updatedAccount);
-
-                    return Results.Ok(new LinkRiotAccountResponse(
+                    return Results.Created($"{Route}/{puuid}", new LinkRiotAccountResponse(
                         puuid,
-                        request.GameName,
-                        request.TagLine,
-                        request.Region.ToLowerInvariant(),
-                        updatedAccount.IsPrimary,
-                        updatedAccount.SyncStatus
+                        existingRiotAccount.GameName,
+                        existingRiotAccount.TagLine,
+                        existingRiotAccount.Region,
+                        isPrimary,
+                        existingRiotAccount.SyncStatus
                     ));
                 }
 
-                // New account - check if this is the user's first account (to set as primary)
-                var existingAccounts = await riotAccountsRepo.GetByUserIdAsync(userId.Value);
-                var isPrimary = existingAccounts.Count == 0;
-
-                // Create the riot account record
+                // Create new Riot account record
                 var riotAccount = new RiotAccount
                 {
                     Puuid = puuid,
-                    UserId = userId.Value,
                     GameName = request.GameName,
                     TagLine = request.TagLine,
                     SummonerName = $"{request.GameName}#{request.TagLine}",
                     Region = request.Region.ToLowerInvariant(),
                     SummonerId = summonerId,
-                    IsPrimary = isPrimary,
                     SyncStatus = "pending",
                     ProfileIconId = profileIconId,
                     SummonerLevel = summonerLevel,
@@ -270,7 +261,11 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 };
 
                 await riotAccountsRepo.UpsertAsync(riotAccount);
-                logger.LogInformation("Linked Riot account {GameName}#{TagLine} (PUUID: {Puuid}) to user {UserId}",
+
+                // Link the account to the user
+                await userRiotAccountsRepo.LinkAsync(userId.Value, puuid, isPrimary);
+
+                logger.LogInformation("Created and linked new Riot account {GameName}#{TagLine} (PUUID: {Puuid}) to user {UserId}",
                     request.GameName, request.TagLine, puuid, userId);
 
                 return Results.Created($"{Route}/{puuid}", new LinkRiotAccountResponse(
@@ -296,6 +291,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             string puuid,
             HttpContext httpContext,
             [FromServices] RiotAccountsRepository riotAccountsRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
         ) =>
         {
@@ -304,16 +300,21 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 var userId = GetUserId(httpContext);
                 if (userId == null) return Results.Unauthorized();
 
-                // Check if account exists and belongs to user
-                var account = await riotAccountsRepo.GetByPuuidAsync(puuid);
-                if (account == null || account.UserId != userId)
+                // Check if user has this account linked
+                var isLinked = await userRiotAccountsRepo.IsLinkedAsync(userId.Value, puuid);
+                if (!isLinked)
                 {
                     return Results.NotFound(new { error = "Riot account not found", code = "ACCOUNT_NOT_FOUND" });
                 }
 
-                // Delete the account
-                await riotAccountsRepo.DeleteAsync(puuid, userId.Value);
+                // Unlink the account from this user
+                await userRiotAccountsRepo.UnlinkAsync(userId.Value, puuid);
                 logger.LogInformation("Unlinked Riot account {Puuid} from user {UserId}", puuid, userId);
+
+                // Optionally: If no users are linked to this Riot account anymore, we could delete it
+                // For now, keep it for historical match data
+                // var hasAnyLinks = await userRiotAccountsRepo.HasAnyLinksAsync(puuid);
+                // if (!hasAnyLinks) await riotAccountsRepo.DeleteAsync(puuid);
 
                 return Results.NoContent();
             }
@@ -331,6 +332,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             string puuid,
             HttpContext httpContext,
             [FromServices] RiotAccountsRepository riotAccountsRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] IRiotApiClient riotApiClient,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
         ) =>
@@ -340,9 +342,16 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 var userId = GetUserId(httpContext);
                 if (userId == null) return Results.Unauthorized();
 
-                // Check if account exists and belongs to user
+                // Check if user has this account linked
+                var isLinked = await userRiotAccountsRepo.IsLinkedAsync(userId.Value, puuid);
+                if (!isLinked)
+                {
+                    return Results.NotFound(new { error = "Riot account not found", code = "ACCOUNT_NOT_FOUND" });
+                }
+
+                // Get the account to check sync status
                 var account = await riotAccountsRepo.GetByPuuidAsync(puuid);
-                if (account == null || account.UserId != userId)
+                if (account == null)
                 {
                     return Results.NotFound(new { error = "Riot account not found", code = "ACCOUNT_NOT_FOUND" });
                 }
@@ -376,6 +385,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             string puuid,
             HttpContext httpContext,
             [FromServices] RiotAccountsRepository riotAccountsRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
         ) =>
         {
@@ -384,9 +394,15 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 var userId = GetUserId(httpContext);
                 if (userId == null) return Results.Unauthorized();
 
-                // Check if account exists and belongs to user
+                // Check if user has this account linked
+                var isLinked = await userRiotAccountsRepo.IsLinkedAsync(userId.Value, puuid);
+                if (!isLinked)
+                {
+                    return Results.NotFound(new { error = "Riot account not found", code = "ACCOUNT_NOT_FOUND" });
+                }
+
                 var account = await riotAccountsRepo.GetByPuuidAsync(puuid);
-                if (account == null || account.UserId != userId)
+                if (account == null)
                 {
                     return Results.NotFound(new { error = "Riot account not found", code = "ACCOUNT_NOT_FOUND" });
                 }

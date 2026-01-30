@@ -2,15 +2,17 @@ using RiotProxy.Core.Entities;
 
 namespace RiotProxy.Core.Interfaces;
 
+/// <summary>
+/// Repository for Riot account data (shared across users).
+/// User-specific linking is handled by IUserRiotAccountsRepository.
+/// </summary>
 public interface IRiotAccountsRepository
 {
     Task UpsertAsync(RiotAccount account);
-    Task<IList<RiotAccount>> GetByUserIdAsync(long userId);
     Task<RiotAccount?> GetByPuuidAsync(string puuid);
     Task<bool> ExistsByPuuidAsync(string puuid);
-    Task DeleteAsync(string puuid, long userId);
+    Task DeleteAsync(string puuid);
     Task UpdateSyncStatusAsync(string puuid, string syncStatus, DateTime? lastSyncAt = null);
-    Task SetPrimaryAsync(string puuid, long userId);
     Task<RiotAccount?> ClaimNextPendingForSyncAsync();
     Task ResetStuckSyncingAccountsAsync(TimeSpan threshold);
     Task UpdateSyncProgressAsync(string puuid, int progress, int total);
