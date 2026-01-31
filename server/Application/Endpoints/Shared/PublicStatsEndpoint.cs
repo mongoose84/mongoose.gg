@@ -1,4 +1,5 @@
-using RiotProxy.Infrastructure.Database.Repositories;
+using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Application.Endpoints
 {
@@ -17,11 +18,13 @@ namespace RiotProxy.Application.Endpoints
 
 	    public void Configure(WebApplication app)
 	    {
-	        app.MapGet(Route, async (MatchesRepository matchesRepository, UsersRepository usersRepository) =>
+	        app.MapGet(Route, async (
+	            [FromServices] IMatchesRepository matchesRepository,
+	            [FromServices] IUsersRepository usersRepository) =>
 	        {
 	            var totalMatches = await matchesRepository.GetTotalMatchCountAsync();
 	            var activePlayers = await usersRepository.GetActiveUserCountAsync();
-	
+
 	            return Results.Ok(new
 	            {
 	                totalMatches,

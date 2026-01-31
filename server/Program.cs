@@ -42,9 +42,11 @@ builder.Services.AddSingleton<IEncryptor>(sp =>
 
 // repositories
 builder.Services.AddScoped<UsersRepository>();
+builder.Services.AddScoped<IUsersRepository>(sp => sp.GetRequiredService<UsersRepository>());
 builder.Services.AddScoped<RiotAccountsRepository>();
 builder.Services.AddScoped<IUserRiotAccountsRepository, UserRiotAccountsRepository>();
 builder.Services.AddScoped<MatchesRepository>();
+builder.Services.AddScoped<IMatchesRepository>(sp => sp.GetRequiredService<MatchesRepository>());
 builder.Services.AddScoped<ParticipantsRepository>();
 builder.Services.AddScoped<ParticipantCheckpointsRepository>();
 builder.Services.AddScoped<ParticipantMetricsRepository>();
