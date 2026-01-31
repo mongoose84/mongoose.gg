@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Matches;
 using RiotProxy.Core.Interfaces;
 using RiotProxy.Core.QueryModels;
-using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Matches;
 
@@ -29,7 +28,8 @@ public sealed class MatchListEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
-            [FromServices] MatchesRepository matchesRepo,
+            [FromServices] IMatchesRepository matchesRepo,
+            [FromServices] IQueryFilterBuilder filterBuilder,
             [FromServices] ILogger<MatchListEndpoint> logger
         ) =>
         {
@@ -68,9 +68,9 @@ public sealed class MatchListEndpoint : IEndpoint
                 var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
-                // Validate and build queue filter
-                var validatedQueueType = MatchesRepository.ValidateQueueType(queueType);
-                var queueFilter = MatchesRepository.BuildQueueFilter(validatedQueueType);
+                // Validate and build queue filter using centralized filter builder
+                var validatedQueueType = filterBuilder.ValidateQueueType(queueType);
+                var queueFilter = filterBuilder.BuildQueueFilter(validatedQueueType);
 
                 logger.LogInformation("Match list request: userId={UserId}, puuid={Puuid}, queueType={Queue}",
                     userIdInt, primaryPuuid, validatedQueueType);

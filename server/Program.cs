@@ -62,6 +62,9 @@ builder.Services.AddScoped<ILpSnapshotsRepository, LpSnapshotsRepository>();
 // Application services
 builder.Services.AddScoped<RiotProxy.Application.Services.LoginSyncService>();
 
+// Query filter builder for centralized SQL filter generation
+builder.Services.AddScoped<IQueryFilterBuilder, QueryFilterBuilder>();
+
 // Email service for verification emails
 builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
 

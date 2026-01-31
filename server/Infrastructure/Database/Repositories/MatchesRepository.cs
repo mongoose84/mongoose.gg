@@ -406,28 +406,6 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         return $"https://ddragon.leagueoflegends.com/cdn/{DataDragonVersion}/img/champion/{normalized}.png";
     }
 
-    public static string BuildQueueFilter(string queueType)
-    {
-        return queueType switch
-        {
-            "ranked_solo" => "AND m.queue_id = 420",
-            "ranked_flex" => "AND m.queue_id = 440",
-            "normal" => "AND m.queue_id IN (430, 400)",
-            "aram" => "AND m.queue_id IN (450, 1700)",  // 450 = ARAM, 1700 = ARAM: Mayhem
-            _ => ""  // all
-        };
-    }
-
-    public static string ValidateQueueType(string? queueType)
-    {
-        var normalized = queueType?.ToLowerInvariant() ?? "all";
-        return normalized switch
-        {
-            "ranked_solo" or "ranked_flex" or "normal" or "aram" or "all" => normalized,
-            _ => "all"
-        };
-    }
-
     /// <summary>
     /// Gets all 10 participants for a match with their metrics and 10-minute checkpoints.
     /// Used for the Match Narrative feature to show lane matchups.
