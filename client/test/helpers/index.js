@@ -36,6 +36,7 @@ export {
   waitFor,
   createDeferredPromise,
   createMockFetch,
+  restoreFetch,
   cleanupMocks,
   findByTestId,
   findAllByTestId

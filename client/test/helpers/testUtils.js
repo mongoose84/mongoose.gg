@@ -80,17 +80,34 @@ export const headlessUIStubs = {
 };
 
 /**
- * Creates a wrapper with common test configuration
+ * Creates a wrapper with common test configuration.
+ *
+ * When using `attachToBody: true`, the returned object includes a `cleanup()`
+ * function that should be called in afterEach to remove the container from the DOM.
+ *
  * @param {Object} component - Vue component to mount
  * @param {Object} options - Mount options (props, stubs, etc.)
+ * @param {boolean} options.attachToBody - If true, attaches to document.body (for modals/portals)
+ * @param {boolean} options.shallow - If true, uses shallowMount instead of mount
+ * @returns {Object} Vue Test Utils wrapper, with added `cleanup()` method when attachToBody is true
+ *
+ * @example
+ * // For modals/portals that need body attachment:
+ * let wrapper;
+ * beforeEach(() => {
+ *   wrapper = createWrapper(MyModal, { attachToBody: true, props: { isOpen: true } });
+ * });
+ * afterEach(() => {
+ *   wrapper.cleanup(); // Removes container from DOM
+ * });
  */
 export function createWrapper(component, options = {}) {
-  const { 
-    props = {}, 
-    stubs = {}, 
+  const {
+    props = {},
+    stubs = {},
     attachToBody = false,
     shallow = false,
-    ...rest 
+    ...rest
   } = options;
 
   const mountFn = shallow ? shallowMount : mount;
@@ -105,32 +122,62 @@ export function createWrapper(component, options = {}) {
     ...rest
   };
 
+  let container = null;
+
   // Optionally attach to document body (needed for modals/portals)
   if (attachToBody) {
-    const container = document.createElement('div');
+    container = document.createElement('div');
     document.body.appendChild(container);
     mountOptions.attachTo = container;
   }
 
-  return mountFn(component, mountOptions);
+  const wrapper = mountFn(component, mountOptions);
+
+  // Add cleanup method to remove container from DOM
+  wrapper.cleanup = () => {
+    wrapper.unmount();
+    if (container && container.parentNode) {
+      container.parentNode.removeChild(container);
+    }
+  };
+
+  return wrapper;
 }
 
 // ============ Async Helpers ============
 
 /**
- * Wait for a specific condition to be true
+ * Wait for a specific condition to be true.
+ *
+ * WARNING: This function uses real timers (Date.now, setTimeout).
+ * It will DEADLOCK if vi.useFakeTimers() is active because the clock
+ * won't advance. Either:
+ *   1. Call vi.useRealTimers() before using waitFor(), or
+ *   2. Use vi.waitFor() from Vitest which handles fake timers, or
+ *   3. Manually advance timers with vi.advanceTimersByTimeAsync()
+ *
  * @param {Function} condition - Function that returns true when condition is met
  * @param {number} timeout - Maximum time to wait in ms (default: 1000)
  * @param {number} interval - Check interval in ms (default: 50)
+ * @throws {Error} If condition is not met within timeout, or if fake timers detected
  */
 export async function waitFor(condition, timeout = 1000, interval = 50) {
+  // Guard against fake timers - check if setTimeout is mocked
+  // This is a heuristic: if vi.isFakeTimers exists and returns true, warn
+  if (typeof vi !== 'undefined' && vi.isFakeTimers && vi.isFakeTimers()) {
+    throw new Error(
+      'waitFor() cannot be used with fake timers - it will deadlock. ' +
+      'Call vi.useRealTimers() first, or use vi.advanceTimersByTimeAsync() instead.'
+    );
+  }
+
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeout) {
     if (condition()) return true;
     await new Promise(resolve => setTimeout(resolve, interval));
   }
-  
+
   throw new Error(`waitFor condition not met within ${timeout}ms`);
 }
 
@@ -149,23 +196,45 @@ export function createDeferredPromise() {
 
 // ============ Mock Helpers ============
 
+// Store original fetch to enable proper restoration
+let originalFetch = null;
+
 /**
- * Creates a mock fetch function with configurable responses
+ * Creates a mock fetch function with configurable responses.
+ * IMPORTANT: Call restoreFetch() in afterEach to prevent test pollution.
  * @param {Object} defaultResponse - Default response for unmocked URLs
+ * @returns {Function} The mock fetch function
  */
 export function createMockFetch(defaultResponse = { ok: true }) {
+  // Store original only on first call to avoid overwriting with a mock
+  if (originalFetch === null) {
+    originalFetch = global.fetch;
+  }
   const mockFetch = vi.fn().mockResolvedValue(defaultResponse);
   global.fetch = mockFetch;
   return mockFetch;
 }
 
 /**
- * Clears all mocks and restores original implementations
- * Call in afterEach for clean test isolation
+ * Restores the original fetch function.
+ * Call this in afterEach when using createMockFetch.
+ */
+export function restoreFetch() {
+  if (originalFetch !== null) {
+    global.fetch = originalFetch;
+    originalFetch = null;
+  }
+}
+
+/**
+ * Clears all mocks and restores original implementations.
+ * Also restores fetch if it was mocked via createMockFetch.
+ * Call in afterEach for clean test isolation.
  */
 export function cleanupMocks() {
   vi.clearAllMocks();
   vi.restoreAllMocks();
+  restoreFetch();
 }
 
 // ============ DOM Helpers ============

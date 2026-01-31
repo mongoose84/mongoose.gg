@@ -245,9 +245,17 @@ public class LpCalculationServiceTests
     }
 
     [Fact]
-    public void FormatRank_EmptyTier_ReturnsEmptyString()
+    public void FormatRank_EmptyTier_WithDivision_ReturnsSpacePlusDivision()
     {
+        // When tier is empty but division is provided, result is " {division}"
         _sut.FormatRank("", "IV").Should().Be(" IV");
+    }
+
+    [Fact]
+    public void FormatRank_EmptyTierAndDivision_ReturnsEmptyString()
+    {
+        _sut.FormatRank("", "").Should().Be("");
+        _sut.FormatRank("", null).Should().Be("");
     }
 
     #endregion
