@@ -3,8 +3,137 @@ using System.Text.Json.Serialization;
 namespace RiotProxy.Core.QueryModels;
 
 /// <summary>
+/// Lightweight match summary for the list view.
+/// Contains only data needed to render the match row (champion, KDA, result, timestamp).
+/// </summary>
+public record MatchListSummaryItem(
+    [property: JsonPropertyName("matchId")] string MatchId,
+    [property: JsonPropertyName("queueId")] int QueueId,
+    [property: JsonPropertyName("queueType")] string QueueType,
+    [property: JsonPropertyName("championId")] int ChampionId,
+    [property: JsonPropertyName("championName")] string ChampionName,
+    [property: JsonPropertyName("championIconUrl")] string ChampionIconUrl,
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("lane")] string? Lane,
+    [property: JsonPropertyName("win")] bool Win,
+    [property: JsonPropertyName("kills")] int Kills,
+    [property: JsonPropertyName("deaths")] int Deaths,
+    [property: JsonPropertyName("assists")] int Assists,
+    [property: JsonPropertyName("creepScore")] int CreepScore,
+    [property: JsonPropertyName("goldEarned")] int GoldEarned,
+    [property: JsonPropertyName("gameDurationSec")] int GameDurationSec,
+    [property: JsonPropertyName("gameStartTime")] long GameStartTime,
+    [property: JsonPropertyName("csPerMin")] double CsPerMin,
+    [property: JsonPropertyName("goldPerMin")] double GoldPerMin,
+    [property: JsonPropertyName("trendBadge")] TrendBadge? TrendBadge
+);
+
+/// <summary>
+/// Internal DTO for raw match summary data from database query.
+/// </summary>
+public record MatchListSummaryRawData(
+    string MatchId,
+    int QueueId,
+    int ChampionId,
+    string ChampionName,
+    string Role,
+    string? Lane,
+    bool Win,
+    int Kills,
+    int Deaths,
+    int Assists,
+    int CreepScore,
+    int GoldEarned,
+    int GameDurationSec,
+    long GameStartTime
+);
+
+/// <summary>
+/// Full match details for the details panel.
+/// Fetched on-demand when user selects a match.
+/// </summary>
+public record MatchDetailsItem(
+    [property: JsonPropertyName("matchId")] string MatchId,
+    [property: JsonPropertyName("queueId")] int QueueId,
+    [property: JsonPropertyName("queueType")] string QueueType,
+    [property: JsonPropertyName("championId")] int ChampionId,
+    [property: JsonPropertyName("championName")] string ChampionName,
+    [property: JsonPropertyName("championIconUrl")] string ChampionIconUrl,
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("lane")] string? Lane,
+    [property: JsonPropertyName("win")] bool Win,
+    [property: JsonPropertyName("kills")] int Kills,
+    [property: JsonPropertyName("deaths")] int Deaths,
+    [property: JsonPropertyName("assists")] int Assists,
+    [property: JsonPropertyName("creepScore")] int CreepScore,
+    [property: JsonPropertyName("goldEarned")] int GoldEarned,
+    [property: JsonPropertyName("gameDurationSec")] int GameDurationSec,
+    [property: JsonPropertyName("gameStartTime")] long GameStartTime,
+    [property: JsonPropertyName("damageDealt")] int DamageDealt,
+    [property: JsonPropertyName("damageTaken")] int DamageTaken,
+    [property: JsonPropertyName("visionScore")] int VisionScore,
+    [property: JsonPropertyName("killParticipation")] double KillParticipation,
+    [property: JsonPropertyName("damageShare")] double DamageShare,
+    [property: JsonPropertyName("deathsPre10")] int DeathsPre10,
+    [property: JsonPropertyName("csPerMin")] double CsPerMin,
+    [property: JsonPropertyName("goldPerMin")] double GoldPerMin,
+    [property: JsonPropertyName("teamKills")] int TeamKills,
+    [property: JsonPropertyName("enemyTeamKills")] int EnemyTeamKills,
+    [property: JsonPropertyName("goldDiffAt15")] int? GoldDiffAt15,
+    [property: JsonPropertyName("teamTotalDamage")] int TeamTotalDamage,
+    [property: JsonPropertyName("enemyTeamTotalDamage")] int EnemyTeamTotalDamage,
+    [property: JsonPropertyName("teamGoldLeadAt15")] int? TeamGoldLeadAt15,
+    [property: JsonPropertyName("teamDragons")] int TeamDragons,
+    [property: JsonPropertyName("enemyTeamDragons")] int EnemyTeamDragons,
+    [property: JsonPropertyName("teamBarons")] int TeamBarons,
+    [property: JsonPropertyName("enemyTeamBarons")] int EnemyTeamBarons,
+    [property: JsonPropertyName("teamTowers")] int TeamTowers,
+    [property: JsonPropertyName("enemyTeamTowers")] int EnemyTeamTowers
+);
+
+/// <summary>
+/// Internal DTO for raw match details data from database query.
+/// </summary>
+public record MatchDetailsRawData(
+    string MatchId,
+    int QueueId,
+    int ChampionId,
+    string ChampionName,
+    string Role,
+    string? Lane,
+    bool Win,
+    int Kills,
+    int Deaths,
+    int Assists,
+    int CreepScore,
+    int GoldEarned,
+    int GameDurationSec,
+    long GameStartTime,
+    int DamageDealt,
+    int DamageTaken,
+    int VisionScore,
+    decimal KillParticipation,
+    decimal DamageShare,
+    int DeathsPre10,
+    int TeamId,
+    int? GoldDiffAt15,
+    int TeamKills,
+    int EnemyTeamKills,
+    int TeamTotalDamage,
+    int EnemyTeamTotalDamage,
+    int? TeamGoldLeadAt15,
+    int TeamDragons,
+    int EnemyTeamDragons,
+    int TeamBarons,
+    int EnemyTeamBarons,
+    int TeamTowers,
+    int EnemyTeamTowers
+);
+
+/// <summary>
 /// Individual match item in the match list.
 /// Contains all stats needed for both the list row and details panel.
+/// @deprecated Use MatchListSummaryItem for list view and MatchDetailsItem for details.
 /// </summary>
 public record MatchListItem(
     [property: JsonPropertyName("matchId")] string MatchId,
