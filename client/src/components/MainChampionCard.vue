@@ -36,7 +36,7 @@
           class="focus:outline-none h-full"
         >
           <!-- 3 Champion Cards in a row - Top Trumps style -->
-          <div class="flex justify-center gap-2xl h-full">
+          <div class="grid grid-cols-3 gap-2xl h-full">
             <article
               v-for="(champion, index) in championsForRole(role)"
               :key="champion.championId"
@@ -427,7 +427,9 @@ function getMScoreTextClass(score) {
 .trump-card {
   aspect-ratio: 5 / 7;
   position: relative;
+  width: 100%;
   max-width: 320px;
+  margin: 0 auto;
 }
 
 /* Gaming-inspired card background */
