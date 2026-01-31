@@ -72,6 +72,8 @@ Each vertical slice has clear acceptance criteria, enabling parallel frontend/ba
 
 - All dashboard endpoints and views support **queue filtering** (Ranked Solo/Duo, Ranked Flex, Normal, ARAM).
 - Queue filtering is backed by the schema via `matches.queue_id` (numeric Riot queue id) and appropriate indexing.
+- Frontend UX and page responsibilities should align with the contracts in `docs/ui-ux/ux-specification.md` (navigation model, page roles, non-negotiable rules). If a task needs to diverge, update that spec alongside this backlog.
+- New UI components and flows should follow `docs/ui-ux/ui-design-guidelines.md`, reusing base components (BaseButton, BaseCard, etc.) and design tokens for colors, typography, spacing, and accessibility.
 
 ## Definition of Done (applies to all tasks)
 
@@ -456,11 +458,11 @@ Enable follow-up questions about goals.
 
 #### Description
 
-Use the concepts in `/docs/rules_of_climbing.md` as domain context so the AI can interpret stats and suggest goals in line with your climbing philosophy.
+Use the concepts in `./rules_of_climbing.md` as domain context so the AI can interpret stats and suggest goals in line with your climbing philosophy.
 
 #### Acceptance Criteria
 
-- [ ] Summarize the key rules from `/docs/rules_of_climbing.md` into a stable, versioned system prompt (or configuration)  
+- [ ] Summarize the key rules from `./rules_of_climbing.md` into a stable, versioned system prompt (or configuration)  
 - [ ] Ensure `IGoalPromptBuilder` includes this context for solo, duo and team prompts  
 - [ ] Add tests or fixtures that verify the rules context is present in prompts so changes are explicit
 
@@ -508,6 +510,9 @@ Allow Pro users to request AI feedback after a specific match. The AI reviews th
   - 2–3 specific, testable suggestions for next games (e.g. "aim for 7 CS/min by 10 minutes", "ward river before pushing past mid lane by 6 minutes")  
 - [ ] Clearly labelled as a **Pro** feature in the UI; Free users see an upgrade CTA instead of triggering the AI call  
 - [ ] Rate limiting and usage tracking are in place so we can control cost per user (e.g. max N feedback requests per day/week)  
+- [ ] Feedback is explicitly framed in the context of recent trends (e.g. last 10–20 games) so that single-match insights are clearly part of a multi-game pattern, not isolated judgments  
+- [ ] From the feedback UI, users can easily navigate to longer-term improvement views (e.g. goals or analysis pages) so goal management remains centralized rather than handled ad-hoc per match  
+- [ ] Copy avoids deterministic win/loss predictions and instead focuses on preparation, trend awareness, and actionable next steps  
 - [ ] UX is designed so users can easily request feedback from the match details view without getting lost (discoverable entry point and clear loading/empty states)
 
 ---
@@ -782,6 +787,8 @@ Component to prompt users to upgrade when hitting feature limits.
 - [ ] Display benefits of upgrading
 - [ ] "Upgrade to Pro" / "Upgrade to Team" buttons
 - [ ] Redirect to Mollie checkout
+- [ ] Default usage pattern is non-blocking on core flows (e.g. Overview, Solo dashboard, match details): prompts appear as inline cards, panels, or sidebars so the primary task remains usable even if the user ignores the upgrade CTA  
+- [ ] Visual style and copy follow the dark, tool-like aesthetic from `docs/ui-ux/ui-design-guidelines.md` rather than feeling like a separate marketing page  
 
 ---
 
@@ -804,6 +811,8 @@ Implement frontend feature gating.
 - [ ] Hide/disable features user can't access
 - [ ] Show upgrade prompt instead of blocked features
 - [ ] Blur/overlay for teaser content
+- [ ] When a feature is gated, prefer inline locked states (blurred content, inline `UpgradePrompt`) over full-screen blocks for core orientation pages (e.g. Overview and main dashboards), keeping basic tool functionality available to Free users  
+- [ ] Gated experiences consistently use `UpgradePrompt.vue` for messaging so paywall UX is uniform across the app  
 
 ---
 
@@ -857,6 +866,7 @@ Evaluate the current schema and add migrations as required to support:
 - [ ] Users can create/join Duo/Team spaces as Guests
 - [ ] In-group collaboration modules (team dashboard/shared goals/voting) show locked state + upgrade nudges for Guests
 - [ ] Goal setting/tracking UX is paywalled cleanly for Free users with upgrade path to Pro
+- [ ] Paywall UX for collaboration, goals, and AI features follows the shared patterns from C12/C14: non-blocking on core orientation flows (e.g. Overview, Solo dashboard) and implemented via consistent `UpgradePrompt` + inline locked states rather than full-screen walls  
 
 **Validation**
 
@@ -937,6 +947,7 @@ Provide a cookie consent banner and preferences so users can control analytics c
 - [ ] Analytics tracking code is only initialized after the user has granted consent for analytics cookies, and respects the stored preference on subsequent visits  
 - [ ] Cookie/consent preferences are stored (e.g. in a consent cookie or `localStorage`) and can be changed later via a "Cookie settings" link in the footer or account/settings area  
 - [ ] The implementation is wired into the analytics work from D1/D2 so that events are not sent when analytics cookies have been declined
+- [ ] Consent UI is implemented as a non-blocking banner or slim sheet (not a full-screen modal) on first visit so the app retains its fast, tool-like feel and users can quickly reach core pages like Overview  
 
 ---
 
@@ -1214,7 +1225,7 @@ Create a Goals Panel that displays active goals (if Pro tier) or shows an upgrad
 
 ### G14 Epic: Overview Page
 
-The Overview page (defined in `docs/ux_specification.md`) is the default landing page after login, providing situational awareness and routing in 5–15 seconds (one scroll max). All components are read-only, fast to render, and optimized for click-through.
+The Overview page (defined in `docs/ui-ux/ux-specification.md`) is the default landing page after login, providing situational awareness and routing in 5–15 seconds (one scroll max). All components are read-only, fast to render, and optimized for click-through.
 
 **Total estimate:** 8 points
 
