@@ -125,7 +125,7 @@ jobs:
             }
             "Auth" = @{
               "CookieName" = "pulse-auth"
-              "SessionTimeout" = 30
+              "SessionTimeout" = 43200  # 30 days
               "EnableMvpLogin" = $true
             }
             "Jobs" = @{
