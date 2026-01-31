@@ -103,53 +103,107 @@ jobs:
           Write-Host "✅ All required secrets are configured"
 
       # -------------------------------------------------
-      # Create appsettings.Production.json with secrets
-      # This file will be deployed and read by the app at runtime
+      # Generate web.config with production secrets
+      # This file configures IIS and sets secrets as process-level environment variables.
+      # SECURITY NOTE: The publish output contains secrets and should be treated as sensitive.
+      # The FTP deploy action does not cache/log file contents, but avoid storing artifacts.
+      # For true runtime injection, consider Azure Key Vault or host-level env vars.
       # -------------------------------------------------
-      - name: Generate appsettings.Production.json
+      - name: Generate web.config with secrets
         shell: pwsh
         run: |
-          $json = @{
-            "Logging" = @{
-              "LogLevel" = @{
-                "Default" = "Warning"
-                "Microsoft.AspNetCore" = "Warning"
-              }
-            }
-            "AllowedHosts" = "*"
-            "ConnectionStrings" = @{
-              "Database_production" = "${{ secrets.DB_CONNECTIONSTRING }}"
-            }
-            "Riot" = @{
-              "ApiKey" = "${{ secrets.RIOT_API_KEY }}"
-            }
-            "Auth" = @{
-              "CookieName" = "pulse-auth"
-              "SessionTimeout" = 43200  # 30 days
-              "EnableMvpLogin" = $true
-            }
-            "Jobs" = @{
-              "EnableMatchHistorySync" = $true
-            }
-            "Security" = @{
-              "EncryptionSecret" = "${{ secrets.ENCRYPTION_SECRET }}"
-            }
-            "Email" = @{
-              "DevMode" = $false
-              "SmtpHost" = "${{ secrets.SMTP_HOST }}"
-              "SmtpPort" = 587
-              "SmtpUsername" = "${{ secrets.SMTP_USERNAME }}"
-              "SmtpPassword" = "${{ secrets.SMTP_PASSWORD }}"
-              "FromEmail" = "${{ secrets.SMTP_FROM_EMAIL }}"
-              "FromName" = "Mongoose.gg"
-            }
-            "Secrets" = @{
-              "EnableDebugLogging" = $true
-            }
-          } | ConvertTo-Json -Depth 10
+          # XML-escape function to handle special characters in secrets
+          # This prevents malformed XML if secrets contain &, <, >, ", or '
+          function ConvertTo-XmlEscaped {
+            param([string]$Value)
+            if ([string]::IsNullOrEmpty($Value)) { return $Value }
+            return [System.Security.SecurityElement]::Escape($Value)
+          }
 
-          Set-Content -Path "appsettings.Production.json" -Value $json
-          Write-Host "✅ appsettings.Production.json generated successfully (contents hidden for security)"
+          # Escape all secret values for safe XML embedding
+          $dbConnection = ConvertTo-XmlEscaped "${{ secrets.DB_CONNECTIONSTRING }}"
+          $riotApiKey = ConvertTo-XmlEscaped "${{ secrets.RIOT_API_KEY }}"
+          $encryptionSecret = ConvertTo-XmlEscaped "${{ secrets.ENCRYPTION_SECRET }}"
+          $smtpHost = ConvertTo-XmlEscaped "${{ secrets.SMTP_HOST }}"
+          $smtpUsername = ConvertTo-XmlEscaped "${{ secrets.SMTP_USERNAME }}"
+          $smtpPassword = ConvertTo-XmlEscaped "${{ secrets.SMTP_PASSWORD }}"
+          $smtpFromEmail = ConvertTo-XmlEscaped "${{ secrets.SMTP_FROM_EMAIL }}"
+
+          $webConfig = @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <system.webServer>
+              <handlers>
+                <add name="aspNetCore"
+                     path="*"
+                     verb="*"
+                     modules="AspNetCoreModule"
+                     resourceType="Unspecified" />
+              </handlers>
+
+              <aspNetCore processPath=".\RiotProxy.exe"
+                      arguments=""
+                      stdoutLogEnabled="true"
+                      stdoutLogFile=".\logs\stdout"
+                      hostingModel="OutOfProcess">
+                <environmentVariables>
+                  <!-- ASP.NET Core Environment -->
+                  <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
+
+                  <!-- Database Configuration -->
+                  <environmentVariable name="ConnectionStrings__Database_production" value="$dbConnection" />
+
+                  <!-- Riot API Configuration -->
+                  <environmentVariable name="Riot__ApiKey" value="$riotApiKey" />
+
+                  <!-- Authentication Configuration -->
+                  <environmentVariable name="Auth__CookieName" value="pulse-auth" />
+                  <environmentVariable name="Auth__SessionTimeout" value="43200" />
+                  <environmentVariable name="Auth__EnableMvpLogin" value="true" />
+
+                  <!-- Background Jobs Configuration -->
+                  <environmentVariable name="Jobs__EnableMatchHistorySync" value="true" />
+
+                  <!-- Security Configuration -->
+                  <environmentVariable name="Security__EncryptionSecret" value="$encryptionSecret" />
+
+                  <!-- Email Configuration -->
+                  <environmentVariable name="Email__DevMode" value="false" />
+                  <environmentVariable name="Email__SmtpHost" value="$smtpHost" />
+                  <environmentVariable name="Email__SmtpPort" value="587" />
+                  <environmentVariable name="Email__SmtpUsername" value="$smtpUsername" />
+                  <environmentVariable name="Email__SmtpPassword" value="$smtpPassword" />
+                  <environmentVariable name="Email__FromEmail" value="$smtpFromEmail" />
+                  <environmentVariable name="Email__FromName" value="Mongoose.gg" />
+
+                  <!-- Logging Configuration -->
+                  <environmentVariable name="Logging__LogLevel__Default" value="Warning" />
+                  <environmentVariable name="Logging__LogLevel__Microsoft.AspNetCore" value="Warning" />
+                </environmentVariables>
+              </aspNetCore>
+
+              <!-- Ensure CORS headers from ASP.NET Core are passed through -->
+              <httpProtocol>
+                <customHeaders>
+                  <remove name="X-Powered-By" />
+                </customHeaders>
+              </httpProtocol>
+            </system.webServer>
+          </configuration>
+          "@
+
+          Set-Content -Path "web.config" -Value $webConfig -Encoding UTF8
+
+          # Validate the generated XML is well-formed
+          try {
+            [xml]$xmlDoc = Get-Content -Path "web.config" -Raw
+            Write-Host "✅ web.config generated and validated as well-formed XML"
+          } catch {
+            Write-Error "❌ Generated web.config is not valid XML: $_"
+            exit 1
+          }
+
+          Write-Host "✅ web.config generated with production secrets (XML-escaped and validated)"
 
       # -------------------------------------------------
       # Run server unit tests (including auth hardening)
@@ -165,37 +219,39 @@ jobs:
           dotnet publish -c Release -r win-x86 --self-contained=true  -o ./${{ env.PUBLISH_DIR }}
 
       # -------------------------------------------------
-      # Copy appsettings.Production.json to publish output
-      # This file contains all production secrets and must be deployed
+      # Copy web.config to publish output (overwrite the default one)
+      # This file contains IIS configuration and production secrets as env vars
       # -------------------------------------------------
-      - name: Copy appsettings.Production.json to publish output
+      - name: Copy web.config to publish output
         shell: pwsh
         run: |
-          $sourceFile = "./appsettings.Production.json"
-          $targetFile = "./${{ env.PUBLISH_DIR }}/appsettings.Production.json"
+          $sourceFile = "./web.config"
+          $targetFile = "./${{ env.PUBLISH_DIR }}/web.config"
 
           if (-not (Test-Path $sourceFile)) {
-            Write-Error "❌ appsettings.Production.json not found at $sourceFile"
+            Write-Error "❌ web.config not found at $sourceFile"
             exit 1
           }
 
           Write-Host "Source file size: $((Get-Item $sourceFile).Length) bytes"
 
+          # Overwrite the default web.config generated by dotnet publish
           Copy-Item -Path $sourceFile -Destination $targetFile -Force
-          Write-Host "✅ appsettings.Production.json copied to publish output"
+          Write-Host "✅ web.config with secrets copied to publish output (overwrote default)"
 
           # Verify the file was copied
           if (-not (Test-Path $targetFile)) {
-            Write-Error "❌ Failed to copy appsettings.Production.json to publish output"
+            Write-Error "❌ Failed to copy web.config to publish output"
             exit 1
           }
 
           Write-Host "Target file size: $((Get-Item $targetFile).Length) bytes"
-          Write-Host "✅ Verified: appsettings.Production.json exists in publish output"
+          Write-Host "✅ Verified: web.config exists in publish output"
 
-          # Show the structure (keys only, no values) for verification
-          Write-Host "Configuration structure:"
-          Get-Content $targetFile | ConvertFrom-Json | ConvertTo-Json -Depth 1
+          # Show structure without exposing secrets (count environment variables)
+          $content = Get-Content $targetFile -Raw
+          $envVarCount = ([regex]::Matches($content, '<environmentVariable')).Count
+          Write-Host "web.config contains $envVarCount environment variable(s)"
 
       # -------------------------------------------------
       # Verify publish output exists and show its contents
@@ -210,12 +266,20 @@ jobs:
           Write-Host "=== Files that will be uploaded ==="
           Get-ChildItem -Recurse "./${{ env.PUBLISH_DIR }}"
 
-          # Explicitly verify appsettings.Production.json is present
-          $appSettingsPath = "./${{ env.PUBLISH_DIR }}/appsettings.Production.json"
-          if (Test-Path $appSettingsPath) {
-            Write-Host "✅ VERIFIED: appsettings.Production.json is present in publish output"
+          # Verify web.config is present with secrets
+          $webConfigPath = "./${{ env.PUBLISH_DIR }}/web.config"
+          if (Test-Path $webConfigPath) {
+            Write-Host "✅ VERIFIED: web.config is present in publish output"
+            # Verify it contains our environment variables (not the default one)
+            $content = Get-Content $webConfigPath -Raw
+            if ($content -match 'ConnectionStrings__Database_production') {
+              Write-Host "✅ VERIFIED: web.config contains production secrets"
+            } else {
+              Write-Error "❌ CRITICAL: web.config does not contain production secrets - may be using default"
+              exit 1
+            }
           } else {
-            Write-Error "❌ CRITICAL: appsettings.Production.json is MISSING from publish output"
+            Write-Error "❌ CRITICAL: web.config is MISSING from publish output"
             exit 1
           }
 
