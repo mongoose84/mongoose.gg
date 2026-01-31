@@ -549,6 +549,19 @@ export async function getMatchDetails(matchId, puuid) {
     return null // Match not found
   }
 
+  // Handle auth errors that may not have JSON body
+  if (response.status === 401) {
+    const error = new Error('Unauthorized')
+    error.status = 401
+    throw error
+  }
+
+  if (response.status === 403) {
+    const error = new Error('Access denied to this match')
+    error.status = 403
+    throw error
+  }
+
   const data = await response.json()
 
   if (!response.ok) {

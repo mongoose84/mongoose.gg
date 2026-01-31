@@ -120,15 +120,37 @@ async function fetchMatchDetails(matchId) {
 
   try {
     const result = await getMatchDetails(matchId, puuid)
-    matchDetails.value = result?.match ?? null
-    matchDetailsBaseline.value = result?.baseline ?? null
+
+    // Guard against race condition: only update if this is still the selected match
+    if (selectedMatchId.value !== matchId) {
+      return // User selected a different match while we were fetching
+    }
+
+    // Handle 404 (match not found)
+    if (result === null) {
+      detailsError.value = 'Match not found'
+      matchDetails.value = null
+      matchDetailsBaseline.value = null
+      return
+    }
+
+    matchDetails.value = result.match ?? null
+    matchDetailsBaseline.value = result.baseline ?? null
   } catch (err) {
+    // Guard against race condition for error state too
+    if (selectedMatchId.value !== matchId) {
+      return
+    }
+
     console.error('Failed to fetch match details:', err)
     detailsError.value = err.message || 'Failed to load match details'
     matchDetails.value = null
     matchDetailsBaseline.value = null
   } finally {
-    detailsLoading.value = false
+    // Only clear loading if this is still the selected match
+    if (selectedMatchId.value === matchId) {
+      detailsLoading.value = false
+    }
   }
 }
 
@@ -153,6 +175,7 @@ watch(selectedMatchId, (newMatchId) => {
   } else {
     matchDetails.value = null
     matchDetailsBaseline.value = null
+    detailsError.value = null
   }
 })
 
@@ -161,6 +184,7 @@ watch(queueFilter, (newValue) => {
   selectedMatchId.value = null
   matchDetails.value = null
   matchDetailsBaseline.value = null
+  detailsError.value = null
   trackFilterChange('queue', newValue)
   fetchMatches()
 })
