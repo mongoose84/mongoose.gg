@@ -104,12 +104,31 @@ jobs:
 
       # -------------------------------------------------
       # Generate web.config with production secrets
-      # This file configures IIS and injects secrets as environment variables
-      # More secure than appsettings.Production.json as secrets are injected at runtime
+      # This file configures IIS and sets secrets as process-level environment variables.
+      # SECURITY NOTE: The publish output contains secrets and should be treated as sensitive.
+      # The FTP deploy action does not cache/log file contents, but avoid storing artifacts.
+      # For true runtime injection, consider Azure Key Vault or host-level env vars.
       # -------------------------------------------------
       - name: Generate web.config with secrets
         shell: pwsh
         run: |
+          # XML-escape function to handle special characters in secrets
+          # This prevents malformed XML if secrets contain &, <, >, ", or '
+          function ConvertTo-XmlEscaped {
+            param([string]$Value)
+            if ([string]::IsNullOrEmpty($Value)) { return $Value }
+            return [System.Security.SecurityElement]::Escape($Value)
+          }
+
+          # Escape all secret values for safe XML embedding
+          $dbConnection = ConvertTo-XmlEscaped "${{ secrets.DB_CONNECTIONSTRING }}"
+          $riotApiKey = ConvertTo-XmlEscaped "${{ secrets.RIOT_API_KEY }}"
+          $encryptionSecret = ConvertTo-XmlEscaped "${{ secrets.ENCRYPTION_SECRET }}"
+          $smtpHost = ConvertTo-XmlEscaped "${{ secrets.SMTP_HOST }}"
+          $smtpUsername = ConvertTo-XmlEscaped "${{ secrets.SMTP_USERNAME }}"
+          $smtpPassword = ConvertTo-XmlEscaped "${{ secrets.SMTP_PASSWORD }}"
+          $smtpFromEmail = ConvertTo-XmlEscaped "${{ secrets.SMTP_FROM_EMAIL }}"
+
           $webConfig = @"
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
@@ -132,10 +151,10 @@ jobs:
                   <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
 
                   <!-- Database Configuration -->
-                  <environmentVariable name="ConnectionStrings__Database_production" value="${{ secrets.DB_CONNECTIONSTRING }}" />
+                  <environmentVariable name="ConnectionStrings__Database_production" value="$dbConnection" />
 
                   <!-- Riot API Configuration -->
-                  <environmentVariable name="Riot__ApiKey" value="${{ secrets.RIOT_API_KEY }}" />
+                  <environmentVariable name="Riot__ApiKey" value="$riotApiKey" />
 
                   <!-- Authentication Configuration -->
                   <environmentVariable name="Auth__CookieName" value="pulse-auth" />
@@ -146,15 +165,15 @@ jobs:
                   <environmentVariable name="Jobs__EnableMatchHistorySync" value="true" />
 
                   <!-- Security Configuration -->
-                  <environmentVariable name="Security__EncryptionSecret" value="${{ secrets.ENCRYPTION_SECRET }}" />
+                  <environmentVariable name="Security__EncryptionSecret" value="$encryptionSecret" />
 
                   <!-- Email Configuration -->
                   <environmentVariable name="Email__DevMode" value="false" />
-                  <environmentVariable name="Email__SmtpHost" value="${{ secrets.SMTP_HOST }}" />
+                  <environmentVariable name="Email__SmtpHost" value="$smtpHost" />
                   <environmentVariable name="Email__SmtpPort" value="587" />
-                  <environmentVariable name="Email__SmtpUsername" value="${{ secrets.SMTP_USERNAME }}" />
-                  <environmentVariable name="Email__SmtpPassword" value="${{ secrets.SMTP_PASSWORD }}" />
-                  <environmentVariable name="Email__FromEmail" value="${{ secrets.SMTP_FROM_EMAIL }}" />
+                  <environmentVariable name="Email__SmtpUsername" value="$smtpUsername" />
+                  <environmentVariable name="Email__SmtpPassword" value="$smtpPassword" />
+                  <environmentVariable name="Email__FromEmail" value="$smtpFromEmail" />
                   <environmentVariable name="Email__FromName" value="Mongoose.gg" />
 
                   <!-- Logging Configuration -->
@@ -173,8 +192,18 @@ jobs:
           </configuration>
           "@
 
-          Set-Content -Path "web.config" -Value $webConfig
-          Write-Host "✅ web.config generated with production secrets (injected as environment variables)"
+          Set-Content -Path "web.config" -Value $webConfig -Encoding UTF8
+
+          # Validate the generated XML is well-formed
+          try {
+            [xml]$xmlDoc = Get-Content -Path "web.config" -Raw
+            Write-Host "✅ web.config generated and validated as well-formed XML"
+          } catch {
+            Write-Error "❌ Generated web.config is not valid XML: $_"
+            exit 1
+          }
+
+          Write-Host "✅ web.config generated with production secrets (XML-escaped and validated)"
 
       # -------------------------------------------------
       # Run server unit tests (including auth hardening)
