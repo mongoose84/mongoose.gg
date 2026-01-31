@@ -33,6 +33,7 @@ public sealed class OverviewEndpoint : IEndpoint
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] OverviewStatsRepository overviewStatsRepo,
             [FromServices] ILpSnapshotsRepository lpSnapshotsRepo,
+            [FromServices] ILpCalculationService lpCalc,
             [FromServices] ILogger<OverviewEndpoint> logger
         ) =>
         {
@@ -86,7 +87,8 @@ public sealed class OverviewEndpoint : IEndpoint
                     primaryQueueId,
                     primaryQueueLabel,
                     last20Matches,
-                    lpSnapshotsRepo
+                    lpSnapshotsRepo,
+                    lpCalc
                 );
 
                 // Get last match
@@ -140,7 +142,8 @@ public sealed class OverviewEndpoint : IEndpoint
         int primaryQueueId,
         string primaryQueueLabel,
         List<MatchResultData> last20Matches,
-        ILpSnapshotsRepository lpSnapshotsRepo)
+        ILpSnapshotsRepository lpSnapshotsRepo,
+        ILpCalculationService lpCalc)
     {
         // Get current rank based on primary queue
         string? rank = null;
@@ -188,7 +191,8 @@ public sealed class OverviewEndpoint : IEndpoint
             currentDivision,
             currentLp,
             last20Matches,
-            lpSnapshotsRepo
+            lpSnapshotsRepo,
+            lpCalc
         );
 
         // We no longer calculate per-match LP deltas since we don't have accurate per-match LP data
@@ -220,7 +224,8 @@ public sealed class OverviewEndpoint : IEndpoint
         string? currentDivision,
         int? currentLp,
         List<MatchResultData> last20Matches,
-        ILpSnapshotsRepository lpSnapshotsRepo)
+        ILpSnapshotsRepository lpSnapshotsRepo,
+        ILpCalculationService lpCalc)
     {
         // If no current LP or no queue type, we can't calculate delta
         if (currentLp == null || queueType == null || last20Matches.Count == 0)
@@ -249,64 +254,10 @@ public sealed class OverviewEndpoint : IEndpoint
         }
 
         // Convert both current and old rank to absolute LP for accurate comparison
-        var currentAbsoluteLp = CalculateAbsoluteLp(currentTier, currentDivision, currentLp.Value);
-        var oldAbsoluteLp = CalculateAbsoluteLp(oldSnapshot.Tier, oldSnapshot.Division, oldSnapshot.Lp);
+        var currentAbsoluteLp = lpCalc.CalculateAbsoluteLp(currentTier, currentDivision, currentLp.Value);
+        var oldAbsoluteLp = lpCalc.CalculateAbsoluteLp(oldSnapshot.Tier, oldSnapshot.Division, oldSnapshot.Lp);
 
         return currentAbsoluteLp - oldAbsoluteLp;
-    }
-
-    /// <summary>
-    /// Converts tier + division + LP to an absolute LP value for comparison across ranks.
-    /// Each division is worth 100 LP, each tier is worth 400 LP (4 divisions).
-    /// Master+ tiers don't have divisions, so LP can exceed 100.
-    /// </summary>
-    private static int CalculateAbsoluteLp(string? tier, string? division, int lp)
-    {
-        var tierValue = GetTierValue(tier);
-        var divisionValue = GetDivisionValue(division);
-
-        // For Master+ (no divisions), just add LP directly to tier base
-        // For other tiers, add division offset + LP within division
-        return tierValue + divisionValue + lp;
-    }
-
-    /// <summary>
-    /// Gets the base LP value for a tier.
-    /// Each tier below Master is worth 400 LP (4 divisions × 100 LP each).
-    /// </summary>
-    private static int GetTierValue(string? tier)
-    {
-        return tier?.ToUpperInvariant() switch
-        {
-            "IRON" => 0,
-            "BRONZE" => 400,
-            "SILVER" => 800,
-            "GOLD" => 1200,
-            "PLATINUM" => 1600,
-            "EMERALD" => 2000,
-            "DIAMOND" => 2400,
-            "MASTER" => 2800,
-            "GRANDMASTER" => 2800, // Same base as Master, differentiated by LP
-            "CHALLENGER" => 2800,  // Same base as Master, differentiated by LP
-            _ => 0
-        };
-    }
-
-    /// <summary>
-    /// Gets the LP offset for a division within a tier.
-    /// IV = 0, III = 100, II = 200, I = 300.
-    /// Master+ don't have divisions (returns 0).
-    /// </summary>
-    private static int GetDivisionValue(string? division)
-    {
-        return division?.ToUpperInvariant() switch
-        {
-            "IV" => 0,
-            "III" => 100,
-            "II" => 200,
-            "I" => 300,
-            _ => 0 // Master+ don't have divisions
-        };
     }
 
     private static LastMatch BuildLastMatch(LastMatchData data)

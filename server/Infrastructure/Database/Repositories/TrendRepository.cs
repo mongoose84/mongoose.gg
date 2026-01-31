@@ -12,14 +12,17 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 {
     private readonly ILogger<TrendRepository> _logger;
     private readonly IQueryFilterBuilder _filterBuilder;
+    private readonly ILpCalculationService _lpCalc;
 
     public TrendRepository(
         IDbConnectionFactory factory,
         ILogger<TrendRepository> logger,
-        IQueryFilterBuilder filterBuilder) : base(factory)
+        IQueryFilterBuilder filterBuilder,
+        ILpCalculationService lpCalc) : base(factory)
     {
         _logger = logger;
         _filterBuilder = filterBuilder;
+        _lpCalc = lpCalc;
     }
 
     /// <inheritdoc />
@@ -199,9 +202,9 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var win = reader.GetBoolean(3);
                 var gameStartTime = reader.GetInt64(4);
 
-                var rankString = FormatRankString(tierAfter, rankAfter);
-                var isPromotion = DetectPromotion(previousTier, previousRank, tierAfter, rankAfter);
-                var isDemotion = DetectDemotion(previousTier, previousRank, tierAfter, rankAfter);
+                var rankString = _lpCalc.FormatRank(tierAfter, rankAfter);
+                var isPromotion = _lpCalc.IsPromotion(previousTier, previousRank, tierAfter, rankAfter);
+                var isDemotion = _lpCalc.IsDemotion(previousTier, previousRank, tierAfter, rankAfter);
 
                 int? lpGain = null;
                 if (previousLp.HasValue && !isPromotion && !isDemotion)
@@ -232,82 +235,6 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         });
 
         return points;
-    }
-
-    private static string FormatRankString(string tier, string rank)
-    {
-        var formattedTier = tier.Length > 0
-            ? char.ToUpper(tier[0]) + tier.Substring(1).ToLower()
-            : tier;
-        return string.IsNullOrEmpty(rank) ? formattedTier : $"{formattedTier} {rank}";
-    }
-
-    private static bool DetectPromotion(string? prevTier, string? prevRank, string currTier, string currRank)
-    {
-        if (string.IsNullOrEmpty(prevTier)) return false;
-
-        var prevTierLevel = GetTierLevel(prevTier);
-        var currTierLevel = GetTierLevel(currTier);
-
-        if (currTierLevel > prevTierLevel) return true;
-
-        if (currTierLevel == prevTierLevel)
-        {
-            var prevDivision = GetDivisionLevel(prevRank);
-            var currDivision = GetDivisionLevel(currRank);
-            return currDivision > prevDivision;
-        }
-
-        return false;
-    }
-
-    private static bool DetectDemotion(string? prevTier, string? prevRank, string currTier, string currRank)
-    {
-        if (string.IsNullOrEmpty(prevTier)) return false;
-
-        var prevTierLevel = GetTierLevel(prevTier);
-        var currTierLevel = GetTierLevel(currTier);
-
-        if (currTierLevel < prevTierLevel) return true;
-
-        if (currTierLevel == prevTierLevel)
-        {
-            var prevDivision = GetDivisionLevel(prevRank);
-            var currDivision = GetDivisionLevel(currRank);
-            return currDivision < prevDivision;
-        }
-
-        return false;
-    }
-
-    private static int GetTierLevel(string? tier)
-    {
-        return tier?.ToUpperInvariant() switch
-        {
-            "IRON" => 1,
-            "BRONZE" => 2,
-            "SILVER" => 3,
-            "GOLD" => 4,
-            "PLATINUM" => 5,
-            "EMERALD" => 6,
-            "DIAMOND" => 7,
-            "MASTER" => 8,
-            "GRANDMASTER" => 9,
-            "CHALLENGER" => 10,
-            _ => 0
-        };
-    }
-
-    private static int GetDivisionLevel(string? rank)
-    {
-        return rank?.ToUpperInvariant() switch
-        {
-            "IV" => 1,
-            "III" => 2,
-            "II" => 3,
-            "I" => 4,
-            _ => 0
-        };
     }
 }
 

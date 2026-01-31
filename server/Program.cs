@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using RiotProxy.Application;
+using RiotProxy.Application.Services;
 using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure;
 using RiotProxy.Infrastructure.Database;
@@ -52,7 +53,6 @@ builder.Services.AddScoped<ParticipantObjectivesRepository>();
 builder.Services.AddScoped<TeamMatchMetricsRepository>();
 builder.Services.AddScoped<TeamRoleResponsibilitiesRepository>();
 builder.Services.AddScoped<DuoMetricsRepository>();
-builder.Services.AddScoped<SoloStatsRepository>();
 builder.Services.AddScoped<ISoloDashboardRepository, SoloDashboardRepository>();
 builder.Services.AddScoped<ITrendRepository, TrendRepository>();
 builder.Services.AddScoped<IMatchupRepository, MatchupRepository>();
@@ -64,6 +64,7 @@ builder.Services.AddScoped<ILpSnapshotsRepository, LpSnapshotsRepository>();
 
 // Application services
 builder.Services.AddScoped<RiotProxy.Application.Services.LoginSyncService>();
+builder.Services.AddSingleton<ILpCalculationService, LpCalculationService>();
 
 // Query filter builder for centralized SQL filter generation
 builder.Services.AddScoped<IQueryFilterBuilder, QueryFilterBuilder>();

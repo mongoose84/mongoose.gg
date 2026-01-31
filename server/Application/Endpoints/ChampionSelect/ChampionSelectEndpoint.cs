@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.ChampionSelect;
 
@@ -28,7 +27,7 @@ public sealed class ChampionSelectEndpoint : IEndpoint
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
-            [FromServices] SoloStatsRepository soloStatsRepo,
+            [FromServices] ISoloDashboardRepository soloDashboardRepo,
             [FromServices] ILogger<ChampionSelectEndpoint> logger
         ) =>
         {
@@ -70,7 +69,7 @@ public sealed class ChampionSelectEndpoint : IEndpoint
                 // Fetch dashboard data (reusing solo stats for now - can be optimized later)
                 logger.LogInformation("Champion select request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", 
                     userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
-                var dashboard = await soloStatsRepo.GetSoloDashboardAsync(primaryPuuid, queueType, timeRange);
+                var dashboard = await soloDashboardRepo.GetSoloDashboardAsync(primaryPuuid, queueType, timeRange);
 
                 if (dashboard == null)
                 {
