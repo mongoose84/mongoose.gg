@@ -27,7 +27,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string matchId,
             [FromQuery] string? puuid,
-            [FromServices] MatchesRepository matchesRepo,
+            [FromServices] IMatchesRepository matchesRepo,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ILogger<MatchNarrativeEndpoint> logger
         ) =>

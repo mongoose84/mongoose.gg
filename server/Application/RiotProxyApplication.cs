@@ -54,9 +54,9 @@ namespace RiotProxy.Application
             var riotAccountsEndpoint = new RiotAccountsEndpoint(basePath);
             _endpoints.Add(riotAccountsEndpoint);
             
-            // Solo Dashboard (auth required)
-            var soloDashboardEndpoint = new SoloDashboardEndpoint(basePath);
-            _endpoints.Add(soloDashboardEndpoint);
+            // Solo Performance (auth required)
+            var soloPerformanceEndpoint = new SoloPerformanceEndpoint(basePath);
+            _endpoints.Add(soloPerformanceEndpoint);
 
             // Champion Select (auth required)
             var championSelectEndpoint = new ChampionSelectEndpoint(basePath);

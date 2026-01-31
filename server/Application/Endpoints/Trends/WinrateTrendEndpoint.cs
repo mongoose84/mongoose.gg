@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Trends;
 
@@ -29,7 +28,7 @@ public sealed class WinrateTrendEndpoint : IEndpoint
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
-            [FromServices] SoloStatsRepository soloStatsRepo,
+            [FromServices] ITrendRepository trendRepo,
             [FromServices] ILogger<WinrateTrendEndpoint> logger
         ) =>
         {
@@ -72,7 +71,7 @@ public sealed class WinrateTrendEndpoint : IEndpoint
                 logger.LogInformation("Winrate trend request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
                     userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
                 
-                var winrateTrend = await soloStatsRepo.GetWinrateTrendAsync(primaryPuuid, queueType, timeRange);
+                var winrateTrend = await trendRepo.GetWinrateTrendAsync(primaryPuuid, queueType, timeRange);
 
                 return Results.Ok(new { winrateTrend });
             }

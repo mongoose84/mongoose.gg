@@ -1,22 +1,22 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Application.DTOs.Solo;
 using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Application.Endpoints.Solo;
 
 /// <summary>
-/// Match Activity Endpoint
-/// Returns daily match counts for the past 6 months for heatmap visualization.
-/// Used to render a GitHub-style contribution graph.
+/// Solo Performance Endpoint
+/// Returns comprehensive solo player statistics optimized for dashboard rendering.
+/// Supports optional queue filtering (ranked_solo, ranked_flex, normal, aram, all)
+/// and optional time range filtering (current_season, last_season, 1w, 1m, 3m, 6m).
 /// </summary>
-public sealed class MatchActivityEndpoint : IEndpoint
+public sealed class SoloPerformanceEndpoint : IEndpoint
 {
     public string Route { get; }
 
-    public MatchActivityEndpoint(string basePath)
+    public SoloPerformanceEndpoint(string basePath)
     {
-        Route = basePath + "/solo/activity/{userId}";
+        Route = basePath + "/solo/dashboard/{userId}";
     }
 
     public void Configure(WebApplication app)
@@ -24,9 +24,11 @@ public sealed class MatchActivityEndpoint : IEndpoint
         var endpoint = app.MapGet(Route, async (
             HttpContext httpContext,
             [FromRoute] string userId,
+            [FromQuery] string? queueType,
+            [FromQuery] string? timeRange,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
-            [FromServices] ITrendRepository trendRepo,
-            [FromServices] ILogger<MatchActivityEndpoint> logger
+            [FromServices] ISoloPerformanceRepository soloPerformanceRepo,
+            [FromServices] ILogger<SoloPerformanceEndpoint> logger
         ) =>
         {
             try
@@ -37,7 +39,7 @@ public sealed class MatchActivityEndpoint : IEndpoint
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))
                 {
-                    logger.LogWarning("Match activity: invalid userId format {UserId}", userId);
+                    logger.LogWarning("Solo performance: invalid userId format {UserId}", userId);
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
@@ -45,7 +47,7 @@ public sealed class MatchActivityEndpoint : IEndpoint
                 var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
                 {
-                    logger.LogWarning("Match activity: user {AuthUserId} attempted to access data for user {RouteUserId}",
+                    logger.LogWarning("Solo performance: user {AuthUserId} attempted to access data for user {RouteUserId}",
                         authenticatedUserId, userIdInt);
                     return Results.Forbid();
                 }
@@ -55,7 +57,7 @@ public sealed class MatchActivityEndpoint : IEndpoint
 
                 if (linkedAccounts == null || linkedAccounts.Count == 0)
                 {
-                    logger.LogWarning("Match activity: no riot accounts found for userId {UserId}", userIdInt);
+                    logger.LogWarning("Solo performance: no riot accounts found for userId {UserId}", userIdInt);
                     return Results.NotFound(new { error = "No riot accounts found for this user" });
                 }
 
@@ -64,29 +66,27 @@ public sealed class MatchActivityEndpoint : IEndpoint
                 var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
-                // Fetch daily match counts for past 6 months (182 days)
-                const int daysBack = 182;
-                var dailyCounts = await trendRepo.GetDailyMatchCountsAsync(primaryPuuid, daysBack);
-                
-                var endDate = DateTime.UtcNow.Date;
-                var startDate = endDate.AddDays(-daysBack);
-                var totalMatches = dailyCounts.Values.Sum();
+                // Fetch performance data
+                logger.LogInformation("Solo performance request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
+                var performance = await soloPerformanceRepo.GetSoloPerformanceAsync(primaryPuuid, queueType, timeRange);
 
-                var response = new MatchActivityResponse(
-                    DailyMatchCounts: dailyCounts,
-                    StartDate: startDate.ToString("yyyy-MM-dd"),
-                    EndDate: endDate.ToString("yyyy-MM-dd"),
-                    TotalMatches: totalMatches
-                );
+                if (performance == null)
+                {
+                    logger.LogInformation("Solo performance: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}", primaryPuuid, queueType ?? "all", timeRange ?? "all");
+                    return Results.NotFound(new { error = "No match data found for this player" });
+                }
 
-                logger.LogInformation("Match activity: userId={UserId}, puuid={Puuid}, totalMatches={Total}", 
-                    userIdInt, primaryPuuid, totalMatches);
-
-                return Results.Ok(response);
+                return Results.Ok(performance);
+            }
+            catch (ArgumentException ex)
+            {
+                logger.LogWarning(ex, "Solo performance: bad request");
+                // Do not expose internal exception messages to clients
+                return Results.BadRequest(new { error = "Invalid request parameters" });
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Match activity: unhandled error");
+                logger.LogError(ex, "Solo performance: unhandled error");
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });
