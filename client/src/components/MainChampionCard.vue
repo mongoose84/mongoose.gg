@@ -36,7 +36,7 @@
           class="focus:outline-none h-full"
         >
           <!-- 3 Champion Cards in a row - Top Trumps style -->
-          <div class="grid grid-cols-3 gap-2xl h-full">
+          <div class="flex justify-center gap-2xl h-full">
             <article
               v-for="(champion, index) in championsForRole(role)"
               :key="champion.championId"
@@ -49,8 +49,8 @@
             >
               <!-- Card header with champion image -->
               <div
-                class="relative h-32 flex items-center justify-center"
-                :class="index === 0 ? 'bg-gradient-to-br from-primary/30 to-primary/5' : 'bg-gradient-to-br from-[rgba(255,255,255,0.08)] to-transparent'"
+                class="relative flex-1 mb-4 flex items-center justify-center"
+                :class="index === 0 ? 'bg-gradient-to-br from-primary/30 to-primary/5' : ''"
               >
                 <!-- Recommended badge -->
                 <div
@@ -76,8 +76,8 @@
               </div>
 
               <!-- Champion name bar -->
-              <div class="py-2 px-3 bg-background-elevated border-y border-border text-center">
-                <h3 class="m-0 text-base font-bold text-text uppercase tracking-wide">{{ champion.championName }}</h3>
+              <div class="py-1.5 px-2 bg-background-elevated border-y border-border text-center">
+                <h3 class="m-0 text-sm font-bold text-text uppercase tracking-wide">{{ champion.championName }}</h3>
                 <span class="text-2xs text-text-secondary">{{ roleLabel(role) }}</span>
               </div>
 
@@ -147,14 +147,14 @@
               </div>
 
               <!-- Matchups section -->
-              <div class="px-3 pt-2 pb-4 bg-background-elevated border-t border-border mt-2 mb-8">
-                <div class="grid grid-cols-2 gap-2">
+              <div class="px-2 pt-1 pb-3 bg-background-elevated border-t border-border mt-2 min-h-[140px]">
+                <div class="grid grid-cols-2 gap-1">
                   <!-- Strong vs -->
                   <div>
-                    <div class="flex items-center gap-1 mb-1 mt-6">
-                      <span class="text-2xs font-semibold text-success uppercase">Strong</span>
+                    <div class="flex items-center gap-1 mb-2 mt-4">
+                      <span class="matchup-label text-success">Strong</span>
                     </div>
-                    <div v-if="getMatchupsForChampion(champion.championId, role).good.length > 0" class="flex gap-1.5">
+                    <div v-if="getMatchupsForChampion(champion.championId, role).good.length > 0" class="flex gap-1">
                       <div
                         v-for="opponent in getMatchupsForChampion(champion.championId, role).good"
                         :key="opponent.opponentChampionId"
@@ -165,22 +165,22 @@
                           :src="getChampionIconUrl(opponent.opponentChampionName)"
                           :alt="opponent.opponentChampionName"
                         />
-                        <span class="text-2xs text-success font-semibold mt-0.5">{{ Math.round(opponent.winRate) }}%</span>
-                        <span class="text-2xs text-text-secondary">{{ opponent.wins }}-{{ opponent.losses }}</span>
+                        <span class="matchup-text text-success font-semibold mt-0.5">{{ Math.round(opponent.winRate) }}%</span>
+                        <span class="matchup-text text-text-secondary">{{ opponent.wins }}-{{ opponent.losses }}</span>
                         <div class="matchup-tooltip">
                           <span class="font-medium">{{ opponent.opponentChampionName }}</span>
                         </div>
                       </div>
                     </div>
-                    <span v-else class="text-2xs text-text-secondary italic">—</span>
+                    <span v-else class="matchup-text text-text-secondary italic">—</span>
                   </div>
 
                   <!-- Weak vs -->
                   <div class="flex flex-col items-end">
-                    <div class="flex items-center gap-1 mb-1 mt-6">
-                      <span class="text-2xs font-semibold text-error uppercase">Weak</span>
+                    <div class="flex items-center gap-1 mb-2 mt-4">
+                      <span class="matchup-label text-error">Weak</span>
                     </div>
-                    <div v-if="getMatchupsForChampion(champion.championId, role).bad.length > 0" class="flex gap-1.5">
+                    <div v-if="getMatchupsForChampion(champion.championId, role).bad.length > 0" class="flex gap-1">
                       <div
                         v-for="opponent in getMatchupsForChampion(champion.championId, role).bad"
                         :key="opponent.opponentChampionId"
@@ -191,14 +191,14 @@
                           :src="getChampionIconUrl(opponent.opponentChampionName)"
                           :alt="opponent.opponentChampionName"
                         />
-                        <span class="text-2xs text-error font-semibold mt-0.5">{{ Math.round(opponent.winRate) }}%</span>
-                        <span class="text-2xs text-text-secondary">{{ opponent.wins }}-{{ opponent.losses }}</span>
+                        <span class="matchup-text text-error font-semibold mt-0.5">{{ Math.round(opponent.winRate) }}%</span>
+                        <span class="matchup-text text-text-secondary">{{ opponent.wins }}-{{ opponent.losses }}</span>
                         <div class="matchup-tooltip">
                           <span class="font-medium">{{ opponent.opponentChampionName }}</span>
                         </div>
                       </div>
                     </div>
-                    <span v-else class="text-2xs text-text-secondary italic">—</span>
+                    <span v-else class="matchup-text text-text-secondary italic">—</span>
                   </div>
                 </div>
               </div>
@@ -425,8 +425,9 @@ function getMScoreTextClass(score) {
 <style scoped>
 /* Trump card styling */
 .trump-card {
-  min-height: 380px;
+  aspect-ratio: 5 / 7;
   position: relative;
+  max-width: 320px;
 }
 
 /* Gaming-inspired card background */
@@ -502,7 +503,7 @@ function getMScoreTextClass(score) {
 .stat-row {
   display: flex;
   align-items: center;
-  padding: 0.5rem 0.75rem;
+  padding: 0.375rem 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -511,8 +512,8 @@ function getMScoreTextClass(score) {
 }
 
 .stat-label {
-  width: 5rem;
-  font-size: 0.625rem;
+  width: 4.5rem;
+  font-size: 0.5625rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -535,9 +536,9 @@ function getMScoreTextClass(score) {
 }
 
 .stat-value {
-  width: 3rem;
+  width: 2.5rem;
   text-align: right;
-  font-size: 0.75rem;
+  font-size: 0.5625rem;
   font-weight: 700;
 }
 
@@ -582,6 +583,18 @@ function getMScoreTextClass(score) {
 .mscore-stat-row:hover .stat-row-tooltip {
   opacity: 1;
   visibility: visible;
+}
+
+/* Matchup text styles */
+.matchup-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.matchup-text {
+  font-size: 0.5625rem;
 }
 
 /* Matchup tooltip styles */
@@ -635,10 +648,6 @@ function getMScoreTextClass(score) {
 
 /* Responsive adjustments */
 @media (max-width: 1024px) {
-  .trump-card {
-    min-height: 340px;
-  }
-
   .stat-label {
     width: 4rem;
   }
@@ -650,7 +659,7 @@ function getMScoreTextClass(score) {
   }
 
   .trump-card {
-    min-height: auto;
+    aspect-ratio: auto;
   }
 }
 </style>

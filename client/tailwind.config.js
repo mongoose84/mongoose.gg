@@ -67,6 +67,9 @@ export default {
         mono: ['ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
       },
       fontSize: {
+        '4xs': ['0.5rem', { lineHeight: '1.4' }],      // 8px
+        '3xs': ['0.5625rem', { lineHeight: '1.4' }],   // 9px
+        '2xs': ['0.625rem', { lineHeight: '1.4' }],    // 10px
         'xs': ['var(--font-size-xs)', { lineHeight: '1.5' }],
         'sm': ['var(--font-size-sm)', { lineHeight: '1.5' }],
         'base': ['var(--font-size-md)', { lineHeight: '1.6' }],
