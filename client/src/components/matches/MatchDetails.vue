@@ -1,7 +1,21 @@
 <template>
   <div class="match-details">
+    <!-- Loading state -->
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <span class="loading-text">Loading match details...</span>
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="error" class="error-state">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="error-icon">
+        <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clip-rule="evenodd" />
+      </svg>
+      <span class="error-text">{{ error }}</span>
+    </div>
+
     <!-- Empty state when no match selected -->
-    <div v-if="!match" class="empty-state">
+    <div v-else-if="!match" class="empty-state">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
         <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 01.67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 11-.671-1.34l.041-.022zM12 9a.75.75 0 100-1.5.75.75 0 000 1.5z" clip-rule="evenodd" />
       </svg>
@@ -44,6 +58,14 @@ const props = defineProps({
     type: Object,
     default: null
     // Expected: RoleBaseline for the selected match's role
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  error: {
+    type: String,
+    default: null
   }
 })
 
@@ -233,6 +255,62 @@ defineExpose({ downloadMatchData })
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  height: 100%;
+  min-height: 300px;
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  height: 100%;
+  min-height: 300px;
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--color-danger, #ef4444);
+  opacity: 0.7;
+}
+
+.error-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-danger, #ef4444);
 }
 
 /* Empty State */
