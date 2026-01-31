@@ -89,6 +89,8 @@ A task is only considered complete when **all** of the following are true:
 
 Enable users to receive personalized improvement goals powered by LLM analysis.
 
+<!-- AI: START_EPIC_B_TASKS -->
+
 ## Issues
 
 ### B1. [Infrastructure] Create LLM provider abstraction layer
@@ -463,6 +465,76 @@ Use the concepts in `/docs/rules_of_climbing.md` as domain context so the AI can
 - [ ] Add tests or fixtures that verify the rules context is present in prompts so changes are explicit
 
 ---
+
+### B19. [Discovery] Clarify AI goals vs coaching product direction
+
+**Priority:** P1 - High  
+**Type:** Discovery  
+**Estimate:** 3 points  
+**Labels:** `product`, `strategy`, `ai`, `epic-b`
+
+#### Description
+
+Clarify how far the AI experience should go beyond one-off goal recommendations toward a fuller "coaching" product. Capture concrete use cases, guardrails, and business goals so future AI work (B20, B21 and others) has a clear target and we avoid over-building in the wrong direction.
+
+#### Acceptance Criteria
+
+- [ ] Talk to at least 3–5 representative users (or prospects) about their expectations from "AI help" vs. human-like coaching  
+- [ ] Map out a simple spectrum from "lightweight guidance" → "full coaching" and decide explicitly where mongoose.gg should sit for the next 6–12 months  
+- [ ] Document 3–5 primary AI use cases (e.g. post-game feedback, champion select advice, long-term goals) and 3–5 things that are explicitly out of scope for now  
+- [ ] Capture constraints (latency, cost per user, data needed) that will influence technical design for AI features  
+- [ ] Produce a short written brief (1–2 pages) that is linked from this task and referenced by B20 and B21
+
+---
+
+### B20. [Feature] Post-game AI feedback (Pro, on-demand)
+
+**Priority:** P2 - Medium  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** B5, B6, B7, B8, B19, B21  
+**Labels:** `ai`, `goals`, `post-game`, `pro`, `epic-b`
+
+#### Description
+
+Allow Pro users to request AI feedback after a specific match. The AI reviews the match stats/timeline and returns a concise explanation of what went well, what went wrong, and 2–3 concrete, actionable tips for the next games, aligned with the product direction defined in B19.
+
+#### Acceptance Criteria
+
+- [ ] Add an internal API contract for requesting post-game feedback (e.g. match id + context such as lane/role, primary goals) built on top of the existing AI goal/analysis pipeline from Epic B  
+- [ ] Feedback includes:  
+  - 1–2 sentences of overall summary  
+  - Bullet list of 2–3 key mistakes or improvement areas grounded in match stats (CS, gold, deaths, objectives, etc.)  
+  - 2–3 specific, testable suggestions for next games (e.g. "aim for 7 CS/min by 10 minutes", "ward river before pushing past mid lane by 6 minutes")  
+- [ ] Clearly labelled as a **Pro** feature in the UI; Free users see an upgrade CTA instead of triggering the AI call  
+- [ ] Rate limiting and usage tracking are in place so we can control cost per user (e.g. max N feedback requests per day/week)  
+- [ ] UX is designed so users can easily request feedback from the match details view without getting lost (discoverable entry point and clear loading/empty states)
+
+---
+
+### B21. [Infrastructure] Extend database for AI coaching metrics
+
+**Priority:** P1 - High  
+**Type:** Infrastructure  
+**Estimate:** 5 points  
+**Depends on:** B4, E5  
+**Labels:** `database`, `ai`, `analytics`, `epic-b`
+
+#### Description
+
+Extend the database schema so we can persist the extra metrics and derived data needed for richer AI coaching, such as lane-specific gold/XP diffs, early objective control, and repeated mistake patterns over time. This underpins B20 and future AI coaching features.
+
+#### Acceptance Criteria
+
+- [ ] Identify which additional metrics beyond the current schema are required for post-game AI feedback and medium-term coaching (e.g. lane gold difference at 10/15 minutes, jungle proximity, warding patterns)  
+- [ ] Propose schema changes (new tables or columns) and add them to `../architecture/database-schema.md` before implementation  
+- [ ] Implement the schema changes via MySQL migrations and repository updates  
+- [ ] Backfill or derive the new metrics for existing matches where feasible, or explicitly document which metrics are only available for newly synced games  
+- [ ] Verify that the new metrics can be queried efficiently enough for AI requests without causing performance issues on the main dashboards
+
+---
+
+<!-- AI: END_EPIC_B_TASKS -->
 
 # Epic C: Subscription & Paywall System
 
@@ -839,6 +911,8 @@ Track referrals for future referral program.
 
 Track user behavior to inform product decisions.
 
+<!-- AI: START_EPIC_D_TASKS -->
+
 ## Issues
 
 ### D10. [Frontend] Implement cookie consent & preferences
@@ -866,6 +940,30 @@ Provide a cookie consent banner and preferences so users can control analytics c
 
 ---
 
+### D11. [Research] Evaluate Betterlytics analytics platform
+
+**Priority:** P2 - Medium  
+**Type:** Research  
+**Estimate:** 2 points  
+**Depends on:** D1  
+**Labels:** `analytics`, `evaluation`, `epic-d`
+
+#### Description
+
+Do a short, focused evaluation of Betterlytics as a potential analytics provider or complement to the current stack. The goal is to understand whether it solves real pain points (limits, pricing, features) compared to existing tools, not to fully migrate.
+
+#### Acceptance Criteria
+
+- [ ] Set up a small, non-production test project with Betterlytics (or go through an interactive demo) using a subset of mongoose.gg events  
+- [ ] Compare pricing, event limits, and key features (funnels, retention, user paths, etc.) against the current analytics setup  
+- [ ] Identify any hard blockers (e.g. lack of EU hosting, missing features we rely on) and any must-have advantages  
+- [ ] Produce a brief written recommendation (stay with current stack vs. pilot Betterlytics alongside it) including a rough estimate of events/month and expected cost  
+- [ ] Document the outcome in `docs/analytics/` and link from this task
+
+---
+
+<!-- AI: END_EPIC_D_TASKS -->
+
 # Epic E: Database & Analytics Schema ✅ COMPLETE
 
 Modernize the mongoose database to match `docs/database_schema.md` and support advanced solo/duo/team analytics.
@@ -879,6 +977,8 @@ Modernize the mongoose database to match `docs/database_schema.md` and support a
 Expose the HTTP API surface aligned with the database schema and dashboards.
 
 > **Completed tasks (F1, F2, F6, F7, F11 core auth, F12, F13, F14) have been moved to [product_backlog_completed.md](./product_backlog_completed.md).**
+
+<!-- AI: START_EPIC_F_TASKS -->
 
 ## Issues
 
@@ -1005,6 +1105,53 @@ Provide API endpoints for managing friends/duos/teams and searching for LoL acco
 - [ ] Provide a user search endpoint that lets you look up LoL accounts by Riot ID / game name + tagline when creating or linking a user
 - [ ] All new endpoints are protected by session authentication and follow the unified error-handling conventions
 
+---
+
+### F15. [Bug] Preserve username casing while keeping login case-insensitive
+
+**Priority:** P2 - Medium  
+**Type:** Bug  
+**Estimate:** 1 point  
+**Labels:** `api`, `auth`, `users`, `epic-f`
+
+#### Description
+
+Usernames are currently being lowercased so a user who signs up as `DoendW` is shown as `doendw` in the UI. We want to preserve the exact casing as entered when storing and displaying the username, while still treating login and uniqueness checks as case-insensitive.
+
+#### Acceptance Criteria
+
+- [ ] Usernames are stored with the exact casing entered at signup (e.g. `DoendW` remains `DoendW` in the database and UI)  
+- [ ] Login remains case-insensitive: entering `doendw` or `DOENDW` still logs in the same user account  
+- [ ] Uniqueness checks for usernames remain case-insensitive so `DoendW` and `doendw` cannot coexist as separate accounts  
+- [ ] Existing users with lowercased display names are either migrated or handled so they see their preferred casing going forward (with a reasonable default for those who don't care)  
+- [ ] Add or update tests around signup/login and username normalization rules
+
+---
+
+### F16. [Chore] Rename RiotProxy backend to Mongoose.Api
+
+**Priority:** P3 - Low  
+**Type:** Chore  
+**Estimate:** 3 points  
+**Labels:** `backend`, `naming`, `maintenance`, `epic-f`
+
+#### Description
+
+Standardize the backend naming from "RiotProxy" to "Mongoose.Api" across the solution so the project name matches the product branding and reduces confusion in logs, deployments, and documentation.
+
+#### Acceptance Criteria
+
+- [ ] Rename the main backend project/assembly from RiotProxy to Mongoose.Api (or equivalent) in the .NET solution  
+- [ ] Update namespaces, configuration, and startup code references where needed so the app still builds and runs  
+- [ ] Update scripts, deployment configs, and documentation that reference the old RiotProxy name  
+- [ ] Ensure logging/telemetry identifiers reflect the new name where appropriate  
+- [ ] All backend tests still pass after the rename
+
+---
+
+<!-- AI: END_EPIC_F_TASKS -->
+
+
 # Epic G: Frontend App & Marketing
 
 Create a professional user experience with a landing page, pricing, and app shell consuming the API.
@@ -1015,6 +1162,8 @@ Create a professional user experience with a landing page, pricing, and app shel
 - **Framework**: Vue 3 + Vite application in `/client/` directory
 - **Style direction**: Vercel developer aesthetic (dark, sharp, neon-tinged) with theme tokens configurable via CSS variables
 - **Scope**: Marketing landing page + app shell + solo experience first; duo/team dashboards follow once solo is stable in production.
+
+<!-- AI: START_EPIC_G_TASKS -->
 
 ## G5 Epic: Frontend Solo Dashboard
 
@@ -1216,8 +1365,6 @@ Create a new Team dashboard screen under `/app/team` that consumes the Team dash
 
 ### G11. [Frontend] Implement friends management UI scaffolding
 
-### G11. [Frontend] Implement friends management UI scaffolding
-
 **Priority:** P2 - Medium  
 **Type:** Feature  
 **Estimate:** 3 points  
@@ -1240,9 +1387,92 @@ Introduce a first-pass friends/social area in the app UI that defines the layout
 
 ---
 
----
+### G15. [Bug] Allow cancelling or switching account during email verification
+
+**Priority:** P0 - Critical  
+**Type:** Bug  
+**Estimate:** 2 points  
+**Labels:** `frontend`, `auth`, `ux`, `epic-g`
+
+#### Description
+
+When a user is waiting on the email verification step during login/signup, they can get stuck: there is no clear way to cancel, go back, or switch to a different account without effectively being trapped in the flow. We need to make it easy to cancel or change account, following common patterns from other applications.
+
+#### Acceptance Criteria
+
+- [ ] The email verification screen includes a clear way to cancel or go back (e.g. "Cancel" or "Use a different account" action) that returns the user to a safe starting point (login/signup)  
+- [ ] Navigating away from the verification page (e.g. via back button or direct navigation) does not leave the user in a broken or confusing state; any temporary verification state is handled gracefully  
+- [ ] The behaviour is aligned with standard UX patterns for verification flows (e.g. after reviewing a couple of reference apps) and does not accidentally weaken security  
+- [ ] Add or update tests (unit or e2e) to cover the main flows: happy-path verification, cancel, switch account  
+- [ ] Any copy or UI changes are consistent with the rest of the auth experience
 
 ---
+
+### G16. [UX] Improve Match narrative header spacing and "You" button
+
+**Priority:** P3 - Low  
+**Type:** UX  
+**Estimate:** 1 point  
+**Labels:** `frontend`, `matches`, `ux`, `epic-g`
+
+#### Description
+
+Polish the match narrative header to improve readability and make the "You" button feel less cramped or awkward. This is a small visual/spacing update based on user feedback to make the top of the match page easier to scan.
+
+#### Acceptance Criteria
+
+- [ ] Adjust spacing, alignment, and typography in the match narrative header so the content is easier to read on both desktop and mobile  
+- [ ] The "You" button is visually aligned with nearby elements and no longer feels jammed or out of place  
+- [ ] Verify the header still works well for long summoner names and different screen widths  
+- [ ] No regressions to existing match data or navigation behaviour
+
+---
+
+### G17. [UX] Design and implement manual match refresh entry point
+
+**Priority:** P2 - Medium  
+**Type:** UX / Frontend  
+**Estimate:** 2 points  
+**Depends on:** F14-login, G5b16  
+**Labels:** `frontend`, `matches`, `sync`, `ux`, `epic-g`
+
+#### Description
+
+Currently, new matches are checked and synced when the user logs in, but users with long-running sessions need to log out and back in to see their latest games. Add a clear, manual refresh entry point so users can stay logged in and pull in new matches on demand.
+
+#### Acceptance Criteria
+
+- [ ] Add a visible "Refresh matches" action (button or similar) in a sensible place on the Matches view (or related area) that triggers a match sync without requiring logout/login  
+- [ ] Show appropriate loading state and success/error feedback so users know when new matches are being fetched and when the list is up to date  
+- [ ] The refresh action reuses the existing sync mechanisms from F14-login / G5b16 rather than duplicating logic  
+- [ ] The design is consistent with the rest of the UI and does not overwhelm the page (e.g. avoids multiple competing refresh controls)  
+- [ ] Add or update tests (unit or e2e) to cover the main manual refresh flow
+
+---
+
+### G18. [Feature] Multi-account Riot support & aggregated stats
+
+**Priority:** P2 - Medium  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Labels:** `frontend`, `api`, `accounts`, `epic-g`
+
+#### Description
+
+Allow users to add multiple Riot accounts and choose whether mongoose.gg should treat data from all accounts together or focus on a primary account. This affects champion select recommendations and the matches page, so that multi-account players see a coherent experience.
+
+#### Acceptance Criteria
+
+- [ ] In the user settings page, users can manage a list of linked Riot accounts, including ordering them; the top account is clearly marked as the **primary** (e.g. with a "Primary" badge)  
+- [ ] Provide a single global setting (e.g. checkbox or toggle) to choose between "Use all accounts" and "Use primary account only" for analytics and recommendations  
+- [ ] When "Use all accounts" is enabled, champion select recommendations and relevant stats are based on games across all linked accounts  
+- [ ] When "Use primary account only" is enabled, those same features use only the primary account's data  
+- [ ] The Matches page clearly reflects which accounts' matches are being shown (all vs primary) and gracefully handles users with only one account linked  
+- [ ] Update any relevant API endpoints and data-fetching logic so that the multi-account setting is respected end-to-end
+
+---
+
+<!-- AI: END_EPIC_G_TASKS -->
 
 # Summary
 

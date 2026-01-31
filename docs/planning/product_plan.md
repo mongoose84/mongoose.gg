@@ -137,8 +137,9 @@ For full task details, see:
 | G9 | Implement user login, signup, verification & `/app/user` shell | Frontend | 5 | ✅ |
 | G12 | Implement Riot account linking on `/app/user` | Frontend | 5 | ✅ |
 | G13 | Implement real-time match sync progress via WebSocket | Frontend | 5 | ✅ |
+| G15 | Allow cancelling or switching account during email verification | Frontend | 2 | |
 
-**P0 Remaining:** 39 points | **P0 Completed:** 109 points | **P0 Total:** 148 points
+**P0 Remaining:** 52 points | **P0 Completed:** 101 points | **P0 Total:** 153 points
 
 ### P1 - High
 
@@ -150,6 +151,8 @@ For full task details, see:
 | B11 | Create progress update job | AI Goals | 2 | |
 | B12 | Create progress endpoint | AI Goals | 1 | |
 | B18 | Add rules-of-climbing domain context for recommendations | AI Goals | 2 | |
+| B19 | Clarify AI goals vs coaching product direction | AI Goals | 3 | |
+| B21 | Extend database for AI coaching metrics | AI Goals | 5 | |
 | C9 | Create feature gate middleware | Subscription | 2 | |
 | C10 | Add tier info to user endpoints | Subscription | 1 | ✅ |
 | C11 | Create subscription status component | Subscription | 2 | ✅ |
@@ -178,7 +181,7 @@ For full task details, see:
 | G7 | Implement Team dashboard view | Frontend | 5 | |
 | G10 | Implement user dropdown details & account settings page | Frontend | 8 | |
 
-**P1 Remaining:** 72 points | **P1 Completed:** 13 points | **P1 Total:** 85 points
+**P1 Remaining:** 88 points | **P1 Completed:** 12 points | **P1 Total:** 100 points
 
 ### P2 - Medium
 
@@ -187,6 +190,7 @@ For full task details, see:
 | B13 | Create goal recommendation UI | AI Goals | 3 | |
 | B14 | Create active goals display | AI Goals | 3 | |
 | B15 | Create goal progress chart | AI Goals | 2 | |
+| B20 | Post-game AI feedback (Pro, on-demand) | AI Goals | 5 | |
 | C15 | Create founding member pricing | Subscription | 2 | |
 | D4 | Server-side event tracking | Analytics | 2 | |
 | D5 | Create key dashboards | Analytics | 2 | |
@@ -194,13 +198,17 @@ For full task details, see:
 | D7 | Set up error tracking | Analytics | 2 | |
 | D9 | Show login activity heatmap on user page | Analytics | 3 | |
 | D10 | Implement cookie consent & preferences | Analytics | 2 | |
+| D11 | Evaluate Betterlytics analytics platform | Analytics | 2 | |
 | E7 | Remove legacy database tables and repositories | Database | 2 | ✅ |
 | F6 | Deprecate or migrate legacy endpoints | API | 2 | ✅ |
 | F10 | Audit async methods for CancellationToken usage | API | 3 | |
+| F15 | Preserve username casing while keeping login case-insensitive | API | 1 | |
 | G8 | Remove legacy dashboard views & routes | Frontend | 1 | |
 | G11 | Implement friends management UI scaffolding | Frontend | 3 | |
+| G17 | Design and implement manual match refresh entry point | Frontend | 2 | |
+| G18 | Multi-account Riot support & aggregated stats | Frontend | 5 | |
 
-**P2 Remaining:** 30 points | **P2 Completed:** 4 points | **P2 Total:** 34 points
+**P2 Remaining:** 45 points | **P2 Completed:** 4 points | **P2 Total:** 49 points
 
 ### P3 - Low
 
@@ -210,8 +218,10 @@ For full task details, see:
 | B17 | Conversational follow-up | AI Goals | 5 | |
 | C16 | Create referral tracking | Subscription | 2 | |
 | D8 | Implement A/B testing | Analytics | 2 | |
+| F16 | Rename RiotProxy backend to Mongoose.Api | API | 3 | |
+| G16 | Improve Match narrative header spacing and "You" button | Frontend | 1 | |
 
-**P3 Total:** 11 points
+**P3 Total:** 15 points
 
 ---
 
@@ -219,9 +229,9 @@ For full task details, see:
 
 | Category | Points |
 |----------|--------|
-    | **Remaining** | 146 pts |
-    | **Completed** | 118 pts |
-| **Grand Total** | 264 pts |
+| **Remaining** | 200 pts |
+| **Completed** | 117 pts |
+| **Grand Total** | 317 pts |
 
 ---
 
