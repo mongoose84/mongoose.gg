@@ -229,8 +229,8 @@ For full task details, see:
 
 | Category | Points |
 |----------|--------|
-	    | **Remaining** | 200 pts |
-	    | **Completed** | 117 pts |
+| **Remaining** | 200 pts |
+| **Completed** | 117 pts |
 | **Grand Total** | 317 pts |
 
 ---

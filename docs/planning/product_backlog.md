@@ -527,7 +527,7 @@ Extend the database schema so we can persist the extra metrics and derived data 
 #### Acceptance Criteria
 
 - [ ] Identify which additional metrics beyond the current schema are required for post-game AI feedback and medium-term coaching (e.g. lane gold difference at 10/15 minutes, jungle proximity, warding patterns)  
-- [ ] Propose schema changes (new tables or columns) and add them to `docs/database-schema.md` before implementation  
+- [ ] Propose schema changes (new tables or columns) and add them to `../architecture/database-schema.md` before implementation  
 - [ ] Implement the schema changes via MySQL migrations and repository updates  
 - [ ] Backfill or derive the new metrics for existing matches where feasible, or explicitly document which metrics are only available for newly synced games  
 - [ ] Verify that the new metrics can be queried efficiently enough for AI requests without causing performance issues on the main dashboards
