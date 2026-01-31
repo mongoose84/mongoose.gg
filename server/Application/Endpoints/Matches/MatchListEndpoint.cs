@@ -8,8 +8,9 @@ namespace RiotProxy.Application.Endpoints.Matches;
 
 /// <summary>
 /// Match List Endpoint
-/// Returns the last 20 matches with full stats and trend badges.
-/// Includes role baselines for client-side highlight computation.
+/// Returns lightweight match summaries for fast list rendering.
+/// Full match details are fetched on-demand via GET /matches/{matchId}/details.
+/// Includes role baselines for trend badge computation.
 /// Supports optional queue filtering (ranked_solo, ranked_flex, normal, aram, all).
 /// </summary>
 public sealed class MatchListEndpoint : IEndpoint
@@ -78,15 +79,15 @@ public sealed class MatchListEndpoint : IEndpoint
                 // Fetch role baselines first (for trend badge computation)
                 var baselines = await matchesRepo.GetRoleBaselinesAsync(primaryPuuid, queueFilter);
 
-                // Fetch matches with trend badges
-                var matches = await matchesRepo.GetMatchListAsync(primaryPuuid, queueFilter, 20, baselines);
+                // Fetch lightweight match summaries (no expensive team stat queries)
+                var matches = await matchesRepo.GetMatchListSummaryAsync(primaryPuuid, queueFilter, 20, baselines);
 
                 if (matches.Count == 0)
                 {
                     logger.LogInformation("Match list: no matches found for puuid {Puuid} with queueType {Queue}",
                         primaryPuuid, validatedQueueType);
                     return Results.Ok(new MatchListResponse(
-                        Matches: Array.Empty<MatchListItem>(),
+                        Matches: Array.Empty<MatchListSummaryItem>(),
                         BaselinesByRole: baselines,
                         QueueType: validatedQueueType,
                         TotalMatches: 0

@@ -530,6 +530,51 @@ export async function getMatchList(userId, queueType = 'all') {
 }
 
 /**
+ * Get full match details for a single match (on-demand)
+ * Called when user selects a match from the list
+ * @param {string} matchId - The match ID
+ * @param {string} puuid - The user's PUUID
+ * @returns {Promise<{ match: Object, baseline: Object | null } | null>}
+ */
+export async function getMatchDetails(matchId, puuid) {
+  const params = new URLSearchParams({ puuid })
+  const url = `${API_BASE}/matches/${matchId}/details?${params.toString()}`
+
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include'
+  })
+
+  if (response.status === 404) {
+    return null // Match not found
+  }
+
+  // Handle auth errors that may not have JSON body
+  if (response.status === 401) {
+    const error = new Error('Unauthorized')
+    error.status = 401
+    throw error
+  }
+
+  if (response.status === 403) {
+    const error = new Error('Access denied to this match')
+    error.status = 403
+    throw error
+  }
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const error = new Error(data.error || 'Failed to get match details')
+    error.status = response.status
+    error.code = data.code
+    throw error
+  }
+
+  return data
+}
+
+/**
  * Get match narrative (lane matchups) for a specific match
  * @param {string} matchId - The match ID
  * @param {string} puuid - The user's PUUID

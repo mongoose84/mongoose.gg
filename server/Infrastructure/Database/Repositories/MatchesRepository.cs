@@ -197,6 +197,306 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
     }
 
     /// <summary>
+    /// Gets lightweight match summaries for the list view.
+    /// Only fetches data needed to render match rows - no correlated subqueries for team stats.
+    /// </summary>
+    public async Task<IList<MatchListSummaryItem>> GetMatchListSummaryAsync(
+        string puuid,
+        string queueFilter,
+        int limit = 20,
+        Dictionary<string, RoleBaseline>? baselines = null)
+    {
+        var sql = $@"
+            SELECT
+                m.match_id,
+                m.queue_id,
+                p.champion_id,
+                p.champion_name,
+                COALESCE(p.role, 'UNKNOWN') as role,
+                p.lane,
+                p.win,
+                p.kills,
+                p.deaths,
+                p.assists,
+                p.creep_score,
+                p.gold_earned,
+                m.game_duration_sec,
+                m.game_start_time
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE p.puuid = @puuid
+            {queueFilter}
+            ORDER BY m.game_start_time DESC
+            LIMIT @limit";
+
+        var rawData = await ExecuteListAsync(sql, MapMatchListSummaryRaw,
+            ("@puuid", puuid),
+            ("@limit", limit));
+
+        // Transform to MatchListSummaryItem with computed fields
+        var items = new List<MatchListSummaryItem>();
+        foreach (var raw in rawData)
+        {
+            var durationMin = raw.GameDurationSec / 60.0;
+            var csPerMin = durationMin > 0 ? Math.Round(raw.CreepScore / durationMin, 1) : 0;
+            var goldPerMin = durationMin > 0 ? Math.Round(raw.GoldEarned / durationMin, 0) : 0;
+
+            // Compute trend badge if baselines available
+            TrendBadge? trendBadge = null;
+            if (baselines != null && baselines.TryGetValue(raw.Role, out var baseline))
+            {
+                trendBadge = ComputeTrendBadgeSummary(raw, baseline);
+            }
+
+            items.Add(new MatchListSummaryItem(
+                MatchId: raw.MatchId,
+                QueueId: raw.QueueId,
+                QueueType: GetQueueLabel(raw.QueueId),
+                ChampionId: raw.ChampionId,
+                ChampionName: raw.ChampionName,
+                ChampionIconUrl: GetChampionIconUrl(raw.ChampionName),
+                Role: raw.Role,
+                Lane: raw.Lane,
+                Win: raw.Win,
+                Kills: raw.Kills,
+                Deaths: raw.Deaths,
+                Assists: raw.Assists,
+                CreepScore: raw.CreepScore,
+                GoldEarned: raw.GoldEarned,
+                GameDurationSec: raw.GameDurationSec,
+                GameStartTime: raw.GameStartTime,
+                CsPerMin: csPerMin,
+                GoldPerMin: goldPerMin,
+                TrendBadge: trendBadge
+            ));
+        }
+
+        return items;
+    }
+
+    /// <summary>
+    /// Gets full match details for a single match.
+    /// Uses CTEs to pre-aggregate team stats, avoiding correlated subqueries.
+    /// </summary>
+    public async Task<MatchDetailsItem?> GetMatchDetailsAsync(string matchId, string puuid)
+    {
+        const string sql = @"
+            WITH TeamKills AS (
+                SELECT
+                    match_id,
+                    team_id,
+                    SUM(kills) as team_kills
+                FROM participants
+                WHERE match_id = @matchId
+                GROUP BY match_id, team_id
+            ),
+            TeamDamage AS (
+                SELECT
+                    p.match_id,
+                    p.team_id,
+                    COALESCE(SUM(pm.damage_dealt), 0) as team_damage
+                FROM participants p
+                LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
+                WHERE p.match_id = @matchId
+                GROUP BY p.match_id, p.team_id
+            )
+            SELECT
+                m.match_id,
+                m.queue_id,
+                p.champion_id,
+                p.champion_name,
+                COALESCE(p.role, 'UNKNOWN') as role,
+                p.lane,
+                p.win,
+                p.kills,
+                p.deaths,
+                p.assists,
+                p.creep_score,
+                p.gold_earned,
+                m.game_duration_sec,
+                m.game_start_time,
+                COALESCE(pm.damage_dealt, 0) as damage_dealt,
+                COALESCE(pm.damage_taken, 0) as damage_taken,
+                COALESCE(pm.vision_score, 0) as vision_score,
+                COALESCE(pm.kill_participation_pct, 0) as kill_participation,
+                COALESCE(pm.damage_share_pct, 0) as damage_share,
+                COALESCE(pm.deaths_pre_10, 0) as deaths_pre_10,
+                p.team_id,
+                pc15.gold_diff_vs_lane as gold_diff_at_15,
+                COALESCE(tk.team_kills, 0) as team_kills,
+                COALESCE(tk_enemy.team_kills, 0) as enemy_team_kills,
+                COALESCE(td.team_damage, 0) as team_total_damage,
+                COALESCE(td_enemy.team_damage, 0) as enemy_team_total_damage,
+                tmm.gold_lead_at_15 as team_gold_lead_at_15,
+                COALESCE(tobj.dragons_taken, 0) as team_dragons,
+                COALESCE(tobj_enemy.dragons_taken, 0) as enemy_team_dragons,
+                COALESCE(tobj.barons_taken, 0) as team_barons,
+                COALESCE(tobj_enemy.barons_taken, 0) as enemy_team_barons,
+                COALESCE(tobj.towers_taken, 0) as team_towers,
+                COALESCE(tobj_enemy.towers_taken, 0) as enemy_team_towers
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
+            LEFT JOIN participant_checkpoints pc15 ON pc15.participant_id = p.id AND pc15.minute_mark = 15
+            LEFT JOIN team_match_metrics tmm ON tmm.match_id = p.match_id AND tmm.team_id = p.team_id
+            LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
+            LEFT JOIN team_objectives tobj_enemy ON tobj_enemy.match_id = p.match_id AND tobj_enemy.team_id != p.team_id
+            LEFT JOIN TeamKills tk ON tk.match_id = p.match_id AND tk.team_id = p.team_id
+            LEFT JOIN TeamKills tk_enemy ON tk_enemy.match_id = p.match_id AND tk_enemy.team_id != p.team_id
+            LEFT JOIN TeamDamage td ON td.match_id = p.match_id AND td.team_id = p.team_id
+            LEFT JOIN TeamDamage td_enemy ON td_enemy.match_id = p.match_id AND td_enemy.team_id != p.team_id
+            WHERE p.match_id = @matchId AND p.puuid = @puuid
+            LIMIT 1";
+
+        var rawData = await ExecuteSingleAsync(sql, MapMatchDetailsRaw,
+            ("@matchId", matchId),
+            ("@puuid", puuid));
+
+        if (rawData == null) return null;
+
+        var durationMin = rawData.GameDurationSec / 60.0;
+        var csPerMin = durationMin > 0 ? Math.Round(rawData.CreepScore / durationMin, 1) : 0;
+        var goldPerMin = durationMin > 0 ? Math.Round(rawData.GoldEarned / durationMin, 0) : 0;
+
+        return new MatchDetailsItem(
+            MatchId: rawData.MatchId,
+            QueueId: rawData.QueueId,
+            QueueType: GetQueueLabel(rawData.QueueId),
+            ChampionId: rawData.ChampionId,
+            ChampionName: rawData.ChampionName,
+            ChampionIconUrl: GetChampionIconUrl(rawData.ChampionName),
+            Role: rawData.Role,
+            Lane: rawData.Lane,
+            Win: rawData.Win,
+            Kills: rawData.Kills,
+            Deaths: rawData.Deaths,
+            Assists: rawData.Assists,
+            CreepScore: rawData.CreepScore,
+            GoldEarned: rawData.GoldEarned,
+            GameDurationSec: rawData.GameDurationSec,
+            GameStartTime: rawData.GameStartTime,
+            DamageDealt: rawData.DamageDealt,
+            DamageTaken: rawData.DamageTaken,
+            VisionScore: rawData.VisionScore,
+            KillParticipation: (double)rawData.KillParticipation,
+            DamageShare: (double)rawData.DamageShare,
+            DeathsPre10: rawData.DeathsPre10,
+            CsPerMin: csPerMin,
+            GoldPerMin: goldPerMin,
+            TeamKills: rawData.TeamKills,
+            EnemyTeamKills: rawData.EnemyTeamKills,
+            GoldDiffAt15: rawData.GoldDiffAt15,
+            TeamTotalDamage: rawData.TeamTotalDamage,
+            EnemyTeamTotalDamage: rawData.EnemyTeamTotalDamage,
+            TeamGoldLeadAt15: rawData.TeamGoldLeadAt15,
+            TeamDragons: rawData.TeamDragons,
+            EnemyTeamDragons: rawData.EnemyTeamDragons,
+            TeamBarons: rawData.TeamBarons,
+            EnemyTeamBarons: rawData.EnemyTeamBarons,
+            TeamTowers: rawData.TeamTowers,
+            EnemyTeamTowers: rawData.EnemyTeamTowers
+        );
+    }
+
+    private static MatchListSummaryRawData MapMatchListSummaryRaw(MySqlDataReader r) => new(
+        MatchId: r.GetString(0),
+        QueueId: r.GetInt32(1),
+        ChampionId: r.GetInt32(2),
+        ChampionName: r.GetString(3),
+        Role: r.GetString(4),
+        Lane: r.IsDBNull(5) ? null : r.GetString(5),
+        Win: r.GetBoolean(6),
+        Kills: r.GetInt32(7),
+        Deaths: r.GetInt32(8),
+        Assists: r.GetInt32(9),
+        CreepScore: r.GetInt32(10),
+        GoldEarned: r.GetInt32(11),
+        GameDurationSec: r.GetInt32(12),
+        GameStartTime: r.GetInt64(13)
+    );
+
+    private static MatchDetailsRawData MapMatchDetailsRaw(MySqlDataReader r) => new(
+        MatchId: r.GetString(0),
+        QueueId: r.GetInt32(1),
+        ChampionId: r.GetInt32(2),
+        ChampionName: r.GetString(3),
+        Role: r.GetString(4),
+        Lane: r.IsDBNull(5) ? null : r.GetString(5),
+        Win: r.GetBoolean(6),
+        Kills: r.GetInt32(7),
+        Deaths: r.GetInt32(8),
+        Assists: r.GetInt32(9),
+        CreepScore: r.GetInt32(10),
+        GoldEarned: r.GetInt32(11),
+        GameDurationSec: r.GetInt32(12),
+        GameStartTime: r.GetInt64(13),
+        DamageDealt: r.GetInt32(14),
+        DamageTaken: r.GetInt32(15),
+        VisionScore: r.GetInt32(16),
+        KillParticipation: r.GetDecimal(17),
+        DamageShare: r.GetDecimal(18),
+        DeathsPre10: r.GetInt32(19),
+        TeamId: r.GetInt32(20),
+        GoldDiffAt15: r.IsDBNull(21) ? null : r.GetInt32(21),
+        TeamKills: r.GetInt32(22),
+        EnemyTeamKills: r.GetInt32(23),
+        TeamTotalDamage: r.GetInt32(24),
+        EnemyTeamTotalDamage: r.GetInt32(25),
+        TeamGoldLeadAt15: r.IsDBNull(26) ? null : r.GetInt32(26),
+        TeamDragons: r.GetInt32(27),
+        EnemyTeamDragons: r.GetInt32(28),
+        TeamBarons: r.GetInt32(29),
+        EnemyTeamBarons: r.GetInt32(30),
+        TeamTowers: r.GetInt32(31),
+        EnemyTeamTowers: r.GetInt32(32)
+    );
+
+    /// <summary>
+    /// Computes trend badge for summary list (uses limited data available).
+    /// </summary>
+    private static TrendBadge? ComputeTrendBadgeSummary(MatchListSummaryRawData match, RoleBaseline baseline)
+    {
+        if (baseline.GamesCount < 3) return null;
+
+        var durationMin = match.GameDurationSec / 60.0;
+        var csPerMin = durationMin > 0 ? match.CreepScore / durationMin : 0;
+
+        var insights = new List<(string text, string type, string stat, double deviation)>();
+
+        // Deaths comparison (lower is better)
+        if (baseline.AvgDeaths > 0)
+        {
+            var deathDeviation = (match.Deaths - baseline.AvgDeaths) / baseline.AvgDeaths;
+            if (deathDeviation > 0.3)
+                insights.Add(("Higher deaths vs trend", "neutral", "deaths", deathDeviation));
+            else if (deathDeviation < -0.3 && match.Deaths <= 3)
+                insights.Add(("Clean game", "positive", "deaths", Math.Abs(deathDeviation)));
+        }
+
+        // CS comparison (for laners)
+        if (baseline.AvgCsPerMin > 4 && csPerMin > 0)
+        {
+            var csDeviation = (csPerMin - baseline.AvgCsPerMin) / baseline.AvgCsPerMin;
+            if (csDeviation > 0.15)
+                insights.Add(("High CS efficiency", "positive", "csPerMin", csDeviation));
+        }
+
+        // KDA comparison
+        var kda = match.Deaths == 0 ? match.Kills + match.Assists : (match.Kills + match.Assists) / (double)match.Deaths;
+        if (baseline.AvgKda > 0)
+        {
+            var kdaDeviation = (kda - baseline.AvgKda) / baseline.AvgKda;
+            if (kdaDeviation > 0.25)
+                insights.Add(("Strong KDA", "positive", "kda", kdaDeviation));
+        }
+
+        if (insights.Count == 0) return null;
+
+        var best = insights.OrderByDescending(i => i.deviation).First();
+        return new TrendBadge(best.text, best.type, best.stat);
+    }
+
+    /// <summary>
     /// Gets baseline averages per role from the last 10 games in each role.
     /// Used for trend comparisons in the match list.
     /// </summary>

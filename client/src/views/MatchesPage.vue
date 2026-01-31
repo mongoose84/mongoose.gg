@@ -31,7 +31,7 @@
           <div class="details-card-header">
             <h2 class="column-title">Match Details</h2>
             <button
-              v-if="selectedMatch"
+              v-if="matchDetails && !detailsLoading"
               class="download-btn"
               title="Download match data"
               @click="matchDetailsRef?.downloadMatchData()"
@@ -45,8 +45,10 @@
           <div class="details-card-content">
             <MatchDetails
               ref="matchDetailsRef"
-              :match="selectedMatch"
-              :baseline="selectedBaseline"
+              :match="matchDetails"
+              :baseline="matchDetailsBaseline"
+              :loading="detailsLoading"
+              :error="detailsError"
             />
           </div>
         </div>
@@ -59,7 +61,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
-import { getMatchList } from '../services/authApi'
+import { getMatchList, getMatchDetails } from '../services/authApi'
 import { trackFilterChange, trackMatchSelect } from '../services/analyticsApi'
 import MatchList from '../components/matches/MatchList.vue'
 import MatchDetails from '../components/matches/MatchDetails.vue'
@@ -76,20 +78,13 @@ const queueFilter = ref('all')
 const selectedMatchId = ref(null)
 const matchDetailsRef = ref(null)
 
-// Computed: Selected match object
-const selectedMatch = computed(() => {
-  if (!selectedMatchId.value || !data.value?.matches) return null
-  return data.value.matches.find(m => m.matchId === selectedMatchId.value) || null
-})
+// Match details state (fetched on-demand)
+const matchDetails = ref(null)
+const matchDetailsBaseline = ref(null)
+const detailsLoading = ref(false)
+const detailsError = ref(null)
 
-// Computed: Baseline for selected match's role
-const selectedBaseline = computed(() => {
-  if (!selectedMatch.value || !data.value?.baselinesByRole) return null
-  const role = selectedMatch.value.role || 'UNKNOWN'
-  return data.value.baselinesByRole[role] || null
-})
-
-// Fetch match data
+// Fetch match list (lightweight summary data)
 async function fetchMatches() {
   if (!authStore.userId) return
 
@@ -115,6 +110,50 @@ async function fetchMatches() {
   }
 }
 
+// Fetch full match details on-demand
+async function fetchMatchDetails(matchId) {
+  const puuid = authStore.primaryRiotAccount?.puuid
+  if (!matchId || !puuid) return
+
+  detailsLoading.value = true
+  detailsError.value = null
+
+  try {
+    const result = await getMatchDetails(matchId, puuid)
+
+    // Guard against race condition: only update if this is still the selected match
+    if (selectedMatchId.value !== matchId) {
+      return // User selected a different match while we were fetching
+    }
+
+    // Handle 404 (match not found)
+    if (result === null) {
+      detailsError.value = 'Match not found'
+      matchDetails.value = null
+      matchDetailsBaseline.value = null
+      return
+    }
+
+    matchDetails.value = result.match ?? null
+    matchDetailsBaseline.value = result.baseline ?? null
+  } catch (err) {
+    // Guard against race condition for error state too
+    if (selectedMatchId.value !== matchId) {
+      return
+    }
+
+    console.error('Failed to fetch match details:', err)
+    detailsError.value = err.message || 'Failed to load match details'
+    matchDetails.value = null
+    matchDetailsBaseline.value = null
+  } finally {
+    // Only clear loading if this is still the selected match
+    if (selectedMatchId.value === matchId) {
+      detailsLoading.value = false
+    }
+  }
+}
+
 // Handlers
 function handleMatchSelect(matchId) {
   selectedMatchId.value = matchId
@@ -129,9 +168,23 @@ onMounted(() => {
   fetchMatches()
 })
 
+// Watch selectedMatchId to fetch full details on-demand
+watch(selectedMatchId, (newMatchId) => {
+  if (newMatchId) {
+    fetchMatchDetails(newMatchId)
+  } else {
+    matchDetails.value = null
+    matchDetailsBaseline.value = null
+    detailsError.value = null
+  }
+})
+
 // Watch queue filter changes - reset selection, track, and refetch
 watch(queueFilter, (newValue) => {
   selectedMatchId.value = null
+  matchDetails.value = null
+  matchDetailsBaseline.value = null
+  detailsError.value = null
   trackFilterChange('queue', newValue)
   fetchMatches()
 })

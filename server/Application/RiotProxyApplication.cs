@@ -74,6 +74,10 @@ namespace RiotProxy.Application
             var matchListEndpoint = new MatchListEndpoint(basePath);
             _endpoints.Add(matchListEndpoint);
 
+            // Match Details (auth required) - on-demand full match data
+            var matchDetailsEndpoint = new MatchDetailsEndpoint(basePath);
+            _endpoints.Add(matchDetailsEndpoint);
+
             // Match Narrative (auth required)
             var matchNarrativeEndpoint = new MatchNarrativeEndpoint(basePath);
             _endpoints.Add(matchNarrativeEndpoint);
