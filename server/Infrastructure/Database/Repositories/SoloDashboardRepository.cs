@@ -411,7 +411,10 @@ public class SoloDashboardRepository : RepositoryBase, ISoloDashboardRepository
         {
             var earlyTotal = earlyGames.Sum(d => d.Games);
             var earlyWins = earlyGames.Sum(d => d.Wins);
-            var earlyKda = earlyGames.Average(d => d.AvgKda);
+            // Weight KDA by number of games in each bucket so each match contributes equally
+            var earlyKda = earlyTotal > 0
+                ? earlyGames.Sum(d => d.AvgKda * d.Games) / earlyTotal
+                : 0;
             phases.Add(new PerformancePhase(
                 Phase: "Early (0-15 min)",
                 Games: earlyTotal,
@@ -429,7 +432,10 @@ public class SoloDashboardRepository : RepositoryBase, ISoloDashboardRepository
         {
             var midTotal = midGames.Sum(d => d.Games);
             var midWins = midGames.Sum(d => d.Wins);
-            var midKda = midGames.Average(d => d.AvgKda);
+            // Weight KDA by number of games in each bucket so each match contributes equally
+            var midKda = midTotal > 0
+                ? midGames.Sum(d => d.AvgKda * d.Games) / midTotal
+                : 0;
             phases.Add(new PerformancePhase(
                 Phase: "Mid (15-25 min)",
                 Games: midTotal,
@@ -447,7 +453,10 @@ public class SoloDashboardRepository : RepositoryBase, ISoloDashboardRepository
         {
             var lateTotal = lateGames.Sum(d => d.Games);
             var lateWins = lateGames.Sum(d => d.Wins);
-            var lateKda = lateGames.Average(d => d.AvgKda);
+            // Weight KDA by number of games in each bucket so each match contributes equally
+            var lateKda = lateTotal > 0
+                ? lateGames.Sum(d => d.AvgKda * d.Games) / lateTotal
+                : 0;
             phases.Add(new PerformancePhase(
                 Phase: "Late (25+ min)",
                 Games: lateTotal,
