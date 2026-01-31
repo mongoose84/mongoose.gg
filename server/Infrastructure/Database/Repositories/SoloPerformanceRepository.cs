@@ -1,25 +1,25 @@
 using MySqlConnector;
 using RiotProxy.Application.Services;
 using RiotProxy.Core.Interfaces;
-using static RiotProxy.Application.DTOs.SoloSummaryDto;
+using static RiotProxy.Application.DTOs.SoloPerformanceDto;
 using static RiotProxy.Application.DTOs.MainChampionDto;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 
 /// <summary>
-/// Repository for solo dashboard statistics, optimized for dashboard rendering.
-/// Provides comprehensive dashboard data including overall stats, champion pool,
+/// Repository for solo performance statistics.
+/// Provides comprehensive performance data including overall stats, champion pool,
 /// performance by phase, role breakdown, and death efficiency.
 /// </summary>
-public class SoloDashboardRepository : RepositoryBase, ISoloDashboardRepository
+public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceRepository
 {
-    private readonly ILogger<SoloDashboardRepository> _logger;
+    private readonly ILogger<SoloPerformanceRepository> _logger;
     private readonly IQueryFilterBuilder _filterBuilder;
     private readonly ITrendRepository _trendRepository;
 
-    public SoloDashboardRepository(
+    public SoloPerformanceRepository(
         IDbConnectionFactory factory,
-        ILogger<SoloDashboardRepository> logger,
+        ILogger<SoloPerformanceRepository> logger,
         IQueryFilterBuilder filterBuilder,
         ITrendRepository trendRepository) : base(factory)
     {
@@ -29,12 +29,12 @@ public class SoloDashboardRepository : RepositoryBase, ISoloDashboardRepository
     }
 
     /// <inheritdoc />
-    public async Task<SoloDashboardResponse?> GetSoloDashboardAsync(string puuid, string? queueType = null, string? timeRange = null)
+    public async Task<SoloPerformanceResponse?> GetSoloPerformanceAsync(string puuid, string? queueType = null, string? timeRange = null)
     {
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var effectiveTimeRangeForLog = string.IsNullOrWhiteSpace(timeRangeFilter.NormalizedTimeRange) ? "all" : timeRangeFilter.NormalizedTimeRange;
-        _logger.LogInformation("GetSoloDashboardAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", puuid, queueType, effectiveTimeRangeForLog);
+        _logger.LogInformation("GetSoloPerformanceAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", puuid, queueType, effectiveTimeRangeForLog);
 
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
@@ -81,7 +81,7 @@ public class SoloDashboardRepository : RepositoryBase, ISoloDashboardRepository
                 lpTrend = lpTrendList.ToArray();
             }
 
-            var response = new SoloDashboardResponse(
+            var response = new SoloPerformanceResponse(
                 GamesPlayed: totalGames,
                 Wins: overallStats.Value.Wins,
                 WinRate: overallStats.Value.WinRate,
@@ -99,12 +99,12 @@ public class SoloDashboardRepository : RepositoryBase, ISoloDashboardRepository
                 QueueType: queueType,
                 LpTrend: lpTrend
             );
-            _logger.LogInformation("GetSoloDashboardAsync success: puuid={Puuid}, games={Games}", puuid, totalGames);
+            _logger.LogInformation("GetSoloPerformanceAsync success: puuid={Puuid}, games={Games}", puuid, totalGames);
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetSoloDashboardAsync error: puuid={Puuid}, queueType={Queue}", puuid, queueType);
+            _logger.LogError(ex, "GetSoloPerformanceAsync error: puuid={Puuid}, queueType={Queue}", puuid, queueType);
             throw;
         }
     }

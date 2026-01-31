@@ -2,21 +2,21 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Core.Interfaces;
 
-namespace RiotProxy.Application.Endpoints.ChampionSelect;
+namespace RiotProxy.Application.Endpoints.Solo;
 
 /// <summary>
-/// Champion Select Endpoint
-/// Returns champion recommendations and statistics optimized for champion select.
+/// Solo Performance Endpoint
+/// Returns comprehensive solo player statistics optimized for dashboard rendering.
 /// Supports optional queue filtering (ranked_solo, ranked_flex, normal, aram, all)
 /// and optional time range filtering (current_season, last_season, 1w, 1m, 3m, 6m).
 /// </summary>
-public sealed class ChampionSelectEndpoint : IEndpoint
+public sealed class SoloPerformanceEndpoint : IEndpoint
 {
     public string Route { get; }
 
-    public ChampionSelectEndpoint(string basePath)
+    public SoloPerformanceEndpoint(string basePath)
     {
-        Route = basePath + "/champion-select/{userId}";
+        Route = basePath + "/solo/dashboard/{userId}";
     }
 
     public void Configure(WebApplication app)
@@ -28,7 +28,7 @@ public sealed class ChampionSelectEndpoint : IEndpoint
             [FromQuery] string? timeRange,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ISoloPerformanceRepository soloPerformanceRepo,
-            [FromServices] ILogger<ChampionSelectEndpoint> logger
+            [FromServices] ILogger<SoloPerformanceEndpoint> logger
         ) =>
         {
             try
@@ -39,7 +39,7 @@ public sealed class ChampionSelectEndpoint : IEndpoint
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))
                 {
-                    logger.LogWarning("Champion select: invalid userId format {UserId}", userId);
+                    logger.LogWarning("Solo performance: invalid userId format {UserId}", userId);
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
@@ -47,17 +47,17 @@ public sealed class ChampionSelectEndpoint : IEndpoint
                 var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
                 {
-                    logger.LogWarning("Champion select: user {AuthUserId} attempted to access data for user {RouteUserId}",
+                    logger.LogWarning("Solo performance: user {AuthUserId} attempted to access data for user {RouteUserId}",
                         authenticatedUserId, userIdInt);
                     return Results.Forbid();
                 }
 
-                // Get linked riot accounts for this user via junction table
+                // Get riot accounts for this user via junction table
                 var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
 
                 if (linkedAccounts == null || linkedAccounts.Count == 0)
                 {
-                    logger.LogWarning("Champion select: no riot accounts found for userId {UserId}", userIdInt);
+                    logger.LogWarning("Solo performance: no riot accounts found for userId {UserId}", userIdInt);
                     return Results.NotFound(new { error = "No riot accounts found for this user" });
                 }
 
@@ -66,28 +66,27 @@ public sealed class ChampionSelectEndpoint : IEndpoint
                 var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
-                // Fetch dashboard data (reusing solo stats for now - can be optimized later)
-                logger.LogInformation("Champion select request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", 
-                    userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
-                var dashboard = await soloPerformanceRepo.GetSoloPerformanceAsync(primaryPuuid, queueType, timeRange);
+                // Fetch performance data
+                logger.LogInformation("Solo performance request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
+                var performance = await soloPerformanceRepo.GetSoloPerformanceAsync(primaryPuuid, queueType, timeRange);
 
-                if (dashboard == null)
+                if (performance == null)
                 {
-                    logger.LogInformation("Champion select: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}", 
-                        primaryPuuid, queueType ?? "all", timeRange ?? "all");
+                    logger.LogInformation("Solo performance: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}", primaryPuuid, queueType ?? "all", timeRange ?? "all");
                     return Results.NotFound(new { error = "No match data found for this player" });
                 }
 
-                return Results.Ok(dashboard);
+                return Results.Ok(performance);
             }
             catch (ArgumentException ex)
             {
-                logger.LogWarning(ex, "Champion select: bad request");
+                logger.LogWarning(ex, "Solo performance: bad request");
+                // Do not expose internal exception messages to clients
                 return Results.BadRequest(new { error = "Invalid request parameters" });
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Champion select: unhandled error");
+                logger.LogError(ex, "Solo performance: unhandled error");
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });

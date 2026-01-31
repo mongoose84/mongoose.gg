@@ -5,10 +5,10 @@ using Xunit;
 
 namespace RiotProxy.Tests;
 
-public class SoloDashboardV2EndpointTests
+public class SoloPerformanceEndpointTests
 {
     [Fact]
-    public async Task Solo_dashboard_requires_authentication()
+    public async Task Solo_performance_requires_authentication()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -18,3 +18,4 @@ public class SoloDashboardV2EndpointTests
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }
+

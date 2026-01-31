@@ -53,7 +53,7 @@ builder.Services.AddScoped<ParticipantObjectivesRepository>();
 builder.Services.AddScoped<TeamMatchMetricsRepository>();
 builder.Services.AddScoped<TeamRoleResponsibilitiesRepository>();
 builder.Services.AddScoped<DuoMetricsRepository>();
-builder.Services.AddScoped<ISoloDashboardRepository, SoloDashboardRepository>();
+builder.Services.AddScoped<ISoloPerformanceRepository, SoloPerformanceRepository>();
 builder.Services.AddScoped<ITrendRepository, TrendRepository>();
 builder.Services.AddScoped<IMatchupRepository, MatchupRepository>();
 builder.Services.AddScoped<OverviewStatsRepository>();

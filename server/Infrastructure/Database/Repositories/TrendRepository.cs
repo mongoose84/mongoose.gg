@@ -1,6 +1,6 @@
 using MySqlConnector;
 using RiotProxy.Core.Interfaces;
-using static RiotProxy.Application.DTOs.SoloSummaryDto;
+using static RiotProxy.Application.DTOs.SoloPerformanceDto;
 
 namespace RiotProxy.Infrastructure.Database.Repositories;
 

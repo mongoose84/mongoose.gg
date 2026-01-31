@@ -3,12 +3,12 @@ using static RiotProxy.Application.DTOs.MainChampionDto;
 
 namespace RiotProxy.Application.DTOs;
 
-public static class SoloSummaryDto
+public static class SoloPerformanceDto
 {
     /// <summary>
-    /// Comprehensive solo dashboard response containing all required stats
+    /// Comprehensive solo performance response containing all required stats
     /// </summary>
-    public record SoloDashboardResponse(
+    public record SoloPerformanceResponse(
         [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
         [property: JsonPropertyName("wins")] int Wins,
         [property: JsonPropertyName("winRate")] double WinRate,
@@ -20,8 +20,8 @@ public static class SoloSummaryDto
 
         // Champion pool summary
         [property: JsonPropertyName("uniqueChampsPlayedCount")] int UniqueChampsPlayedCount,
-	        [property: JsonPropertyName("mainChampion")] ChampionSummary? MainChampion,
-	        [property: JsonPropertyName("mainChampions")] MainChampionRoleGroup[] MainChampions,
+        [property: JsonPropertyName("mainChampion")] ChampionSummary? MainChampion,
+        [property: JsonPropertyName("mainChampions")] MainChampionRoleGroup[] MainChampions,
 
         // Recent trend
         [property: JsonPropertyName("last10Games")] TrendMetric? Last10Games,
@@ -128,3 +128,4 @@ public static class SoloSummaryDto
         [property: JsonPropertyName("win")] bool Win
     );
 }
+

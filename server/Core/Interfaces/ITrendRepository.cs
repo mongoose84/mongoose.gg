@@ -1,4 +1,4 @@
-using static RiotProxy.Application.DTOs.SoloSummaryDto;
+using static RiotProxy.Application.DTOs.SoloPerformanceDto;
 
 namespace RiotProxy.Core.Interfaces;
 
