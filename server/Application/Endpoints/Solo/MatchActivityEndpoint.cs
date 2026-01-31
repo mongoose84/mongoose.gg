@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Solo;
 using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.Solo;
 
@@ -26,7 +25,7 @@ public sealed class MatchActivityEndpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string userId,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
-            [FromServices] SoloStatsRepository soloStatsRepo,
+            [FromServices] ITrendRepository trendRepo,
             [FromServices] ILogger<MatchActivityEndpoint> logger
         ) =>
         {
@@ -67,7 +66,7 @@ public sealed class MatchActivityEndpoint : IEndpoint
 
                 // Fetch daily match counts for past 6 months (182 days)
                 const int daysBack = 182;
-                var dailyCounts = await soloStatsRepo.GetDailyMatchCountsAsync(primaryPuuid, daysBack);
+                var dailyCounts = await trendRepo.GetDailyMatchCountsAsync(primaryPuuid, daysBack);
                 
                 var endDate = DateTime.UtcNow.Date;
                 var startDate = endDate.AddDays(-daysBack);

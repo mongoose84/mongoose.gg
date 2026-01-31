@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure.Database.Repositories;
 
 namespace RiotProxy.Application.Endpoints.ChampionSelect;
 
@@ -28,7 +27,7 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
-            [FromServices] SoloStatsRepository soloStatsRepo,
+            [FromServices] IMatchupRepository matchupRepo,
             [FromServices] ILogger<SoloMatchupsEndpoint> logger
         ) =>
         {
@@ -70,7 +69,7 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
                 // Fetch matchups data
                 logger.LogInformation("Solo matchups request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
                     userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
-                var matchups = await soloStatsRepo.GetChampionMatchupsAsync(primaryPuuid, queueType, timeRange);
+                var matchups = await matchupRepo.GetChampionMatchupsAsync(primaryPuuid, queueType, timeRange);
 
                 return Results.Ok(matchups);
             }
