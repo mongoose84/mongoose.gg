@@ -40,6 +40,9 @@ public static class RiotTimelineMapper
 
             var participantFrames = frame.GetProperty("participantFrames");
 
+            // Skip frames where participantFrames is null (can happen in some edge cases)
+            if (participantFrames.ValueKind == JsonValueKind.Null) continue;
+
             // Build frame data for lane opponent calculation
             var frameData = new Dictionary<int, (int gold, int cs, int xp, int team, string? role)>();
             foreach (var pf in participantFrames.EnumerateObject())
@@ -108,6 +111,7 @@ public static class RiotTimelineMapper
         foreach (var frame in info.GetProperty("frames").EnumerateArray())
         {
             if (!frame.TryGetProperty("events", out var events)) continue;
+            if (events.ValueKind == JsonValueKind.Null) continue;
 
             foreach (var evt in events.EnumerateArray())
             {
@@ -154,6 +158,7 @@ public static class RiotTimelineMapper
         foreach (var frame in info.GetProperty("frames").EnumerateArray())
         {
             if (!frame.TryGetProperty("events", out var events)) continue;
+            if (events.ValueKind == JsonValueKind.Null) continue;
 
             foreach (var evt in events.EnumerateArray())
             {
@@ -249,6 +254,9 @@ public static class RiotTimelineMapper
             var timestamp = frame.GetProperty("timestamp").GetInt64();
             var minute = (int)(timestamp / 60000);
             var participantFrames = frame.GetProperty("participantFrames");
+
+            // Skip frames where participantFrames is null (can happen in some edge cases)
+            if (participantFrames.ValueKind == JsonValueKind.Null) continue;
 
             // Calculate team gold totals
             int team100Gold = 0, team200Gold = 0;
