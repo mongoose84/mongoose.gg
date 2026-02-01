@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as authApi from '../services/authApi'
+import { setSessionExpiredCallback } from '../services/apiClient'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -9,6 +10,10 @@ export const useAuthStore = defineStore('auth', () => {
   const isInitialized = ref(false)
   const error = ref(null)
   const isLinkingAccount = ref(false)
+
+  // Session expiry state
+  const sessionExpired = ref(false)
+  const sessionExpiredMessage = ref('')
 
   // Getters
   const isAuthenticated = computed(() => !!user.value)
@@ -120,6 +125,36 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Handle session expiry - called by the API client when a SESSION_EXPIRED error is received.
+   * This clears the user state and shows the session expired modal.
+   * @param {Object} errorData - Error data from the API response
+   */
+  function handleSessionExpired(errorData) {
+    // Only handle if user was previously authenticated
+    if (user.value) {
+      user.value = null
+      sessionExpired.value = true
+      sessionExpiredMessage.value = errorData?.error || 'Your session has expired. Please log in again.'
+    }
+  }
+
+  /**
+   * Clear the session expired state (after user acknowledges or logs in again)
+   */
+  function clearSessionExpired() {
+    sessionExpired.value = false
+    sessionExpiredMessage.value = ''
+  }
+
+  /**
+   * Initialize the session expiry callback.
+   * This should be called once during app initialization.
+   */
+  function initializeSessionHandler() {
+    setSessionExpiredCallback(handleSessionExpired)
+  }
+
+  /**
    * Refresh user data from the server
    */
   async function refreshUser() {
@@ -193,6 +228,8 @@ export const useAuthStore = defineStore('auth', () => {
     isInitialized,
     isLinkingAccount,
     error,
+    sessionExpired,
+    sessionExpiredMessage,
     // Getters
     isAuthenticated,
     isVerified,
@@ -210,6 +247,8 @@ export const useAuthStore = defineStore('auth', () => {
     verify,
     logout,
     clearError,
+    clearSessionExpired,
+    initializeSessionHandler,
     refreshUser,
     linkRiotAccount,
     unlinkRiotAccount,

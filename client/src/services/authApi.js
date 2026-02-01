@@ -4,6 +4,7 @@
  */
 
 import { getBaseApi } from './apiConfig'
+import { apiRequest, parseResponse, AUTH_ERROR_CODES } from './apiClient'
 
 const API_BASE = getBaseApi()
 
@@ -158,10 +159,9 @@ export async function resendVerification() {
  * @returns {Promise<Object|null>} User data or null if not authenticated
  */
 export async function getCurrentUser() {
-  const response = await fetch(`${API_BASE}/users/me`, {
-    method: 'GET',
-    credentials: 'include'
-  })
+  // Note: This endpoint is special - we skip session check here because
+  // it's used during initialization. Session expiry is handled by other API calls.
+  const response = await apiRequest('/users/me', { method: 'GET' }, { skipSessionCheck: true })
 
   if (response.status === 401) {
     return null
@@ -186,23 +186,12 @@ export async function getCurrentUser() {
  * @returns {Promise<Object>} Linked account data
  */
 export async function linkRiotAccount({ gameName, tagLine, region }) {
-  const response = await fetch(`${API_BASE}/users/me/riot-accounts`, {
+  const response = await apiRequest('/users/me/riot-accounts', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ gameName, tagLine, region })
   })
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to link Riot account')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to link Riot account')
 }
 
 /**
@@ -211,9 +200,8 @@ export async function linkRiotAccount({ gameName, tagLine, region }) {
  * @returns {Promise<void>}
  */
 export async function unlinkRiotAccount(puuid) {
-  const response = await fetch(`${API_BASE}/users/me/riot-accounts/${puuid}`, {
-    method: 'DELETE',
-    credentials: 'include'
+  const response = await apiRequest(`/users/me/riot-accounts/${puuid}`, {
+    method: 'DELETE'
   })
 
   if (!response.ok) {
@@ -231,21 +219,11 @@ export async function unlinkRiotAccount(puuid) {
  * @returns {Promise<Object>} Sync status
  */
 export async function triggerRiotAccountSync(puuid) {
-  const response = await fetch(`${API_BASE}/users/me/riot-accounts/${puuid}/sync`, {
-    method: 'POST',
-    credentials: 'include'
+  const response = await apiRequest(`/users/me/riot-accounts/${puuid}/sync`, {
+    method: 'POST'
   })
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to trigger sync')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to trigger sync')
 }
 
 /**
@@ -254,21 +232,11 @@ export async function triggerRiotAccountSync(puuid) {
  * @returns {Promise<Object>} Sync status data
  */
 export async function getRiotAccountSyncStatus(puuid) {
-  const response = await fetch(`${API_BASE}/users/me/riot-accounts/${puuid}/sync-status`, {
-    method: 'GET',
-    credentials: 'include'
+  const response = await apiRequest(`/users/me/riot-accounts/${puuid}/sync-status`, {
+    method: 'GET'
   })
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to get sync status')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to get sync status')
 }
 
 // ============ Overview API ============
@@ -279,27 +247,13 @@ export async function getRiotAccountSyncStatus(puuid) {
  * @returns {Promise<Object>} Overview data including playerHeader, rankSnapshot, lastMatch, activeGoals, suggestedActions
  */
 export async function getOverview(userId) {
-  const url = `${API_BASE}/overview/${userId}`
-
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include'
-  })
+  const response = await apiRequest(`/overview/${userId}`, { method: 'GET' })
 
   if (response.status === 404) {
     return null // No linked Riot accounts
   }
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to get overview data')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to get overview data')
 }
 
 // ============ Solo Dashboard API ============
@@ -320,27 +274,14 @@ export async function getSoloDashboard(userId, queueType = 'all', timeRange) {
     params.append('timeRange', timeRange)
   }
 
-  const url = `${API_BASE}/solo/dashboard/${userId}${params.toString() ? '?' + params.toString() : ''}`
-
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include'
-  })
+  const endpoint = `/solo/dashboard/${userId}${params.toString() ? '?' + params.toString() : ''}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
 
   if (response.status === 404) {
     return null // No match data found
   }
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to get solo dashboard')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to get solo dashboard')
 }
 
 /**
@@ -359,27 +300,14 @@ export async function getChampionSelectData(userId, queueType = 'all', timeRange
     params.append('timeRange', timeRange)
   }
 
-  const url = `${API_BASE}/champion-select/${userId}${params.toString() ? '?' + params.toString() : ''}`
-
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include'
-  })
+  const endpoint = `/champion-select/${userId}${params.toString() ? '?' + params.toString() : ''}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
 
   if (response.status === 404) {
     return null // No match data found
   }
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to get champion select data')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to get champion select data')
 }
 
 /**
@@ -388,27 +316,13 @@ export async function getChampionSelectData(userId, queueType = 'all', timeRange
  * @returns {Promise<Object>} Match activity data with dailyMatchCounts, startDate, endDate, totalMatches
  */
 export async function getMatchActivity(userId) {
-  const url = `${API_BASE}/solo/activity/${userId}`
-
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include'
-  })
+  const response = await apiRequest(`/solo/activity/${userId}`, { method: 'GET' })
 
   if (response.status === 404) {
     return null // No match data found
   }
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to get match activity')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to get match activity')
 }
 
 // ============ Trends API ============
@@ -429,27 +343,14 @@ export async function getWinrateTrend(userId, queueType = 'all', timeRange) {
     params.append('timeRange', timeRange)
   }
 
-  const url = `${API_BASE}/trends/winrate/${userId}${params.toString() ? '?' + params.toString() : ''}`
-
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include'
-  })
+  const endpoint = `/trends/winrate/${userId}${params.toString() ? '?' + params.toString() : ''}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
 
   if (response.status === 404) {
     return null // No data found
   }
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to get winrate trend')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to get winrate trend')
 }
 
 // ============ Champion Matchups API ============
@@ -471,27 +372,14 @@ export async function getChampionMatchups(userId, queueType = 'all', timeRange) 
     params.append('timeRange', timeRange)
   }
 
-  const url = `${API_BASE}/solo/matchups/${userId}${params.toString() ? '?' + params.toString() : ''}`
-
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include'
-  })
+  const endpoint = `/solo/matchups/${userId}${params.toString() ? '?' + params.toString() : ''}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
 
   if (response.status === 404) {
     return null // No data found
   }
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to get champion matchups')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to get champion matchups')
 }
 
 /**
@@ -506,27 +394,14 @@ export async function getMatchList(userId, queueType = 'all') {
     params.append('queueType', queueType)
   }
 
-  const url = `${API_BASE}/matches/${userId}${params.toString() ? '?' + params.toString() : ''}`
-
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include'
-  })
+  const endpoint = `/matches/${userId}${params.toString() ? '?' + params.toString() : ''}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
 
   if (response.status === 404) {
     return null // No match data found
   }
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to get match list')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to get match list')
 }
 
 /**
@@ -538,40 +413,14 @@ export async function getMatchList(userId, queueType = 'all') {
  */
 export async function getMatchDetails(matchId, puuid) {
   const params = new URLSearchParams({ puuid })
-  const url = `${API_BASE}/matches/${matchId}/details?${params.toString()}`
-
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include'
-  })
+  const endpoint = `/matches/${matchId}/details?${params.toString()}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
 
   if (response.status === 404) {
     return null // Match not found
   }
 
-  // Handle auth errors that may not have JSON body
-  if (response.status === 401) {
-    const error = new Error('Unauthorized')
-    error.status = 401
-    throw error
-  }
-
-  if (response.status === 403) {
-    const error = new Error('Access denied to this match')
-    error.status = 403
-    throw error
-  }
-
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to get match details')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to get match details')
 }
 
 /**
@@ -582,21 +431,8 @@ export async function getMatchDetails(matchId, puuid) {
  */
 export async function getMatchNarrative(matchId, puuid) {
   const params = new URLSearchParams({ puuid })
-  const url = `${API_BASE}/matches/${matchId}/narrative?${params.toString()}`
+  const endpoint = `/matches/${matchId}/narrative?${params.toString()}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
 
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include'
-  })
-
-  const data = await response.json()
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Failed to get match narrative')
-    error.status = response.status
-    error.code = data.code
-    throw error
-  }
-
-  return data
+  return parseResponse(response, 'Failed to get match narrative')
 }
