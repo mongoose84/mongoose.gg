@@ -33,8 +33,10 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 function goToLogin() {
+  // Preserve current route for redirect after login
+  const currentPath = router.currentRoute.value.fullPath
   authStore.clearSessionExpired()
-  router.push('/auth?mode=login')
+  router.push(`/auth?mode=login&redirect=${encodeURIComponent(currentPath)}`)
 }
 </script>
 

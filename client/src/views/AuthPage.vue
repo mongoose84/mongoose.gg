@@ -90,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import { BaseInput, BaseButton } from '@/components/base';
@@ -113,6 +113,16 @@ const formData = ref({
   rememberMe: false
 });
 
+// Get redirect destination from query params (for session expiry flow)
+const redirectTo = computed(() => {
+  const redirect = route.query.redirect;
+  // Only allow internal redirects (starting with /)
+  if (redirect && typeof redirect === 'string' && redirect.startsWith('/')) {
+    return redirect;
+  }
+  return '/app/overview';
+});
+
 onMounted(async () => {
   // Initialize auth store to check current session
   await authStore.initialize();
@@ -122,7 +132,7 @@ onMounted(async () => {
     if (!authStore.isVerified) {
       router.push('/auth/verify');
     } else {
-      router.push('/app/overview');
+      router.push(redirectTo.value);
     }
     return;
   }
@@ -191,7 +201,7 @@ const handleSubmit = async () => {
       if (!result.emailVerified) {
         router.push('/auth/verify');
       } else {
-        router.push('/app/overview');
+        router.push(redirectTo.value);
       }
     } else {
       // Signup flow
