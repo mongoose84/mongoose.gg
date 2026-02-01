@@ -31,12 +31,14 @@ export const useAuthStore = defineStore('auth', () => {
   // Actions
   async function initialize() {
     if (isInitialized.value) return
-    
+
     isLoading.value = true
     error.value = null
-    
+
     try {
-      const userData = await authApi.getCurrentUser()
+      // Skip session check during initialization - user wasn't previously authenticated
+      // in this browser session, so we don't want to show session expired banner
+      const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
     } catch (e) {
       // Not authenticated is not an error state
@@ -54,8 +56,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       // Call login API first
       await authApi.login({ username: uname, password, rememberMe })
-      // After login, fetch full user data
-      const userData = await authApi.getCurrentUser()
+      // After login, fetch full user data (session is fresh, skip session check)
+      const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
       return { success: true, emailVerified: userData?.emailVerified }
     } catch (e) {
@@ -73,8 +75,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       // Call register API first
       await authApi.register({ username: uname, email: em, password })
-      // After registration, user is logged in but not verified
-      const userData = await authApi.getCurrentUser()
+      // After registration, user is logged in but not verified (session is fresh, skip session check)
+      const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
       return { success: true, needsVerification: true }
     } catch (e) {
@@ -88,11 +90,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function verify(code) {
     isLoading.value = true
     error.value = null
-    
+
     try {
       await authApi.verify(code)
-      // Refresh user data to get updated emailVerified status
-      const userData = await authApi.getCurrentUser()
+      // Refresh user data to get updated emailVerified status (session is fresh, skip session check)
+      const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
       return { success: true }
     } catch (e) {
@@ -156,10 +158,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Refresh user data from the server
+   * Refresh user data from the server.
+   * Note: This does NOT skip session check, so if the session has expired,
+   * the session expired banner will be shown.
    */
   async function refreshUser() {
     try {
+      // Don't skip session check - if session expired, show the banner
       const userData = await authApi.getCurrentUser()
       user.value = userData
     } catch (e) {

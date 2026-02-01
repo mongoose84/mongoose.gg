@@ -156,12 +156,14 @@ export async function resendVerification() {
 
 /**
  * Get current authenticated user
+ * @param {Object} options - Options
+ * @param {boolean} options.skipSessionCheck - Skip session expiry handling (default: false)
+ *   Set to true during initialization when user wasn't previously authenticated.
+ *   Set to false (default) during refreshUser() so session expiry banner can appear.
  * @returns {Promise<Object|null>} User data or null if not authenticated
  */
-export async function getCurrentUser() {
-  // Note: This endpoint is special - we skip session check here because
-  // it's used during initialization. Session expiry is handled by other API calls.
-  const response = await apiRequest('/users/me', { method: 'GET' }, { skipSessionCheck: true })
+export async function getCurrentUser({ skipSessionCheck = false } = {}) {
+  const response = await apiRequest('/users/me', { method: 'GET' }, { skipSessionCheck })
 
   if (response.status === 401) {
     return null
