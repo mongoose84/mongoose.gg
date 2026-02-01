@@ -4,7 +4,7 @@
  */
 
 import { getBaseApi } from './apiConfig'
-import { apiRequest, parseResponse, AUTH_ERROR_CODES } from './apiClient'
+import { apiRequest, parseResponse } from './apiClient'
 
 const API_BASE = getBaseApi()
 

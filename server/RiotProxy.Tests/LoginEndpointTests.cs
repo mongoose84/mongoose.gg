@@ -150,13 +150,8 @@ public class LoginEndpointTests
         json.RootElement.GetProperty("error").GetString().Should().Contain("session has expired");
     }
 
-    [Fact]
-    public void Protected_endpoint_returns_FORBIDDEN_code_for_access_denied()
-    {
-        // Note: This test would require an endpoint that uses authorization policies
-        // For now, we verify the cookie auth event returns proper JSON for 403
-        // The actual FORBIDDEN scenario requires role-based authorization which isn't set up yet
-        // This is a placeholder to document the expected behavior
-        Assert.True(true, "FORBIDDEN code is returned by OnRedirectToAccessDenied event");
-    }
+    // Note: FORBIDDEN (403) test is not included because the codebase doesn't currently
+    // have role-based authorization policies. When such functionality is added,
+    // a test should be created to verify that OnRedirectToAccessDenied returns
+    // JSON with code "FORBIDDEN" and an appropriate error message.
 }

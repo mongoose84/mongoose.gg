@@ -132,7 +132,17 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             context.Response.ContentType = "application/json";
 
-            // Check if the user had an auth cookie (expired session) vs never logged in
+            // Note: We cannot reliably distinguish between "session expired" and "never logged in" on the backend.
+            // When IsPersistent=true with ExpiresUtc (as used in LoginEndpoint), the browser sets a persistent
+            // cookie that expires at ExpiresUtc. When the cookie expires, the browser doesn't send it at all,
+            // making it indistinguishable from "never logged in".
+            //
+            // The frontend handles this by tracking `wasAuthenticated` state - if the user was ever authenticated
+            // in the current browser session, a 401 will show the "session expired" banner. Both SESSION_EXPIRED
+            // and NOT_AUTHENTICATED codes trigger this behavior on the frontend.
+            //
+            // We still check for the cookie presence as a best-effort attempt, which can work in some edge cases
+            // (e.g., if the server-side ticket expires before the browser cookie).
             var authCookieName = context.Options.Cookie.Name ?? ".AspNetCore.Cookies";
             var hadAuthCookie = context.Request.Cookies.ContainsKey(authCookieName);
 

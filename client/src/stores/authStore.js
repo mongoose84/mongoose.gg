@@ -14,6 +14,10 @@ export const useAuthStore = defineStore('auth', () => {
   // Session expiry state
   const sessionExpired = ref(false)
   const sessionExpiredMessage = ref('')
+  // Track if user was ever authenticated in this browser session
+  // This persists even after user.value is set to null, so we can show
+  // the session expired banner on subsequent 401s
+  const wasAuthenticated = ref(false)
 
   // Getters
   const isAuthenticated = computed(() => !!user.value)
@@ -40,6 +44,10 @@ export const useAuthStore = defineStore('auth', () => {
       // in this browser session, so we don't want to show session expired banner
       const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
+      // Mark that user was authenticated if we found a valid session
+      if (userData) {
+        wasAuthenticated.value = true
+      }
     } catch (e) {
       // Not authenticated is not an error state
       user.value = null
@@ -59,6 +67,10 @@ export const useAuthStore = defineStore('auth', () => {
       // After login, fetch full user data (session is fresh, skip session check)
       const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
+      // Mark that user is now authenticated and clear any previous session expiry state
+      wasAuthenticated.value = true
+      sessionExpired.value = false
+      sessionExpiredMessage.value = ''
       return { success: true, emailVerified: userData?.emailVerified }
     } catch (e) {
       error.value = e.message
@@ -129,12 +141,14 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Handle session expiry - called by the API client when a SESSION_EXPIRED or NOT_AUTHENTICATED error is received.
    * This clears the user state and shows the session expired banner.
-   * Only triggers if the user was previously authenticated (to avoid showing on initial page load).
+   * Only triggers if the user was previously authenticated in this browser session
+   * (to avoid showing on initial page load for users who were never logged in).
    * @param {Object} errorData - Error data from the API response
    */
   function handleSessionExpired(errorData) {
-    // Only handle if user was previously authenticated (or banner already showing)
-    if (user.value || sessionExpired.value) {
+    // Only handle if user was ever authenticated in this browser session
+    // This ensures the banner shows even after user dismisses it and navigates away from login
+    if (wasAuthenticated.value) {
       user.value = null
       sessionExpired.value = true
       sessionExpiredMessage.value = errorData?.error || 'Your session has expired. Please log in again.'

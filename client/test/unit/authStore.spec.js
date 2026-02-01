@@ -14,8 +14,14 @@ vi.mock('@/services/authApi', () => ({
   triggerRiotAccountSync: vi.fn(),
 }));
 
-// Import the mocked module
+// Mock the apiClient module
+vi.mock('@/services/apiClient', () => ({
+  setSessionExpiredCallback: vi.fn(),
+}));
+
+// Import the mocked modules
 import * as authApi from '@/services/authApi';
+import { setSessionExpiredCallback } from '@/services/apiClient';
 
 describe('authStore', () => {
   beforeEach(() => {
@@ -339,6 +345,136 @@ describe('authStore', () => {
       store.clearError();
 
       expect(store.error).toBeNull();
+    });
+  });
+
+  describe('session expiry', () => {
+    describe('initial session state', () => {
+      it('initializes sessionExpired as false', () => {
+        const store = useAuthStore();
+        expect(store.sessionExpired).toBe(false);
+      });
+
+      it('initializes sessionExpiredMessage as empty', () => {
+        const store = useAuthStore();
+        expect(store.sessionExpiredMessage).toBe('');
+      });
+    });
+
+    describe('handleSessionExpired', () => {
+      it('sets sessionExpired to true when wasAuthenticated is true', async () => {
+        // First login to set wasAuthenticated
+        authApi.login.mockResolvedValue({ success: true });
+        authApi.getCurrentUser.mockResolvedValue({ userId: 1, emailVerified: true });
+
+        const store = useAuthStore();
+        await store.login({ email: 'test@test.com', password: 'pass' });
+
+        // Simulate internal handleSessionExpired call
+        // We need to test the behavior, so we call it via initializeSessionHandler
+        store.initializeSessionHandler();
+        const callback = setSessionExpiredCallback.mock.calls[0][0];
+        callback({ error: 'Session expired' });
+
+        expect(store.sessionExpired).toBe(true);
+        expect(store.sessionExpiredMessage).toBe('Session expired');
+      });
+
+      it('does NOT set sessionExpired when wasAuthenticated is false', () => {
+        const store = useAuthStore();
+
+        // Initialize handler and get callback
+        store.initializeSessionHandler();
+        const callback = setSessionExpiredCallback.mock.calls[0][0];
+        callback({ error: 'Session expired' });
+
+        expect(store.sessionExpired).toBe(false);
+      });
+
+      it('clears user data when session expires', async () => {
+        authApi.login.mockResolvedValue({ success: true });
+        authApi.getCurrentUser.mockResolvedValue({ userId: 1, username: 'test', emailVerified: true });
+
+        const store = useAuthStore();
+        await store.login({ email: 'test@test.com', password: 'pass' });
+        expect(store.user).not.toBeNull();
+
+        store.initializeSessionHandler();
+        const callback = setSessionExpiredCallback.mock.calls[0][0];
+        callback({});
+
+        expect(store.user).toBeNull();
+      });
+
+      it('uses default message when error message not provided', async () => {
+        authApi.login.mockResolvedValue({ success: true });
+        authApi.getCurrentUser.mockResolvedValue({ userId: 1, emailVerified: true });
+
+        const store = useAuthStore();
+        await store.login({ email: 'test@test.com', password: 'pass' });
+
+        store.initializeSessionHandler();
+        const callback = setSessionExpiredCallback.mock.calls[0][0];
+        callback({});
+
+        expect(store.sessionExpiredMessage).toBe('Your session has expired. Please log in again.');
+      });
+    });
+
+    describe('clearSessionExpired', () => {
+      it('clears sessionExpired state', async () => {
+        authApi.login.mockResolvedValue({ success: true });
+        authApi.getCurrentUser.mockResolvedValue({ userId: 1, emailVerified: true });
+
+        const store = useAuthStore();
+        await store.login({ email: 'test@test.com', password: 'pass' });
+
+        // Trigger session expired
+        store.initializeSessionHandler();
+        const callback = setSessionExpiredCallback.mock.calls[0][0];
+        callback({ error: 'Expired' });
+
+        expect(store.sessionExpired).toBe(true);
+
+        store.clearSessionExpired();
+
+        expect(store.sessionExpired).toBe(false);
+        expect(store.sessionExpiredMessage).toBe('');
+      });
+    });
+
+    describe('initializeSessionHandler', () => {
+      it('registers callback with apiClient', () => {
+        const store = useAuthStore();
+        store.initializeSessionHandler();
+
+        expect(setSessionExpiredCallback).toHaveBeenCalledOnce();
+        expect(setSessionExpiredCallback).toHaveBeenCalledWith(expect.any(Function));
+      });
+    });
+
+    describe('login clears session expired state', () => {
+      it('clears sessionExpired on successful login', async () => {
+        authApi.login.mockResolvedValue({ success: true });
+        authApi.getCurrentUser.mockResolvedValue({ userId: 1, emailVerified: true });
+
+        const store = useAuthStore();
+
+        // Manually set session expired state
+        // (simulating a previous session expiry before logging in again)
+        await store.login({ email: 'first@test.com', password: 'pass' });
+        store.initializeSessionHandler();
+        const callback = setSessionExpiredCallback.mock.calls[0][0];
+        callback({ error: 'Expired' });
+
+        expect(store.sessionExpired).toBe(true);
+
+        // Login again
+        await store.login({ email: 'new@test.com', password: 'newpass' });
+
+        expect(store.sessionExpired).toBe(false);
+        expect(store.sessionExpiredMessage).toBe('');
+      });
     });
   });
 });

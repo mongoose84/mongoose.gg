@@ -127,19 +127,38 @@ export function del(endpoint, config = {}) {
  * @param {Response} response - Fetch response
  * @param {string} defaultError - Default error message
  * @returns {Promise<Object>}
+ * @throws {Error} Error with status and code properties if response is not ok
  */
 export async function parseResponse(response, defaultError = 'Request failed') {
-  let data = {}
+  let data = null
+  let parseError = null
+
   try {
     data = await response.json()
-  } catch {
-    // Response might not be JSON
+  } catch (e) {
+    // Response might not be JSON (network error, empty response, etc.)
+    parseError = e
+    data = {}
   }
 
   if (!response.ok) {
-    const error = new Error(data.error || defaultError)
+    // Build a descriptive error message
+    const errorMessage = data?.error || defaultError
+    const error = new Error(errorMessage)
+
+    // Always set status from response
     error.status = response.status
-    error.code = data.code
+
+    // Only set code if it exists in the response data
+    if (data?.code) {
+      error.code = data.code
+    }
+
+    // If we couldn't parse JSON, note that in the error
+    if (parseError && !data?.error) {
+      error.parseError = true
+    }
+
     throw error
   }
 
