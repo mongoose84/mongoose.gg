@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Entities;
 using RiotProxy.Infrastructure.Database.Repositories;
 using RiotProxy.Infrastructure.Email;
@@ -37,7 +38,7 @@ public sealed class ResendVerificationEndpoint : IEndpoint
                 var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
                 {
-                    return Results.Unauthorized();
+                    return AuthResults.InvalidSession();
                 }
 
                 // Get user from database
@@ -45,7 +46,7 @@ public sealed class ResendVerificationEndpoint : IEndpoint
                 if (user == null)
                 {
                     logger.LogWarning("Resend verification attempt for non-existent user ID: {UserId}", userId);
-                    return Results.Unauthorized();
+                    return AuthResults.InvalidSession();
                 }
 
                 // Check if already verified

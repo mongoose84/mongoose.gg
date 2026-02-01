@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Matches;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Interfaces;
 using RiotProxy.Core.QueryModels;
 
@@ -37,7 +38,7 @@ public sealed class MatchListEndpoint : IEndpoint
             try
             {
                 if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return Results.Unauthorized();
+                    return AuthResults.NotAuthenticated();
 
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))

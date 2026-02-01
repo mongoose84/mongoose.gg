@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Application.Services;
 using RiotProxy.Infrastructure.Database.Repositories;
 using static RiotProxy.Application.DTOs.LoginDto;
@@ -61,21 +62,21 @@ public sealed class LoginEndpoint : IEndpoint
                 if (user == null)
                 {
                     logger.LogWarning("Login attempt with non-existent username/email: {Input}", request.Username);
-                    return Results.Json(new { error = "Invalid username or password" }, statusCode: 401);
+                    return AuthResults.InvalidCredentials();
                 }
 
                 // Verify password using BCrypt
                 if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
                     logger.LogWarning("Login attempt with invalid password for username: {Username}", user.Username);
-                    return Results.Json(new { error = "Invalid username or password" }, statusCode: 401);
+                    return AuthResults.InvalidCredentials();
                 }
 
                 // Check if user is active
                 if (!user.IsActive)
                 {
                     logger.LogWarning("Login attempt for inactive user: {Username}", user.Username);
-                    return Results.Json(new { error = "This account has been deactivated" }, statusCode: 401);
+                    return AuthResults.AccountDeactivated();
                 }
 
                 // Create claims identity for cookie auth

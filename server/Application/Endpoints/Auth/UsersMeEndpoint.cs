@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
 
@@ -35,7 +36,7 @@ public sealed class UsersMeEndpoint : IEndpoint
                 var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
                 {
-                    return Results.Unauthorized();
+                    return AuthResults.InvalidSession();
                 }
 
                 // Get user from database
@@ -43,14 +44,14 @@ public sealed class UsersMeEndpoint : IEndpoint
                 if (user == null)
                 {
                     logger.LogWarning("User not found for ID: {UserId}", userId);
-                    return Results.Unauthorized();
+                    return AuthResults.InvalidSession();
                 }
 
                 // Check if user is active
                 if (!user.IsActive)
                 {
                     logger.LogWarning("Inactive user attempted to access /users/me: {UserId}", userId);
-                    return Results.Unauthorized();
+                    return AuthResults.AccountDeactivated();
                 }
 
                 // Get linked Riot accounts via junction table

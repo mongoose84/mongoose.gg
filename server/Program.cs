@@ -126,17 +126,32 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             options.Cookie.Name = cookieName;
         }
 
-        // APIs should respond with HTTP status codes instead of HTML redirects
-        options.Events.OnRedirectToLogin = context =>
+        // APIs should respond with HTTP status codes and JSON instead of HTML redirects
+        options.Events.OnRedirectToLogin = async context =>
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return Task.CompletedTask;
+            context.Response.ContentType = "application/json";
+
+            // Check if the user had an auth cookie (expired session) vs never logged in
+            var authCookieName = context.Options.Cookie.Name ?? ".AspNetCore.Cookies";
+            var hadAuthCookie = context.Request.Cookies.ContainsKey(authCookieName);
+
+            var errorCode = hadAuthCookie ? "SESSION_EXPIRED" : "NOT_AUTHENTICATED";
+            var errorMessage = hadAuthCookie
+                ? "Your session has expired. Please log in again."
+                : "Authentication required.";
+
+            var json = System.Text.Json.JsonSerializer.Serialize(new { error = errorMessage, code = errorCode });
+            await context.Response.WriteAsync(json);
         };
 
-        options.Events.OnRedirectToAccessDenied = context =>
+        options.Events.OnRedirectToAccessDenied = async context =>
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return Task.CompletedTask;
+            context.Response.ContentType = "application/json";
+
+            var json = System.Text.Json.JsonSerializer.Serialize(new { error = "Access denied.", code = "FORBIDDEN" });
+            await context.Response.WriteAsync(json);
         };
     });
 
