@@ -77,9 +77,10 @@ export async function apiRequest(endpoint, options = {}, config = {}) {
       // Response might not be JSON
     }
 
-    // Only trigger session expired for SESSION_EXPIRED code
-    // NOT_AUTHENTICATED means user was never logged in (e.g., accessing protected route)
-    if (data.code === AUTH_ERROR_CODES.SESSION_EXPIRED && onSessionExpired) {
+    // Trigger session expired for both SESSION_EXPIRED and NOT_AUTHENTICATED
+    // The authStore will check if user was previously logged in before showing the banner
+    if ((data.code === AUTH_ERROR_CODES.SESSION_EXPIRED ||
+         data.code === AUTH_ERROR_CODES.NOT_AUTHENTICATED) && onSessionExpired) {
       onSessionExpired(data)
     }
   }

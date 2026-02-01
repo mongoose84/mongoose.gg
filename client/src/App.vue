@@ -2,8 +2,8 @@
   <div class="app-container">
     <RouterView />
     <VersionBadge v-if="!isInApp" />
-    <!-- Global session expired modal -->
-    <SessionExpiredModal />
+    <!-- Global session expired banner -->
+    <SessionExpiredBanner />
   </div>
 </template>
 
@@ -11,7 +11,7 @@
 import { computed, onMounted } from 'vue';
 import { RouterView, useRoute } from 'vue-router';
 import VersionBadge from './components/VersionBadge.vue';
-import SessionExpiredModal from './components/SessionExpiredModal.vue';
+import SessionExpiredBanner from './components/SessionExpiredBanner.vue';
 import { useAuthStore } from './stores/authStore';
 
 const route = useRoute();

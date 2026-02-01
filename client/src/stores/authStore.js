@@ -125,13 +125,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Handle session expiry - called by the API client when a SESSION_EXPIRED error is received.
-   * This clears the user state and shows the session expired modal.
+   * Handle session expiry - called by the API client when a SESSION_EXPIRED or NOT_AUTHENTICATED error is received.
+   * This clears the user state and shows the session expired banner.
+   * Only triggers if the user was previously authenticated (to avoid showing on initial page load).
    * @param {Object} errorData - Error data from the API response
    */
   function handleSessionExpired(errorData) {
-    // Only handle if user was previously authenticated
-    if (user.value) {
+    // Only handle if user was previously authenticated (or banner already showing)
+    if (user.value || sessionExpired.value) {
       user.value = null
       sessionExpired.value = true
       sessionExpiredMessage.value = errorData?.error || 'Your session has expired. Please log in again.'
