@@ -362,6 +362,7 @@ jobs:
             RiotProxy.Tests/**
             **/RiotProxy.Tests/**
             app_offline.htm
+            appsettings.Development.json
           server-dir: ${{ secrets.FTP_API_PATH }}/
           # optional safety flags
           # dry-run: false
