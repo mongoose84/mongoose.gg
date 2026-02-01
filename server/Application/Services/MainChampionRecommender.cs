@@ -215,7 +215,7 @@ public static class MainChampionRecommender
         return role.ToUpperInvariant() switch
         {
             // Support: Vision is critical, gold diff less important (often behind in gold)
-            "UTILITY" => 0.25 * goldDiff15Norm + 0.35 * earlyDeathsNorm + 0.40 * visionNorm,
+            "UTILITY" => 0.35 * goldDiff15Norm + 0.25 * earlyDeathsNorm + 0.40 * visionNorm,
 
             // Jungle: No lane opponent, so gold diff is less meaningful
             // Focus on not dying early and vision control
