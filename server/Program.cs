@@ -126,17 +126,42 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             options.Cookie.Name = cookieName;
         }
 
-        // APIs should respond with HTTP status codes instead of HTML redirects
-        options.Events.OnRedirectToLogin = context =>
+        // APIs should respond with HTTP status codes and JSON instead of HTML redirects
+        options.Events.OnRedirectToLogin = async context =>
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return Task.CompletedTask;
+            context.Response.ContentType = "application/json";
+
+            // Note: We cannot reliably distinguish between "session expired" and "never logged in" on the backend.
+            // When IsPersistent=true with ExpiresUtc (as used in LoginEndpoint), the browser sets a persistent
+            // cookie that expires at ExpiresUtc. When the cookie expires, the browser doesn't send it at all,
+            // making it indistinguishable from "never logged in".
+            //
+            // The frontend handles this by tracking `wasAuthenticated` state - if the user was ever authenticated
+            // in the current browser session, a 401 will show the "session expired" banner. Both SESSION_EXPIRED
+            // and NOT_AUTHENTICATED codes trigger this behavior on the frontend.
+            //
+            // We still check for the cookie presence as a best-effort attempt, which can work in some edge cases
+            // (e.g., if the server-side ticket expires before the browser cookie).
+            var authCookieName = context.Options.Cookie.Name ?? ".AspNetCore.Cookies";
+            var hadAuthCookie = context.Request.Cookies.ContainsKey(authCookieName);
+
+            var errorCode = hadAuthCookie ? "SESSION_EXPIRED" : "NOT_AUTHENTICATED";
+            var errorMessage = hadAuthCookie
+                ? "Your session has expired. Please log in again."
+                : "Authentication required.";
+
+            var json = System.Text.Json.JsonSerializer.Serialize(new { error = errorMessage, code = errorCode });
+            await context.Response.WriteAsync(json);
         };
 
-        options.Events.OnRedirectToAccessDenied = context =>
+        options.Events.OnRedirectToAccessDenied = async context =>
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return Task.CompletedTask;
+            context.Response.ContentType = "application/json";
+
+            var json = System.Text.Json.JsonSerializer.Serialize(new { error = "Access denied.", code = "FORBIDDEN" });
+            await context.Response.WriteAsync(json);
         };
     });
 

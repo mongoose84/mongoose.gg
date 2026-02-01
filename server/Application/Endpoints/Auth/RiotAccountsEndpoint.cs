@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Entities;
 using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
@@ -60,7 +61,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             try
             {
                 var userId = GetUserId(httpContext);
-                if (userId == null) return Results.Unauthorized();
+                if (userId == null) return AuthResults.InvalidSession();
 
                 // Validate request
                 if (string.IsNullOrWhiteSpace(request.GameName))
@@ -112,7 +113,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 var user = await usersRepo.GetByIdAsync(userId.Value);
                 if (user == null || !user.IsActive)
                 {
-                    return Results.Unauthorized();
+                    return AuthResults.InvalidSession();
                 }
 
                 // Lookup PUUID from Riot API
@@ -298,7 +299,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             try
             {
                 var userId = GetUserId(httpContext);
-                if (userId == null) return Results.Unauthorized();
+                if (userId == null) return AuthResults.InvalidSession();
 
                 // Check if user has this account linked
                 var isLinked = await userRiotAccountsRepo.IsLinkedAsync(userId.Value, puuid);
@@ -340,7 +341,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             try
             {
                 var userId = GetUserId(httpContext);
-                if (userId == null) return Results.Unauthorized();
+                if (userId == null) return AuthResults.InvalidSession();
 
                 // Check if user has this account linked
                 var isLinked = await userRiotAccountsRepo.IsLinkedAsync(userId.Value, puuid);
@@ -392,7 +393,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             try
             {
                 var userId = GetUserId(httpContext);
-                if (userId == null) return Results.Unauthorized();
+                if (userId == null) return AuthResults.InvalidSession();
 
                 // Check if user has this account linked
                 var isLinked = await userRiotAccountsRepo.IsLinkedAsync(userId.Value, puuid);

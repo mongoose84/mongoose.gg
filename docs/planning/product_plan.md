@@ -180,8 +180,9 @@ For full task details, see:
 | G6 | Implement Duo dashboard view | Frontend | 5 | |
 | G7 | Implement Team dashboard view | Frontend | 5 | |
 | G10 | Implement user dropdown details & account settings page | Frontend | 8 | |
+| G19 | Implement session expiry handling (global handler + UX) | Frontend | 5 | |
 
-**P1 Remaining:** 88 points | **P1 Completed:** 12 points | **P1 Total:** 100 points
+**P1 Remaining:** 93 points | **P1 Completed:** 12 points | **P1 Total:** 105 points
 
 ### P2 - Medium
 
@@ -221,7 +222,9 @@ For full task details, see:
 | F16 | Rename RiotProxy backend to Mongoose.Api | API | 3 | |
 | G16 | Improve Match narrative header spacing and "You" button | Frontend | 1 | |
 
-**P3 Total:** 15 points
+| G20 | Add optional pre-expiry session warning toast | Frontend | 2 | |
+
+**P3 Total:** 17 points
 
 ---
 
@@ -229,9 +232,9 @@ For full task details, see:
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 200 pts |
+| **Remaining** | 207 pts |
 | **Completed** | 117 pts |
-| **Grand Total** | 317 pts |
+| **Grand Total** | 324 pts |
 
 ---
 

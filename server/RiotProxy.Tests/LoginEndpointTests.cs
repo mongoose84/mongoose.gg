@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
@@ -68,4 +69,89 @@ public class LoginEndpointTests
         remaining.Should().BeGreaterThan(TimeSpan.FromMinutes(40));
         remaining.Should().BeLessThan(TimeSpan.FromMinutes(50));
     }
+
+    [Fact]
+    public async Task Login_returns_INVALID_CREDENTIALS_code_for_wrong_password()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "wrong" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var content = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(content);
+        json.RootElement.GetProperty("code").GetString().Should().Be("INVALID_CREDENTIALS");
+        json.RootElement.GetProperty("error").GetString().Should().Contain("Invalid username or password");
+    }
+
+    [Fact]
+    public async Task Login_returns_INVALID_CREDENTIALS_code_for_nonexistent_user()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "nonexistent", password = "any" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var content = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(content);
+        json.RootElement.GetProperty("code").GetString().Should().Be("INVALID_CREDENTIALS");
+    }
+
+    [Fact]
+    public async Task Login_returns_ACCOUNT_DEACTIVATED_code_for_inactive_user()
+    {
+        using var factory = new TestWebApplicationFactory();
+        // Add an inactive user
+        factory.UsersRepository.AddInactiveUser("inactive", "inactive@test.com", "test-password");
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "inactive", password = "test-password" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var content = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(content);
+        json.RootElement.GetProperty("code").GetString().Should().Be("ACCOUNT_DEACTIVATED");
+        json.RootElement.GetProperty("error").GetString().Should().Contain("deactivated");
+    }
+
+    [Fact]
+    public async Task Protected_endpoint_returns_NOT_AUTHENTICATED_code_without_cookie()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        // Access protected endpoint without logging in
+        var response = await client.GetAsync("/api/v2/users/me");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var content = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(content);
+        json.RootElement.GetProperty("code").GetString().Should().Be("NOT_AUTHENTICATED");
+        json.RootElement.GetProperty("error").GetString().Should().Contain("Authentication required");
+    }
+
+    [Fact]
+    public async Task Protected_endpoint_returns_SESSION_EXPIRED_code_with_invalid_cookie()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        // Manually set an invalid/expired auth cookie
+        client.DefaultRequestHeaders.Add("Cookie", "mongoose-auth=invalid-expired-token");
+
+        var response = await client.GetAsync("/api/v2/users/me");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var content = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(content);
+        json.RootElement.GetProperty("code").GetString().Should().Be("SESSION_EXPIRED");
+        json.RootElement.GetProperty("error").GetString().Should().Contain("session has expired");
+    }
+
+    // Note: FORBIDDEN (403) test is not included because the codebase doesn't currently
+    // have role-based authorization policies. When such functionality is added,
+    // a test should be created to verify that OnRedirectToAccessDenied returns
+    // JSON with code "FORBIDDEN" and an appropriate error message.
 }

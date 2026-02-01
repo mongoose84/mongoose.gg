@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Matches;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Interfaces;
 using RiotProxy.Core.QueryModels;
 using RiotProxy.Infrastructure.Database.Repositories;
@@ -35,7 +36,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
             try
             {
                 if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return Results.Unauthorized();
+                    return AuthResults.NotAuthenticated();
 
                 if (string.IsNullOrWhiteSpace(matchId))
                 {
@@ -51,7 +52,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                 var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
                 {
-                    return Results.Unauthorized();
+                    return AuthResults.InvalidSession();
                 }
 
                 // Check if user has this puuid linked via junction table

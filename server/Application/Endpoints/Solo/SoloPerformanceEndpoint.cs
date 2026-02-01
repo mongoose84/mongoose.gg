@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Application.Endpoints.Solo;
@@ -34,7 +35,7 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
             try
             {
                 if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return Results.Unauthorized();
+                    return AuthResults.NotAuthenticated();
 
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))

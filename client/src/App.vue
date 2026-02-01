@@ -2,16 +2,26 @@
   <div class="app-container">
     <RouterView />
     <VersionBadge v-if="!isInApp" />
+    <!-- Global session expired banner -->
+    <SessionExpiredBanner />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { RouterView, useRoute } from 'vue-router';
 import VersionBadge from './components/VersionBadge.vue';
+import SessionExpiredBanner from './components/SessionExpiredBanner.vue';
+import { useAuthStore } from './stores/authStore';
 
 const route = useRoute();
+const authStore = useAuthStore();
 const isInApp = computed(() => route.path.startsWith('/app'));
+
+// Initialize the session expiry handler on app mount
+onMounted(() => {
+  authStore.initializeSessionHandler();
+});
 </script>
 
 <style scoped>

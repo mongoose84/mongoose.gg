@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Entities;
 using RiotProxy.Infrastructure.Database.Repositories;
 
@@ -42,7 +43,7 @@ public sealed class VerifyEndpoint : IEndpoint
                 var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
                 {
-                    return Results.Unauthorized();
+                    return AuthResults.InvalidSession();
                 }
 
                 // Validate code format
@@ -56,7 +57,7 @@ public sealed class VerifyEndpoint : IEndpoint
                 if (user == null)
                 {
                     logger.LogWarning("Verify attempt for non-existent user ID: {UserId}", userId);
-                    return Results.Unauthorized();
+                    return AuthResults.InvalidSession();
                 }
 
                 // Check if already verified
