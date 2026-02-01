@@ -203,6 +203,25 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _usersByEmail[email] = user;
             _usersById[user.UserId] = user;
         }
+
+        public void AddInactiveUser(string username, string email, string password)
+        {
+            var user = new User
+            {
+                UserId = _nextId++,
+                Username = username,
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                EmailVerified = true,
+                IsActive = false,
+                Tier = "free",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _usersByUsername[username] = user;
+            _usersByEmail[email] = user;
+            _usersById[user.UserId] = user;
+        }
     }
 
     /// <summary>
