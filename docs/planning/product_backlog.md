@@ -1483,6 +1483,57 @@ Allow users to add multiple Riot accounts and choose whether mongoose.gg should 
 
 ---
 
+### G19. [UX] Implement session expiry handling (global handler + UX)
+
+**Priority:** P1 - High  
+**Type:** UX / Frontend  
+**Estimate:** 5 points  
+**Depends on:** F14-login  
+**Labels:** `frontend`, `auth`, `ux`, `epic-g`
+
+#### Description
+
+When the backend session expires today, the frontend can continue to behave as if the user is logged in until a random request fails. Users then see generic errors and can lose their place in the app. We want a first-class "session expired" experience that is clear, minimally disruptive, feels like a focused tool, and stays safe once the backend has dropped the session.
+
+#### Acceptance Criteria
+
+- [ ] A single global handler exists for 401/403 "not authenticated" responses (e.g. Axios interceptor or Vue Query error handler) and is used by all authenticated HTTP requests  
+- [ ] The handler can distinguish "session expired" from "never logged in" and "forbidden" (e.g. via error code or payload) and only triggers the session-expired UX for the correct cases  
+- [ ] When a session-expired response is detected, the frontend auth state is immediately updated to a logged-out state and the app header/nav switches to the logged-out view (e.g. "Log in" call-to-action instead of the user menu)  
+- [ ] A non-blocking "Session expired" banner appears at the top of the app shell with copy along the lines of "You've been signed out due to inactivity. Log in again to continue." and a primary "Log in again" button  
+- [ ] Clicking "Log in again" from the banner navigates the user into the existing auth flow with a `redirect=` parameter back to their current route; after successful login, the user is taken back to the same page  
+- [ ] While the session-expired banner is visible, authenticated-only actions (e.g. goals management, AI features, Duo/Team dashboards) do not silently fail; they are either disabled or route the user through the standard auth/upgrade flows instead of surfacing raw 401 errors  
+- [ ] If a 401 occurs during an action that clearly requires a live session (e.g. "Set goal", "Save changes", "Request AI feedback", starting checkout), the request is not committed; instead, a blocking modal is shown with a clear title like "You've been signed out" and primary "Log in again" plus secondary "Cancel" actions  
+- [ ] Choosing "Log in again" from the modal sends the user through the auth flow and, after success, returns them to the same route; where it is safe and idempotent, the previous action is retried or the relevant UI is reopened prefilled so the user does not lose their work  
+- [ ] Lightweight view context (e.g. selected match, queue filters, date range, Overview vs Solo/Duo/Team context) is preserved across session expiry and re-login where feasible (via route/query params or local storage) so users do not lose their place when they sign back in  
+- [ ] Session-expired messaging is neutral and action-oriented (e.g. "You've been signed out due to inactivity. Log in again to continue.") and generic "Something went wrong" or technical "401 unauthorized" messages are no longer the primary way users discover a timeout  
+- [ ] Add or update automated tests (unit/integration or e2e) covering: global 401 handling, showing the session-expired banner, and at least one flow where a 401 during an action shows the modal and recovers correctly after login  
+
+---
+
+### G20. [UX] Add optional pre-expiry session warning toast
+
+**Priority:** P3 - Low  
+**Type:** UX / Frontend  
+**Estimate:** 2 points  
+**Depends on:** G19  
+**Labels:** `frontend`, `auth`, `ux`, `epic-g`
+
+#### Description
+
+Implement an optional, subtle pre-expiry warning so that long analysis sessions are less likely to be interrupted without warning. When we know the approximate session lifetime, show a small "Stay signed in?" toast shortly before expiry that can extend the session via a backend ping.
+
+#### Acceptance Criteria
+
+- [ ] The design assumes a known or discoverable session time-to-live (TTL) from the backend; if TTL is not available in a given environment, the pre-expiry toast is disabled and this behaviour is documented  
+- [ ] When TTL is known, a small, non-blocking toast appears (e.g. bottom-right, consistent with existing notification styles) roughly 1–2 minutes before session expiry while the user is active on the site, with copy like "Your session will expire in about 2 minutes. Stay signed in?" and a primary "Stay signed in" button  
+- [ ] Clicking "Stay signed in" makes a background call to the backend to extend or refresh the session (e.g. keepalive or refresh endpoint); on success, the expiry timer is reset and the toast disappears  
+- [ ] If the keepalive call fails or the user ignores/dismisses the toast and the session actually expires, the standard session-expired UX from G19 (banner/modal) is triggered and the user flows through that path  
+- [ ] The toast uses the existing global toast/notification system (if present) or a new implementation consistent with mongoose.gg's visual language and does not block main content or important actions  
+- [ ] Add at least one automated test (unit or integration) to verify that the pre-expiry toast appears based on TTL and that clicking "Stay signed in" triggers the expected backend call  
+
+---
+
 <!-- AI: END_EPIC_G_TASKS -->
 
 # Summary
@@ -1508,8 +1559,12 @@ Allow users to add multiple Riot accounts and choose whether mongoose.gg should 
 | C7 | Create subscription endpoints | Subscription | 2 |
 | C8 | Create feature flag service | Subscription | 2 |
 | F3 | Implement Duo dashboard endpoint | API | 3 |
+| G5b4 | Winrate Over Time chart + trend data (FE+BE) | Frontend / API | 5 |
+| G5b5 | LP Over Time chart (frontend UI) | Frontend | 2 |
+| G5b6 | Champion matchups table + endpoint (FE+BE) | Frontend / API | 6 |
+| G15 | Allow cancelling or switching account during email verification | Frontend | 2 |
 
-**P0 Remaining Total:** 39 points
+**P0 Remaining Total:** 52 points
 
 ### P1 - High
 
@@ -1521,20 +1576,32 @@ Allow users to add multiple Riot accounts and choose whether mongoose.gg should 
 | B11 | Create progress update job | AI Goals | 2 |
 | B12 | Create progress endpoint | AI Goals | 1 |
 | B18 | Add rules-of-climbing domain context for recommendations | AI Goals | 2 |
+| B19 | Clarify AI goals vs coaching product direction | AI Goals | 3 |
+| B21 | Extend database for AI coaching metrics | AI Goals | 5 |
 | C9 | Create feature gate middleware | Subscription | 2 |
 | C12 | Create upgrade prompt component | Subscription | 2 |
 | C14 | Gate features based on tier | Subscription | 2 |
-| C17 | Implement 2-tier pricing (Free + Pro) | Subscription | 5 |
+| C17 | Implement 2-tier pricing (Free + Pro) + Guests + collaboration/goal paywalls | Subscription | 5 |
+| D1 | Set up analytics provider | Analytics | 2 |
+| D2 | Implement core tracking events | Analytics | 3 |
+| D3 | Track page views and sessions | Analytics | 1 |
 | F4 | Implement Team dashboard endpoint | API | 3 |
 | F5 | Implement AI snapshot/goal input endpoint | API | 3 |
 | F8 | Implement unified error handling & problem responses | API | 3 |
+| F9 | Add backend tests with focus on security | API | 3 |
 | F11-social | Implement social endpoints (friends, teams, search) | API | 3 |
-| G5b7 | Goals Panel | Frontend | 2 |
+| F13-lp | Implement Riot League API for rank/LP data | API | 5 |
+| F14-login | Check for new matches on user login and auto-sync | API | 3 |
+| G5b7 | Goals panel + goals data on Solo dashboard (FE+BE) | Frontend / Backend | 4 |
+| G5b13 | Fetch winrate trend data for Solo dashboard | Backend | 2 |
+| G5b14 | Fetch LP trend data for Solo dashboard | Backend | 2 |
 | G5b15 | Goals array in Solo endpoint | Backend | 2 |
 | G6 | Implement Duo dashboard view | Frontend | 5 |
 | G7 | Implement Team dashboard view | Frontend | 5 |
+| G10 | Implement user dropdown details & account settings page | Frontend | 8 |
+| G19 | Implement session expiry handling (global handler + UX) | Frontend | 5 |
 
-    **P1 Remaining Total:** 51 points
+**P1 Remaining Total:** 93 points
 
 ### P2 - Medium
 
@@ -1543,12 +1610,23 @@ Allow users to add multiple Riot accounts and choose whether mongoose.gg should 
 | B13 | Create goal recommendation UI | AI Goals | 3 |
 | B14 | Create active goals display | AI Goals | 3 |
 | B15 | Create goal progress chart | AI Goals | 2 |
+| B20 | Post-game AI feedback (Pro, on-demand) | AI Goals | 5 |
 | C15 | Create founding member pricing | Subscription | 2 |
+| D4 | Server-side event tracking | Analytics | 2 |
+| D5 | Create key dashboards | Analytics | 2 |
+| D6 | Create internal metrics endpoint | Analytics | 2 |
+| D7 | Set up error tracking | Analytics | 2 |
+| D9 | Show login activity heatmap on user page | Analytics | 3 |
 | D10 | Implement cookie consent & preferences | Analytics | 2 |
+| D11 | Evaluate Betterlytics analytics platform | Analytics | 2 |
 | F10 | Audit async methods for CancellationToken usage | API | 3 |
+| F15 | Preserve username casing while keeping login case-insensitive | API | 1 |
+| G8 | Remove legacy dashboard views & routes | Frontend | 1 |
 | G11 | Implement friends management UI scaffolding | Frontend | 3 |
+| G17 | Design and implement manual match refresh entry point | Frontend | 2 |
+| G18 | Multi-account Riot support & aggregated stats | Frontend | 5 |
 
-    **P2 Remaining Total:** 18 points
+**P2 Remaining Total:** 45 points
 
 ### P3 - Low
 
@@ -1558,8 +1636,11 @@ Allow users to add multiple Riot accounts and choose whether mongoose.gg should 
 | B17 | Conversational follow-up | AI Goals | 5 |
 | C16 | Create referral tracking | Subscription | 2 |
 | D8 | Implement A/B testing | Analytics | 2 |
+| F16 | Rename RiotProxy backend to Mongoose.Api | API | 3 |
+| G16 | Improve Match narrative header spacing and "You" button | Frontend | 1 |
+| G20 | Add optional pre-expiry session warning toast | Frontend | 2 |
 
-**P3 Remaining Total:** 11 points
+**P3 Remaining Total:** 17 points
 
 ---
 
