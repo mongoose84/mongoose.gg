@@ -65,8 +65,8 @@
         <span
           v-if="!isCollapsed && isAnalysisRunning"
           class="analysis-indicator ml-auto"
-          title="Analyzing games…"
           role="status"
+          aria-live="polite"
           aria-label="Analysis in progress"
         />
       </router-link>

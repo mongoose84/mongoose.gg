@@ -10,7 +10,7 @@ import { triggerRiotAccountSync, getRiotAccountSyncStatus } from '../services/au
  */
 export function useAnalysisStatus() {
   const authStore = useAuthStore()
-  const { syncProgress, subscribe, resetProgress, isConnected } = useSyncWebSocket()
+  const { syncProgress, subscribe, unsubscribe, resetProgress, isConnected } = useSyncWebSocket()
   
   const isLoading = ref(false)
   const error = ref(null)
@@ -154,7 +154,11 @@ export function useAnalysisStatus() {
   }
   
   // Subscribe to WebSocket when primary account changes
-  watch(primaryPuuid, (newPuuid) => {
+  // Unsubscribe from old puuid to prevent memory leaks
+  watch(primaryPuuid, (newPuuid, oldPuuid) => {
+    if (oldPuuid && oldPuuid !== newPuuid) {
+      unsubscribe(oldPuuid)
+    }
     if (newPuuid) {
       subscribe(newPuuid)
     }

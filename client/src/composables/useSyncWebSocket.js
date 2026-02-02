@@ -20,7 +20,8 @@ const maxReconnectAttempts = 10
 const baseReconnectDelay = 1000 // 1 second
 
 // Track number of active component instances using this composable
-let activeInstances = 0
+// Using ref for proper reactivity and to avoid race conditions during rapid navigation
+const activeInstances = ref(0)
 
 /**
  * Composable for managing WebSocket connection to sync progress endpoint.
@@ -318,16 +319,16 @@ export function useSyncWebSocket() {
   // Uses instance counting so WebSocket stays connected as long as
   // at least one component is using this composable
   onMounted(() => {
-    activeInstances++
-    if (activeInstances === 1) {
+    activeInstances.value++
+    if (activeInstances.value === 1) {
       // First instance - connect
       connect()
     }
   })
 
   onUnmounted(() => {
-    activeInstances--
-    if (activeInstances === 0) {
+    activeInstances.value--
+    if (activeInstances.value === 0) {
       // Last instance unmounted - disconnect
       disconnect()
     }
