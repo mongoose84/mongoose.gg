@@ -2,22 +2,35 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { getHost, isDevelopment } from '../services/apiConfig'
 
 /**
+ * Singleton state for WebSocket connection.
+ * Shared across all components using this composable so that
+ * sync progress (including rate-limited state) persists across navigation.
+ */
+const isConnected = ref(false)
+const isConnecting = ref(false)
+const connectionError = ref(null)
+
+// Map of puuid -> sync progress data (persists across navigation)
+const syncProgress = reactive(new Map())
+
+let socket = null
+let reconnectAttempts = 0
+let reconnectTimeout = null
+const maxReconnectAttempts = 10
+const baseReconnectDelay = 1000 // 1 second
+
+// Track number of active component instances using this composable
+let activeInstances = 0
+
+/**
  * Composable for managing WebSocket connection to sync progress endpoint.
  * Provides real-time updates for match sync progress.
+ *
+ * Uses singleton state so sync progress persists across navigation.
+ * The WebSocket connection is maintained as long as at least one component
+ * is using this composable.
  */
 export function useSyncWebSocket() {
-  const isConnected = ref(false)
-  const isConnecting = ref(false)
-  const connectionError = ref(null)
-  
-  // Map of puuid -> sync progress data
-  const syncProgress = reactive(new Map())
-  
-  let socket = null
-  let reconnectAttempts = 0
-  let reconnectTimeout = null
-  const maxReconnectAttempts = 10
-  const baseReconnectDelay = 1000 // 1 second
   
   /**
    * Get WebSocket URL based on current host
@@ -302,12 +315,22 @@ export function useSyncWebSocket() {
   }
 
   // Lifecycle hooks for auto-connect/disconnect
+  // Uses instance counting so WebSocket stays connected as long as
+  // at least one component is using this composable
   onMounted(() => {
-    connect()
+    activeInstances++
+    if (activeInstances === 1) {
+      // First instance - connect
+      connect()
+    }
   })
 
   onUnmounted(() => {
-    disconnect()
+    activeInstances--
+    if (activeInstances === 0) {
+      // Last instance unmounted - disconnect
+      disconnect()
+    }
   })
 
   return {
