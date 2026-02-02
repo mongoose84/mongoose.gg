@@ -12,8 +12,8 @@
       </button>
     </template>
 
-    <!-- Top Left: Player Header -->
-    <template #top-left>
+    <!-- Header: Player Header (full width) -->
+    <template #header>
       <OverviewPlayerHeader
         v-if="overviewData?.playerHeader"
         :summoner-name="overviewData.playerHeader.summonerName"
@@ -21,27 +21,11 @@
         :region="overviewData.playerHeader.region"
         :profile-icon-url="overviewData.playerHeader.profileIconUrl"
         :active-contexts="overviewData.playerHeader.activeContexts"
-        :sync-status="currentSyncStatus"
-        :sync-progress="currentSyncProgress"
-        :sync-total="currentSyncTotal"
-        :last-sync-at="authStore.primaryRiotAccount?.lastSyncAt"
-        :is-rate-limited="isSyncRateLimited"
       />
     </template>
 
-    <!-- Top Right: Match Activity Heatmap -->
-    <template #top-right>
-      <MatchActivityHeatmap
-        v-if="matchActivityData"
-        :daily-match-counts="matchActivityData.dailyMatchCounts"
-        :start-date="matchActivityData.startDate"
-        :end-date="matchActivityData.endDate"
-        :total-matches="matchActivityData.totalMatches"
-      />
-    </template>
-
-    <!-- Bottom Left: Rank Snapshot -->
-    <template #bottom-left>
+    <!-- Today at a glance: Left - Rank Snapshot -->
+    <template #glance-left>
       <RankSnapshot
         v-if="overviewData?.rankSnapshot"
         :primary-queue-label="overviewData.rankSnapshot.primaryQueueLabel"
@@ -54,8 +38,29 @@
       />
     </template>
 
-    <!-- Bottom Right: Last Match Card -->
-    <template #bottom-right>
+    <!-- Today at a glance: Right - Champion Select CTA -->
+    <template #glance-right>
+      <ChampionSelectCTA />
+    </template>
+
+    <!-- Recent games: Left - Match Activity Heatmap -->
+    <template #recent-left>
+      <MatchActivityHeatmap
+        v-if="matchActivityData"
+        :daily-match-counts="matchActivityData.dailyMatchCounts"
+        :start-date="matchActivityData.startDate"
+        :end-date="matchActivityData.endDate"
+        :total-matches="matchActivityData.totalMatches"
+      />
+    </template>
+
+    <!-- Recent games: Right - Analysis Status Card -->
+    <template #recent-right>
+      <AnalysisStatusCard />
+    </template>
+
+    <!-- Latest match (full width) -->
+    <template #latest-match>
       <LastMatchCard
         v-if="overviewData?.lastMatch"
         :match-id="overviewData.lastMatch.matchId"
@@ -87,6 +92,8 @@ import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vu
 import MatchActivityHeatmap from '../components/overview/MatchActivityHeatmap.vue'
 import RankSnapshot from '../components/overview/RankSnapshot.vue'
 import LastMatchCard from '../components/overview/LastMatchCard.vue'
+import ChampionSelectCTA from '../components/overview/ChampionSelectCTA.vue'
+import AnalysisStatusCard from '../components/overview/AnalysisStatusCard.vue'
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
 
 const authStore = useAuthStore()
@@ -102,42 +109,6 @@ const showLinkModal = ref(false)
 // Get primary account PUUID for sync status tracking
 const primaryPuuid = computed(() => {
   return authStore.primaryRiotAccount?.puuid || null
-})
-
-// Sync status computed from WebSocket progress, falls back to stored status
-const currentSyncStatus = computed(() => {
-  if (!primaryPuuid.value) return null
-  // First check WebSocket for real-time updates
-  const progress = syncProgress.get(primaryPuuid.value)
-  if (progress?.status) return progress.status
-  // Fall back to stored status from account
-  return authStore.primaryRiotAccount?.syncStatus || null
-})
-
-const currentSyncProgress = computed(() => {
-  if (!primaryPuuid.value) return null
-  // First check WebSocket for real-time updates
-  const progress = syncProgress.get(primaryPuuid.value)
-  if (progress?.progress != null) return progress.progress
-  // Fall back to stored progress from account (for page refresh during sync)
-  return authStore.primaryRiotAccount?.syncProgress ?? null
-})
-
-const currentSyncTotal = computed(() => {
-  if (!primaryPuuid.value) return null
-  // First check WebSocket for real-time updates
-  const progress = syncProgress.get(primaryPuuid.value)
-  if (progress?.total != null) return progress.total
-  // Fall back to stored total from account (for page refresh during sync)
-  return authStore.primaryRiotAccount?.syncTotal ?? null
-})
-
-// TEMPORARY: Flag indicating sync is waiting on Riot API rate limit
-// TODO: Remove this once we have a more sophisticated rate limiting UX.
-const isSyncRateLimited = computed(() => {
-  if (!primaryPuuid.value) return false
-  const progress = syncProgress.get(primaryPuuid.value)
-  return progress?.isRateLimited ?? false
 })
 
 async function fetchData() {

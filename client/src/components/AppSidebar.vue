@@ -61,6 +61,14 @@
           <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-3 3a1 1 0 100 2h.01a1 1 0 100-2H10zm-4 1a1 1 0 011-1h.01a1 1 0 110 2H7a1 1 0 01-1-1zm1-4a1 1 0 100 2h.01a1 1 0 100-2H7zm2 1a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zm4-4a1 1 0 100 2h.01a1 1 0 100-2H13zM9 9a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zM7 8a1 1 0 000 2h.01a1 1 0 000-2H7z" clip-rule="evenodd" />
         </svg>
         <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Matches</span>
+        <!-- Analysis in progress indicator - only when expanded and running -->
+        <span
+          v-if="!isCollapsed && isAnalysisRunning"
+          class="analysis-indicator ml-auto"
+          role="status"
+          aria-live="polite"
+          aria-label="Analysis in progress"
+        />
       </router-link>
 
       <!-- Analysis Section with Submenu -->
@@ -190,10 +198,12 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
+import { useAnalysisStatus } from '../composables/useAnalysisStatus';
 import pkg from '../../package.json';
 
 const authStore = useAuthStore();
 const uiStore = useUiStore();
+const { isRunning: isAnalysisRunning } = useAnalysisStatus();
 const version = pkg.version || '0.0.0';
 
 // Local state
@@ -337,5 +347,23 @@ nav::-webkit-scrollbar-thumb {
 
 nav::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-secondary);
+}
+
+/* Analysis in progress indicator */
+.analysis-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: analysis-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes analysis-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

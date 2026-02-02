@@ -32,14 +32,44 @@
         <slot name="empty-action"></slot>
       </BaseCard>
 
-      <!-- Content Slot with 2x2 Grid -->
+      <!-- Content: Vertical section-based layout -->
       <div v-else class="overview-content">
-        <div class="overview-grid">
-          <slot name="top-left"></slot>
-          <slot name="top-right"></slot>
-          <slot name="bottom-left"></slot>
-          <slot name="bottom-right"></slot>
-        </div>
+        <!-- Player Header Section (full width) -->
+        <section v-if="$slots.header" class="overview-section">
+          <slot name="header"></slot>
+        </section>
+
+        <!-- Today at a glance Section -->
+        <section v-if="$slots['glance-left'] || $slots['glance-right']" class="overview-section">
+          <h2 class="section-title">Today at a glance</h2>
+          <div class="section-row">
+            <div class="section-col section-col--primary">
+              <slot name="glance-left"></slot>
+            </div>
+            <div class="section-col section-col--secondary">
+              <slot name="glance-right"></slot>
+            </div>
+          </div>
+        </section>
+
+        <!-- Recent games Section -->
+        <section v-if="$slots['recent-left'] || $slots['recent-right']" class="overview-section">
+          <h2 class="section-title">Recent games</h2>
+          <div class="section-row">
+            <div class="section-col section-col--primary">
+              <slot name="recent-left"></slot>
+            </div>
+            <div class="section-col section-col--secondary">
+              <slot name="recent-right"></slot>
+            </div>
+          </div>
+        </section>
+
+        <!-- Latest Match Section (full width) -->
+        <section v-if="$slots['latest-match']" class="overview-section">
+          <h2 class="section-title">Latest match</h2>
+          <slot name="latest-match"></slot>
+        </section>
       </div>
     </div>
   </div>
@@ -89,16 +119,47 @@ defineEmits(['retry'])
   gap: var(--spacing-lg);
 }
 
-.overview-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--spacing-lg);
+/* Section styles */
+.overview-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.section-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Section row: two columns on desktop, stacked on mobile */
+.section-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
 @media (min-width: 768px) {
-  .overview-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .section-row {
+    flex-direction: row;
+    align-items: stretch;
   }
+}
+
+/* Column sizing */
+.section-col {
+  min-width: 0;
+}
+
+.section-col--primary {
+  flex: 1 1 60%;
+}
+
+.section-col--secondary {
+  flex: 1 1 40%;
 }
 
 /* State cards */
