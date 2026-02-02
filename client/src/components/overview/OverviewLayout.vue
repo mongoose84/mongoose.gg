@@ -116,14 +116,14 @@ defineEmits(['retry'])
 .overview-content {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2xl);
+  gap: var(--spacing-lg);
 }
 
 /* Section styles */
 .overview-section {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .section-title {
@@ -139,7 +139,7 @@ defineEmits(['retry'])
 .section-row {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
 @media (min-width: 768px) {
