@@ -1303,9 +1303,10 @@ Create an `<AnalysisStatusCard>` component that surfaces the state of the backgr
 - [ ] Component created at `client/src/components/overview/AnalysisStatusCard.vue`
 - [ ] Uses `BaseCard` (or equivalent) and follows `docs/ui-ux/ui-design-guidelines.md` for spacing, typography, and states
 - [ ] Supports at least three user-visible states:
-  - Idle / up-to-date: copy such as "Analysis up to date" with last updated timestamp
-  - Running: copy such as "Analyzing games…" with progress indicator (processed vs total games, percentage, or similar)
-  - Error: neutral error message (no stack traces) with a clear retry CTA
+  - Idle / up-to-date: copy such as "Analysis up to date" with last updated timestamp - green status
+  - Running: copy such as "Analyzing games…" with progress indicator (processed vs total games, percentage, or similar) - blue status
+  - Waiting on Riot API - yellow status
+  - Error: neutral error message (no stack traces) with a clear retry CTA - Grey status
 - [ ] Analysis status is loaded from the backend on Overview load so a refresh or navigation away/back shows the true job state (no purely local progress that gets lost on reload)
 - [ ] If a job is running and the user navigates away from Overview, returning later shows the correct, current status (including completion or failure)
 - [ ] Card exposes a "Refresh analysis" / "Analyze recent games" CTA that triggers the same backend job used for match analysis/sync
@@ -1338,6 +1339,7 @@ Add a lightweight global indicator in the authenticated app sidebar that shows w
 - [ ] Indicator updates correctly from any authenticated route (Overview, Solo dashboard, Champion Select, etc.)
 - [ ] Indicator is not shown on public/marketing pages or before login
 - [ ] Indicator has appropriate ARIA labeling so screen reader users understand that analysis is in progress
+- [ ] Indicator is only shown when the sidebar is expanded; not shown in the collapsed state
 
 ---
 
