@@ -1160,6 +1160,59 @@ Standardize the backend naming from "RiotProxy" to "Mongoose.Api" across the sol
 
 ---
 
+### F17. [API] Implement feedback endpoint and GitHub integration
+
+**Priority:** P2 - Medium  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** F1, F8  
+**Labels:** `api`, `feedback`, `github`, `epic-f`
+
+#### Description
+
+Add a secure backend endpoint that accepts structured in-app feedback (bugs and feature requests) and creates corresponding GitHub issues in the internal backlog repository using server-side credentials. The client never sees GitHub tokens, repo names, or issue URLs.
+
+#### Requirements
+
+- [ ] Expose a `POST /api/feedback` (or equivalent) endpoint in the existing API surface.  
+- [ ] Define a request DTO that can carry:
+  - `type` (e.g. `"bug"` or `"feature"`)
+  - `summary` (short title)
+  - `details` (free-text description)
+  - route / page (e.g. `/app/solo`, `/app/feedback`)
+  - environment (e.g. production vs staging)
+  - parsed browser + OS (from User-Agent or a client-supplied field)
+  - internal user / account identifiers (IDs or safe hashes; no raw email/password)
+- [ ] Validate the payload:
+  - reject unknown `type` values  
+  - require `summary` and the appropriate description field depending on type
+- [ ] Load a server-side GitHub token or GitHub App configuration from secure configuration (env vars / user-secrets), never from client input.  
+- [ ] Create a new GitHub issue in the configured private repository with:
+  - Title based on `summary`  
+  - Label `bug` for bug reports  
+  - Label `feature-request` or `enhancement` for feature requests  
+  - Issue body including:
+    - User-entered description  
+    - Type (bug / feature request)  
+    - Route / page  
+    - Environment (production / staging)  
+    - Browser and OS  
+    - Internal user/account IDs or correlation identifiers
+- [ ] Integrate with the unified error-handling approach from F8 so failures are returned as standardized error responses and logged for operators.
+
+#### Acceptance Criteria
+
+- [ ] Sending a valid feedback payload from a test client results in a new GitHub issue in the correct repository with the expected title, labels, and body fields populated.  
+- [ ] The HTTP response on success returns a generic success status (e.g. `202 Accepted` or `200 OK`) with no GitHub-specific details (no issue numbers, URLs, or repo names).  
+- [ ] If GitHub is unavailable, rate-limited, or returns an error, the endpoint:
+  - does **not** leak tokens, stack traces, or internal exception messages  
+  - returns a standardized error response (per F8) that the frontend can map to a neutral “couldn’t send feedback” message
+- [ ] All secrets (tokens, app keys) are only loaded on the server side; no GitHub configuration is ever exposed to the client bundle.  
+- [ ] Unit and/or integration tests cover:
+  - happy-path issue creation  
+  - validation errors for missing required fields  
+  - GitHub failure behaviour (e.g. 500 / 503 / 429) and returned error shape.
+
 <!-- AI: END_EPIC_F_TASKS -->
 
 
@@ -1527,6 +1580,61 @@ Implement an optional, subtle pre-expiry warning so that long analysis sessions 
 
 ---
 
+### G21. [Frontend] Add in-app Feedback page and sidebar entry
+
+**Priority:** P2 - Medium  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** G2, F17  
+**Labels:** `frontend`, `feedback`, `forms`, `epic-g`
+
+#### Description
+
+Add a first-class in-app Feedback entry point so logged-in users can submit structured bug reports and feature requests without leaving mongoose.gg. The page should be simple for players while capturing enough structured context (route, environment, browser, user IDs) for us to triage the resulting GitHub issues created by F17.
+
+#### Frontend Requirements
+
+- [ ] Add a “Feedback” navigation item to the authenticated app sidebar, positioned above the username/account section; do not show this link on public/marketing pages.  
+- [ ] Create a dedicated `/app/feedback` route/page rendered inside the existing app shell.  
+- [ ] Page header:
+  - Title: “Send feedback”  
+  - Short explanatory copy describing that this is for bug reports and feature requests.
+- [ ] Provide a simple type selector (e.g. segmented control or radio buttons) for **Bug** vs **Feature request**, with the visible form updating when the type changes.  
+- [ ] Bug mode form:
+  - Required fields: short summary and “What happened?” description  
+  - Optional field: “What did you expect?”
+- [ ] Feature request mode form:
+  - Required fields: short summary and “What problem are you trying to solve?” description  
+  - Optional field: “How would this help your climbing?”
+- [ ] In both modes, automatically capture the current route/page and environment (e.g. production/staging) and display a simple “From: /some-route” line so the user can see what will be sent.  
+- [ ] Implement inline validation and error messages for missing required fields; “Send feedback” stays disabled until the minimum required fields are filled.  
+- [ ] On submit:
+  - Disable the button and show a spinner/“Sending…” state  
+  - Call the backend feedback endpoint from F17 with the structured payload  
+  - Prevent double-submits while a request is in flight
+- [ ] On success:
+  - Either reset the form or clearly show a non-intrusive success confirmation  
+  - Do **not** show any GitHub URLs, issue numbers, or repository names.
+- [ ] On failure:
+  - Show a neutral error message (e.g. “We couldn’t send your feedback right now. Please try again.”)  
+  - Preserve the user’s typed input so they can retry without retyping.
+- [ ] Use existing base components (inputs, buttons, cards, alerts) and follow `docs/ui-ux/ui-design-guidelines.md` for typography, spacing, focus states, and responsive behaviour.  
+- [ ] Ensure the page layout and interactions work well on both desktop and mobile breakpoints.
+
+#### Acceptance Criteria
+
+- [ ] When logged in, the sidebar shows a “Feedback” link above the username/account section; this link is absent on public/marketing pages.  
+- [ ] Clicking “Feedback” navigates to `/app/feedback` within the authenticated app shell.  
+- [ ] The Feedback page shows the correct title and explanatory copy and allows switching between Bug and Feature request modes.  
+- [ ] Bug mode requires summary + “What happened?” before enabling “Send feedback”, and shows inline errors when they are missing.  
+- [ ] Feature request mode requires summary + “What problem are you trying to solve?” before enabling “Send feedback”, and shows inline errors when they are missing.  
+- [ ] The page displays a human-readable “From: …” line reflecting the route the user came from, and this value is included in the payload sent to F17.  
+- [ ] On successful submission, the user sees a clear success state and no GitHub implementation details (URLs, repo names, issue numbers) are exposed.  
+- [ ] On backend failure (e.g. GitHub API error), the UI shows a neutral, retryable error, preserves the form contents, and does not surface raw error codes or stack traces.  
+- [ ] Visual styling (spacing, typography, focus states, button hierarchy) matches the rest of the app and follows the documented UI design guidelines on both mobile and desktop.
+
+---
+
 <!-- AI: END_EPIC_G_TASKS -->
 
 # Summary
@@ -1618,8 +1726,10 @@ Implement an optional, subtle pre-expiry warning so that long analysis sessions 
 | G11 | Implement friends management UI scaffolding | Frontend | 3 |
 | G17 | Design and implement manual match refresh entry point | Frontend | 2 |
 | G18 | Multi-account Riot support & aggregated stats | Frontend | 5 |
+| F17 | Implement feedback endpoint & GitHub integration | API | 5 |
+| G21 | In-app Feedback page & sidebar entry | Frontend | 5 |
 
-**P2 Remaining Total:** 45 points
+**P2 Remaining Total:** 55 points
 
 ### P3 - Low
 
@@ -1691,9 +1801,9 @@ Implement an optional, subtle pre-expiry warning so that long analysis sessions 
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 207 pts |
+| **Remaining** | 217 pts |
 | **Completed** | 122 pts |
-| **Grand Total** | 329 pts |
+| **Grand Total** | 339 pts |
 
 ---
 
