@@ -1635,6 +1635,66 @@ Implement an optional, subtle pre-expiry warning so that long analysis sessions 
 
 **P3 Remaining Total:** 17 points
 
+## Summary of Completed Work
+
+| Epic | Task | Points | Completed |
+|------|------|--------|-----------|
+| C | C3 - Add tier column to User | 1 | ✅ |
+| C | C10 - Add tier info to user endpoints | 1 | ✅ |
+| C | C11 - Create subscription status component | 2 | ✅ |
+| C | C13 - Create pricing page | 3 | ✅ |
+| E | E1 - Database schema & DDL | 3 | ✅ |
+| E | E2 - MySQL schema scripts | 2 | ✅ |
+| E | E3 - Entities and repositories | 3 | ✅ |
+| E | E4 - Match & participant ingestion | 3 | ✅ |
+| E | E5 - Timeline & derived metrics ingestion | 5 | ✅ |
+| E | E6 - Validate database metrics against Riot | 2 | ✅ |
+| E | E7 - Remove legacy database tables and repositories | 2 | ✅ |
+| F | F1 - API surface design | 2 | ✅ |
+| F | F2 - Solo dashboard endpoint | 3 | ✅ |
+| F | F6 - Deprecate or migrate legacy endpoints | 2 | ✅ |
+| F | F7 - Session authentication | 3 | ✅ |
+| F | F11 - User auth endpoints (core) | 5 | ✅ |
+| F | F12 - Riot account linking endpoints | 5 | ✅ |
+| F | F13 - WebSocket endpoint for sync progress | 5 | ✅ |
+| F | F14 - Match History Sync Job | 8 | ✅ |
+| G | G1 - App IA & routes | 2 | ✅ |
+| G | G2 - App shell & navigation | 3 | ✅ |
+| G | G3 - Implement new public landing page | 2 | ✅ |
+| G | G4 - Implement pricing page | 2 | ✅ |
+| G | G5a - Dashboard Hub design | 2 | ✅ |
+| G | G5b0 - Solo Dashboard design | 2 | ✅ |
+| G | G5b1 - Create empty Solo dashboard view & routing | 1 | ✅ |
+| G | G5b2 - Profile header button + profile data (FE+BE) | 5 | ✅ |
+| G | G5b3 - Main Champion Card (FE+BE) | 3 | ✅ |
+| G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
+| G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
+| G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
+| G | G5b11 - Create champion matchups endpoint | 3 | ✅ |
+| G | G5b12 - Fetch main champions by role for Solo dashboard | 2 | ✅ |
+| G | G5b16 - Update database on login (FE+BE) | 2 | ✅ |
+| G | G5b17 - Implement ranked data display in ProfileHeaderCard (FE+BE) | 5 | ✅ |
+| G | G9 - Login, signup, verification & user shell | 5 | ✅ |
+| G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
+| G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
+| G | G14b - OverviewPlayerHeader component | 1 | ✅ |
+| G | G14c - RankSnapshot component | 2 | ✅ |
+| G | G14d - LastMatchCard component | 1 | ✅ |
+| G | G14g - AnalysisStatusCard component and persisted analysis status | 2 | ✅ |
+| G | G14h - Add global "analysis in progress" sidebar indicator | 1 | ✅ |
+| G | G14i - ChampionSelectCTA card on Overview | 1 | ✅ |
+| G | G14j - Restructure Overview page layout for new components | 2 | ✅ |
+
+**Total Completed Points:** 174
+
+## Grand Totals
+
+| Category | Points |
+|----------|--------|
+| **Remaining** | 207 pts |
+| **Completed** | 122 pts |
+| **Grand Total** | 329 pts |
+
 ---
 
 ## Recommended Sprint Plan
