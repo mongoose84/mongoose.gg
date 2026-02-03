@@ -56,11 +56,14 @@ For full task details, see:
 | G9 | Implement user login, signup, verification & `/app/user` shell | Frontend | 5 | ✅ |
 | G12 | Implement Riot account linking on `/app/user` | Frontend | 5 | ✅ |
 | G13 | Implement real-time match sync progress via WebSocket | Frontend | 5 | ✅ |
-    | G14b | Implement OverviewPlayerHeader component | Frontend | 1 | ✅ |
-    | G14c | Implement RankSnapshot component | Frontend | 2 | ✅ |
-    | G14d | Implement LastMatchCard component | Frontend | 1 | ✅ |
-    | G14g | Implement OverviewLayout and page integration | Frontend | 1 | ✅ |
-    | D1 | Set up analytics provider | Analytics | 2 | ✅ |
+| G14b | Implement OverviewPlayerHeader component | Frontend | 1 | ✅ |
+| G14c | Implement RankSnapshot component | Frontend | 2 | ✅ |
+| G14d | Implement LastMatchCard component | Frontend | 1 | ✅ |
+| G14g | Implement AnalysisStatusCard component and persisted analysis status | Frontend | 2 | ✅ |
+| G14h | Add global "analysis in progress" sidebar indicator | Frontend | 1 | ✅ |
+| G14i | Implement ChampionSelectCTA card on Overview | Frontend | 1 | ✅ |
+| G14j | Restructure Overview page layout for new components | Frontend | 2 | ✅ |
+| D1 | Set up analytics provider | Analytics | 2 | ✅ |
     | D2 | Implement core tracking events | Analytics | 3 | ✅ |
     | D3 | Track page views and sessions | Analytics | 1 | ✅ |
     | D4 | Server-side event tracking | Analytics | 2 | ✅ |
@@ -78,7 +81,7 @@ For full task details, see:
     | G8 | Remove legacy dashboard views & routes | Frontend | 1 | ✅ |
     | G10 | Implement user dropdown details & account settings page | Frontend | 8 | ✅ |
 
-    **Completed Total:** 161 points
+    **Completed Total:** 166 points
 
 ---
 
@@ -139,7 +142,7 @@ For full task details, see:
 | G13 | Implement real-time match sync progress via WebSocket | Frontend | 5 | ✅ |
 | G15 | Allow cancelling or switching account during email verification | Frontend | 2 | |
 
-**P0 Remaining:** 52 points | **P0 Completed:** 101 points | **P0 Total:** 153 points
+**P0 Remaining:** 52 points | **P0 Completed:** 100 points | **P0 Total:** 152 points
 
 ### P1 - High
 
@@ -182,7 +185,7 @@ For full task details, see:
 | G10 | Implement user dropdown details & account settings page | Frontend | 8 | |
 | G19 | Implement session expiry handling (global handler + UX) | Frontend | 5 | |
 
-**P1 Remaining:** 93 points | **P1 Completed:** 12 points | **P1 Total:** 105 points
+**P1 Remaining:** 93 points | **P1 Completed:** 17 points | **P1 Total:** 110 points
 
 ### P2 - Medium
 
@@ -209,7 +212,7 @@ For full task details, see:
 | G17 | Design and implement manual match refresh entry point | Frontend | 2 | |
 | G18 | Multi-account Riot support & aggregated stats | Frontend | 5 | |
 
-**P2 Remaining:** 45 points | **P2 Completed:** 4 points | **P2 Total:** 49 points
+**P2 Remaining:** 45 points | **P2 Completed:** 5 points | **P2 Total:** 50 points
 
 ### P3 - Low
 
@@ -233,8 +236,8 @@ For full task details, see:
 | Category | Points |
 |----------|--------|
 | **Remaining** | 207 pts |
-| **Completed** | 117 pts |
-| **Grand Total** | 324 pts |
+| **Completed** | 122 pts |
+| **Grand Total** | 329 pts |
 
 ---
 

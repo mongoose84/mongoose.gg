@@ -1074,31 +1074,117 @@ Create the `<LastMatchCard>` component showing a quick summary of the most recen
 
 ---
 
-### G14g. [Frontend] Implement OverviewLayout and page integration ✅ COMPLETE
+### G14g. [Frontend] Implement AnalysisStatusCard component and persisted analysis status ✅ COMPLETE
 
-**Priority:** P0 - Critical
+**Priority:** P1 - High
 **Type:** Feature
-**Estimate:** 1 point
-**Depends on:** G14b, G14c, G14d
-**Labels:** `frontend`, `page`, `overview`, `epic-g`
+**Estimate:** 2 points
+**Depends on:** G14a (Overview shell in place)
+**Labels:** `frontend`, `component`, `overview`, `epic-g`
 
 #### Description
 
-Create the `<OverviewLayout>` container and integrate Overview components into the Overview page.
+Create an `<AnalysisStatusCard>` component that surfaces the state of the background game analysis/sync job. The card should live in the Overview "Recent games" section next to the Match Heatmap and show clear, persisted status for "analyzing games" (idle, running, error) so users can leave and return without losing context.
 
 #### Acceptance Criteria
 
-- [x] Layout component created at `client/src/components/overview/OverviewLayout.vue`
-- [x] Overview page created at `client/src/views/OverviewPage.vue`
-- [x] Single-column layout
-- [x] Enforces one-scroll maximum on desktop and mobile
-- [x] Handles loading state (skeleton or spinner)
-- [x] Handles empty states gracefully
-- [x] Shows `primaryQueueLabel` visibly next to RankSnapshot
-- [x] Must NOT include deep graphs, champion matrices, comparative analysis, or editable controls
+- [x] Component created at `client/src/components/overview/AnalysisStatusCard.vue`
+- [x] Uses `BaseCard` (or equivalent) and follows `docs/ui-ux/ui-design-guidelines.md` for spacing, typography, and states
+- [x] Supports at least these user-visible states with clear, accessible copy and color semantics:
+  - Idle / up-to-date: copy such as "Analysis up to date" with last updated timestamp (green status)
+  - Running: copy such as "Analyzing games…" with progress indicator (processed vs total games, percentage, or similar) (blue status)
+  - Waiting on Riot API: waiting/queued state (yellow status)
+  - Error: neutral error message (no stack traces) with a clear retry CTA (grey status)
+- [x] Analysis status is loaded from the backend on Overview load so a refresh or navigation away/back shows the true job state (no purely local progress that gets lost on reload)
+- [x] If a job is running and the user navigates away from Overview, returning later shows the correct, current status (including completion or failure)
+- [x] Card exposes a "Refresh analysis" / "Analyze recent games" CTA that triggers the same backend job used for match analysis/sync
+- [x] User-facing copy consistently uses "analyzing games" / "analysis" language instead of "sync" in the UI
+- [x] Card is non-blocking: Overview remains fully usable while analysis is running (no full-screen modal or hard block)
+- [x] Layout is responsive: on desktop it is designed to sit beside the Match Heatmap; on mobile it stacks below it
+- [x] Implementation uses a shared analysis-status store or composable so other parts of the app (e.g., sidebar indicator) can reuse the same state without duplicate polling
 
-#### Implementation Notes
-- Integrated `OverviewPlayerHeader`, `RankSnapshot`, and `LastMatchCard`. Placeholders will be replaced with `GoalProgressPreview` (G14e) and `SuggestedActions` (G14f) when those ship.
+---
+
+### G14h. [Frontend] Add global "analysis in progress" sidebar indicator ✅ COMPLETE
+
+**Priority:** P2 - Medium
+**Type:** UX
+**Estimate:** 1 point
+**Depends on:** G14g
+**Labels:** `frontend`, `navigation`, `overview`, `ux`, `epic-g`
+
+#### Description
+
+Add a lightweight global indicator in the authenticated app sidebar that shows when a game analysis job is currently running. The indicator should reuse the same analysis status as `<AnalysisStatusCard>`, be visually subtle, and never turn the sidebar into a noisy status panel.
+
+#### Acceptance Criteria
+
+- [x] Indicator appears only when analysis status is in a running/active state and is hidden when analysis is idle, complete, or in an error state
+- [x] Indicator is rendered next to the primary navigation item for matches/analysis in the sidebar (e.g., "Matches"), without breaking layout
+- [x] Visual treatment uses design tokens (e.g., small colored dot or spinner) and does not introduce large text blocks in the sidebar
+- [x] Hover/focus shows an accessible tooltip such as "Analyzing games…" while a job is running
+- [x] Implementation consumes the same shared analysis-status store/composable as `<AnalysisStatusCard>` (no separate polling logic)
+- [x] Indicator updates correctly from any authenticated route (Overview, Solo dashboard, Champion Select, etc.)
+- [x] Indicator is not shown on public/marketing pages or before login
+- [x] Indicator has appropriate ARIA labeling so screen reader users understand that analysis is in progress
+- [x] Indicator is only shown when the sidebar is expanded; not shown in the collapsed state
+
+---
+
+### G14i. [Frontend] Implement ChampionSelectCTA card on Overview ✅ COMPLETE
+
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** G14a (Overview shell in place), Champion Select route existing
+**Labels:** `frontend`, `component`, `overview`, `navigation`, `epic-g`
+
+#### Description
+
+Create a `<ChampionSelectCTA>` card on the Overview page that gives users a clear, high-visibility path into the Champion Select helper. The card should sit in the "Today at a glance" section next to the RankSnapshot and be optimized for click-through into `/champion-select` (or the configured Champion Select route).
+
+#### Acceptance Criteria
+
+- [x] Component created at `client/src/components/overview/ChampionSelectCTA.vue`
+- [x] Uses `BaseCard` and `BaseButton` (or equivalents) and follows `docs/ui-ux/ui-design-guidelines.md` for copy, spacing, and hover/focus states
+- [x] Card shows a concise title communicating the feature (e.g., "Champion Select helper")
+- [x] Card shows a short, outcome-focused subtitle (e.g., "Get personal matchup tips before you lock in")
+- [x] Card includes a Heroicons-based icon that fits the feature (e.g., sparkles/lightbulb style), aligned with the design system
+- [x] Card includes a primary CTA (e.g., "Open Champion Select") and makes the entire card clickable to navigate to the Champion Select page (e.g., `/champion-select`)
+- [x] If the user’s session has expired, clicking the CTA routes through the standard auth/session-expiry flow and then returns the user to Champion Select after login
+- [x] Card appears in the "Today at a glance" area of Overview alongside RankSnapshot as defined by G14j
+- [x] Card is mobile responsive (full-width on small screens) and does not introduce layout shifts
+- [x] Any Pro gating or upgrade prompts follow the monetization UX rules in C12/C14/C17 (no full-screen walls from Overview; use inline locked states or shared upgrade patterns if needed)
+
+---
+
+### G14j. [Frontend] Restructure Overview page layout for new components ✅ COMPLETE
+
+**Priority:** P1 - High
+**Type:** UX / Refactor
+**Estimate:** 2 points
+**Depends on:** G14a, G14e, G14f, G14g, G14i
+**Labels:** `frontend`, `layout`, `overview`, `ux`, `epic-g`
+
+#### Description
+
+Restructure the Overview page layout to match the UX specification: a fast, single-scroll orientation view that guides users onward. Introduce a vertical flow with clearly named sections and place the new components (ChampionSelectCTA and AnalysisStatusCard) in their intended positions relative to RankSnapshot and Match Heatmap.
+
+#### Acceptance Criteria
+
+- [x] Overview view updated so the top section is a compact `OverviewPlayerHeader` / PlayerHeaderCard showing only identity and context (icon, level, name#tagline, region, Solo/Duo/Team), with no sync/analysis controls
+- [x] Below the header, a "Today at a glance" row is implemented on desktop:
+  - Left: RankSnapshot (primary queue rank summary)
+  - Right column: `<ChampionSelectCTA>` (and room for GoalProgressPreview / SuggestedActions when those tasks are implemented)
+- [x] Below "Today at a glance", a "Recent games" row is implemented on desktop:
+  - Left: Match Heatmap card showing recent play activity
+  - Right: `<AnalysisStatusCard>` showing analysis/analyzing-games status
+- [x] Latest Match card is rendered as a full-width section below these rows and remains clickable to navigate to match details
+- [x] On mobile/small screens, the sections stack vertically in this order: PlayerHeader → Today at a glance (RankSnapshot then ChampionSelectCTA) → Recent games (Heatmap then AnalysisStatusCard) → Latest Match
+- [x] Layout keeps Overview within the 5–15 second, one-scroll orientation budget defined in `docs/ui-ux/ux-specification.md` (no deep analysis graphs or heavy interactions)
+- [x] All new and existing components on Overview reuse base components and design tokens per `docs/ui-ux/ui-design-guidelines.md`
+- [x] Overview remains read-only (no create/edit flows; goals and other mutating actions are deep-linked elsewhere)
+- [x] Existing Overview tests and snapshots are updated or extended to cover the new layout and components
 
 ---
 
@@ -1583,6 +1669,9 @@ Extend the user dropdown and implement `/app/settings` for profile, password, av
 | G | G14b - OverviewPlayerHeader component | 1 | ✅ |
 | G | G14c - RankSnapshot component | 2 | ✅ |
 | G | G14d - LastMatchCard component | 1 | ✅ |
-| G | G14g - OverviewLayout and page integration | 1 | ✅ |
+| G | G14g - AnalysisStatusCard component and persisted analysis status | 2 | ✅ |
+| G | G14h - Add global "analysis in progress" sidebar indicator | 1 | ✅ |
+| G | G14i - ChampionSelectCTA card on Overview | 1 | ✅ |
+| G | G14j - Restructure Overview page layout for new components | 2 | ✅ |
 
-**Total Completed Points:** 169
+**Total Completed Points:** 174
