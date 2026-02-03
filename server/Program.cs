@@ -74,6 +74,12 @@ builder.Services.AddScoped<IQueryFilterBuilder, QueryFilterBuilder>();
 // Email service for verification emails
 builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
 
+// GitHub service for feedback integration (uses typed HttpClient)
+builder.Services.AddHttpClient<IGitHubService, RiotProxy.Infrastructure.GitHub.GitHubService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
 // Named HttpClient for Riot API
 builder.Services.AddHttpClient("RiotApi", client =>
 {
