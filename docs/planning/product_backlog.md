@@ -1160,6 +1160,59 @@ Standardize the backend naming from "RiotProxy" to "Mongoose.Api" across the sol
 
 ---
 
+### F17. [API] Implement feedback endpoint and GitHub integration
+
+**Priority:** P2 - Medium  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** F1, F8  
+**Labels:** `api`, `feedback`, `github`, `epic-f`
+
+#### Description
+
+Add a secure backend endpoint that accepts structured in-app feedback (bugs and feature requests) and creates corresponding GitHub issues in the internal backlog repository using server-side credentials. The client never sees GitHub tokens, repo names, or issue URLs.
+
+#### Requirements
+
+- [ ] Expose a `POST /api/feedback` (or equivalent) endpoint in the existing API surface.  
+- [ ] Define a request DTO that can carry:
+  - `type` (e.g. `"bug"` or `"feature"`)
+  - `summary` (short title)
+  - `details` (free-text description)
+  - route / page (e.g. `/app/solo`, `/app/feedback`)
+  - environment (e.g. production vs staging)
+  - parsed browser + OS (from User-Agent or a client-supplied field)
+  - internal user / account identifiers (IDs or safe hashes; no raw email/password)
+- [ ] Validate the payload:
+  - reject unknown `type` values  
+  - require `summary` and the appropriate description field depending on type
+- [ ] Load a server-side GitHub token or GitHub App configuration from secure configuration (env vars / user-secrets), never from client input.  
+- [ ] Create a new GitHub issue in the configured private repository with:
+  - Title based on `summary`  
+  - Label `bug` for bug reports  
+  - Label `feature-request` or `enhancement` for feature requests  
+  - Issue body including:
+    - User-entered description  
+    - Type (bug / feature request)  
+    - Route / page  
+    - Environment (production / staging)  
+    - Browser and OS  
+    - Internal user/account IDs or correlation identifiers
+- [ ] Integrate with the unified error-handling approach from F8 so failures are returned as standardized error responses and logged for operators.
+
+#### Acceptance Criteria
+
+- [ ] Sending a valid feedback payload from a test client results in a new GitHub issue in the correct repository with the expected title, labels, and body fields populated.  
+- [ ] The HTTP response on success returns a generic success status (e.g. `202 Accepted` or `200 OK`) with no GitHub-specific details (no issue numbers, URLs, or repo names).  
+- [ ] If GitHub is unavailable, rate-limited, or returns an error, the endpoint:
+  - does **not** leak tokens, stack traces, or internal exception messages  
+  - returns a standardized error response (per F8) that the frontend can map to a neutral “couldn’t send feedback” message
+- [ ] All secrets (tokens, app keys) are only loaded on the server side; no GitHub configuration is ever exposed to the client bundle.  
+- [ ] Unit and/or integration tests cover:
+  - happy-path issue creation  
+  - validation errors for missing required fields  
+  - GitHub failure behaviour (e.g. 500 / 503 / 429) and returned error shape.
+
 <!-- AI: END_EPIC_F_TASKS -->
 
 
@@ -1282,127 +1335,6 @@ Create the `<SuggestedActions>` component showing up to 3 actionable suggestions
 - [ ] Each action is clickable and navigates to `deepLink`
 - [ ] Actions sorted by priority (handled by backend)
 - [ ] Empty state when no suggestions available
-- [ ] Mobile responsive
-
----
-
-### G14g. [Frontend] Implement AnalysisStatusCard component and persisted analysis status
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** G14a (Overview shell in place)
-**Labels:** `frontend`, `component`, `overview`, `epic-g`
-
-#### Description
-
-Create an `<AnalysisStatusCard>` component that surfaces the state of the background game analysis/sync job. The card should live in the Overview "Recent games" section next to the Match Heatmap and show clear, persisted status for "analyzing games" (idle, running, error) so users can leave and return without losing context.
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/AnalysisStatusCard.vue`
-- [ ] Uses `BaseCard` (or equivalent) and follows `docs/ui-ux/ui-design-guidelines.md` for spacing, typography, and states
-- [ ] Supports at least three user-visible states:
-  - Idle / up-to-date: copy such as "Analysis up to date" with last updated timestamp - green status
-  - Running: copy such as "Analyzing games…" with progress indicator (processed vs total games, percentage, or similar) - blue status
-  - Waiting on Riot API - yellow status
-  - Error: neutral error message (no stack traces) with a clear retry CTA - Grey status
-- [ ] Analysis status is loaded from the backend on Overview load so a refresh or navigation away/back shows the true job state (no purely local progress that gets lost on reload)
-- [ ] If a job is running and the user navigates away from Overview, returning later shows the correct, current status (including completion or failure)
-- [ ] Card exposes a "Refresh analysis" / "Analyze recent games" CTA that triggers the same backend job used for match analysis/sync
-- [ ] User-facing copy consistently uses "analyzing games" / "analysis" language instead of "sync" in the UI
-- [ ] Card is non-blocking: Overview remains fully usable while analysis is running (no full-screen modal or hard block)
-- [ ] Layout is responsive: on desktop it is designed to sit beside the Match Heatmap; on mobile it stacks below it
-- [ ] Implementation uses a shared analysis-status store or composable so other parts of the app (e.g. sidebar indicator) can reuse the same state without duplicate polling
-
----
-
-### G14h. [Frontend] Add global "analysis in progress" sidebar indicator
-
-**Priority:** P2 - Medium
-**Type:** UX
-**Estimate:** 1 point
-**Depends on:** G14g
-**Labels:** `frontend`, `navigation`, `overview`, `ux`, `epic-g`
-
-#### Description
-
-Add a lightweight global indicator in the authenticated app sidebar that shows when a game analysis job is currently running. The indicator should reuse the same analysis status as `<AnalysisStatusCard>`, be visually subtle, and never turn the sidebar into a noisy status panel.
-
-#### Acceptance Criteria
-
-- [ ] Indicator appears only when analysis status is in a running/active state and is hidden when analysis is idle, complete, or in an error state
-- [ ] Indicator is rendered next to the primary navigation item for matches/analysis in the sidebar (e.g. "Matches"), without breaking layout
-- [ ] Visual treatment uses design tokens (e.g. small colored dot or spinner) and does not introduce large text blocks in the sidebar
-- [ ] Hover/focus shows an accessible tooltip such as "Analyzing games…" while a job is running
-- [ ] Implementation consumes the same shared analysis-status store/composable as `<AnalysisStatusCard>` (no separate polling logic)
-- [ ] Indicator updates correctly from any authenticated route (Overview, Solo dashboard, Champion Select, etc.)
-- [ ] Indicator is not shown on public/marketing pages or before login
-- [ ] Indicator has appropriate ARIA labeling so screen reader users understand that analysis is in progress
-- [ ] Indicator is only shown when the sidebar is expanded; not shown in the collapsed state
-
----
-
-### G14i. [Frontend] Implement ChampionSelectCTA card on Overview
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 1 point
-**Depends on:** G14a (Overview shell in place), Champion Select route existing
-**Labels:** `frontend`, `component`, `overview`, `navigation`, `epic-g`
-
-#### Description
-
-Create a `<ChampionSelectCTA>` card on the Overview page that gives users a clear, high-visibility path into the Champion Select helper. The card should sit in the "Today at a glance" section next to the RankSnapshot and be optimized for click-through into `/champion-select` (or the configured Champion Select route).
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/ChampionSelectCTA.vue`
-- [ ] Uses `BaseCard` and `BaseButton` (or equivalents) and follows `docs/ui-ux/ui-design-guidelines.md` for copy, spacing, and hover/focus states
-- [ ] Card shows a concise title communicating the feature (e.g. "Champion Select helper")
-- [ ] Card shows a short, outcome-focused subtitle (e.g. "Get personal matchup tips before you lock in")
-- [ ] Card includes a Heroicons-based icon that fits the feature (e.g. sparkles/lightbulb style), aligned with the design system
-- [ ] Card includes a primary CTA (e.g. "Open Champion Select") and makes the entire card clickable to navigate to the Champion Select page (e.g. `/champion-select`)
-- [ ] If the user’s session has expired, clicking the CTA routes through the standard auth/session-expiry flow and then returns the user to Champion Select after login
-- [ ] Card appears in the "Today at a glance" area of Overview alongside RankSnapshot as defined by G14j
-- [ ] Card is mobile responsive (full-width on small screens) and does not introduce layout shifts
-- [ ] Any Pro gating or upgrade prompts follow the monetization UX rules in C12/C14/C17 (no full-screen walls from Overview; use inline locked states or shared upgrade patterns if needed)
-
----
-
-### G14j. [Frontend] Restructure Overview page layout for new components
-
-**Priority:** P1 - High
-**Type:** UX / Refactor
-**Estimate:** 2 points
-**Depends on:** G14a, G14e, G14f, G14g, G14i
-**Labels:** `frontend`, `layout`, `overview`, `ux`, `epic-g`
-
-#### Description
-
-Restructure the Overview page layout to match the UX specification: a fast, single-scroll orientation view that guides users onward. Introduce a vertical flow with clearly named sections and place the new components (ChampionSelectCTA and AnalysisStatusCard) in their intended positions relative to RankSnapshot and Match Heatmap.
-
-#### Acceptance Criteria
-
-- [ ] Overview view updated so the top section is a compact `OverviewPlayerHeader` / PlayerHeaderCard showing only identity and context (icon, level, name#tagline, region, Solo/Duo/Team), with no sync/analysis controls
-- [ ] Below the header, a "Today at a glance" row is implemented on desktop:
-  - Left: RankSnapshot (primary queue rank summary)
-  - Right column: `<ChampionSelectCTA>` (and room for GoalProgressPreview / SuggestedActions when those tasks are implemented)
-- [ ] Below "Today at a glance", a "Recent games" row is implemented on desktop:
-  - Left: Match Heatmap card showing recent play activity
-  - Right: `<AnalysisStatusCard>` showing analysis/analyzing-games status
-- [ ] Latest Match card is rendered as a full-width section below these rows and remains clickable to navigate to match details
-- [ ] On mobile/small screens, the sections stack vertically in this order: PlayerHeader → Today at a glance (RankSnapshot then ChampionSelectCTA) → Recent games (Heatmap then AnalysisStatusCard) → Latest Match
-- [ ] Layout keeps Overview within the 5–15 second, one-scroll orientation budget defined in `docs/ui-ux/ux-specification.md` (no deep analysis graphs or heavy interactions)
-- [ ] All new and existing components on Overview reuse base components and design tokens per `docs/ui-ux/ui-design-guidelines.md`
-- [ ] Overview remains read-only (no create/edit flows; goals and other mutating actions are deep-linked elsewhere)
-- [ ] Existing Overview tests and snapshots are updated or extended to cover the new layout and components
-
----
-
-    
-- [ ] Context (Solo/Duo/Team) always visible via OverviewPlayerHeader
-- [ ] Page loads in under 2 seconds
 - [ ] Mobile responsive
 
 ---
@@ -1648,6 +1580,61 @@ Implement an optional, subtle pre-expiry warning so that long analysis sessions 
 
 ---
 
+### G21. [Frontend] Add in-app Feedback page and sidebar entry
+
+**Priority:** P2 - Medium  
+**Type:** Feature  
+**Estimate:** 5 points  
+**Depends on:** G2, F17  
+**Labels:** `frontend`, `feedback`, `forms`, `epic-g`
+
+#### Description
+
+Add a first-class in-app Feedback entry point so logged-in users can submit structured bug reports and feature requests without leaving mongoose.gg. The page should be simple for players while capturing enough structured context (route, environment, browser, user IDs) for us to triage the resulting GitHub issues created by F17.
+
+#### Frontend Requirements
+
+- [ ] Add a “Feedback” navigation item to the authenticated app sidebar, positioned above the username/account section; do not show this link on public/marketing pages.  
+- [ ] Create a dedicated `/app/feedback` route/page rendered inside the existing app shell.  
+- [ ] Page header:
+  - Title: “Send feedback”  
+  - Short explanatory copy describing that this is for bug reports and feature requests.
+- [ ] Provide a simple type selector (e.g. segmented control or radio buttons) for **Bug** vs **Feature request**, with the visible form updating when the type changes.  
+- [ ] Bug mode form:
+  - Required fields: short summary and “What happened?” description  
+  - Optional field: “What did you expect?”
+- [ ] Feature request mode form:
+  - Required fields: short summary and “What problem are you trying to solve?” description  
+  - Optional field: “How would this help your climbing?”
+- [ ] In both modes, automatically capture the current route/page and environment (e.g. production/staging) and display a simple “From: /some-route” line so the user can see what will be sent.  
+- [ ] Implement inline validation and error messages for missing required fields; “Send feedback” stays disabled until the minimum required fields are filled.  
+- [ ] On submit:
+  - Disable the button and show a spinner/“Sending…” state  
+  - Call the backend feedback endpoint from F17 with the structured payload  
+  - Prevent double-submits while a request is in flight
+- [ ] On success:
+  - Either reset the form or clearly show a non-intrusive success confirmation  
+  - Do **not** show any GitHub URLs, issue numbers, or repository names.
+- [ ] On failure:
+  - Show a neutral error message (e.g. “We couldn’t send your feedback right now. Please try again.”)  
+  - Preserve the user’s typed input so they can retry without retyping.
+- [ ] Use existing base components (inputs, buttons, cards, alerts) and follow `docs/ui-ux/ui-design-guidelines.md` for typography, spacing, focus states, and responsive behaviour.  
+- [ ] Ensure the page layout and interactions work well on both desktop and mobile breakpoints.
+
+#### Acceptance Criteria
+
+- [ ] When logged in, the sidebar shows a “Feedback” link above the username/account section; this link is absent on public/marketing pages.  
+- [ ] Clicking “Feedback” navigates to `/app/feedback` within the authenticated app shell.  
+- [ ] The Feedback page shows the correct title and explanatory copy and allows switching between Bug and Feature request modes.  
+- [ ] Bug mode requires summary + “What happened?” before enabling “Send feedback”, and shows inline errors when they are missing.  
+- [ ] Feature request mode requires summary + “What problem are you trying to solve?” before enabling “Send feedback”, and shows inline errors when they are missing.  
+- [ ] The page displays a human-readable “From: …” line reflecting the route the user came from, and this value is included in the payload sent to F17.  
+- [ ] On successful submission, the user sees a clear success state and no GitHub implementation details (URLs, repo names, issue numbers) are exposed.  
+- [ ] On backend failure (e.g. GitHub API error), the UI shows a neutral, retryable error, preserves the form contents, and does not surface raw error codes or stack traces.  
+- [ ] Visual styling (spacing, typography, focus states, button hierarchy) matches the rest of the app and follows the documented UI design guidelines on both mobile and desktop.
+
+---
+
 <!-- AI: END_EPIC_G_TASKS -->
 
 # Summary
@@ -1739,8 +1726,10 @@ Implement an optional, subtle pre-expiry warning so that long analysis sessions 
 | G11 | Implement friends management UI scaffolding | Frontend | 3 |
 | G17 | Design and implement manual match refresh entry point | Frontend | 2 |
 | G18 | Multi-account Riot support & aggregated stats | Frontend | 5 |
+| F17 | Implement feedback endpoint & GitHub integration | API | 5 |
+| G21 | In-app Feedback page & sidebar entry | Frontend | 5 |
 
-**P2 Remaining Total:** 45 points
+**P2 Remaining Total:** 55 points
 
 ### P3 - Low
 
@@ -1755,6 +1744,66 @@ Implement an optional, subtle pre-expiry warning so that long analysis sessions 
 | G20 | Add optional pre-expiry session warning toast | Frontend | 2 |
 
 **P3 Remaining Total:** 17 points
+
+## Summary of Completed Work
+
+| Epic | Task | Points | Completed |
+|------|------|--------|-----------|
+| C | C3 - Add tier column to User | 1 | ✅ |
+| C | C10 - Add tier info to user endpoints | 1 | ✅ |
+| C | C11 - Create subscription status component | 2 | ✅ |
+| C | C13 - Create pricing page | 3 | ✅ |
+| E | E1 - Database schema & DDL | 3 | ✅ |
+| E | E2 - MySQL schema scripts | 2 | ✅ |
+| E | E3 - Entities and repositories | 3 | ✅ |
+| E | E4 - Match & participant ingestion | 3 | ✅ |
+| E | E5 - Timeline & derived metrics ingestion | 5 | ✅ |
+| E | E6 - Validate database metrics against Riot | 2 | ✅ |
+| E | E7 - Remove legacy database tables and repositories | 2 | ✅ |
+| F | F1 - API surface design | 2 | ✅ |
+| F | F2 - Solo dashboard endpoint | 3 | ✅ |
+| F | F6 - Deprecate or migrate legacy endpoints | 2 | ✅ |
+| F | F7 - Session authentication | 3 | ✅ |
+| F | F11 - User auth endpoints (core) | 5 | ✅ |
+| F | F12 - Riot account linking endpoints | 5 | ✅ |
+| F | F13 - WebSocket endpoint for sync progress | 5 | ✅ |
+| F | F14 - Match History Sync Job | 8 | ✅ |
+| G | G1 - App IA & routes | 2 | ✅ |
+| G | G2 - App shell & navigation | 3 | ✅ |
+| G | G3 - Implement new public landing page | 2 | ✅ |
+| G | G4 - Implement pricing page | 2 | ✅ |
+| G | G5a - Dashboard Hub design | 2 | ✅ |
+| G | G5b0 - Solo Dashboard design | 2 | ✅ |
+| G | G5b1 - Create empty Solo dashboard view & routing | 1 | ✅ |
+| G | G5b2 - Profile header button + profile data (FE+BE) | 5 | ✅ |
+| G | G5b3 - Main Champion Card (FE+BE) | 3 | ✅ |
+| G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
+| G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
+| G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
+| G | G5b11 - Create champion matchups endpoint | 3 | ✅ |
+| G | G5b12 - Fetch main champions by role for Solo dashboard | 2 | ✅ |
+| G | G5b16 - Update database on login (FE+BE) | 2 | ✅ |
+| G | G5b17 - Implement ranked data display in ProfileHeaderCard (FE+BE) | 5 | ✅ |
+| G | G9 - Login, signup, verification & user shell | 5 | ✅ |
+| G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
+| G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
+| G | G14b - OverviewPlayerHeader component | 1 | ✅ |
+| G | G14c - RankSnapshot component | 2 | ✅ |
+| G | G14d - LastMatchCard component | 1 | ✅ |
+| G | G14g - AnalysisStatusCard component and persisted analysis status | 2 | ✅ |
+| G | G14h - Add global "analysis in progress" sidebar indicator | 1 | ✅ |
+| G | G14i - ChampionSelectCTA card on Overview | 1 | ✅ |
+| G | G14j - Restructure Overview page layout for new components | 2 | ✅ |
+
+**Total Completed Points:** 174
+
+## Grand Totals
+
+| Category | Points |
+|----------|--------|
+| **Remaining** | 217 pts |
+| **Completed** | 122 pts |
+| **Grand Total** | 339 pts |
 
 ---
 
