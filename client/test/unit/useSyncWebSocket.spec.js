@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { useSyncWebSocket } from '@/composables/useSyncWebSocket';
+
+// We'll dynamically import useSyncWebSocket after resetting modules
+let useSyncWebSocket;
 
 // Mock WebSocket
 class MockWebSocket {
@@ -79,11 +81,16 @@ vi.mock('@/services/apiConfig', () => ({
 describe('useSyncWebSocket', () => {
   let originalWebSocket;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     originalWebSocket = global.WebSocket;
     global.WebSocket = MockWebSocket;
     MockWebSocket.lastInstance = null;
     vi.useFakeTimers();
+
+    // Reset modules to get fresh singleton state for each test
+    vi.resetModules();
+    const module = await import('@/composables/useSyncWebSocket');
+    useSyncWebSocket = module.useSyncWebSocket;
   });
 
   afterEach(() => {
