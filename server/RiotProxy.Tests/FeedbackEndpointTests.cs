@@ -31,7 +31,7 @@ public class FeedbackEndpointTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {
@@ -72,7 +72,7 @@ public class FeedbackEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {
@@ -100,7 +100,7 @@ public class FeedbackEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {
@@ -122,7 +122,7 @@ public class FeedbackEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {
@@ -144,7 +144,7 @@ public class FeedbackEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {
@@ -166,7 +166,7 @@ public class FeedbackEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {
@@ -188,7 +188,7 @@ public class FeedbackEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {
@@ -210,7 +210,7 @@ public class FeedbackEndpointTests
         factory.GitHubService.SetupFailure("GitHub service unavailable");
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {
@@ -235,7 +235,7 @@ public class FeedbackEndpointTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var longSummary = new string('x', 201);
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {
@@ -258,7 +258,7 @@ public class FeedbackEndpointTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {
@@ -282,7 +282,7 @@ public class FeedbackEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
             {

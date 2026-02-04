@@ -85,12 +85,12 @@ public sealed class GitHubService : IGitHubService
             };
             
             var json = JsonSerializer.Serialize(requestBody);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
             var url = $"{GitHubApiBaseUrl}/repos/{_owner}/{_repo}/issues";
-            
+
             _logger.LogInformation("Creating GitHub issue in {Owner}/{Repo}", _owner, _repo);
-            
+
             var response = await _httpClient.PostAsync(url, content);
             
             if (response.IsSuccessStatusCode)

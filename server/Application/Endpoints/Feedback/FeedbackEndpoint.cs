@@ -31,6 +31,22 @@ public sealed class FeedbackEndpoint : IEndpoint
     private const int MaxBrowserLength = 100;
     private const int MaxOsLength = 100;
 
+    /// <summary>
+    /// Sanitizes user input for safe logging by removing newlines and control characters.
+    /// Prevents log injection/forgery attacks.
+    /// </summary>
+    private static string SanitizeForLog(string? input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        // Remove newlines and carriage returns to prevent log forgery
+        return input
+            .Replace("\r", "")
+            .Replace("\n", "")
+            .Replace("\t", " ");
+    }
+
     public FeedbackEndpoint(string basePath)
     {
         Route = basePath + "/feedback";
@@ -138,7 +154,7 @@ public sealed class FeedbackEndpoint : IEndpoint
 
                 logger.LogInformation(
                     "Feedback submitted successfully. Type: {Type}, UserId: {UserId}",
-                    normalizedType, userId?.ToString() ?? "anonymous");
+                    SanitizeForLog(normalizedType), userId?.ToString() ?? "anonymous");
 
                 return Results.Accepted(value: new FeedbackDto.FeedbackResponse(
                     Success: true,
