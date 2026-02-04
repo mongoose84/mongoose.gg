@@ -52,6 +52,55 @@ public sealed class FeedbackEndpoint : IEndpoint
     }
 
     /// <summary>
+    /// Sanitizes user input for safe inclusion in Markdown content.
+    /// Escapes Markdown syntax characters to prevent formatting injection.
+    /// </summary>
+    private static string SanitizeMarkdownContent(string? input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        // Escape Markdown syntax characters that could be used for injection:
+        // - # for headers
+        // - * and _ for bold/italic
+        // - [ ] for links/images
+        // - ` for code
+        // - > for blockquotes
+        // - - and + for lists
+        // - | for tables
+        var result = input
+            .Replace("\\", "\\\\")  // Escape backslashes first
+            .Replace("#", "\\#")
+            .Replace("*", "\\*")
+            .Replace("_", "\\_")
+            .Replace("[", "\\[")
+            .Replace("]", "\\]")
+            .Replace("`", "\\`")
+            .Replace(">", "\\>")
+            .Replace("|", "\\|")
+            .Replace("-", "\\-")
+            .Replace("+", "\\+");
+
+        // Also escape lines that start with numbers followed by period (ordered lists)
+        // This is a simple approach - replace period after digits at line start
+        var lines = result.Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var trimmed = lines[i].TrimStart();
+            if (trimmed.Length > 0 && char.IsDigit(trimmed[0]))
+            {
+                var dotIndex = trimmed.IndexOf('.');
+                if (dotIndex > 0 && dotIndex < 4) // e.g., "1.", "12.", "123."
+                {
+                    lines[i] = lines[i].Replace(".", "\\.");
+                }
+            }
+        }
+
+        return string.Join('\n', lines);
+    }
+
+    /// <summary>
     /// Escapes user input for safe inclusion in Markdown table cells.
     /// Prevents Markdown injection that could break table formatting.
     /// </summary>
@@ -205,8 +254,10 @@ public sealed class FeedbackEndpoint : IEndpoint
                 }
 
                 // Build GitHub issue title
+                // Sanitize summary for title - remove newlines and control characters
+                var sanitizedSummary = SanitizeForLog(request.Summary.Trim());
                 var titlePrefix = normalizedType == "bug" ? "[Bug]" : "[Feature Request]";
-                var issueTitle = $"{titlePrefix} {request.Summary.Trim()}";
+                var issueTitle = $"{titlePrefix} {sanitizedSummary}";
 
                 // Build GitHub issue body
                 var issueBody = BuildIssueBody(request, normalizedType, userId);
@@ -257,10 +308,22 @@ public sealed class FeedbackEndpoint : IEndpoint
     {
         var sb = new StringBuilder();
 
-        // Description section
+        // Description section - sanitize user input to prevent Markdown injection
         sb.AppendLine("## Description");
         sb.AppendLine();
-        sb.AppendLine(request.Details ?? "_No details provided_");
+        string sanitizedDetails;
+        if (string.IsNullOrWhiteSpace(request.Details))
+        {
+            // Provide context-appropriate placeholder based on feedback type
+            sanitizedDetails = normalizedType == "feature"
+                ? $"_See summary: {SanitizeMarkdownContent(request.Summary)}_"
+                : "_No details provided_";
+        }
+        else
+        {
+            sanitizedDetails = SanitizeMarkdownContent(request.Details);
+        }
+        sb.AppendLine(sanitizedDetails);
         sb.AppendLine();
 
         // Metadata section
