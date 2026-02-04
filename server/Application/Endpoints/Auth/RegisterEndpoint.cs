@@ -3,7 +3,9 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Entities;
+using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
 using RiotProxy.Infrastructure.Email;
 using static RiotProxy.Application.DTOs.RegisterDto;
@@ -14,11 +16,31 @@ namespace RiotProxy.Application.Endpoints.Auth;
 /// Register Endpoint
 /// Creates a new user account with username, email, and password.
 /// Sets emailVerified=false and logs the user in with a session cookie.
+/// Rate limited to 3 requests per hour per IP to prevent account creation spam.
 /// </summary>
 public sealed class RegisterEndpoint : IEndpoint
 {
     public string Route { get; }
     private static readonly Regex UsernameRegex = new(@"^[a-zA-Z0-9_-]+$", RegexOptions.Compiled);
+
+    // Rate limiting configuration: 3 registrations per hour per IP
+    private const int RateLimitRequests = 3;
+    private static readonly TimeSpan RateLimitWindow = TimeSpan.FromHours(1);
+
+    /// <summary>
+    /// Extracts the client IP address from the HTTP context.
+    /// Checks X-Forwarded-For header first (for proxies/load balancers),
+    /// then falls back to the direct connection IP.
+    /// </summary>
+    private static string? GetClientIpAddress(HttpContext context)
+    {
+        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(forwardedFor))
+        {
+            return forwardedFor.Split(',')[0].Trim();
+        }
+        return context.Connection.RemoteIpAddress?.ToString();
+    }
 
     public RegisterEndpoint(string basePath)
     {
@@ -33,12 +55,40 @@ public sealed class RegisterEndpoint : IEndpoint
             [FromServices] UsersRepository usersRepo,
             [FromServices] VerificationTokensRepository tokensRepo,
             [FromServices] IEmailService emailService,
+            [FromServices] IRateLimiter rateLimiter,
             [FromServices] ILogger<RegisterEndpoint> logger,
             [FromServices] IConfiguration config
         ) =>
         {
             try
             {
+                // Check rate limit before processing (IP-based only, no user yet)
+                var clientIp = GetClientIpAddress(httpContext);
+                var rateLimitResult = await rateLimiter.CheckEndpointAsync(
+                    "register",
+                    clientIp,
+                    null, // No user ID for registration
+                    RateLimitRequests,
+                    RateLimitWindow);
+
+                if (!rateLimitResult.IsAllowed)
+                {
+                    logger.LogWarning(
+                        "Rate limit exceeded for register endpoint. IP: {IP}",
+                        LogSanitizer.Sanitize(clientIp) ?? "unknown");
+
+                    httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
+                    if (rateLimitResult.RetryAfter.HasValue)
+                    {
+                        httpContext.Response.Headers["Retry-After"] =
+                            ((int)rateLimitResult.RetryAfter.Value.TotalSeconds).ToString();
+                    }
+
+                    return Results.Json(
+                        new { error = "Too many registration attempts. Please try again later." },
+                        statusCode: 429);
+                }
+
                 // Feature flag gate
                 var enableMvpLogin = config.GetValue<bool>("Auth:EnableMvpLogin");
                 if (!enableMvpLogin)
@@ -78,14 +128,14 @@ public sealed class RegisterEndpoint : IEndpoint
                 // Check if username already exists (case-insensitive)
                 if (await usersRepo.UsernameExistsAsync(normalizedUsername))
                 {
-                    logger.LogWarning("Registration attempt with existing username: {Username}", request.Username);
+                    logger.LogWarning("Registration attempt with existing username: {Username}", LogSanitizer.Sanitize(request.Username));
                     return Results.Conflict(new { error = "This username is already taken", code = "USERNAME_TAKEN" });
                 }
 
                 // Check if email already exists
                 if (await usersRepo.EmailExistsAsync(request.Email))
                 {
-                    logger.LogWarning("Registration attempt with existing email: {Email}", request.Email);
+                    logger.LogWarning("Registration attempt with existing email from IP: {IP}", LogSanitizer.Sanitize(clientIp) ?? "unknown");
                     return Results.Conflict(new { error = "This email is already registered", code = "EMAIL_TAKEN" });
                 }
 
@@ -126,7 +176,7 @@ public sealed class RegisterEndpoint : IEndpoint
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Failed to send verification email to {Email}", newUser.Email);
+                        logger.LogError(ex, "Failed to send verification email for user {UserId}", userId);
                     }
                 });
 
@@ -155,7 +205,7 @@ public sealed class RegisterEndpoint : IEndpoint
                     authProperties
                 );
 
-                logger.LogInformation("User {Username} (ID: {UserId}) registered successfully", newUser.Username, userId);
+                logger.LogInformation("User {Username} (ID: {UserId}) registered successfully", LogSanitizer.Sanitize(newUser.Username), userId);
 
                 return Results.Ok(new RegisterResponse(
                     userId,

@@ -137,6 +137,18 @@
       </router-link>
     </nav>
 
+    <!-- Feedback Link - above user section -->
+    <div class="border-t border-border py-sm">
+      <router-link
+        to="/app/feedback"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
+        :title="isCollapsed ? 'Feedback' : ''"
+      >
+        <ChatBubbleLeftEllipsisIcon class="nav-icon w-5 h-5 shrink-0" />
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Feedback</span>
+      </router-link>
+    </div>
+
     <!-- User Section at Bottom -->
     <div class="border-t border-border py-md">
       <router-link
@@ -196,6 +208,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
+import { ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';

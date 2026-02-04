@@ -1,0 +1,118 @@
+/**
+ * Feedback API service
+ * Handles submission of bug reports and feature requests
+ */
+
+import { post, parseResponse } from './apiClient'
+import { isDevelopment } from './apiConfig'
+
+/**
+ * Get browser information from user agent
+ * @returns {string} Browser name and version
+ */
+function getBrowserInfo() {
+  const ua = navigator.userAgent
+
+  // Check for common browsers - order matters!
+  // Check specific browsers before generic Chrome detection
+
+  // Firefox (not Chromium-based)
+  if (ua.includes('Firefox/')) {
+    const match = ua.match(/Firefox\/(\d+)/)
+    return match ? `Firefox ${match[1]}` : 'Firefox'
+  }
+
+  // Edge (Chromium-based, but has specific identifier)
+  if (ua.includes('Edg/')) {
+    const match = ua.match(/Edg\/(\d+)/)
+    return match ? `Edge ${match[1]}` : 'Edge'
+  }
+
+  // Opera (Chromium-based) - check before Chrome
+  if (ua.includes('OPR/') || ua.includes('Opera/')) {
+    const match = ua.match(/OPR\/(\d+)/) || ua.match(/Opera\/(\d+)/)
+    return match ? `Opera ${match[1]}` : 'Opera'
+  }
+
+  // Brave (Chromium-based) - detected via navigator.brave API
+  if (navigator.brave && typeof navigator.brave.isBrave === 'function') {
+    const match = ua.match(/Chrome\/(\d+)/)
+    return match ? `Brave ${match[1]}` : 'Brave'
+  }
+
+  // Vivaldi (Chromium-based)
+  if (ua.includes('Vivaldi/')) {
+    const match = ua.match(/Vivaldi\/(\d+)/)
+    return match ? `Vivaldi ${match[1]}` : 'Vivaldi'
+  }
+
+  // Samsung Internet (Chromium-based)
+  if (ua.includes('SamsungBrowser/')) {
+    const match = ua.match(/SamsungBrowser\/(\d+)/)
+    return match ? `Samsung Internet ${match[1]}` : 'Samsung Internet'
+  }
+
+  // Chrome (generic Chromium-based fallback)
+  if (ua.includes('Chrome/')) {
+    const match = ua.match(/Chrome\/(\d+)/)
+    return match ? `Chrome ${match[1]}` : 'Chrome'
+  }
+
+  // Safari (not Chromium-based)
+  if (ua.includes('Safari/') && !ua.includes('Chrome')) {
+    const match = ua.match(/Version\/(\d+)/)
+    return match ? `Safari ${match[1]}` : 'Safari'
+  }
+
+  return 'Unknown'
+}
+
+/**
+ * Get OS information from user agent
+ * @returns {string} Operating system name
+ */
+function getOsInfo() {
+  const ua = navigator.userAgent
+  
+  if (ua.includes('Windows NT 10')) return 'Windows 10/11'
+  if (ua.includes('Windows')) return 'Windows'
+  if (ua.includes('Mac OS X')) return 'macOS'
+  if (ua.includes('Linux')) return 'Linux'
+  if (ua.includes('Android')) return 'Android'
+  if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS'
+  
+  return 'Unknown'
+}
+
+/**
+ * Get current environment
+ * @returns {string} Environment name
+ */
+function getEnvironment() {
+  return isDevelopment ? 'development' : 'production'
+}
+
+/**
+ * Submit feedback (bug report or feature request)
+ * @param {Object} feedback - Feedback data
+ * @param {string} feedback.type - 'bug' or 'feature'
+ * @param {string} feedback.summary - Short summary/title
+ * @param {string} feedback.details - Detailed description
+ * @param {string} feedback.route - Current route/page
+ * @returns {Promise<Object>} Response with success and message
+ */
+export async function submitFeedback({ type, summary, details, route }) {
+  const payload = {
+    type,
+    summary,
+    details: details || null,
+    route,
+    environment: getEnvironment(),
+    browser: getBrowserInfo(),
+    os: getOsInfo()
+  }
+  
+  const response = await post('/feedback', payload)
+  return parseResponse(response, 'Failed to submit feedback')
+}
+

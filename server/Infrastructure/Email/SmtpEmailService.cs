@@ -37,9 +37,8 @@ public class SmtpEmailService : IEmailService
         var smtpHost = _config["Email:SmtpHost"] ?? Environment.GetEnvironmentVariable("SMTP_HOST");
         if (string.IsNullOrWhiteSpace(smtpHost))
         {
-            var errorMessage = $"SMTP host is not configured. Email not sent to {toEmail}";
-            _logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
+            _logger.LogError("SMTP host is not configured. Email not sent.");
+            throw new InvalidOperationException("SMTP host is not configured");
         }
 
         var smtpPort = _config.GetValue<int>("Email:SmtpPort", 587);
@@ -124,11 +123,11 @@ public class SmtpEmailService : IEmailService
             mailMessage.AlternateViews.Add(htmlView);
 
             await smtpClient.SendMailAsync(mailMessage);
-            _logger.LogInformation("Verification email sent to {Email}", toEmail);
+            _logger.LogInformation("Verification email sent successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send verification email to {Email}", toEmail);
+            _logger.LogError(ex, "Failed to send verification email");
             throw;
         }
     }

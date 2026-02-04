@@ -40,10 +40,10 @@ First 500 users get free Pro tier. Keep a counter on the landing page of how man
 | **C. Subscription & Paywall** | Mollie integration, tiers, feature flags | 27 pts | 7 pts ✅ |
 | **D. Analytics & Tracking** | User behavior tracking for product decisions | 19 pts | 0 pts |
 | **E. Database & Analytics Schema** | Match/participant/timeline schema + ingestion | 0 pts | 20 pts ✅ |
-| **F. API** | API surface aligned with schema and dashboards | 29 pts | 33 pts ✅ |
-| **G. Frontend App & Marketing** | App shell, landing, and dashboards using API | 40 pts | 53 pts ✅ |
+| **F. API** | API surface aligned with schema and dashboards | 24 pts | 38 pts ✅ |
+| **G. Frontend App & Marketing** | App shell, landing, and dashboards using API | 35 pts | 58 pts ✅ |
 
-**Remaining:** 159 points | **Completed:** 113 points | **Grand Total:** 272 points
+**Remaining:** 149 points | **Completed:** 123 points | **Grand Total:** 272 points
 
 ### G5 Epic: Frontend Solo Dashboard (Vertical slices)
 
@@ -1160,6 +1160,19 @@ Standardize the backend naming from "RiotProxy" to "Mongoose.Api" across the sol
 
 ---
 
+### F17. [API] Implement feedback endpoint and GitHub integration ✅
+
+**Priority:** P2 - Medium
+**Type:** Feature
+**Estimate:** 5 points
+**Status:** Complete
+**Depends on:** F1, F8
+**Labels:** `api`, `feedback`, `github`, `epic-f`
+
+#### Description
+
+Secure backend endpoint (`POST /api/v2/feedback`) that accepts structured in-app feedback (bugs and feature requests) and creates corresponding GitHub issues in the internal backlog repository using server-side credentials. Includes validation, error handling per F8, and 12 unit tests covering happy paths and failure scenarios.
+
 <!-- AI: END_EPIC_F_TASKS -->
 
 
@@ -1196,455 +1209,20 @@ Create a Goals Panel that displays active goals (if Pro tier) or shows an upgrad
   - `goalId`, `title`, `description`, `metric`, `currentValue`, `targetValue`, `baselineValue`
   - `progress` (percentage), `estimatedCompletionDate`
 
-#### Frontend Requirements
-
-- [ ] GoalsPanel component created
-- [ ] If Free tier: show "Upgrade to Pro to set personal improvement goals" CTA button
-- [ ] If Pro tier with goals: show list of active goals, each with:
-  - Goal title, description
-  - Progress bar (0-100%)
-  - Current value / target value stats
-  - Estimated completion date
-  - "Expand" button to see full details (future task)
-- [ ] If Pro tier but no goals: show "No active goals. Start improving by setting one!" with "Set Goal" CTA button
-- [ ] Collapsible panel (collapsed by default if user has many goals)
-- [ ] Responsive: progress bars stack on mobile
-
-#### Acceptance Criteria
-
-- [ ] Correct tier-based content displayed (Free vs. Pro)
-- [ ] If tier is Free, upgrade CTA visible and clickable (navigates to pricing or settings)
-- [ ] If Pro with goals, each goal shows progress bar and stats
-- [ ] Progress bar accuracy verified against backend data
-- [ ] "Set Goal" CTA button present (opens modal in future task)
-- [ ] Panel collapses/expands correctly
-- [ ] Mobile layout verified
-- [ ] No errors when goals array is empty
-
 ---
 
-### G14 Epic: Overview Page
-
-The Overview page (defined in `docs/ui-ux/ux-specification.md`) is the default landing page after login, providing situational awareness and routing in 5–15 seconds (one scroll max). All components are read-only, fast to render, and optimized for click-through.
-
-**Total estimate:** 8 points
-
----
-
-    
-
-    
-
-    
-
-### G14e. [Frontend] Implement GoalProgressPreview component
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 1 point
-**Depends on:** G14a, B9
-**Labels:** `frontend`, `component`, `overview`, `epic-g`
-
-#### Description
-
-Create the `<GoalProgressPreview>` component showing up to 3 active goals with progress.
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/GoalProgressPreview.vue`
-- [ ] Props: `goals` array (max 3 items, each with `goalId`, `title`, `context`, `progress`)
-- [ ] Shows goal title and context badge
-- [ ] Shows progress bar (0-100%)
-- [ ] CTA button: "View all goals" → navigates to `/goals`
-- [ ] No editing, no sorting
-- [ ] Empty state: "No active goals" with optional CTA to create one
-- [ ] Mobile responsive
-
----
-
-### G14f. [Frontend] Implement SuggestedActions component
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 1 point
-**Depends on:** G14a
-**Labels:** `frontend`, `component`, `overview`, `epic-g`
-
-#### Description
-
-Create the `<SuggestedActions>` component showing up to 3 actionable suggestions.
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/SuggestedActions.vue`
-- [ ] Props: `actions` array (max 3 items, each with `actionId`, `text`, `deepLink`, `priority`)
-- [ ] Shows short human-readable suggestion text
-- [ ] Each action is clickable and navigates to `deepLink`
-- [ ] Actions sorted by priority (handled by backend)
-- [ ] Empty state when no suggestions available
-- [ ] Mobile responsive
-
----
-
-### G14g. [Frontend] Implement AnalysisStatusCard component and persisted analysis status
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** G14a (Overview shell in place)
-**Labels:** `frontend`, `component`, `overview`, `epic-g`
-
-#### Description
-
-Create an `<AnalysisStatusCard>` component that surfaces the state of the background game analysis/sync job. The card should live in the Overview "Recent games" section next to the Match Heatmap and show clear, persisted status for "analyzing games" (idle, running, error) so users can leave and return without losing context.
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/AnalysisStatusCard.vue`
-- [ ] Uses `BaseCard` (or equivalent) and follows `docs/ui-ux/ui-design-guidelines.md` for spacing, typography, and states
-- [ ] Supports at least three user-visible states:
-  - Idle / up-to-date: copy such as "Analysis up to date" with last updated timestamp - green status
-  - Running: copy such as "Analyzing games…" with progress indicator (processed vs total games, percentage, or similar) - blue status
-  - Waiting on Riot API - yellow status
-  - Error: neutral error message (no stack traces) with a clear retry CTA - Grey status
-- [ ] Analysis status is loaded from the backend on Overview load so a refresh or navigation away/back shows the true job state (no purely local progress that gets lost on reload)
-- [ ] If a job is running and the user navigates away from Overview, returning later shows the correct, current status (including completion or failure)
-- [ ] Card exposes a "Refresh analysis" / "Analyze recent games" CTA that triggers the same backend job used for match analysis/sync
-- [ ] User-facing copy consistently uses "analyzing games" / "analysis" language instead of "sync" in the UI
-- [ ] Card is non-blocking: Overview remains fully usable while analysis is running (no full-screen modal or hard block)
-- [ ] Layout is responsive: on desktop it is designed to sit beside the Match Heatmap; on mobile it stacks below it
-- [ ] Implementation uses a shared analysis-status store or composable so other parts of the app (e.g. sidebar indicator) can reuse the same state without duplicate polling
-
----
-
-### G14h. [Frontend] Add global "analysis in progress" sidebar indicator
+### G21. [Frontend] Add in-app Feedback page and sidebar entry ✅
 
 **Priority:** P2 - Medium
-**Type:** UX
-**Estimate:** 1 point
-**Depends on:** G14g
-**Labels:** `frontend`, `navigation`, `overview`, `ux`, `epic-g`
-
-#### Description
-
-Add a lightweight global indicator in the authenticated app sidebar that shows when a game analysis job is currently running. The indicator should reuse the same analysis status as `<AnalysisStatusCard>`, be visually subtle, and never turn the sidebar into a noisy status panel.
-
-#### Acceptance Criteria
-
-- [ ] Indicator appears only when analysis status is in a running/active state and is hidden when analysis is idle, complete, or in an error state
-- [ ] Indicator is rendered next to the primary navigation item for matches/analysis in the sidebar (e.g. "Matches"), without breaking layout
-- [ ] Visual treatment uses design tokens (e.g. small colored dot or spinner) and does not introduce large text blocks in the sidebar
-- [ ] Hover/focus shows an accessible tooltip such as "Analyzing games…" while a job is running
-- [ ] Implementation consumes the same shared analysis-status store/composable as `<AnalysisStatusCard>` (no separate polling logic)
-- [ ] Indicator updates correctly from any authenticated route (Overview, Solo dashboard, Champion Select, etc.)
-- [ ] Indicator is not shown on public/marketing pages or before login
-- [ ] Indicator has appropriate ARIA labeling so screen reader users understand that analysis is in progress
-- [ ] Indicator is only shown when the sidebar is expanded; not shown in the collapsed state
-
----
-
-### G14i. [Frontend] Implement ChampionSelectCTA card on Overview
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 1 point
-**Depends on:** G14a (Overview shell in place), Champion Select route existing
-**Labels:** `frontend`, `component`, `overview`, `navigation`, `epic-g`
-
-#### Description
-
-Create a `<ChampionSelectCTA>` card on the Overview page that gives users a clear, high-visibility path into the Champion Select helper. The card should sit in the "Today at a glance" section next to the RankSnapshot and be optimized for click-through into `/champion-select` (or the configured Champion Select route).
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/ChampionSelectCTA.vue`
-- [ ] Uses `BaseCard` and `BaseButton` (or equivalents) and follows `docs/ui-ux/ui-design-guidelines.md` for copy, spacing, and hover/focus states
-- [ ] Card shows a concise title communicating the feature (e.g. "Champion Select helper")
-- [ ] Card shows a short, outcome-focused subtitle (e.g. "Get personal matchup tips before you lock in")
-- [ ] Card includes a Heroicons-based icon that fits the feature (e.g. sparkles/lightbulb style), aligned with the design system
-- [ ] Card includes a primary CTA (e.g. "Open Champion Select") and makes the entire card clickable to navigate to the Champion Select page (e.g. `/champion-select`)
-- [ ] If the user’s session has expired, clicking the CTA routes through the standard auth/session-expiry flow and then returns the user to Champion Select after login
-- [ ] Card appears in the "Today at a glance" area of Overview alongside RankSnapshot as defined by G14j
-- [ ] Card is mobile responsive (full-width on small screens) and does not introduce layout shifts
-- [ ] Any Pro gating or upgrade prompts follow the monetization UX rules in C12/C14/C17 (no full-screen walls from Overview; use inline locked states or shared upgrade patterns if needed)
-
----
-
-### G14j. [Frontend] Restructure Overview page layout for new components
-
-**Priority:** P1 - High
-**Type:** UX / Refactor
-**Estimate:** 2 points
-**Depends on:** G14a, G14e, G14f, G14g, G14i
-**Labels:** `frontend`, `layout`, `overview`, `ux`, `epic-g`
-
-#### Description
-
-Restructure the Overview page layout to match the UX specification: a fast, single-scroll orientation view that guides users onward. Introduce a vertical flow with clearly named sections and place the new components (ChampionSelectCTA and AnalysisStatusCard) in their intended positions relative to RankSnapshot and Match Heatmap.
-
-#### Acceptance Criteria
-
-- [ ] Overview view updated so the top section is a compact `OverviewPlayerHeader` / PlayerHeaderCard showing only identity and context (icon, level, name#tagline, region, Solo/Duo/Team), with no sync/analysis controls
-- [ ] Below the header, a "Today at a glance" row is implemented on desktop:
-  - Left: RankSnapshot (primary queue rank summary)
-  - Right column: `<ChampionSelectCTA>` (and room for GoalProgressPreview / SuggestedActions when those tasks are implemented)
-- [ ] Below "Today at a glance", a "Recent games" row is implemented on desktop:
-  - Left: Match Heatmap card showing recent play activity
-  - Right: `<AnalysisStatusCard>` showing analysis/analyzing-games status
-- [ ] Latest Match card is rendered as a full-width section below these rows and remains clickable to navigate to match details
-- [ ] On mobile/small screens, the sections stack vertically in this order: PlayerHeader → Today at a glance (RankSnapshot then ChampionSelectCTA) → Recent games (Heatmap then AnalysisStatusCard) → Latest Match
-- [ ] Layout keeps Overview within the 5–15 second, one-scroll orientation budget defined in `docs/ui-ux/ux-specification.md` (no deep analysis graphs or heavy interactions)
-- [ ] All new and existing components on Overview reuse base components and design tokens per `docs/ui-ux/ui-design-guidelines.md`
-- [ ] Overview remains read-only (no create/edit flows; goals and other mutating actions are deep-linked elsewhere)
-- [ ] Existing Overview tests and snapshots are updated or extended to cover the new layout and components
-
----
-
-    
-- [ ] Context (Solo/Duo/Team) always visible via OverviewPlayerHeader
-- [ ] Page loads in under 2 seconds
-- [ ] Mobile responsive
-
----
-
-### G5b15. [Backend] Update Solo dashboard endpoint to return goals array
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** F2, B4 (Goal table exists)
-**Labels:** `backend`, `api`, `epic-g`
-
-#### Description
-
-Update Solo dashboard endpoint (F2) to include `activeGoals` array if user is Pro tier. Returns active goals with progress information.
-
-#### Acceptance Criteria
-
-- [ ] Endpoint response includes `activeGoals`:
-  ```json
-  {
-    "activeGoals": [
-      {
-        "goalId": "uuid",
-        "title": "Improve CS",
-        "description": "Get to 7 CS/min",
-        "metric": "cs_per_min",
-        "currentValue": 6.2,
-        "targetValue": 7.0,
-        "baselineValue": 5.8,
-        "progress": 70,
-        "estimatedCompletionDate": "2026-02-15"
-      }
-      // ... more goals
-    ]
-  }
-  ```
-- [ ] Empty array if user is Free tier
-- [ ] Only active goals (not completed/cancelled)
-- [ ] Progress calculated as percentage toward target
-- [ ] Estimated completion date calculated from trend
-- [ ] Tested with sample data and tier scenarios
-
----
-
-### G6. [Frontend] Implement Duo dashboard view
-
-**Priority:** P1 - High
 **Type:** Feature
 **Estimate:** 5 points
-**Depends on:** F3, G2
-**Labels:** `frontend`, `duo`, `dashboard`, `epic-g`
+**Status:** Complete
+**Depends on:** G2, F17
+**Labels:** `frontend`, `feedback`, `forms`, `epic-g`
 
 #### Description
 
-Create a new Duo dashboard screen under `/app/duo` that consumes the Duo dashboard endpoint.
-
-#### Acceptance Criteria
-
-- [ ] Duo view implemented and wired to API
-- [ ] Shows duo synergy, matchups, shared objectives, and relevant duo KPIs
-- [ ] Old Duo dashboard route either redirects or is clearly deprecated
-
----
-
-### G7. [Frontend] Implement Team dashboard view
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 5 points
-**Depends on:** F4, G2
-**Labels:** `frontend`, `team`, `dashboard`, `epic-g`
-
-#### Description
-
-Create a new Team dashboard screen under `/app/team` that consumes the Team dashboard endpoint.
-
-#### Acceptance Criteria
-
-- [ ] Team view implemented and wired to API
-- [ ] Shows team composition, win rate, role composition, combos, and performance trends
-- [ ] Old Team dashboard route either redirects or is clearly deprecated
-
----
-
-### G11. [Frontend] Implement friends management UI scaffolding
-
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** G9 (and future social endpoints from F11)  
-**Labels:** `frontend`, `users`, `social`, `epic-g`
-
-#### Description
-
-Introduce a first-pass friends/social area in the app UI that defines the layout, navigation, and empty states for friends/duos/teams, but with no real backend integration yet. All actions are disabled or marked as "coming soon" so a later iteration can implement the detailed flows.
-
-#### Acceptance Criteria
-
-- [ ] Add a Friends section on the `/app/user` page that visually groups social functionality (e.g. a "Friends & Teams" card or tab)  
-- [ ] The Friends section includes:
-  - An empty state message when there are no friends (e.g. "You don't have any friends added yet")  
-  - UI scaffolding for a friends list (list area or table), search field, "Add friend" button, and per-friend actions (e.g. remove/manage)  
-  - Optional sub-tabs or headings for Friends, Duos, and Teams, even if they contain no real data yet  
-- [ ] All social actions (search, add, remove, manage) are disabled or trigger only local "Coming soon" messages and do not call any backend endpoints yet  
-- [ ] A simple frontend abstraction (e.g. `useFriendsStore` or `useSocialStore`) is introduced and used by the Friends UI to obtain data and actions, with TODO comments describing how it will later connect to social endpoints from F11
-
----
-
-### G15. [Bug] Allow cancelling or switching account during email verification
-
-**Priority:** P0 - Critical  
-**Type:** Bug  
-**Estimate:** 2 points  
-**Labels:** `frontend`, `auth`, `ux`, `epic-g`
-
-#### Description
-
-When a user is waiting on the email verification step during login/signup, they can get stuck: there is no clear way to cancel, go back, or switch to a different account without effectively being trapped in the flow. We need to make it easy to cancel or change account, following common patterns from other applications.
-
-#### Acceptance Criteria
-
-- [ ] The email verification screen includes a clear way to cancel or go back (e.g. "Cancel" or "Use a different account" action) that returns the user to a safe starting point (login/signup)  
-- [ ] Navigating away from the verification page (e.g. via back button or direct navigation) does not leave the user in a broken or confusing state; any temporary verification state is handled gracefully  
-- [ ] The behaviour is aligned with standard UX patterns for verification flows (e.g. after reviewing a couple of reference apps) and does not accidentally weaken security  
-- [ ] Add or update tests (unit or e2e) to cover the main flows: happy-path verification, cancel, switch account  
-- [ ] Any copy or UI changes are consistent with the rest of the auth experience
-
----
-
-### G16. [UX] Improve Match narrative header spacing and "You" button
-
-**Priority:** P3 - Low  
-**Type:** UX  
-**Estimate:** 1 point  
-**Labels:** `frontend`, `matches`, `ux`, `epic-g`
-
-#### Description
-
-Polish the match narrative header to improve readability and make the "You" button feel less cramped or awkward. This is a small visual/spacing update based on user feedback to make the top of the match page easier to scan.
-
-#### Acceptance Criteria
-
-- [ ] Adjust spacing, alignment, and typography in the match narrative header so the content is easier to read on both desktop and mobile  
-- [ ] The "You" button is visually aligned with nearby elements and no longer feels jammed or out of place  
-- [ ] Verify the header still works well for long summoner names and different screen widths  
-- [ ] No regressions to existing match data or navigation behaviour
-
----
-
-### G17. [UX] Design and implement manual match refresh entry point
-
-**Priority:** P2 - Medium  
-**Type:** UX / Frontend  
-**Estimate:** 2 points  
-**Depends on:** F14-login, G5b16  
-**Labels:** `frontend`, `matches`, `sync`, `ux`, `epic-g`
-
-#### Description
-
-Currently, new matches are checked and synced when the user logs in, but users with long-running sessions need to log out and back in to see their latest games. Add a clear, manual refresh entry point so users can stay logged in and pull in new matches on demand.
-
-#### Acceptance Criteria
-
-- [ ] Add a visible "Refresh matches" action (button or similar) in a sensible place on the Matches view (or related area) that triggers a match sync without requiring logout/login  
-- [ ] Show appropriate loading state and success/error feedback so users know when new matches are being fetched and when the list is up to date  
-- [ ] The refresh action reuses the existing sync mechanisms from F14-login / G5b16 rather than duplicating logic  
-- [ ] The design is consistent with the rest of the UI and does not overwhelm the page (e.g. avoids multiple competing refresh controls)  
-- [ ] Add or update tests (unit or e2e) to cover the main manual refresh flow
-
----
-
-### G18. [Feature] Multi-account Riot support & aggregated stats
-
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Labels:** `frontend`, `api`, `accounts`, `epic-g`
-
-#### Description
-
-Allow users to add multiple Riot accounts and choose whether mongoose.gg should treat data from all accounts together or focus on a primary account. This affects champion select recommendations and the matches page, so that multi-account players see a coherent experience.
-
-#### Acceptance Criteria
-
-- [ ] In the user settings page, users can manage a list of linked Riot accounts, including ordering them; the top account is clearly marked as the **primary** (e.g. with a "Primary" badge)  
-- [ ] Provide a single global setting (e.g. checkbox or toggle) to choose between "Use all accounts" and "Use primary account only" for analytics and recommendations  
-- [ ] When "Use all accounts" is enabled, champion select recommendations and relevant stats are based on games across all linked accounts  
-- [ ] When "Use primary account only" is enabled, those same features use only the primary account's data  
-- [ ] The Matches page clearly reflects which accounts' matches are being shown (all vs primary) and gracefully handles users with only one account linked  
-- [ ] Update any relevant API endpoints and data-fetching logic so that the multi-account setting is respected end-to-end
-
----
-
-### G19. [UX] Implement session expiry handling (global handler + UX)
-
-**Priority:** P1 - High  
-**Type:** UX / Frontend  
-**Estimate:** 5 points  
-**Depends on:** F14-login  
-**Labels:** `frontend`, `auth`, `ux`, `epic-g`
-
-#### Description
-
-When the backend session expires today, the frontend can continue to behave as if the user is logged in until a random request fails. Users then see generic errors and can lose their place in the app. We want a first-class "session expired" experience that is clear, minimally disruptive, feels like a focused tool, and stays safe once the backend has dropped the session.
-
-#### Acceptance Criteria
-
-- [ ] A single global handler exists for 401/403 "not authenticated" responses (e.g. Axios interceptor or Vue Query error handler) and is used by all authenticated HTTP requests  
-- [ ] The handler can distinguish "session expired" from "never logged in" and "forbidden" (e.g. via error code or payload) and only triggers the session-expired UX for the correct cases  
-- [ ] When a session-expired response is detected, the frontend auth state is immediately updated to a logged-out state and the app header/nav switches to the logged-out view (e.g. "Log in" call-to-action instead of the user menu)  
-- [ ] A non-blocking "Session expired" banner appears at the top of the app shell with copy along the lines of "You've been signed out due to inactivity. Log in again to continue." and a primary "Log in again" button  
-- [ ] Clicking "Log in again" from the banner navigates the user into the existing auth flow with a `redirect=` parameter back to their current route; after successful login, the user is taken back to the same page  
-- [ ] While the session-expired banner is visible, authenticated-only actions (e.g. goals management, AI features, Duo/Team dashboards) do not silently fail; they are either disabled or route the user through the standard auth/upgrade flows instead of surfacing raw 401 errors  
-- [ ] If a 401 occurs during an action that clearly requires a live session (e.g. "Set goal", "Save changes", "Request AI feedback", starting checkout), the request is not committed; instead, a blocking modal is shown with a clear title like "You've been signed out" and primary "Log in again" plus secondary "Cancel" actions  
-- [ ] Choosing "Log in again" from the modal sends the user through the auth flow and, after success, returns them to the same route; where it is safe and idempotent, the previous action is retried or the relevant UI is reopened prefilled so the user does not lose their work  
-- [ ] Lightweight view context (e.g. selected match, queue filters, date range, Overview vs Solo/Duo/Team context) is preserved across session expiry and re-login where feasible (via route/query params or local storage) so users do not lose their place when they sign back in  
-- [ ] Session-expired messaging is neutral and action-oriented (e.g. "You've been signed out due to inactivity. Log in again to continue.") and generic "Something went wrong" or technical "401 unauthorized" messages are no longer the primary way users discover a timeout  
-- [ ] Add or update automated tests (unit/integration or e2e) covering: global 401 handling, showing the session-expired banner, and at least one flow where a 401 during an action shows the modal and recovers correctly after login  
-
----
-
-### G20. [UX] Add optional pre-expiry session warning toast
-
-**Priority:** P3 - Low  
-**Type:** UX / Frontend  
-**Estimate:** 2 points  
-**Depends on:** G19  
-**Labels:** `frontend`, `auth`, `ux`, `epic-g`
-
-#### Description
-
-Implement an optional, subtle pre-expiry warning so that long analysis sessions are less likely to be interrupted without warning. When we know the approximate session lifetime, show a small "Stay signed in?" toast shortly before expiry that can extend the session via a backend ping.
-
-#### Acceptance Criteria
-
-- [ ] The design assumes a known or discoverable session time-to-live (TTL) from the backend; if TTL is not available in a given environment, the pre-expiry toast is disabled and this behaviour is documented  
-- [ ] When TTL is known, a small, non-blocking toast appears (e.g. bottom-right, consistent with existing notification styles) roughly 1–2 minutes before session expiry while the user is active on the site, with copy like "Your session will expire in about 2 minutes. Stay signed in?" and a primary "Stay signed in" button  
-- [ ] Clicking "Stay signed in" makes a background call to the backend to extend or refresh the session (e.g. keepalive or refresh endpoint); on success, the expiry timer is reset and the toast disappears  
-- [ ] If the keepalive call fails or the user ignores/dismisses the toast and the session actually expires, the standard session-expired UX from G19 (banner/modal) is triggered and the user flows through that path  
-- [ ] The toast uses the existing global toast/notification system (if present) or a new implementation consistent with mongoose.gg's visual language and does not block main content or important actions  
-- [ ] Add at least one automated test (unit or integration) to verify that the pre-expiry toast appears based on TTL and that clicking "Stay signed in" triggers the expected backend call  
+In-app feedback page at `/app/feedback` with bug/feature request forms, inline validation, and integration with F17 backend endpoint. Includes sidebar navigation entry, success/error handling, and responsive design following UI guidelines.
 
 ---
 
@@ -1755,6 +1333,68 @@ Implement an optional, subtle pre-expiry warning so that long analysis sessions 
 | G20 | Add optional pre-expiry session warning toast | Frontend | 2 |
 
 **P3 Remaining Total:** 17 points
+
+## Summary of Completed Work
+
+| Epic | Task | Points | Completed |
+|------|------|--------|-----------|
+| C | C3 - Add tier column to User | 1 | ✅ |
+| C | C10 - Add tier info to user endpoints | 1 | ✅ |
+| C | C11 - Create subscription status component | 2 | ✅ |
+| C | C13 - Create pricing page | 3 | ✅ |
+| E | E1 - Database schema & DDL | 3 | ✅ |
+| E | E2 - MySQL schema scripts | 2 | ✅ |
+| E | E3 - Entities and repositories | 3 | ✅ |
+| E | E4 - Match & participant ingestion | 3 | ✅ |
+| E | E5 - Timeline & derived metrics ingestion | 5 | ✅ |
+| E | E6 - Validate database metrics against Riot | 2 | ✅ |
+| E | E7 - Remove legacy database tables and repositories | 2 | ✅ |
+| F | F1 - API surface design | 2 | ✅ |
+| F | F2 - Solo dashboard endpoint | 3 | ✅ |
+| F | F6 - Deprecate or migrate legacy endpoints | 2 | ✅ |
+| F | F7 - Session authentication | 3 | ✅ |
+| F | F11 - User auth endpoints (core) | 5 | ✅ |
+| F | F12 - Riot account linking endpoints | 5 | ✅ |
+| F | F13 - WebSocket endpoint for sync progress | 5 | ✅ |
+| F | F14 - Match History Sync Job | 8 | ✅ |
+| G | G1 - App IA & routes | 2 | ✅ |
+| G | G2 - App shell & navigation | 3 | ✅ |
+| G | G3 - Implement new public landing page | 2 | ✅ |
+| G | G4 - Implement pricing page | 2 | ✅ |
+| G | G5a - Dashboard Hub design | 2 | ✅ |
+| G | G5b0 - Solo Dashboard design | 2 | ✅ |
+| G | G5b1 - Create empty Solo dashboard view & routing | 1 | ✅ |
+| G | G5b2 - Profile header button + profile data (FE+BE) | 5 | ✅ |
+| G | G5b3 - Main Champion Card (FE+BE) | 3 | ✅ |
+| G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
+| G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
+| G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
+| G | G5b11 - Create champion matchups endpoint | 3 | ✅ |
+| G | G5b12 - Fetch main champions by role for Solo dashboard | 2 | ✅ |
+| G | G5b16 - Update database on login (FE+BE) | 2 | ✅ |
+| G | G5b17 - Implement ranked data display in ProfileHeaderCard (FE+BE) | 5 | ✅ |
+| G | G9 - Login, signup, verification & user shell | 5 | ✅ |
+| G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
+| G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
+| G | G14b - OverviewPlayerHeader component | 1 | ✅ |
+| G | G14c - RankSnapshot component | 2 | ✅ |
+| G | G14d - LastMatchCard component | 1 | ✅ |
+| G | G14g - AnalysisStatusCard component and persisted analysis status | 2 | ✅ |
+| G | G14h - Add global "analysis in progress" sidebar indicator | 1 | ✅ |
+| G | G14i - ChampionSelectCTA card on Overview | 1 | ✅ |
+| G | G14j - Restructure Overview page layout for new components | 2 | ✅ |
+| F | F17 - Implement feedback endpoint & GitHub integration | 5 | ✅ |
+| G | G21 - In-app Feedback page & sidebar entry | 5 | ✅ |
+
+**Total Completed Points:** 184
+
+## Grand Totals
+
+| Category | Points |
+|----------|--------|
+| **Remaining** | 207 pts |
+| **Completed** | 132 pts |
+| **Grand Total** | 339 pts |
 
 ---
 

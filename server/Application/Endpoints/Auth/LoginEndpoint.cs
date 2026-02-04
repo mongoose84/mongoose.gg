@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Application.Services;
+using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
 using static RiotProxy.Application.DTOs.LoginDto;
 
@@ -13,10 +14,30 @@ namespace RiotProxy.Application.Endpoints.Auth;
 /// Login Endpoint
 /// Validates username/password and sets an httpOnly session cookie for subsequent requests.
 /// Supports rememberMe for 7-day sessions.
+/// Rate limited to 10 requests per 15 minutes per IP to prevent brute force attacks.
 /// </summary>
 public sealed class LoginEndpoint : IEndpoint
 {
     public string Route { get; }
+
+    // Rate limiting configuration: 10 login attempts per 15 minutes per IP
+    private const int RateLimitRequests = 10;
+    private static readonly TimeSpan RateLimitWindow = TimeSpan.FromMinutes(15);
+
+    /// <summary>
+    /// Extracts the client IP address from the HTTP context.
+    /// Checks X-Forwarded-For header first (for proxies/load balancers),
+    /// then falls back to the direct connection IP.
+    /// </summary>
+    private static string? GetClientIpAddress(HttpContext context)
+    {
+        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(forwardedFor))
+        {
+            return forwardedFor.Split(',')[0].Trim();
+        }
+        return context.Connection.RemoteIpAddress?.ToString();
+    }
 
     public LoginEndpoint(string basePath)
     {
@@ -30,12 +51,40 @@ public sealed class LoginEndpoint : IEndpoint
             HttpContext httpContext,
             [FromServices] UsersRepository usersRepo,
             [FromServices] LoginSyncService loginSyncService,
+            [FromServices] IRateLimiter rateLimiter,
             [FromServices] ILogger<LoginEndpoint> logger,
             [FromServices] IConfiguration config
         ) =>
         {
             try
             {
+                // Check rate limit before processing (IP-based only)
+                var clientIp = GetClientIpAddress(httpContext);
+                var rateLimitResult = await rateLimiter.CheckEndpointAsync(
+                    "login",
+                    clientIp,
+                    null, // No user ID for login attempts
+                    RateLimitRequests,
+                    RateLimitWindow);
+
+                if (!rateLimitResult.IsAllowed)
+                {
+                    logger.LogWarning(
+                        "Rate limit exceeded for login endpoint. IP: {IP}",
+                        LogSanitizer.Sanitize(clientIp) ?? "unknown");
+
+                    httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
+                    if (rateLimitResult.RetryAfter.HasValue)
+                    {
+                        httpContext.Response.Headers["Retry-After"] =
+                            ((int)rateLimitResult.RetryAfter.Value.TotalSeconds).ToString();
+                    }
+
+                    return Results.Json(
+                        new { error = "Too many login attempts. Please try again later." },
+                        statusCode: 429);
+                }
+
                 // Feature flag gate: disable MVP login unless explicitly enabled
                 var enableMvpLogin = config.GetValue<bool>("Auth:EnableMvpLogin");
                 if (!enableMvpLogin)
@@ -61,21 +110,21 @@ public sealed class LoginEndpoint : IEndpoint
 
                 if (user == null)
                 {
-                    logger.LogWarning("Login attempt with non-existent username/email: {Input}", request.Username);
+                    logger.LogWarning("Login attempt with non-existent username/email: {Input}", LogSanitizer.Sanitize(request.Username));
                     return AuthResults.InvalidCredentials();
                 }
 
                 // Verify password using BCrypt
                 if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
-                    logger.LogWarning("Login attempt with invalid password for username: {Username}", user.Username);
+                    logger.LogWarning("Login attempt with invalid password for username: {Username}", LogSanitizer.Sanitize(user.Username));
                     return AuthResults.InvalidCredentials();
                 }
 
                 // Check if user is active
                 if (!user.IsActive)
                 {
-                    logger.LogWarning("Login attempt for inactive user: {Username}", user.Username);
+                    logger.LogWarning("Login attempt for inactive user: {Username}", LogSanitizer.Sanitize(user.Username));
                     return AuthResults.AccountDeactivated();
                 }
 
@@ -113,7 +162,7 @@ public sealed class LoginEndpoint : IEndpoint
                 user.LastLoginAt = DateTime.UtcNow;
                 await usersRepo.UpsertAsync(user);
 
-                logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", user.Username, user.UserId);
+                logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", LogSanitizer.Sanitize(user.Username), user.UserId);
 
                 // Check linked Riot accounts for new matches and update profile data
                 // Run in background (fire-and-forget) to avoid slowing down login response

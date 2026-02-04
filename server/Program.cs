@@ -11,6 +11,7 @@ using RiotProxy.Infrastructure.Middleware;
 using RiotProxy.Infrastructure.Riot;
 using RiotProxy.Infrastructure.Security;
 using RiotProxy.Infrastructure.Serialization;
+using RiotProxy.Infrastructure.RateLimiting;
 using RiotProxy.Infrastructure.WebSocket;
 using System.Security.Claims;
 
@@ -73,6 +74,15 @@ builder.Services.AddScoped<IQueryFilterBuilder, QueryFilterBuilder>();
 
 // Email service for verification emails
 builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
+
+// GitHub service for feedback integration (uses typed HttpClient)
+builder.Services.AddHttpClient<IGitHubService, RiotProxy.Infrastructure.GitHub.GitHubService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// Rate limiter for endpoint protection (uses distributed cache)
+builder.Services.AddSingleton<IRateLimiter, EndpointRateLimiter>();
 
 // Named HttpClient for Riot API
 builder.Services.AddHttpClient("RiotApi", client =>
