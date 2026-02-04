@@ -135,7 +135,7 @@ public sealed class RegisterEndpoint : IEndpoint
                 // Check if email already exists
                 if (await usersRepo.EmailExistsAsync(request.Email))
                 {
-                    logger.LogWarning("Registration attempt with existing email: {Email}", LogSanitizer.Sanitize(request.Email));
+                    logger.LogWarning("Registration attempt with existing email from IP: {IP}", LogSanitizer.Sanitize(clientIp) ?? "unknown");
                     return Results.Conflict(new { error = "This email is already registered", code = "EMAIL_TAKEN" });
                 }
 
@@ -176,7 +176,7 @@ public sealed class RegisterEndpoint : IEndpoint
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Failed to send verification email to {Email}", LogSanitizer.Sanitize(newUser.Email));
+                        logger.LogError(ex, "Failed to send verification email for user {UserId}", userId);
                     }
                 });
 

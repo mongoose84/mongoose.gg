@@ -146,7 +146,7 @@ public sealed class ResendVerificationEndpoint : IEndpoint
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Failed to send verification email to {Email}", LogSanitizer.Sanitize(user.Email));
+                    logger.LogError(ex, "Failed to send verification email for user {UserId}", userId);
                     return Results.Json(new { error = "Failed to send verification email. Please try again later." }, statusCode: 500);
                 }
 
