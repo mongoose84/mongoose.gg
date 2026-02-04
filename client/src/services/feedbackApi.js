@@ -12,25 +12,58 @@ import { isDevelopment } from './apiConfig'
  */
 function getBrowserInfo() {
   const ua = navigator.userAgent
-  
-  // Check for common browsers
+
+  // Check for common browsers - order matters!
+  // Check specific browsers before generic Chrome detection
+
+  // Firefox (not Chromium-based)
   if (ua.includes('Firefox/')) {
     const match = ua.match(/Firefox\/(\d+)/)
     return match ? `Firefox ${match[1]}` : 'Firefox'
   }
+
+  // Edge (Chromium-based, but has specific identifier)
   if (ua.includes('Edg/')) {
     const match = ua.match(/Edg\/(\d+)/)
     return match ? `Edge ${match[1]}` : 'Edge'
   }
+
+  // Opera (Chromium-based) - check before Chrome
+  if (ua.includes('OPR/') || ua.includes('Opera/')) {
+    const match = ua.match(/OPR\/(\d+)/) || ua.match(/Opera\/(\d+)/)
+    return match ? `Opera ${match[1]}` : 'Opera'
+  }
+
+  // Brave (Chromium-based) - detected via navigator.brave API
+  if (navigator.brave && typeof navigator.brave.isBrave === 'function') {
+    const match = ua.match(/Chrome\/(\d+)/)
+    return match ? `Brave ${match[1]}` : 'Brave'
+  }
+
+  // Vivaldi (Chromium-based)
+  if (ua.includes('Vivaldi/')) {
+    const match = ua.match(/Vivaldi\/(\d+)/)
+    return match ? `Vivaldi ${match[1]}` : 'Vivaldi'
+  }
+
+  // Samsung Internet (Chromium-based)
+  if (ua.includes('SamsungBrowser/')) {
+    const match = ua.match(/SamsungBrowser\/(\d+)/)
+    return match ? `Samsung Internet ${match[1]}` : 'Samsung Internet'
+  }
+
+  // Chrome (generic Chromium-based fallback)
   if (ua.includes('Chrome/')) {
     const match = ua.match(/Chrome\/(\d+)/)
     return match ? `Chrome ${match[1]}` : 'Chrome'
   }
+
+  // Safari (not Chromium-based)
   if (ua.includes('Safari/') && !ua.includes('Chrome')) {
     const match = ua.match(/Version\/(\d+)/)
     return match ? `Safari ${match[1]}` : 'Safari'
   }
-  
+
   return 'Unknown'
 }
 

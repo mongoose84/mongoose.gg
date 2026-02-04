@@ -31,6 +31,10 @@ public sealed class FeedbackEndpoint : IEndpoint
     private const int MaxBrowserLength = 100;
     private const int MaxOsLength = 100;
 
+    // Rate limiting configuration
+    private const int RateLimitRequests = 5;
+    private static readonly TimeSpan RateLimitWindow = TimeSpan.FromHours(1);
+
     /// <summary>
     /// Sanitizes user input for safe logging by removing newlines and control characters.
     /// Prevents log injection/forgery attacks.
@@ -47,6 +51,47 @@ public sealed class FeedbackEndpoint : IEndpoint
             .Replace("\t", " ");
     }
 
+    /// <summary>
+    /// Escapes user input for safe inclusion in Markdown table cells.
+    /// Prevents Markdown injection that could break table formatting.
+    /// </summary>
+    private static string EscapeMarkdownTableCell(string? input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+
+        // Escape characters that could break Markdown table formatting:
+        // - | (pipe) is the table cell delimiter
+        // - \ (backslash) is the escape character
+        // - newlines would break the table row
+        return input
+            .Replace("\\", "\\\\")  // Escape backslashes first
+            .Replace("|", "\\|")    // Escape pipe characters
+            .Replace("\r\n", " ")   // Replace Windows newlines with space
+            .Replace("\r", " ")     // Replace old Mac newlines with space
+            .Replace("\n", " ")     // Replace Unix newlines with space
+            .Replace("\t", " ");    // Replace tabs with space
+    }
+
+    /// <summary>
+    /// Extracts the client IP address from the HTTP context.
+    /// Checks X-Forwarded-For header first (for proxies/load balancers),
+    /// then falls back to the direct connection IP.
+    /// </summary>
+    private static string? GetClientIpAddress(HttpContext context)
+    {
+        // Check X-Forwarded-For header first (for proxies/load balancers)
+        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(forwardedFor))
+        {
+            // X-Forwarded-For can contain multiple IPs; the first is the original client
+            return forwardedFor.Split(',')[0].Trim();
+        }
+
+        // Fall back to direct connection IP
+        return context.Connection.RemoteIpAddress?.ToString();
+    }
+
     public FeedbackEndpoint(string basePath)
     {
         Route = basePath + "/feedback";
@@ -58,6 +103,7 @@ public sealed class FeedbackEndpoint : IEndpoint
             HttpContext httpContext,
             [FromBody] FeedbackDto.FeedbackRequest request,
             [FromServices] IGitHubService gitHubService,
+            [FromServices] IRateLimiter rateLimiter,
             [FromServices] ILogger<FeedbackEndpoint> logger
         ) =>
         {
@@ -72,6 +118,35 @@ public sealed class FeedbackEndpoint : IEndpoint
                     {
                         userId = parsedUserId;
                     }
+                }
+
+                // Check rate limit before processing
+                var clientIp = GetClientIpAddress(httpContext);
+                var rateLimitResult = await rateLimiter.CheckEndpointAsync(
+                    "feedback",
+                    clientIp,
+                    userId,
+                    RateLimitRequests,
+                    RateLimitWindow);
+
+                if (!rateLimitResult.IsAllowed)
+                {
+                    logger.LogWarning(
+                        "Rate limit exceeded for feedback endpoint. IP: {IP}, UserId: {UserId}",
+                        clientIp ?? "unknown",
+                        userId?.ToString() ?? "anonymous");
+
+                    // Add rate limit headers
+                    httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
+                    if (rateLimitResult.RetryAfter.HasValue)
+                    {
+                        httpContext.Response.Headers["Retry-After"] =
+                            ((int)rateLimitResult.RetryAfter.Value.TotalSeconds).ToString();
+                    }
+
+                    return Results.Json(
+                        new { error = "Too many feedback submissions. Please try again later." },
+                        statusCode: 429);
                 }
 
                 // Validate type
@@ -193,26 +268,26 @@ public sealed class FeedbackEndpoint : IEndpoint
         sb.AppendLine();
         sb.AppendLine($"| Field | Value |");
         sb.AppendLine($"|-------|-------|");
-        sb.AppendLine($"| **Type** | {normalizedType} |");
+        sb.AppendLine($"| **Type** | {EscapeMarkdownTableCell(normalizedType)} |");
 
         if (!string.IsNullOrWhiteSpace(request.Route))
         {
-            sb.AppendLine($"| **Route** | `{request.Route}` |");
+            sb.AppendLine($"| **Route** | `{EscapeMarkdownTableCell(request.Route)}` |");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Environment))
         {
-            sb.AppendLine($"| **Environment** | {request.Environment} |");
+            sb.AppendLine($"| **Environment** | {EscapeMarkdownTableCell(request.Environment)} |");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Browser))
         {
-            sb.AppendLine($"| **Browser** | {request.Browser} |");
+            sb.AppendLine($"| **Browser** | {EscapeMarkdownTableCell(request.Browser)} |");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Os))
         {
-            sb.AppendLine($"| **OS** | {request.Os} |");
+            sb.AppendLine($"| **OS** | {EscapeMarkdownTableCell(request.Os)} |");
         }
 
         if (userId.HasValue)

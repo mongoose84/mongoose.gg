@@ -77,10 +77,10 @@
           <span v-if="errors.details" class="text-xs text-error">{{ errors.details }}</span>
         </div>
 
-        <!-- Details (Feature: What problem?) -->
+        <!-- Details (Feature: What problem?) - Optional -->
         <div v-else class="flex flex-col gap-xs">
           <label for="details" class="text-sm font-medium text-text">
-            What problem are you trying to solve? <span class="text-error">*</span>
+            What problem are you trying to solve? <span class="text-text-muted">(optional)</span>
           </label>
           <textarea
             id="details"
@@ -208,19 +208,20 @@ function validateSummary() {
 }
 
 function validateDetails() {
-  if (!details.value.trim()) {
-    errors.value.details = feedbackType.value === 'bug'
-      ? 'Please describe what happened'
-      : 'Please describe the problem you\'re trying to solve'
+  // Details are only required for bug reports
+  if (feedbackType.value === 'bug' && !details.value.trim()) {
+    errors.value.details = 'Please describe what happened'
     return false
   }
   errors.value.details = null
   return true
 }
 
-// Form validity
+// Form validity - details only required for bugs
 const isFormValid = computed(() => {
-  return summary.value.trim().length > 0 && details.value.trim().length > 0
+  const hasSummary = summary.value.trim().length > 0
+  const hasDetailsIfRequired = feedbackType.value !== 'bug' || details.value.trim().length > 0
+  return hasSummary && hasDetailsIfRequired
 })
 
 // Submit handler

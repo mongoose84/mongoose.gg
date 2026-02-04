@@ -40,10 +40,10 @@ First 500 users get free Pro tier. Keep a counter on the landing page of how man
 | **C. Subscription & Paywall** | Mollie integration, tiers, feature flags | 27 pts | 7 pts ✅ |
 | **D. Analytics & Tracking** | User behavior tracking for product decisions | 19 pts | 0 pts |
 | **E. Database & Analytics Schema** | Match/participant/timeline schema + ingestion | 0 pts | 20 pts ✅ |
-| **F. API** | API surface aligned with schema and dashboards | 29 pts | 33 pts ✅ |
-| **G. Frontend App & Marketing** | App shell, landing, and dashboards using API | 40 pts | 53 pts ✅ |
+| **F. API** | API surface aligned with schema and dashboards | 24 pts | 38 pts ✅ |
+| **G. Frontend App & Marketing** | App shell, landing, and dashboards using API | 35 pts | 58 pts ✅ |
 
-**Remaining:** 159 points | **Completed:** 113 points | **Grand Total:** 272 points
+**Remaining:** 149 points | **Completed:** 123 points | **Grand Total:** 272 points
 
 ### G5 Epic: Frontend Solo Dashboard (Vertical slices)
 
@@ -1160,58 +1160,18 @@ Standardize the backend naming from "RiotProxy" to "Mongoose.Api" across the sol
 
 ---
 
-### F17. [API] Implement feedback endpoint and GitHub integration
+### F17. [API] Implement feedback endpoint and GitHub integration ✅
 
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Depends on:** F1, F8  
+**Priority:** P2 - Medium
+**Type:** Feature
+**Estimate:** 5 points
+**Status:** Complete
+**Depends on:** F1, F8
 **Labels:** `api`, `feedback`, `github`, `epic-f`
 
 #### Description
 
-Add a secure backend endpoint that accepts structured in-app feedback (bugs and feature requests) and creates corresponding GitHub issues in the internal backlog repository using server-side credentials. The client never sees GitHub tokens, repo names, or issue URLs.
-
-#### Requirements
-
-- [ ] Expose a `POST /api/feedback` (or equivalent) endpoint in the existing API surface.  
-- [ ] Define a request DTO that can carry:
-  - `type` (e.g. `"bug"` or `"feature"`)
-  - `summary` (short title)
-  - `details` (free-text description)
-  - route / page (e.g. `/app/solo`, `/app/feedback`)
-  - environment (e.g. production vs staging)
-  - parsed browser + OS (from User-Agent or a client-supplied field)
-  - internal user / account identifiers (IDs or safe hashes; no raw email/password)
-- [ ] Validate the payload:
-  - reject unknown `type` values  
-  - require `summary` and the appropriate description field depending on type
-- [ ] Load a server-side GitHub token or GitHub App configuration from secure configuration (env vars / user-secrets), never from client input.  
-- [ ] Create a new GitHub issue in the configured private repository with:
-  - Title based on `summary`  
-  - Label `bug` for bug reports  
-  - Label `feature-request` or `enhancement` for feature requests  
-  - Issue body including:
-    - User-entered description  
-    - Type (bug / feature request)  
-    - Route / page  
-    - Environment (production / staging)  
-    - Browser and OS  
-    - Internal user/account IDs or correlation identifiers
-- [ ] Integrate with the unified error-handling approach from F8 so failures are returned as standardized error responses and logged for operators.
-
-#### Acceptance Criteria
-
-- [ ] Sending a valid feedback payload from a test client results in a new GitHub issue in the correct repository with the expected title, labels, and body fields populated.  
-- [ ] The HTTP response on success returns a generic success status (e.g. `202 Accepted` or `200 OK`) with no GitHub-specific details (no issue numbers, URLs, or repo names).  
-- [ ] If GitHub is unavailable, rate-limited, or returns an error, the endpoint:
-  - does **not** leak tokens, stack traces, or internal exception messages  
-  - returns a standardized error response (per F8) that the frontend can map to a neutral “couldn’t send feedback” message
-- [ ] All secrets (tokens, app keys) are only loaded on the server side; no GitHub configuration is ever exposed to the client bundle.  
-- [ ] Unit and/or integration tests cover:
-  - happy-path issue creation  
-  - validation errors for missing required fields  
-  - GitHub failure behaviour (e.g. 500 / 503 / 429) and returned error shape.
+Secure backend endpoint (`POST /api/v2/feedback`) that accepts structured in-app feedback (bugs and feature requests) and creates corresponding GitHub issues in the internal backlog repository using server-side credentials. Includes validation, error handling per F8, and 12 unit tests covering happy paths and failure scenarios.
 
 <!-- AI: END_EPIC_F_TASKS -->
 
@@ -1249,389 +1209,20 @@ Create a Goals Panel that displays active goals (if Pro tier) or shows an upgrad
   - `goalId`, `title`, `description`, `metric`, `currentValue`, `targetValue`, `baselineValue`
   - `progress` (percentage), `estimatedCompletionDate`
 
-#### Frontend Requirements
-
-- [ ] GoalsPanel component created
-- [ ] If Free tier: show "Upgrade to Pro to set personal improvement goals" CTA button
-- [ ] If Pro tier with goals: show list of active goals, each with:
-  - Goal title, description
-  - Progress bar (0-100%)
-  - Current value / target value stats
-  - Estimated completion date
-  - "Expand" button to see full details (future task)
-- [ ] If Pro tier but no goals: show "No active goals. Start improving by setting one!" with "Set Goal" CTA button
-- [ ] Collapsible panel (collapsed by default if user has many goals)
-- [ ] Responsive: progress bars stack on mobile
-
-#### Acceptance Criteria
-
-- [ ] Correct tier-based content displayed (Free vs. Pro)
-- [ ] If tier is Free, upgrade CTA visible and clickable (navigates to pricing or settings)
-- [ ] If Pro with goals, each goal shows progress bar and stats
-- [ ] Progress bar accuracy verified against backend data
-- [ ] "Set Goal" CTA button present (opens modal in future task)
-- [ ] Panel collapses/expands correctly
-- [ ] Mobile layout verified
-- [ ] No errors when goals array is empty
-
 ---
 
-### G14 Epic: Overview Page
+### G21. [Frontend] Add in-app Feedback page and sidebar entry ✅
 
-The Overview page (defined in `docs/ui-ux/ux-specification.md`) is the default landing page after login, providing situational awareness and routing in 5–15 seconds (one scroll max). All components are read-only, fast to render, and optimized for click-through.
-
-**Total estimate:** 8 points
-
----
-
-    
-
-    
-
-    
-
-### G14e. [Frontend] Implement GoalProgressPreview component
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 1 point
-**Depends on:** G14a, B9
-**Labels:** `frontend`, `component`, `overview`, `epic-g`
-
-#### Description
-
-Create the `<GoalProgressPreview>` component showing up to 3 active goals with progress.
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/GoalProgressPreview.vue`
-- [ ] Props: `goals` array (max 3 items, each with `goalId`, `title`, `context`, `progress`)
-- [ ] Shows goal title and context badge
-- [ ] Shows progress bar (0-100%)
-- [ ] CTA button: "View all goals" → navigates to `/goals`
-- [ ] No editing, no sorting
-- [ ] Empty state: "No active goals" with optional CTA to create one
-- [ ] Mobile responsive
-
----
-
-### G14f. [Frontend] Implement SuggestedActions component
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 1 point
-**Depends on:** G14a
-**Labels:** `frontend`, `component`, `overview`, `epic-g`
-
-#### Description
-
-Create the `<SuggestedActions>` component showing up to 3 actionable suggestions.
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/overview/SuggestedActions.vue`
-- [ ] Props: `actions` array (max 3 items, each with `actionId`, `text`, `deepLink`, `priority`)
-- [ ] Shows short human-readable suggestion text
-- [ ] Each action is clickable and navigates to `deepLink`
-- [ ] Actions sorted by priority (handled by backend)
-- [ ] Empty state when no suggestions available
-- [ ] Mobile responsive
-
----
-
-### G5b15. [Backend] Update Solo dashboard endpoint to return goals array
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 2 points
-**Depends on:** F2, B4 (Goal table exists)
-**Labels:** `backend`, `api`, `epic-g`
-
-#### Description
-
-Update Solo dashboard endpoint (F2) to include `activeGoals` array if user is Pro tier. Returns active goals with progress information.
-
-#### Acceptance Criteria
-
-- [ ] Endpoint response includes `activeGoals`:
-  ```json
-  {
-    "activeGoals": [
-      {
-        "goalId": "uuid",
-        "title": "Improve CS",
-        "description": "Get to 7 CS/min",
-        "metric": "cs_per_min",
-        "currentValue": 6.2,
-        "targetValue": 7.0,
-        "baselineValue": 5.8,
-        "progress": 70,
-        "estimatedCompletionDate": "2026-02-15"
-      }
-      // ... more goals
-    ]
-  }
-  ```
-- [ ] Empty array if user is Free tier
-- [ ] Only active goals (not completed/cancelled)
-- [ ] Progress calculated as percentage toward target
-- [ ] Estimated completion date calculated from trend
-- [ ] Tested with sample data and tier scenarios
-
----
-
-### G6. [Frontend] Implement Duo dashboard view
-
-**Priority:** P1 - High
+**Priority:** P2 - Medium
 **Type:** Feature
 **Estimate:** 5 points
-**Depends on:** F3, G2
-**Labels:** `frontend`, `duo`, `dashboard`, `epic-g`
-
-#### Description
-
-Create a new Duo dashboard screen under `/app/duo` that consumes the Duo dashboard endpoint.
-
-#### Acceptance Criteria
-
-- [ ] Duo view implemented and wired to API
-- [ ] Shows duo synergy, matchups, shared objectives, and relevant duo KPIs
-- [ ] Old Duo dashboard route either redirects or is clearly deprecated
-
----
-
-### G7. [Frontend] Implement Team dashboard view
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 5 points
-**Depends on:** F4, G2
-**Labels:** `frontend`, `team`, `dashboard`, `epic-g`
-
-#### Description
-
-Create a new Team dashboard screen under `/app/team` that consumes the Team dashboard endpoint.
-
-#### Acceptance Criteria
-
-- [ ] Team view implemented and wired to API
-- [ ] Shows team composition, win rate, role composition, combos, and performance trends
-- [ ] Old Team dashboard route either redirects or is clearly deprecated
-
----
-
-### G11. [Frontend] Implement friends management UI scaffolding
-
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** G9 (and future social endpoints from F11)  
-**Labels:** `frontend`, `users`, `social`, `epic-g`
-
-#### Description
-
-Introduce a first-pass friends/social area in the app UI that defines the layout, navigation, and empty states for friends/duos/teams, but with no real backend integration yet. All actions are disabled or marked as "coming soon" so a later iteration can implement the detailed flows.
-
-#### Acceptance Criteria
-
-- [ ] Add a Friends section on the `/app/user` page that visually groups social functionality (e.g. a "Friends & Teams" card or tab)  
-- [ ] The Friends section includes:
-  - An empty state message when there are no friends (e.g. "You don't have any friends added yet")  
-  - UI scaffolding for a friends list (list area or table), search field, "Add friend" button, and per-friend actions (e.g. remove/manage)  
-  - Optional sub-tabs or headings for Friends, Duos, and Teams, even if they contain no real data yet  
-- [ ] All social actions (search, add, remove, manage) are disabled or trigger only local "Coming soon" messages and do not call any backend endpoints yet  
-- [ ] A simple frontend abstraction (e.g. `useFriendsStore` or `useSocialStore`) is introduced and used by the Friends UI to obtain data and actions, with TODO comments describing how it will later connect to social endpoints from F11
-
----
-
-### G15. [Bug] Allow cancelling or switching account during email verification
-
-**Priority:** P0 - Critical  
-**Type:** Bug  
-**Estimate:** 2 points  
-**Labels:** `frontend`, `auth`, `ux`, `epic-g`
-
-#### Description
-
-When a user is waiting on the email verification step during login/signup, they can get stuck: there is no clear way to cancel, go back, or switch to a different account without effectively being trapped in the flow. We need to make it easy to cancel or change account, following common patterns from other applications.
-
-#### Acceptance Criteria
-
-- [ ] The email verification screen includes a clear way to cancel or go back (e.g. "Cancel" or "Use a different account" action) that returns the user to a safe starting point (login/signup)  
-- [ ] Navigating away from the verification page (e.g. via back button or direct navigation) does not leave the user in a broken or confusing state; any temporary verification state is handled gracefully  
-- [ ] The behaviour is aligned with standard UX patterns for verification flows (e.g. after reviewing a couple of reference apps) and does not accidentally weaken security  
-- [ ] Add or update tests (unit or e2e) to cover the main flows: happy-path verification, cancel, switch account  
-- [ ] Any copy or UI changes are consistent with the rest of the auth experience
-
----
-
-### G16. [UX] Improve Match narrative header spacing and "You" button
-
-**Priority:** P3 - Low  
-**Type:** UX  
-**Estimate:** 1 point  
-**Labels:** `frontend`, `matches`, `ux`, `epic-g`
-
-#### Description
-
-Polish the match narrative header to improve readability and make the "You" button feel less cramped or awkward. This is a small visual/spacing update based on user feedback to make the top of the match page easier to scan.
-
-#### Acceptance Criteria
-
-- [ ] Adjust spacing, alignment, and typography in the match narrative header so the content is easier to read on both desktop and mobile  
-- [ ] The "You" button is visually aligned with nearby elements and no longer feels jammed or out of place  
-- [ ] Verify the header still works well for long summoner names and different screen widths  
-- [ ] No regressions to existing match data or navigation behaviour
-
----
-
-### G17. [UX] Design and implement manual match refresh entry point
-
-**Priority:** P2 - Medium  
-**Type:** UX / Frontend  
-**Estimate:** 2 points  
-**Depends on:** F14-login, G5b16  
-**Labels:** `frontend`, `matches`, `sync`, `ux`, `epic-g`
-
-#### Description
-
-Currently, new matches are checked and synced when the user logs in, but users with long-running sessions need to log out and back in to see their latest games. Add a clear, manual refresh entry point so users can stay logged in and pull in new matches on demand.
-
-#### Acceptance Criteria
-
-- [ ] Add a visible "Refresh matches" action (button or similar) in a sensible place on the Matches view (or related area) that triggers a match sync without requiring logout/login  
-- [ ] Show appropriate loading state and success/error feedback so users know when new matches are being fetched and when the list is up to date  
-- [ ] The refresh action reuses the existing sync mechanisms from F14-login / G5b16 rather than duplicating logic  
-- [ ] The design is consistent with the rest of the UI and does not overwhelm the page (e.g. avoids multiple competing refresh controls)  
-- [ ] Add or update tests (unit or e2e) to cover the main manual refresh flow
-
----
-
-### G18. [Feature] Multi-account Riot support & aggregated stats
-
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Labels:** `frontend`, `api`, `accounts`, `epic-g`
-
-#### Description
-
-Allow users to add multiple Riot accounts and choose whether mongoose.gg should treat data from all accounts together or focus on a primary account. This affects champion select recommendations and the matches page, so that multi-account players see a coherent experience.
-
-#### Acceptance Criteria
-
-- [ ] In the user settings page, users can manage a list of linked Riot accounts, including ordering them; the top account is clearly marked as the **primary** (e.g. with a "Primary" badge)  
-- [ ] Provide a single global setting (e.g. checkbox or toggle) to choose between "Use all accounts" and "Use primary account only" for analytics and recommendations  
-- [ ] When "Use all accounts" is enabled, champion select recommendations and relevant stats are based on games across all linked accounts  
-- [ ] When "Use primary account only" is enabled, those same features use only the primary account's data  
-- [ ] The Matches page clearly reflects which accounts' matches are being shown (all vs primary) and gracefully handles users with only one account linked  
-- [ ] Update any relevant API endpoints and data-fetching logic so that the multi-account setting is respected end-to-end
-
----
-
-### G19. [UX] Implement session expiry handling (global handler + UX)
-
-**Priority:** P1 - High  
-**Type:** UX / Frontend  
-**Estimate:** 5 points  
-**Depends on:** F14-login  
-**Labels:** `frontend`, `auth`, `ux`, `epic-g`
-
-#### Description
-
-When the backend session expires today, the frontend can continue to behave as if the user is logged in until a random request fails. Users then see generic errors and can lose their place in the app. We want a first-class "session expired" experience that is clear, minimally disruptive, feels like a focused tool, and stays safe once the backend has dropped the session.
-
-#### Acceptance Criteria
-
-- [ ] A single global handler exists for 401/403 "not authenticated" responses (e.g. Axios interceptor or Vue Query error handler) and is used by all authenticated HTTP requests  
-- [ ] The handler can distinguish "session expired" from "never logged in" and "forbidden" (e.g. via error code or payload) and only triggers the session-expired UX for the correct cases  
-- [ ] When a session-expired response is detected, the frontend auth state is immediately updated to a logged-out state and the app header/nav switches to the logged-out view (e.g. "Log in" call-to-action instead of the user menu)  
-- [ ] A non-blocking "Session expired" banner appears at the top of the app shell with copy along the lines of "You've been signed out due to inactivity. Log in again to continue." and a primary "Log in again" button  
-- [ ] Clicking "Log in again" from the banner navigates the user into the existing auth flow with a `redirect=` parameter back to their current route; after successful login, the user is taken back to the same page  
-- [ ] While the session-expired banner is visible, authenticated-only actions (e.g. goals management, AI features, Duo/Team dashboards) do not silently fail; they are either disabled or route the user through the standard auth/upgrade flows instead of surfacing raw 401 errors  
-- [ ] If a 401 occurs during an action that clearly requires a live session (e.g. "Set goal", "Save changes", "Request AI feedback", starting checkout), the request is not committed; instead, a blocking modal is shown with a clear title like "You've been signed out" and primary "Log in again" plus secondary "Cancel" actions  
-- [ ] Choosing "Log in again" from the modal sends the user through the auth flow and, after success, returns them to the same route; where it is safe and idempotent, the previous action is retried or the relevant UI is reopened prefilled so the user does not lose their work  
-- [ ] Lightweight view context (e.g. selected match, queue filters, date range, Overview vs Solo/Duo/Team context) is preserved across session expiry and re-login where feasible (via route/query params or local storage) so users do not lose their place when they sign back in  
-- [ ] Session-expired messaging is neutral and action-oriented (e.g. "You've been signed out due to inactivity. Log in again to continue.") and generic "Something went wrong" or technical "401 unauthorized" messages are no longer the primary way users discover a timeout  
-- [ ] Add or update automated tests (unit/integration or e2e) covering: global 401 handling, showing the session-expired banner, and at least one flow where a 401 during an action shows the modal and recovers correctly after login  
-
----
-
-### G20. [UX] Add optional pre-expiry session warning toast
-
-**Priority:** P3 - Low  
-**Type:** UX / Frontend  
-**Estimate:** 2 points  
-**Depends on:** G19  
-**Labels:** `frontend`, `auth`, `ux`, `epic-g`
-
-#### Description
-
-Implement an optional, subtle pre-expiry warning so that long analysis sessions are less likely to be interrupted without warning. When we know the approximate session lifetime, show a small "Stay signed in?" toast shortly before expiry that can extend the session via a backend ping.
-
-#### Acceptance Criteria
-
-- [ ] The design assumes a known or discoverable session time-to-live (TTL) from the backend; if TTL is not available in a given environment, the pre-expiry toast is disabled and this behaviour is documented  
-- [ ] When TTL is known, a small, non-blocking toast appears (e.g. bottom-right, consistent with existing notification styles) roughly 1–2 minutes before session expiry while the user is active on the site, with copy like "Your session will expire in about 2 minutes. Stay signed in?" and a primary "Stay signed in" button  
-- [ ] Clicking "Stay signed in" makes a background call to the backend to extend or refresh the session (e.g. keepalive or refresh endpoint); on success, the expiry timer is reset and the toast disappears  
-- [ ] If the keepalive call fails or the user ignores/dismisses the toast and the session actually expires, the standard session-expired UX from G19 (banner/modal) is triggered and the user flows through that path  
-- [ ] The toast uses the existing global toast/notification system (if present) or a new implementation consistent with mongoose.gg's visual language and does not block main content or important actions  
-- [ ] Add at least one automated test (unit or integration) to verify that the pre-expiry toast appears based on TTL and that clicking "Stay signed in" triggers the expected backend call  
-
----
-
-### G21. [Frontend] Add in-app Feedback page and sidebar entry
-
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Depends on:** G2, F17  
+**Status:** Complete
+**Depends on:** G2, F17
 **Labels:** `frontend`, `feedback`, `forms`, `epic-g`
 
 #### Description
 
-Add a first-class in-app Feedback entry point so logged-in users can submit structured bug reports and feature requests without leaving mongoose.gg. The page should be simple for players while capturing enough structured context (route, environment, browser, user IDs) for us to triage the resulting GitHub issues created by F17.
-
-#### Frontend Requirements
-
-- [ ] Add a “Feedback” navigation item to the authenticated app sidebar, positioned above the username/account section; do not show this link on public/marketing pages.  
-- [ ] Create a dedicated `/app/feedback` route/page rendered inside the existing app shell.  
-- [ ] Page header:
-  - Title: “Send feedback”  
-  - Short explanatory copy describing that this is for bug reports and feature requests.
-- [ ] Provide a simple type selector (e.g. segmented control or radio buttons) for **Bug** vs **Feature request**, with the visible form updating when the type changes.  
-- [ ] Bug mode form:
-  - Required fields: short summary and “What happened?” description  
-  - Optional field: “What did you expect?”
-- [ ] Feature request mode form:
-  - Required fields: short summary and “What problem are you trying to solve?” description  
-  - Optional field: “How would this help your climbing?”
-- [ ] In both modes, automatically capture the current route/page and environment (e.g. production/staging) and display a simple “From: /some-route” line so the user can see what will be sent.  
-- [ ] Implement inline validation and error messages for missing required fields; “Send feedback” stays disabled until the minimum required fields are filled.  
-- [ ] On submit:
-  - Disable the button and show a spinner/“Sending…” state  
-  - Call the backend feedback endpoint from F17 with the structured payload  
-  - Prevent double-submits while a request is in flight
-- [ ] On success:
-  - Either reset the form or clearly show a non-intrusive success confirmation  
-  - Do **not** show any GitHub URLs, issue numbers, or repository names.
-- [ ] On failure:
-  - Show a neutral error message (e.g. “We couldn’t send your feedback right now. Please try again.”)  
-  - Preserve the user’s typed input so they can retry without retyping.
-- [ ] Use existing base components (inputs, buttons, cards, alerts) and follow `docs/ui-ux/ui-design-guidelines.md` for typography, spacing, focus states, and responsive behaviour.  
-- [ ] Ensure the page layout and interactions work well on both desktop and mobile breakpoints.
-
-#### Acceptance Criteria
-
-- [ ] When logged in, the sidebar shows a “Feedback” link above the username/account section; this link is absent on public/marketing pages.  
-- [ ] Clicking “Feedback” navigates to `/app/feedback` within the authenticated app shell.  
-- [ ] The Feedback page shows the correct title and explanatory copy and allows switching between Bug and Feature request modes.  
-- [ ] Bug mode requires summary + “What happened?” before enabling “Send feedback”, and shows inline errors when they are missing.  
-- [ ] Feature request mode requires summary + “What problem are you trying to solve?” before enabling “Send feedback”, and shows inline errors when they are missing.  
-- [ ] The page displays a human-readable “From: …” line reflecting the route the user came from, and this value is included in the payload sent to F17.  
-- [ ] On successful submission, the user sees a clear success state and no GitHub implementation details (URLs, repo names, issue numbers) are exposed.  
-- [ ] On backend failure (e.g. GitHub API error), the UI shows a neutral, retryable error, preserves the form contents, and does not surface raw error codes or stack traces.  
-- [ ] Visual styling (spacing, typography, focus states, button hierarchy) matches the rest of the app and follows the documented UI design guidelines on both mobile and desktop.
+In-app feedback page at `/app/feedback` with bug/feature request forms, inline validation, and integration with F17 backend endpoint. Includes sidebar navigation entry, success/error handling, and responsive design following UI guidelines.
 
 ---
 
@@ -1726,10 +1317,8 @@ Add a first-class in-app Feedback entry point so logged-in users can submit stru
 | G11 | Implement friends management UI scaffolding | Frontend | 3 |
 | G17 | Design and implement manual match refresh entry point | Frontend | 2 |
 | G18 | Multi-account Riot support & aggregated stats | Frontend | 5 |
-| F17 | Implement feedback endpoint & GitHub integration | API | 5 |
-| G21 | In-app Feedback page & sidebar entry | Frontend | 5 |
 
-**P2 Remaining Total:** 55 points
+**P2 Remaining Total:** 45 points
 
 ### P3 - Low
 
@@ -1794,15 +1383,17 @@ Add a first-class in-app Feedback entry point so logged-in users can submit stru
 | G | G14h - Add global "analysis in progress" sidebar indicator | 1 | ✅ |
 | G | G14i - ChampionSelectCTA card on Overview | 1 | ✅ |
 | G | G14j - Restructure Overview page layout for new components | 2 | ✅ |
+| F | F17 - Implement feedback endpoint & GitHub integration | 5 | ✅ |
+| G | G21 - In-app Feedback page & sidebar entry | 5 | ✅ |
 
-**Total Completed Points:** 174
+**Total Completed Points:** 184
 
 ## Grand Totals
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 217 pts |
-| **Completed** | 122 pts |
+| **Remaining** | 207 pts |
+| **Completed** | 132 pts |
 | **Grand Total** | 339 pts |
 
 ---

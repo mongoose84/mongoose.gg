@@ -298,5 +298,160 @@ public class FeedbackEndpointTests
         var issue = factory.GitHubService.CreatedIssues[0];
         issue.Body.Should().Contain("_anonymous_");
     }
+
+    [Fact]
+    public async Task Feedback_returns_service_unavailable_when_github_not_configured()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.GitHubService.SetupNotConfigured();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        {
+            Content = JsonContent.Create(new
+            {
+                type = "feature",
+                summary = "Add dark mode"
+            })
+        };
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        var result = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        result!.error.Should().Contain("Unable to submit feedback");
+        // Should NOT leak configuration details
+        result.error.Should().NotContain("configured");
+        result.error.Should().NotContain("GitHub");
+    }
+
+    [Fact]
+    public async Task Feedback_rate_limits_after_5_requests_per_hour()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        // Make 5 successful requests (at rate limit)
+        for (int i = 0; i < 5; i++)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+            {
+                Content = JsonContent.Create(new
+                {
+                    type = "feature",
+                    summary = $"Feature request {i + 1}"
+                })
+            };
+            // Add X-Forwarded-For header to simulate a specific client IP
+            req.Headers.Add("X-Forwarded-For", "192.168.1.100");
+
+            var response = await client.SendAsync(req);
+            response.StatusCode.Should().Be(HttpStatusCode.Accepted, $"Request {i + 1} should succeed");
+        }
+
+        // 6th request should be rate limited
+        using var rateLimitedReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        {
+            Content = JsonContent.Create(new
+            {
+                type = "feature",
+                summary = "This should be rate limited"
+            })
+        };
+        rateLimitedReq.Headers.Add("X-Forwarded-For", "192.168.1.100");
+
+        var rateLimitedResponse = await client.SendAsync(rateLimitedReq);
+
+        rateLimitedResponse.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        var result = await rateLimitedResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+        result!.error.Should().Contain("Too many feedback submissions");
+
+        // Should include rate limit headers
+        rateLimitedResponse.Headers.Should().ContainKey("X-RateLimit-Remaining");
+        rateLimitedResponse.Headers.GetValues("X-RateLimit-Remaining").First().Should().Be("0");
+        rateLimitedResponse.Headers.Should().ContainKey("Retry-After");
+    }
+
+    [Fact]
+    public async Task Feedback_rate_limit_tracks_by_user_id_when_authenticated()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        // Make 5 successful requests (at rate limit)
+        for (int i = 0; i < 5; i++)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+            {
+                Content = JsonContent.Create(new
+                {
+                    type = "feature",
+                    summary = $"Feature request {i + 1}"
+                })
+            };
+            req.Headers.Add("Cookie", authCookie);
+            // Use different IPs to prove user ID is used, not IP
+            req.Headers.Add("X-Forwarded-For", $"192.168.1.{i + 1}");
+
+            var response = await client.SendAsync(req);
+            response.StatusCode.Should().Be(HttpStatusCode.Accepted, $"Request {i + 1} should succeed");
+        }
+
+        // 6th request should be rate limited (user ID tracking, not IP)
+        using var rateLimitedReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        {
+            Content = JsonContent.Create(new
+            {
+                type = "feature",
+                summary = "This should be rate limited"
+            })
+        };
+        rateLimitedReq.Headers.Add("Cookie", authCookie);
+        rateLimitedReq.Headers.Add("X-Forwarded-For", "192.168.1.200"); // Different IP
+
+        var rateLimitedResponse = await client.SendAsync(rateLimitedReq);
+
+        rateLimitedResponse.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+    }
+
+    [Fact]
+    public async Task Feedback_rate_limit_separate_for_different_ips()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        // First IP makes 5 requests (reaches limit)
+        for (int i = 0; i < 5; i++)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+            {
+                Content = JsonContent.Create(new
+                {
+                    type = "feature",
+                    summary = $"Feature request {i + 1}"
+                })
+            };
+            req.Headers.Add("X-Forwarded-For", "10.0.0.1");
+            var response = await client.SendAsync(req);
+            response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        }
+
+        // Second IP should still be able to submit (separate rate limit)
+        using var differentIpReq = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
+        {
+            Content = JsonContent.Create(new
+            {
+                type = "feature",
+                summary = "Different IP request"
+            })
+        };
+        differentIpReq.Headers.Add("X-Forwarded-For", "10.0.0.2");
+
+        var differentIpResponse = await client.SendAsync(differentIpReq);
+
+        differentIpResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+    }
 }
 
