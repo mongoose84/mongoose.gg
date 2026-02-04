@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Interfaces;
 using System.Text.Json;
 
@@ -62,8 +63,8 @@ public sealed class EndpointRateLimiter : IRateLimiter
                         var retryAfter = window - (now - state.WindowStart);
                         _logger.LogWarning(
                             "Rate limit exceeded for key {Key}. Count: {Count}, Limit: {Limit}, RetryAfter: {RetryAfter}s",
-                            key, state.Count, limit, retryAfter.TotalSeconds);
-                        
+                            LogSanitizer.Sanitize(key), state.Count, limit, retryAfter.TotalSeconds);
+
                         return new RateLimitResult(
                             IsAllowed: false,
                             RemainingRequests: 0,
@@ -95,7 +96,7 @@ public sealed class EndpointRateLimiter : IRateLimiter
         catch (Exception ex)
         {
             // On cache failure, allow the request but log the error
-            _logger.LogError(ex, "Rate limiter cache error for key {Key}. Allowing request.", key);
+            _logger.LogError(ex, "Rate limiter cache error for key {Key}. Allowing request.", LogSanitizer.Sanitize(key));
             return new RateLimitResult(
                 IsAllowed: true,
                 RemainingRequests: limit,
@@ -125,7 +126,7 @@ public sealed class EndpointRateLimiter : IRateLimiter
         {
             // No identifier available - use a generic key (very permissive)
             key = $"{endpointName}:unknown";
-            _logger.LogWarning("Rate limiting with no identifier for endpoint {Endpoint}", endpointName);
+            _logger.LogWarning("Rate limiting with no identifier for endpoint {Endpoint}", LogSanitizer.Sanitize(endpointName));
         }
         
         return await CheckAsync(key, limit, window);

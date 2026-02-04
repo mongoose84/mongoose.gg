@@ -71,7 +71,7 @@ public sealed class LoginEndpoint : IEndpoint
                 {
                     logger.LogWarning(
                         "Rate limit exceeded for login endpoint. IP: {IP}",
-                        clientIp ?? "unknown");
+                        LogSanitizer.Sanitize(clientIp) ?? "unknown");
 
                     httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
                     if (rateLimitResult.RetryAfter.HasValue)
@@ -110,21 +110,21 @@ public sealed class LoginEndpoint : IEndpoint
 
                 if (user == null)
                 {
-                    logger.LogWarning("Login attempt with non-existent username/email: {Input}", request.Username);
+                    logger.LogWarning("Login attempt with non-existent username/email: {Input}", LogSanitizer.Sanitize(request.Username));
                     return AuthResults.InvalidCredentials();
                 }
 
                 // Verify password using BCrypt
                 if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
-                    logger.LogWarning("Login attempt with invalid password for username: {Username}", user.Username);
+                    logger.LogWarning("Login attempt with invalid password for username: {Username}", LogSanitizer.Sanitize(user.Username));
                     return AuthResults.InvalidCredentials();
                 }
 
                 // Check if user is active
                 if (!user.IsActive)
                 {
-                    logger.LogWarning("Login attempt for inactive user: {Username}", user.Username);
+                    logger.LogWarning("Login attempt for inactive user: {Username}", LogSanitizer.Sanitize(user.Username));
                     return AuthResults.AccountDeactivated();
                 }
 
@@ -162,7 +162,7 @@ public sealed class LoginEndpoint : IEndpoint
                 user.LastLoginAt = DateTime.UtcNow;
                 await usersRepo.UpsertAsync(user);
 
-                logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", user.Username, user.UserId);
+                logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", LogSanitizer.Sanitize(user.Username), user.UserId);
 
                 // Check linked Riot accounts for new matches and update profile data
                 // Run in background (fire-and-forget) to avoid slowing down login response

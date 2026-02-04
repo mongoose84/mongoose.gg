@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Application.Endpoints
@@ -58,7 +59,7 @@ namespace RiotProxy.Application.Endpoints
                 {
                     logger.LogWarning(
                         "Rate limit exceeded for public-stats endpoint. IP: {IP}",
-                        clientIp ?? "unknown");
+                        LogSanitizer.Sanitize(clientIp) ?? "unknown");
 
                     httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
                     if (rateLimitResult.RetryAfter.HasValue)

@@ -77,7 +77,7 @@ public sealed class ResendVerificationEndpoint : IEndpoint
                 {
                     logger.LogWarning(
                         "Rate limit exceeded for resend-verification endpoint. IP: {IP}, UserId: {UserId}",
-                        clientIp ?? "unknown",
+                        LogSanitizer.Sanitize(clientIp) ?? "unknown",
                         userId?.ToString() ?? "anonymous");
 
                     httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
@@ -146,7 +146,7 @@ public sealed class ResendVerificationEndpoint : IEndpoint
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Failed to send verification email to {Email}", user.Email);
+                    logger.LogError(ex, "Failed to send verification email to {Email}", LogSanitizer.Sanitize(user.Email));
                     return Results.Json(new { error = "Failed to send verification email. Please try again later." }, statusCode: 500);
                 }
 

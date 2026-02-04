@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using RiotProxy.Application.DTOs.Feedback;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Interfaces;
 
 namespace RiotProxy.Application.Endpoints.Feedback;
@@ -34,22 +35,6 @@ public sealed class FeedbackEndpoint : IEndpoint
     // Rate limiting configuration
     private const int RateLimitRequests = 5;
     private static readonly TimeSpan RateLimitWindow = TimeSpan.FromHours(1);
-
-    /// <summary>
-    /// Sanitizes user input for safe logging by removing newlines and control characters.
-    /// Prevents log injection/forgery attacks.
-    /// </summary>
-    private static string SanitizeForLog(string? input)
-    {
-        if (string.IsNullOrEmpty(input))
-            return string.Empty;
-
-        // Remove newlines and carriage returns to prevent log forgery
-        return input
-            .Replace("\r", "")
-            .Replace("\n", "")
-            .Replace("\t", " ");
-    }
 
     /// <summary>
     /// Sanitizes user input for safe inclusion in Markdown content.
@@ -168,6 +153,7 @@ public sealed class FeedbackEndpoint : IEndpoint
                         userId = parsedUserId;
                     }
                 }
+                
 
                 // Check rate limit before processing
                 var clientIp = GetClientIpAddress(httpContext);
@@ -180,10 +166,13 @@ public sealed class FeedbackEndpoint : IEndpoint
 
                 if (!rateLimitResult.IsAllowed)
                 {
+                    var sanitizedClientIp = LogSanitizer.Sanitize(clientIp);
+                    var sanitizedUserId = userId.HasValue ? userId.Value.ToString() : "anonymous";
+
                     logger.LogWarning(
                         "Rate limit exceeded for feedback endpoint. IP: {IP}, UserId: {UserId}",
-                        clientIp ?? "unknown",
-                        userId?.ToString() ?? "anonymous");
+                        sanitizedClientIp ?? "unknown",
+                        sanitizedUserId);
 
                     // Add rate limit headers
                     httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
@@ -255,7 +244,7 @@ public sealed class FeedbackEndpoint : IEndpoint
 
                 // Build GitHub issue title
                 // Sanitize summary for title - remove newlines and control characters
-                var sanitizedSummary = SanitizeForLog(request.Summary.Trim());
+                var sanitizedSummary = LogSanitizer.Sanitize(request.Summary.Trim());
                 var titlePrefix = normalizedType == "bug" ? "[Bug]" : "[Feature Request]";
                 var issueTitle = $"{titlePrefix} {sanitizedSummary}";
 
@@ -272,7 +261,7 @@ public sealed class FeedbackEndpoint : IEndpoint
 
                 if (!result.Success)
                 {
-                    logger.LogWarning("Failed to create GitHub issue: {Error}", result.ErrorMessage);
+                    logger.LogWarning("Failed to create GitHub issue: {Error}", LogSanitizer.Sanitize(result.ErrorMessage));
                     return Results.Json(
                         new { error = "Unable to submit feedback. Please try again later." },
                         statusCode: 503);
@@ -280,7 +269,7 @@ public sealed class FeedbackEndpoint : IEndpoint
 
                 logger.LogInformation(
                     "Feedback submitted successfully. Type: {Type}, UserId: {UserId}",
-                    SanitizeForLog(normalizedType), userId?.ToString() ?? "anonymous");
+                    LogSanitizer.Sanitize(normalizedType), userId?.ToString() ?? "anonymous");
 
                 return Results.Accepted(value: new FeedbackDto.FeedbackResponse(
                     Success: true,

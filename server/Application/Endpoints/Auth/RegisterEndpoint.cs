@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using RiotProxy.Application.Endpoints.Shared;
 using RiotProxy.Core.Entities;
 using RiotProxy.Core.Interfaces;
 using RiotProxy.Infrastructure.Database.Repositories;
@@ -74,7 +75,7 @@ public sealed class RegisterEndpoint : IEndpoint
                 {
                     logger.LogWarning(
                         "Rate limit exceeded for register endpoint. IP: {IP}",
-                        clientIp ?? "unknown");
+                        LogSanitizer.Sanitize(clientIp) ?? "unknown");
 
                     httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
                     if (rateLimitResult.RetryAfter.HasValue)
@@ -127,14 +128,14 @@ public sealed class RegisterEndpoint : IEndpoint
                 // Check if username already exists (case-insensitive)
                 if (await usersRepo.UsernameExistsAsync(normalizedUsername))
                 {
-                    logger.LogWarning("Registration attempt with existing username: {Username}", request.Username);
+                    logger.LogWarning("Registration attempt with existing username: {Username}", LogSanitizer.Sanitize(request.Username));
                     return Results.Conflict(new { error = "This username is already taken", code = "USERNAME_TAKEN" });
                 }
 
                 // Check if email already exists
                 if (await usersRepo.EmailExistsAsync(request.Email))
                 {
-                    logger.LogWarning("Registration attempt with existing email: {Email}", request.Email);
+                    logger.LogWarning("Registration attempt with existing email: {Email}", LogSanitizer.Sanitize(request.Email));
                     return Results.Conflict(new { error = "This email is already registered", code = "EMAIL_TAKEN" });
                 }
 
@@ -175,7 +176,7 @@ public sealed class RegisterEndpoint : IEndpoint
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Failed to send verification email to {Email}", newUser.Email);
+                        logger.LogError(ex, "Failed to send verification email to {Email}", LogSanitizer.Sanitize(newUser.Email));
                     }
                 });
 
@@ -204,7 +205,7 @@ public sealed class RegisterEndpoint : IEndpoint
                     authProperties
                 );
 
-                logger.LogInformation("User {Username} (ID: {UserId}) registered successfully", newUser.Username, userId);
+                logger.LogInformation("User {Username} (ID: {UserId}) registered successfully", LogSanitizer.Sanitize(newUser.Username), userId);
 
                 return Results.Ok(new RegisterResponse(
                     userId,
