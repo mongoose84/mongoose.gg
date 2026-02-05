@@ -54,7 +54,7 @@
 
         <!-- Recent games Section -->
         <section v-if="$slots['recent-left'] || $slots['recent-right']" class="overview-section">
-          <h2 class="section-title">Recent games</h2>
+          <h2 class="section-title">Recent matches</h2>
           <div class="section-row">
             <div class="section-col section-col--primary">
               <slot name="recent-left"></slot>

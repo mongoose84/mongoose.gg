@@ -16,13 +16,15 @@
 
     <!-- Arrow indicator -->
     <div class="cta-arrow">
-      <ArrowRightIcon class="w-5 h-5" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="arrow-icon">
+        <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+      </svg>
     </div>
   </router-link>
 </template>
 
 <script setup>
-import { SparklesIcon, ArrowRightIcon } from '@heroicons/vue/24/solid'
+import { SparklesIcon } from '@heroicons/vue/24/solid'
 </script>
 
 <style scoped>
@@ -98,13 +100,18 @@ import { SparklesIcon, ArrowRightIcon } from '@heroicons/vue/24/solid'
 /* Arrow indicator */
 .cta-arrow {
   flex-shrink: 0;
-  color: var(--color-text-secondary);
-  transition: transform 0.2s ease, color 0.2s ease;
+  color: var(--color-text-tertiary);
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .champion-select-cta:hover .cta-arrow {
   color: var(--color-primary);
-  transform: translateX(4px);
+  transform: translateX(2px);
+}
+
+.arrow-icon {
+  width: 20px;
+  height: 20px;
 }
 
 /* Mobile Responsive */
@@ -135,4 +142,3 @@ import { SparklesIcon, ArrowRightIcon } from '@heroicons/vue/24/solid'
   }
 }
 </style>
-
