@@ -15,7 +15,7 @@ public interface IUsersRepository
 
     /// <summary>
     /// Permanently deletes a user and all associated data.
-    /// This includes: user record, riot account links, LP snapshots, subscriptions.
+    /// This includes: user record, riot account links, LP snapshots, subscriptions, and verification tokens.
     /// Match/participant data is NOT deleted as it's tied to puuid, not user_id.
     /// </summary>
     /// <param name="userId">The user ID to delete</param>
