@@ -41,6 +41,9 @@ namespace RiotProxy.Application
             var logoutEndpoint = new LogoutEndpoint(basePath);
             _endpoints.Add(logoutEndpoint);
 
+            var deleteAccountEndpoint = new DeleteAccountEndpoint(basePath);
+            _endpoints.Add(deleteAccountEndpoint);
+
             var verifyEndpoint = new VerifyEndpoint(basePath);
             _endpoints.Add(verifyEndpoint);
 
