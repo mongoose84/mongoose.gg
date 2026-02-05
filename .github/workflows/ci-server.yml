@@ -130,9 +130,9 @@ jobs:
           $smtpFromEmail = ConvertTo-XmlEscaped "${{ secrets.SMTP_FROM_EMAIL }}"
 
           # GitHub Feedback Configuration (optional - feedback works without it, just won't create issues)
-          $githubToken = ConvertTo-XmlEscaped "${{ secrets.GITHUB_FEEDBACK_TOKEN }}"
-          $githubOwner = ConvertTo-XmlEscaped "${{ secrets.GITHUB_FEEDBACK_OWNER }}"
-          $githubRepo = ConvertTo-XmlEscaped "${{ secrets.GITHUB_FEEDBACK_REPO }}"
+          $githubToken = ConvertTo-XmlEscaped "${{ secrets.FEEDBACK_TOKEN }}"
+          $githubOwner = ConvertTo-XmlEscaped "${{ secrets.FEEDBACK_OWNER }}"
+          $githubRepo = ConvertTo-XmlEscaped "${{ secrets.FEEDBACK_REPO }}"
 
           $webConfig = @"
           <?xml version="1.0" encoding="utf-8"?>
