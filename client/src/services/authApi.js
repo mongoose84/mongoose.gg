@@ -107,6 +107,21 @@ export async function logout() {
 }
 
 /**
+ * Delete current user's account permanently
+ * Requires password confirmation
+ * @param {string} password - User's current password for confirmation
+ * @returns {Promise<Object>} Success response
+ */
+export async function deleteAccount(password) {
+  const response = await apiRequest('/auth/account', {
+    method: 'DELETE',
+    body: JSON.stringify({ password })
+  })
+
+  return parseResponse(response, 'Failed to delete account')
+}
+
+/**
  * Verify user email with 6-digit code
  * @param {string} code - 6-digit verification code
  * @returns {Promise<Object>} Verification result

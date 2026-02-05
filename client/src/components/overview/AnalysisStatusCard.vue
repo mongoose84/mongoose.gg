@@ -45,7 +45,7 @@
       <!-- Action button -->
       <BaseButton
         v-if="showActionButton"
-        variant="ghost"
+        variant="primary"
         size="sm"
         :loading="isLoading"
         :disabled="isRunning"

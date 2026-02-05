@@ -12,5 +12,14 @@ public interface IUsersRepository
     Task<bool> EmailExistsAsync(string email);
     Task<long> GetActiveUserCountAsync();
     Task UpdateEmailVerifiedAsync(long userId, bool verified);
+
+    /// <summary>
+    /// Permanently deletes a user and all associated data.
+    /// This includes: user record, riot account links, LP snapshots, subscriptions, and verification tokens.
+    /// Match/participant data is NOT deleted as it's tied to puuid, not user_id.
+    /// </summary>
+    /// <param name="userId">The user ID to delete</param>
+    /// <returns>True if user was deleted, false if user not found</returns>
+    Task<bool> DeleteUserAsync(long userId);
 }
 

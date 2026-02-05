@@ -55,8 +55,36 @@
             </button>
           </div>
         </div>
+
+        <!-- Danger Zone -->
+        <div class="flex flex-col gap-md">
+          <h2 class="text-lg font-semibold text-error tracking-tight">Danger Zone</h2>
+          <div class="bg-background-surface border border-error rounded-lg p-xl">
+            <div class="flex flex-col gap-md sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 class="text-sm font-semibold text-text">Delete Account</h3>
+                <p class="text-xs text-text-secondary mt-xs">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+              </div>
+              <button
+                @click="showDeleteModal = true"
+                class="flex-shrink-0 py-md px-lg bg-error rounded-md text-white text-sm font-semibold cursor-pointer transition-all duration-200 hover:opacity-90"
+              >
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- Delete Account Modal -->
+    <DeleteAccountModal
+      :isOpen="showDeleteModal"
+      @close="showDeleteModal = false"
+      @deleted="handleAccountDeleted"
+    />
   </div>
 </template>
 
@@ -65,11 +93,13 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
 import { trackAuth } from '../services/analyticsApi';
+import DeleteAccountModal from '../components/DeleteAccountModal.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
 const isLoggingOut = ref(false);
+const showDeleteModal = ref(false);
 
 const username = computed(() => authStore.username || 'User');
 const email = computed(() => authStore.email || 'Not set');
@@ -96,6 +126,15 @@ async function handleLogout() {
   } finally {
     isLoggingOut.value = false;
   }
+}
+
+async function handleAccountDeleted() {
+  // Clear auth state (user is already signed out on the server)
+  authStore.user = null;
+  // Track the event
+  trackAuth('account_deleted', true);
+  // Redirect to home page
+  router.push('/');
 }
 </script>
 
