@@ -773,4 +773,47 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         GoldDiffAt10: r.IsDBNull(18) ? null : r.GetInt32(18),
         CsDiffAt10: r.IsDBNull(19) ? null : r.GetInt32(19)
     );
+
+    /// <summary>
+    /// Deletes matches older than the specified cutoff date in batches.
+    /// Uses CASCADE DELETE to automatically remove related records from all child tables:
+    /// - participants
+    /// - participant_metrics
+    /// - participant_checkpoints
+    /// - team_objectives
+    /// - participant_objectives
+    /// - team_match_metrics
+    /// - team_role_responsibilities
+    /// - duo_metrics
+    /// </summary>
+    public async Task<int> DeleteOldMatchesAsync(long cutoffTimestamp, int batchSize)
+    {
+        // Step 1: Find old match IDs to delete
+        const string selectSql = @"
+            SELECT match_id
+            FROM matches
+            WHERE game_start_time < @cutoff
+            LIMIT @limit";
+
+        var matchIds = await ExecuteListAsync(
+            selectSql,
+            r => r.GetString(0),
+            ("@cutoff", cutoffTimestamp),
+            ("@limit", batchSize));
+
+        if (matchIds.Count == 0)
+            return 0;
+
+        // Step 2: Delete matches (CASCADE will handle all related tables automatically)
+        var placeholders = string.Join(",", matchIds.Select((_, i) => $"@id{i}"));
+        var deleteSql = $"DELETE FROM matches WHERE match_id IN ({placeholders})";
+
+        var parameters = matchIds
+            .Select((id, i) => ($"@id{i}", (object?)id))
+            .ToArray();
+
+        await ExecuteNonQueryAsync(deleteSql, parameters);
+
+        return matchIds.Count;
+    }
 }
