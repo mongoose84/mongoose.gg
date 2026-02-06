@@ -84,6 +84,28 @@ public class MatchCleanupJob : BackgroundService
         var retentionDays = _configuration.GetValue<int>(RetentionDaysKey, DefaultRetentionDays);
         var batchSize = _configuration.GetValue<int>(BatchSizeKey, DefaultBatchSize);
 
+        // Validate configuration values to prevent dangerous operations
+        const int MinRetentionDays = 30;    // Minimum 30 days to prevent accidental mass deletion
+        const int MaxRetentionDays = 3650;  // Maximum 10 years
+        const int MinBatchSize = 1;
+        const int MaxBatchSize = 10000;     // Prevent overly large SQL queries
+
+        if (retentionDays < MinRetentionDays || retentionDays > MaxRetentionDays)
+        {
+            _logger.LogError(
+                "Invalid MatchRetentionDays configuration: {RetentionDays}. Must be between {Min} and {Max}. Cleanup skipped.",
+                retentionDays, MinRetentionDays, MaxRetentionDays);
+            return;
+        }
+
+        if (batchSize < MinBatchSize || batchSize > MaxBatchSize)
+        {
+            _logger.LogError(
+                "Invalid MatchCleanupBatchSize configuration: {BatchSize}. Must be between {Min} and {Max}. Cleanup skipped.",
+                batchSize, MinBatchSize, MaxBatchSize);
+            return;
+        }
+
         // Calculate cutoff timestamp (Unix milliseconds)
         var cutoffDate = DateTimeOffset.UtcNow.AddDays(-retentionDays);
         var cutoffTimestamp = cutoffDate.ToUnixTimeMilliseconds();

@@ -126,6 +126,38 @@ public class MatchCleanupJobTests
         deletedCount.Should().BeGreaterThanOrEqualTo(0, "should handle empty database gracefully");
     }
 
+    [Fact]
+    public async Task DeleteOldMatchesAsync_ValidatesMinimumBatchSize()
+    {
+        // Arrange - Create old match
+        var now = DateTimeOffset.UtcNow;
+        var oldMatch = CreateTestMatch("BATCH_TEST_1", now.AddDays(-200).ToUnixTimeMilliseconds());
+        await _matchesRepo.UpsertAsync(oldMatch);
+
+        var cutoffTimestamp = now.AddDays(-180).ToUnixTimeMilliseconds();
+
+        // Act - Try with batch size of 0 (should still work, just return 0)
+        var deletedCount = await _matchesRepo.DeleteOldMatchesAsync(cutoffTimestamp, 0);
+
+        // Assert - Repository should handle gracefully (batch size validation is in the job)
+        deletedCount.Should().Be(0, "batch size of 0 should delete nothing");
+    }
+
+    [Fact]
+    public async Task DeleteOldMatchesAsync_HandlesNegativeCutoff()
+    {
+        // Arrange - Create match with normal timestamp
+        var now = DateTimeOffset.UtcNow;
+        var match = CreateTestMatch("NEG_TEST_1", now.AddDays(-100).ToUnixTimeMilliseconds());
+        await _matchesRepo.UpsertAsync(match);
+
+        // Act - Try with negative cutoff (far in the past)
+        var deletedCount = await _matchesRepo.DeleteOldMatchesAsync(-1000, 1000);
+
+        // Assert - Should delete nothing (no matches older than negative timestamp)
+        deletedCount.Should().Be(0, "negative cutoff should delete nothing");
+    }
+
     // Helper methods
     private static Match CreateTestMatch(string matchId, long gameStartTime)
     {
