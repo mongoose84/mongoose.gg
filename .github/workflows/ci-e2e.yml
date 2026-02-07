@@ -22,6 +22,8 @@ jobs:
 
     env:
       # Backend configuration
+      # Use Production environment to test real production code paths
+      # Email verification is bypassed via Auth:AutoVerifyEmail config flag
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://localhost:5164
 
@@ -90,7 +92,8 @@ jobs:
             "Auth": {
               "CookieName": "mongoose-auth",
               "SessionTimeout": 30,
-              "EnableMvpLogin": true
+              "EnableMvpLogin": true,
+              "AutoVerifyEmail": true
             },
             "Jobs": {
               "EnableMatchHistorySync": false

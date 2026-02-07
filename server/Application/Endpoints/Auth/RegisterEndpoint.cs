@@ -57,8 +57,7 @@ public sealed class RegisterEndpoint : IEndpoint
             [FromServices] IEmailService emailService,
             [FromServices] IRateLimiter rateLimiter,
             [FromServices] ILogger<RegisterEndpoint> logger,
-            [FromServices] IConfiguration config,
-            [FromServices] IWebHostEnvironment env
+            [FromServices] IConfiguration config
         ) =>
         {
             try
@@ -143,9 +142,9 @@ public sealed class RegisterEndpoint : IEndpoint
                 // Hash password (using BCrypt)
                 var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-                // Auto-verify email in non-production environments (Development, Testing)
-                // This allows E2E tests to bypass email verification flow
-                var autoVerifyEmail = !env.IsProduction();
+                // Auto-verify email if configured (for E2E tests in CI)
+                // This should only be enabled in controlled test environments, never in real production
+                var autoVerifyEmail = config.GetValue<bool>("Auth:AutoVerifyEmail", false);
 
                 // Create user with normalized username and email
                 var newUser = new User
@@ -190,7 +189,7 @@ public sealed class RegisterEndpoint : IEndpoint
                 }
                 else
                 {
-                    logger.LogInformation("Auto-verified email for user {UserId} in non-production environment", userId);
+                    logger.LogInformation("Auto-verified email for user {UserId} (Auth:AutoVerifyEmail enabled)", userId);
                 }
 
                 // Create claims identity for cookie auth

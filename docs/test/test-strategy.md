@@ -405,8 +405,8 @@ client/e2e/
 
 ### 6.3 Key Implementation Details
 
-**Auto-Verification in Non-Production:**
-The `RegisterEndpoint` checks `!env.IsProduction()` and auto-verifies email for Development and Testing environments, bypassing the email verification flow for E2E tests.
+**Auto-Verification via Config Flag:**
+The `RegisterEndpoint` checks `Auth:AutoVerifyEmail` config flag. When set to `true`, email is auto-verified, bypassing the email verification flow. This flag is only enabled in CI for E2E tests via `appsettings.Production.json`, never in real production deployments.
 
 **Riot Account Configuration:**
 Riot account credentials are hardcoded in `client/e2e/global-setup.js`:
@@ -506,7 +506,7 @@ Focus on highest-risk areas with missing coverage.
 - Overview dashboard E2E coverage complete
 - **E2E global setup/teardown architecture implemented**
 - **Riot account linking integrated into E2E flow**
-- **Auto-email verification for non-production environments**
+- **Auto-email verification via `Auth:AutoVerifyEmail` config flag (CI only)**
 - **Fixed database schema: username VARCHAR(255) for encrypted values**
 
 ### 7.2 Phase 2: Business Value (2-4 weeks)
