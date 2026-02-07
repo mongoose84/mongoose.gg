@@ -5,6 +5,7 @@ using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
 using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Infrastructure.Helpers;
 
 namespace Mongoose.Api.Application.Endpoints.Matches;
 
@@ -14,7 +15,6 @@ namespace Mongoose.Api.Application.Endpoints.Matches;
 /// </summary>
 public sealed class MatchNarrativeEndpoint : IEndpoint
 {
-    private const string DataDragonVersion = "16.1.1";
     public string Route { get; }
 
     public MatchNarrativeEndpoint(string basePath)
@@ -232,7 +232,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
         SummonerName: "", // Not available in current data - could be added later
         ChampionId: raw.ChampionId,
         ChampionName: raw.ChampionName,
-        ChampionIconUrl: GetChampionIconUrl(raw.ChampionName),
+        ChampionIconUrl: LeagueDataHelper.GetChampionIconUrl(raw.ChampionName),
         TeamId: raw.TeamId,
         Win: raw.Win,
         Kills: raw.Kills,
@@ -250,11 +250,5 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
         CreepScore: raw.CreepScore,
         GoldEarned: raw.GoldEarned
     );
-
-    private static string GetChampionIconUrl(string championName)
-    {
-        var normalized = championName.Replace(" ", "").Replace("'", "");
-        return $"https://ddragon.leagueoflegends.com/cdn/{DataDragonVersion}/img/champion/{normalized}.png";
-    }
 }
 

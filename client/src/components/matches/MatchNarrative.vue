@@ -110,6 +110,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { getMatchNarrative } from '../../services/authApi'
 import { trackLaneExpand } from '../../services/analyticsApi'
 import { formatRole, formatKdaFromParticipant as formatKda, formatPercent } from '@/utils/formatters'
+import { getRoleIconUrl } from '@/utils/leagueAssets'
 import LaneMatchupDetails from './LaneMatchupDetails.vue'
 
 const props = defineProps({
@@ -200,23 +201,6 @@ const enemyParticipants = computed(() => {
     .map(m => m.enemyParticipant)
     .sort((a, b) => b.damageShare - a.damageShare)
 })
-
-// Community Dragon CDN for official League role icons
-const roleIconBaseUrl = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions'
-
-function getRoleIconUrl(role) {
-  const roleMap = {
-    TOP: 'top',
-    JUNGLE: 'jungle',
-    MIDDLE: 'middle',
-    BOTTOM: 'bottom',
-    UTILITY: 'utility'
-  }
-  const roleName = roleMap[role] || 'fill'
-  return `${roleIconBaseUrl}/icon-position-${roleName}.png`
-}
-
-
 </script>
 
 <style scoped>

@@ -207,6 +207,7 @@ import { ref, computed, reactive, watch, onUnmounted } from 'vue'
 import { getWinRateColorClass } from '../composables/useWinRateColor'
 import { trackFeature } from '../services/analyticsApi'
 import { formatRoleWithAdc as roleLabel, formatWinRate } from '@/utils/formatters'
+import { getChampionIconUrl } from '@/utils/leagueAssets'
 
 const props = defineProps({
   matchups: {
@@ -341,19 +342,6 @@ function visibleOpponents(matchup) {
   // Sort by games played descending, then show top 3
   const sorted = [...opponentsWithStats].sort((a, b) => b.gamesPlayed - a.gamesPlayed)
   return sorted.slice(0, 3)
-}
-
-// Data Dragon version for champion icons
-const ddVersion = '16.1.1'
-
-function normalizeChampionName(name) {
-  if (!name) return ''
-  return name.replace(/[^A-Za-z0-9]/g, '')
-}
-
-function getChampionIconUrl(name) {
-  const normalized = normalizeChampionName(name)
-  return `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${normalized}.png`
 }
 </script>
 
