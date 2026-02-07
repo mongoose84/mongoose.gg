@@ -74,7 +74,7 @@ jobs:
       - name: Generate appsettings.Production.json
         working-directory: server
         run: |
-          cat > appsettings.Production.json << 'EOF'
+          cat > appsettings.Production.json << EOF
           {
             "Logging": {
               "LogLevel": {
@@ -103,6 +103,8 @@ jobs:
             }
           }
           EOF
+          echo "Generated appsettings.Production.json:"
+          cat appsettings.Production.json
 
       # -------------------------------------------------
       # Build and start backend
