@@ -63,11 +63,12 @@ public static class RiotTimelineMapper
                 if (!participantIdMap.TryGetValue(participantId, out var dbParticipantId))
                     continue;
 
-                // Find lane opponent (same role, opposite team)
+                // Find role opponent (same role, opposite team)
+                // This includes junglers comparing against enemy jungler
                 int? goldDiff = null, csDiff = null;
                 bool? isAhead = null;
 
-                if (!string.IsNullOrEmpty(data.role) && data.role != "JUNGLE")
+                if (!string.IsNullOrEmpty(data.role))
                 {
                     var opponent = frameData.Values
                         .Where(o => o.team != data.team && o.role == data.role)
