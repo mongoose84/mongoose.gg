@@ -12,6 +12,8 @@ using Mongoose.Api.Infrastructure.Email;
 using Mongoose.Api.Application.DTOs.Overview;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
+using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
+using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 
 namespace Mongoose.Api.Tests;
 
@@ -28,6 +30,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeAnalyticsEventsRepository _analyticsEventsRepository;
     private readonly FakeGitHubService _gitHubService;
     private readonly FakeMatchesRepository _matchesRepository;
+    private readonly FakeSoloPerformanceRepository _soloPerformanceRepository;
+    private readonly FakeMatchupRepository _matchupRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
@@ -39,6 +43,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeAnalyticsEventsRepository AnalyticsEventsRepository => _analyticsEventsRepository;
     public FakeGitHubService GitHubService => _gitHubService;
     public FakeMatchesRepository MatchesRepository => _matchesRepository;
+    public FakeSoloPerformanceRepository SoloPerformanceRepository => _soloPerformanceRepository;
+    public FakeMatchupRepository MatchupRepository => _matchupRepository;
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
@@ -53,6 +59,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _analyticsEventsRepository = new FakeAnalyticsEventsRepository();
         _gitHubService = new FakeGitHubService();
         _matchesRepository = new FakeMatchesRepository();
+        _soloPerformanceRepository = new FakeSoloPerformanceRepository();
+        _matchupRepository = new FakeMatchupRepository();
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -129,6 +137,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // FakeMatchesRepository implements the interface directly, not the concrete class)
             services.RemoveAll<IMatchesRepository>();
             services.AddSingleton<IMatchesRepository>(_matchesRepository);
+
+            // Replace ISoloPerformanceRepository with a fake
+            services.RemoveAll<ISoloPerformanceRepository>();
+            services.AddSingleton<ISoloPerformanceRepository>(_soloPerformanceRepository);
+
+            // Replace IMatchupRepository with a fake
+            services.RemoveAll<IMatchupRepository>();
+            services.AddSingleton<IMatchupRepository>(_matchupRepository);
         });
 
         return base.CreateHost(builder);
@@ -1149,5 +1165,60 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             400 => "normal",
             _ => "other"
         };
+    }
+
+    /// <summary>
+    /// Fake implementation of ISoloPerformanceRepository for testing.
+    /// </summary>
+    internal sealed class FakeSoloPerformanceRepository : ISoloPerformanceRepository
+    {
+        private readonly ConcurrentDictionary<string, SoloPerformanceResponse> _performanceData = new();
+
+        public void SetPerformanceData(string puuid, SoloPerformanceResponse data)
+        {
+            _performanceData[puuid] = data;
+        }
+
+        public void Clear()
+        {
+            _performanceData.Clear();
+        }
+
+        public Task<SoloPerformanceResponse?> GetSoloPerformanceAsync(string puuid, string? queueType = null, string? timeRange = null)
+        {
+            _performanceData.TryGetValue(puuid, out var data);
+            return Task.FromResult(data);
+        }
+    }
+
+    /// <summary>
+    /// Fake implementation of IMatchupRepository for testing.
+    /// </summary>
+    internal sealed class FakeMatchupRepository : IMatchupRepository
+    {
+        private readonly ConcurrentDictionary<string, ChampionMatchupsResponse> _matchupData = new();
+
+        public void SetMatchupData(string puuid, ChampionMatchupsResponse data)
+        {
+            _matchupData[puuid] = data;
+        }
+
+        public void Clear()
+        {
+            _matchupData.Clear();
+        }
+
+        public Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(string puuid, string? queueType = null, string? timeRange = null)
+        {
+            if (_matchupData.TryGetValue(puuid, out var data))
+                return Task.FromResult(data);
+
+            // Return empty response if no data
+            return Task.FromResult(new ChampionMatchupsResponse(
+                Matchups: Array.Empty<ChampionMatchup>(),
+                QueueType: queueType ?? "all",
+                TimeRange: timeRange ?? "all"
+            ));
+        }
     }
 }

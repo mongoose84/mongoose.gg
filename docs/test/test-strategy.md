@@ -110,8 +110,8 @@ Based on codebase analysis, these are the **highest-impact areas** requiring rob
 - ✅ FluentAssertions for readable test assertions
 
 **Gaps:**
-- ⚪ No tests for Match endpoints (MatchList, MatchDetails, MatchNarrative)
-- ⚪ No tests for ChampionSelect endpoints
+- ~~⚪ No tests for Match endpoints (MatchList, MatchDetails, MatchNarrative)~~ ✅ Match endpoint tests added (19 tests)
+- ~~⚪ No tests for ChampionSelect endpoints~~ ✅ ChampionSelect endpoint tests added (16 tests)
 - ⚪ No Riot API client mocking
 - ⚪ Limited negative path testing
 - ⚪ No LoginSyncService tests
@@ -125,8 +125,8 @@ server/Mongoose.Api.Tests/
 │   ├── Auth/                     # ✅ Exists (Login, Verify, Resend, etc.)
 │   ├── Overview/                 # ✅ Exists
 │   ├── Solo/                     # ✅ Exists (needs expansion)
-│   ├── Matches/                  # 🔴 Missing (MatchList, MatchDetails, MatchNarrative)
-│   ├── ChampionSelect/           # 🔴 Missing (ChampionSelect, SoloMatchups)
+│   ├── Matches/                  # ✅ Complete (MatchEndpointTests.cs - 19 tests)
+│   ├── ChampionSelect/           # ✅ Complete (ChampionSelectEndpointTests.cs - 16 tests)
 │   ├── Trends/                   # 🔴 Missing (WinrateTrend)
 │   └── Feedback/                 # ✅ Exists
 ├── Services/                     # Unit tests for business logic
@@ -151,7 +151,7 @@ server/Mongoose.Api.Tests/
 1. ~~**LpCalculationService Tests** - Pure functions, easy to test, high business value~~ ✅ Complete
 2. ~~**RiotMatchMapper Tests** - Critical data transformation layer~~ ✅ Complete
 3. ~~**Match Endpoints Tests** - Core feature (MatchList, MatchDetails, MatchNarrative)~~ ✅ Complete (19 tests)
-4. **ChampionSelect Endpoints Tests** - Core feature for champion recommendations
+4. ~~**ChampionSelect Endpoints Tests** - Core feature for champion recommendations~~ ✅ Complete (16 tests)
 5. **LoginSyncService Tests** - Triggers on login, important for data freshness
 6. **Riot API Client Mocking** - Enable testing sync flows without real API
 
@@ -468,6 +468,7 @@ Focus on highest-risk areas with missing coverage.
 **Phase 2 Results (In Progress):**
 - 56 new frontend tests (formatters.spec.js)
 - 19 new backend tests (MatchEndpointTests.cs)
+- 16 new backend tests (ChampionSelectEndpointTests.cs)
 - Reusable test helper infrastructure established
 - Backend business logic now has comprehensive coverage
 - Frontend auth state management fully tested
@@ -483,7 +484,7 @@ Expand coverage for core user-facing features.
 |----------|------|-------|--------|--------|
 | P1 | `formatters.spec.js` | Frontend | 2h | ✅ Complete (56 tests) |
 | P1 | Match endpoints tests | Backend | 4h | ✅ Complete (19 tests) |
-| P1 | ChampionSelect endpoints tests | Backend | 3h | 🟡 Pending |
+| P1 | ChampionSelect endpoints tests | Backend | 3h | ✅ Complete (16 tests) |
 | P1 | Overview dashboard E2E | E2E | 3h | 🟡 Pending |
 | P1 | Riot account linking E2E | E2E | 4h | 🟡 Pending |
 | P2 | `useWinRateColor.spec.js` | Frontend | 0.5h | � Medium |
@@ -509,7 +510,7 @@ Build out full test suite for long-term maintainability.
 
 | Layer | Phase 1 (Done) | Phase 2 | Phase 3 |
 |-------|----------------|---------|---------|
-| Backend Tests | ~247 tests | ~280 tests | ~350 tests |
+| Backend Tests | ~263 tests | ~290 tests | ~360 tests |
 | Frontend Tests | 389 tests | ~450 tests | ~550 tests |
 | E2E Journeys | 1/8 | 4/8 | 8/8 |
 | Components Tested | ~27% | ~50% | ~75% |
