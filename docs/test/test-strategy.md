@@ -469,12 +469,14 @@ Focus on highest-risk areas with missing coverage.
 - 56 new frontend tests (formatters.spec.js)
 - 19 new backend tests (MatchEndpointTests.cs)
 - 16 new backend tests (ChampionSelectEndpointTests.cs)
+- 18 new E2E tests (overview-dashboard.spec.js)
 - Reusable test helper infrastructure established
 - Backend business logic now has comprehensive coverage
 - Frontend auth state management fully tested
 - Session expiry handling fully tested
 - Analysis status feature fully tested
 - Fixed singleton state issue in useSyncWebSocket tests
+- Overview dashboard E2E coverage complete
 
 ### 7.2 Phase 2: Business Value (2-4 weeks)
 
@@ -485,7 +487,7 @@ Expand coverage for core user-facing features.
 | P1 | `formatters.spec.js` | Frontend | 2h | ✅ Complete (56 tests) |
 | P1 | Match endpoints tests | Backend | 4h | ✅ Complete (19 tests) |
 | P1 | ChampionSelect endpoints tests | Backend | 3h | ✅ Complete (16 tests) |
-| P1 | Overview dashboard E2E | E2E | 3h | 🟡 Pending |
+| P1 | Overview dashboard E2E | E2E | 3h | ✅ Complete (18 tests) |
 | P1 | Riot account linking E2E | E2E | 4h | 🟡 Pending |
 | P2 | `useWinRateColor.spec.js` | Frontend | 0.5h | � Medium |
 | P2 | `uiStore.spec.js` | Frontend | 1h | 🟢 Medium |
@@ -512,7 +514,7 @@ Build out full test suite for long-term maintainability.
 |-------|----------------|---------|---------|
 | Backend Tests | ~263 tests | ~290 tests | ~360 tests |
 | Frontend Tests | 389 tests | ~450 tests | ~550 tests |
-| E2E Journeys | 1/8 | 4/8 | 8/8 |
+| E2E Journeys | 2/8 | 4/8 | 8/8 |
 | Components Tested | ~27% | ~50% | ~75% |
 | Utils/Formatters | 0% | 100% | 100% |
 
