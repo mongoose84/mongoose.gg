@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace RiotProxy.Tests
+namespace Mongoose.Api.Tests
 {
     /// <summary>
     /// Test collection that disables parallelization to avoid environment-variable race conditions.

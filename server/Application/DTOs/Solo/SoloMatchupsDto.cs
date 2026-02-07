@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RiotProxy.Application.DTOs;
+namespace Mongoose.Api.Application.DTOs;
 
 /// <summary>
 /// DTOs for the Champion Matchups endpoint.

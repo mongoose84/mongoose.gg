@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
-using RiotProxy.Application.Endpoints.Shared;
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core.Interfaces;
 using System.Text.Json;
 
-namespace RiotProxy.Infrastructure.RateLimiting;
+namespace Mongoose.Api.Infrastructure.RateLimiting;
 
 /// <summary>
 /// Rate limiter implementation using distributed cache.

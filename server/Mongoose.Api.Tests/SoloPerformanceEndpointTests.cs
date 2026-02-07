@@ -3,7 +3,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 public class SoloPerformanceEndpointTests
 {

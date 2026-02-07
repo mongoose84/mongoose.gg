@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
-using RiotProxy.Core.Entities;
-using RiotProxy.Infrastructure.Database.Repositories;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Infrastructure.Database.Repositories;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 /// <summary>
 /// Unit tests for MatchHistorySyncJob repository operations.

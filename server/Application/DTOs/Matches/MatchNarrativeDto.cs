@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RiotProxy.Application.DTOs.Matches;
+namespace Mongoose.Api.Application.DTOs.Matches;
 
 /// <summary>
 /// Response for the match narrative endpoint.

@@ -1,6 +1,6 @@
-using static RiotProxy.Application.DTOs.SoloMatchupsDto;
+using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 
-namespace RiotProxy.Core.Interfaces;
+namespace Mongoose.Api.Core.Interfaces;
 
 /// <summary>
 /// Repository for champion matchup statistics.

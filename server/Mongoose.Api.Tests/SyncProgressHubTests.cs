@@ -5,12 +5,12 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using RiotProxy.Core.Entities;
-using RiotProxy.Infrastructure.Database.Repositories;
-using RiotProxy.Infrastructure.WebSocket;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Infrastructure.WebSocket;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 /// <summary>
 /// Unit tests for SyncProgressHub WebSocket functionality.

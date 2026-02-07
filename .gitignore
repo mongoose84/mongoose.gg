@@ -46,5 +46,5 @@ server/publish
 
 # published files
 publish/**/*
-server/RiotProxy.Tests/bin
-server/RiotProxy.Tests/obj
+server/Mongoose.Api.Tests/bin
+server/Mongoose.Api.Tests/obj

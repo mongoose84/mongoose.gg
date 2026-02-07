@@ -1,8 +1,8 @@
 using FluentAssertions;
-using RiotProxy.Core.Entities;
+using Mongoose.Api.Core.Entities;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 public class VerificationTokenTests
 {

@@ -5,7 +5,7 @@
 ## 1. Executive Summary
 
 This document outlines a comprehensive test strategy for Mongoose.gg, covering three testing layers:
-- **Backend Tests** (`server/RiotProxy.Tests/`) - .NET 9 xUnit tests
+- **Backend Tests** (`server/Mongoose.Api.Tests/`) - .NET 9 xUnit tests
 - **Frontend Unit Tests** (`client/test/`) - Vitest + Vue Test Utils
 - **End-to-End Tests** (`client/e2e/`) - Playwright
 
@@ -24,8 +24,8 @@ The following critical gap tests have been implemented:
 | Test | Location | Tests | Status |
 |------|----------|-------|--------|
 | Auth Store Tests | `client/test/unit/authStore.spec.js` | 30 tests | ✅ Complete |
-| LP Calculation Tests | `server/RiotProxy.Tests/LpCalculationServiceTests.cs` | 82 tests | ✅ Complete |
-| Riot Match Mapper Tests | `server/RiotProxy.Tests/RiotMatchMapperTests.cs` | 28 tests | ✅ Complete |
+| LP Calculation Tests | `server/Mongoose.Api.Tests/LpCalculationServiceTests.cs` | 82 tests | ✅ Complete |
+| Riot Match Mapper Tests | `server/Mongoose.Api.Tests/RiotMatchMapperTests.cs` | 28 tests | ✅ Complete |
 | API Service Mocking Pattern | `client/test/helpers/` | Foundation | ✅ Complete |
 
 ---
@@ -110,7 +110,7 @@ Based on codebase analysis, these are the **highest-impact areas** requiring rob
 ### 4.2 Recommended Test Categories
 
 ```
-server/RiotProxy.Tests/
+server/Mongoose.Api.Tests/
 ├── Endpoints/                    # API integration tests
 │   ├── Auth/                     # ✅ Exists
 │   ├── Overview/                 # ✅ Exists
@@ -533,9 +533,9 @@ cd client && npm run test:e2e:ui         # Playwright UI
 
 | Purpose | Path |
 |---------|------|
-| Backend test factory | `server/RiotProxy.Tests/TestWebApplicationFactory.cs` |
-| LP Calculation tests | `server/RiotProxy.Tests/LpCalculationServiceTests.cs` |
-| Riot Match Mapper tests | `server/RiotProxy.Tests/RiotMatchMapperTests.cs` |
+| Backend test factory | `server/Mongoose.Api.Tests/TestWebApplicationFactory.cs` |
+| LP Calculation tests | `server/Mongoose.Api.Tests/LpCalculationServiceTests.cs` |
+| Riot Match Mapper tests | `server/Mongoose.Api.Tests/RiotMatchMapperTests.cs` |
 | Auth Store tests | `client/test/unit/authStore.spec.js` |
 | Test helpers | `client/test/helpers/` |
 | Vitest config | `client/vitest.config.js` |
@@ -547,7 +547,7 @@ cd client && npm run test:e2e:ui         # Playwright UI
 ### 10.3 Adding New Tests
 
 **Backend Test:**
-1. Create test class in `server/RiotProxy.Tests/`
+1. Create test class in `server/Mongoose.Api.Tests/`
 2. Inherit or use `TestWebApplicationFactory` for integration tests
 3. Use FluentAssertions for readable assertions
 4. Run `dotnet test` to verify

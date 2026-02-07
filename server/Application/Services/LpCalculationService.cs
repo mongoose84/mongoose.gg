@@ -1,6 +1,6 @@
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Core.Interfaces;
 
-namespace RiotProxy.Application.Services;
+namespace Mongoose.Api.Application.Services;
 
 /// <summary>
 /// Implementation of LP calculation service for League of Legends rank comparisons.

@@ -1,9 +1,9 @@
 using System.Linq;
 using FluentAssertions;
-using RiotProxy.Application.Services;
+using Mongoose.Api.Application.Services;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 public class MainChampionRecommenderTests
 {

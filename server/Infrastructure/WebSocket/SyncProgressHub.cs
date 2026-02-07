@@ -2,10 +2,10 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure.Database.Repositories;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Database.Repositories;
 
-namespace RiotProxy.Infrastructure.WebSocket;
+namespace Mongoose.Api.Infrastructure.WebSocket;
 
 /// <summary>
 /// Manages WebSocket connections for sync progress updates.

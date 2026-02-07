@@ -1,8 +1,8 @@
 using FluentAssertions;
-using RiotProxy.Application.Services;
+using Mongoose.Api.Application.Services;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 /// <summary>
 /// Tests for LpCalculationService - LP calculation business logic.

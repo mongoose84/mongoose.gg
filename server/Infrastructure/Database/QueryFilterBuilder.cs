@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 using MySqlConnector;
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Core.Interfaces;
 
-namespace RiotProxy.Infrastructure.Database;
+namespace Mongoose.Api.Infrastructure.Database;
 
 /// <summary>
 /// Service for building SQL query filters for queue types and time ranges.

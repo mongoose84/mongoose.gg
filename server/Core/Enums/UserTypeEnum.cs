@@ -1,4 +1,4 @@
-namespace RiotProxy.Core.Enums;
+namespace Mongoose.Api.Core.Enums;
 
 public enum UserTypeEnum
 {

@@ -1,8 +1,8 @@
 using FluentAssertions;
-using RiotProxy.Infrastructure.Email;
+using Mongoose.Api.Infrastructure.Email;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 public class VerificationCodeGeneratorTests
 {

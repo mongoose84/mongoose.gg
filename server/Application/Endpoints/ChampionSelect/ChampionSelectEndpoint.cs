@@ -1,9 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Application.Endpoints.Shared;
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core.Interfaces;
 
-namespace RiotProxy.Application.Endpoints.ChampionSelect;
+namespace Mongoose.Api.Application.Endpoints.ChampionSelect;
 
 /// <summary>
 /// Champion Select Endpoint

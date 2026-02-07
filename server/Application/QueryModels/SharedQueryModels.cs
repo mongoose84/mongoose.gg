@@ -1,4 +1,4 @@
-namespace RiotProxy.Application.QueryModels;
+namespace Mongoose.Api.Application.QueryModels;
 
 /// <summary>
 /// Record representing the latest game details for a player.

@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace RiotProxy.Infrastructure.Telemetry;
+namespace Mongoose.Api.Infrastructure.Telemetry;
 
 /// <summary>
 /// Provides a static, read‑only view of the metrics

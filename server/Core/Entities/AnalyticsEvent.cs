@@ -1,4 +1,4 @@
-namespace RiotProxy.Core.Entities;
+namespace Mongoose.Api.Core.Entities;
 
 /// <summary>
 /// Represents a user behavior analytics event for tracking app usage.

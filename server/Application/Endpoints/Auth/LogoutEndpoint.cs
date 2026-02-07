@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 
-namespace RiotProxy.Application.Endpoints.Auth;
+namespace Mongoose.Api.Application.Endpoints.Auth;
 
 /// <summary>
 /// Logout Endpoint

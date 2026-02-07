@@ -25,9 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="RiotProxy.Tests/**" />
-    <EmbeddedResource Remove="RiotProxy.Tests/**" />
-    <None Remove="RiotProxy.Tests/**" />
+    <Compile Remove="Mongoose.Api.Tests/**" />
+    <EmbeddedResource Remove="Mongoose.Api.Tests/**" />
+    <None Remove="Mongoose.Api.Tests/**" />
   </ItemGroup>
 
   <!-- Copy email assets to output and publish directories -->

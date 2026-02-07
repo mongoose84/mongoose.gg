@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RiotProxy.Core.QueryModels;
+namespace Mongoose.Api.Core.QueryModels;
 
 /// <summary>
 /// Lightweight match summary for the list view.

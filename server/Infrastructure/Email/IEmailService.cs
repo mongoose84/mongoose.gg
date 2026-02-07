@@ -1,4 +1,4 @@
-namespace RiotProxy.Infrastructure.Email;
+namespace Mongoose.Api.Infrastructure.Email;
 
 /// <summary>
 /// Service for sending emails

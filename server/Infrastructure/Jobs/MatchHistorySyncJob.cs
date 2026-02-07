@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Logging;
-using RiotProxy.Core.Entities;
-using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure.Database.Repositories;
-using RiotProxy.Infrastructure.Riot;
-using RiotProxy.Infrastructure.Riot.LimitHandler;
-using RiotProxy.Infrastructure.Riot.Mappers;
-using RiotProxy.Infrastructure.WebSocket;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Infrastructure.Riot;
+using Mongoose.Api.Infrastructure.Riot.LimitHandler;
+using Mongoose.Api.Infrastructure.Riot.Mappers;
+using Mongoose.Api.Infrastructure.WebSocket;
 using System.Text.Json;
 
-namespace RiotProxy.Infrastructure.Jobs;
+namespace Mongoose.Api.Infrastructure.Jobs;
 
 /// <summary>
 /// Background job that syncs match history for linked Riot accounts.

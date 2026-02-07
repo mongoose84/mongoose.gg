@@ -3,17 +3,17 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using RiotProxy.Core.Entities;
-using RiotProxy.Core.Interfaces;
-using RiotProxy.Core.QueryModels;
-using RiotProxy.Infrastructure.Database.Repositories;
-using RiotProxy.Infrastructure.Security;
-using RiotProxy.Infrastructure.Email;
-using RiotProxy.Application.DTOs.Overview;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Core.QueryModels;
+using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Infrastructure.Security;
+using Mongoose.Api.Infrastructure.Email;
+using Mongoose.Api.Application.DTOs.Overview;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 {

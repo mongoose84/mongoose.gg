@@ -5,11 +5,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Application.Endpoints.Shared;
-using RiotProxy.Core.Entities;
-using RiotProxy.Infrastructure.Database.Repositories;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Infrastructure.Database.Repositories;
 
-namespace RiotProxy.Application.Endpoints.Auth;
+namespace Mongoose.Api.Application.Endpoints.Auth;
 
 /// <summary>
 /// erify Endpoint

@@ -1,4 +1,4 @@
-namespace RiotProxy.Core.Interfaces;
+namespace Mongoose.Api.Core.Interfaces;
 
 /// <summary>
 /// Service for League of Legends LP (League Points) calculations.

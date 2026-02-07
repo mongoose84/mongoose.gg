@@ -1,9 +1,9 @@
 using MySqlConnector;
-using RiotProxy.Core.Entities;
-using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure.Security;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Security;
 
-namespace RiotProxy.Infrastructure.Database.Repositories;
+namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 public class UsersRepository : RepositoryBase, IUsersRepository
 {

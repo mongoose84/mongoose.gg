@@ -1,6 +1,6 @@
 using MySqlConnector;
 
-namespace RiotProxy.Infrastructure.Database;
+namespace Mongoose.Api.Infrastructure.Database;
 
 public interface IDbConnectionFactory
 {

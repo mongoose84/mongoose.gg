@@ -1,6 +1,6 @@
-using static RiotProxy.Application.DTOs.SoloPerformanceDto;
+using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 
-namespace RiotProxy.Core.Interfaces;
+namespace Mongoose.Api.Core.Interfaces;
 
 /// <summary>
 /// Repository for solo performance statistics.

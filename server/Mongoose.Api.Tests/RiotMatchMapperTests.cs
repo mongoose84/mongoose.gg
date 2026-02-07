@@ -1,9 +1,9 @@
 using System.Text.Json;
 using FluentAssertions;
-using RiotProxy.Infrastructure.Riot.Mappers;
+using Mongoose.Api.Infrastructure.Riot.Mappers;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 /// <summary>
 /// Tests for RiotMatchMapper - Riot API match-v5 JSON to domain entity transformation.

@@ -1,4 +1,4 @@
-namespace RiotProxy.Core.Interfaces;
+namespace Mongoose.Api.Core.Interfaces;
 
 /// <summary>
 /// Result of a rate limit check.

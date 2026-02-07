@@ -1,7 +1,7 @@
-using RiotProxy.Infrastructure;
-using RiotProxy.Infrastructure.Telemetry;
+using Mongoose.Api.Infrastructure;
+using Mongoose.Api.Infrastructure.Telemetry;
 
-namespace RiotProxy.Application.Endpoints.Diagnostics
+namespace Mongoose.Api.Application.Endpoints.Diagnostics
 {
     /// <summary>
     /// Diagnostics endpoint for verifying configuration, connectivity, and runtime metrics.

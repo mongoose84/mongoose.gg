@@ -1,6 +1,6 @@
-using RiotProxy.Infrastructure.Telemetry;
+using Mongoose.Api.Infrastructure.Telemetry;
 
-namespace RiotProxy.Application.Endpoints
+namespace Mongoose.Api.Application.Endpoints
 {
     public class HomeEndpoint : IEndpoint
     {

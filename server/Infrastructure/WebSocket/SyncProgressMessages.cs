@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RiotProxy.Infrastructure.WebSocket;
+namespace Mongoose.Api.Infrastructure.WebSocket;
 
 /// <summary>
 /// Message types sent from server to client via WebSocket.

@@ -1,7 +1,7 @@
 using System.Text.Json;
-using RiotProxy.Infrastructure.Riot.LimitHandler;
+using Mongoose.Api.Infrastructure.Riot.LimitHandler;
 
-namespace RiotProxy.Infrastructure.Riot;
+namespace Mongoose.Api.Infrastructure.Riot;
 
 public interface IRiotApiClient : IDisposable
 {

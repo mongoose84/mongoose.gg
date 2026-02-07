@@ -1,4 +1,4 @@
-namespace RiotProxy.Application.DTOs.Solo;
+namespace Mongoose.Api.Application.DTOs.Solo;
 
 /// <summary>
 /// Response DTO for match activity heatmap data.

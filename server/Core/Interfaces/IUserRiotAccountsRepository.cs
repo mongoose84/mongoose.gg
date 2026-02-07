@@ -1,6 +1,6 @@
-using RiotProxy.Core.Entities;
+using Mongoose.Api.Core.Entities;
 
-namespace RiotProxy.Core.Interfaces;
+namespace Mongoose.Api.Core.Interfaces;
 
 /// <summary>
 /// Repository for managing the M:M relationship between users and Riot accounts.

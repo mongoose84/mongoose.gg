@@ -1,10 +1,10 @@
 using MySqlConnector;
-using RiotProxy.Application.QueryModels;
-using RiotProxy.Core.Entities;
-using RiotProxy.Core.Interfaces;
-using RiotProxy.Core.QueryModels;
+using Mongoose.Api.Application.QueryModels;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Core.QueryModels;
 
-namespace RiotProxy.Infrastructure.Database.Repositories;
+namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 public class MatchesRepository : RepositoryBase, IMatchesRepository
 {

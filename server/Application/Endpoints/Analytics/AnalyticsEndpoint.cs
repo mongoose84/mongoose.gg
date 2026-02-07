@@ -1,11 +1,11 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Core.Entities;
-using RiotProxy.Infrastructure.Database.Repositories;
-using static RiotProxy.Application.DTOs.AnalyticsDto;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Infrastructure.Database.Repositories;
+using static Mongoose.Api.Application.DTOs.AnalyticsDto;
 
-namespace RiotProxy.Application.Endpoints.Analytics;
+namespace Mongoose.Api.Application.Endpoints.Analytics;
 
 /// <summary>
 /// Analytics endpoint for recording user behavior events.

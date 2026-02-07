@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace RiotProxy.Tests
+namespace Mongoose.Api.Tests
 {
     /// <summary>
     /// Temporarily sets environment variables for the duration of a scope and restores originals on dispose.
