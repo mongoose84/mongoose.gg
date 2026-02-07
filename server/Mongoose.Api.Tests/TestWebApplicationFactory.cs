@@ -27,6 +27,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeLpSnapshotsRepository _lpSnapshotsRepository;
     private readonly FakeAnalyticsEventsRepository _analyticsEventsRepository;
     private readonly FakeGitHubService _gitHubService;
+    private readonly FakeMatchesRepository _matchesRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
@@ -37,6 +38,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeLpSnapshotsRepository LpSnapshotsRepository => _lpSnapshotsRepository;
     public FakeAnalyticsEventsRepository AnalyticsEventsRepository => _analyticsEventsRepository;
     public FakeGitHubService GitHubService => _gitHubService;
+    public FakeMatchesRepository MatchesRepository => _matchesRepository;
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
@@ -50,6 +52,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _lpSnapshotsRepository = new FakeLpSnapshotsRepository();
         _analyticsEventsRepository = new FakeAnalyticsEventsRepository();
         _gitHubService = new FakeGitHubService();
+        _matchesRepository = new FakeMatchesRepository();
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -121,6 +124,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace IGitHubService with a fake
             services.RemoveAll<IGitHubService>();
             services.AddSingleton<IGitHubService>(_gitHubService);
+
+            // Replace MatchesRepository with a fake (only register as IMatchesRepository since
+            // FakeMatchesRepository implements the interface directly, not the concrete class)
+            services.RemoveAll<IMatchesRepository>();
+            services.AddSingleton<IMatchesRepository>(_matchesRepository);
         });
 
         return base.CreateHost(builder);
@@ -872,5 +880,274 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         }
 
         public record CreatedIssue(string Title, string Body, string[] Labels);
+    }
+
+    /// <summary>
+    /// Storage record for fake match data in tests.
+    /// </summary>
+    public record FakeMatchData(
+        string MatchId,
+        int QueueId,
+        long GameStartTime,
+        int GameDurationSec
+    );
+
+    /// <summary>
+    /// Storage record for fake participant data in tests.
+    /// </summary>
+    public record FakeParticipantData(
+        string MatchId,
+        string Puuid,
+        int ChampionId,
+        string ChampionName,
+        string Role,
+        string? Lane,
+        bool Win,
+        int Kills,
+        int Deaths,
+        int Assists,
+        int CreepScore,
+        int GoldEarned,
+        int TeamId,
+        int? GoldDiffAt10 = null,
+        int? GoldAt10 = null,
+        int? CsAt10 = null,
+        int? CsDiffAt10 = null,
+        int DamageDealt = 0,
+        int DamageTaken = 0,
+        int VisionScore = 0,
+        decimal KillParticipation = 0,
+        decimal DamageShare = 0,
+        int DeathsPre10 = 0
+    );
+
+    /// <summary>
+    /// Fake matches repository for testing match endpoints.
+    /// Implements IMatchesRepository directly since MatchesRepository methods aren't virtual.
+    /// </summary>
+    internal sealed class FakeMatchesRepository : IMatchesRepository
+    {
+        private readonly ConcurrentDictionary<string, FakeMatchData> _matches = new();
+        private readonly ConcurrentDictionary<string, List<FakeParticipantData>> _participants = new();
+        private readonly ConcurrentDictionary<string, Dictionary<string, RoleBaseline>> _baselines = new();
+
+        /// <summary>
+        /// Helper to add a match for testing.
+        /// </summary>
+        public void AddMatch(string matchId, int queueId = 420, long? gameStartTime = null, int gameDurationSec = 1800)
+        {
+            var match = new FakeMatchData(
+                MatchId: matchId,
+                QueueId: queueId,
+                GameStartTime: gameStartTime ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                GameDurationSec: gameDurationSec
+            );
+            _matches[matchId] = match;
+            _participants[matchId] = new List<FakeParticipantData>();
+        }
+
+        /// <summary>
+        /// Helper to add a participant to a match.
+        /// </summary>
+        public void AddParticipant(FakeParticipantData participant)
+        {
+            if (!_participants.TryGetValue(participant.MatchId, out var list))
+            {
+                list = new List<FakeParticipantData>();
+                _participants[participant.MatchId] = list;
+            }
+            list.Add(participant);
+        }
+
+        /// <summary>
+        /// Helper to set role baselines for a puuid.
+        /// </summary>
+        public void SetBaselines(string puuid, Dictionary<string, RoleBaseline> baselines)
+        {
+            _baselines[puuid] = baselines;
+        }
+
+        public Task<IList<MatchListSummaryItem>> GetMatchListSummaryAsync(
+            string puuid, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null)
+        {
+            var result = new List<MatchListSummaryItem>();
+
+            foreach (var matchKvp in _matches.OrderByDescending(m => m.Value.GameStartTime).Take(limit))
+            {
+                var match = matchKvp.Value;
+                if (!_participants.TryGetValue(match.MatchId, out var participants))
+                    continue;
+
+                var participant = participants.FirstOrDefault(p => p.Puuid == puuid);
+                if (participant == null)
+                    continue;
+
+                // Apply queue filter
+                if (!MatchesQueueFilter(match.QueueId, queueFilter))
+                    continue;
+
+                var durationMin = match.GameDurationSec / 60.0;
+                var csPerMin = durationMin > 0 ? Math.Round(participant.CreepScore / durationMin, 1) : 0;
+                var goldPerMin = durationMin > 0 ? Math.Round(participant.GoldEarned / durationMin, 0) : 0;
+
+                result.Add(new MatchListSummaryItem(
+                    MatchId: match.MatchId,
+                    QueueId: match.QueueId,
+                    QueueType: GetQueueType(match.QueueId),
+                    ChampionId: participant.ChampionId,
+                    ChampionName: participant.ChampionName,
+                    ChampionIconUrl: $"https://cdn.example.com/{participant.ChampionName}.png",
+                    Role: participant.Role,
+                    Lane: participant.Lane,
+                    Win: participant.Win,
+                    Kills: participant.Kills,
+                    Deaths: participant.Deaths,
+                    Assists: participant.Assists,
+                    CreepScore: participant.CreepScore,
+                    GoldEarned: participant.GoldEarned,
+                    GameDurationSec: match.GameDurationSec,
+                    GameStartTime: match.GameStartTime,
+                    CsPerMin: csPerMin,
+                    GoldPerMin: goldPerMin,
+                    TrendBadge: null
+                ));
+            }
+
+            return Task.FromResult<IList<MatchListSummaryItem>>(result);
+        }
+
+        public Task<MatchDetailsItem?> GetMatchDetailsAsync(string matchId, string puuid)
+        {
+            if (!_matches.TryGetValue(matchId, out var match))
+                return Task.FromResult<MatchDetailsItem?>(null);
+
+            if (!_participants.TryGetValue(matchId, out var participants))
+                return Task.FromResult<MatchDetailsItem?>(null);
+
+            var participant = participants.FirstOrDefault(p => p.Puuid == puuid);
+            if (participant == null)
+                return Task.FromResult<MatchDetailsItem?>(null);
+
+            var durationMin = match.GameDurationSec / 60.0;
+            var csPerMin = durationMin > 0 ? Math.Round(participant.CreepScore / durationMin, 1) : 0;
+            var goldPerMin = durationMin > 0 ? Math.Round(participant.GoldEarned / durationMin, 0) : 0;
+
+            // Calculate team stats
+            var allyParticipants = participants.Where(p => p.TeamId == participant.TeamId).ToList();
+            var enemyParticipants = participants.Where(p => p.TeamId != participant.TeamId).ToList();
+            var teamKills = allyParticipants.Sum(p => p.Kills);
+            var enemyTeamKills = enemyParticipants.Sum(p => p.Kills);
+            var teamDamage = allyParticipants.Sum(p => p.DamageDealt);
+            var enemyTeamDamage = enemyParticipants.Sum(p => p.DamageDealt);
+
+            var result = new MatchDetailsItem(
+                MatchId: match.MatchId,
+                QueueId: match.QueueId,
+                QueueType: GetQueueType(match.QueueId),
+                ChampionId: participant.ChampionId,
+                ChampionName: participant.ChampionName,
+                ChampionIconUrl: $"https://cdn.example.com/{participant.ChampionName}.png",
+                Role: participant.Role,
+                Lane: participant.Lane,
+                Win: participant.Win,
+                Kills: participant.Kills,
+                Deaths: participant.Deaths,
+                Assists: participant.Assists,
+                CreepScore: participant.CreepScore,
+                GoldEarned: participant.GoldEarned,
+                GameDurationSec: match.GameDurationSec,
+                GameStartTime: match.GameStartTime,
+                DamageDealt: participant.DamageDealt,
+                DamageTaken: participant.DamageTaken,
+                VisionScore: participant.VisionScore,
+                KillParticipation: (double)participant.KillParticipation,
+                DamageShare: (double)participant.DamageShare,
+                DeathsPre10: participant.DeathsPre10,
+                CsPerMin: csPerMin,
+                GoldPerMin: goldPerMin,
+                TeamKills: teamKills,
+                EnemyTeamKills: enemyTeamKills,
+                GoldDiffAt15: participant.GoldDiffAt10,
+                TeamTotalDamage: teamDamage,
+                EnemyTeamTotalDamage: enemyTeamDamage,
+                TeamGoldLeadAt15: null,
+                TeamDragons: 0,
+                EnemyTeamDragons: 0,
+                TeamBarons: 0,
+                EnemyTeamBarons: 0,
+                TeamTowers: 0,
+                EnemyTeamTowers: 0
+            );
+
+            return Task.FromResult<MatchDetailsItem?>(result);
+        }
+
+        public Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(string puuid, string queueFilter)
+        {
+            if (_baselines.TryGetValue(puuid, out var baselines))
+                return Task.FromResult(baselines);
+
+            return Task.FromResult(new Dictionary<string, RoleBaseline>());
+        }
+
+        public Task<IList<MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId)
+        {
+            if (!_participants.TryGetValue(matchId, out var participants))
+                return Task.FromResult<IList<MatchupParticipantRaw>>(new List<MatchupParticipantRaw>());
+
+            var result = participants.Select((p, i) => new MatchupParticipantRaw(
+                ParticipantId: i + 1,
+                Puuid: p.Puuid,
+                ChampionId: p.ChampionId,
+                ChampionName: p.ChampionName,
+                TeamId: p.TeamId,
+                Role: p.Role,
+                Win: p.Win,
+                Kills: p.Kills,
+                Deaths: p.Deaths,
+                Assists: p.Assists,
+                CreepScore: p.CreepScore,
+                GoldEarned: p.GoldEarned,
+                KillParticipation: p.KillParticipation,
+                DamageShare: p.DamageShare,
+                VisionScore: p.VisionScore,
+                DeathsPre10: p.DeathsPre10,
+                GoldAt10: p.GoldAt10,
+                CsAt10: p.CsAt10,
+                GoldDiffAt10: p.GoldDiffAt10,
+                CsDiffAt10: p.CsDiffAt10
+            )).ToList();
+
+            return Task.FromResult<IList<MatchupParticipantRaw>>(result);
+        }
+
+        // Required interface methods with minimal implementation
+        public Task UpsertAsync(Match match) => Task.CompletedTask;
+        public Task<long> GetTotalMatchCountAsync() => Task.FromResult((long)_matches.Count);
+        public Task<IList<Match>> GetRecentMatchHeadersAsync(string puuid, int? queueId, int limit)
+            => Task.FromResult<IList<Match>>(new List<Match>());
+        public Task<IList<MatchListItem>> GetMatchListAsync(string puuid, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null)
+            => Task.FromResult<IList<MatchListItem>>(new List<MatchListItem>());
+        public Task<int> DeleteOldMatchesAsync(long cutoffTimestamp, int batchSize) => Task.FromResult(0);
+
+        private static bool MatchesQueueFilter(int queueId, string queueFilter)
+        {
+            if (string.IsNullOrEmpty(queueFilter) || queueFilter == "AND 1=1")
+                return true;
+            if (queueFilter.Contains("420") && queueId == 420) return true;
+            if (queueFilter.Contains("440") && queueId == 440) return true;
+            if (queueFilter.Contains("450") && queueId == 450) return true;
+            if (queueFilter.Contains("400") && queueId == 400) return true;
+            return queueFilter == "AND 1=1";
+        }
+
+        private static string GetQueueType(int queueId) => queueId switch
+        {
+            420 => "ranked_solo",
+            440 => "ranked_flex",
+            450 => "aram",
+            400 => "normal",
+            _ => "other"
+        };
     }
 }

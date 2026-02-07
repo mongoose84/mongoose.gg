@@ -13,7 +13,7 @@ This document outlines a comprehensive test strategy for Mongoose.gg, covering t
 
 | Layer | Test Files | Tests | CI Integration | Status |
 |-------|-----------|-------|----------------|--------|
-| Backend | 14 test files | ~200 tests | ✅ GitHub Actions | ✅ Strong foundation |
+| Backend | 15 test files | ~247 tests | ✅ GitHub Actions | ✅ Strong foundation |
 | Frontend Unit | 24 test files | 445 tests | ✅ GitHub Actions | ✅ Strong foundation |
 | E2E | 1 test file | ~5 tests | ✅ GitHub Actions | 🔴 Needs expansion |
 
@@ -150,7 +150,7 @@ server/Mongoose.Api.Tests/
 
 1. ~~**LpCalculationService Tests** - Pure functions, easy to test, high business value~~ ✅ Complete
 2. ~~**RiotMatchMapper Tests** - Critical data transformation layer~~ ✅ Complete
-3. **Match Endpoints Tests** - Core feature (MatchList, MatchDetails, MatchNarrative)
+3. ~~**Match Endpoints Tests** - Core feature (MatchList, MatchDetails, MatchNarrative)~~ ✅ Complete (19 tests)
 4. **ChampionSelect Endpoints Tests** - Core feature for champion recommendations
 5. **LoginSyncService Tests** - Triggers on login, important for data freshness
 6. **Riot API Client Mocking** - Enable testing sync flows without real API
@@ -464,6 +464,10 @@ Focus on highest-risk areas with missing coverage.
 **Phase 1 Results:**
 - 256+ new frontend tests added
 - 110 new backend tests added (82 + 28)
+
+**Phase 2 Results (In Progress):**
+- 56 new frontend tests (formatters.spec.js)
+- 19 new backend tests (MatchEndpointTests.cs)
 - Reusable test helper infrastructure established
 - Backend business logic now has comprehensive coverage
 - Frontend auth state management fully tested
@@ -478,7 +482,7 @@ Expand coverage for core user-facing features.
 | Priority | Test | Layer | Effort | Status |
 |----------|------|-------|--------|--------|
 | P1 | `formatters.spec.js` | Frontend | 2h | ✅ Complete (56 tests) |
-| P1 | Match endpoints tests | Backend | 4h | 🟡 Pending |
+| P1 | Match endpoints tests | Backend | 4h | ✅ Complete (19 tests) |
 | P1 | ChampionSelect endpoints tests | Backend | 3h | 🟡 Pending |
 | P1 | Overview dashboard E2E | E2E | 3h | 🟡 Pending |
 | P1 | Riot account linking E2E | E2E | 4h | 🟡 Pending |
@@ -505,7 +509,7 @@ Build out full test suite for long-term maintainability.
 
 | Layer | Phase 1 (Done) | Phase 2 | Phase 3 |
 |-------|----------------|---------|---------|
-| Backend Tests | ~200 tests | ~250 tests | ~300 tests |
+| Backend Tests | ~247 tests | ~280 tests | ~350 tests |
 | Frontend Tests | 389 tests | ~450 tests | ~550 tests |
 | E2E Journeys | 1/8 | 4/8 | 8/8 |
 | Components Tested | ~27% | ~50% | ~75% |
@@ -601,6 +605,7 @@ cd client && npm run test:e2e:ui         # Playwright UI
 | Backend test factory | `server/Mongoose.Api.Tests/TestWebApplicationFactory.cs` |
 | LP Calculation tests | `server/Mongoose.Api.Tests/LpCalculationServiceTests.cs` |
 | Riot Match Mapper tests | `server/Mongoose.Api.Tests/RiotMatchMapperTests.cs` |
+| Match Endpoint tests | `server/Mongoose.Api.Tests/MatchEndpointTests.cs` |
 | Auth Store tests | `client/test/unit/authStore.spec.js` |
 | API Client tests | `client/test/unit/apiClient.spec.js` |
 | Formatters tests | `client/test/unit/formatters.spec.js` |
