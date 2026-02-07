@@ -139,8 +139,6 @@ jobs:
         run: npx playwright test
         env:
           E2E_BASE_URL: http://localhost:5174
-          E2E_TEST_USER: ${{ secrets.E2E_TEST_USER }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
 
       # -------------------------------------------------
       # Upload test artifacts on failure

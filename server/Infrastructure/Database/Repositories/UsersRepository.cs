@@ -34,13 +34,6 @@ public class UsersRepository : RepositoryBase, IUsersRepository
         var encryptedEmail = _encryptor.Encrypt(user.Email);
         var encryptedUsername = _encryptor.EncryptPreserveCase(user.Username);
 
-        // Debug logging to diagnose encryption issues
-        Console.WriteLine($"[UsersRepository.UpsertAsync] Original email: {user.Email}");
-        Console.WriteLine($"[UsersRepository.UpsertAsync] Encrypted email: {encryptedEmail}");
-        Console.WriteLine($"[UsersRepository.UpsertAsync] Original username: {user.Username}");
-        Console.WriteLine($"[UsersRepository.UpsertAsync] Encrypted username: {encryptedUsername}");
-        Console.WriteLine($"[UsersRepository.UpsertAsync] Encryptor type: {_encryptor.GetType().FullName}");
-
         return await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
@@ -242,11 +235,6 @@ public class UsersRepository : RepositoryBase, IUsersRepository
         var userId = r.GetInt64(0);
         var encryptedEmail = r.GetString(1);
         var encryptedUsername = r.GetString(2);
-
-        // Debug logging to diagnose decryption issues
-        Console.WriteLine($"[UsersRepository.MapWithDecryption] userId: {userId}");
-        Console.WriteLine($"[UsersRepository.MapWithDecryption] encryptedEmail from DB: {encryptedEmail}");
-        Console.WriteLine($"[UsersRepository.MapWithDecryption] encryptedUsername from DB: {encryptedUsername}");
 
         string decryptedEmail;
         string decryptedUsername;

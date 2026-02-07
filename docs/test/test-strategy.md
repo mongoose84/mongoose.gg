@@ -361,43 +361,72 @@ afterEach(() => cleanupMocks()); // Restores original fetch
 **What Exists:**
 - ✅ Playwright configured with Chromium and Firefox
 - ✅ CI workflow starts both backend and frontend
-- ✅ Test credentials via environment variables
+- ✅ Global setup/teardown for dynamic user creation
+- ✅ Riot account linking in global setup
+- ✅ Auto-verified email in non-production environments
 - ✅ Solo dashboard flow tested (login, navigation, auth guards)
+- ✅ Overview dashboard flow tested (18 tests)
 
-**Critical Gaps:**
-- 🔴 Only 1 test file covering minimal flow
-- 🔴 No registration/email verification tests
-- 🔴 No Riot account linking tests
-- 🔴 No match viewing tests
-- 🔴 No error handling/negative path tests
+**Remaining Gaps:**
+- � No match viewing tests
+- � No error handling/negative path tests
 
-### 6.2 Critical User Journeys to Test
+### 6.2 E2E Architecture
+
+The E2E tests use Playwright's global setup/teardown pattern for efficient test execution:
 
 ```
 client/e2e/
-├── auth/
-│   ├── login.spec.js              # ✅ Partial (in solo-dashboard)
-│   ├── registration.spec.js       # 🔴 Missing (critical)
-│   └── logout.spec.js             # 🔴 Missing
-├── dashboards/
-│   ├── solo-dashboard.spec.js     # ✅ Exists
-│   ├── overview.spec.js           # 🔴 Missing
-│   └── navigation.spec.js         # 🔴 Missing
-├── accounts/
-│   ├── link-riot-account.spec.js  # 🔴 Missing (critical)
-│   └── manage-accounts.spec.js    # 🔴 Missing
-└── matches/
-    ├── match-list.spec.js         # 🔴 Missing
-    └── match-details.spec.js      # 🔴 Missing
+├── global-setup.js          # ✅ Creates user, links Riot account, saves auth state
+├── global-teardown.js       # ✅ Deletes test user, cleans up auth files
+├── .auth/
+│   ├── user.json            # Saved auth state (auto-generated)
+│   └── test-user.json       # Test user metadata (auto-generated)
+├── solo-dashboard.spec.js   # ✅ Solo dashboard tests
+└── overview-dashboard.spec.js # ✅ Overview dashboard tests (18 tests)
 ```
 
-### 6.3 Priority E2E Tests to Add
+**Flow:**
+1. **Global Setup** (runs once before all tests):
+   - Registers a unique test user (`e2e_test_{timestamp}`)
+   - Auto-verifies email (non-production environments)
+   - Links hardcoded Riot account (`Doend#EUW`)
+   - Saves auth state to `e2e/.auth/user.json`
+   - Saves user metadata for teardown
 
-1. **Login Flow (expand)** - Error states, remember me, session persistence
-2. **Overview Dashboard** - Data loads, charts render, navigation works
-3. **Riot Account Linking** - Core feature, requires careful test data setup
-4. **Match List & Details** - View match history, navigate to details
-5. **Error Handling** - Network errors, API failures, graceful degradation
+2. **Test Execution**:
+   - All browser projects load saved auth state
+   - Tests run authenticated without repeated logins
+   - Avoids rate limiting on login endpoint
+
+3. **Global Teardown** (runs once after all tests):
+   - Deletes the test user via API
+   - Cleans up auth state files
+
+### 6.3 Key Implementation Details
+
+**Auto-Verification in Non-Production:**
+The `RegisterEndpoint` checks `!env.IsProduction()` and auto-verifies email for Development and Testing environments, bypassing the email verification flow for E2E tests.
+
+**Riot Account Configuration:**
+Riot account credentials are hardcoded in `client/e2e/global-setup.js`:
+```javascript
+const RIOT_ACCOUNT = {
+  gameName: 'Doend',
+  tagLine: 'EUW',
+  region: 'euw1',
+};
+```
+
+**Unauthenticated Tests:**
+For tests that need to verify unauthenticated behavior, override the storage state:
+```javascript
+test('redirects unauthenticated users', async ({ browser }) => {
+  const context = await browser.newContext({ storageState: undefined });
+  const page = await context.newPage();
+  // Test unauthenticated behavior...
+});
+```
 
 ### 6.4 E2E Testing Best Practices
 
@@ -406,17 +435,10 @@ client/e2e/
 import { test, expect } from '@playwright/test';
 
 test.describe('User Dashboard', () => {
-  // Use test fixtures for common setup
-  test.beforeEach(async ({ page }) => {
-    // Login helper that can be extracted to a fixture
-    await page.goto('/auth');
-    await page.fill('[data-testid="email"]', process.env.E2E_TEST_USER);
-    await page.fill('[data-testid="password"]', process.env.E2E_TEST_PASSWORD);
-    await page.click('[data-testid="login-button"]');
-    await page.waitForURL(/\/dashboard/);
-  });
+  // Auth is handled by global setup - no login needed in beforeEach!
 
   test('displays user statistics', async ({ page }) => {
+    await page.goto('/app/overview');
     // Wait for data to load, not just page render
     await expect(page.locator('[data-testid="stats-card"]')).toBeVisible();
     // Assert on user-visible outcomes
@@ -424,6 +446,7 @@ test.describe('User Dashboard', () => {
   });
 
   test('navigates to match details', async ({ page }) => {
+    await page.goto('/app/matches');
     await page.click('[data-testid="match-row"]:first-child');
     await expect(page).toHaveURL(/\/matches\/\w+/);
   });
@@ -432,11 +455,15 @@ test.describe('User Dashboard', () => {
 
 ### 6.5 Test Data Management
 
-**Recommendations:**
-1. **Dedicated Test User**: Create `e2e-test@mongoose.gg` with known Riot accounts
-2. **Stable Test Data**: Ensure test accounts have consistent match history
-3. **Environment Isolation**: Use test database (`DB_CONNECTIONSTRING_TEST`)
-4. **Data Refresh**: Document how to reset test data if needed
+**Current Implementation:**
+1. **Dynamic Test User**: Created fresh each test run (`e2e_test_{timestamp}@test.mongoose.gg`)
+2. **Dedicated Riot Account**: `Doend#EUW` linked during global setup
+3. **Environment Isolation**: Uses test database (`Database_test`)
+4. **Automatic Cleanup**: Test user deleted in global teardown
+
+**Database Requirements:**
+- `username` column must be `VARCHAR(255)` to accommodate encrypted values (64+ chars)
+- `email` column is `VARCHAR(255)` (already sufficient)
 
 
 
@@ -477,6 +504,10 @@ Focus on highest-risk areas with missing coverage.
 - Analysis status feature fully tested
 - Fixed singleton state issue in useSyncWebSocket tests
 - Overview dashboard E2E coverage complete
+- **E2E global setup/teardown architecture implemented**
+- **Riot account linking integrated into E2E flow**
+- **Auto-email verification for non-production environments**
+- **Fixed database schema: username VARCHAR(255) for encrypted values**
 
 ### 7.2 Phase 2: Business Value (2-4 weeks)
 
@@ -488,7 +519,7 @@ Expand coverage for core user-facing features.
 | P1 | Match endpoints tests | Backend | 4h | ✅ Complete (19 tests) |
 | P1 | ChampionSelect endpoints tests | Backend | 3h | ✅ Complete (16 tests) |
 | P1 | Overview dashboard E2E | E2E | 3h | ✅ Complete (18 tests) |
-| P1 | Riot account linking E2E | E2E | 4h | 🟡 Pending |
+| P1 | Riot account linking E2E | E2E | 4h | ✅ Complete (global-setup.js) |
 | P2 | `useWinRateColor.spec.js` | Frontend | 0.5h | � Medium |
 | P2 | `uiStore.spec.js` | Frontend | 1h | 🟢 Medium |
 | P2 | `feedbackApi.spec.js` | Frontend | 1h | 🟢 Medium |
