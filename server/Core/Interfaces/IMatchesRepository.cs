@@ -28,5 +28,14 @@ public interface IMatchesRepository
 
     Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(string puuid, string queueFilter);
     Task<IList<MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId);
+
+    /// <summary>
+    /// Deletes matches older than the specified cutoff date in batches.
+    /// Uses CASCADE DELETE to automatically remove related records from all child tables.
+    /// </summary>
+    /// <param name="cutoffTimestamp">Unix timestamp in milliseconds (matches older than this will be deleted)</param>
+    /// <param name="batchSize">Maximum number of matches to delete in one batch</param>
+    /// <returns>Number of matches deleted in this batch</returns>
+    Task<int> DeleteOldMatchesAsync(long cutoffTimestamp, int batchSize);
 }
 

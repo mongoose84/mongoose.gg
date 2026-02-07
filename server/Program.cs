@@ -101,6 +101,13 @@ if (enableMatchHistorySync)
     builder.Services.AddHostedService<MatchHistorySyncJob>();
 }
 
+// Match Cleanup Job (deletes matches older than retention period)
+var enableMatchCleanup = builder.Configuration.GetValue<bool>("Jobs:EnableMatchCleanup", true);
+if (enableMatchCleanup)
+{
+    builder.Services.AddHostedService<MatchCleanupJob>();
+}
+
 // WebSocket hub for sync progress (singleton - shared across all connections)
 builder.Services.AddSingleton<SyncProgressHub>();
 builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
