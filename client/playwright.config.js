@@ -16,6 +16,11 @@ const authFile = 'e2e/.auth/user.json';
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
+  // Global setup/teardown for user creation and cleanup
+  // @see https://playwright.dev/docs/test-global-setup-teardown
+  globalSetup: './e2e/global-setup.js',
+  globalTeardown: './e2e/global-teardown.js',
+
   // Test directory
   testDir: './e2e',
 
@@ -60,22 +65,15 @@ export default defineConfig({
   },
 
   // Configure projects for Chromium and Firefox
-  // Uses setup project pattern for authentication to avoid rate limiting
-  // @see https://playwright.dev/docs/auth
+  // Authentication is handled by global setup/teardown
+  // @see https://playwright.dev/docs/test-global-setup-teardown
   projects: [
-    // Setup project - runs once to authenticate and save state
-    {
-      name: 'setup',
-      testMatch: /auth\.setup\.js/,
-    },
-    // Browser projects - depend on setup and use saved auth state
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
         storageState: authFile,
       },
-      dependencies: ['setup'],
     },
     {
       name: 'firefox',
@@ -83,7 +81,6 @@ export default defineConfig({
         ...devices['Desktop Firefox'],
         storageState: authFile,
       },
-      dependencies: ['setup'],
     },
   ],
 

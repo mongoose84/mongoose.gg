@@ -11,13 +11,13 @@ import { test, expect } from '@playwright/test';
  * - Analysis status card
  * - Latest match card
  *
- * Authentication is handled by the setup project (auth.setup.js).
- * All tests in this file automatically use the saved auth state.
- * @see https://playwright.dev/docs/auth
+ * Authentication is handled by global-setup.js which:
+ * 1. Creates a fresh test user (auto-verified in non-production)
+ * 2. Links a Riot account
+ * 3. Saves auth state for all tests to reuse
+ *
+ * @see https://playwright.dev/docs/test-global-setup-teardown
  */
-
-// Check if credentials are available (for skipping tests)
-const skipIfNoCredentials = !process.env.E2E_TEST_USER || !process.env.E2E_TEST_PASSWORD;
 
 test.describe('Overview Dashboard - Authentication', () => {
   test('should redirect unauthenticated users to login page', async ({ browser }) => {
@@ -31,20 +31,16 @@ test.describe('Overview Dashboard - Authentication', () => {
     await context.close();
   });
 
-  test('should be authenticated via setup project', async ({ page }) => {
-    test.skip(skipIfNoCredentials, 'E2E credentials required');
-
-    // Auth is handled by auth.setup.js - just verify we can access the page
+  test('should be authenticated via global setup', async ({ page }) => {
+    // Auth is handled by global-setup.js - just verify we can access the page
     await page.goto('/app/overview');
     await expect(page).toHaveURL('/app/overview');
   });
 });
 
 test.describe('Overview Dashboard - Content', () => {
-  test.skip(() => skipIfNoCredentials, 'E2E credentials required');
-
   test.beforeEach(async ({ page }) => {
-    // Auth state is automatically loaded from setup project
+    // Auth state is automatically loaded from global setup
     await page.goto('/app/overview');
     await page.waitForLoadState('networkidle');
   });
@@ -203,10 +199,8 @@ test.describe('Overview Dashboard - Content', () => {
 });
 
 test.describe('Overview Dashboard - Navigation', () => {
-  test.skip(() => skipIfNoCredentials, 'E2E credentials required');
-
   test.beforeEach(async ({ page }) => {
-    // Auth state is automatically loaded from setup project
+    // Auth state is automatically loaded from global setup
     await page.goto('/app/overview');
     await page.waitForLoadState('networkidle');
   });
@@ -247,11 +241,9 @@ test.describe('Overview Dashboard - Navigation', () => {
 });
 
 test.describe('Overview Dashboard - Responsive', () => {
-  test.skip(() => skipIfNoCredentials, 'E2E credentials required');
-
   test('should display correctly on mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    // Auth state is automatically loaded from setup project
+    // Auth state is automatically loaded from global setup
     await page.goto('/app/overview');
     await page.waitForLoadState('networkidle');
 

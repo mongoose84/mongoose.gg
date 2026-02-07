@@ -4,23 +4,21 @@ import { test, expect } from '@playwright/test';
  * Solo Dashboard Flow E2E Tests
  *
  * Tests the critical user journey:
- * 1. Verify authentication (handled by setup project)
+ * 1. Verify authentication (handled by global setup)
  * 2. Navigate to Solo Dashboard via sidebar
  * 3. Verify Solo Dashboard loads with data
  *
- * Authentication is handled by the setup project (auth.setup.js).
- * All tests in this file automatically use the saved auth state.
- * @see https://playwright.dev/docs/auth
+ * Authentication is handled by global-setup.js which:
+ * 1. Creates a fresh test user (auto-verified in non-production)
+ * 2. Links a Riot account
+ * 3. Saves auth state for all tests to reuse
+ *
+ * @see https://playwright.dev/docs/test-global-setup-teardown
  */
-
-// Skip tests that require login if credentials are not set
-const skipIfNoCredentials = !process.env.E2E_TEST_USER || !process.env.E2E_TEST_PASSWORD;
 
 test.describe('Solo Dashboard Flow', () => {
   test('should complete Overview → Solo Dashboard navigation flow', async ({ page }) => {
-    test.skip(skipIfNoCredentials, 'E2E_TEST_USER and E2E_TEST_PASSWORD environment variables are required');
-
-    // Auth is handled by setup project - go directly to overview
+    // Auth is handled by global-setup.js - go directly to overview
     await page.goto('/app/overview');
     await expect(page).toHaveURL('/app/overview');
     await page.waitForLoadState('networkidle');
@@ -101,10 +99,8 @@ test.describe('Solo Dashboard Flow', () => {
 });
 
 test.describe('Solo Dashboard Content', () => {
-  test.skip(() => skipIfNoCredentials, 'E2E_TEST_USER and E2E_TEST_PASSWORD environment variables are required');
-
   test.beforeEach(async ({ page }) => {
-    // Auth state is automatically loaded from setup project
+    // Auth state is automatically loaded from global setup
     await page.goto('/app/solo');
     await page.waitForLoadState('networkidle');
   });

@@ -57,7 +57,8 @@ public sealed class RegisterEndpoint : IEndpoint
             [FromServices] IEmailService emailService,
             [FromServices] IRateLimiter rateLimiter,
             [FromServices] ILogger<RegisterEndpoint> logger,
-            [FromServices] IConfiguration config
+            [FromServices] IConfiguration config,
+            [FromServices] IWebHostEnvironment env
         ) =>
         {
             try
@@ -142,13 +143,17 @@ public sealed class RegisterEndpoint : IEndpoint
                 // Hash password (using BCrypt)
                 var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
+                // Auto-verify email in non-production environments (Development, Testing)
+                // This allows E2E tests to bypass email verification flow
+                var autoVerifyEmail = !env.IsProduction();
+
                 // Create user with normalized username and email
                 var newUser = new User
                 {
                     Email = request.Email.ToLowerInvariant().Trim(),
                     Username = normalizedUsername,
                     PasswordHash = passwordHash,
-                    EmailVerified = false,
+                    EmailVerified = autoVerifyEmail,
                     IsActive = true,
                     Tier = "free",
                     CreatedAt = DateTime.UtcNow,
@@ -158,27 +163,35 @@ public sealed class RegisterEndpoint : IEndpoint
                 var userId = await usersRepo.UpsertAsync(newUser);
                 newUser.UserId = userId;
 
-                // Invalidate any existing verification tokens for this user
-                // This handles edge cases like race conditions or if UpsertAsync updated an existing user
-                await tokensRepo.InvalidateActiveTokensAsync(userId, TokenTypes.EmailVerification);
-
-                // Generate verification code and create token
-                var verificationCode = VerificationCodeGenerator.Generate();
-                var verificationExpiresAt = DateTime.UtcNow.AddMinutes(15);
-                await tokensRepo.CreateTokenAsync(userId, TokenTypes.EmailVerification, verificationCode, verificationExpiresAt);
-
-                // Send verification email (fire-and-forget to not block registration)
-                _ = Task.Run(async () =>
+                // Only handle email verification in production
+                if (!autoVerifyEmail)
                 {
-                    try
+                    // Invalidate any existing verification tokens for this user
+                    // This handles edge cases like race conditions or if UpsertAsync updated an existing user
+                    await tokensRepo.InvalidateActiveTokensAsync(userId, TokenTypes.EmailVerification);
+
+                    // Generate verification code and create token
+                    var verificationCode = VerificationCodeGenerator.Generate();
+                    var verificationExpiresAt = DateTime.UtcNow.AddMinutes(15);
+                    await tokensRepo.CreateTokenAsync(userId, TokenTypes.EmailVerification, verificationCode, verificationExpiresAt);
+
+                    // Send verification email (fire-and-forget to not block registration)
+                    _ = Task.Run(async () =>
                     {
-                        await emailService.SendVerificationEmailAsync(newUser.Email, newUser.Username, verificationCode);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to send verification email for user {UserId}", userId);
-                    }
-                });
+                        try
+                        {
+                            await emailService.SendVerificationEmailAsync(newUser.Email, newUser.Username, verificationCode);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Failed to send verification email for user {UserId}", userId);
+                        }
+                    });
+                }
+                else
+                {
+                    logger.LogInformation("Auto-verified email for user {UserId} in non-production environment", userId);
+                }
 
                 // Create claims identity for cookie auth
                 var claims = new List<Claim>
@@ -186,7 +199,7 @@ public sealed class RegisterEndpoint : IEndpoint
                     new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                     new Claim(ClaimTypes.Name, newUser.Username),
                     new Claim(ClaimTypes.Email, newUser.Email),
-                    new Claim("email_verified", "false"),
+                    new Claim("email_verified", autoVerifyEmail ? "true" : "false"),
                     new Claim("tier", newUser.Tier)
                 };
 
@@ -211,8 +224,10 @@ public sealed class RegisterEndpoint : IEndpoint
                     userId,
                     newUser.Username,
                     newUser.Email,
-                    false,
-                    "Registration successful. Please verify your email."
+                    autoVerifyEmail,
+                    autoVerifyEmail
+                        ? "Registration successful. Email verified automatically."
+                        : "Registration successful. Please verify your email."
                 ));
             }
             catch (Exception ex)
