@@ -18,8 +18,8 @@ import fs from 'fs';
 // Hardcoded Riot account for testing
 // This account should exist in the Riot system and be dedicated for E2E testing
 const RIOT_ACCOUNT = {
-  gameName: 'TestAccountName',  // TODO: Update with actual test account
-  tagLine: 'EUW',               // TODO: Update with actual tag line
+  gameName: 'Doend', 
+  tagLine: 'EUW',               
   region: 'euw1',
 };
 

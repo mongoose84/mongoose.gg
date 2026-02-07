@@ -9,7 +9,7 @@ SET sql_mode = 'STRICT_ALL_TABLES';
 CREATE TABLE IF NOT EXISTS users (
     user_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
-    username VARCHAR(50) NOT NULL,
+    username VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     email_verified BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
