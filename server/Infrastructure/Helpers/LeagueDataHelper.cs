@@ -88,9 +88,9 @@ public static class LeagueDataHelper
     {
         if (string.IsNullOrEmpty(championName))
             return string.Empty;
-        
-        // Remove spaces, apostrophes, and other special characters
-        return championName.Replace(" ", "").Replace("'", "").Replace(".", "");
+
+        // Remove all non-alphanumeric characters (e.g., "Cho'Gath" -> "ChoGath", "Lee Sin" -> "LeeSin")
+        return System.Text.RegularExpressions.Regex.Replace(championName, "[^A-Za-z0-9]", "");
     }
 }
 
