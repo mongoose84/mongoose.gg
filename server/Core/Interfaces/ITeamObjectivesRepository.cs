@@ -1,6 +1,6 @@
-using RiotProxy.Core.Entities;
+using Mongoose.Api.Core.Entities;
 
-namespace RiotProxy.Core.Interfaces;
+namespace Mongoose.Api.Core.Interfaces;
 
 public interface ITeamObjectivesRepository
 {

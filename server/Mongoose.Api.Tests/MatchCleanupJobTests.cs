@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
-using RiotProxy.Core.Entities;
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Core.Interfaces;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 /// <summary>
 /// Tests for MatchCleanupJob - automated deletion of old matches.

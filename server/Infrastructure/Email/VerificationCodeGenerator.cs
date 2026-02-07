@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace RiotProxy.Infrastructure.Email;
+namespace Mongoose.Api.Infrastructure.Email;
 
 /// <summary>
 /// Generates cryptographically secure verification codes

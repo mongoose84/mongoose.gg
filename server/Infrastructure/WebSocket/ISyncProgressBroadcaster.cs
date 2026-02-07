@@ -1,4 +1,4 @@
-namespace RiotProxy.Infrastructure.WebSocket;
+namespace Mongoose.Api.Infrastructure.WebSocket;
 
 /// <summary>
 /// Interface for broadcasting sync progress updates to connected WebSocket clients.

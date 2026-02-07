@@ -1,11 +1,11 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Application.DTOs.Feedback;
-using RiotProxy.Application.Endpoints.Shared;
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Application.DTOs.Feedback;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core.Interfaces;
 
-namespace RiotProxy.Application.Endpoints.Feedback;
+namespace Mongoose.Api.Application.Endpoints.Feedback;
 
 /// <summary>
 /// Feedback Endpoint

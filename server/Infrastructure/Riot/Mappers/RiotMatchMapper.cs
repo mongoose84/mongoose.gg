@@ -1,7 +1,7 @@
 using System.Text.Json;
-using RiotProxy.Core.Entities;
+using Mongoose.Api.Core.Entities;
 
-namespace RiotProxy.Infrastructure.Riot.Mappers;
+namespace Mongoose.Api.Infrastructure.Riot.Mappers;
 
 /// <summary>
 /// Maps Riot API match-v5 info JSON to domain entities.

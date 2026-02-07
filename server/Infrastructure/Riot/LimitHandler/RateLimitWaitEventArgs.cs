@@ -1,4 +1,4 @@
-namespace RiotProxy.Infrastructure.Riot.LimitHandler;
+namespace Mongoose.Api.Infrastructure.Riot.LimitHandler;
 
 /// <summary>
 /// TEMPORARY: Event arguments for rate limit wait events.

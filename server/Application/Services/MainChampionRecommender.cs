@@ -1,7 +1,7 @@
 
-using static RiotProxy.Application.DTOs.MainChampionDto;
+using static Mongoose.Api.Application.DTOs.MainChampionDto;
 
-namespace RiotProxy.Application.Services;
+namespace Mongoose.Api.Application.Services;
 
 /// <summary>
 /// Builds per-role "main champion" recommendations from aggregated match stats.

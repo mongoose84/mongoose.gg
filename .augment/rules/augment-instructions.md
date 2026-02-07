@@ -58,7 +58,7 @@ type: "always_apply"
   - WebSocket: `Infrastructure/WebSocket/` (real-time sync progress)
   - Middleware: `Infrastructure/Middleware/` (exception handling)
   - Telemetry: `Infrastructure/Telemetry/` (metrics)
-- Backend tests: `server/RiotProxy.Tests/`
+- Backend tests: `server/Mongoose.Api.Tests/`
 
 ## Conventions & Patterns
 ### General
@@ -70,7 +70,7 @@ type: "always_apply"
 - Consistent naming and formatting conventions
 - Consistent use of comments and documentation
 - Consistent use of logging and monitoring
-- Use Spec-Driven development (specs in `server/RiotProxy.Tests/`)
+- Use Spec-Driven development (specs in `server/Mongoose.Api.Tests/`)
 
 ### Client
 - Uses Vue 3 Single File Components (SFCs) with Composition API (`<script setup>`)
@@ -100,7 +100,7 @@ type: "always_apply"
 - CORS configured for Vue dev server and production domains
 - Background jobs using `IHostedService` (e.g., `MatchHistorySyncJob`)
 - WebSocket support via SignalR (`SyncProgressHub`) for real-time updates
-- Backend tests in `RiotProxy.Tests/`
+- Backend tests in `Mongoose.Api.Tests/`
 - Secrets are never checked into version control
 
 ### Database
@@ -118,7 +118,7 @@ type: "always_apply"
 
 ### Testing
 - Client: Vitest for unit tests, Playwright for e2e tests
-- Server: Backend tests in `RiotProxy.Tests/` with xUnit
+- Server: Backend tests in `Mongoose.Api.Tests/` with xUnit
 - Always run tests after making changes to ensure nothing breaks
 
 
@@ -140,7 +140,7 @@ type: "always_apply"
 ## Common Tasks
 ### Add a new API endpoint
 1. Create a new file in `server/Application/Endpoints/` implementing `IEndpoint`
-2. Register it in `server/Application/RiotProxyApplication.cs` and/or `Program.cs`
+2. Register it in `server/Application/MongooseApiApplication.cs` and/or `Program.cs`
 3. Create corresponding DTO in `Application/DTOs/` if needed
 4. Add client-side API call function in `client/src/services/` (or `client/src/assets/` for legacy)
 5. Update views/components to use the new endpoint
@@ -217,14 +217,14 @@ type: "always_apply"
     │   ├── WebSocket/        # SignalR hubs
     │   ├── Middleware/       # Exception handling
     │   └── Telemetry/        # Metrics
-    ├── RiotProxy.Tests/      # Backend tests (xUnit)
+    ├── Mongoose.Api.Tests/   # Backend tests (xUnit)
     └── Program.cs            # Entry point
 ```
 
 ## References
 - Setup instructions: [README.md](../README.md)
 - Sensitive config: set via env vars or user-secrets (`RIOT_API_KEY`, `Database_test`, `Database_production`, Mollie API keys)
-- Main server logic: `server/Program.cs`, `server/Application/`, `server/Application/Endpoints/`, `server/RiotProxy.Tests/`
+- Main server logic: `server/Program.cs`, `server/Application/`, `server/Application/Endpoints/`, `server/Mongoose.Api.Tests/`
 - Main client logic: `client/src/`, `client/src/services/`, `client/src/composables/`
 - Riot API Documentation: https://developer.riotgames.com/
 - API Design: [docs/api-design-guidelines.md]

@@ -1,4 +1,4 @@
-namespace RiotProxy.Core.ValueObjects;
+namespace Mongoose.Api.Core.ValueObjects;
 
 public record SummonerId
 {

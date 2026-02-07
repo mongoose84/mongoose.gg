@@ -1,21 +1,21 @@
-using RiotProxy.Application.Endpoints;
-using RiotProxy.Application.Endpoints.Analytics;
-using RiotProxy.Application.Endpoints.Auth;
-using RiotProxy.Application.Endpoints.ChampionSelect;
-using RiotProxy.Application.Endpoints.Diagnostics;
-using RiotProxy.Application.Endpoints.Feedback;
-using RiotProxy.Application.Endpoints.Matches;
-using RiotProxy.Application.Endpoints.Overview;
-using RiotProxy.Application.Endpoints.Solo;
-using RiotProxy.Application.Endpoints.Trends;
+using Mongoose.Api.Application.Endpoints;
+using Mongoose.Api.Application.Endpoints.Analytics;
+using Mongoose.Api.Application.Endpoints.Auth;
+using Mongoose.Api.Application.Endpoints.ChampionSelect;
+using Mongoose.Api.Application.Endpoints.Diagnostics;
+using Mongoose.Api.Application.Endpoints.Feedback;
+using Mongoose.Api.Application.Endpoints.Matches;
+using Mongoose.Api.Application.Endpoints.Overview;
+using Mongoose.Api.Application.Endpoints.Solo;
+using Mongoose.Api.Application.Endpoints.Trends;
 
-namespace RiotProxy.Application
+namespace Mongoose.Api.Application
 {
-    public class RiotProxyApplication
+    public class MongooseApiApplication
     {
         private readonly WebApplication _app;
         private readonly IList<IEndpoint> _endpoints = [];
-        public RiotProxyApplication(WebApplication app)
+        public MongooseApiApplication(WebApplication app)
         {
             _app = app;
             var apiVersion = "v2";

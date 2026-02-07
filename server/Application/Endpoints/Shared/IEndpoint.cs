@@ -1,4 +1,4 @@
-namespace RiotProxy.Application.Endpoints;
+namespace Mongoose.Api.Application.Endpoints;
 
 /// <summary>
 /// Represents a generic endpoint interface for handling API requests

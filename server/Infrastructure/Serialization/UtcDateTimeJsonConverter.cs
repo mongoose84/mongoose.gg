@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace RiotProxy.Infrastructure.Serialization;
+namespace Mongoose.Api.Infrastructure.Serialization;
 
 /// <summary>
 /// Custom JSON converter for DateTime that ensures UTC format serialization.

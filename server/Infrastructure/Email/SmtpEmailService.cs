@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Reflection;
 
-namespace RiotProxy.Infrastructure.Email;
+namespace Mongoose.Api.Infrastructure.Email;
 
 /// <summary>
 /// SMTP-based email service implementation

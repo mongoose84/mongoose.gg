@@ -1,6 +1,6 @@
 using MySqlConnector;
 
-namespace RiotProxy.Core.Interfaces;
+namespace Mongoose.Api.Core.Interfaces;
 
 /// <summary>
 /// Represents the result of resolving a time range filter.

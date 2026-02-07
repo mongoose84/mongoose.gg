@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RiotProxy.Application.DTOs.Feedback;
+namespace Mongoose.Api.Application.DTOs.Feedback;
 
 /// <summary>
 /// Data Transfer Objects for the feedback endpoint.

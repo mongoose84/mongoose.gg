@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Application.DTOs.Matches;
-using RiotProxy.Application.Endpoints.Shared;
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Application.DTOs.Matches;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core.Interfaces;
 
-namespace RiotProxy.Application.Endpoints.Matches;
+namespace Mongoose.Api.Application.Endpoints.Matches;
 
 /// <summary>
 /// Match Details Endpoint

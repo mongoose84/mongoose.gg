@@ -1,4 +1,4 @@
-namespace RiotProxy.Application.Endpoints.Shared;
+namespace Mongoose.Api.Application.Endpoints.Shared;
 
 /// <summary>
 /// Utility class for sanitizing user input before logging.

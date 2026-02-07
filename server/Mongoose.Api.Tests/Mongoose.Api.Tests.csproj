@@ -16,6 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../RiotProxy.csproj" />
+    <ProjectReference Include="../Mongoose.Api.csproj" />
   </ItemGroup>
 </Project>

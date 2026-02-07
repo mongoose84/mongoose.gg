@@ -5,7 +5,7 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace RiotProxy.Infrastructure.Middleware
+namespace Mongoose.Api.Infrastructure.Middleware
 {
     public class JsonExceptionMiddleware
     {

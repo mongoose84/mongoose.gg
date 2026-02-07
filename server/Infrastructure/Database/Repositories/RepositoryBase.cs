@@ -1,6 +1,6 @@
 using MySqlConnector;
 
-namespace RiotProxy.Infrastructure.Database.Repositories;
+namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 /// <summary>
 /// Extension methods for MySqlDataReader to ensure DateTime values are read with UTC kind.

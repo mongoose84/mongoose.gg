@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
-using static RiotProxy.Application.DTOs.MainChampionDto;
+using static Mongoose.Api.Application.DTOs.MainChampionDto;
 
-namespace RiotProxy.Application.DTOs;
+namespace Mongoose.Api.Application.DTOs;
 
 public static class SoloPerformanceDto
 {

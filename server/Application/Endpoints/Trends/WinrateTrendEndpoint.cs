@@ -1,9 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Application.Endpoints.Shared;
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core.Interfaces;
 
-namespace RiotProxy.Application.Endpoints.Trends;
+namespace Mongoose.Api.Application.Endpoints.Trends;
 
 /// <summary>
 /// Winrate Trend Endpoint

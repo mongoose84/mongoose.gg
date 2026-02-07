@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Application.Endpoints.Shared;
-using RiotProxy.Infrastructure.Database.Repositories;
-using static RiotProxy.Application.DTOs.DeleteAccountDto;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Infrastructure.Database.Repositories;
+using static Mongoose.Api.Application.DTOs.DeleteAccountDto;
 
-namespace RiotProxy.Application.Endpoints.Auth;
+namespace Mongoose.Api.Application.Endpoints.Auth;
 
 /// <summary>
 /// Delete Account Endpoint

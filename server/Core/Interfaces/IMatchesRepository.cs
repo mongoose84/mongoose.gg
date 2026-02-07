@@ -1,7 +1,7 @@
-using RiotProxy.Core.Entities;
-using RiotProxy.Core.QueryModels;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Core.QueryModels;
 
-namespace RiotProxy.Core.Interfaces;
+namespace Mongoose.Api.Core.Interfaces;
 
 public interface IMatchesRepository
 {

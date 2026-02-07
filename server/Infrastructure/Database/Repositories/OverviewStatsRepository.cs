@@ -1,8 +1,8 @@
 using MySqlConnector;
-using RiotProxy.Core.Interfaces;
-using RiotProxy.Core.QueryModels;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Core.QueryModels;
 
-namespace RiotProxy.Infrastructure.Database.Repositories;
+namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 /// <summary>
 /// Repository for overview page statistics.

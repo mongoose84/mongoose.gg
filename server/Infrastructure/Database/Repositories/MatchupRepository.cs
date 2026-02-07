@@ -1,8 +1,8 @@
 using MySqlConnector;
-using RiotProxy.Core.Interfaces;
-using static RiotProxy.Application.DTOs.SoloMatchupsDto;
+using Mongoose.Api.Core.Interfaces;
+using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 
-namespace RiotProxy.Infrastructure.Database.Repositories;
+namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 /// <summary>
 /// Repository for champion matchup statistics.

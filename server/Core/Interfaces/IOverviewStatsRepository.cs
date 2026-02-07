@@ -1,6 +1,6 @@
-using RiotProxy.Core.QueryModels;
+using Mongoose.Api.Core.QueryModels;
 
-namespace RiotProxy.Core.Interfaces;
+namespace Mongoose.Api.Core.Interfaces;
 
 public interface IOverviewStatsRepository
 {

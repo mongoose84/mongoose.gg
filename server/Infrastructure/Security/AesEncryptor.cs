@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace RiotProxy.Infrastructure.Security;
+namespace Mongoose.Api.Infrastructure.Security;
 
 /// <summary>
 /// AES-256 email encryptor with deterministic encryption for database lookups.

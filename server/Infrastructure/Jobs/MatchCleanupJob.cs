@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
-using RiotProxy.Infrastructure.Database.Repositories;
+using Mongoose.Api.Infrastructure.Database.Repositories;
 
-namespace RiotProxy.Infrastructure.Jobs;
+namespace Mongoose.Api.Infrastructure.Jobs;
 
 /// <summary>
 /// Background job that deletes matches older than the configured retention period.

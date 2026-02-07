@@ -1,4 +1,4 @@
-namespace RiotProxy.Core.Entities;
+namespace Mongoose.Api.Core.Entities;
 
 /// <summary>
 /// Represents a Riot Games account with profile and rank data.

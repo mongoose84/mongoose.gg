@@ -1,4 +1,4 @@
-namespace RiotProxy.Core.QueryModels;
+namespace Mongoose.Api.Core.QueryModels;
 
 /// <summary>
 /// Internal DTO for queue count data

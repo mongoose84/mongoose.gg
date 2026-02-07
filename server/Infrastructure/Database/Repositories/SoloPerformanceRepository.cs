@@ -1,10 +1,10 @@
 using MySqlConnector;
-using RiotProxy.Application.Services;
-using RiotProxy.Core.Interfaces;
-using static RiotProxy.Application.DTOs.SoloPerformanceDto;
-using static RiotProxy.Application.DTOs.MainChampionDto;
+using Mongoose.Api.Application.Services;
+using Mongoose.Api.Core.Interfaces;
+using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
+using static Mongoose.Api.Application.DTOs.MainChampionDto;
 
-namespace RiotProxy.Infrastructure.Database.Repositories;
+namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 /// <summary>
 /// Repository for solo performance statistics.

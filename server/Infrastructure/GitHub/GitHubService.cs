@@ -3,9 +3,9 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Core.Interfaces;
 
-namespace RiotProxy.Infrastructure.GitHub;
+namespace Mongoose.Api.Infrastructure.GitHub;
 
 /// <summary>
 /// GitHub service implementation for creating issues via the GitHub REST API.

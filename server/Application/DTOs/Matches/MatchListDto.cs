@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
-using RiotProxy.Core.QueryModels;
+using Mongoose.Api.Core.QueryModels;
 
-namespace RiotProxy.Application.DTOs.Matches;
+namespace Mongoose.Api.Application.DTOs.Matches;
 
 /// <summary>
 /// Response for the match list endpoint.

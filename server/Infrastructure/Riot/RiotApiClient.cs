@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Web;
-using RiotProxy.Infrastructure.Riot.LimitHandler;
-using RiotProxy.Infrastructure.Telemetry;
+using Mongoose.Api.Infrastructure.Riot.LimitHandler;
+using Mongoose.Api.Infrastructure.Telemetry;
 
-namespace RiotProxy.Infrastructure.Riot;
+namespace Mongoose.Api.Infrastructure.Riot;
 
 public class RiotApiClient : IRiotApiClient
 {

@@ -1,18 +1,18 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using RiotProxy.Application;
-using RiotProxy.Application.Services;
-using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure;
-using RiotProxy.Infrastructure.Database;
-using RiotProxy.Infrastructure.Database.Repositories;
-using RiotProxy.Infrastructure.Email;
-using RiotProxy.Infrastructure.Jobs;
-using RiotProxy.Infrastructure.Middleware;
-using RiotProxy.Infrastructure.Riot;
-using RiotProxy.Infrastructure.Security;
-using RiotProxy.Infrastructure.Serialization;
-using RiotProxy.Infrastructure.RateLimiting;
-using RiotProxy.Infrastructure.WebSocket;
+using Mongoose.Api.Application;
+using Mongoose.Api.Application.Services;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure;
+using Mongoose.Api.Infrastructure.Database;
+using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Infrastructure.Email;
+using Mongoose.Api.Infrastructure.Jobs;
+using Mongoose.Api.Infrastructure.Middleware;
+using Mongoose.Api.Infrastructure.Riot;
+using Mongoose.Api.Infrastructure.Security;
+using Mongoose.Api.Infrastructure.Serialization;
+using Mongoose.Api.Infrastructure.RateLimiting;
+using Mongoose.Api.Infrastructure.WebSocket;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -66,7 +66,7 @@ builder.Services.AddScoped<VerificationTokensRepository>();
 builder.Services.AddScoped<ILpSnapshotsRepository, LpSnapshotsRepository>();
 
 // Application services
-builder.Services.AddScoped<RiotProxy.Application.Services.LoginSyncService>();
+builder.Services.AddScoped<Mongoose.Api.Application.Services.LoginSyncService>();
 builder.Services.AddSingleton<ILpCalculationService, LpCalculationService>();
 
 // Query filter builder for centralized SQL filter generation
@@ -76,7 +76,7 @@ builder.Services.AddScoped<IQueryFilterBuilder, QueryFilterBuilder>();
 builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
 
 // GitHub service for feedback integration (uses typed HttpClient)
-builder.Services.AddHttpClient<IGitHubService, RiotProxy.Infrastructure.GitHub.GitHubService>(client =>
+builder.Services.AddHttpClient<IGitHubService, Mongoose.Api.Infrastructure.GitHub.GitHubService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
 });
@@ -276,8 +276,8 @@ app.Map("/ws/sync", async (HttpContext context, SyncProgressHub hub) =>
 });
 
 // Enable routing and map endpoints
-var riotProxyApplication = new RiotProxyApplication(app);
-riotProxyApplication.ConfigureEndpoints();
+var mongooseApiApplication = new MongooseApiApplication(app);
+mongooseApiApplication.ConfigureEndpoints();
 
 app.Run();
 

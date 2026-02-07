@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Application.Endpoints.Shared;
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core.Interfaces;
 
-namespace RiotProxy.Application.Endpoints
+namespace Mongoose.Api.Application.Endpoints
 {
     /// <summary>
     /// Public stats endpoint for exposing non-sensitive aggregate metrics

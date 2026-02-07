@@ -1,4 +1,4 @@
-namespace RiotProxy.Core.Entities;
+namespace Mongoose.Api.Core.Entities;
 
 /// <summary>
 /// Represents a point-in-time snapshot of a player's LP/rank.

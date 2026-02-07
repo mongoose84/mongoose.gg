@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
 
-namespace RiotProxy.Infrastructure.Riot;
+namespace Mongoose.Api.Infrastructure.Riot;
 
 public static class RiotUrlBuilder
 {

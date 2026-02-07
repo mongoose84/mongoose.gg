@@ -1,8 +1,8 @@
 using MySqlConnector;
-using RiotProxy.Core.Interfaces;
-using static RiotProxy.Application.DTOs.SoloPerformanceDto;
+using Mongoose.Api.Core.Interfaces;
+using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 
-namespace RiotProxy.Infrastructure.Database.Repositories;
+namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 /// <summary>
 /// Repository for trend-related statistics.

@@ -2,13 +2,13 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Application.Endpoints.Shared;
-using RiotProxy.Application.Services;
-using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure.Database.Repositories;
-using static RiotProxy.Application.DTOs.LoginDto;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Database.Repositories;
+using static Mongoose.Api.Application.DTOs.LoginDto;
 
-namespace RiotProxy.Application.Endpoints.Auth;
+namespace Mongoose.Api.Application.Endpoints.Auth;
 
 /// <summary>
 /// Login Endpoint

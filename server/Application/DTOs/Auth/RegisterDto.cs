@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RiotProxy.Application.DTOs;
+namespace Mongoose.Api.Application.DTOs;
 
 public static class RegisterDto
 {

@@ -1,8 +1,8 @@
 using MySqlConnector;
-using RiotProxy.Core.Entities;
-using RiotProxy.Core.Interfaces;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Core.Interfaces;
 
-namespace RiotProxy.Infrastructure.Database.Repositories;
+namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 public class DuoMetricsRepository : RepositoryBase, IDuoMetricsRepository
 {

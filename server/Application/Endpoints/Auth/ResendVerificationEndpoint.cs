@@ -2,13 +2,13 @@ using System.Security.Claims;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiotProxy.Application.Endpoints.Shared;
-using RiotProxy.Core.Entities;
-using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure.Database.Repositories;
-using RiotProxy.Infrastructure.Email;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Infrastructure.Email;
 
-namespace RiotProxy.Application.Endpoints.Auth;
+namespace Mongoose.Api.Application.Endpoints.Auth;
 
 /// <summary>
 /// Resend Verification Endpoint

@@ -1,4 +1,4 @@
-namespace RiotProxy.Infrastructure.Security;
+namespace Mongoose.Api.Infrastructure.Security;
 
 /// <summary>
 /// Service for encrypting and decrypting strings.

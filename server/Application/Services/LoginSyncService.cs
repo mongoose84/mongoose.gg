@@ -1,11 +1,11 @@
 using System.Text.Json;
-using RiotProxy.Core.Entities;
-using RiotProxy.Core.Interfaces;
-using RiotProxy.Infrastructure.Database.Repositories;
-using RiotProxy.Infrastructure.Riot;
-using RiotProxy.Infrastructure.WebSocket;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Infrastructure.Riot;
+using Mongoose.Api.Infrastructure.WebSocket;
 
-namespace RiotProxy.Application.Services;
+namespace Mongoose.Api.Application.Services;
 
 /// <summary>
 /// Handles sync checks when a user logs in.

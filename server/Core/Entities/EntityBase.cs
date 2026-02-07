@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace RiotProxy.Core.Entities;
+namespace Mongoose.Api.Core.Entities;
 
 public abstract class EntityBase
 {

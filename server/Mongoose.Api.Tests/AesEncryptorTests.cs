@@ -1,7 +1,7 @@
-using RiotProxy.Infrastructure.Security;
+using Mongoose.Api.Infrastructure.Security;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 public class AesEncryptorTests
 {

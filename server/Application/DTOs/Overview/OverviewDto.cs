@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RiotProxy.Application.DTOs.Overview;
+namespace Mongoose.Api.Application.DTOs.Overview;
 
 /// <summary>
 /// Overview endpoint response containing aggregated dashboard data

@@ -2,10 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using RiotProxy.Core.Entities;
+using Mongoose.Api.Core.Entities;
 using Xunit;
 
-namespace RiotProxy.Tests;
+namespace Mongoose.Api.Tests;
 
 public class VerifyEndpointTests
 {

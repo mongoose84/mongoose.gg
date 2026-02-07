@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using System.Linq;
 
-namespace RiotProxy.Infrastructure
+namespace Mongoose.Api.Infrastructure
 {
     public static class Secrets
     {

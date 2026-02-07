@@ -1,4 +1,4 @@
-namespace RiotProxy.Core.Entities;
+namespace Mongoose.Api.Core.Entities;
 
 public class ParticipantMetric : EntityBase
 {

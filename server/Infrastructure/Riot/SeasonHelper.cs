@@ -1,7 +1,7 @@
-using RiotProxy.Core.Entities;
-using RiotProxy.Infrastructure.Database.Repositories;
+using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Infrastructure.Database.Repositories;
 
-namespace RiotProxy.Infrastructure.Riot;
+namespace Mongoose.Api.Infrastructure.Riot;
 
 /// <summary>
 /// Helper for calculating and managing League of Legends seasons.
