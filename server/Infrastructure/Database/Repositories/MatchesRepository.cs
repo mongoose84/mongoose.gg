@@ -3,13 +3,12 @@ using Mongoose.Api.Application.QueryModels;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
+using Mongoose.Api.Infrastructure.Helpers;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 public class MatchesRepository : RepositoryBase, IMatchesRepository
 {
-    private const string DataDragonVersion = "16.1.1";
-
     public MatchesRepository(IDbConnectionFactory factory) : base(factory) {}
 
     public Task UpsertAsync(Match match)
@@ -155,10 +154,10 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             items.Add(new MatchListItem(
                 MatchId: raw.MatchId,
                 QueueId: raw.QueueId,
-                QueueType: GetQueueLabel(raw.QueueId),
+                QueueType: LeagueDataHelper.GetQueueLabelShort(raw.QueueId),
                 ChampionId: raw.ChampionId,
                 ChampionName: raw.ChampionName,
-                ChampionIconUrl: GetChampionIconUrl(raw.ChampionName),
+                ChampionIconUrl: LeagueDataHelper.GetChampionIconUrl(raw.ChampionName),
                 Role: raw.Role,
                 Lane: raw.Lane,
                 Win: raw.Win,
@@ -251,10 +250,10 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             items.Add(new MatchListSummaryItem(
                 MatchId: raw.MatchId,
                 QueueId: raw.QueueId,
-                QueueType: GetQueueLabel(raw.QueueId),
+                QueueType: LeagueDataHelper.GetQueueLabelShort(raw.QueueId),
                 ChampionId: raw.ChampionId,
                 ChampionName: raw.ChampionName,
-                ChampionIconUrl: GetChampionIconUrl(raw.ChampionName),
+                ChampionIconUrl: LeagueDataHelper.GetChampionIconUrl(raw.ChampionName),
                 Role: raw.Role,
                 Lane: raw.Lane,
                 Win: raw.Win,
@@ -361,10 +360,10 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         return new MatchDetailsItem(
             MatchId: rawData.MatchId,
             QueueId: rawData.QueueId,
-            QueueType: GetQueueLabel(rawData.QueueId),
+            QueueType: LeagueDataHelper.GetQueueLabelShort(rawData.QueueId),
             ChampionId: rawData.ChampionId,
             ChampionName: rawData.ChampionName,
-            ChampionIconUrl: GetChampionIconUrl(rawData.ChampionName),
+            ChampionIconUrl: LeagueDataHelper.GetChampionIconUrl(rawData.ChampionName),
             Role: rawData.Role,
             Lane: rawData.Lane,
             Win: rawData.Win,
@@ -688,23 +687,6 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         TeamTowers: r.GetInt32(31),
         EnemyTeamTowers: r.GetInt32(32)
     );
-
-    private static string GetQueueLabel(int queueId) => queueId switch
-    {
-        420 => "Ranked Solo",
-        440 => "Ranked Flex",
-        400 => "Normal Draft",
-        430 => "Normal Blind",
-        450 => "ARAM",
-        1700 => "ARAM: Mayhem",
-        _ => $"Queue {queueId}"
-    };
-
-    private static string GetChampionIconUrl(string championName)
-    {
-        var normalized = championName.Replace(" ", "").Replace("'", "");
-        return $"https://ddragon.leagueoflegends.com/cdn/{DataDragonVersion}/img/champion/{normalized}.png";
-    }
 
     /// <summary>
     /// Gets all 10 participants for a match with their metrics and 10-minute checkpoints.

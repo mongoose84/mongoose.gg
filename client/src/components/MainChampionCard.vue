@@ -229,6 +229,7 @@ import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { getWinRateColorClass } from '../composables/useWinRateColor'
 import { getChampionMatchups } from '../services/authApi'
 import { formatRoleWithAdc as roleLabel, formatWinRate } from '@/utils/formatters'
+import { getChampionIconUrl } from '@/utils/leagueAssets'
 
 const props = defineProps({
   mainChampions: {
@@ -374,20 +375,6 @@ function getMatchupsForChampion(championId, role) {
     .slice(0, 4)
 
   return { good: strongMatchups, bad: weakMatchups }
-}
-
-// Data Dragon version for champion icons (kept in sync with ProfileHeaderCard)
-const ddVersion = '16.1.1'
-
-function normalizeChampionName(name) {
-  if (!name) return ''
-  // Remove spaces, punctuation, etc. (e.g., "Cho'Gath" -> "ChoGath")
-  return name.replace(/[^A-Za-z0-9]/g, '')
-}
-
-function getChampionIconUrl(name) {
-  const normalized = normalizeChampionName(name)
-  return `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${normalized}.png`
 }
 
 // Get bar color class based on win rate

@@ -5,6 +5,7 @@ using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
 using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Infrastructure.Helpers;
 
 namespace Mongoose.Api.Application.Endpoints.Overview;
 
@@ -266,7 +267,7 @@ public sealed class OverviewEndpoint : IEndpoint
         var championIconUrl = BuildChampionIconUrl(data.ChampionName);
         var result = data.Win ? "Victory" : "Defeat";
         var kda = $"{data.Kills}/{data.Deaths}/{data.Assists}";
-        var queueType = OverviewStatsRepository.GetQueueLabel(data.QueueId);
+        var queueType = LeagueDataHelper.GetQueueLabel(data.QueueId);
 
         return new LastMatch(
             MatchId: data.MatchId,

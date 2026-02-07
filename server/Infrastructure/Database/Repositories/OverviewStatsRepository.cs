@@ -1,6 +1,7 @@
 using MySqlConnector;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
+using Mongoose.Api.Infrastructure.Helpers;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
@@ -91,7 +92,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             .ThenBy(q => QueuePriority.GetValueOrDefault(q.QueueId, 99))
             .First();
 
-        var label = GetQueueLabel(primaryQueue.QueueId);
+        var label = LeagueDataHelper.GetQueueLabel(primaryQueue.QueueId);
         return (primaryQueue.QueueId, label, primaryQueue.MatchCount);
     }
 
@@ -215,19 +216,5 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             return result == null || result == DBNull.Value ? (int?)null : Convert.ToInt32(result);
         });
     }
-
-    /// <summary>
-    /// Converts a queue ID to a human-readable label.
-    /// </summary>
-    public static string GetQueueLabel(int queueId) => queueId switch
-    {
-        420 => "Ranked Solo/Duo",
-        440 => "Ranked Flex",
-        400 => "Normal Draft",
-        430 => "Normal Blind",
-        450 => "ARAM",
-        1700 => "ARAM: Mayhem",
-        _ => $"Queue {queueId}"
-    };
 }
 

@@ -1,0 +1,88 @@
+/**
+ * Centralized utility for League of Legends asset URLs and data.
+ * Provides champion icons, role icons, and other League-specific helpers.
+ */
+
+/**
+ * Current Data Dragon CDN version for champion assets.
+ * Update this when a new League patch is released.
+ */
+export const DATA_DRAGON_VERSION = '16.1.1'
+
+/**
+ * Base URLs for external CDNs
+ */
+const DATA_DRAGON_CDN = 'https://ddragon.leagueoflegends.com/cdn'
+const COMMUNITY_DRAGON_CDN = 'https://raw.communitydragon.org/latest'
+
+/**
+ * Normalizes a champion name for use in Data Dragon URLs.
+ * Removes spaces and special characters (e.g., "Cho'Gath" -> "ChoGath").
+ * @param {string} name - The champion name
+ * @returns {string} Normalized champion name for URL usage
+ */
+export function normalizeChampionName(name) {
+  if (!name) return ''
+  // Remove spaces, punctuation, etc. (e.g., "Cho'Gath" -> "ChoGath", "Lee Sin" -> "LeeSin")
+  return name.replace(/[^A-Za-z0-9]/g, '')
+}
+
+/**
+ * Generates a Data Dragon CDN URL for a champion icon.
+ * @param {string} championName - The champion name (e.g., "Cho'Gath", "Lee Sin")
+ * @returns {string} The full URL to the champion icon image
+ */
+export function getChampionIconUrl(championName) {
+  const normalized = normalizeChampionName(championName)
+  return `${DATA_DRAGON_CDN}/${DATA_DRAGON_VERSION}/img/champion/${normalized}.png`
+}
+
+/**
+ * Role icon mapping for Community Dragon URLs.
+ * Maps Riot API role names to URL-friendly names.
+ */
+const ROLE_URL_MAP = {
+  TOP: 'top',
+  JUNGLE: 'jungle',
+  MIDDLE: 'middle',
+  BOTTOM: 'bottom',
+  UTILITY: 'utility'
+}
+
+/**
+ * Generates a Community Dragon CDN URL for a role icon.
+ * @param {string} role - The role identifier (e.g., 'TOP', 'JUNGLE', 'MIDDLE')
+ * @returns {string} The full URL to the role icon image
+ */
+export function getRoleIconUrl(role) {
+  const roleName = ROLE_URL_MAP[role] || 'fill'
+  return `${COMMUNITY_DRAGON_CDN}/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-${roleName}.png`
+}
+
+/**
+ * Generates a Data Dragon CDN URL for a profile icon.
+ * @param {number} profileIconId - The profile icon ID
+ * @returns {string} The full URL to the profile icon image
+ */
+export function getProfileIconUrl(profileIconId) {
+  return `${DATA_DRAGON_CDN}/${DATA_DRAGON_VERSION}/img/profileicon/${profileIconId}.png`
+}
+
+/**
+ * Generates a Data Dragon CDN URL for an item icon.
+ * @param {number} itemId - The item ID
+ * @returns {string} The full URL to the item icon image
+ */
+export function getItemIconUrl(itemId) {
+  return `${DATA_DRAGON_CDN}/${DATA_DRAGON_VERSION}/img/item/${itemId}.png`
+}
+
+/**
+ * Generates a Data Dragon CDN URL for a summoner spell icon.
+ * @param {string} spellName - The spell name (e.g., "Flash", "Ignite")
+ * @returns {string} The full URL to the summoner spell icon image
+ */
+export function getSummonerSpellIconUrl(spellName) {
+  return `${DATA_DRAGON_CDN}/${DATA_DRAGON_VERSION}/img/spell/Summoner${spellName}.png`
+}
+
