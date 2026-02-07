@@ -8,6 +8,9 @@ import { dirname, resolve } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, '.env') });
 
+// Path to store authentication state (shared across browsers)
+const authFile = 'e2e/.auth/user.json';
+
 /**
  * Playwright configuration for mongoose.gg E2E tests
  * @see https://playwright.dev/docs/test-configuration
@@ -57,14 +60,30 @@ export default defineConfig({
   },
 
   // Configure projects for Chromium and Firefox
+  // Uses setup project pattern for authentication to avoid rate limiting
+  // @see https://playwright.dev/docs/auth
   projects: [
+    // Setup project - runs once to authenticate and save state
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.js/,
+    },
+    // Browser projects - depend on setup and use saved auth state
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: authFile,
+      },
+      dependencies: ['setup'],
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: authFile,
+      },
+      dependencies: ['setup'],
     },
   ],
 

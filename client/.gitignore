@@ -13,6 +13,9 @@ dist-ssr
 coverage
 *.local
 
+# E2E test authentication state (contains session cookies)
+e2e/.auth/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

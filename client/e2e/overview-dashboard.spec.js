@@ -10,53 +10,32 @@ import { test, expect } from '@playwright/test';
  * - Match activity heatmap
  * - Analysis status card
  * - Latest match card
+ *
+ * Authentication is handled by the setup project (auth.setup.js).
+ * All tests in this file automatically use the saved auth state.
+ * @see https://playwright.dev/docs/auth
  */
 
-// Test credentials from environment variables
-const TEST_USER = {
-  username: process.env.E2E_TEST_USER || '',
-  password: process.env.E2E_TEST_PASSWORD || '',
-};
-
-const skipIfNoCredentials = !TEST_USER.username || !TEST_USER.password;
-
-/**
- * Helper function to perform login
- */
-async function performLogin(page) {
-  await page.goto('/auth');
-  await expect(page.locator('h1')).toContainText('Welcome to Mongoose.gg');
-  
-  await page.getByLabel('Username').fill(TEST_USER.username);
-  await page.getByLabel('Password').fill(TEST_USER.password);
-  await page.getByRole('button', { name: /sign in/i }).click();
-  
-  await Promise.race([
-    page.waitForURL('/app/overview', { timeout: 15_000 }),
-    page.waitForSelector('.auth-error', { timeout: 15_000 }),
-  ]);
-  
-  const errorElement = page.locator('.auth-error');
-  if (await errorElement.isVisible()) {
-    const errorText = await errorElement.textContent();
-    throw new Error(`Login failed: ${errorText}`);
-  }
-}
+// Check if credentials are available (for skipping tests)
+const skipIfNoCredentials = !process.env.E2E_TEST_USER || !process.env.E2E_TEST_PASSWORD;
 
 test.describe('Overview Dashboard - Authentication', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies();
-  });
+  test('should redirect unauthenticated users to login page', async ({ browser }) => {
+    // Create a fresh context WITHOUT storage state (override project default)
+    const context = await browser.newContext({ storageState: undefined });
+    const page = await context.newPage();
 
-  test('should redirect unauthenticated users to login page', async ({ page }) => {
     await page.goto('/app/overview');
     await expect(page).toHaveURL(/\/auth/);
+
+    await context.close();
   });
 
-  test('should redirect to overview after successful login', async ({ page }) => {
+  test('should be authenticated via setup project', async ({ page }) => {
     test.skip(skipIfNoCredentials, 'E2E credentials required');
-    
-    await performLogin(page);
+
+    // Auth is handled by auth.setup.js - just verify we can access the page
+    await page.goto('/app/overview');
     await expect(page).toHaveURL('/app/overview');
   });
 });
@@ -65,8 +44,8 @@ test.describe('Overview Dashboard - Content', () => {
   test.skip(() => skipIfNoCredentials, 'E2E credentials required');
 
   test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies();
-    await performLogin(page);
+    // Auth state is automatically loaded from setup project
+    await page.goto('/app/overview');
     await page.waitForLoadState('networkidle');
   });
 
@@ -227,8 +206,8 @@ test.describe('Overview Dashboard - Navigation', () => {
   test.skip(() => skipIfNoCredentials, 'E2E credentials required');
 
   test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies();
-    await performLogin(page);
+    // Auth state is automatically loaded from setup project
+    await page.goto('/app/overview');
     await page.waitForLoadState('networkidle');
   });
 
@@ -257,20 +236,11 @@ test.describe('Overview Dashboard - Navigation', () => {
   });
 
   test('should navigate to Matches page from sidebar', async ({ page }) => {
-    const sidebar = page.locator('[data-testid="app-sidebar"]');
-    const isCollapsed = await sidebar.getAttribute('data-collapsed') === 'true';
-
-    if (isCollapsed) {
-      const analysisSection = page.locator('[data-testid="nav-section-analysis"]');
-      await analysisSection.hover();
-      const popoutMatchesLink = page.locator('[data-testid="popout-item-matches"]');
-      await expect(popoutMatchesLink).toBeVisible({ timeout: 5_000 });
-      await popoutMatchesLink.click();
-    } else {
-      const sidebarMatchesLink = page.locator('[data-testid="nav-subitem-matches"]');
-      await expect(sidebarMatchesLink).toBeVisible({ timeout: 5_000 });
-      await sidebarMatchesLink.click();
-    }
+    // Matches is a top-level nav item (not under Analysis section)
+    // It's visible in both collapsed and expanded states
+    const matchesLink = page.locator('a[href="/app/matches"]');
+    await expect(matchesLink).toBeVisible({ timeout: 5_000 });
+    await matchesLink.click();
 
     await expect(page).toHaveURL('/app/matches');
   });
@@ -281,8 +251,8 @@ test.describe('Overview Dashboard - Responsive', () => {
 
   test('should display correctly on mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.context().clearCookies();
-    await performLogin(page);
+    // Auth state is automatically loaded from setup project
+    await page.goto('/app/overview');
     await page.waitForLoadState('networkidle');
 
     // Player header should still be visible
@@ -296,8 +266,8 @@ test.describe('Overview Dashboard - Responsive', () => {
 
   test('should display correctly on tablet viewport', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
-    await page.context().clearCookies();
-    await performLogin(page);
+    // Auth state is automatically loaded from setup project
+    await page.goto('/app/overview');
     await page.waitForLoadState('networkidle');
 
     // All sections should be visible
