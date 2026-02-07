@@ -14,7 +14,7 @@ This document outlines a comprehensive test strategy for Mongoose.gg, covering t
 | Layer | Test Files | Tests | CI Integration | Status |
 |-------|-----------|-------|----------------|--------|
 | Backend | 14 test files | ~200 tests | ✅ GitHub Actions | ✅ Strong foundation |
-| Frontend Unit | 23 test files | 389 tests | ✅ GitHub Actions | ✅ Strong foundation |
+| Frontend Unit | 24 test files | 445 tests | ✅ GitHub Actions | ✅ Strong foundation |
 | E2E | 1 test file | ~5 tests | ✅ GitHub Actions | 🔴 Needs expansion |
 
 ### Phase 1 Completion Summary ✅
@@ -475,13 +475,13 @@ Focus on highest-risk areas with missing coverage.
 
 Expand coverage for core user-facing features.
 
-| Priority | Test | Layer | Effort | Impact |
+| Priority | Test | Layer | Effort | Status |
 |----------|------|-------|--------|--------|
-| P1 | `formatters.spec.js` | Frontend | 2h | 🔴 High (23 functions!) |
-| P1 | Match endpoints tests | Backend | 4h | 🟡 High |
-| P1 | ChampionSelect endpoints tests | Backend | 3h | 🟡 High |
-| P1 | Overview dashboard E2E | E2E | 3h | 🟡 High |
-| P1 | Riot account linking E2E | E2E | 4h | 🟡 High |
+| P1 | `formatters.spec.js` | Frontend | 2h | ✅ Complete (56 tests) |
+| P1 | Match endpoints tests | Backend | 4h | 🟡 Pending |
+| P1 | ChampionSelect endpoints tests | Backend | 3h | 🟡 Pending |
+| P1 | Overview dashboard E2E | E2E | 3h | 🟡 Pending |
+| P1 | Riot account linking E2E | E2E | 4h | 🟡 Pending |
 | P2 | `useWinRateColor.spec.js` | Frontend | 0.5h | � Medium |
 | P2 | `uiStore.spec.js` | Frontend | 1h | 🟢 Medium |
 | P2 | `feedbackApi.spec.js` | Frontend | 1h | 🟢 Medium |
@@ -603,6 +603,7 @@ cd client && npm run test:e2e:ui         # Playwright UI
 | Riot Match Mapper tests | `server/Mongoose.Api.Tests/RiotMatchMapperTests.cs` |
 | Auth Store tests | `client/test/unit/authStore.spec.js` |
 | API Client tests | `client/test/unit/apiClient.spec.js` |
+| Formatters tests | `client/test/unit/formatters.spec.js` |
 | Analysis Status tests | `client/test/unit/useAnalysisStatus.spec.js` |
 | WebSocket tests | `client/test/unit/useSyncWebSocket.spec.js` |
 | Test helpers | `client/test/helpers/` |
