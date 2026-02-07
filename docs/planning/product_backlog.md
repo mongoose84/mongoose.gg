@@ -1139,11 +1139,12 @@ Usernames are currently being lowercased so a user who signs up as `DoendW` is s
 
 ---
 
-### F16. [Chore] Rename RiotProxy backend to Mongoose.Api
+### F16. [Chore] Rename RiotProxy backend to Mongoose.Api ✅
 
 **Priority:** P3 - Low  
 **Type:** Chore  
 **Estimate:** 3 points  
+**Status:** Complete  
 **Labels:** `backend`, `naming`, `maintenance`, `epic-f`
 
 #### Description
@@ -1328,11 +1329,10 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 | B17 | Conversational follow-up | AI Goals | 5 |
 | C16 | Create referral tracking | Subscription | 2 |
 | D8 | Implement A/B testing | Analytics | 2 |
-| F16 | Rename RiotProxy backend to Mongoose.Api | API | 3 |
 | G16 | Improve Match narrative header spacing and "You" button | Frontend | 1 |
 | G20 | Add optional pre-expiry session warning toast | Frontend | 2 |
 
-**P3 Remaining Total:** 17 points
+**P3 Remaining Total:** 14 points
 
 ## Summary of Completed Work
 
@@ -1383,17 +1383,18 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 | G | G14h - Add global "analysis in progress" sidebar indicator | 1 | ✅ |
 | G | G14i - ChampionSelectCTA card on Overview | 1 | ✅ |
 | G | G14j - Restructure Overview page layout for new components | 2 | ✅ |
+| F | F16 - Rename RiotProxy backend to Mongoose.Api | 3 | ✅ |
 | F | F17 - Implement feedback endpoint & GitHub integration | 5 | ✅ |
 | G | G21 - In-app Feedback page & sidebar entry | 5 | ✅ |
 
-**Total Completed Points:** 184
+**Total Completed Points:** 187
 
 ## Grand Totals
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 207 pts |
-| **Completed** | 132 pts |
+| **Remaining** | 204 pts |
+| **Completed** | 135 pts |
 | **Grand Total** | 339 pts |
 
 ---

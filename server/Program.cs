@@ -66,7 +66,7 @@ builder.Services.AddScoped<VerificationTokensRepository>();
 builder.Services.AddScoped<ILpSnapshotsRepository, LpSnapshotsRepository>();
 
 // Application services
-builder.Services.AddScoped<Mongoose.Api.Application.Services.LoginSyncService>();
+builder.Services.AddScoped<LoginSyncService>();
 builder.Services.AddSingleton<ILpCalculationService, LpCalculationService>();
 
 // Query filter builder for centralized SQL filter generation
