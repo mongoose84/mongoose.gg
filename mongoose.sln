@@ -4,9 +4,9 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "server", "server", "{DAD03CFC-D5FA-AC94-41C7-9ABAB326F09E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiotProxy", "server\RiotProxy.csproj", "{A62DB80C-8219-144C-2545-15604CEA3A54}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mongoose.Api", "server\Mongoose.Api.csproj", "{A62DB80C-8219-144C-2545-15604CEA3A54}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiotProxy.Tests", "server\RiotProxy.Tests\RiotProxy.Tests.csproj", "{3F2E0E5F-45D5-4C34-B4C2-7A7F7AF236D0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mongoose.Api.Tests", "server\Mongoose.Api.Tests\Mongoose.Api.Tests.csproj", "{3F2E0E5F-45D5-4C34-B4C2-7A7F7AF236D0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

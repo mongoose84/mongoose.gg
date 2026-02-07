@@ -4,7 +4,7 @@
 ## Project Overview
 - **Mongoose** is a full-stack project with one client:
 	- **Primary client**: Standalone Vue 3 + Vite app in `client/` (see docs/information_architecture.md)
-- The backend is a C# .NET server in `server/RiotProxy`.
+- The backend is a C# .NET server in `server/Mongoose.Api`.
 - Client(s) and server communicate via HTTP APIs (see docs/api_design.md). The server proxies the Riot Games API and manages user/game data.
 - Sensitive secrets (API keys, DB connection strings, Mollie API keys) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, `Database_test`, `Database_production`, Mollie keys). 
 
@@ -23,8 +23,8 @@
 
 ## Conventions & Patterns
 - **Client**: Uses Vue SFCs, composition API, composables for state/data logic. API calls are abstracted in `services/`. Follows UI design guidelines in `docs/design/ui-design-guidelines.md`.
-- **Server**: Endpoints are organized by resource in `Application/Endpoints/`. DTOs are used for request/response shapes. SOLID principles for maintainability. Backend tests in `RiotProxy.Tests/`.
-- **Testing**: Uses Vitest for client unit tests. Backend tests are present in `server/RiotProxy.Tests/`.
+- **Server**: Endpoints are organized by resource in `Application/Endpoints/`. DTOs are used for request/response shapes. SOLID principles for maintainability. Backend tests in `Mongoose.Api.Tests/`.
+- **Testing**: Uses Vitest for client unit tests. Backend tests are present in `server/Mongoose.Api.Tests/`.
 - **Secrets**: Never commit secrets; use env vars/user-secrets (`RIOT_API_KEY`, `Database_test`, `Database_production`, Mollie API keys).
 
 ## Integration Points

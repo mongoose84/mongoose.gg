@@ -149,7 +149,7 @@ var cutoffTimestamp = DateTimeOffset.UtcNow
 ## Testing Strategy
 
 ### Unit Tests
-**Location**: `server/RiotProxy.Tests/MatchCleanupJobTests.cs`
+**Location**: `server/Mongoose.Api.Tests/MatchCleanupJobTests.cs`
 
 **Test Cases**:
 1. ✅ Delete matches older than cutoff date

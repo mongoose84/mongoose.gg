@@ -149,7 +149,7 @@ if (enableMatchCleanup)
 ```
 
 ### Step 6: Write Unit Tests
-**File**: `server/RiotProxy.Tests/MatchCleanupJobTests.cs`
+**File**: `server/Mongoose.Api.Tests/MatchCleanupJobTests.cs`
 
 Test cases:
 1. ✅ Deletes matches older than cutoff date
