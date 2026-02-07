@@ -73,8 +73,12 @@ jobs:
       # -------------------------------------------------
       - name: Generate appsettings.Production.json
         working-directory: server
+        env:
+          DB_CONN: ${{ secrets.DB_CONNECTIONSTRING_TEST }}
+          RIOT_KEY: ${{ secrets.RIOT_API_KEY }}
+          ENC_SECRET: ${{ secrets.ENCRYPTION_SECRET }}
         run: |
-          cat > appsettings.Production.json << EOF
+          cat > appsettings.Production.json << APPSETTINGS_EOF
           {
             "Logging": {
               "LogLevel": {
@@ -84,10 +88,10 @@ jobs:
             },
             "AllowedHosts": "*",
             "ConnectionStrings": {
-              "Database_test": "${{ secrets.DB_CONNECTIONSTRING_TEST }}"
+              "Database_test": "${DB_CONN}"
             },
             "Riot": {
-              "ApiKey": "${{ secrets.RIOT_API_KEY }}"
+              "ApiKey": "${RIOT_KEY}"
             },
             "Auth": {
               "CookieName": "mongoose-auth",
@@ -99,10 +103,10 @@ jobs:
               "EnableMatchHistorySync": false
             },
             "Security": {
-              "EncryptionSecret": "${{ secrets.ENCRYPTION_SECRET }}"
+              "EncryptionSecret": "${ENC_SECRET}"
             }
           }
-          EOF
+          APPSETTINGS_EOF
           echo "Generated appsettings.Production.json:"
           cat appsettings.Production.json
 
