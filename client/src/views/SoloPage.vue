@@ -1,9 +1,7 @@
 <template>
-  <section class="py-lg px-2xl" data-testid="solo-dashboard">
-    <h1 class="sr-only">Solo Dashboard</h1>
-
-    <!-- Header with centered Queue Toggle and Time Filter on right -->
-    <header class="relative flex items-center justify-center mb-lg" data-testid="dashboard-header">
+  <AnalysisLayout page-title="Solo Dashboard" data-testid="solo-dashboard">
+    <!-- Zone 1: Context Bar -->
+    <template #context-bar>
       <!-- Queue Toggle Bar (centered) -->
       <BaseQueueToggle v-model="queueFilter" />
 
@@ -11,27 +9,36 @@
       <div class="absolute right-0">
         <BaseTimeRangeSelect v-model="timeRange" />
       </div>
-    </header>
+    </template>
 
-    <div class="flex flex-col gap-lg">
-      <!-- Summary Stats Card -->
+    <!-- Zone 2: Summary Stats -->
+    <template #summary>
       <SummaryStatsCard
         :games-played="dashboardData?.gamesPlayed ?? 0"
         :win-rate="dashboardData?.winRate ?? null"
         :avg-kda="dashboardData?.avgKda ?? null"
         :loading="isLoading"
       />
-    </div>
-  </section>
+    </template>
+
+    <!-- Zone 3: Trend Charts (to be implemented) -->
+    <!-- <template #trend-charts>
+      <LpTrendChart />
+      <WinrateChart />
+    </template> -->
+
+    <!-- Zone 4 & 5: Not rendered in v1 -->
+  </AnalysisLayout>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
 import { getSoloDashboard } from '../services/authApi'
 import { BaseQueueToggle, BaseTimeRangeSelect } from '../components/base'
+import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
 import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
 
 const authStore = useAuthStore()
