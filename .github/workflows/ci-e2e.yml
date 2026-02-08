@@ -120,6 +120,8 @@ jobs:
       - name: Start backend server
         working-directory: server
         env:
+          ASPNETCORE_ENVIRONMENT: Production
+          ASPNETCORE_URLS: http://localhost:5164
           ENCRYPTION_SECRET: ${{ secrets.ENCRYPTION_SECRET }}
           Database_test: ${{ secrets.DB_CONNECTIONSTRING_TEST }}
         run: |
