@@ -406,7 +406,10 @@ client/e2e/
 ### 6.3 Key Implementation Details
 
 **Auto-Verification via Config Flag:**
-The `RegisterEndpoint` checks `Auth:AutoVerifyEmail` config flag. When set to `true`, email is auto-verified, bypassing the email verification flow. This flag is only enabled in CI for E2E tests via `appsettings.Production.json`, never in real production deployments.
+The `RegisterEndpoint` checks `Auth:AutoVerifyEmail` config flag. When set to `true`, email is auto-verified, bypassing the email verification flow. This is required for E2E tests because:
+1. Tests cannot access email inboxes to retrieve verification codes
+2. The verification code is only logged in dev mode, not returned in API responses
+3. Manual verification would break automated test flows
 
 **Riot Account Configuration:**
 Riot account credentials are hardcoded in `client/e2e/global-setup.js`:
@@ -428,7 +431,55 @@ test('redirects unauthenticated users', async ({ browser }) => {
 });
 ```
 
-### 6.4 E2E Testing Best Practices
+### 6.4 E2E Security Configuration ⚠️
+
+**CRITICAL: The `Auth:AutoVerifyEmail` setting must NEVER be enabled in production.**
+
+The E2E test infrastructure uses this setting to bypass email verification. Here's how it's secured:
+
+| Environment | How `Auth:AutoVerifyEmail` is Set | Security |
+|-------------|-----------------------------------|----------|
+| **CI (GitHub Actions)** | Dynamically generated in `ci-e2e.yml` workflow | ✅ Never committed to repo |
+| **Local Development** | Set via environment variable in `playwright.config.js` | ✅ Only active when running E2E tests |
+| **Production** | Not set (defaults to `false`) | ✅ Email verification required |
+
+**Local E2E Test Configuration:**
+
+The `playwright.config.js` starts the .NET backend with E2E-specific environment variables:
+
+```javascript
+webServer: [
+  // Vue dev server...
+  {
+    command: 'dotnet run --project ../server',
+    url: 'http://localhost:5164/api/v2/diagnostics',
+    env: {
+      ASPNETCORE_ENVIRONMENT: 'Development',
+      Auth__AutoVerifyEmail: 'true',  // ⚠️ E2E only!
+      Email__DevMode: 'true',
+    },
+  },
+],
+```
+
+**Why This Approach is Secure:**
+
+1. **No config file changes**: The setting is passed via environment variable, not stored in any config file
+2. **Explicit naming**: `Auth__AutoVerifyEmail` clearly indicates its purpose
+3. **Scoped to test runner**: Only active when Playwright starts the server
+4. **Defense in depth**: Production deployments use separate config management (secrets, environment-specific settings)
+5. **Code review**: Any attempt to add this to committed config files would be caught in PR review
+
+**Alternative Approaches Considered (and rejected):**
+
+| Approach | Why Rejected |
+|----------|--------------|
+| Return verification code in API response | Exposes codes if `Email:DevMode` accidentally enabled in production |
+| Hardcode test verification code | Creates a backdoor that could be exploited |
+| Skip verification in router guards | Would require client-side changes that could leak to production |
+| Use real email service in tests | Slow, flaky, requires email infrastructure |
+
+### 6.5 E2E Testing Best Practices
 
 ```javascript
 // Good E2E test patterns for Playwright
@@ -453,7 +504,7 @@ test.describe('User Dashboard', () => {
 });
 ```
 
-### 6.5 Test Data Management
+### 6.6 Test Data Management
 
 **Current Implementation:**
 1. **Dynamic Test User**: Created fresh each test run (`e2e_test_{timestamp}@test.mongoose.gg`)
