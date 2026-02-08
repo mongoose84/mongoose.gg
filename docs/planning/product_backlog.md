@@ -1192,15 +1192,53 @@ Create a professional user experience with a landing page, pricing, and app shel
 
 ## G5 Epic: Frontend Solo Dashboard
 
-### G5b7. [Frontend] Implement Goals Panel (basic display)
+> **Solo v1 MVP scope:** Summary Stats Card (G5b18), LP Trend Chart (G5b5), Winrate Trend Chart (G5b4), Main Champions Card (G5b3 ✅). These 4 components answer the core user questions: "Am I climbing?", "Am I improving?", "How am I doing overall?", and "What am I playing?"
+>
+> **Solo v2 (deferred):** Goals Panel (G5b7), Matchups Table (G5b6), Performance by Phase, Danger Zones Map.
 
-**Priority:** P1 - High
+---
+
+### G5b18. [Frontend] Implement Summary Stats Card
+
+**Priority:** P0 - Critical
 **Type:** Feature
-**Estimate:** 2 points
-**Depends on:** G5b1, F2 (goals data in response)
-**Labels:** `frontend`, `solo`, `dashboard`, `component`, `epic-g`
+**Estimate:** 1 point
+**Depends on:** G5b1, F2
+**Labels:** `frontend`, `solo`, `dashboard`, `component`, `epic-g`, `solo-v1-mvp`
 
 #### Description
+
+Create a Summary Stats Card that provides quick orientation on the Solo dashboard. This is a 5-second scan component answering "How am I doing overall?"
+
+The component displays key aggregate stats from the existing Solo performance endpoint. No new backend work required.
+
+#### Acceptance Criteria
+
+- [ ] Component created at `client/src/components/solo/SummaryStatsCard.vue`
+- [ ] Displays the following stats in a compact, scannable layout:
+  - Games Played (total count)
+  - Winrate (percentage with color coding: green ≥52%, yellow 48-52%, red <48%)
+  - Average KDA (formatted as X.XX)
+- [ ] Uses `BaseCard` component following `docs/ui-ux/ui-design-guidelines.md`
+- [ ] Responsive: stats stack on mobile, inline on desktop
+- [ ] Loading state with skeleton placeholders
+- [ ] Empty state when no games played: "No games found for this filter"
+- [ ] Reacts to queue filter and time range filter changes
+- [ ] Unit tests covering component rendering and edge cases
+
+---
+
+### G5b7. [Frontend] Implement Goals Panel (basic display)
+
+**Priority:** P2 - Medium (deferred to Solo v2)
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** G5b1, F2, B9 (goals CRUD endpoints)
+**Labels:** `frontend`, `solo`, `dashboard`, `component`, `epic-g`, `solo-v2`
+
+#### Description
+
+> **Note:** Deferred to Solo v2. Depends on goals system (B9) which is not yet implemented.
 
 Create a Goals Panel that displays active goals (if Pro tier) or shows an upgrade CTA (if Free tier). Goals show progress bar, current value, target value, and an estimated completion date. "Set New Goal" button opens a modal (future task). No create/edit/delete logic yet, just display.
 
@@ -1254,10 +1292,10 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 | F3 | Implement Duo dashboard endpoint | API | 3 |
 | G5b4 | Winrate Over Time chart + trend data (FE+BE) | Frontend / API | 5 |
 | G5b5 | LP Over Time chart (frontend UI) | Frontend | 2 |
-| G5b6 | Champion matchups table + endpoint (FE+BE) | Frontend / API | 6 |
+| G5b18 | Summary Stats Card | Frontend | 1 |
 | G15 | Allow cancelling or switching account during email verification | Frontend | 2 |
 
-**P0 Remaining Total:** 52 points
+**P0 Remaining Total:** 47 points
 
 ### P1 - High
 
@@ -1285,16 +1323,14 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 | F11-social | Implement social endpoints (friends, teams, search) | API | 3 |
 | F13-lp | Implement Riot League API for rank/LP data | API | 5 |
 | F14-login | Check for new matches on user login and auto-sync | API | 3 |
-| G5b7 | Goals panel + goals data on Solo dashboard (FE+BE) | Frontend / Backend | 4 |
 | G5b13 | Fetch winrate trend data for Solo dashboard | Backend | 2 |
 | G5b14 | Fetch LP trend data for Solo dashboard | Backend | 2 |
-| G5b15 | Goals array in Solo endpoint | Backend | 2 |
 | G6 | Implement Duo dashboard view | Frontend | 5 |
 | G7 | Implement Team dashboard view | Frontend | 5 |
 | G10 | Implement user dropdown details & account settings page | Frontend | 8 |
 | G19 | Implement session expiry handling (global handler + UX) | Frontend | 5 |
 
-**P1 Remaining Total:** 93 points
+**P1 Remaining Total:** 85 points
 
 ### P2 - Medium
 
@@ -1318,8 +1354,11 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 | G11 | Implement friends management UI scaffolding | Frontend | 3 |
 | G17 | Design and implement manual match refresh entry point | Frontend | 2 |
 | G18 | Multi-account Riot support & aggregated stats | Frontend | 5 |
+| G5b6 | Champion matchups table + endpoint (FE+BE) | Frontend / API | 6 |
+| G5b7 | Goals panel + goals data on Solo dashboard (FE+BE) | Frontend / Backend | 4 |
+| G5b15 | Goals array in Solo endpoint | Backend | 2 |
 
-**P2 Remaining Total:** 45 points
+**P2 Remaining Total:** 57 points
 
 ### P3 - Low
 
@@ -1414,12 +1453,16 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 - ✅ G12, G13 (Riot account linking UI + real-time sync progress)
 - ✅ G5b8-G5b12 (Profile data storage, fetching, endpoints, matchups, main champions)
 
-### Sprint 1: Solo Dashboard Completion
-**Focus:** Complete Solo dashboard components + backend data
-**Points:** ~14
+### Sprint 1: Solo v1 MVP
+**Focus:** Ship core Solo dashboard answering "Am I climbing? Am I improving?"
+**Points:** ~8
 
-- G5b4, G5b5, G5b6, G5b7 (Winrate chart, LP chart, Matchups table, Goals panel)
-- G5b13, G5b14, G5b15 (Backend: winrate trend, LP trend, goals data)
+- G5b18 (Summary Stats Card) - 1 pt
+- G5b4, G5b5 (Winrate chart, LP chart) - 7 pts
+- G5b13, G5b14 (Backend: winrate trend, LP trend data) - 4 pts
+- G5b3 ✅ (Main Champions Card - already complete)
+
+> **Deferred to Solo v2:** G5b6 (Matchups table), G5b7 (Goals panel), G5b15 (Goals data). These require goals system (B9) or add complexity without addressing core user questions.
 
 ### Sprint 2: Subscriptions (P0 Payments)
 **Focus:** Mollie + payment flow
