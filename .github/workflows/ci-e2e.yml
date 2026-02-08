@@ -88,7 +88,7 @@ jobs:
             },
             "AllowedHosts": "*",
             "ConnectionStrings": {
-              "Database_test": "${DB_CONN}"
+              "Database_production": "${DB_CONN}"
             },
             "Riot": {
               "ApiKey": "${RIOT_KEY}"
@@ -123,7 +123,7 @@ jobs:
           ASPNETCORE_ENVIRONMENT: Production
           ASPNETCORE_URLS: http://localhost:5164
           ENCRYPTION_SECRET: ${{ secrets.ENCRYPTION_SECRET }}
-          Database_test: ${{ secrets.DB_CONNECTIONSTRING_TEST }}
+          Database_production: ${{ secrets.DB_CONNECTIONSTRING_TEST }}
           Riot__ApiKey: ${{ secrets.RIOT_API_KEY }}
           Auth__AutoVerifyEmail: 'true'
           Email__DevMode: 'true'
