@@ -125,6 +125,8 @@ jobs:
           ENCRYPTION_SECRET: ${{ secrets.ENCRYPTION_SECRET }}
           Database_test: ${{ secrets.DB_CONNECTIONSTRING_TEST }}
           Riot__ApiKey: ${{ secrets.RIOT_API_KEY }}
+          Auth__AutoVerifyEmail: 'true'
+          Email__DevMode: 'true'
         run: |
           # Use --no-launch-profile to prevent launchSettings.json from overriding environment
           dotnet run -c Release --no-build --no-launch-profile &
