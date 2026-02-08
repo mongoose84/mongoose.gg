@@ -4,78 +4,30 @@ import { test, expect } from '@playwright/test';
  * Solo Dashboard Flow E2E Tests
  *
  * Tests the critical user journey:
- * 1. Login with test credentials
- * 2. Verify redirect to User Page
- * 3. Navigate to Solo Dashboard via sidebar
- * 4. Verify Solo Dashboard loads with data
+ * 1. Verify authentication (handled by global setup)
+ * 2. Navigate to Solo Dashboard via sidebar
+ * 3. Verify Solo Dashboard loads with data
+ *
+ * Authentication is handled by global-setup.js which:
+ * 1. Creates a fresh test user (auto-verified in non-production)
+ * 2. Links a Riot account
+ * 3. Saves auth state for all tests to reuse
+ *
+ * @see https://playwright.dev/docs/test-global-setup-teardown
  */
-
-// Test credentials - pre-verified user with linked Riot account (from environment variables)
-const TEST_USER = {
-  username: process.env.E2E_TEST_USER || '',
-  password: process.env.E2E_TEST_PASSWORD || '',
-};
-
-// Skip tests that require login if credentials are not set
-const skipIfNoCredentials = !TEST_USER.username || !TEST_USER.password;
-
-/**
- * Helper function to perform login and handle errors
- */
-async function performLogin(page, username, password) {
-  await page.goto('/auth');
-
-  // Verify we're on the auth page
-  await expect(page.locator('h1')).toContainText('Welcome to Mongoose.gg');
-
-  // Fill in login form
-  await page.getByLabel('Username').fill(TEST_USER.username);
-  await page.getByLabel('Password').fill(TEST_USER.password);
-
-  // Submit login form
-  await page.getByRole('button', { name: /sign in/i }).click();
-
-  // Wait for either navigation OR error message
-  // After login, the app redirects to /app/overview
-  await Promise.race([
-    page.waitForURL('/app/overview', { timeout: 15_000 }),
-    page.waitForSelector('.auth-error', { timeout: 15_000 }),
-  ]);
-
-  // Check if there's an error message displayed
-  const errorElement = page.locator('.auth-error');
-  if (await errorElement.isVisible()) {
-    const errorText = await errorElement.textContent();
-    throw new Error(`Login failed with error: ${errorText}`);
-  }
-}
 
 test.describe('Solo Dashboard Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    // Clear cookies/storage to ensure clean state
-    await page.context().clearCookies();
-  });
-
-  test('should complete login → OverviewPage → Solo Dashboard flow', async ({ page }) => {
-    test.skip(skipIfNoCredentials, 'E2E_TEST_USER and E2E_TEST_PASSWORD environment variables are required');
-
-    // Step 1-3: Login
-    await performLogin(page, TEST_USER.username, TEST_USER.password);
-
-    // Step 4: Verify we're on the Overview Page (login redirects here)
+  test('should complete Overview → Solo Dashboard navigation flow', async ({ page }) => {
+    // Auth is handled by global-setup.js - go directly to overview
+    await page.goto('/app/overview');
     await expect(page).toHaveURL('/app/overview');
-
-    // Step 5: Verify Overview Page loaded successfully
-    // Wait for page to load
     await page.waitForLoadState('networkidle');
 
-    // Step 6: Navigate to Solo Dashboard via the sidebar navigation
-    // The sidebar has an "Analysis" section with "Solo" submenu item
+    // Navigate to Solo Dashboard via the sidebar navigation
     const sidebar = page.locator('[data-testid="app-sidebar"]');
     const isCollapsed = await sidebar.getAttribute('data-collapsed') === 'true';
 
     if (isCollapsed) {
-      // Hover over the Analysis section to reveal popout menu
       const analysisSection = page.locator('[data-testid="nav-section-analysis"]');
       await analysisSection.hover();
       const popoutSoloLink = page.locator('[data-testid="popout-item-solo"]');
@@ -85,7 +37,6 @@ test.describe('Solo Dashboard Flow', () => {
         popoutSoloLink.click(),
       ]);
     } else {
-      // Sidebar is expanded, click the Solo submenu item directly
       const sidebarSoloLink = page.locator('[data-testid="nav-subitem-solo"]');
       await expect(sidebarSoloLink).toBeVisible({ timeout: 5_000 });
       await Promise.all([
@@ -94,31 +45,40 @@ test.describe('Solo Dashboard Flow', () => {
       ]);
     }
 
-    // Step 7: Verify we're on the Solo Dashboard
+    // Verify we're on the Solo Dashboard
     await expect(page).toHaveURL('/app/solo');
 
-    // Step 8: Verify dashboard content is present
-    // Check for solo dashboard section
+    // Verify dashboard content is present
     await expect(page.locator('[data-testid="solo-dashboard"]')).toBeVisible({ timeout: 15_000 });
   });
 
-  test('should redirect unauthenticated users to login', async ({ page }) => {
-    // Try to access protected route directly
+  test('should redirect unauthenticated users to login', async ({ browser }) => {
+    // Create a fresh context WITHOUT storage state (override project default)
+    const context = await browser.newContext({ storageState: undefined });
+    const page = await context.newPage();
+
     await page.goto('/app/overview');
-
-    // Should redirect to auth page
     await expect(page).toHaveURL(/\/auth/);
+
+    await context.close();
   });
 
-  test('should redirect unauthenticated users from solo dashboard to login', async ({ page }) => {
-    // Try to access solo dashboard directly without auth
+  test('should redirect unauthenticated users from solo dashboard to login', async ({ browser }) => {
+    // Create a fresh context WITHOUT storage state (override project default)
+    const context = await browser.newContext({ storageState: undefined });
+    const page = await context.newPage();
+
     await page.goto('/app/solo');
-
-    // Should redirect to auth page
     await expect(page).toHaveURL(/\/auth/);
+
+    await context.close();
   });
 
-  test('should show error for invalid credentials', async ({ page }) => {
+  test('should show error for invalid credentials', async ({ browser }) => {
+    // Create a fresh context WITHOUT storage state (override project default)
+    const context = await browser.newContext({ storageState: undefined });
+    const page = await context.newPage();
+
     await page.goto('/auth');
 
     // Fill in invalid credentials
@@ -133,50 +93,29 @@ test.describe('Solo Dashboard Flow', () => {
 
     // Should still be on auth page
     await expect(page).toHaveURL('/auth');
+
+    await context.close();
   });
 });
 
 test.describe('Solo Dashboard Content', () => {
-  // Skip entire describe block if credentials are not set
-  test.skip(() => skipIfNoCredentials, 'E2E_TEST_USER and E2E_TEST_PASSWORD environment variables are required');
-
-  // This test requires being logged in first
   test.beforeEach(async ({ page }) => {
-    // Login before each test using the helper function
-    await performLogin(page, TEST_USER.username, TEST_USER.password);
+    // Auth state is automatically loaded from global setup
+    await page.goto('/app/solo');
+    await page.waitForLoadState('networkidle');
   });
 
   test('should display solo dashboard with stats', async ({ page }) => {
-    // Navigate to solo dashboard via sidebar
-    // After login (in beforeEach), we're on /app/overview
-    await page.waitForLoadState('networkidle');
-
-    // Navigate to Solo Dashboard via the sidebar navigation
-    const sidebar = page.locator('[data-testid="app-sidebar"]');
-    const isCollapsed = await sidebar.getAttribute('data-collapsed') === 'true';
-
-    if (isCollapsed) {
-      // Hover over the Analysis section to reveal popout menu
-      const analysisSection = page.locator('[data-testid="nav-section-analysis"]');
-      await analysisSection.hover();
-      const popoutSoloLink = page.locator('[data-testid="popout-item-solo"]');
-      await expect(popoutSoloLink).toBeVisible({ timeout: 5_000 });
-      await popoutSoloLink.click();
-    } else {
-      // Sidebar is expanded, click the Solo submenu item directly
-      const sidebarSoloLink = page.locator('[data-testid="nav-subitem-solo"]');
-      await expect(sidebarSoloLink).toBeVisible({ timeout: 5_000 });
-      await sidebarSoloLink.click();
-    }
-
+    // Verify we're on the Solo Dashboard
     await expect(page).toHaveURL('/app/solo');
-
-    // Wait for page to load and check for key dashboard elements
-    await page.waitForLoadState('networkidle');
 
     // Verify the page has rendered something (not blank)
     const bodyContent = await page.locator('body').textContent();
     expect(bodyContent?.length).toBeGreaterThan(100);
+  });
+
+  test('should have solo dashboard section visible', async ({ page }) => {
+    await expect(page.locator('[data-testid="solo-dashboard"]')).toBeVisible({ timeout: 15_000 });
   });
 });
 

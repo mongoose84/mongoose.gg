@@ -87,18 +87,12 @@ npm run test:unit
 ```
 
 Playwright tests:
-Set the test environment variables in the terminal:
-```
-export E2E_TEST_USER=<your-username>
-export E2E_TEST_PASSWORD=<your-password>
-
-$env:E2E_TEST_USER = "your-username"
-$env:E2E_TEST_PASSWORD = "your-password"
-```
-Run the tests:
 ```
 npx playwright test
 ```
+
+Note: E2E tests automatically create and delete a test user via global setup/teardown.
+The test user is linked to a hardcoded Riot account configured in `client/e2e/global-setup.js`.
 
 #### Server part
 from root

@@ -22,6 +22,8 @@ jobs:
 
     env:
       # Backend configuration
+      # Use Production environment to test real production code paths
+      # Email verification is bypassed via Auth:AutoVerifyEmail config flag
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://localhost:5164
 
@@ -71,8 +73,12 @@ jobs:
       # -------------------------------------------------
       - name: Generate appsettings.Production.json
         working-directory: server
+        env:
+          DB_CONN: ${{ secrets.DB_CONNECTIONSTRING_TEST }}
+          RIOT_KEY: ${{ secrets.RIOT_API_KEY }}
+          ENC_SECRET: ${{ secrets.ENCRYPTION_SECRET }}
         run: |
-          cat > appsettings.Production.json << 'EOF'
+          cat > appsettings.Production.json << APPSETTINGS_EOF
           {
             "Logging": {
               "LogLevel": {
@@ -82,24 +88,27 @@ jobs:
             },
             "AllowedHosts": "*",
             "ConnectionStrings": {
-              "Database_test": "${{ secrets.DB_CONNECTIONSTRING_TEST }}"
+              "Database_production": "${DB_CONN}"
             },
             "Riot": {
-              "ApiKey": "${{ secrets.RIOT_API_KEY }}"
+              "ApiKey": "${RIOT_KEY}"
             },
             "Auth": {
               "CookieName": "mongoose-auth",
               "SessionTimeout": 30,
-              "EnableMvpLogin": true
+              "EnableMvpLogin": true,
+              "AutoVerifyEmail": true
             },
             "Jobs": {
               "EnableMatchHistorySync": false
             },
             "Security": {
-              "EncryptionSecret": "${{ secrets.ENCRYPTION_SECRET }}"
+              "EncryptionSecret": "${ENC_SECRET}"
             }
           }
-          EOF
+          APPSETTINGS_EOF
+          echo "Generated appsettings.Production.json:"
+          cat appsettings.Production.json
 
       # -------------------------------------------------
       # Build and start backend
@@ -111,10 +120,16 @@ jobs:
       - name: Start backend server
         working-directory: server
         env:
+          ASPNETCORE_ENVIRONMENT: Production
+          ASPNETCORE_URLS: http://localhost:5164
           ENCRYPTION_SECRET: ${{ secrets.ENCRYPTION_SECRET }}
-          Database_test: ${{ secrets.DB_CONNECTIONSTRING_TEST }}
+          Database_production: ${{ secrets.DB_CONNECTIONSTRING_TEST }}
+          Riot__ApiKey: ${{ secrets.RIOT_API_KEY }}
+          Auth__AutoVerifyEmail: 'true'
+          Email__DevMode: 'true'
         run: |
-          dotnet run -c Release --no-build &
+          # Use --no-launch-profile to prevent launchSettings.json from overriding environment
+          dotnet run -c Release --no-build --no-launch-profile &
           echo "Backend PID: $!"
           # Wait for backend to be ready
           echo "Waiting for backend to start..."
@@ -139,8 +154,6 @@ jobs:
         run: npx playwright test
         env:
           E2E_BASE_URL: http://localhost:5174
-          E2E_TEST_USER: ${{ secrets.E2E_TEST_USER }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
 
       # -------------------------------------------------
       # Upload test artifacts on failure

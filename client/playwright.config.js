@@ -8,11 +8,19 @@ import { dirname, resolve } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, '.env') });
 
+// Path to store authentication state (shared across browsers)
+const authFile = 'e2e/.auth/user.json';
+
 /**
  * Playwright configuration for mongoose.gg E2E tests
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
+  // Global setup/teardown for user creation and cleanup
+  // @see https://playwright.dev/docs/test-global-setup-teardown
+  globalSetup: './e2e/global-setup.js',
+  globalTeardown: './e2e/global-teardown.js',
+
   // Test directory
   testDir: './e2e',
 
@@ -57,18 +65,30 @@ export default defineConfig({
   },
 
   // Configure projects for Chromium and Firefox
+  // Authentication is handled by global setup/teardown
+  // @see https://playwright.dev/docs/test-global-setup-teardown
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: authFile,
+      },
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: authFile,
+      },
     },
   ],
 
   // Web server configuration - start the Vue dev server
+  // NOTE: The .NET backend must be started separately with E2E flags:
+  //   Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run --project server
+  // In CI, this is handled by the ci-e2e.yml workflow which generates
+  // appsettings.Production.json with AutoVerifyEmail: true
   webServer: [
     {
       command: 'npm run dev',
