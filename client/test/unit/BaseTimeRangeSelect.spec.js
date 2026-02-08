@@ -118,20 +118,37 @@ describe('BaseTimeRangeSelect', () => {
       expect(wrapper.find('select').attributes('aria-label')).toBe('Select time period');
     });
 
-    it('associates label with select via for/id', () => {
+    it('associates label with select via for/id when custom id provided', () => {
       const wrapper = mount(BaseTimeRangeSelect, {
-        props: { modelValue: '1m', showLabel: true, selectId: 'my-select' }
+        props: { modelValue: '1m', showLabel: true, id: 'my-select' }
       });
       expect(wrapper.find('label').attributes('for')).toBe('my-select');
       expect(wrapper.find('select').attributes('id')).toBe('my-select');
     });
 
-    it('uses default selectId when not provided', () => {
+    it('auto-generates unique id when not provided', () => {
       const wrapper = mount(BaseTimeRangeSelect, {
         props: { modelValue: '1m', showLabel: true }
       });
-      expect(wrapper.find('select').attributes('id')).toBe('time-range-filter');
-      expect(wrapper.find('label').attributes('for')).toBe('time-range-filter');
+      const selectId = wrapper.find('select').attributes('id');
+      const labelFor = wrapper.find('label').attributes('for');
+
+      // Should start with 'time-range-' prefix and have a generated suffix
+      expect(selectId).toMatch(/^time-range-/);
+      expect(labelFor).toBe(selectId);
+    });
+
+    it('uses Vue useId for auto-generated ids', () => {
+      // Verify the component uses Vue's useId() pattern for unique IDs
+      // The ID should follow Vue's useId format (e.g., 'time-range-v-0')
+      const wrapper = mount(BaseTimeRangeSelect, {
+        props: { modelValue: '1m', showLabel: true }
+      });
+
+      const selectId = wrapper.find('select').attributes('id');
+
+      // Should have the time-range prefix with Vue's generated suffix
+      expect(selectId).toMatch(/^time-range-v-\d+$/);
     });
   });
 

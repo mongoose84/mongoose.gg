@@ -26,18 +26,20 @@
 </template>
 
 <script setup>
+import { computed, useId } from 'vue'
+
 /**
  * BaseTimeRangeSelect - A reusable select component for filtering by time range.
- * 
+ *
  * @example
  * <BaseTimeRangeSelect v-model="timeRange" />
- * 
+ *
  * @example with custom options
- * <BaseTimeRangeSelect 
- *   v-model="timeRange" 
+ * <BaseTimeRangeSelect
+ *   v-model="timeRange"
  *   :options="[{ value: '1w', label: 'Last Week' }, { value: '1m', label: 'Last Month' }]"
  * />
- * 
+ *
  * @example with visible label
  * <BaseTimeRangeSelect v-model="timeRange" show-label label="Time Period" />
  */
@@ -76,14 +78,18 @@ const props = defineProps({
     type: String,
     default: 'Time Range'
   },
-  /** Unique ID for the select element (auto-generated if not provided) */
-  selectId: {
+  /** Optional ID for the select element (auto-generated unique ID if not provided) */
+  id: {
     type: String,
-    default: 'time-range-filter'
+    default: null
   }
 })
 
 defineEmits(['update:modelValue'])
+
+// Generate unique ID for label association
+const generatedId = useId()
+const selectId = computed(() => props.id || `time-range-${generatedId}`)
 </script>
 
 <style scoped>
