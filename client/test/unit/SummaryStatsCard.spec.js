@@ -180,17 +180,14 @@ describe('SummaryStatsCard', () => {
 
     it('shows -- when avgKda is null', () => {
       const wrapper = mountComponent({ avgKda: null })
-      // Find the KDA stat item specifically
-      const statItems = wrapper.findAll('.stat-item')
-      const kdaItem = statItems[2] // Third stat item is KDA
-      expect(kdaItem.text()).toContain('--')
+      const kdaValue = wrapper.find('[data-testid="stat-kda-value"]')
+      expect(kdaValue.text()).toBe('--')
     })
 
     it('shows -- when avgKda is undefined', () => {
       const wrapper = mountComponent({ avgKda: undefined })
-      const statItems = wrapper.findAll('.stat-item')
-      const kdaItem = statItems[2]
-      expect(kdaItem.text()).toContain('--')
+      const kdaValue = wrapper.find('[data-testid="stat-kda-value"]')
+      expect(kdaValue.text()).toBe('--')
     })
 
     it('handles 0 KDA', () => {
@@ -246,11 +243,10 @@ describe('SummaryStatsCard', () => {
   describe('Stat labels', () => {
     it('displays correct stat labels', () => {
       const wrapper = mountComponent()
-      const labels = wrapper.findAll('.stat-label')
 
-      expect(labels[0].text()).toBe('Games')
-      expect(labels[1].text()).toBe('Winrate')
-      expect(labels[2].text()).toBe('Avg KDA')
+      expect(wrapper.find('[data-testid="stat-games"]').text()).toContain('Games')
+      expect(wrapper.find('[data-testid="stat-winrate"]').text()).toContain('Winrate')
+      expect(wrapper.find('[data-testid="stat-kda"]').text()).toContain('Avg KDA')
     })
   })
 })

@@ -17,23 +17,23 @@
       <!-- Stats display -->
       <div v-else class="stats-grid" data-testid="stats-display">
         <!-- Games Played -->
-        <div class="stat-item">
+        <div class="stat-item" data-testid="stat-games">
           <span class="stat-label">Games</span>
-          <span class="stat-value">{{ gamesPlayed }}</span>
+          <span class="stat-value" data-testid="stat-games-value">{{ gamesPlayed }}</span>
         </div>
 
         <!-- Winrate -->
-        <div class="stat-item">
+        <div class="stat-item" data-testid="stat-winrate">
           <span class="stat-label">Winrate</span>
-          <span class="stat-value" :class="winrateColorClass">
+          <span class="stat-value" :class="winrateColorClass" data-testid="stat-winrate-value">
             {{ formattedWinrate }}
           </span>
         </div>
 
         <!-- Average KDA -->
-        <div class="stat-item">
+        <div class="stat-item" data-testid="stat-kda">
           <span class="stat-label">Avg KDA</span>
-          <span class="stat-value">{{ formattedKda }}</span>
+          <span class="stat-value" data-testid="stat-kda-value">{{ formattedKda }}</span>
         </div>
       </div>
     </div>
