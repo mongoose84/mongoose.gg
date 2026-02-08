@@ -25,7 +25,7 @@ Platform: **Desktop-first**, future Windows native app
 ## Core UX Principles
 
 1. **Tool over website** – prioritize speed and clarity over exploration
-2. **Context > Pages** – same data, different perspectives (Solo/Duo/Team)
+2. **Context > Pages** – same underlying data, different perspectives (Solo/Duo/Team). Each context gets its own page and route for clearer perceived value and gating, but all share the same zone-based layout structure.
 3. **Fast paths for stressed moments** – Champion Select and Match Review
 4. **Overview is orientation, not work**
 5. **Goals are horizontal** – visible everywhere, managed centrally
@@ -59,13 +59,19 @@ Platform: **Desktop-first**, future Windows native app
 Overview
 Champion Select
 Matches
-Analysis
-  ├─ Solo
-  ├─ Duo
-  └─ Team
+Solo
+Duo          (Pro tier – lock icon for free users)
+Team         (Pro tier – lock icon for free users)
 Goals
 User
 ```
+
+> **Architecture decision:** Solo, Duo, and Team are **separate top-level pages** with distinct routes (`/app/solo`, `/app/duo`, `/app/team`), not tabs or toggles within a shared "Analysis" page. This was chosen for three reasons:
+> 1. Better perceived value when upgrading ("You get Duo Analysis and Team Analysis" vs "You get two extra tabs")
+> 2. Content will diverge significantly in v2 (Champion Matrix, team comp patterns)
+> 3. Cleaner gating UX – locked page with preview/teaser is a well-understood pattern
+>
+> Duo and Team show a preview/teaser page with upgrade CTA for free users (not a 403 or blank wall).
 
 ---
 
@@ -197,16 +203,43 @@ Overview must remain usable even when not the landing page.
 * Frame all info in multi-game trends
 * Links into Analysis
 
-### Analysis (Shared Layout)
+### Solo / Duo / Team (Analysis Pages)
 
-**Role:** Long-term improvement
+**Role:** Long-term improvement tracking
 
-* Single layout reused across Solo/Duo/Team
+Solo, Duo, and Team are **separate pages** sharing a common zone-based layout (`AnalysisLayout.vue`) filled with context-specific content.
+
+**Zone model (shared layout):**
+
+| Zone | Purpose | v1 | v2 |
+|------|---------|----|-----|
+| Zone 1 | Context bar (filters, time range) | Queue toggle + time range | Same |
+| Zone 2 | Summary stats (lightweight context row) | Games, Winrate, KDA | Per-context stats |
+| Zone 3 | Trend charts (2-column grid) | LP chart (left) + Winrate chart (right) | Same |
+| Zone 4 | Deep analysis | Not rendered | Danger Zones, Champion Matrix |
+| Zone 5 | Goals | Not rendered | Active goals with progress |
+
+**Chart behavior:**
+* Charts default to **last 20 games** for quick momentum reading ("Am I climbing right now?")
+* Expand button switches data range to full season **within the same half-width space** (no modal, no full-width expansion)
+* Both LP and Winrate charts are side-by-side in a 2-column grid (half-width each)
+
+**"View Analysis" from Matches:**
+* Match Details page includes a "View Analysis" button
+* Navigates to the relevant Analysis page with a `matchId` query parameter
+* Charts highlight the specific game point for contextual analysis
+
+**Context-specific content:**
+* **Solo:** Personal stats, LP trend, winrate trend. v2: Danger Zones (personal death heatmap)
+* **Duo:** Pair stats, shared LP/winrate trends. v2: Champion Matrix (champion combo synergy), Danger Zones (two players in different colors)
+* **Team:** Team stats, winrate trends. v2: Team comp patterns, Danger Zones (all players in different colors)
+
+**Gating:**
+* Solo: Free tier, always accessible
+* Duo: Pro tier – free users see a preview/teaser page with feature description and upgrade CTA
+* Team: Pro tier – same pattern as Duo
+
 * Trend-based graphs (must answer one question and imply one action)
-* Context-specific widgets
-* Embedded goal progress
-* Duo/Team selection via dropdown inside page
-* Navigation items remain stable
 * Non-goals: global champion coverage, encyclopedic data
 
 ### Goals
@@ -230,7 +263,7 @@ Overview must remain usable even when not the landing page.
 * Champion Select reachable in one click
 * Overview never blocks user flow
 * No duplicated deep analysis across pages
-* Context (Solo/Duo/Team) always visible
+* Context (Solo/Duo/Team) always visible via separate sidebar entries; Duo/Team show lock icon for free users
 * Navigation hierarchy remains stable
 * Every chart/stat must have actionable meaning
 * Single-match insights framed as trends
