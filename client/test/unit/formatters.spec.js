@@ -43,16 +43,15 @@ describe('formatters', () => {
     });
 
     it('handles special roles', () => {
-      // Note: formatRole uses roleMap lookup, but empty string values still
-      // return the original value due to falsy check in || operator
       expect(formatRole('FILL')).toBe('Fill');
       expect(formatRole('ARAM')).toBe('ARAM');
     });
 
-    it('returns original value for NONE/UNKNOWN (maps to empty but falsy check returns original)', () => {
-      // roleMap has NONE: '' and UNKNOWN: '', but '' || role returns role
-      expect(formatRole('NONE')).toBe('NONE');
-      expect(formatRole('UNKNOWN')).toBe('UNKNOWN');
+    it('returns empty string for NONE/UNKNOWN roles', () => {
+      // NONE and UNKNOWN are intentionally mapped to empty string
+      // to hide meaningless role labels in the UI
+      expect(formatRole('NONE')).toBe('');
+      expect(formatRole('UNKNOWN')).toBe('');
     });
 
     it('is case-insensitive', () => {
@@ -87,6 +86,10 @@ describe('formatters', () => {
 
     it('handles UNKNOWN as Fill (different from formatRole)', () => {
       expect(formatRoleWithAdc('UNKNOWN')).toBe('Fill');
+    });
+
+    it('returns empty string for NONE role', () => {
+      expect(formatRoleWithAdc('NONE')).toBe('');
     });
   });
 
@@ -218,8 +221,8 @@ describe('formatters', () => {
     });
 
     it('handles different months', () => {
-      expect(formatDate(new Date('2026-12-25'))).toBe('Dec 25');
-      expect(formatDate(new Date('2026-06-01'))).toBe('Jun 1');
+      expect(formatDate(new Date('2026-12-25T12:00:00Z'))).toBe('Dec 25');
+      expect(formatDate(new Date('2026-06-01T12:00:00Z'))).toBe('Jun 1');
     });
   });
 

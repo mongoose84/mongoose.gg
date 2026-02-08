@@ -986,50 +986,53 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public Task<IList<MatchListSummaryItem>> GetMatchListSummaryAsync(
             string puuid, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null)
         {
-            var result = new List<MatchListSummaryItem>();
+            var result = _matches
+                .OrderByDescending(m => m.Value.GameStartTime)
+                .Select(matchKvp =>
+                {
+                    var match = matchKvp.Value;
+                    if (!_participants.TryGetValue(match.MatchId, out var participants))
+                        return null;
 
-            foreach (var matchKvp in _matches.OrderByDescending(m => m.Value.GameStartTime).Take(limit))
-            {
-                var match = matchKvp.Value;
-                if (!_participants.TryGetValue(match.MatchId, out var participants))
-                    continue;
+                    var participant = participants.FirstOrDefault(p => p.Puuid == puuid);
+                    if (participant == null)
+                        return null;
 
-                var participant = participants.FirstOrDefault(p => p.Puuid == puuid);
-                if (participant == null)
-                    continue;
+                    // Apply queue filter
+                    if (!MatchesQueueFilter(match.QueueId, queueFilter))
+                        return null;
 
-                // Apply queue filter
-                if (!MatchesQueueFilter(match.QueueId, queueFilter))
-                    continue;
+                    var durationMin = match.GameDurationSec / 60.0;
+                    var csPerMin = durationMin > 0 ? Math.Round(participant.CreepScore / durationMin, 1) : 0;
+                    var goldPerMin = durationMin > 0 ? Math.Round(participant.GoldEarned / durationMin, 0) : 0;
 
-                var durationMin = match.GameDurationSec / 60.0;
-                var csPerMin = durationMin > 0 ? Math.Round(participant.CreepScore / durationMin, 1) : 0;
-                var goldPerMin = durationMin > 0 ? Math.Round(participant.GoldEarned / durationMin, 0) : 0;
+                    return new MatchListSummaryItem(
+                        MatchId: match.MatchId,
+                        QueueId: match.QueueId,
+                        QueueType: GetQueueType(match.QueueId),
+                        ChampionId: participant.ChampionId,
+                        ChampionName: participant.ChampionName,
+                        ChampionIconUrl: $"https://cdn.example.com/{participant.ChampionName}.png",
+                        Role: participant.Role,
+                        Lane: participant.Lane,
+                        Win: participant.Win,
+                        Kills: participant.Kills,
+                        Deaths: participant.Deaths,
+                        Assists: participant.Assists,
+                        CreepScore: participant.CreepScore,
+                        GoldEarned: participant.GoldEarned,
+                        GameDurationSec: match.GameDurationSec,
+                        GameStartTime: match.GameStartTime,
+                        CsPerMin: csPerMin,
+                        GoldPerMin: goldPerMin,
+                        TrendBadge: null
+                    );
+                })
+                .Where(item => item != null)
+                .Take(limit)
+                .ToList();
 
-                result.Add(new MatchListSummaryItem(
-                    MatchId: match.MatchId,
-                    QueueId: match.QueueId,
-                    QueueType: GetQueueType(match.QueueId),
-                    ChampionId: participant.ChampionId,
-                    ChampionName: participant.ChampionName,
-                    ChampionIconUrl: $"https://cdn.example.com/{participant.ChampionName}.png",
-                    Role: participant.Role,
-                    Lane: participant.Lane,
-                    Win: participant.Win,
-                    Kills: participant.Kills,
-                    Deaths: participant.Deaths,
-                    Assists: participant.Assists,
-                    CreepScore: participant.CreepScore,
-                    GoldEarned: participant.GoldEarned,
-                    GameDurationSec: match.GameDurationSec,
-                    GameStartTime: match.GameStartTime,
-                    CsPerMin: csPerMin,
-                    GoldPerMin: goldPerMin,
-                    TrendBadge: null
-                ));
-            }
-
-            return Task.FromResult<IList<MatchListSummaryItem>>(result);
+            return Task.FromResult<IList<MatchListSummaryItem>>(result!);
         }
 
         public Task<MatchDetailsItem?> GetMatchDetailsAsync(string matchId, string puuid)

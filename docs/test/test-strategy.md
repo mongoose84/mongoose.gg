@@ -368,8 +368,8 @@ afterEach(() => cleanupMocks()); // Restores original fetch
 - ✅ Overview dashboard flow tested (18 tests)
 
 **Remaining Gaps:**
-- � No match viewing tests
-- � No error handling/negative path tests
+- 🔴 No match viewing tests
+- 🔴 No error handling/negative path tests
 
 ### 6.2 E2E Architecture
 
@@ -564,7 +564,7 @@ Expand coverage for core user-facing features.
 | P1 | ChampionSelect endpoints tests | Backend | 3h | ✅ Complete (16 tests) |
 | P1 | Overview dashboard E2E | E2E | 3h | ✅ Complete (18 tests) |
 | P1 | Riot account linking E2E | E2E | 4h | ✅ Complete (global-setup.js) |
-| P2 | `useWinRateColor.spec.js` | Frontend | 0.5h | � Medium |
+| P2 | `useWinRateColor.spec.js` | Frontend | 0.5h | 🟢 Medium |
 | P2 | `uiStore.spec.js` | Frontend | 1h | 🟢 Medium |
 | P2 | `feedbackApi.spec.js` | Frontend | 1h | 🟢 Medium |
 | P2 | `LoginSyncServiceTests.cs` | Backend | 2h | 🟡 High |

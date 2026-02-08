@@ -90,7 +90,7 @@ public class ChampionSelectEndpointTests
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/invalid");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/invalid");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -104,7 +104,7 @@ public class ChampionSelectEndpointTests
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/999");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/999");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -118,7 +118,7 @@ public class ChampionSelectEndpointTests
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -135,7 +135,7 @@ public class ChampionSelectEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -153,7 +153,7 @@ public class ChampionSelectEndpointTests
         factory.SoloPerformanceRepository.SetPerformanceData("puuid123", CreateTestPerformanceData());
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -180,7 +180,7 @@ public class ChampionSelectEndpointTests
         factory.SoloPerformanceRepository.SetPerformanceData("puuid123", CreateTestPerformanceData());
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1?queueType=ranked_solo");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1?queueType=ranked_solo");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -198,7 +198,7 @@ public class ChampionSelectEndpointTests
         factory.SoloPerformanceRepository.SetPerformanceData("puuid123", CreateTestPerformanceData());
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1?timeRange=1m");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1?timeRange=1m");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -226,7 +226,7 @@ public class ChampionSelectEndpointTests
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/invalid");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/invalid");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -240,7 +240,7 @@ public class ChampionSelectEndpointTests
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/999");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/999");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -254,7 +254,7 @@ public class ChampionSelectEndpointTests
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -271,7 +271,7 @@ public class ChampionSelectEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -293,7 +293,7 @@ public class ChampionSelectEndpointTests
         factory.MatchupRepository.SetMatchupData("puuid123", CreateTestMatchupsData());
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -318,7 +318,7 @@ public class ChampionSelectEndpointTests
         factory.MatchupRepository.SetMatchupData("puuid123", CreateTestMatchupsData());
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1?queueType=ranked_solo");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1?queueType=ranked_solo");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -336,7 +336,7 @@ public class ChampionSelectEndpointTests
         factory.MatchupRepository.SetMatchupData("puuid123", CreateTestMatchupsData());
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1?timeRange=3m");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1?timeRange=3m");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);

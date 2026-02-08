@@ -28,7 +28,8 @@ export function formatRole(role) {
     FILL: 'Fill',
     ARAM: 'ARAM'
   }
-  return roleMap[role.toUpperCase()] || role
+  const upperRole = role.toUpperCase()
+  return upperRole in roleMap ? roleMap[upperRole] : role
 }
 
 /**
@@ -52,7 +53,8 @@ export function formatRoleWithAdc(role) {
     FILL: 'Fill',
     ARAM: 'ARAM'
   }
-  return roleMap[role.toUpperCase()] || role
+  const upperRole = role.toUpperCase()
+  return upperRole in roleMap ? roleMap[upperRole] : role
 }
 
 // ============================================================================
