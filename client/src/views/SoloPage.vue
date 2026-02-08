@@ -21,11 +21,34 @@
       />
     </template>
 
-    <!-- Zone 3: Trend Charts (to be implemented) -->
-    <!-- <template #trend-charts>
-      <LpTrendChart />
-      <WinrateChart />
-    </template> -->
+    <!-- Zone 3: Trend Charts (LP left, Winrate right) -->
+    <template #trend-charts>
+      <!-- LP Trend Chart -->
+      <TrendChartCard
+        title="LP Progression"
+        subtitle="Track your ranked LP over time"
+        :loading="lpLoading"
+        test-id="lp-trend-card"
+        @toggle-expand="handleLpExpand"
+      >
+        <template #default="{ dataLimit }">
+          <LpChart :data="lpTrendData" />
+        </template>
+      </TrendChartCard>
+
+      <!-- Winrate Trend Chart -->
+      <TrendChartCard
+        title="Winrate Over Time"
+        subtitle="Rolling 20-game average"
+        :loading="winrateLoading"
+        test-id="winrate-trend-card"
+        @toggle-expand="handleWinrateExpand"
+      >
+        <template #default="{ dataLimit }">
+          <WinrateChart :data="winrateTrendData" />
+        </template>
+      </TrendChartCard>
+    </template>
 
     <!-- Zone 4 & 5: Not rendered in v1 -->
   </AnalysisLayout>
@@ -36,10 +59,13 @@ import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard } from '../services/authApi'
+import { getSoloDashboard, getLpTrend, getWinrateTrend } from '../services/authApi'
 import { BaseQueueToggle, BaseTimeRangeSelect } from '../components/base'
 import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
 import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
+import TrendChartCard from '../components/solo/TrendChartCard.vue'
+import LpChart from '../components/solo/LpChart.vue'
+import WinrateChart from '../components/solo/WinrateChart.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
@@ -49,11 +75,21 @@ const dashboardData = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
 
+// Trend chart data
+const lpTrendData = ref([])
+const winrateTrendData = ref([])
+const lpLoading = ref(false)
+const winrateLoading = ref(false)
+
+// Expand state for charts (default: collapsed = last 20 games)
+const lpExpanded = ref(false)
+const winrateExpanded = ref(false)
+
 // UI state for filters
 const queueFilter = ref('all')
 const timeRange = ref('current_season')
 
-// Fetch dashboard data
+// Fetch dashboard data (summary stats)
 async function fetchData() {
   if (!authStore.userId) return
 
@@ -75,14 +111,70 @@ async function fetchData() {
   }
 }
 
+// Fetch LP trend data
+async function fetchLpTrend() {
+  if (!authStore.userId) return
+
+  lpLoading.value = true
+  try {
+    const limit = lpExpanded.value ? 500 : 20
+    const result = await getLpTrend(authStore.userId, queueFilter.value, limit)
+    lpTrendData.value = result?.lpTrend ?? []
+  } catch (err) {
+    console.error('Failed to fetch LP trend:', err)
+    lpTrendData.value = []
+  } finally {
+    lpLoading.value = false
+  }
+}
+
+// Fetch winrate trend data
+async function fetchWinrateTrend() {
+  if (!authStore.userId) return
+
+  winrateLoading.value = true
+  try {
+    const result = await getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value)
+    // Slice to last 20 games if not expanded
+    const allData = result?.winrateTrend ?? []
+    winrateTrendData.value = winrateExpanded.value ? allData : allData.slice(-20)
+  } catch (err) {
+    console.error('Failed to fetch winrate trend:', err)
+    winrateTrendData.value = []
+  } finally {
+    winrateLoading.value = false
+  }
+}
+
+// Handle expand toggle for LP chart
+function handleLpExpand(expanded) {
+  lpExpanded.value = expanded
+  fetchLpTrend()
+}
+
+// Handle expand toggle for winrate chart
+function handleWinrateExpand(expanded) {
+  winrateExpanded.value = expanded
+  fetchWinrateTrend()
+}
+
+// Fetch all data
+async function fetchAllData() {
+  await Promise.all([
+    fetchData(),
+    fetchLpTrend(),
+    fetchWinrateTrend()
+  ])
+}
+
 // Fetch data on mount
 onMounted(() => {
-  fetchData()
+  fetchAllData()
 })
 
 // Re-fetch when filters change
 watch([queueFilter, timeRange], () => {
-  fetchData()
+  fetchAllData()
 })
 
 // Track filter changes for analytics
@@ -99,8 +191,8 @@ watch(syncProgress, (progress) => {
     if (data.status === 'completed') {
       // Refresh user data to get updated profile icon/level
       authStore.refreshUser()
-      // Refresh dashboard data
-      fetchData()
+      // Refresh all dashboard data including charts
+      fetchAllData()
       // Reset the status after refresh
       resetProgress(puuid)
       break
