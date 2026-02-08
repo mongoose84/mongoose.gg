@@ -14,7 +14,8 @@ public class OverviewEndpointTests
         var response = await loginClient.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
         response.EnsureSuccessStatusCode();
         var cookies = response.Headers.GetValues("Set-Cookie");
-        return cookies.First(c => c.Contains("mongoose-auth"));
+        var cookie = cookies.First(c => c.Contains("mongoose-auth"));
+        return cookie.Split(';', 2)[0]; // Extract name=value portion only
     }
 
     [Fact]
