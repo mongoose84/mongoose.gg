@@ -13,9 +13,9 @@ This document outlines a comprehensive test strategy for Mongoose.gg, covering t
 
 | Layer | Test Files | Tests | CI Integration | Status |
 |-------|-----------|-------|----------------|--------|
-| Backend | 15 test files | ~247 tests | ✅ GitHub Actions | ✅ Strong foundation |
-| Frontend Unit | 24 test files | 445 tests | ✅ GitHub Actions | ✅ Strong foundation |
-| E2E | 1 test file | ~5 tests | ✅ GitHub Actions | 🔴 Needs expansion |
+| Backend | 15 test files | ~298 tests | ✅ GitHub Actions | ✅ Strong foundation |
+| Frontend Unit | 30 test files | 583 tests | ✅ GitHub Actions | ✅ Strong foundation |
+| E2E | 2 test files | ~23 tests | ✅ GitHub Actions | 🟡 Expanding |
 
 ### Phase 1 Completion Summary ✅
 
@@ -32,6 +32,7 @@ The following critical gap tests have been implemented:
 | Analysis Status Composable | `client/test/unit/useAnalysisStatus.spec.js` | 31 tests | ✅ Complete |
 | Analysis Status Card | `client/test/unit/AnalysisStatusCard.spec.js` | 26 tests | ✅ Complete |
 | Champion Select CTA | `client/test/unit/ChampionSelectCTA.spec.js` | 18 tests | ✅ Complete |
+| **Base Components** | `client/test/unit/Base*.spec.js` | 137 tests | ✅ Complete |
 
 ---
 
@@ -178,9 +179,9 @@ server/Mongoose.Api.Tests/
 - ⚪ No utility function tests (`formatters.js` - 23 functions, `leagueAssets.js`)
 - ⚪ No uiStore tests (sidebar state, responsive behavior)
 - ⚪ No feedbackApi tests (browser/OS detection helpers)
-- ⚪ Limited component coverage (~27% of components tested)
+- ⚪ Limited component coverage (~35% of components tested)
 - ⚪ No chart component tests (LpTrendChart, WinrateChart)
-- ⚪ No base component tests (BaseButton, BaseCard, BaseInput, BaseModal)
+- ~~⚪ No base component tests (BaseButton, BaseCard, BaseInput, BaseModal)~~ ✅ Complete (137 tests)
 
 ### 5.2 Current Test Coverage
 
@@ -189,9 +190,10 @@ server/Mongoose.Api.Tests/
 | **Composables** | 3 | 2 | 67% |
 | **Services** | 5 | 2 | 40% |
 | **Stores** | 2 | 1 | 50% |
-| **Utils** | 2 | 0 | 0% |
+| **Utils** | 2 | 1 | 50% |
 | **Views** | 14 | 5 | 36% |
-| **Components** | ~37 | ~10 | ~27% |
+| **Components** | ~43 | ~16 | ~37% |
+| **Base Components** | 6 | 6 | 100% |
 
 ### 5.3 Recommended Test Categories
 
@@ -207,7 +209,12 @@ client/test/unit/
 │   ├── RankSnapshot.spec.js            # ✅ Exists
 │   ├── SessionExpiredBanner.spec.js    # ✅ Complete (9 tests)
 │   ├── VersionBadge.spec.js            # ✅ Exists
-│   ├── base/                           # 🔴 Missing (5 components)
+│   ├── BaseButton.spec.js              # ✅ Complete (27 tests)
+│   ├── BaseCard.spec.js                # ✅ Complete (17 tests)
+│   ├── BaseInput.spec.js               # ✅ Complete (32 tests)
+│   ├── BaseModal.spec.js               # ✅ Complete (22 tests)
+│   ├── BaseQueueToggle.spec.js         # ✅ Complete (17 tests)
+│   ├── BaseTimeRangeSelect.spec.js     # ✅ Complete (18 tests)
 │   ├── matches/                        # 🔴 Missing (13 components)
 │   └── overview/                       # 🟡 Partial (2 of 7 tested)
 ├── composables/                  # Composable tests
@@ -239,11 +246,12 @@ client/test/unit/
 1. ~~**authStore.spec.js** - Test login/logout state, token handling, user persistence~~ ✅ Complete
 2. ~~**apiClient.spec.js** - Session expiry, 401 handling, HTTP methods~~ ✅ Complete
 3. ~~**useAnalysisStatus.spec.js** - Analysis status composable~~ ✅ Complete
-4. **formatters.spec.js** - 23 pure functions, heavily used across app - **HIGH PRIORITY**
+4. ~~**formatters.spec.js** - 23 pure functions, heavily used across app~~ ✅ Complete (56 tests)
 5. **useWinRateColor.spec.js** - Pure function, simple to test
 6. **uiStore.spec.js** - Sidebar state, localStorage, responsive behavior
 7. **feedbackApi.spec.js** - Browser/OS detection helpers
-8. **BaseButton.spec.js** - Most used component, test variants & interactions
+8. ~~**BaseButton.spec.js** - Most used component, test variants & interactions~~ ✅ Complete (27 tests)
+9. ~~**Base Components** - All 6 base components~~ ✅ Complete (137 tests total)
 
 ### 5.4 Component Testing Patterns
 
@@ -575,7 +583,7 @@ Build out full test suite for long-term maintainability.
 
 | Priority | Test | Layer | Effort | Impact |
 |----------|------|-------|--------|--------|
-| P2 | Base component tests (5 components) | Frontend | 4h | 🟢 Medium |
+| ~~P2~~ | ~~Base component tests (6 components)~~ | Frontend | ~~4h~~ | ✅ Complete (137 tests) |
 | P2 | Riot API client mocking | Backend | 6h | 🟡 High |
 | P2 | Match component tests (13 components) | Frontend | 8h | 🟢 Medium |
 | P3 | All remaining endpoints | Backend | 8h | 🟢 Medium |
@@ -585,12 +593,13 @@ Build out full test suite for long-term maintainability.
 
 ### 7.4 Coverage Targets
 
-| Layer | Phase 1 (Done) | Phase 2 | Phase 3 |
+| Layer | Phase 1 (Done) | Phase 2 (Current) | Phase 3 |
 |-------|----------------|---------|---------|
-| Backend Tests | ~263 tests | ~290 tests | ~360 tests |
-| Frontend Tests | 389 tests | ~450 tests | ~550 tests |
+| Backend Tests | ~263 tests | ~298 tests | ~360 tests |
+| Frontend Tests | 389 tests | 583 tests | ~650 tests |
 | E2E Journeys | 2/8 | 4/8 | 8/8 |
-| Components Tested | ~27% | ~50% | ~75% |
+| Components Tested | ~27% | ~37% | ~75% |
+| Base Components | 0% | 100% | 100% |
 | Utils/Formatters | 0% | 100% | 100% |
 
 ---
@@ -703,6 +712,7 @@ In CI, this is handled automatically by the `ci-e2e.yml` workflow which generate
 | Formatters tests | `client/test/unit/formatters.spec.js` |
 | Analysis Status tests | `client/test/unit/useAnalysisStatus.spec.js` |
 | WebSocket tests | `client/test/unit/useSyncWebSocket.spec.js` |
+| Base Component tests | `client/test/unit/Base*.spec.js` (6 files, 137 tests) |
 | Test helpers | `client/test/helpers/` |
 | Vitest config | `client/vitest.config.js` |
 | Playwright config | `client/playwright.config.js` |
@@ -756,5 +766,5 @@ vi.mock('@/composables/useAnalysisStatus', () => ({
 
 ---
 
-*Last Updated: February 7, 2026*
-*Version: 1.2 - Phase 1 Complete + Gap Analysis Update*
+*Last Updated: February 8, 2026*
+*Version: 1.3 - Phase 2 Progress + Base Component Tests Complete*
