@@ -14,26 +14,71 @@
     </header>
 
     <div class="flex flex-col gap-lg">
-      <!-- Cards will be added here during refactor -->
+      <!-- Summary Stats Card -->
+      <SummaryStatsCard
+        :games-played="dashboardData?.gamesPlayed ?? 0"
+        :win-rate="dashboardData?.winRate ?? null"
+        :avg-kda="dashboardData?.avgKda ?? null"
+        :loading="isLoading"
+      />
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
+import { getSoloDashboard } from '../services/authApi'
 import { BaseQueueToggle, BaseTimeRangeSelect } from '../components/base'
+import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
+
+// Dashboard data from API
+const dashboardData = ref(null)
+const isLoading = ref(false)
+const error = ref(null)
 
 // UI state for filters
 const queueFilter = ref('all')
 const timeRange = ref('current_season')
 
-// Track filter changes
+// Fetch dashboard data
+async function fetchData() {
+  if (!authStore.userId) return
+
+  isLoading.value = true
+  error.value = null
+
+  try {
+    dashboardData.value = await getSoloDashboard(
+      authStore.userId,
+      queueFilter.value,
+      timeRange.value
+    )
+  } catch (err) {
+    console.error('Failed to fetch solo dashboard:', err)
+    error.value = err.message
+    dashboardData.value = null
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Fetch data on mount
+onMounted(() => {
+  fetchData()
+})
+
+// Re-fetch when filters change
+watch([queueFilter, timeRange], () => {
+  fetchData()
+})
+
+// Track filter changes for analytics
 watch(queueFilter, (newValue) => {
   trackFilterChange('queue', newValue)
 })
@@ -47,6 +92,8 @@ watch(syncProgress, (progress) => {
     if (data.status === 'completed') {
       // Refresh user data to get updated profile icon/level
       authStore.refreshUser()
+      // Refresh dashboard data
+      fetchData()
       // Reset the status after refresh
       resetProgress(puuid)
       break
