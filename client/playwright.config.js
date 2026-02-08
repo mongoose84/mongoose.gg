@@ -84,10 +84,11 @@ export default defineConfig({
     },
   ],
 
-  // Web server configuration - start both Vue dev server and .NET backend
-  // The backend is started with Auth__AutoVerifyEmail=true for E2E tests
-  // This bypasses email verification which is required for automated testing
-  // SECURITY: This setting should NEVER be enabled in production
+  // Web server configuration - start the Vue dev server
+  // NOTE: The .NET backend must be started separately with E2E flags:
+  //   Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run --project server
+  // In CI, this is handled by the ci-e2e.yml workflow which generates
+  // appsettings.Production.json with AutoVerifyEmail: true
   webServer: [
     {
       command: 'npm run dev',
@@ -95,21 +96,6 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       cwd: '.',
-    },
-    {
-      // Start .NET backend with E2E-specific configuration
-      // Auth__AutoVerifyEmail=true bypasses email verification for test users
-      // Email__DevMode=true prevents actual email sending
-      command: 'dotnet run --project ../server',
-      url: 'http://localhost:5164/api/v2/diagnostics',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-      env: {
-        ASPNETCORE_ENVIRONMENT: 'Development',
-        ASPNETCORE_URLS: 'http://localhost:5164',
-        Auth__AutoVerifyEmail: 'true',
-        Email__DevMode: 'true',
-      },
     },
   ],
 });

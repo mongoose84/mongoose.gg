@@ -445,21 +445,14 @@ The E2E test infrastructure uses this setting to bypass email verification. Here
 
 **Local E2E Test Configuration:**
 
-The `playwright.config.js` starts the .NET backend with E2E-specific environment variables:
+Start the backend manually with E2E-specific environment variables:
 
-```javascript
-webServer: [
-  // Vue dev server...
-  {
-    command: 'dotnet run --project ../server',
-    url: 'http://localhost:5164/api/v2/diagnostics',
-    env: {
-      ASPNETCORE_ENVIRONMENT: 'Development',
-      Auth__AutoVerifyEmail: 'true',  // ⚠️ E2E only!
-      Email__DevMode: 'true',
-    },
-  },
-],
+```bash
+# Start server with E2E flags (in one terminal)
+Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run --project server
+
+# Run E2E tests (in another terminal)
+cd client && npm run test:e2e
 ```
 
 **Why This Approach is Secure:**
@@ -677,11 +670,25 @@ cd client && npm run test:unit
 cd client && npm run test:unit:watch     # Watch mode
 cd client && npm run test:unit:coverage  # With coverage
 
-# E2E tests
+# E2E tests (requires backend - see note below)
 cd client && npm run test:e2e            # Headless
 cd client && npm run test:e2e:headed     # With browser
 cd client && npm run test:e2e:ui         # Playwright UI
 ```
+
+**⚠️ E2E Test Local Setup:**
+
+E2E tests require the backend server running with `Auth:AutoVerifyEmail=true`:
+
+```bash
+# Terminal 1: Start server with E2E flags
+Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run --project server
+
+# Terminal 2: Run E2E tests
+cd client && npm run test:e2e
+```
+
+In CI, this is handled automatically by the `ci-e2e.yml` workflow which generates the config with `AutoVerifyEmail: true`.
 
 ### 10.2 Key Files
 
