@@ -268,10 +268,12 @@ const assistsTrendClass = computed(() => {
 <style scoped>
 .summary-stats-card {
   width: 100%;
+  height: 80px;
 }
 
 .card-content {
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: 0px var(--spacing-lg); 
+  margin-top: -18px; /* Adjust for card padding to align with other elements */
 }
 
 .stats-grid {
@@ -294,12 +296,14 @@ const assistsTrendClass = computed(() => {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 500;
+  
 }
 
 .stat-value {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--color-text);
+  margin-top: -10px;
 }
 
 /* K/D/A Group */
@@ -314,7 +318,7 @@ const assistsTrendClass = computed(() => {
 }
 
 .kda-value {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--color-text);
   transition: color 0.2s ease;
