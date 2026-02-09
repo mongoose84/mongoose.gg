@@ -15,6 +15,18 @@ public static class SoloPerformanceDto
         [property: JsonPropertyName("avgKda")] double AvgKda,
         [property: JsonPropertyName("avgGameDurationMinutes")] double AvgGameDurationMinutes,
 
+        // K/D/A breakdown for summary stats card (filtered by time range)
+        [property: JsonPropertyName("avgKills")] double AvgKills,
+        [property: JsonPropertyName("avgDeaths")] double AvgDeaths,
+        [property: JsonPropertyName("avgAssists")] double AvgAssists,
+
+        // Overall stats (all-time, for tooltip comparison)
+        [property: JsonPropertyName("overallWinRate")] double OverallWinRate,
+        [property: JsonPropertyName("overallAvgKills")] double OverallAvgKills,
+        [property: JsonPropertyName("overallAvgDeaths")] double OverallAvgDeaths,
+        [property: JsonPropertyName("overallAvgAssists")] double OverallAvgAssists,
+        [property: JsonPropertyName("overallAvgKda")] double OverallAvgKda,
+
         // Side statistics (win distribution)
         [property: JsonPropertyName("sideStats")] SideWinDistribution SideStats,
 
@@ -65,7 +77,11 @@ public static class SoloPerformanceDto
         [property: JsonPropertyName("games")] int Games,
         [property: JsonPropertyName("wins")] int Wins,
         [property: JsonPropertyName("winRate")] double WinRate,
-        [property: JsonPropertyName("avgKda")] double AvgKda
+        [property: JsonPropertyName("avgKda")] double AvgKda,
+        // K/D/A breakdown for trend comparison
+        [property: JsonPropertyName("avgKills")] double AvgKills,
+        [property: JsonPropertyName("avgDeaths")] double AvgDeaths,
+        [property: JsonPropertyName("avgAssists")] double AvgAssists
     );
 
     public record PerformancePhase(

@@ -16,7 +16,15 @@
       <SummaryStatsCard
         :games-played="dashboardData?.gamesPlayed ?? 0"
         :win-rate="dashboardData?.winRate ?? null"
+        :overall-win-rate="dashboardData?.overallWinRate ?? null"
         :avg-kda="dashboardData?.avgKda ?? null"
+        :avg-kills="dashboardData?.avgKills ?? null"
+        :avg-deaths="dashboardData?.avgDeaths ?? null"
+        :avg-assists="dashboardData?.avgAssists ?? null"
+        :overall-avg-kills="dashboardData?.overallAvgKills ?? null"
+        :overall-avg-deaths="dashboardData?.overallAvgDeaths ?? null"
+        :overall-avg-assists="dashboardData?.overallAvgAssists ?? null"
+        :overall-avg-kda="dashboardData?.overallAvgKda ?? null"
         :loading="isLoading"
       />
     </template>
