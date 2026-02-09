@@ -1204,11 +1204,12 @@ Create a professional user experience with a landing page, pricing, and app shel
 
 ---
 
-### G5b18. [Frontend] Implement Summary Stats Card
+### G5b18. [Frontend] Implement Summary Stats Card ✅
 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 1 point
+**Status:** Complete
 **Depends on:** G5b1, F2
 **Labels:** `frontend`, `solo`, `dashboard`, `component`, `epic-g`, `solo-v1-mvp`
 
@@ -1257,11 +1258,12 @@ Create a Summary Stats Card that provides quick orientation on the Solo dashboar
 
 ---
 
-### G5b4. [Frontend + Backend] Winrate Over Time Chart
+### G5b4. [Frontend + Backend] Winrate Over Time Chart ✅
 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 5 points (3 FE + 2 BE via G5b13)
+**Status:** Complete
 **Depends on:** G5b1, G5b19 (AnalysisLayout), G5b13 (winrate trend data)
 **Labels:** `frontend`, `backend`, `solo`, `dashboard`, `chart`, `epic-g`, `solo-v1-mvp`
 
@@ -1291,11 +1293,12 @@ The chart component is reusable across Solo, Duo, and Team pages.
 
 ---
 
-### G5b5. [Frontend] LP Over Time Chart
+### G5b5. [Frontend] LP Over Time Chart ✅
 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 2 points
+**Status:** Complete
 **Depends on:** G5b1, G5b19 (AnalysisLayout), G5b14 (LP trend data)
 **Labels:** `frontend`, `solo`, `dashboard`, `chart`, `epic-g`, `solo-v1-mvp`
 
@@ -1326,11 +1329,12 @@ The chart component is reusable across Solo and Duo pages (Team may use a winrat
 
 ---
 
-### G5b19. [Frontend] Create AnalysisLayout zone component
+### G5b19. [Frontend] Create AnalysisLayout zone component ✅
 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 2 points
+**Status:** Complete
 **Depends on:** G5b1
 **Labels:** `frontend`, `layout`, `shared`, `epic-g`, `solo-v1-mvp`
 
@@ -1518,13 +1522,9 @@ Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with
 | C7 | Create subscription endpoints | Subscription | 2 |
 | C8 | Create feature flag service | Subscription | 2 |
 | F3 | Implement Duo dashboard endpoint | API | 3 |
-| G5b4 | Winrate Over Time chart + trend data (FE+BE) | Frontend / API | 5 |
-| G5b5 | LP Over Time chart (frontend UI) | Frontend | 2 |
-| G5b18 | Summary Stats Card | Frontend | 1 |
-| G5b19 | AnalysisLayout zone component | Frontend | 2 |
 | G15 | Allow cancelling or switching account during email verification | Frontend | 2 |
 
-**P0 Remaining Total:** 49 points
+**P0 Remaining Total:** 39 points
 
 ### P1 - High
 
@@ -1552,14 +1552,12 @@ Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with
 | F11-social | Implement social endpoints (friends, teams, search) | API | 3 |
 | F13-lp | Implement Riot League API for rank/LP data | API | 5 |
 | F14-login | Check for new matches on user login and auto-sync | API | 3 |
-| G5b13 | Fetch winrate trend data for Solo dashboard | Backend | 2 |
-| G5b14 | Fetch LP trend data for Solo dashboard | Backend | 2 |
 | G6 | Implement Duo Dashboard Page (Separate Gated Page) | Frontend | 5 |
 | G7 | Implement Team Dashboard Page (Separate Gated Page) | Frontend | 5 |
 | G10 | Implement user dropdown details & account settings page | Frontend | 8 |
 | G19 | Implement session expiry handling (global handler + UX) | Frontend | 5 |
 
-**P1 Remaining Total:** 85 points
+**P1 Remaining Total:** 81 points
 
 ### P2 - Medium
 
@@ -1634,13 +1632,18 @@ Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with
 | G | G5b1 - Create empty Solo dashboard view & routing | 1 | ✅ |
 | G | G5b2 - Profile header button + profile data (FE+BE) | 5 | ✅ |
 | G | G5b3 - Main Champion Card (FE+BE) | 3 | ✅ |
+| G | G5b4 - Winrate Over Time chart + trend data (FE+BE) | 5 | ✅ |
+| G | G5b5 - LP Over Time chart (frontend UI) | 2 | ✅ |
 | G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
 | G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
 | G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
 | G | G5b11 - Create champion matchups endpoint | 3 | ✅ |
 | G | G5b12 - Fetch main champions by role for Solo dashboard | 2 | ✅ |
+| G | G5b13 - Fetch winrate trend data for Solo dashboard | 2 | ✅ |
+| G | G5b14 - Fetch LP trend data for Solo dashboard | 2 | ✅ |
 | G | G5b16 - Update database on login (FE+BE) | 2 | ✅ |
 | G | G5b17 - Implement ranked data display in ProfileHeaderCard (FE+BE) | 5 | ✅ |
+| G | G5b18 - Summary Stats Card | 1 | ✅ |
 | G | G9 - Login, signup, verification & user shell | 5 | ✅ |
 | G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
 | G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
@@ -1655,14 +1658,14 @@ Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with
 | F | F17 - Implement feedback endpoint & GitHub integration | 5 | ✅ |
 | G | G21 - In-app Feedback page & sidebar entry | 5 | ✅ |
 
-**Total Completed Points:** 187
+**Total Completed Points:** 201
 
 ## Grand Totals
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 206 pts |
-| **Completed** | 135 pts |
+| **Remaining** | 192 pts |
+| **Completed** | 149 pts |
 | **Grand Total** | 341 pts |
 
 ---
