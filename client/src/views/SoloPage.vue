@@ -142,10 +142,10 @@ async function fetchWinrateTrend() {
 
   winrateLoading.value = true
   try {
-    const result = await getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value)
-    // Slice to last 20 games if not expanded
-    const allData = result?.winrateTrend ?? []
-    winrateTrendData.value = winrateExpanded.value ? allData : allData.slice(-20)
+    // Use limit parameter to get exact number of games at full resolution
+    const limit = winrateExpanded.value ? null : 20
+    const result = await getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+    winrateTrendData.value = result?.winrateTrend ?? []
   } catch (err) {
     console.error('Failed to fetch winrate trend:', err)
     winrateTrendData.value = []

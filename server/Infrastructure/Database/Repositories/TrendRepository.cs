@@ -26,7 +26,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
     }
 
     /// <inheritdoc />
-    public async Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null)
+    public async Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
     {
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
@@ -86,7 +86,14 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             ));
         }
 
-        // Downsample if more than 100 data points
+        // If limit is specified, return the most recent N games at full resolution
+        if (limit.HasValue && limit.Value > 0)
+        {
+            var limitValue = Math.Min(limit.Value, trendPoints.Count);
+            return trendPoints.TakeLast(limitValue).ToArray();
+        }
+
+        // Downsample if more than 100 data points (only when no limit specified)
         const int maxDataPoints = 100;
         if (trendPoints.Count > maxDataPoints)
         {
@@ -169,18 +176,23 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             _ => "" // All ranked queues
         };
 
-        // Query lp_snapshots table ordered oldest to newest for chart display
+        // Query lp_snapshots table: get most recent N rows, then order ascending for chart display
+        // Uses subquery to select most recent rows (DESC), then outer query re-orders ASC
         var sql = $@"
-            SELECT
-                lp,
-                tier,
-                division,
-                recorded_at
-            FROM lp_snapshots
-            WHERE puuid = @puuid
-              {queueTypeFilter}
-            ORDER BY recorded_at ASC
-            LIMIT @limit";
+            SELECT lp, tier, division, recorded_at
+            FROM (
+                SELECT
+                    lp,
+                    tier,
+                    division,
+                    recorded_at
+                FROM lp_snapshots
+                WHERE puuid = @puuid
+                  {queueTypeFilter}
+                ORDER BY recorded_at DESC
+                LIMIT @limit
+            ) AS recent
+            ORDER BY recorded_at ASC";
 
         var points = new List<LpTrendPoint>();
 
@@ -202,7 +214,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var lp = reader.GetInt32(0);
                 var tier = reader.GetString(1);
                 var division = reader.IsDBNull(2) ? "" : reader.GetString(2);
-                var recordedAt = reader.GetDateTime(3);
+                var recordedAt = reader.GetDateTimeUtc(3);
 
                 var rankString = _lpCalc.FormatRank(tier, division);
                 var isPromotion = _lpCalc.IsPromotion(previousTier, previousDivision, tier, division);

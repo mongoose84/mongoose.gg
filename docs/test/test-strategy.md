@@ -14,7 +14,7 @@ This document outlines a comprehensive test strategy for Mongoose.gg, covering t
 | Layer | Test Files | Tests | CI Integration | Status |
 |-------|-----------|-------|----------------|--------|
 | Backend | 15 test files | ~298 tests | ✅ GitHub Actions | ✅ Strong foundation |
-| Frontend Unit | 31 test files | 622 tests | ✅ GitHub Actions | ✅ Strong foundation |
+| Frontend Unit | 33 test files | 696 tests | ✅ GitHub Actions | ✅ Strong foundation |
 | E2E | 2 test files | ~23 tests | ✅ GitHub Actions | 🟡 Expanding |
 
 ### Phase 1 Completion Summary ✅
@@ -34,6 +34,7 @@ The following critical gap tests have been implemented:
 | Champion Select CTA | `client/test/unit/ChampionSelectCTA.spec.js` | 18 tests | ✅ Complete |
 | **Base Components** | `client/test/unit/Base*.spec.js` | 137 tests | ✅ Complete |
 | **SummaryStatsCard** | `client/test/unit/SummaryStatsCard.spec.js` | 38 tests | ✅ Complete |
+| **TrendChartCard** | `client/test/unit/TrendChartCard.spec.js` | 40 tests | ✅ Complete |
 
 ---
 
@@ -767,5 +768,5 @@ vi.mock('@/composables/useAnalysisStatus', () => ({
 
 ---
 
-*Last Updated: February 8, 2026*
-*Version: 1.4 - Phase 2 Progress + Base Components + SummaryStatsCard Tests*
+*Last Updated: February 9, 2026*
+*Version: 1.5 - Phase 2 Progress + Solo Dashboard Component Tests*

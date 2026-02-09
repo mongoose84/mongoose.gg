@@ -11,13 +11,15 @@ public interface ITrendRepository
     /// <summary>
     /// Get winrate trend data as a rolling 20-game average for chart display.
     /// Returns an array of data points with gameIndex, winRate, and timestamp.
-    /// Maximum 100 data points with downsampling for larger datasets.
+    /// When limit is specified, returns the most recent N games at full resolution.
+    /// When limit is null, returns all games with downsampling if over 100 data points.
     /// </summary>
     /// <param name="puuid">Player PUUID</param>
     /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, normal, aram, all)</param>
     /// <param name="timeRange">Time range filter (current_season, last_season, 1w, 1m, 3m, 6m)</param>
+    /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
     /// <returns>Array of winrate trend points</returns>
-    Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null);
+    Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
 
     /// <summary>
     /// Get LP trend data for ranked matches with LP data available.

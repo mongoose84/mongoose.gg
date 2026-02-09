@@ -28,6 +28,7 @@ public sealed class WinrateTrendEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
+            [FromQuery] int? limit,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ITrendRepository trendRepo,
             [FromServices] ILogger<WinrateTrendEndpoint> logger
@@ -41,7 +42,7 @@ public sealed class WinrateTrendEndpoint : IEndpoint
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))
                 {
-                    logger.LogWarning("Winrate trend: invalid userId format {UserId}", userId);
+                    logger.LogWarning("Winrate trend: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
@@ -68,11 +69,20 @@ public sealed class WinrateTrendEndpoint : IEndpoint
                 var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
+                // Validate limit if provided
+                int? validatedLimit = null;
+                if (limit.HasValue)
+                {
+                    validatedLimit = limit.Value;
+                    if (validatedLimit < 1) validatedLimit = 20;
+                    if (validatedLimit > 500) validatedLimit = 500;
+                }
+
                 // Fetch winrate trend data
-                logger.LogInformation("Winrate trend request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
-                
-                var winrateTrend = await trendRepo.GetWinrateTrendAsync(primaryPuuid, queueType, timeRange);
+                logger.LogInformation("Winrate trend request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, limit={Limit}",
+                    userIdInt, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", validatedLimit?.ToString() ?? "all");
+
+                var winrateTrend = await trendRepo.GetWinrateTrendAsync(primaryPuuid, queueType, timeRange, validatedLimit);
 
                 return Results.Ok(new { winrateTrend });
             }

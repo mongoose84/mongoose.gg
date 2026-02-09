@@ -41,7 +41,7 @@ public sealed class LpTrendEndpoint : IEndpoint
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))
                 {
-                    logger.LogWarning("LP trend: invalid userId format {UserId}", userId);
+                    logger.LogWarning("LP trend: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
@@ -75,7 +75,7 @@ public sealed class LpTrendEndpoint : IEndpoint
 
                 // Fetch LP trend data
                 logger.LogInformation("LP trend request: userId={UserId}, puuid={Puuid}, queueType={Queue}, limit={Limit}",
-                    userIdInt, primaryPuuid, queueType ?? "all", dataLimit);
+                    userIdInt, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", dataLimit);
                 
                 var lpTrend = await trendRepo.GetLpTrendAsync(primaryPuuid, queueType, dataLimit);
 
