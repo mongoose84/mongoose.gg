@@ -349,15 +349,19 @@ export async function getMatchActivity(userId) {
  * @param {number} userId - User ID
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
+ * @param {number} [limit] - Maximum number of most recent games to return (null for all with downsampling)
  * @returns {Promise<Object>} Winrate trend data with winrateTrend array
  */
-export async function getWinrateTrend(userId, queueType = 'all', timeRange) {
+export async function getWinrateTrend(userId, queueType = 'all', timeRange, limit) {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
   }
   if (timeRange) {
     params.append('timeRange', timeRange)
+  }
+  if (limit) {
+    params.append('limit', limit.toString())
   }
 
   const endpoint = `/trends/winrate/${userId}${params.toString() ? '?' + params.toString() : ''}`
@@ -368,6 +372,32 @@ export async function getWinrateTrend(userId, queueType = 'all', timeRange) {
   }
 
   return parseResponse(response, 'Failed to get winrate trend')
+}
+
+/**
+ * Get LP trend data for chart display (ranked queues only)
+ * @param {number} userId - User ID
+ * @param {string} [queueType] - Optional queue filter (ranked_solo, ranked_flex)
+ * @param {number} [limit] - Maximum number of data points (default: 100, max: 500)
+ * @returns {Promise<Object>} LP trend data with lpTrend array
+ */
+export async function getLpTrend(userId, queueType = 'all', limit) {
+  const params = new URLSearchParams()
+  if (queueType && queueType !== 'all') {
+    params.append('queueType', queueType)
+  }
+  if (limit) {
+    params.append('limit', limit.toString())
+  }
+
+  const endpoint = `/trends/lp/${userId}${params.toString() ? '?' + params.toString() : ''}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
+
+  if (response.status === 404) {
+    return null // No data found
+  }
+
+  return parseResponse(response, 'Failed to get LP trend')
 }
 
 // ============ Champion Matchups API ============

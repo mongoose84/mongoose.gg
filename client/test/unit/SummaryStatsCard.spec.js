@@ -1,12 +1,13 @@
 /**
  * Unit tests for SummaryStatsCard.vue
- * 
+ *
  * Tests cover:
  * - Component rendering with data
  * - Loading state display
  * - Empty state display
  * - Winrate color coding at various thresholds
- * - KDA formatting
+ * - K/D/A breakdown formatting
+ * - K/D/A trend-based coloring
  * - Edge cases (null values, zero games)
  */
 
@@ -21,6 +22,9 @@ describe('SummaryStatsCard', () => {
         gamesPlayed: 10,
         winRate: 55.5,
         avgKda: 3.25,
+        avgKills: 5.5,
+        avgDeaths: 3.2,
+        avgAssists: 8.1,
         ...props
       }
     })
@@ -44,10 +48,18 @@ describe('SummaryStatsCard', () => {
       expect(wrapper.text()).toContain('55.5%')
     })
 
-    it('displays average KDA', () => {
+    it('displays K/D/A breakdown', () => {
+      const wrapper = mountComponent({ avgKills: 5.5, avgDeaths: 3.2, avgAssists: 8.1 })
+      expect(wrapper.text()).toContain('K / D / A')
+      expect(wrapper.find('[data-testid="stat-kills-value"]').text()).toBe('5.5')
+      expect(wrapper.find('[data-testid="stat-deaths-value"]').text()).toBe('3.2')
+      expect(wrapper.find('[data-testid="stat-assists-value"]').text()).toBe('8.1')
+    })
+
+    it('displays KDA ratio as secondary text', () => {
       const wrapper = mountComponent({ avgKda: 3.25 })
-      expect(wrapper.text()).toContain('Avg KDA')
-      expect(wrapper.text()).toContain('3.25')
+      expect(wrapper.find('[data-testid="stat-kda-ratio"]').text()).toContain('3.25')
+      expect(wrapper.find('[data-testid="stat-kda-ratio"]').text()).toContain('KDA')
     })
 
     it('shows stats display when data is present', () => {
@@ -167,37 +179,195 @@ describe('SummaryStatsCard', () => {
     })
   })
 
-  describe('KDA formatting', () => {
-    it('formats KDA with two decimal places', () => {
-      const wrapper = mountComponent({ avgKda: 3.1 })
-      expect(wrapper.text()).toContain('3.10')
+  describe('K/D/A formatting', () => {
+    it('formats kills with one decimal place', () => {
+      const wrapper = mountComponent({ avgKills: 5.0 })
+      expect(wrapper.find('[data-testid="stat-kills-value"]').text()).toBe('5.0')
     })
 
-    it('rounds KDA to two decimal places', () => {
-      const wrapper = mountComponent({ avgKda: 2.567 })
-      expect(wrapper.text()).toContain('2.57')
+    it('formats deaths with one decimal place', () => {
+      const wrapper = mountComponent({ avgDeaths: 3.0 })
+      expect(wrapper.find('[data-testid="stat-deaths-value"]').text()).toBe('3.0')
     })
 
-    it('shows -- when avgKda is null', () => {
-      const wrapper = mountComponent({ avgKda: null })
-      const kdaValue = wrapper.find('[data-testid="stat-kda-value"]')
-      expect(kdaValue.text()).toBe('--')
+    it('formats assists with one decimal place', () => {
+      const wrapper = mountComponent({ avgAssists: 8.0 })
+      expect(wrapper.find('[data-testid="stat-assists-value"]').text()).toBe('8.0')
     })
 
-    it('shows -- when avgKda is undefined', () => {
-      const wrapper = mountComponent({ avgKda: undefined })
-      const kdaValue = wrapper.find('[data-testid="stat-kda-value"]')
-      expect(kdaValue.text()).toBe('--')
+    it('shows -- when avgKills is null', () => {
+      const wrapper = mountComponent({ avgKills: null })
+      expect(wrapper.find('[data-testid="stat-kills-value"]').text()).toBe('--')
     })
 
-    it('handles 0 KDA', () => {
-      const wrapper = mountComponent({ avgKda: 0 })
-      expect(wrapper.text()).toContain('0.00')
+    it('shows -- when avgDeaths is null', () => {
+      const wrapper = mountComponent({ avgDeaths: null })
+      expect(wrapper.find('[data-testid="stat-deaths-value"]').text()).toBe('--')
     })
 
-    it('handles high KDA values', () => {
-      const wrapper = mountComponent({ avgKda: 15.75 })
-      expect(wrapper.text()).toContain('15.75')
+    it('shows -- when avgAssists is null', () => {
+      const wrapper = mountComponent({ avgAssists: null })
+      expect(wrapper.find('[data-testid="stat-assists-value"]').text()).toBe('--')
+    })
+
+    it('displays KDA ratio with two decimal places', () => {
+      const wrapper = mountComponent({ avgKda: 3.10 })
+      expect(wrapper.find('[data-testid="stat-kda-ratio"]').text()).toContain('3.10')
+    })
+
+    it('shows -- for KDA ratio when avgKda is null and K/D/A are null', () => {
+      const wrapper = mountComponent({ avgKda: null, avgKills: null, avgDeaths: null, avgAssists: null })
+      expect(wrapper.find('[data-testid="stat-kda-ratio"]').text()).toContain('--')
+    })
+
+    it('handles 0 values', () => {
+      const wrapper = mountComponent({ avgKills: 0, avgDeaths: 0, avgAssists: 0 })
+      expect(wrapper.find('[data-testid="stat-kills-value"]').text()).toBe('0.0')
+      expect(wrapper.find('[data-testid="stat-deaths-value"]').text()).toBe('0.0')
+      expect(wrapper.find('[data-testid="stat-assists-value"]').text()).toBe('0.0')
+    })
+
+    it('handles high K/D/A values', () => {
+      const wrapper = mountComponent({ avgKills: 15.5, avgDeaths: 2.3, avgAssists: 12.7 })
+      expect(wrapper.find('[data-testid="stat-kills-value"]').text()).toBe('15.5')
+      expect(wrapper.find('[data-testid="stat-deaths-value"]').text()).toBe('2.3')
+      expect(wrapper.find('[data-testid="stat-assists-value"]').text()).toBe('12.7')
+    })
+  })
+
+  describe('K/D/A trend coloring', () => {
+    it('applies positive trend to kills when selected period > overall avg', () => {
+      const wrapper = mountComponent({
+        avgKills: 6.0,
+        avgDeaths: 3.0,
+        avgAssists: 8.0,
+        overallAvgKills: 5.0,
+        overallAvgDeaths: 3.0,
+        overallAvgAssists: 8.0
+      })
+      expect(wrapper.find('[data-testid="stat-kills-value"]').classes()).toContain('trend-positive')
+    })
+
+    it('applies negative trend to kills when selected period < overall avg', () => {
+      const wrapper = mountComponent({
+        avgKills: 4.0,
+        avgDeaths: 3.0,
+        avgAssists: 8.0,
+        overallAvgKills: 5.0,
+        overallAvgDeaths: 3.0,
+        overallAvgAssists: 8.0
+      })
+      expect(wrapper.find('[data-testid="stat-kills-value"]').classes()).toContain('trend-negative')
+    })
+
+    it('applies positive trend to deaths when selected period < overall avg (fewer deaths = good)', () => {
+      const wrapper = mountComponent({
+        avgKills: 5.0,
+        avgDeaths: 3.0,
+        avgAssists: 8.0,
+        overallAvgKills: 5.0,
+        overallAvgDeaths: 4.0,
+        overallAvgAssists: 8.0
+      })
+      expect(wrapper.find('[data-testid="stat-deaths-value"]').classes()).toContain('trend-positive')
+    })
+
+    it('applies negative trend to deaths when selected period > overall avg (more deaths = bad)', () => {
+      const wrapper = mountComponent({
+        avgKills: 5.0,
+        avgDeaths: 4.0,
+        avgAssists: 8.0,
+        overallAvgKills: 5.0,
+        overallAvgDeaths: 3.0,
+        overallAvgAssists: 8.0
+      })
+      expect(wrapper.find('[data-testid="stat-deaths-value"]').classes()).toContain('trend-negative')
+    })
+
+    it('applies positive trend to assists when selected period > overall avg', () => {
+      const wrapper = mountComponent({
+        avgKills: 5.0,
+        avgDeaths: 3.0,
+        avgAssists: 10.0,
+        overallAvgKills: 5.0,
+        overallAvgDeaths: 3.0,
+        overallAvgAssists: 8.0
+      })
+      expect(wrapper.find('[data-testid="stat-assists-value"]').classes()).toContain('trend-positive')
+    })
+
+    it('applies negative trend to assists when selected period < overall avg', () => {
+      const wrapper = mountComponent({
+        avgKills: 5.0,
+        avgDeaths: 3.0,
+        avgAssists: 6.0,
+        overallAvgKills: 5.0,
+        overallAvgDeaths: 3.0,
+        overallAvgAssists: 8.0
+      })
+      expect(wrapper.find('[data-testid="stat-assists-value"]').classes()).toContain('trend-negative')
+    })
+
+    it('does not apply trend colors when overall data is missing', () => {
+      const wrapper = mountComponent({
+        avgKills: 5.0,
+        avgDeaths: 3.0,
+        avgAssists: 8.0,
+        overallAvgKills: null,
+        overallAvgDeaths: null,
+        overallAvgAssists: null
+      })
+      expect(wrapper.find('[data-testid="stat-kills-value"]').classes()).not.toContain('trend-positive')
+      expect(wrapper.find('[data-testid="stat-kills-value"]').classes()).not.toContain('trend-negative')
+    })
+
+    it('does not apply trend colors when values are equal', () => {
+      const wrapper = mountComponent({
+        avgKills: 5.0,
+        avgDeaths: 3.0,
+        avgAssists: 8.0,
+        overallAvgKills: 5.0,
+        overallAvgDeaths: 3.0,
+        overallAvgAssists: 8.0
+      })
+      expect(wrapper.find('[data-testid="stat-kills-value"]').classes()).not.toContain('trend-positive')
+      expect(wrapper.find('[data-testid="stat-kills-value"]').classes()).not.toContain('trend-negative')
+    })
+  })
+
+  describe('Winrate trend coloring', () => {
+    it('applies positive trend to winrate when selected period > overall', () => {
+      const wrapper = mountComponent({
+        winRate: 55.0,
+        overallWinRate: 50.0
+      })
+      expect(wrapper.find('[data-testid="stat-winrate-value"]').classes()).toContain('trend-positive')
+    })
+
+    it('applies negative trend to winrate when selected period < overall', () => {
+      const wrapper = mountComponent({
+        winRate: 45.0,
+        overallWinRate: 50.0
+      })
+      expect(wrapper.find('[data-testid="stat-winrate-value"]').classes()).toContain('trend-negative')
+    })
+
+    it('does not apply trend colors to winrate when overall data is missing', () => {
+      const wrapper = mountComponent({
+        winRate: 50.0,
+        overallWinRate: null
+      })
+      expect(wrapper.find('[data-testid="stat-winrate-value"]').classes()).not.toContain('trend-positive')
+      expect(wrapper.find('[data-testid="stat-winrate-value"]').classes()).not.toContain('trend-negative')
+    })
+
+    it('does not apply trend colors to winrate when values are equal', () => {
+      const wrapper = mountComponent({
+        winRate: 50.0,
+        overallWinRate: 50.0
+      })
+      expect(wrapper.find('[data-testid="stat-winrate-value"]').classes()).not.toContain('trend-positive')
+      expect(wrapper.find('[data-testid="stat-winrate-value"]').classes()).not.toContain('trend-negative')
     })
   })
 
@@ -246,7 +416,7 @@ describe('SummaryStatsCard', () => {
 
       expect(wrapper.find('[data-testid="stat-games"]').text()).toContain('Games')
       expect(wrapper.find('[data-testid="stat-winrate"]').text()).toContain('Winrate')
-      expect(wrapper.find('[data-testid="stat-kda"]').text()).toContain('Avg KDA')
+      expect(wrapper.find('[data-testid="stat-kda"]').text()).toContain('Average K / D / A')
     })
   })
 })

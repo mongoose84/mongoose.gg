@@ -6,7 +6,7 @@
 >
 > “Not just another builds app - Mongoose helps you improve between games and track progress over time.”
 
-Crafted with love by the Agile Astronaut. 
+Crafted with love by the Agile Astronaut.
 First 500 users get free Pro tier. Keep a counter on the landing page of how many free users are left.
 
 ## Pricing Model
@@ -97,9 +97,9 @@ Enable users to receive personalized improvement goals powered by LLM analysis.
 
 ### B1. [Infrastructure] Create LLM provider abstraction layer
 
-**Priority:** P0 - Critical  
-**Type:** Infrastructure  
-**Estimate:** 3 points  
+**Priority:** P0 - Critical
+**Type:** Infrastructure
+**Estimate:** 3 points
 **Labels:** `infrastructure`, `ai`, `epic-b`
 
 #### Description
@@ -118,10 +118,10 @@ Create abstraction layer for swapping LLM providers.
 
 ### B2. [Infrastructure] Implement OpenAI LLM client
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** B1  
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** B1
 **Labels:** `infrastructure`, `ai`, `openai`, `epic-b`
 
 #### Description
@@ -140,10 +140,10 @@ Implement OpenAI provider for LLM abstraction.
 
 ### B3. [Infrastructure] Add LLM rate limiting per user
 
-**Priority:** P1 - High  
-**Type:** Infrastructure  
-**Estimate:** 2 points  
-**Depends on:** B1  
+**Priority:** P1 - High
+**Type:** Infrastructure
+**Estimate:** 2 points
+**Depends on:** B1
 **Labels:** `infrastructure`, `rate-limiting`, `epic-b`
 
 #### Description
@@ -161,9 +161,9 @@ Rate limiting for LLM API usage costs.
 
 ### B4. [Database] Create Goal and GoalProgress tables
 
-**Priority:** P0 - Critical  
-**Type:** Database Migration  
-**Estimate:** 2 points  
+**Priority:** P0 - Critical
+**Type:** Database Migration
+**Estimate:** 2 points
 **Labels:** `database`, `migration`, `epic-b`
 
 #### Description
@@ -180,9 +180,9 @@ Database schema for user goals and progress tracking.
 
 ### B5. [Service] Create player stats aggregation service
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 3 points  
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 3 points
 **Labels:** `service`, `statistics`, `epic-b`
 
 #### Description
@@ -201,10 +201,10 @@ Service to aggregate player statistics for LLM analysis.
 
 ### B6. [Service] Create goal recommendation prompt builder
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** B5  
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** B5
 **Labels:** `service`, `ai`, `epic-b`
 
 #### Description
@@ -223,10 +223,10 @@ Service to build effective prompts for LLM goal recommendations.
 
 ### B7. [Service] Create goal recommendation service
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** B1, B5, B6  
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** B1, B5, B6
 **Labels:** `service`, `ai`, `epic-b`
 
 #### Description
@@ -244,10 +244,10 @@ Orchestrate goal recommendation flow.
 
 ### B8. [API] Create goal recommendation endpoint
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** B7  
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** B7
 **Labels:** `api`, `endpoints`, `epic-b`
 
 #### Description
@@ -265,10 +265,10 @@ API endpoint for goal recommendations.
 
 ### B9. [API] Create goal CRUD endpoints
 
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** B4  
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** B4
 **Labels:** `api`, `endpoints`, `epic-b`
 
 #### Description
@@ -287,10 +287,10 @@ Endpoints to manage user goals.
 
 ### B10. [Service] Create goal progress tracking service
 
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** B4, B5  
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** B4, B5
 **Labels:** `service`, `progress`, `epic-b`
 
 #### Description
@@ -308,10 +308,10 @@ Automatically track goal progress as matches sync.
 
 ### B11. [Background] Create goal progress update job
 
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** B10  
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** B10
 **Labels:** `background-job`, `epic-b`
 
 #### Description
@@ -328,10 +328,10 @@ Background job to update goal progress after match sync.
 
 ### B12. [API] Create goal progress endpoint
 
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 1 point  
-**Depends on:** B10  
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 1 point
+**Depends on:** B10
 **Labels:** `api`, `endpoints`, `epic-b`
 
 #### Description
@@ -348,10 +348,10 @@ Endpoint for goal progress history.
 
 ### B13. [Frontend] Create goal recommendation UI component
 
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** B8  
+**Priority:** P2 - Medium
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** B8
 **Labels:** `frontend`, `vue`, `epic-b`
 
 #### Description
@@ -369,10 +369,10 @@ Vue component for goal recommendations.
 
 ### B14. [Frontend] Create active goals display component
 
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** B9, B12  
+**Priority:** P2 - Medium
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** B9, B12
 **Labels:** `frontend`, `vue`, `epic-b`
 
 #### Description
@@ -389,10 +389,10 @@ Vue component for active goals with progress.
 
 ### B15. [Frontend] Create goal progress chart component
 
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** B12, B14  
+**Priority:** P2 - Medium
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** B12, B14
 **Labels:** `frontend`, `vue`, `charts`, `epic-b`
 
 #### Description
@@ -409,10 +409,10 @@ Chart showing goal progress over time.
 
 ### B16. [Infrastructure] Implement Anthropic Claude LLM client
 
-**Priority:** P3 - Low  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** B1  
+**Priority:** P3 - Low
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** B1
 **Labels:** `infrastructure`, `ai`, `anthropic`, `epic-b`
 
 #### Description
@@ -429,10 +429,10 @@ Anthropic Claude provider for LLM abstraction.
 
 ### B17. [Feature] Add conversational follow-up support
 
-**Priority:** P3 - Low  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Depends on:** B7  
+**Priority:** P3 - Low
+**Type:** Feature
+**Estimate:** 5 points
+**Depends on:** B7
 **Labels:** `feature`, `ai`, `conversation`, `epic-b`
 
 #### Description
@@ -450,10 +450,10 @@ Enable follow-up questions about goals.
 
 ### B18. [AI] Add rules-of-climbing domain context for recommendations
 
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** B5, B6, B7  
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** B5, B6, B7
 **Labels:** `ai`, `prompting`, `epic-b`
 
 #### Description
@@ -462,17 +462,17 @@ Use the concepts in `./rules_of_climbing.md` as domain context so the AI can int
 
 #### Acceptance Criteria
 
-- [ ] Summarize the key rules from `./rules_of_climbing.md` into a stable, versioned system prompt (or configuration)  
-- [ ] Ensure `IGoalPromptBuilder` includes this context for solo, duo and team prompts  
+- [ ] Summarize the key rules from `./rules_of_climbing.md` into a stable, versioned system prompt (or configuration)
+- [ ] Ensure `IGoalPromptBuilder` includes this context for solo, duo and team prompts
 - [ ] Add tests or fixtures that verify the rules context is present in prompts so changes are explicit
 
 ---
 
 ### B19. [Discovery] Clarify AI goals vs coaching product direction
 
-**Priority:** P1 - High  
-**Type:** Discovery  
-**Estimate:** 3 points  
+**Priority:** P1 - High
+**Type:** Discovery
+**Estimate:** 3 points
 **Labels:** `product`, `strategy`, `ai`, `epic-b`
 
 #### Description
@@ -481,20 +481,20 @@ Clarify how far the AI experience should go beyond one-off goal recommendations 
 
 #### Acceptance Criteria
 
-- [ ] Talk to at least 3–5 representative users (or prospects) about their expectations from "AI help" vs. human-like coaching  
-- [ ] Map out a simple spectrum from "lightweight guidance" → "full coaching" and decide explicitly where mongoose.gg should sit for the next 6–12 months  
-- [ ] Document 3–5 primary AI use cases (e.g. post-game feedback, champion select advice, long-term goals) and 3–5 things that are explicitly out of scope for now  
-- [ ] Capture constraints (latency, cost per user, data needed) that will influence technical design for AI features  
+- [ ] Talk to at least 3–5 representative users (or prospects) about their expectations from "AI help" vs. human-like coaching
+- [ ] Map out a simple spectrum from "lightweight guidance" → "full coaching" and decide explicitly where mongoose.gg should sit for the next 6–12 months
+- [ ] Document 3–5 primary AI use cases (e.g. post-game feedback, champion select advice, long-term goals) and 3–5 things that are explicitly out of scope for now
+- [ ] Capture constraints (latency, cost per user, data needed) that will influence technical design for AI features
 - [ ] Produce a short written brief (1–2 pages) that is linked from this task and referenced by B20 and B21
 
 ---
 
 ### B20. [Feature] Post-game AI feedback (Pro, on-demand)
 
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 5 points  
-**Depends on:** B5, B6, B7, B8, B19, B21  
+**Priority:** P2 - Medium
+**Type:** Feature
+**Estimate:** 5 points
+**Depends on:** B5, B6, B7, B8, B19, B21
 **Labels:** `ai`, `goals`, `post-game`, `pro`, `epic-b`
 
 #### Description
@@ -503,26 +503,26 @@ Allow Pro users to request AI feedback after a specific match. The AI reviews th
 
 #### Acceptance Criteria
 
-- [ ] Add an internal API contract for requesting post-game feedback (e.g. match id + context such as lane/role, primary goals) built on top of the existing AI goal/analysis pipeline from Epic B  
-- [ ] Feedback includes:  
-  - 1–2 sentences of overall summary  
-  - Bullet list of 2–3 key mistakes or improvement areas grounded in match stats (CS, gold, deaths, objectives, etc.)  
-  - 2–3 specific, testable suggestions for next games (e.g. "aim for 7 CS/min by 10 minutes", "ward river before pushing past mid lane by 6 minutes")  
-- [ ] Clearly labelled as a **Pro** feature in the UI; Free users see an upgrade CTA instead of triggering the AI call  
-- [ ] Rate limiting and usage tracking are in place so we can control cost per user (e.g. max N feedback requests per day/week)  
-- [ ] Feedback is explicitly framed in the context of recent trends (e.g. last 10–20 games) so that single-match insights are clearly part of a multi-game pattern, not isolated judgments  
-- [ ] From the feedback UI, users can easily navigate to longer-term improvement views (e.g. goals or analysis pages) so goal management remains centralized rather than handled ad-hoc per match  
-- [ ] Copy avoids deterministic win/loss predictions and instead focuses on preparation, trend awareness, and actionable next steps  
+- [ ] Add an internal API contract for requesting post-game feedback (e.g. match id + context such as lane/role, primary goals) built on top of the existing AI goal/analysis pipeline from Epic B
+- [ ] Feedback includes:
+  - 1–2 sentences of overall summary
+  - Bullet list of 2–3 key mistakes or improvement areas grounded in match stats (CS, gold, deaths, objectives, etc.)
+  - 2–3 specific, testable suggestions for next games (e.g. "aim for 7 CS/min by 10 minutes", "ward river before pushing past mid lane by 6 minutes")
+- [ ] Clearly labelled as a **Pro** feature in the UI; Free users see an upgrade CTA instead of triggering the AI call
+- [ ] Rate limiting and usage tracking are in place so we can control cost per user (e.g. max N feedback requests per day/week)
+- [ ] Feedback is explicitly framed in the context of recent trends (e.g. last 10–20 games) so that single-match insights are clearly part of a multi-game pattern, not isolated judgments
+- [ ] From the feedback UI, users can easily navigate to longer-term improvement views (e.g. goals or analysis pages) so goal management remains centralized rather than handled ad-hoc per match
+- [ ] Copy avoids deterministic win/loss predictions and instead focuses on preparation, trend awareness, and actionable next steps
 - [ ] UX is designed so users can easily request feedback from the match details view without getting lost (discoverable entry point and clear loading/empty states)
 
 ---
 
 ### B21. [Infrastructure] Extend database for AI coaching metrics
 
-**Priority:** P1 - High  
-**Type:** Infrastructure  
-**Estimate:** 5 points  
-**Depends on:** B4, E5  
+**Priority:** P1 - High
+**Type:** Infrastructure
+**Estimate:** 5 points
+**Depends on:** B4, E5
 **Labels:** `database`, `ai`, `analytics`, `epic-b`
 
 #### Description
@@ -531,10 +531,10 @@ Extend the database schema so we can persist the extra metrics and derived data 
 
 #### Acceptance Criteria
 
-- [ ] Identify which additional metrics beyond the current schema are required for post-game AI feedback and medium-term coaching (e.g. lane gold difference at 10/15 minutes, jungle proximity, warding patterns)  
-- [ ] Propose schema changes (new tables or columns) and add them to `../architecture/database-schema.md` before implementation  
-- [ ] Implement the schema changes via MySQL migrations and repository updates  
-- [ ] Backfill or derive the new metrics for existing matches where feasible, or explicitly document which metrics are only available for newly synced games  
+- [ ] Identify which additional metrics beyond the current schema are required for post-game AI feedback and medium-term coaching (e.g. lane gold difference at 10/15 minutes, jungle proximity, warding patterns)
+- [ ] Propose schema changes (new tables or columns) and add them to `../architecture/database-schema.md` before implementation
+- [ ] Implement the schema changes via MySQL migrations and repository updates
+- [ ] Backfill or derive the new metrics for existing matches where feasible, or explicitly document which metrics are only available for newly synced games
 - [ ] Verify that the new metrics can be queried efficiently enough for AI requests without causing performance issues on the main dashboards
 
 ---
@@ -549,9 +549,9 @@ Implement tiered subscriptions with Mollie integration (European payment provide
 
 ### C1. [Infrastructure] Set up Mollie integration
 
-**Priority:** P0 - Critical  
-**Type:** Infrastructure  
-**Estimate:** 3 points  
+**Priority:** P0 - Critical
+**Type:** Infrastructure
+**Estimate:** 3 points
 **Labels:** `infrastructure`, `payments`, `mollie`, `epic-c`
 
 #### Description
@@ -576,9 +576,9 @@ Set up Mollie SDK and configuration for payment processing (European payment pro
 
 ### C2. [Database] Create subscription tables
 
-**Priority:** P0 - Critical  
-**Type:** Database Migration  
-**Estimate:** 2 points  
+**Priority:** P0 - Critical
+**Type:** Database Migration
+**Estimate:** 2 points
 **Labels:** `database`, `migration`, `epic-c`
 
 #### Description
@@ -615,10 +615,10 @@ Database schema for subscriptions and billing.
 
 ### C4. [Service] Create Mollie customer service
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** C1, C2  
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** C1, C2
 **Labels:** `service`, `mollie`, `epic-c`
 
 #### Description
@@ -637,10 +637,10 @@ Service to manage Mollie customers.
 
 ### C5. [Service] Create subscription management service
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** C2, C4  
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** C2, C4
 **Labels:** `service`, `stripe`, `epic-c`
 
 #### Description
@@ -660,10 +660,10 @@ Service to manage subscription lifecycle.
 
 ### C6. [API] Create Mollie webhook handler
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 3 points  
-**Depends on:** C1, C5  
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 3 points
+**Depends on:** C1, C5
 **Labels:** `api`, `mollie`, `webhook`, `epic-c`
 
 #### Description
@@ -685,10 +685,10 @@ Handle Mollie webhook events for subscription updates.
 
 ### C7. [API] Create subscription endpoints
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** C5  
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** C5
 **Labels:** `api`, `endpoints`, `epic-c`
 
 #### Description
@@ -708,10 +708,10 @@ API endpoints for subscription management.
 
 ### C8. [Service] Create feature flag service
 
-**Priority:** P0 - Critical  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** C3  
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** C3
 **Labels:** `service`, `feature-flags`, `epic-c`
 
 #### Description
@@ -749,10 +749,10 @@ Service to check feature access based on subscription tier.
 
 ### C9. [Middleware] Create feature gate middleware
 
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** C8  
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** C8
 **Labels:** `middleware`, `feature-flags`, `epic-c`
 
 #### Description
@@ -770,10 +770,10 @@ Middleware/attribute to protect endpoints by feature.
 
 ### C12. [Frontend] Create upgrade prompt component
 
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** C7  
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** C7
 **Labels:** `frontend`, `vue`, `epic-c`
 
 #### Description
@@ -787,17 +787,17 @@ Component to prompt users to upgrade when hitting feature limits.
 - [ ] Display benefits of upgrading
 - [ ] "Upgrade to Pro" / "Upgrade to Team" buttons
 - [ ] Redirect to Mollie checkout
-- [ ] Default usage pattern is non-blocking on core flows (e.g. Overview, Solo dashboard, match details): prompts appear as inline cards, panels, or sidebars so the primary task remains usable even if the user ignores the upgrade CTA  
-- [ ] Visual style and copy follow the dark, tool-like aesthetic from `docs/ui-ux/ui-design-guidelines.md` rather than feeling like a separate marketing page  
+- [ ] Default usage pattern is non-blocking on core flows (e.g. Overview, Solo dashboard, match details): prompts appear as inline cards, panels, or sidebars so the primary task remains usable even if the user ignores the upgrade CTA
+- [ ] Visual style and copy follow the dark, tool-like aesthetic from `docs/ui-ux/ui-design-guidelines.md` rather than feeling like a separate marketing page
 
 ---
 
 ### C14. [Frontend] Gate features based on tier
 
-**Priority:** P1 - High  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** C8, C10  
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** C8, C10
 **Labels:** `frontend`, `vue`, `epic-c`
 
 #### Description
@@ -811,8 +811,8 @@ Implement frontend feature gating.
 - [ ] Hide/disable features user can't access
 - [ ] Show upgrade prompt instead of blocked features
 - [ ] Blur/overlay for teaser content
-- [ ] When a feature is gated, prefer inline locked states (blurred content, inline `UpgradePrompt`) over full-screen blocks for core orientation pages (e.g. Overview and main dashboards), keeping basic tool functionality available to Free users  
-- [ ] Gated experiences consistently use `UpgradePrompt.vue` for messaging so paywall UX is uniform across the app  
+- [ ] When a feature is gated, prefer inline locked states (blurred content, inline `UpgradePrompt`) over full-screen blocks for core orientation pages (e.g. Overview and main dashboards), keeping basic tool functionality available to Free users
+- [ ] Gated experiences consistently use `UpgradePrompt.vue` for messaging so paywall UX is uniform across the app
 
 ---
 
@@ -866,7 +866,7 @@ Evaluate the current schema and add migrations as required to support:
 - [ ] Users can create/join Duo/Team spaces as Guests
 - [ ] In-group collaboration modules (team dashboard/shared goals/voting) show locked state + upgrade nudges for Guests
 - [ ] Goal setting/tracking UX is paywalled cleanly for Free users with upgrade path to Pro
-- [ ] Paywall UX for collaboration, goals, and AI features follows the shared patterns from C12/C14: non-blocking on core orientation flows (e.g. Overview, Solo dashboard) and implemented via consistent `UpgradePrompt` + inline locked states rather than full-screen walls  
+- [ ] Paywall UX for collaboration, goals, and AI features follows the shared patterns from C12/C14: non-blocking on core orientation flows (e.g. Overview, Solo dashboard) and implemented via consistent `UpgradePrompt` + inline locked states rather than full-screen walls
 
 **Validation**
 
@@ -877,10 +877,10 @@ Evaluate the current schema and add migrations as required to support:
 
 ### C15. [Service] Create founding member pricing
 
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** C5  
+**Priority:** P2 - Medium
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** C5
 **Labels:** `service`, `pricing`, `epic-c`
 
 #### Description
@@ -899,9 +899,9 @@ Special pricing for first 100 users.
 
 ### C16. [Database] Create referral tracking
 
-**Priority:** P3 - Low  
-**Type:** Feature  
-**Estimate:** 2 points  
+**Priority:** P3 - Low
+**Type:** Feature
+**Estimate:** 2 points
 **Labels:** `database`, `referral`, `epic-c`
 
 #### Description
@@ -929,10 +929,10 @@ Track user behavior to inform product decisions.
 
 ### D10. [Frontend] Implement cookie consent & preferences
 
-**Priority:** P2 - Medium  
-**Type:** Feature  
-**Estimate:** 2 points  
-**Depends on:** D1, F7  
+**Priority:** P2 - Medium
+**Type:** Feature
+**Estimate:** 2 points
+**Depends on:** D1, F7
 **Labels:** `frontend`, `analytics`, `privacy`, `epic-d`
 
 #### Description
@@ -941,22 +941,22 @@ Provide a cookie consent banner and preferences so users can control analytics c
 
 #### Acceptance Criteria
 
-- [ ] On first visit, show a cookie banner that explains the difference between strictly necessary cookies (e.g. auth/session, CSRF) and optional analytics cookies (PostHog or similar from D1)  
-- [ ] Banner offers at least "Accept all" and "Use only necessary cookies" actions; a "Customize" flow can be implemented as a simple preferences dialog or follow-up view  
-- [ ] Authentication/session cookies used for login (F7/F11) are treated as strictly necessary and remain enabled even when the user chooses "only necessary cookies"  
-- [ ] Analytics tracking code is only initialized after the user has granted consent for analytics cookies, and respects the stored preference on subsequent visits  
-- [ ] Cookie/consent preferences are stored (e.g. in a consent cookie or `localStorage`) and can be changed later via a "Cookie settings" link in the footer or account/settings area  
+- [ ] On first visit, show a cookie banner that explains the difference between strictly necessary cookies (e.g. auth/session, CSRF) and optional analytics cookies (PostHog or similar from D1)
+- [ ] Banner offers at least "Accept all" and "Use only necessary cookies" actions; a "Customize" flow can be implemented as a simple preferences dialog or follow-up view
+- [ ] Authentication/session cookies used for login (F7/F11) are treated as strictly necessary and remain enabled even when the user chooses "only necessary cookies"
+- [ ] Analytics tracking code is only initialized after the user has granted consent for analytics cookies, and respects the stored preference on subsequent visits
+- [ ] Cookie/consent preferences are stored (e.g. in a consent cookie or `localStorage`) and can be changed later via a "Cookie settings" link in the footer or account/settings area
 - [ ] The implementation is wired into the analytics work from D1/D2 so that events are not sent when analytics cookies have been declined
-- [ ] Consent UI is implemented as a non-blocking banner or slim sheet (not a full-screen modal) on first visit so the app retains its fast, tool-like feel and users can quickly reach core pages like Overview  
+- [ ] Consent UI is implemented as a non-blocking banner or slim sheet (not a full-screen modal) on first visit so the app retains its fast, tool-like feel and users can quickly reach core pages like Overview
 
 ---
 
 ### D11. [Research] Evaluate Betterlytics analytics platform
 
-**Priority:** P2 - Medium  
-**Type:** Research  
-**Estimate:** 2 points  
-**Depends on:** D1  
+**Priority:** P2 - Medium
+**Type:** Research
+**Estimate:** 2 points
+**Depends on:** D1
 **Labels:** `analytics`, `evaluation`, `epic-d`
 
 #### Description
@@ -965,10 +965,10 @@ Do a short, focused evaluation of Betterlytics as a potential analytics provider
 
 #### Acceptance Criteria
 
-- [ ] Set up a small, non-production test project with Betterlytics (or go through an interactive demo) using a subset of mongoose.gg events  
-- [ ] Compare pricing, event limits, and key features (funnels, retention, user paths, etc.) against the current analytics setup  
-- [ ] Identify any hard blockers (e.g. lack of EU hosting, missing features we rely on) and any must-have advantages  
-- [ ] Produce a brief written recommendation (stay with current stack vs. pilot Betterlytics alongside it) including a rough estimate of events/month and expected cost  
+- [ ] Set up a small, non-production test project with Betterlytics (or go through an interactive demo) using a subset of mongoose.gg events
+- [ ] Compare pricing, event limits, and key features (funnels, retention, user paths, etc.) against the current analytics setup
+- [ ] Identify any hard blockers (e.g. lack of EU hosting, missing features we rely on) and any must-have advantages
+- [ ] Produce a brief written recommendation (stay with current stack vs. pilot Betterlytics alongside it) including a rough estimate of events/month and expected cost
 - [ ] Document the outcome in `docs/analytics/` and link from this task
 
 ---
@@ -1069,10 +1069,10 @@ Provide consistent, user-friendly error responses from the API surface and avoid
 
 #### Acceptance Criteria
 
-- [ ] Add global exception handling middleware/filter that returns a standard error shape (e.g. RFC 7807-style problem details)  
-- [ ] Map validation and domain errors to 4xx responses with clear, structured error information  
-- [ ] Map unexpected failures to 5xx responses with a generic message and correlation id  
-- [ ] Integrate with error tracking (Epic D7) so important failures are logged with context  
+- [ ] Add global exception handling middleware/filter that returns a standard error shape (e.g. RFC 7807-style problem details)
+- [ ] Map validation and domain errors to 4xx responses with clear, structured error information
+- [ ] Map unexpected failures to 5xx responses with a generic message and correlation id
+- [ ] Integrate with error tracking (Epic D7) so important failures are logged with context
 - [ ] Update a representative set of endpoints to use the standardized error patterns
 
 ---
@@ -1080,9 +1080,9 @@ Provide consistent, user-friendly error responses from the API surface and avoid
 
 ### F10. [Reliability] Audit async methods for CancellationToken usage
 
-**Priority:** P2 - Medium  
-**Type:** Chore  
-**Estimate:** 3 points  
+**Priority:** P2 - Medium
+**Type:** Chore
+**Estimate:** 3 points
 **Labels:** `reliability`, `async`, `epic-f`
 
 #### Description
@@ -1091,9 +1091,9 @@ Ensure all important async operations in the backend respect `CancellationToken`
 
 #### Acceptance Criteria
 
-- [ ] Identify public async methods in the Application, Endpoints, and Infrastructure layers  
-- [ ] Add `CancellationToken` parameters where missing and thread them through to HTTP and database calls  
-- [ ] Wire up tokens from ASP.NET request pipeline and background job scheduler  
+- [ ] Identify public async methods in the Application, Endpoints, and Infrastructure layers
+- [ ] Add `CancellationToken` parameters where missing and thread them through to HTTP and database calls
+- [ ] Wire up tokens from ASP.NET request pipeline and background job scheduler
 - [ ] Add at least a couple of tests that verify cancellation is honored for long-running operations
 
 ---
@@ -1120,9 +1120,9 @@ Provide API endpoints for managing friends/duos/teams and searching for LoL acco
 
 ### F15. [Bug] Preserve username casing while keeping login case-insensitive
 
-**Priority:** P2 - Medium  
-**Type:** Bug  
-**Estimate:** 1 point  
+**Priority:** P2 - Medium
+**Type:** Bug
+**Estimate:** 1 point
 **Labels:** `api`, `auth`, `users`, `epic-f`
 
 #### Description
@@ -1131,20 +1131,20 @@ Usernames are currently being lowercased so a user who signs up as `DoendW` is s
 
 #### Acceptance Criteria
 
-- [ ] Usernames are stored with the exact casing entered at signup (e.g. `DoendW` remains `DoendW` in the database and UI)  
-- [ ] Login remains case-insensitive: entering `doendw` or `DOENDW` still logs in the same user account  
-- [ ] Uniqueness checks for usernames remain case-insensitive so `DoendW` and `doendw` cannot coexist as separate accounts  
-- [ ] Existing users with lowercased display names are either migrated or handled so they see their preferred casing going forward (with a reasonable default for those who don't care)  
+- [ ] Usernames are stored with the exact casing entered at signup (e.g. `DoendW` remains `DoendW` in the database and UI)
+- [ ] Login remains case-insensitive: entering `doendw` or `DOENDW` still logs in the same user account
+- [ ] Uniqueness checks for usernames remain case-insensitive so `DoendW` and `doendw` cannot coexist as separate accounts
+- [ ] Existing users with lowercased display names are either migrated or handled so they see their preferred casing going forward (with a reasonable default for those who don't care)
 - [ ] Add or update tests around signup/login and username normalization rules
 
 ---
 
 ### F16. [Chore] Rename RiotProxy backend to Mongoose.Api ✅
 
-**Priority:** P3 - Low  
-**Type:** Chore  
-**Estimate:** 3 points  
-**Status:** Complete  
+**Priority:** P3 - Low
+**Type:** Chore
+**Estimate:** 3 points
+**Status:** Complete
 **Labels:** `backend`, `naming`, `maintenance`, `epic-f`
 
 #### Description
@@ -1153,10 +1153,10 @@ Standardize the backend naming from "RiotProxy" to "Mongoose.Api" across the sol
 
 #### Acceptance Criteria
 
-- [ ] Rename the main backend project/assembly from RiotProxy to Mongoose.Api (or equivalent) in the .NET solution  
-- [ ] Update namespaces, configuration, and startup code references where needed so the app still builds and runs  
-- [ ] Update scripts, deployment configs, and documentation that reference the old RiotProxy name  
-- [ ] Ensure logging/telemetry identifiers reflect the new name where appropriate  
+- [ ] Rename the main backend project/assembly from RiotProxy to Mongoose.Api (or equivalent) in the .NET solution
+- [ ] Update namespaces, configuration, and startup code references where needed so the app still builds and runs
+- [ ] Update scripts, deployment configs, and documentation that reference the old RiotProxy name
+- [ ] Ensure logging/telemetry identifiers reflect the new name where appropriate
 - [ ] All backend tests still pass after the rename
 
 ---
@@ -1192,17 +1192,24 @@ Create a professional user experience with a landing page, pricing, and app shel
 
 ## G5 Epic: Frontend Solo Dashboard
 
-> **Solo v1 MVP scope:** Summary Stats Card (G5b18), LP Trend Chart (G5b5), Winrate Trend Chart (G5b4), Main Champions Card (G5b3 ✅). These 4 components answer the core user questions: "Am I climbing?", "Am I improving?", "How am I doing overall?", and "What am I playing?"
+> **Solo v1 MVP scope:** Summary Stats Card (G5b18), LP Trend Chart (G5b5), Winrate Trend Chart (G5b4). These 3 components answer the core user questions: "Am I climbing?", "Am I improving?", "How's my season going?"
 >
-> **Solo v2 (deferred):** Goals Panel (G5b7), Matchups Table (G5b6), Performance by Phase, Danger Zones Map.
+> **Layout:** Summary stats (full width, lightweight context row) → LP chart (left) + Winrate chart (right) side-by-side, both defaulting to last 20 games with an expand button to view the full season. Charts switch data range within the same half-width space (no modal, no full-width expansion). Uses shared `AnalysisLayout.vue` zone system (G5b19).
+>
+> **Research-informed design:** Summary Stats Card shows K/D/A breakdown (not just KDA ratio) with trend-based color treatment. Deaths are highlighted as the #1 actionable metric per academic research (see `docs/win-prediction-metrics-research.md`). Color treatment compares recent performance vs player's own average to answer "Am I improving?" at a glance.
+>
+> **Architecture:** Solo, Duo, and Team are **separate pages** with distinct routes (`/app/solo`, `/app/duo`, `/app/team`). Duo and Team are gated behind Pro tier. All three use the same zone-based layout component but fill zones with context-specific content.
+>
+> **Solo v2 (deferred):** Goals Panel (G5b7), Matchups Table (G5b6), Performance by Phase, Danger Zones Map (death heatmap informed by research), Session Performance Tracking (8-10% fatigue decline per research), Main Champions Card on Solo (stays on Champion Select).
 
 ---
 
-### G5b18. [Frontend] Implement Summary Stats Card
+### G5b18. [Frontend] Implement Summary Stats Card ✅
 
 **Priority:** P0 - Critical
 **Type:** Feature
 **Estimate:** 1 point
+**Status:** Complete
 **Depends on:** G5b1, F2
 **Labels:** `frontend`, `solo`, `dashboard`, `component`, `epic-g`, `solo-v1-mvp`
 
@@ -1210,21 +1217,153 @@ Create a professional user experience with a landing page, pricing, and app shel
 
 Create a Summary Stats Card that provides quick orientation on the Solo dashboard. This is a 5-second scan component answering "How am I doing overall?"
 
-The component displays key aggregate stats from the existing Solo performance endpoint. No new backend work required.
+**User research finding:** Players want K/D/A breakdown, not just KDA ratio. K/D/A is the universal language of League performance – every player thinks in "I averaged 5/3/7" not "my KDA was 3.2". The breakdown makes Deaths visible as a standalone number, which aligns with research showing deaths are the #1 actionable metric for improvement.
+
+**Design:** Three visual groups:
+1. **Games** – sample size context
+2. **Winrate** – outcome metric with color treatment
+3. **K / D / A** – performance breakdown (Kills / Deaths / Assists) with KDA ratio as secondary text below
+
+**Improvement tracking via color:** Each K/D/A stat is colored based on trend vs player's own average (not global benchmarks):
+- Kills: subtle green tint when last 20 games average > overall average
+- Deaths: subtle red tint when last 20 games average > overall average, subtle green tint when below
+- Assists: subtle green tint when last 20 games average > overall average
+- All three stats have equal visual weight (no special emphasis on Deaths)
+- KDA ratio displayed below K/D/A as secondary text (smaller, muted color)
+- This answers "Am I improving?" at a glance without requiring chart analysis
+
+**Backend requirements:**
+- Needs `avgKills`, `avgDeaths`, `avgAssists` fields added to `SoloPerformanceResponse`
+- Needs last 20 games averages for K/D/A (for trend comparison vs overall average)
 
 #### Acceptance Criteria
 
 - [ ] Component created at `client/src/components/solo/SummaryStatsCard.vue`
-- [ ] Displays the following stats in a compact, scannable layout:
-  - Games Played (total count)
-  - Winrate (percentage with color coding: green ≥52%, yellow 48-52%, red <48%)
-  - Average KDA (formatted as X.XX)
+- [ ] Displays three visual groups in a compact, scannable layout:
+  - **Games Played** (total count)
+  - **Winrate** (percentage with color coding: green ≥52%, red <48%, neutral otherwise)
+  - **K / D / A** (Kills / Deaths / Assists breakdown with KDA ratio as secondary text)
+- [ ] K/D/A stats show trend-based color treatment (subtle tint, not bold):
+  - Kills: green tint when last 20 games avg > overall avg
+  - Deaths: red tint when last 20 games avg > overall avg, green tint when below
+  - Assists: green tint when last 20 games avg > overall avg
+  - All three stats have equal visual weight
+- [ ] KDA ratio displayed below K/D/A as secondary text (smaller font, muted color)
 - [ ] Uses `BaseCard` component following `docs/ui-ux/ui-design-guidelines.md`
 - [ ] Responsive: stats stack on mobile, inline on desktop
 - [ ] Loading state with skeleton placeholders
 - [ ] Empty state when no games played: "No games found for this filter"
 - [ ] Reacts to queue filter and time range filter changes
-- [ ] Unit tests covering component rendering and edge cases
+- [ ] Unit tests covering component rendering, color logic, and edge cases
+
+---
+
+### G5b4. [Frontend + Backend] Winrate Over Time Chart ✅
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 5 points (3 FE + 2 BE via G5b13)
+**Status:** Complete
+**Depends on:** G5b1, G5b19 (AnalysisLayout), G5b13 (winrate trend data)
+**Labels:** `frontend`, `backend`, `solo`, `dashboard`, `chart`, `epic-g`, `solo-v1-mvp`
+
+#### Description
+
+Create a Winrate Over Time chart answering "Am I improving?" Displays rolling average winrate as a line chart. Placed **side-by-side with the LP chart** (right half of Zone 3) in the shared `AnalysisLayout` zone system.
+
+Defaults to **last 20 games** for quick momentum reading. Includes an expand button that switches the data range to the full season within the same half-width space (no modal or full-width expansion).
+
+The chart component is reusable across Solo, Duo, and Team pages.
+
+#### Acceptance Criteria
+
+- [ ] Component created at `client/src/components/solo/WinrateChart.vue`
+- [ ] Renders a Chart.js line chart showing rolling average winrate over games
+- [ ] Default data range: last 20 games
+- [ ] Expand button in chart header switches to full season data (all available games)
+- [ ] Data range switch happens within the same half-width space (Option C) – no modal, no full-width expansion
+- [ ] Chart readable at half-width (side-by-side with LP chart in a 2-column grid)
+- [ ] Winrate axis shows percentage (0–100% or contextual range)
+- [ ] Color coding: green trend line when winrate ≥ 52%, red when < 48%, neutral otherwise
+- [ ] Supports `matchId` query parameter to highlight a specific game point (for "View Analysis" from Matches page)
+- [ ] Reacts to queue filter and time range filter changes
+- [ ] Loading state with skeleton placeholder
+- [ ] Empty state when no data available
+- [ ] Unit tests covering rendering, data range switching, and highlight behavior
+
+---
+
+### G5b5. [Frontend] LP Over Time Chart ✅
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Status:** Complete
+**Depends on:** G5b1, G5b19 (AnalysisLayout), G5b14 (LP trend data)
+**Labels:** `frontend`, `solo`, `dashboard`, `chart`, `epic-g`, `solo-v1-mvp`
+
+#### Description
+
+Create an LP Over Time chart answering "Am I climbing?" Displays LP progression as a line chart with promotion/demotion markers. Placed **side-by-side with the Winrate chart** (left half of Zone 3) in the shared `AnalysisLayout` zone system.
+
+Defaults to **last 20 games** for quick momentum reading. Includes an expand button that switches the data range to the full season within the same half-width space (no modal or full-width expansion).
+
+The chart component is reusable across Solo and Duo pages (Team may use a winrate-only variant).
+
+#### Acceptance Criteria
+
+- [ ] Component created at `client/src/components/solo/LpTrendChart.vue`
+- [ ] Renders a Chart.js line chart showing LP progression over games
+- [ ] Default data range: last 20 games
+- [ ] Expand button in chart header switches to full season data (all available games)
+- [ ] Data range switch happens within the same half-width space (Option C) – no modal, no full-width expansion
+- [ ] Chart readable at half-width (side-by-side with Winrate chart in a 2-column grid)
+- [ ] Promotion markers (visual indicator when player promotes)
+- [ ] Demotion markers (visual indicator when player demotes)
+- [ ] Win/loss coloring on data points (green dot = win, red dot = loss)
+- [ ] Supports `matchId` query parameter to highlight a specific game point (for "View Analysis" from Matches page)
+- [ ] Reacts to queue filter and time range filter changes
+- [ ] Loading state with skeleton placeholder
+- [ ] Empty state when no data available
+- [ ] Unit tests covering rendering, data range switching, promotion/demotion markers, and highlight behavior
+
+---
+
+### G5b19. [Frontend] Create AnalysisLayout zone component ✅
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 2 points
+**Status:** Complete
+**Depends on:** G5b1
+**Labels:** `frontend`, `layout`, `shared`, `epic-g`, `solo-v1-mvp`
+
+#### Description
+
+Create a shared `AnalysisLayout.vue` component that defines the zone-based layout structure used by Solo, Duo, and Team analysis pages. Each page fills the zones with context-specific content via named slots.
+
+**Zone model:**
+
+| Zone | Purpose | v1 | v2 |
+|------|---------|----|----|
+| Zone 1 | Context bar (filters, time range) | ✅ Queue toggle + time range | Same |
+| Zone 2 | Summary stats (lightweight context row) | ✅ Games, Winrate, KDA | Per-context stats |
+| Zone 3 | Trend charts (2-column grid) | ✅ LP chart (left) + Winrate chart (right) | Same |
+| Zone 4 | Deep analysis | Not rendered | Danger Zones, Champion Matrix |
+| Zone 5 | Goals | Not rendered | Active goals with progress |
+
+Zones 4 and 5 are defined as slots but not rendered in v1 (no content). The layout component handles the zone spacing, grid structure, and responsive behavior.
+
+#### Acceptance Criteria
+
+- [ ] Component created at `client/src/components/shared/AnalysisLayout.vue`
+- [ ] Defines 5 named slots: `context-bar`, `summary`, `trend-charts`, `deep-analysis`, `goals`
+- [ ] `trend-charts` slot renders as a 2-column CSS grid (equal width)
+- [ ] Zones 4 and 5 only render when slot content is provided (conditional rendering)
+- [ ] Consistent spacing between zones using design tokens
+- [ ] Supports `matchId` prop for "View Analysis" match-highlight mode (passed to child components)
+- [ ] Used by `SoloPage.vue` in v1; will be used by `DuoPage.vue` and `TeamPage.vue` when implemented
+- [ ] Unit tests covering slot rendering and conditional zone visibility
 
 ---
 
@@ -1265,6 +1404,99 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 
 ---
 
+### G6. [Frontend] Implement Duo Dashboard Page (Separate Gated Page)
+
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 5 points
+**Depends on:** G5b19 (AnalysisLayout), F3 (Duo dashboard endpoint), C9 (feature gate middleware), C12 (upgrade prompt)
+**Labels:** `frontend`, `duo`, `dashboard`, `gated`, `epic-g`
+
+#### Description
+
+Create a dedicated Duo dashboard page at `/app/duo` as a **separate route** (not a tab or toggle on the Solo page). This page is gated behind Pro tier for full access.
+
+Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with duo-specific content: pair summary stats, LP/winrate trends for the duo, and (v2) Champion Matrix + Danger Zones with multi-player color coding.
+
+**Free user experience:** When a free user navigates to `/app/duo`, they see a preview/teaser page with a description of duo analysis features and a clear upgrade CTA. They do NOT see a blank wall or a generic 403.
+
+**Architecture decision:** Separate pages (Solo/Duo/Team) were chosen over a shared page with toggles for three reasons:
+1. Better perceived value when upgrading ("You get Duo Analysis and Team Analysis" vs "You get two extra tabs")
+2. Content will diverge significantly in v2 (Champion Matrix, team comp patterns)
+3. Cleaner gating UX – locked page with preview is a well-understood pattern
+
+#### Acceptance Criteria
+
+**Page & Routing**
+- [ ] Page created at `client/src/views/DuoPage.vue`
+- [ ] Route registered at `/app/duo` with `meta: { requiresPro: true }`
+- [ ] Sidebar shows "Duo" as a separate top-level nav item (not under Analysis submenu)
+- [ ] Sidebar shows a lock/badge icon on Duo for free users
+
+**Free User (Gated) View**
+- [ ] Free users see a preview/teaser page (not a 403 or blank wall)
+- [ ] Preview describes duo analysis features: pair synergy, champion combos, shared improvement tracking
+- [ ] Clear upgrade CTA with link to pricing/upgrade page
+- [ ] Preview may include blurred/dimmed mockup of what the page looks like with data
+
+**Pro User View**
+- [ ] Uses `AnalysisLayout.vue` zone system
+- [ ] Zone 1: Queue toggle + time range filter
+- [ ] Zone 2: Pair summary stats (games played together, winrate, KDA per player)
+- [ ] Zone 3: LP chart (left) + Winrate chart (right), scoped to duo games, last 20 games default
+- [ ] Zones 4-5: Not rendered in v1 (Champion Matrix and Danger Zones are v2)
+- [ ] Supports `matchId` query parameter for "View Analysis" from Matches page
+
+**v2 placeholders (not implemented in v1)**
+- Champion Matrix: which champion combos the duo plays and their success rates
+- Danger Zones: death heatmap with both players in different colors
+
+---
+
+### G7. [Frontend] Implement Team Dashboard Page (Separate Gated Page)
+
+**Priority:** P1 - High
+**Type:** Feature
+**Estimate:** 5 points
+**Depends on:** G5b19 (AnalysisLayout), F4 (Team dashboard endpoint), C9 (feature gate middleware), C12 (upgrade prompt)
+**Labels:** `frontend`, `team`, `dashboard`, `gated`, `epic-g`
+
+#### Description
+
+Create a dedicated Team dashboard page at `/app/team` as a **separate route** (not a tab or toggle). This page is gated behind Pro tier for full access.
+
+Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with team-specific content: team summary stats, winrate trends, and (v2) team composition patterns + Danger Zones with multi-player color coding.
+
+**Free user experience:** Same pattern as Duo – preview/teaser page with upgrade CTA.
+
+#### Acceptance Criteria
+
+**Page & Routing**
+- [ ] Page created at `client/src/views/TeamPage.vue`
+- [ ] Route registered at `/app/team` with `meta: { requiresPro: true }`
+- [ ] Sidebar shows "Team" as a separate top-level nav item (not under Analysis submenu)
+- [ ] Sidebar shows a lock/badge icon on Team for free users
+
+**Free User (Gated) View**
+- [ ] Free users see a preview/teaser page (not a 403 or blank wall)
+- [ ] Preview describes team analysis features: team synergy, composition patterns, shared improvement tracking
+- [ ] Clear upgrade CTA with link to pricing/upgrade page
+
+**Pro User View**
+- [ ] Uses `AnalysisLayout.vue` zone system
+- [ ] Zone 1: Queue toggle + time range filter
+- [ ] Zone 2: Team summary stats (games played, winrate, KDA per player)
+- [ ] Zone 3: Winrate chart (may be single full-width if LP chart doesn't apply to team context)
+- [ ] Zones 4-5: Not rendered in v1 (team comp patterns and Danger Zones are v2)
+- [ ] Supports `matchId` query parameter for "View Analysis" from Matches page
+
+**v2 placeholders (not implemented in v1)**
+- Team composition patterns: which team comps work best
+- Danger Zones: death heatmap with all players in different colors
+- Role pair effectiveness
+
+---
+
 <!-- AI: END_EPIC_G_TASKS -->
 
 # Summary
@@ -1290,12 +1522,9 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 | C7 | Create subscription endpoints | Subscription | 2 |
 | C8 | Create feature flag service | Subscription | 2 |
 | F3 | Implement Duo dashboard endpoint | API | 3 |
-| G5b4 | Winrate Over Time chart + trend data (FE+BE) | Frontend / API | 5 |
-| G5b5 | LP Over Time chart (frontend UI) | Frontend | 2 |
-| G5b18 | Summary Stats Card | Frontend | 1 |
 | G15 | Allow cancelling or switching account during email verification | Frontend | 2 |
 
-**P0 Remaining Total:** 47 points
+**P0 Remaining Total:** 39 points
 
 ### P1 - High
 
@@ -1323,14 +1552,12 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 | F11-social | Implement social endpoints (friends, teams, search) | API | 3 |
 | F13-lp | Implement Riot League API for rank/LP data | API | 5 |
 | F14-login | Check for new matches on user login and auto-sync | API | 3 |
-| G5b13 | Fetch winrate trend data for Solo dashboard | Backend | 2 |
-| G5b14 | Fetch LP trend data for Solo dashboard | Backend | 2 |
-| G6 | Implement Duo dashboard view | Frontend | 5 |
-| G7 | Implement Team dashboard view | Frontend | 5 |
+| G6 | Implement Duo Dashboard Page (Separate Gated Page) | Frontend | 5 |
+| G7 | Implement Team Dashboard Page (Separate Gated Page) | Frontend | 5 |
 | G10 | Implement user dropdown details & account settings page | Frontend | 8 |
 | G19 | Implement session expiry handling (global handler + UX) | Frontend | 5 |
 
-**P1 Remaining Total:** 85 points
+**P1 Remaining Total:** 81 points
 
 ### P2 - Medium
 
@@ -1405,13 +1632,18 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 | G | G5b1 - Create empty Solo dashboard view & routing | 1 | ✅ |
 | G | G5b2 - Profile header button + profile data (FE+BE) | 5 | ✅ |
 | G | G5b3 - Main Champion Card (FE+BE) | 3 | ✅ |
+| G | G5b4 - Winrate Over Time chart + trend data (FE+BE) | 5 | ✅ |
+| G | G5b5 - LP Over Time chart (frontend UI) | 2 | ✅ |
 | G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
 | G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
 | G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
 | G | G5b11 - Create champion matchups endpoint | 3 | ✅ |
 | G | G5b12 - Fetch main champions by role for Solo dashboard | 2 | ✅ |
+| G | G5b13 - Fetch winrate trend data for Solo dashboard | 2 | ✅ |
+| G | G5b14 - Fetch LP trend data for Solo dashboard | 2 | ✅ |
 | G | G5b16 - Update database on login (FE+BE) | 2 | ✅ |
 | G | G5b17 - Implement ranked data display in ProfileHeaderCard (FE+BE) | 5 | ✅ |
+| G | G5b18 - Summary Stats Card | 1 | ✅ |
 | G | G9 - Login, signup, verification & user shell | 5 | ✅ |
 | G | G12 - Riot account linking on `/app/user` | 5 | ✅ |
 | G | G13 - Real-time match sync progress via WebSocket | 5 | ✅ |
@@ -1426,15 +1658,15 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 | F | F17 - Implement feedback endpoint & GitHub integration | 5 | ✅ |
 | G | G21 - In-app Feedback page & sidebar entry | 5 | ✅ |
 
-**Total Completed Points:** 187
+**Total Completed Points:** 201
 
 ## Grand Totals
 
 | Category | Points |
 |----------|--------|
-| **Remaining** | 204 pts |
-| **Completed** | 135 pts |
-| **Grand Total** | 339 pts |
+| **Remaining** | 192 pts |
+| **Completed** | 149 pts |
+| **Grand Total** | 341 pts |
 
 ---
 
@@ -1455,14 +1687,16 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 
 ### Sprint 1: Solo v1 MVP
 **Focus:** Ship core Solo dashboard answering "Am I climbing? Am I improving?"
-**Points:** ~8
+**Points:** ~10
 
+- G5b19 (AnalysisLayout zone component) - 2 pts
 - G5b18 (Summary Stats Card) - 1 pt
-- G5b4, G5b5 (Winrate chart, LP chart) - 7 pts
+- G5b4, G5b5 (Winrate chart + LP chart, side-by-side, last 20 games default) - 7 pts
 - G5b13, G5b14 (Backend: winrate trend, LP trend data) - 4 pts
-- G5b3 ✅ (Main Champions Card - already complete)
 
-> **Deferred to Solo v2:** G5b6 (Matchups table), G5b7 (Goals panel), G5b15 (Goals data). These require goals system (B9) or add complexity without addressing core user questions.
+> **Layout:** Summary stats (full width) → LP chart (left) + Winrate chart (right) side-by-side. Charts default to last 20 games with expand button to view full season (Option C: data range switch within same half-width space).
+>
+> **Deferred to Solo v2:** G5b3 (Main Champions Card – stays on Champion Select page only), G5b6 (Matchups table), G5b7 (Goals panel), G5b15 (Goals data). These require goals system (B9) or add complexity without addressing core user questions.
 
 ### Sprint 2: Subscriptions (P0 Payments)
 **Focus:** Mollie + payment flow

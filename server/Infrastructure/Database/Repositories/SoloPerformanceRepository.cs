@@ -52,6 +52,9 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
             var deathStats = await GetDeathEfficiencyAsync(puuid, queueFilter, timeFilter, timeRangeFilter);
             var matchDurations = await GetMatchDurationsAsync(puuid, queueFilter, timeFilter, timeRangeFilter);
 
+            // Fetch overall (all-time) stats for tooltip comparison - no time filter
+            var overallAllTimeStats = await GetOverallStatsAsync(puuid, queueFilter, "", new TimeRangeFilter(null, null, "all"));
+
             var totalGames = overallStats.Value.Games;
 
             // Calculate main champion (overall, not per role)
@@ -87,6 +90,14 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 WinRate: overallStats.Value.WinRate,
                 AvgKda: overallStats.Value.AvgKda,
                 AvgGameDurationMinutes: overallStats.Value.AvgGameDurationMinutes,
+                AvgKills: overallStats.Value.AvgKills,
+                AvgDeaths: overallStats.Value.AvgDeaths,
+                AvgAssists: overallStats.Value.AvgAssists,
+                OverallWinRate: overallAllTimeStats?.WinRate ?? overallStats.Value.WinRate,
+                OverallAvgKills: overallAllTimeStats?.AvgKills ?? overallStats.Value.AvgKills,
+                OverallAvgDeaths: overallAllTimeStats?.AvgDeaths ?? overallStats.Value.AvgDeaths,
+                OverallAvgAssists: overallAllTimeStats?.AvgAssists ?? overallStats.Value.AvgAssists,
+                OverallAvgKda: overallAllTimeStats?.AvgKda ?? overallStats.Value.AvgKda,
                 SideStats: sideStats,
                 UniqueChampsPlayedCount: champions.Count,
                 MainChampion: mainChamp,
@@ -109,7 +120,7 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
         }
     }
 
-    private async Task<(int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes)?> GetOverallStatsAsync(
+    private async Task<(int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes, double AvgKills, double AvgDeaths, double AvgAssists)?> GetOverallStatsAsync(
         string puuid, string queueFilter, string timeFilter, TimeRangeFilter timeRangeFilter)
     {
         var sql = $@"
@@ -117,7 +128,10 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 COUNT(DISTINCT p.match_id) as Games,
                 SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins,
                 AVG(CASE WHEN p.deaths > 0 THEN (p.kills + p.assists) / p.deaths ELSE (p.kills + p.assists) END) as AvgKda,
-                AVG(m.game_duration_sec / 60.0) as AvgGameDurationMinutes
+                AVG(m.game_duration_sec / 60.0) as AvgGameDurationMinutes,
+                AVG(p.kills) as AvgKills,
+                AVG(p.deaths) as AvgDeaths,
+                AVG(p.assists) as AvgAssists
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE p.puuid = @puuid {queueFilter} {timeFilter}";
@@ -137,10 +151,15 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 var wins = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                 var avgKda = reader.IsDBNull(2) ? 0 : reader.GetDouble(2);
                 var avgDuration = reader.IsDBNull(3) ? 0 : reader.GetDouble(3);
+                var avgKills = reader.IsDBNull(4) ? 0 : reader.GetDouble(4);
+                var avgDeaths = reader.IsDBNull(5) ? 0 : reader.GetDouble(5);
+                var avgAssists = reader.IsDBNull(6) ? 0 : reader.GetDouble(6);
                 var winRate = games > 0 ? Math.Round((double)wins / games * 100, 1) : 0;
 
-                return ((int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes)?)(Games: games, Wins: wins, WinRate: winRate, AvgKda: Math.Round(avgKda, 2),
-                    AvgGameDurationMinutes: Math.Round(avgDuration, 1));
+                return ((int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes, double AvgKills, double AvgDeaths, double AvgAssists)?)(
+                    Games: games, Wins: wins, WinRate: winRate, AvgKda: Math.Round(avgKda, 2),
+                    AvgGameDurationMinutes: Math.Round(avgDuration, 1),
+                    AvgKills: Math.Round(avgKills, 1), AvgDeaths: Math.Round(avgDeaths, 1), AvgAssists: Math.Round(avgAssists, 1));
             }
             return null;
         });
@@ -400,7 +419,7 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
     }
 
     private static List<PerformancePhase> CalculatePerformancePhases(
-        (int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes) overallStats,
+        (int Games, int Wins, double WinRate, double AvgKda, double AvgGameDurationMinutes, double AvgKills, double AvgDeaths, double AvgAssists) overallStats,
         List<(int Minutes, int Games, int Wins, double AvgKda)> matchDurations)
     {
         var phases = new List<PerformancePhase>();
@@ -480,7 +499,10 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
             SELECT
                 COUNT(*) as Games,
                 SUM(CASE WHEN r.win = 1 THEN 1 ELSE 0 END) as Wins,
-                AVG(CASE WHEN r.deaths > 0 THEN (r.kills + r.assists) / r.deaths ELSE (r.kills + r.assists) END) as AvgKda
+                AVG(CASE WHEN r.deaths > 0 THEN (r.kills + r.assists) / r.deaths ELSE (r.kills + r.assists) END) as AvgKda,
+                AVG(r.kills) as AvgKills,
+                AVG(r.deaths) as AvgDeaths,
+                AVG(r.assists) as AvgAssists
             FROM (
                 SELECT p.win, p.kills, p.deaths, p.assists
                 FROM participants p
@@ -505,12 +527,18 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
 
                 var wins = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                 var avgKda = reader.IsDBNull(2) ? 0 : reader.GetDouble(2);
+                var avgKills = reader.IsDBNull(3) ? 0 : reader.GetDouble(3);
+                var avgDeaths = reader.IsDBNull(4) ? 0 : reader.GetDouble(4);
+                var avgAssists = reader.IsDBNull(5) ? 0 : reader.GetDouble(5);
                 var winRate = Math.Round(games > 0 ? (double)wins / games * 100 : 0, 1);
                 return new TrendMetric(
                     Games: games,
                     Wins: wins,
                     WinRate: winRate,
-                    AvgKda: Math.Round(avgKda, 2)
+                    AvgKda: Math.Round(avgKda, 2),
+                    AvgKills: Math.Round(avgKills, 1),
+                    AvgDeaths: Math.Round(avgDeaths, 1),
+                    AvgAssists: Math.Round(avgAssists, 1)
                 );
             }
             return null;

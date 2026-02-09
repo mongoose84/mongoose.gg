@@ -25,15 +25,45 @@
         <!-- Winrate -->
         <div class="stat-item" data-testid="stat-winrate">
           <span class="stat-label">Winrate</span>
-          <span class="stat-value" :class="winrateColorClass" data-testid="stat-winrate-value">
+          <span
+            class="stat-value"
+            :class="[winrateColorClass, winrateTrendClass]"
+            :title="winrateTooltip"
+            data-testid="stat-winrate-value"
+          >
             {{ formattedWinrate }}
           </span>
         </div>
 
-        <!-- Average KDA -->
-        <div class="stat-item" data-testid="stat-kda">
-          <span class="stat-label">Avg KDA</span>
-          <span class="stat-value" data-testid="stat-kda-value">{{ formattedKda }}</span>
+        <!-- K / D / A Breakdown -->
+        <div
+          class="stat-item stat-kda-group"
+          data-testid="stat-kda"
+        >
+          <span class="stat-label">Average K / D / A</span>
+          <div class="kda-values">
+            <span
+              class="kda-value"
+              :class="killsTrendClass"
+              :title="killsTooltip"
+              data-testid="stat-kills-value"
+            >{{ formattedKills }}</span>
+            <span class="kda-separator">/</span>
+            <span
+              class="kda-value"
+              :class="deathsTrendClass"
+              :title="deathsTooltip"
+              data-testid="stat-deaths-value"
+            >{{ formattedDeaths }}</span>
+            <span class="kda-separator">/</span>
+            <span
+              class="kda-value"
+              :class="assistsTrendClass"
+              :title="assistsTooltip"
+              data-testid="stat-assists-value"
+            >{{ formattedAssists }}</span>
+          </div>
+          <span class="kda-ratio" :title="kdaTooltip" data-testid="stat-kda-ratio">{{ formattedKdaRatio }} KDA</span>
         </div>
       </div>
     </div>
@@ -51,13 +81,53 @@ const props = defineProps({
     type: Number,
     default: 0
   },
-  /** Win rate percentage (0-100) */
+  /** Win rate percentage (0-100) for selected time range */
   winRate: {
     type: Number,
     default: null
   },
-  /** Average KDA ratio */
+  /** Overall (all-time) win rate percentage (for tooltip comparison) */
+  overallWinRate: {
+    type: Number,
+    default: null
+  },
+  /** Average KDA ratio (deprecated, kept for backwards compatibility) */
   avgKda: {
+    type: Number,
+    default: null
+  },
+  /** Average kills per game */
+  avgKills: {
+    type: Number,
+    default: null
+  },
+  /** Average deaths per game */
+  avgDeaths: {
+    type: Number,
+    default: null
+  },
+  /** Average assists per game */
+  avgAssists: {
+    type: Number,
+    default: null
+  },
+  /** Overall (all-time) average kills (for tooltip comparison) */
+  overallAvgKills: {
+    type: Number,
+    default: null
+  },
+  /** Overall (all-time) average deaths (for tooltip comparison) */
+  overallAvgDeaths: {
+    type: Number,
+    default: null
+  },
+  /** Overall (all-time) average assists (for tooltip comparison) */
+  overallAvgAssists: {
+    type: Number,
+    default: null
+  },
+  /** Overall (all-time) average KDA (for tooltip comparison) */
+  overallAvgKda: {
     type: Number,
     default: null
   },
@@ -79,25 +149,131 @@ const formattedWinrate = computed(() => {
   return `${props.winRate.toFixed(1)}%`
 })
 
-// Computed: Winrate color class
+// Computed: Winrate color class (based on absolute value)
 const winrateColorClass = computed(() => {
   return getWinRateColorClass(props.winRate)
 })
 
-// Computed: Formatted KDA
-const formattedKda = computed(() => {
-  if (props.avgKda === null || props.avgKda === undefined) return '--'
-  return props.avgKda.toFixed(2)
+// Computed: Check if we have winrate trend data
+const hasWinrateTrendData = computed(() => {
+  return props.winRate !== null && props.overallWinRate !== null
+})
+
+// Computed: Winrate tooltip showing comparison to overall
+const winrateTooltip = computed(() => {
+  if (!hasWinrateTrendData.value) return ''
+  return `Selected period: ${props.winRate.toFixed(1)}%, overall: ${props.overallWinRate.toFixed(1)}%`
+})
+
+// Computed: Winrate trend class (green if selected period > overall, red if less)
+const winrateTrendClass = computed(() => {
+  if (!hasWinrateTrendData.value) return ''
+  if (props.winRate > props.overallWinRate) return 'trend-positive'
+  if (props.winRate < props.overallWinRate) return 'trend-negative'
+  return ''
+})
+
+// Computed: Formatted K/D/A values
+const formattedKills = computed(() => {
+  if (props.avgKills === null || props.avgKills === undefined) return '--'
+  return props.avgKills.toFixed(1)
+})
+
+const formattedDeaths = computed(() => {
+  if (props.avgDeaths === null || props.avgDeaths === undefined) return '--'
+  return props.avgDeaths.toFixed(1)
+})
+
+const formattedAssists = computed(() => {
+  if (props.avgAssists === null || props.avgAssists === undefined) return '--'
+  return props.avgAssists.toFixed(1)
+})
+
+// Computed: KDA ratio (kills + assists) / deaths
+const formattedKdaRatio = computed(() => {
+  // If avgKda is provided directly, use it
+  if (props.avgKda !== null && props.avgKda !== undefined) {
+    return props.avgKda.toFixed(2)
+  }
+  // Otherwise calculate from K/D/A
+  if (props.avgKills === null || props.avgDeaths === null || props.avgAssists === null) return '--'
+  const kda = props.avgDeaths > 0
+    ? (props.avgKills + props.avgAssists) / props.avgDeaths
+    : props.avgKills + props.avgAssists
+  return kda.toFixed(2)
+})
+
+// Trend comparison helpers - check if we have both current period and overall data
+const hasTrendData = computed(() => {
+  return props.overallAvgKills !== null &&
+         props.overallAvgDeaths !== null &&
+         props.overallAvgAssists !== null &&
+         props.avgKills !== null &&
+         props.avgDeaths !== null &&
+         props.avgAssists !== null
+})
+
+// Computed: Individual tooltips for each K/D/A stat
+// Shows comparison of selected time range vs overall (all-time) average
+const killsTooltip = computed(() => {
+  if (!hasTrendData.value) return ''
+  return `Selected period: ${props.avgKills.toFixed(1)}, overall: ${props.overallAvgKills.toFixed(1)}`
+})
+
+const deathsTooltip = computed(() => {
+  if (!hasTrendData.value) return ''
+  return `Selected period: ${props.avgDeaths.toFixed(1)}, overall: ${props.overallAvgDeaths.toFixed(1)}`
+})
+
+const assistsTooltip = computed(() => {
+  if (!hasTrendData.value) return ''
+  return `Selected period: ${props.avgAssists.toFixed(1)}, overall: ${props.overallAvgAssists.toFixed(1)}`
+})
+
+const kdaTooltip = computed(() => {
+  if (!hasTrendData.value) return ''
+  const overallKda = props.overallAvgKda !== null
+    ? props.overallAvgKda.toFixed(2)
+    : (props.overallAvgDeaths > 0
+        ? ((props.overallAvgKills + props.overallAvgAssists) / props.overallAvgDeaths).toFixed(2)
+        : (props.overallAvgKills + props.overallAvgAssists).toFixed(2))
+  return `Selected period: ${formattedKdaRatio.value}, overall: ${overallKda}`
+})
+
+// Trend class for Kills: green if selected period > overall (improving)
+const killsTrendClass = computed(() => {
+  if (!hasTrendData.value) return ''
+  if (props.avgKills > props.overallAvgKills) return 'trend-positive'
+  if (props.avgKills < props.overallAvgKills) return 'trend-negative'
+  return ''
+})
+
+// Trend class for Deaths: green if selected period < overall (fewer deaths = improving), red if more
+const deathsTrendClass = computed(() => {
+  if (!hasTrendData.value) return ''
+  if (props.avgDeaths < props.overallAvgDeaths) return 'trend-positive'
+  if (props.avgDeaths > props.overallAvgDeaths) return 'trend-negative'
+  return ''
+})
+
+// Trend class for Assists: green if selected period > overall (improving)
+const assistsTrendClass = computed(() => {
+  if (!hasTrendData.value) return ''
+  if (props.avgAssists > props.overallAvgAssists) return 'trend-positive'
+  if (props.avgAssists < props.overallAvgAssists) return 'trend-negative'
+  return ''
 })
 </script>
 
 <style scoped>
 .summary-stats-card {
   width: 100%;
+  height: 80px;
 }
 
 .card-content {
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: 0px var(--spacing-lg); 
+  margin-top: -18px; /* Adjust for card padding to align with other elements */
 }
 
 .stats-grid {
@@ -120,12 +296,53 @@ const formattedKda = computed(() => {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 500;
+  
 }
 
 .stat-value {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--color-text);
+  margin-top: -10px;
+}
+
+/* K/D/A Group */
+.stat-kda-group {
+  gap: var(--spacing-xxs);
+}
+
+.kda-values {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.kda-value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+  transition: color 0.2s ease;
+}
+
+.kda-separator {
+  font-size: var(--font-size-lg);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.kda-ratio {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* Trend coloring - subtle tints for improvement tracking */
+.trend-positive {
+  color: var(--color-success);
+}
+
+.trend-negative {
+  color: var(--color-error);
 }
 
 /* Empty state */
