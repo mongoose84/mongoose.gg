@@ -1196,9 +1196,11 @@ Create a professional user experience with a landing page, pricing, and app shel
 >
 > **Layout:** Summary stats (full width, lightweight context row) → LP chart (left) + Winrate chart (right) side-by-side, both defaulting to last 20 games with an expand button to view the full season. Charts switch data range within the same half-width space (no modal, no full-width expansion). Uses shared `AnalysisLayout.vue` zone system (G5b19).
 >
+> **Research-informed design:** Summary Stats Card shows K/D/A breakdown (not just KDA ratio) with trend-based color treatment. Deaths are highlighted as the #1 actionable metric per academic research (see `docs/win-prediction-metrics-research.md`). Color treatment compares recent performance vs player's own average to answer "Am I improving?" at a glance.
+>
 > **Architecture:** Solo, Duo, and Team are **separate pages** with distinct routes (`/app/solo`, `/app/duo`, `/app/team`). Duo and Team are gated behind Pro tier. All three use the same zone-based layout component but fill zones with context-specific content.
 >
-> **Solo v2 (deferred):** Goals Panel (G5b7), Matchups Table (G5b6), Performance by Phase, Danger Zones Map, Main Champions Card on Solo (stays on Champion Select).
+> **Solo v2 (deferred):** Goals Panel (G5b7), Matchups Table (G5b6), Performance by Phase, Danger Zones Map (death heatmap informed by research), Session Performance Tracking (8-10% fatigue decline per research), Main Champions Card on Solo (stays on Champion Select).
 
 ---
 
@@ -1214,21 +1216,44 @@ Create a professional user experience with a landing page, pricing, and app shel
 
 Create a Summary Stats Card that provides quick orientation on the Solo dashboard. This is a 5-second scan component answering "How am I doing overall?"
 
-The component displays key aggregate stats from the existing Solo performance endpoint. No new backend work required.
+**User research finding:** Players want K/D/A breakdown, not just KDA ratio. K/D/A is the universal language of League performance – every player thinks in "I averaged 5/3/7" not "my KDA was 3.2". The breakdown makes Deaths visible as a standalone number, which aligns with research showing deaths are the #1 actionable metric for improvement.
+
+**Design:** Three visual groups:
+1. **Games** – sample size context
+2. **Winrate** – outcome metric with color treatment
+3. **K / D / A** – performance breakdown (Kills / Deaths / Assists) with KDA ratio as secondary text below
+
+**Improvement tracking via color:** Each K/D/A stat is colored based on trend vs player's own average (not global benchmarks):
+- Kills: subtle green tint when last 20 games average > overall average
+- Deaths: subtle red tint when last 20 games average > overall average, subtle green tint when below
+- Assists: subtle green tint when last 20 games average > overall average
+- All three stats have equal visual weight (no special emphasis on Deaths)
+- KDA ratio displayed below K/D/A as secondary text (smaller, muted color)
+- This answers "Am I improving?" at a glance without requiring chart analysis
+
+**Backend requirements:**
+- Needs `avgKills`, `avgDeaths`, `avgAssists` fields added to `SoloPerformanceResponse`
+- Needs last 20 games averages for K/D/A (for trend comparison vs overall average)
 
 #### Acceptance Criteria
 
 - [ ] Component created at `client/src/components/solo/SummaryStatsCard.vue`
-- [ ] Displays the following stats in a compact, scannable layout:
-  - Games Played (total count)
-  - Winrate (percentage with color coding: green ≥52%, yellow 48-52%, red <48%)
-  - Average KDA (formatted as X.XX)
+- [ ] Displays three visual groups in a compact, scannable layout:
+  - **Games Played** (total count)
+  - **Winrate** (percentage with color coding: green ≥52%, red <48%, neutral otherwise)
+  - **K / D / A** (Kills / Deaths / Assists breakdown with KDA ratio as secondary text)
+- [ ] K/D/A stats show trend-based color treatment (subtle tint, not bold):
+  - Kills: green tint when last 20 games avg > overall avg
+  - Deaths: red tint when last 20 games avg > overall avg, green tint when below
+  - Assists: green tint when last 20 games avg > overall avg
+  - All three stats have equal visual weight
+- [ ] KDA ratio displayed below K/D/A as secondary text (smaller font, muted color)
 - [ ] Uses `BaseCard` component following `docs/ui-ux/ui-design-guidelines.md`
 - [ ] Responsive: stats stack on mobile, inline on desktop
 - [ ] Loading state with skeleton placeholders
 - [ ] Empty state when no games played: "No games found for this filter"
 - [ ] Reacts to queue filter and time range filter changes
-- [ ] Unit tests covering component rendering and edge cases
+- [ ] Unit tests covering component rendering, color logic, and edge cases
 
 ---
 
