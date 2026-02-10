@@ -1,4 +1,4 @@
-namespace Mongoose.Api.Application.DTOs.Solo;
+namespace Mongoose.Api.Application.DTOs;
 
 /// <summary>
 /// Response DTO for match activity heatmap data.

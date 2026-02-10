@@ -1,9 +1,9 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using Mongoose.Api.Application.DTOs.Feedback;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
+using static Mongoose.Api.Application.DTOs.FeedbackDto;
 
 namespace Mongoose.Api.Application.Endpoints.Feedback;
 
@@ -135,7 +135,7 @@ public sealed class FeedbackEndpoint : IEndpoint
     {
         var endpoint = app.MapPost(Route, async (
             HttpContext httpContext,
-            [FromBody] FeedbackDto.FeedbackRequest request,
+            [FromBody] FeedbackRequest request,
             [FromServices] IGitHubService gitHubService,
             [FromServices] IRateLimiter rateLimiter,
             [FromServices] ILogger<FeedbackEndpoint> logger
@@ -271,7 +271,7 @@ public sealed class FeedbackEndpoint : IEndpoint
                     "Feedback submitted successfully. Type: {Type}, UserId: {UserId}",
                     LogSanitizer.Sanitize(normalizedType), userId?.ToString() ?? "anonymous");
 
-                return Results.Accepted(value: new FeedbackDto.FeedbackResponse(
+                return Results.Accepted(value: new FeedbackResponse(
                     Success: true,
                     Message: "Thank you for your feedback!"
                 ));
@@ -291,7 +291,7 @@ public sealed class FeedbackEndpoint : IEndpoint
     /// Builds the GitHub issue body in markdown format.
     /// </summary>
     private static string BuildIssueBody(
-        FeedbackDto.FeedbackRequest request,
+        FeedbackRequest request,
         string normalizedType,
         long? userId)
     {

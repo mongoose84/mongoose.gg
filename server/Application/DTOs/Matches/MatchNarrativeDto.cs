@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Mongoose.Api.Application.DTOs.Matches;
+namespace Mongoose.Api.Application.DTOs;
 
 /// <summary>
 /// Response for the match narrative endpoint.

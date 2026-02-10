@@ -1,5 +1,5 @@
 
-using Mongoose.Api.Core.QueryModels;
+using static Mongoose.Api.Application.DTOs.MainChampionDto;
 
 namespace Mongoose.Api.Application.Services;
 
@@ -34,14 +34,14 @@ public static class MainChampionRecommender
     /// </summary>
     /// <param name="stats">Champion statistics to process</param>
     /// <param name="queueType">Queue type filter (e.g., "aram", "ranked_solo", "all")</param>
-    public static IReadOnlyList<MainChampionRoleGroupData> BuildMainChampionsByRole(
+    public static IReadOnlyList<MainChampionRoleGroup> BuildMainChampionsByRole(
         IEnumerable<ChampionRoleStats> stats,
         string? queueType = null)
     {
         if (stats == null) throw new ArgumentNullException(nameof(stats));
 
         var isAram = string.Equals(queueType, "aram", StringComparison.OrdinalIgnoreCase);
-        var roleGroups = new List<MainChampionRoleGroupData>();
+        var roleGroups = new List<MainChampionRoleGroup>();
 
         foreach (var group in stats.GroupBy(s => NormalizeRole(s.Role, isAram)))
         {
@@ -59,7 +59,7 @@ public static class MainChampionRecommender
 
             if (champions.Length > 0)
             {
-                roleGroups.Add(new MainChampionRoleGroupData(group.Key, champions));
+                roleGroups.Add(new MainChampionRoleGroup(group.Key, champions));
             }
         }
 
@@ -69,7 +69,7 @@ public static class MainChampionRecommender
             .ToArray();
     }
 
-    private static (MainChampionEntryData entry, double score) BuildEntryForChampion(
+    private static (MainChampionEntry entry, double score) BuildEntryForChampion(
         string normalizedRole,
         ChampionRoleStats s)
     {
@@ -91,7 +91,7 @@ public static class MainChampionRecommender
         // Score ranges from 0 to 1, so multiply by 100 and round
         var mScore = Math.Round(score * 100, 1);
 
-        var entry = new MainChampionEntryData(
+        var entry = new MainChampionEntry(
             ChampionName: s.ChampionName,
             ChampionId: s.ChampionId,
             Role: normalizedRole,
