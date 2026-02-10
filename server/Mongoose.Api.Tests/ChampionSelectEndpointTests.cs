@@ -6,6 +6,7 @@ using Xunit;
 using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 using static Mongoose.Api.Application.DTOs.MainChampionDto;
+using static Mongoose.Api.Application.DTOs.TrendDto;
 
 namespace Mongoose.Api.Tests;
 
@@ -32,14 +33,22 @@ public class ChampionSelectEndpointTests
             WinRate: 55.0,
             AvgKda: 3.2,
             AvgGameDurationMinutes: 28.5,
+            AvgKills: 8.5,
+            AvgDeaths: 4.2,
+            AvgAssists: 7.8,
+            OverallWinRate: 53.0,
+            OverallAvgKills: 8.0,
+            OverallAvgDeaths: 4.5,
+            OverallAvgAssists: 7.5,
+            OverallAvgKda: 3.0,
             SideStats: new SideWinDistribution(
                 BlueWins: 30, RedWins: 25, BlueGames: 50, RedGames: 50,
                 TotalGames: 100, BlueWinDistribution: 60.0, RedWinDistribution: 50.0),
             UniqueChampsPlayedCount: 15,
             MainChampion: new ChampionSummary(1, "Annie", 25, 60.0, 25.0),
             MainChampions: Array.Empty<MainChampionRoleGroup>(),
-            Last10Games: new TrendMetric(10, 6, 60.0, 3.5),
-            Last20Games: new TrendMetric(20, 11, 55.0, 3.2),
+            Last10Games: new TrendMetric(10, 6, 60.0, 3.5, 9.0, 3.5, 8.0),
+            Last20Games: new TrendMetric(20, 11, 55.0, 3.2, 8.5, 4.0, 7.5),
             PerformanceByPhase: Array.Empty<PerformancePhase>(),
             RoleBreakdown: Array.Empty<RolePerformance>(),
             DeathEfficiency: new DeathEfficiency(5, 10, 8, 3, 8.5, 5.2),

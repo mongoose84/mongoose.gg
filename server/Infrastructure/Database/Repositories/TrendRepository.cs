@@ -1,6 +1,6 @@
 using MySqlConnector;
 using Mongoose.Api.Core.Interfaces;
-using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
+using static Mongoose.Api.Application.DTOs.TrendDto;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
