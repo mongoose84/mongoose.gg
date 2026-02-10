@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
 using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
+using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
 
 namespace Mongoose.Api.Tests;
 
@@ -32,6 +33,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeMatchesRepository _matchesRepository;
     private readonly FakeSoloPerformanceRepository _soloPerformanceRepository;
     private readonly FakeMatchupRepository _matchupRepository;
+    private readonly FakeChampionSelectRepository _championSelectRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
@@ -45,6 +47,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeMatchesRepository MatchesRepository => _matchesRepository;
     public FakeSoloPerformanceRepository SoloPerformanceRepository => _soloPerformanceRepository;
     public FakeMatchupRepository MatchupRepository => _matchupRepository;
+    public FakeChampionSelectRepository ChampionSelectRepository => _championSelectRepository;
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
@@ -61,6 +64,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _matchesRepository = new FakeMatchesRepository();
         _soloPerformanceRepository = new FakeSoloPerformanceRepository();
         _matchupRepository = new FakeMatchupRepository();
+        _championSelectRepository = new FakeChampionSelectRepository();
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -145,6 +149,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace IMatchupRepository with a fake
             services.RemoveAll<IMatchupRepository>();
             services.AddSingleton<IMatchupRepository>(_matchupRepository);
+
+            // Replace IChampionSelectRepository with a fake
+            services.RemoveAll<IChampionSelectRepository>();
+            services.AddSingleton<IChampionSelectRepository>(_championSelectRepository);
         });
 
         return base.CreateHost(builder);
@@ -1222,6 +1230,30 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 QueueType: queueType ?? "all",
                 TimeRange: timeRange ?? "all"
             ));
+        }
+    }
+
+    /// <summary>
+    /// Fake implementation of IChampionSelectRepository for testing.
+    /// </summary>
+    internal sealed class FakeChampionSelectRepository : IChampionSelectRepository
+    {
+        private readonly ConcurrentDictionary<string, ChampionSelectResponse> _championSelectData = new();
+
+        public void SetChampionSelectData(string puuid, ChampionSelectResponse data)
+        {
+            _championSelectData[puuid] = data;
+        }
+
+        public void Clear()
+        {
+            _championSelectData.Clear();
+        }
+
+        public Task<ChampionSelectResponse?> GetChampionSelectDataAsync(string puuid, string? queueType = null, string? timeRange = null)
+        {
+            _championSelectData.TryGetValue(puuid, out var data);
+            return Task.FromResult(data);
         }
     }
 }

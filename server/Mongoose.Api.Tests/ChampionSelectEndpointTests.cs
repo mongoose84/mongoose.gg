@@ -7,6 +7,7 @@ using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 using static Mongoose.Api.Application.DTOs.MainChampionDto;
 using static Mongoose.Api.Application.DTOs.TrendDto;
+using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
 
 namespace Mongoose.Api.Tests;
 
@@ -23,6 +24,15 @@ public class ChampionSelectEndpointTests
         var cookies = response.Headers.GetValues("Set-Cookie");
         var cookie = cookies.First(c => c.Contains("mongoose-auth"));
         return cookie.Split(';', 2)[0]; // Extract name=value portion only
+    }
+
+    private static ChampionSelectResponse CreateTestChampionSelectData()
+    {
+        return new ChampionSelectResponse(
+            MainChampions: Array.Empty<MainChampionRoleGroup>(),
+            GamesPlayed: 100,
+            WinRate: 55.0
+        );
     }
 
     private static SoloPerformanceResponse CreateTestPerformanceData()
@@ -159,7 +169,7 @@ public class ChampionSelectEndpointTests
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
-        factory.SoloPerformanceRepository.SetPerformanceData("puuid123", CreateTestPerformanceData());
+        factory.ChampionSelectRepository.SetChampionSelectData("puuid123", CreateTestChampionSelectData());
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1");
@@ -168,14 +178,11 @@ public class ChampionSelectEndpointTests
         var response = await client.SendAsync(req);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var data = await response.Content.ReadFromJsonAsync<SoloPerformanceResponse>();
+        var data = await response.Content.ReadFromJsonAsync<ChampionSelectResponse>();
         data.Should().NotBeNull();
         data!.GamesPlayed.Should().Be(100);
-        data.Wins.Should().Be(55);
         data.WinRate.Should().Be(55.0);
-        data.AvgKda.Should().Be(3.2);
-        data.MainChampion.Should().NotBeNull();
-        data.MainChampion!.ChampionName.Should().Be("Annie");
+        data.MainChampions.Should().NotBeNull();
     }
 
     [Fact]
@@ -186,7 +193,7 @@ public class ChampionSelectEndpointTests
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
-        factory.SoloPerformanceRepository.SetPerformanceData("puuid123", CreateTestPerformanceData());
+        factory.ChampionSelectRepository.SetChampionSelectData("puuid123", CreateTestChampionSelectData());
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1?queueType=ranked_solo");
@@ -204,7 +211,7 @@ public class ChampionSelectEndpointTests
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
-        factory.SoloPerformanceRepository.SetPerformanceData("puuid123", CreateTestPerformanceData());
+        factory.ChampionSelectRepository.SetChampionSelectData("puuid123", CreateTestChampionSelectData());
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1?timeRange=1m");
