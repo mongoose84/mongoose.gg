@@ -1,4 +1,4 @@
-using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
+using static Mongoose.Api.Application.DTOs.TrendDto;
 
 namespace Mongoose.Api.Core.Interfaces;
 

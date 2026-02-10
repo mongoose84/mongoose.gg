@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
+using static Mongoose.Api.Application.DTOs.TrendDto;
 
 namespace Mongoose.Api.Application.Endpoints.Trends;
 
@@ -79,7 +80,7 @@ public sealed class LpTrendEndpoint : IEndpoint
                 
                 var lpTrend = await trendRepo.GetLpTrendAsync(primaryPuuid, queueType, dataLimit);
 
-                return Results.Ok(new { lpTrend });
+                return Results.Ok(new LpTrendResponse(lpTrend.ToArray()));
             }
             catch (ArgumentException ex)
             {

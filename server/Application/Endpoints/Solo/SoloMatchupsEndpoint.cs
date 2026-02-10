@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
 
-namespace Mongoose.Api.Application.Endpoints.ChampionSelect;
+namespace Mongoose.Api.Application.Endpoints.Solo;
 
 /// <summary>
 /// Solo Matchups Endpoint

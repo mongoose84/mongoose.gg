@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using Mongoose.Api.Application.DTOs.Overview;
+using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;

@@ -306,7 +306,26 @@ export async function getSoloDashboard(userId, queueType = 'all', timeRange) {
  * @param {number} userId - User ID
  * @param {string} queueType - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
- * @returns {Promise<Object>} Champion select data
+ * @returns {Promise<ChampionSelectResponse | null>} Champion select data or null if no data found
+ *
+ * @typedef {Object} ChampionSelectResponse
+ * @property {MainChampionRoleGroup[]} mainChampions - Champion recommendations grouped by role
+ * @property {number} gamesPlayed - Total games played in the time range
+ * @property {number} winRate - Overall win rate percentage
+ *
+ * @typedef {Object} MainChampionRoleGroup
+ * @property {string} role - The role (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY)
+ * @property {MainChampionEntry[]} champions - Top champions for this role
+ *
+ * @typedef {Object} MainChampionEntry
+ * @property {string} championName - Champion name
+ * @property {number} championId - Champion ID
+ * @property {string} role - Role played
+ * @property {number} winRate - Win rate percentage
+ * @property {number} gamesPlayed - Games played with this champion
+ * @property {number} wins - Number of wins
+ * @property {number} losses - Number of losses
+ * @property {number} mScore - Mongoose score (composite rating)
  */
 export async function getChampionSelectData(userId, queueType = 'all', timeRange) {
   const params = new URLSearchParams()

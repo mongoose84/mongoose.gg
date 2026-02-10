@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
+using static Mongoose.Api.Application.DTOs.TrendDto;
 
 namespace Mongoose.Api.Application.Endpoints.Trends;
 
@@ -84,7 +85,7 @@ public sealed class WinrateTrendEndpoint : IEndpoint
 
                 var winrateTrend = await trendRepo.GetWinrateTrendAsync(primaryPuuid, queueType, timeRange, validatedLimit);
 
-                return Results.Ok(new { winrateTrend });
+                return Results.Ok(new WinrateTrendResponse(winrateTrend));
             }
             catch (ArgumentException ex)
             {

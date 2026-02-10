@@ -8,6 +8,8 @@ namespace Mongoose.Api.Application.Endpoints.ChampionSelect;
 /// <summary>
 /// Champion Select Endpoint
 /// Returns champion recommendations and statistics optimized for champion select.
+/// Uses a focused repository that fetches only the data needed (main champions, games played, win rate)
+/// instead of the full solo performance data.
 /// Supports optional queue filtering (ranked_solo, ranked_flex, normal, aram, all)
 /// and optional time range filtering (current_season, last_season, 1w, 1m, 3m, 6m).
 /// </summary>
@@ -28,7 +30,7 @@ public sealed class ChampionSelectEndpoint : IEndpoint
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
-            [FromServices] ISoloPerformanceRepository soloPerformanceRepo,
+            [FromServices] IChampionSelectRepository championSelectRepo,
             [FromServices] ILogger<ChampionSelectEndpoint> logger
         ) =>
         {
@@ -67,19 +69,19 @@ public sealed class ChampionSelectEndpoint : IEndpoint
                 var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
-                // Fetch dashboard data (reusing solo stats for now - can be optimized later)
-                logger.LogInformation("Champion select request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", 
+                // Fetch champion select data (only main champions, games played, win rate)
+                logger.LogInformation("Champion select request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
                     userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
-                var dashboard = await soloPerformanceRepo.GetSoloPerformanceAsync(primaryPuuid, queueType, timeRange);
+                var championSelectData = await championSelectRepo.GetChampionSelectDataAsync(primaryPuuid, queueType, timeRange);
 
-                if (dashboard == null)
+                if (championSelectData == null)
                 {
-                    logger.LogInformation("Champion select: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}", 
+                    logger.LogInformation("Champion select: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}",
                         primaryPuuid, queueType ?? "all", timeRange ?? "all");
                     return Results.NotFound(new { error = "No match data found for this player" });
                 }
 
-                return Results.Ok(dashboard);
+                return Results.Ok(championSelectData);
             }
             catch (ArgumentException ex)
             {

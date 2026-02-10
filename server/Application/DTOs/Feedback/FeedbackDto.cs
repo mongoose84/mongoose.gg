@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Mongoose.Api.Application.DTOs.Feedback;
+namespace Mongoose.Api.Application.DTOs;
 
 /// <summary>
 /// Data Transfer Objects for the feedback endpoint.

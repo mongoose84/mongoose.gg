@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using Mongoose.Api.Core.QueryModels;
 
-namespace Mongoose.Api.Application.DTOs.Matches;
+namespace Mongoose.Api.Application.DTOs;
 
 /// <summary>
 /// Response for the match list endpoint.
