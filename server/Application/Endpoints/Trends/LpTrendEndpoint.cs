@@ -77,10 +77,30 @@ public sealed class LpTrendEndpoint : IEndpoint
                 // Fetch LP trend data
                 logger.LogInformation("LP trend request: userId={UserId}, puuid={Puuid}, queueType={Queue}, limit={Limit}",
                     userIdInt, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", dataLimit);
-                
+
+                // If queueType is 'all' or null, fetch both queues separately
+                if (string.IsNullOrWhiteSpace(queueType) || queueType.ToLowerInvariant() == "all")
+                {
+                    var (rankedSolo, rankedFlex) = await trendRepo.GetLpTrendBothQueuesAsync(primaryPuuid, dataLimit);
+                    return Results.Ok(new LpTrendResponse(rankedSolo, rankedFlex));
+                }
+
+                // For specific queue types, fetch only that queue
                 var lpTrend = await trendRepo.GetLpTrendAsync(primaryPuuid, queueType, dataLimit);
 
-                return Results.Ok(new LpTrendResponse(lpTrend.ToArray()));
+                // Return data in the appropriate property based on queue type
+                var normalizedQueueType = queueType.ToLowerInvariant();
+                if (normalizedQueueType == "ranked_solo")
+                {
+                    return Results.Ok(new LpTrendResponse(lpTrend.ToArray(), Array.Empty<LpTrendPoint>()));
+                }
+                else if (normalizedQueueType == "ranked_flex")
+                {
+                    return Results.Ok(new LpTrendResponse(Array.Empty<LpTrendPoint>(), lpTrend.ToArray()));
+                }
+
+                // Fallback (shouldn't reach here)
+                return Results.Ok(new LpTrendResponse(Array.Empty<LpTrendPoint>(), Array.Empty<LpTrendPoint>()));
             }
             catch (ArgumentException ex)
             {

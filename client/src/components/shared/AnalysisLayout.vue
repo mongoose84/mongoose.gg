@@ -20,7 +20,7 @@
       <slot name="summary"></slot>
     </div>
 
-    <!-- Zone 3: Trend Charts (2-column grid) -->
+    <!-- Zone 3: Trend Charts (3-column grid - 1/3 width each) -->
     <div
       v-if="$slots['trend-charts']"
       class="zone zone-trend-charts"
@@ -52,14 +52,14 @@
 <script setup>
 /**
  * AnalysisLayout - Zone-based layout for Solo, Duo, and Team analysis pages
- * 
+ *
  * Zones:
  * 1. context-bar: Filters, time range selector
  * 2. summary: Summary stats (games, winrate, KDA)
- * 3. trend-charts: 2-column grid for LP and Winrate charts
+ * 3. trend-charts: 3-column grid for LP (Solo/Flex) and Winrate charts
  * 4. deep-analysis: Danger zones, champion matrix (v2)
  * 5. goals: Active goals with progress (v2)
- * 
+ *
  * Zones 4 and 5 only render when slot content is provided.
  */
 
@@ -104,10 +104,10 @@ defineProps({
   /* Summary stats card fills width */
 }
 
-/* Zone 3: Trend Charts - 2-column equal-width grid */
+/* Zone 3: Trend Charts - 3-column equal-width grid (1/3 width each) */
 .zone-trend-charts {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-lg);
 }
 

@@ -95,10 +95,10 @@ describe('AnalysisLayout', () => {
       expect(wrapper.find('[data-testid="zone-trend-charts"]').exists()).toBe(false)
     })
 
-    it('has 2-column grid layout', () => {
+    it('has 3-column grid layout', () => {
       const wrapper = mountComponent({
         slots: {
-          'trend-charts': '<div>Chart 1</div><div>Chart 2</div>'
+          'trend-charts': '<div>Chart 1</div><div>Chart 2</div><div>Chart 3</div>'
         }
       })
       const zone = wrapper.find('[data-testid="zone-trend-charts"]')

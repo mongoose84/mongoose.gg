@@ -220,6 +220,9 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var isPromotion = _lpCalc.IsPromotion(previousTier, previousDivision, tier, division);
                 var isDemotion = _lpCalc.IsDemotion(previousTier, previousDivision, tier, division);
 
+                // Calculate absolute LP for accurate chart positioning (handles promotions/demotions correctly)
+                var absoluteLp = _lpCalc.CalculateAbsoluteLp(tier, division, lp);
+
                 int? lpGain = null;
                 if (previousLp.HasValue && !isPromotion && !isDemotion)
                 {
@@ -230,6 +233,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     GameIndex: snapshotIndex,
                     LpGain: lpGain,
                     CurrentLp: lp,
+                    AbsoluteLp: absoluteLp,
                     Rank: rankString,
                     Timestamp: recordedAt,
                     IsPromotion: isPromotion,
@@ -247,6 +251,18 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         });
 
         return points;
+    }
+
+    /// <inheritdoc />
+    public async Task<(LpTrendPoint[] RankedSolo, LpTrendPoint[] RankedFlex)> GetLpTrendBothQueuesAsync(string puuid, int limit = 100)
+    {
+        // Fetch both queues in parallel
+        var soloTask = GetLpTrendAsync(puuid, "ranked_solo", limit);
+        var flexTask = GetLpTrendAsync(puuid, "ranked_flex", limit);
+
+        await Task.WhenAll(soloTask, flexTask);
+
+        return (soloTask.Result.ToArray(), flexTask.Result.ToArray());
     }
 }
 

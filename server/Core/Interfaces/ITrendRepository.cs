@@ -32,6 +32,15 @@ public interface ITrendRepository
     Task<IList<LpTrendPoint>> GetLpTrendAsync(string puuid, string? queueType = null, int limit = 100);
 
     /// <summary>
+    /// Get LP trend data for both ranked solo and ranked flex queues separately.
+    /// Returns a tuple with separate arrays for each queue type.
+    /// </summary>
+    /// <param name="puuid">Player PUUID</param>
+    /// <param name="limit">Maximum number of data points to return per queue</param>
+    /// <returns>Tuple containing (rankedSolo, rankedFlex) LP trend arrays</returns>
+    Task<(LpTrendPoint[] RankedSolo, LpTrendPoint[] RankedFlex)> GetLpTrendBothQueuesAsync(string puuid, int limit = 100);
+
+    /// <summary>
     /// Get daily match counts for the past N days for heatmap display.
     /// Returns a dictionary keyed by date (YYYY-MM-DD) with match count values.
     /// </summary>
