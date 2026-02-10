@@ -34,8 +34,7 @@
       <!-- LP Trend Chart - Ranked Solo/Duo -->
       <TrendChartCard
         v-if="showSoloLpChart"
-        title="LP Progression - Ranked Solo/Duo"
-        subtitle="Track your ranked solo/duo LP over time"
+        title="Ranked Solo/Duo"
         :loading="lpLoading"
         test-id="lp-trend-solo-card"
         @toggle-expand="handleLpExpand"
@@ -48,8 +47,7 @@
       <!-- LP Trend Chart - Ranked Flex -->
       <TrendChartCard
         v-if="showFlexLpChart"
-        title="LP Progression - Ranked Flex"
-        subtitle="Track your ranked flex LP over time"
+        title="Ranked Flex"
         :loading="lpLoading"
         test-id="lp-trend-flex-card"
         @toggle-expand="handleLpExpand"

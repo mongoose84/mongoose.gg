@@ -216,6 +216,16 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var division = reader.IsDBNull(2) ? "" : reader.GetString(2);
                 var recordedAt = reader.GetDateTimeUtc(3);
 
+                // Skip duplicate snapshots (same LP, tier, and division as previous)
+                // This filters out snapshots created by multiple logins or syncs without rank changes
+                if (previousLp.HasValue &&
+                    previousLp.Value == lp &&
+                    previousTier == tier &&
+                    previousDivision == division)
+                {
+                    continue; // Skip this duplicate snapshot
+                }
+
                 var rankString = _lpCalc.FormatRank(tier, division);
                 var isPromotion = _lpCalc.IsPromotion(previousTier, previousDivision, tier, division);
                 var isDemotion = _lpCalc.IsDemotion(previousTier, previousDivision, tier, division);
