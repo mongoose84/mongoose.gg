@@ -29,7 +29,7 @@ import {
 } from 'chart.js'
 import annotationPlugin from 'chartjs-plugin-annotation'
 
-// Register Chart.js components
+// Register Chart.js components (plugin will be registered later after it's defined)
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -192,41 +192,23 @@ const annotations = computed(() => {
     if (rank.absoluteLp >= minAbsoluteLp && rank.absoluteLp <= maxAbsoluteLp) {
       const img = rankImages.value[rank.tier]
 
-      result[`rank-${rank.name}`] = {
+      // Add horizontal line
+      result[`rank-line-${rank.name}`] = {
         type: 'line',
         scaleID: 'y',
         value: rank.absoluteLp,
         borderColor: rank.color,
-        borderWidth: rank.isTier ? 1.5 : 0.5, // Tier lines are thicker
-        borderDash: rank.isTier ? [3, 3] : [2, 2], // Different dash patterns
+        borderWidth: rank.isTier ? 5 : 3,
+        borderDash: rank.isTier ? [3, 3] : [2, 2],
         label: {
           display: true,
-          // Use division text only (e.g., "IV", "III", "II", "I")
-          content: (ctx) => {
-            // For tier boundaries (IV), show icon + division
-            if (rank.isTier && img && img.complete) {
-              // Draw image manually in drawTime callback
-              return rank.division
-            }
-            // For other divisions, just show division number
-            return rank.division
-          },
+          content: rank.division,
           position: 'start',
           backgroundColor: rank.isTier ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.6)',
           color: '#ffffff',
           font: { size: rank.isTier ? 10 : 8, weight: rank.isTier ? 'bold' : 'normal' },
           padding: rank.isTier ? 4 : 2,
-          // Custom draw function to add icon
-          drawTime: 'afterDatasetsDraw'
-        },
-        // Store image reference for custom drawing
-        enter: (ctx) => {
-          if (rank.isTier && img && img.complete) {
-            const chart = ctx.chart
-            const {x, y} = ctx.element.labelRect
-            const iconSize = 16
-            chart.ctx.drawImage(img, x - iconSize - 4, y - iconSize / 2, iconSize, iconSize)
-          }
+          xAdjust: rank.isTier && img && img.complete ? 20 : 0 // Make room for icon
         }
       }
     }
@@ -244,6 +226,7 @@ const chartOptions = computed(() => ({
     annotation: {
       annotations: annotations.value
     },
+    rankIcons: {}, // Enable our custom plugin
     tooltip: {
       backgroundColor: 'rgba(0, 0, 0, 0.9)',
       titleColor: '#ffffff',
