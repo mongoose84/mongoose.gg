@@ -1,4 +1,4 @@
-using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Core.Interfaces;
 
@@ -16,7 +16,7 @@ public interface IMatchupRepository
     /// <param name="puuid">Player PUUID</param>
     /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, normal, aram, all)</param>
     /// <param name="timeRange">Time range filter (current_season, last_season, 1w, 1m, 3m, 6m)</param>
-    /// <returns>Champion matchups response</returns>
-    Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(string puuid, string? queueType = null, string? timeRange = null);
+    /// <returns>Champion matchups data</returns>
+    Task<ChampionMatchupsData> GetChampionMatchupsAsync(string puuid, string? queueType = null, string? timeRange = null);
 }
 

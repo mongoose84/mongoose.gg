@@ -1,6 +1,6 @@
 using MySqlConnector;
 using Mongoose.Api.Core.Interfaces;
-using static Mongoose.Api.Application.DTOs.TrendDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
@@ -26,7 +26,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
     }
 
     /// <inheritdoc />
-    public async Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+    public async Task<WinrateTrendData[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
     {
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
@@ -62,11 +62,11 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         });
 
         if (games.Count == 0)
-            return Array.Empty<WinrateTrendPoint>();
+            return Array.Empty<WinrateTrendData>();
 
         // Calculate rolling 20-game average for each game
         const int windowSize = 20;
-        var trendPoints = new List<WinrateTrendPoint>();
+        var trendPoints = new List<WinrateTrendData>();
 
         for (int i = 0; i < games.Count; i++)
         {
@@ -79,7 +79,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
             var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(games[i].Timestamp).UtcDateTime;
 
-            trendPoints.Add(new WinrateTrendPoint(
+            trendPoints.Add(new WinrateTrendData(
                 GameIndex: i + 1,
                 WinRate: winRate,
                 Timestamp: timestamp
@@ -98,7 +98,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         if (trendPoints.Count > maxDataPoints)
         {
             var step = (double)trendPoints.Count / maxDataPoints;
-            var downsampled = new List<WinrateTrendPoint>();
+            var downsampled = new List<WinrateTrendData>();
 
             for (int i = 0; i < maxDataPoints; i++)
             {

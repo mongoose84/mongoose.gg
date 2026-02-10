@@ -1,4 +1,4 @@
-using static Mongoose.Api.Application.DTOs.TrendDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Core.Interfaces;
 
@@ -18,8 +18,8 @@ public interface ITrendRepository
     /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, normal, aram, all)</param>
     /// <param name="timeRange">Time range filter (current_season, last_season, 1w, 1m, 3m, 6m)</param>
     /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
-    /// <returns>Array of winrate trend points</returns>
-    Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    /// <returns>Array of winrate trend data points</returns>
+    Task<WinrateTrendData[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
 
     /// <summary>
     /// Get LP trend data for ranked matches with LP data available.
@@ -28,8 +28,8 @@ public interface ITrendRepository
     /// <param name="puuid">Player PUUID</param>
     /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, or null for both)</param>
     /// <param name="limit">Maximum number of data points to return</param>
-    /// <returns>List of LP trend points ordered oldest to newest</returns>
-    Task<IList<LpTrendPoint>> GetLpTrendAsync(string puuid, string? queueType = null, int limit = 100);
+    /// <returns>List of LP trend data points ordered oldest to newest</returns>
+    Task<IList<LpTrendData>> GetLpTrendAsync(string puuid, string? queueType = null, int limit = 100);
 
     /// <summary>
     /// Get daily match counts for the past N days for heatmap display.

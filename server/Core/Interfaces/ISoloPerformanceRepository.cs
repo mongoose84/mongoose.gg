@@ -1,4 +1,4 @@
-using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Core.Interfaces;
 
@@ -17,7 +17,7 @@ public interface ISoloPerformanceRepository
     /// <param name="puuid">Player PUUID</param>
     /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, normal, aram, all)</param>
     /// <param name="timeRange">Time range filter (current_season, last_season, 1w, 1m, 3m, 6m)</param>
-    /// <returns>Performance response or null if no data found</returns>
-    Task<SoloPerformanceResponse?> GetSoloPerformanceAsync(string puuid, string? queueType = null, string? timeRange = null);
+    /// <returns>Performance data or null if no data found</returns>
+    Task<SoloPerformanceData?> GetSoloPerformanceAsync(string puuid, string? queueType = null, string? timeRange = null);
 }
 
