@@ -161,38 +161,34 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
     /// <inheritdoc />
     /// <remarks>
-    /// Uses lp_snapshots table which records LP at each sync time.
-    /// This provides accurate LP progression data independent of specific matches.
-    /// Note: Win field is always false since snapshots are not tied to specific games.
-    /// The frontend should not rely on win/loss coloring for LP chart points.
+    /// Uses participants table which has lp_after, tier_after, rank_after for each ranked match.
+    /// This provides accurate per-match LP progression data.
     /// </remarks>
     public async Task<IList<LpTrendPoint>> GetLpTrendAsync(string puuid, string? queueType = null, int limit = 100)
     {
-        // Build queue filter for ranked modes
-        var queueTypeFilter = queueType?.ToLowerInvariant() switch
+        // Build queue filter for ranked modes only (420 = Ranked Solo/Duo, 440 = Ranked Flex)
+        var queueFilter = queueType?.ToLowerInvariant() switch
         {
-            "ranked_solo" => "AND queue_type = 'RANKED_SOLO_5x5'",
-            "ranked_flex" => "AND queue_type = 'RANKED_FLEX_SR'",
-            _ => "" // All ranked queues
+            "ranked_solo" => "AND m.queue_id = 420",
+            "ranked_flex" => "AND m.queue_id = 440",
+            _ => "AND m.queue_id IN (420, 440)" // All ranked queues
         };
 
-        // Query lp_snapshots table: get most recent N rows, then order ascending for chart display
-        // Uses subquery to select most recent rows (DESC), then outer query re-orders ASC
         var sql = $@"
-            SELECT lp, tier, division, recorded_at
-            FROM (
-                SELECT
-                    lp,
-                    tier,
-                    division,
-                    recorded_at
-                FROM lp_snapshots
-                WHERE puuid = @puuid
-                  {queueTypeFilter}
-                ORDER BY recorded_at DESC
-                LIMIT @limit
-            ) AS recent
-            ORDER BY recorded_at ASC";
+            SELECT
+                p.lp_after,
+                p.tier_after,
+                p.rank_after,
+                p.win,
+                m.game_start_time
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE p.puuid = @puuid
+              AND p.lp_after IS NOT NULL
+              AND p.tier_after IS NOT NULL
+              {queueFilter}
+            ORDER BY m.game_start_time ASC
+            LIMIT @limit";
 
         var points = new List<LpTrendPoint>();
 
@@ -204,7 +200,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
             await using var reader = await cmd.ExecuteReaderAsync();
 
-            int snapshotIndex = 1;
+            int gameIndex = 1;
             int? previousLp = null;
             string? previousTier = null;
             string? previousDivision = null;
@@ -214,16 +210,18 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var lp = reader.GetInt32(0);
                 var tier = reader.GetString(1);
                 var division = reader.IsDBNull(2) ? "" : reader.GetString(2);
-                var recordedAt = reader.GetDateTimeUtc(3);
+                var win = reader.GetBoolean(3);
+                var gameStartTime = reader.GetInt64(4);
+                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(gameStartTime).UtcDateTime;
 
-                // Skip duplicate snapshots (same LP, tier, and division as previous)
-                // This filters out snapshots created by multiple logins or syncs without rank changes
+                // Skip duplicate matches (same LP, tier, and division as previous)
+                // This can happen if there are duplicate match records
                 if (previousLp.HasValue &&
                     previousLp.Value == lp &&
                     previousTier == tier &&
                     previousDivision == division)
                 {
-                    continue; // Skip this duplicate snapshot
+                    continue; // Skip this duplicate
                 }
 
                 var rankString = _lpCalc.FormatRank(tier, division);
@@ -240,21 +238,21 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 }
 
                 points.Add(new LpTrendPoint(
-                    GameIndex: snapshotIndex,
+                    GameIndex: gameIndex,
                     LpGain: lpGain,
                     CurrentLp: lp,
                     AbsoluteLp: absoluteLp,
                     Rank: rankString,
-                    Timestamp: recordedAt,
+                    Timestamp: timestamp,
                     IsPromotion: isPromotion,
                     IsDemotion: isDemotion,
-                    Win: false // Snapshots are not tied to specific games
+                    Win: win // Now we have actual win/loss data from the match
                 ));
 
                 previousLp = lp;
                 previousTier = tier;
                 previousDivision = division;
-                snapshotIndex++;
+                gameIndex++;
             }
 
             return 0;
