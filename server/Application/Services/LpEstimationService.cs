@@ -1,6 +1,5 @@
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
-using Mongoose.Api.Infrastructure.Database.Repositories;
 
 namespace Mongoose.Api.Application.Services;
 
@@ -11,7 +10,7 @@ namespace Mongoose.Api.Application.Services;
 /// </summary>
 public sealed class LpEstimationService : ILpEstimationService
 {
-    private readonly ParticipantsRepository _participantsRepo;
+    private readonly IParticipantsRepository _participantsRepo;
     private readonly ILogger<LpEstimationService> _logger;
 
     // Remake detection
@@ -35,7 +34,7 @@ public sealed class LpEstimationService : ILpEstimationService
     private static readonly HashSet<string> ApexTiers = new(StringComparer.OrdinalIgnoreCase)
         { "MASTER", "GRANDMASTER", "CHALLENGER" };
 
-    public LpEstimationService(ParticipantsRepository participantsRepo, ILogger<LpEstimationService> logger)
+    public LpEstimationService(IParticipantsRepository participantsRepo, ILogger<LpEstimationService> logger)
     {
         _participantsRepo = participantsRepo;
         _logger = logger;

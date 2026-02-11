@@ -49,6 +49,7 @@ builder.Services.AddScoped<IUserRiotAccountsRepository, UserRiotAccountsReposito
 builder.Services.AddScoped<MatchesRepository>();
 builder.Services.AddScoped<IMatchesRepository>(sp => sp.GetRequiredService<MatchesRepository>());
 builder.Services.AddScoped<ParticipantsRepository>();
+builder.Services.AddScoped<IParticipantsRepository>(sp => sp.GetRequiredService<ParticipantsRepository>());
 builder.Services.AddScoped<ParticipantCheckpointsRepository>();
 builder.Services.AddScoped<ParticipantMetricsRepository>();
 builder.Services.AddScoped<TeamObjectivesRepository>();
