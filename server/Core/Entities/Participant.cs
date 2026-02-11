@@ -23,6 +23,8 @@ public class Participant : EntityBase
     public string? TierAfter { get; set; }
     /// <summary>Rank/division after game (e.g., "IV") - ranked matches only</summary>
     public string? RankAfter { get; set; }
+    /// <summary>Whether the LP data was estimated (true) or actual from Riot API (false)</summary>
+    public bool IsLpEstimated { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

@@ -15,7 +15,7 @@ public class LoginSyncService
 {
     private readonly RiotAccountsRepository _riotAccountsRepo;
     private readonly IUserRiotAccountsRepository _userRiotAccountsRepo;
-    private readonly ILpSnapshotsRepository _lpSnapshotsRepo;
+    private readonly ILpEstimationService _lpEstimationService;
     private readonly IRiotApiClient _riotApiClient;
     private readonly ISyncProgressBroadcaster _syncBroadcaster;
     private readonly ILogger<LoginSyncService> _logger;
@@ -28,14 +28,14 @@ public class LoginSyncService
     public LoginSyncService(
         RiotAccountsRepository riotAccountsRepo,
         IUserRiotAccountsRepository userRiotAccountsRepo,
-        ILpSnapshotsRepository lpSnapshotsRepo,
+        ILpEstimationService lpEstimationService,
         IRiotApiClient riotApiClient,
         ISyncProgressBroadcaster syncBroadcaster,
         ILogger<LoginSyncService> logger)
     {
         _riotAccountsRepo = riotAccountsRepo;
         _userRiotAccountsRepo = userRiotAccountsRepo;
-        _lpSnapshotsRepo = lpSnapshotsRepo;
+        _lpEstimationService = lpEstimationService;
         _riotApiClient = riotApiClient;
         _syncBroadcaster = syncBroadcaster;
         _logger = logger;
@@ -192,9 +192,9 @@ public class LoginSyncService
                     account.Puuid, soloTier, soloRank, flexTier, flexRank);
             }
 
-            // Record LP snapshots for time-series tracking (always, on every login)
-            // This builds LP history independent of match syncs
-            await RecordLpSnapshotsAsync(account.Puuid, soloTier, soloRank, soloLp, flexTier, flexRank, flexLp);
+            // Run LP estimation for ranked queues on login
+            // This ensures existing users get LP data for recent matches immediately
+            await EstimateLpForAccountAsync(account.Puuid, soloTier, soloRank, soloLp, flexTier, flexRank, flexLp);
         }
         catch (Exception ex)
         {
@@ -204,85 +204,35 @@ public class LoginSyncService
     }
 
     /// <summary>
-    /// Records LP snapshots for Solo and Flex queues if the player has ranked data.
-    /// Called on every login to build LP progression history.
-    /// Only inserts a new snapshot if LP, tier, or division has changed since the last snapshot.
+    /// Runs LP estimation for both Solo/Duo and Flex queues on an account.
+    /// Uses current rank data from Riot API as the anchor point.
+    /// Called on every login to ensure existing users get LP data immediately.
     /// </summary>
-    private async Task RecordLpSnapshotsAsync(
+    private async Task EstimateLpForAccountAsync(
         string puuid,
         string? soloTier, string? soloRank, int? soloLp,
         string? flexTier, string? flexRank, int? flexLp)
     {
-        var now = DateTime.UtcNow;
-
         try
         {
-            // Record Solo Queue snapshot if player has solo rank
+            // Solo/Duo (queue 420)
             if (!string.IsNullOrEmpty(soloTier) && !string.IsNullOrEmpty(soloRank) && soloLp.HasValue)
             {
-                // Check if LP has changed since last snapshot
-                var lastSoloSnapshot = await _lpSnapshotsRepo.GetLatestByPuuidAndQueueAsync(puuid, "RANKED_SOLO_5x5");
-
-                if (lastSoloSnapshot == null ||
-                    lastSoloSnapshot.Lp != soloLp.Value ||
-                    lastSoloSnapshot.Tier != soloTier ||
-                    lastSoloSnapshot.Division != soloRank)
-                {
-                    var soloSnapshot = new LpSnapshot
-                    {
-                        Puuid = puuid,
-                        QueueType = "RANKED_SOLO_5x5",
-                        Tier = soloTier,
-                        Division = soloRank,
-                        Lp = soloLp.Value,
-                        RecordedAt = now,
-                        CreatedAt = now
-                    };
-                    await _lpSnapshotsRepo.InsertAsync(soloSnapshot);
-                    _logger.LogDebug("Recorded LP snapshot for {Puuid} in Solo: {Tier} {Division} {LP} LP",
-                        puuid, soloTier, soloRank, soloLp);
-                }
-                else
-                {
-                    _logger.LogDebug("Skipped duplicate LP snapshot for {Puuid} in Solo (no change)", puuid);
-                }
+                await _lpEstimationService.EstimateLpForRecentMatchesAsync(
+                    puuid, 420, soloLp.Value, soloTier, soloRank);
             }
 
-            // Record Flex Queue snapshot if player has flex rank
+            // Flex (queue 440)
             if (!string.IsNullOrEmpty(flexTier) && !string.IsNullOrEmpty(flexRank) && flexLp.HasValue)
             {
-                // Check if LP has changed since last snapshot
-                var lastFlexSnapshot = await _lpSnapshotsRepo.GetLatestByPuuidAndQueueAsync(puuid, "RANKED_FLEX_SR");
-
-                if (lastFlexSnapshot == null ||
-                    lastFlexSnapshot.Lp != flexLp.Value ||
-                    lastFlexSnapshot.Tier != flexTier ||
-                    lastFlexSnapshot.Division != flexRank)
-                {
-                    var flexSnapshot = new LpSnapshot
-                    {
-                        Puuid = puuid,
-                        QueueType = "RANKED_FLEX_SR",
-                        Tier = flexTier,
-                        Division = flexRank,
-                        Lp = flexLp.Value,
-                        RecordedAt = now,
-                        CreatedAt = now
-                    };
-                    await _lpSnapshotsRepo.InsertAsync(flexSnapshot);
-                    _logger.LogDebug("Recorded LP snapshot for {Puuid} in Flex: {Tier} {Division} {LP} LP",
-                        puuid, flexTier, flexRank, flexLp);
-                }
-                else
-                {
-                    _logger.LogDebug("Skipped duplicate LP snapshot for {Puuid} in Flex (no change)", puuid);
-                }
+                await _lpEstimationService.EstimateLpForRecentMatchesAsync(
+                    puuid, 440, flexLp.Value, flexTier, flexRank);
             }
         }
         catch (Exception ex)
         {
-            // Don't fail login if LP snapshot recording fails
-            _logger.LogWarning(ex, "Failed to record LP snapshots for {Puuid}", puuid);
+            // Don't fail login if LP estimation fails
+            _logger.LogWarning(ex, "Failed to estimate LP for {Puuid}", puuid);
         }
     }
 

@@ -30,6 +30,8 @@ public record MatchResultData(
     string MatchId,
     bool Win,
     int? LpAfter,
+    string? TierAfter,
+    string? RankAfter,
     long GameStartTime
 );
 

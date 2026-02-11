@@ -34,7 +34,6 @@ public sealed class OverviewEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] OverviewStatsRepository overviewStatsRepo,
-            [FromServices] ILpSnapshotsRepository lpSnapshotsRepo,
             [FromServices] ILpCalculationService lpCalc,
             [FromServices] ILogger<OverviewEndpoint> logger
         ) =>
@@ -83,13 +82,12 @@ public sealed class OverviewEndpoint : IEndpoint
                 // Get last 20 matches for primary queue
                 var last20Matches = await overviewStatsRepo.GetLast20MatchesAsync(primaryPuuid, primaryQueueId);
 
-                // Calculate rank snapshot using LP snapshots for accurate delta
-                var rankSnapshot = await BuildRankSnapshotAsync(
+                // Calculate rank snapshot using per-match LP data
+                var rankSnapshot = BuildRankSnapshot(
                     primaryAccount,
                     primaryQueueId,
                     primaryQueueLabel,
                     last20Matches,
-                    lpSnapshotsRepo,
                     lpCalc
                 );
 
@@ -139,24 +137,21 @@ public sealed class OverviewEndpoint : IEndpoint
         return contexts.ToArray();
     }
 
-    private static async Task<RankSnapshot> BuildRankSnapshotAsync(
+    private static RankSnapshot BuildRankSnapshot(
         Mongoose.Api.Core.Entities.RiotAccount account,
         int primaryQueueId,
         string primaryQueueLabel,
         List<MatchResultData> last20Matches,
-        ILpSnapshotsRepository lpSnapshotsRepo,
         ILpCalculationService lpCalc)
     {
         // Get current rank based on primary queue
         string? rank = null;
         int? currentLp = null;
-        string? queueType = null;
         string? currentTier = null;
         string? currentDivision = null;
 
         if (primaryQueueId == 420) // Ranked Solo/Duo
         {
-            queueType = "RANKED_SOLO_5x5";
             if (!string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank))
             {
                 rank = $"{account.SoloTier} {account.SoloRank}";
@@ -167,7 +162,6 @@ public sealed class OverviewEndpoint : IEndpoint
         }
         else if (primaryQueueId == 440) // Ranked Flex
         {
-            queueType = "RANKED_FLEX_SR";
             if (!string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank))
             {
                 rank = $"{account.FlexTier} {account.FlexRank}";
@@ -184,16 +178,12 @@ public sealed class OverviewEndpoint : IEndpoint
         // Build W/L array (newest first, true = win, false = loss)
         var wlLast20 = last20Matches.Select(m => m.Win).ToArray();
 
-        // Calculate LP delta using LP snapshots
-        // Find the LP snapshot closest to the oldest match in the last 20
-        var lpDeltaLast20 = await CalculateLpDeltaFromSnapshotsAsync(
-            account.Puuid,
-            queueType,
+        // Calculate LP delta from per-match LP data (participants.lp_after)
+        var lpDeltaLast20 = CalculateLpDeltaFromMatches(
             currentTier,
             currentDivision,
             currentLp,
             last20Matches,
-            lpSnapshotsRepo,
             lpCalc
         );
 
@@ -214,50 +204,34 @@ public sealed class OverviewEndpoint : IEndpoint
     }
 
     /// <summary>
-    /// Calculates LP delta by comparing current rank/LP to the LP snapshot from around the time
-    /// of the oldest match in the last 20. Accounts for tier/division changes by converting
+    /// Calculates LP delta by comparing current rank/LP to the LP of the oldest match
+    /// in the last 20 that has LP data. Uses per-match LP from participants table
+    /// (populated by LP estimation). Accounts for tier/division changes by converting
     /// to absolute LP values.
-    /// Falls back to the oldest available snapshot if no snapshot exists before the oldest match.
     /// </summary>
-    private static async Task<int> CalculateLpDeltaFromSnapshotsAsync(
-        string puuid,
-        string? queueType,
+    private static int CalculateLpDeltaFromMatches(
         string? currentTier,
         string? currentDivision,
         int? currentLp,
         List<MatchResultData> last20Matches,
-        ILpSnapshotsRepository lpSnapshotsRepo,
         ILpCalculationService lpCalc)
     {
-        // If no current LP or no queue type, we can't calculate delta
-        if (currentLp == null || queueType == null || last20Matches.Count == 0)
+        // If no current LP or no matches, we can't calculate delta
+        if (currentLp == null || last20Matches.Count == 0)
             return 0;
 
-        // Find the oldest match in the last 20 (matches are ordered newest first)
-        var oldestMatch = last20Matches.OrderBy(m => m.GameStartTime).First();
+        // Find the oldest match that has LP data (matches are ordered newest first)
+        var oldestMatchWithLp = last20Matches
+            .Where(m => m.LpAfter != null && m.TierAfter != null && m.RankAfter != null)
+            .OrderBy(m => m.GameStartTime)
+            .FirstOrDefault();
 
-        // Convert game start time (epoch milliseconds) to DateTime
-        var oldestMatchTime = DateTimeOffset.FromUnixTimeMilliseconds(oldestMatch.GameStartTime).UtcDateTime;
-
-        // Get the LP snapshot closest to (but not after) the oldest match
-        var oldSnapshot = await lpSnapshotsRepo.GetSnapshotAtOrBeforeAsync(puuid, queueType, oldestMatchTime);
-
-        if (oldSnapshot == null)
-        {
-            // No snapshot before the oldest match - fall back to the oldest available snapshot
-            // This handles the case where LP tracking started after matches were already played
-            oldSnapshot = await lpSnapshotsRepo.GetOldestByPuuidAndQueueAsync(puuid, queueType);
-
-            if (oldSnapshot == null)
-            {
-                // No snapshots at all - can't calculate delta
-                return 0;
-            }
-        }
+        if (oldestMatchWithLp == null)
+            return 0;
 
         // Convert both current and old rank to absolute LP for accurate comparison
         var currentAbsoluteLp = lpCalc.CalculateAbsoluteLp(currentTier, currentDivision, currentLp.Value);
-        var oldAbsoluteLp = lpCalc.CalculateAbsoluteLp(oldSnapshot.Tier, oldSnapshot.Division, oldSnapshot.Lp);
+        var oldAbsoluteLp = lpCalc.CalculateAbsoluteLp(oldestMatchWithLp.TierAfter, oldestMatchWithLp.RankAfter, oldestMatchWithLp.LpAfter!.Value);
 
         return currentAbsoluteLp - oldAbsoluteLp;
     }

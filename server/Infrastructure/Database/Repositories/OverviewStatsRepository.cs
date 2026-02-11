@@ -103,10 +103,12 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
     public virtual async Task<List<MatchResultData>> GetLast20MatchesAsync(string puuid, int queueId)
     {
         const string sql = @"
-            SELECT 
+            SELECT
                 p.match_id,
                 p.win,
                 p.lp_after,
+                p.tier_after,
+                p.rank_after,
                 m.game_start_time
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
@@ -130,7 +132,9 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
                     MatchId: reader.GetString(0),
                     Win: reader.GetBoolean(1),
                     LpAfter: reader.IsDBNull(2) ? null : reader.GetInt32(2),
-                    GameStartTime: reader.GetInt64(3)
+                    TierAfter: reader.IsDBNull(3) ? null : reader.GetString(3),
+                    RankAfter: reader.IsDBNull(4) ? null : reader.GetString(4),
+                    GameStartTime: reader.GetInt64(5)
                 ));
             }
             return 0;

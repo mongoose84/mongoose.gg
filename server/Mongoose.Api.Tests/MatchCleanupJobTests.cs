@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using FluentAssertions;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Core.QueryModels;
 using Xunit;
 
 namespace Mongoose.Api.Tests;
@@ -238,6 +239,18 @@ internal sealed class FakeParticipantsRepositoryForCleanup : IParticipantsReposi
     {
         _participantsByMatch.TryRemove(matchId, out _);
         return Task.CompletedTask;
+    }
+
+    public Task<IList<LpEstimationMatch>> GetRecentRankedMatchesForLpEstimationAsync(string puuid, int queueId, int limit)
+    {
+        // Not needed for cleanup tests
+        return Task.FromResult<IList<LpEstimationMatch>>(new List<LpEstimationMatch>());
+    }
+
+    public Task<int> BatchUpdateLpEstimatesAsync(IList<(string matchId, string puuid, int lpAfter, string tierAfter, string rankAfter)> estimates)
+    {
+        // Not needed for cleanup tests
+        return Task.FromResult(0);
     }
 }
 

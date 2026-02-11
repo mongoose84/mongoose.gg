@@ -1,6 +1,7 @@
 using MySqlConnector;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
@@ -11,8 +12,8 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
     public Task<long> InsertAsync(Participant p)
     {
         const string sql = @"INSERT INTO participants
-            (match_id, puuid, team_id, role, lane, champion_id, champion_name, win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec, lp_after, tier_after, rank_after, created_at)
-            VALUES (@match_id, @puuid, @team_id, @role, @lane, @champion_id, @champion_name, @win, @kills, @deaths, @assists, @creep_score, @gold_earned, @time_dead_sec, @lp_after, @tier_after, @rank_after, @created_at) AS new
+            (match_id, puuid, team_id, role, lane, champion_id, champion_name, win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec, lp_after, tier_after, rank_after, is_lp_estimated, created_at)
+            VALUES (@match_id, @puuid, @team_id, @role, @lane, @champion_id, @champion_name, @win, @kills, @deaths, @assists, @creep_score, @gold_earned, @time_dead_sec, @lp_after, @tier_after, @rank_after, @is_lp_estimated, @created_at) AS new
             ON DUPLICATE KEY UPDATE
                 team_id = new.team_id,
                 role = new.role,
@@ -28,7 +29,8 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
                 time_dead_sec = new.time_dead_sec,
                 lp_after = new.lp_after,
                 tier_after = new.tier_after,
-                rank_after = new.rank_after;";
+                rank_after = new.rank_after,
+                is_lp_estimated = new.is_lp_estimated;";
 
         return ExecuteWithConnectionAsync(async conn =>
         {
@@ -50,6 +52,7 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
             cmd.Parameters.AddWithValue("@lp_after", p.LpAfter ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@tier_after", p.TierAfter ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@rank_after", p.RankAfter ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@is_lp_estimated", p.IsLpEstimated);
             cmd.Parameters.AddWithValue("@created_at", p.CreatedAt == default ? DateTime.UtcNow : p.CreatedAt);
             await cmd.ExecuteNonQueryAsync();
             if (cmd.LastInsertedId != 0)
@@ -131,6 +134,72 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
         return ExecuteListAsync(sql, Map, parameters.ToArray());
     }
 
+    /// <summary>
+    /// Gets recent ranked matches for LP estimation.
+    /// Returns lightweight models with only the fields needed for the estimation algorithm.
+    /// </summary>
+    public virtual Task<IList<LpEstimationMatch>> GetRecentRankedMatchesForLpEstimationAsync(string puuid, int queueId, int limit)
+    {
+        const string sql = @"SELECT p.match_id, p.puuid, p.win, m.game_duration_sec,
+                p.lp_after, p.tier_after, p.rank_after, p.is_lp_estimated
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE p.puuid = @puuid AND m.queue_id = @queue_id
+            ORDER BY m.game_start_time DESC
+            LIMIT @limit";
+
+        return ExecuteListAsync(sql, MapLpEstimation,
+            ("@puuid", puuid),
+            ("@queue_id", queueId),
+            ("@limit", limit));
+    }
+
+    /// <summary>
+    /// Batch updates estimated LP data for multiple matches.
+    /// Only updates rows where lp_after IS NULL (never overwrites existing LP data).
+    /// </summary>
+    public virtual async Task<int> BatchUpdateLpEstimatesAsync(IList<(string matchId, string puuid, int lpAfter, string tierAfter, string rankAfter)> estimates)
+    {
+        if (estimates.Count == 0) return 0;
+
+        int totalUpdated = 0;
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            foreach (var (matchId, puuid, lpAfter, tierAfter, rankAfter) in estimates)
+            {
+                const string sql = @"UPDATE participants
+                    SET lp_after = @lp_after, tier_after = @tier_after, rank_after = @rank_after, is_lp_estimated = TRUE
+                    WHERE match_id = @match_id AND puuid = @puuid AND lp_after IS NULL";
+
+                await using var cmd = new MySqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@match_id", matchId);
+                cmd.Parameters.AddWithValue("@puuid", puuid);
+                cmd.Parameters.AddWithValue("@lp_after", lpAfter);
+                cmd.Parameters.AddWithValue("@tier_after", tierAfter);
+                cmd.Parameters.AddWithValue("@rank_after", rankAfter);
+
+                totalUpdated += await cmd.ExecuteNonQueryAsync();
+            }
+
+            return totalUpdated;
+        });
+
+        return totalUpdated;
+    }
+
+    private static LpEstimationMatch MapLpEstimation(MySqlDataReader r) => new()
+    {
+        MatchId = r.GetString(0),
+        Puuid = r.GetString(1),
+        Win = r.GetBoolean(2),
+        GameDurationSec = r.GetInt32(3),
+        LpAfter = r.IsDBNull(4) ? null : r.GetInt32(4),
+        TierAfter = r.IsDBNull(5) ? null : r.GetString(5),
+        RankAfter = r.IsDBNull(6) ? null : r.GetString(6),
+        IsLpEstimated = r.GetBoolean(7)
+    };
+
     private static Participant Map(MySqlDataReader r) => new()
     {
         Id = r.GetInt64(0),
@@ -151,6 +220,7 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
         LpAfter = r.IsDBNull(15) ? null : r.GetInt32(15),
         TierAfter = r.IsDBNull(16) ? null : r.GetString(16),
         RankAfter = r.IsDBNull(17) ? null : r.GetString(17),
-        CreatedAt = r.GetDateTimeUtc(18)
+        IsLpEstimated = r.GetBoolean(18),
+        CreatedAt = r.GetDateTimeUtc(19)
     };
 }

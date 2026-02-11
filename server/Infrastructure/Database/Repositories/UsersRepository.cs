@@ -167,30 +167,6 @@ public class UsersRepository : RepositoryBase, IUsersRepository
                     await cmd.ExecuteNonQueryAsync();
                 }
 
-                // For each puuid, check if any other users still link to it
-                // If not, delete LP snapshots for that puuid
-                foreach (var puuid in puuids)
-                {
-                    var checkOtherLinks = "SELECT COUNT(*) FROM user_riot_accounts WHERE puuid = @puuid";
-                    long otherLinkCount;
-                    await using (var cmd = new MySqlCommand(checkOtherLinks, conn, transaction))
-                    {
-                        cmd.Parameters.AddWithValue("@puuid", puuid);
-                        otherLinkCount = Convert.ToInt64(await cmd.ExecuteScalarAsync());
-                    }
-
-                    if (otherLinkCount == 0)
-                    {
-                        // No other users link to this account, safe to delete LP snapshots
-                        var deleteLpSnapshots = "DELETE FROM lp_snapshots WHERE puuid = @puuid";
-                        await using (var cmd = new MySqlCommand(deleteLpSnapshots, conn, transaction))
-                        {
-                            cmd.Parameters.AddWithValue("@puuid", puuid);
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                    }
-                }
-
                 // Delete subscriptions
                 var deleteSubscriptions = "DELETE FROM subscriptions WHERE user_id = @user_id";
                 await using (var cmd = new MySqlCommand(deleteSubscriptions, conn, transaction))
