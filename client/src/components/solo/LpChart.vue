@@ -29,7 +29,7 @@ import {
 } from 'chart.js'
 import annotationPlugin from 'chartjs-plugin-annotation'
 
-// Register Chart.js components (plugin will be registered later after it's defined)
+// Register Chart.js components and annotation plugin globally
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -86,23 +86,12 @@ function formatDate(timestamp) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-// Get point colors based on LP change (green = gained, red = lost, purple = neutral/first)
-function getPointColors() {
-  return props.data.map(point => {
-    if (point.lpGain === null) return '#6d28d9' // First point or unknown
-    if (point.lpGain > 0) return '#22c55e' // Gained LP
-    if (point.lpGain < 0) return '#ef4444' // Lost LP
-    return '#6d28d9' // No change
-  })
-}
-
 const chartData = computed(() => {
   if (!hasData.value) return { labels: [], datasets: [] }
 
   const labels = props.data.map(point => formatDate(point.timestamp))
   // Use absoluteLp for Y-axis positioning (handles promotions/demotions correctly)
   const data = props.data.map(point => point.absoluteLp)
-  const pointColors = getPointColors()
 
   return {
     labels,
@@ -115,10 +104,10 @@ const chartData = computed(() => {
       fill: true,
       tension: 0.3,
       pointRadius: 4,
-      pointBackgroundColor: pointColors,
-      pointBorderColor: pointColors,
+      pointBackgroundColor: '#6d28d9',
+      pointBorderColor: '#6d28d9',
       pointHoverRadius: 8,
-      pointHoverBackgroundColor: pointColors,
+      pointHoverBackgroundColor: '#6d28d9',
       pointHoverBorderColor: '#ffffff',
       pointHoverBorderWidth: 2
     }]

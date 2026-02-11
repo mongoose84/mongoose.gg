@@ -100,6 +100,7 @@ const chartOptions = computed(() => ({
   interaction: { mode: 'index', intersect: false },
   plugins: {
     legend: { display: false },
+    annotation: false,
     tooltip: {
       backgroundColor: 'rgba(0, 0, 0, 0.9)',
       titleColor: '#ffffff',
