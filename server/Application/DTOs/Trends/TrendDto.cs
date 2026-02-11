@@ -27,8 +27,10 @@ public static class TrendDto
         [property: JsonPropertyName("gameIndex")] int GameIndex,
         /// <summary>LP gained or lost in this game (null if unknown - first game or missing data)</summary>
         [property: JsonPropertyName("lpGain")] int? LpGain,
-        /// <summary>Current LP after this game</summary>
+        /// <summary>Current LP after this game (0-100 for regular tiers, 0+ for Master+)</summary>
         [property: JsonPropertyName("currentLp")] int CurrentLp,
+        /// <summary>Absolute LP value for chart positioning (accounts for tier + division + LP). Iron IV 0 LP = 0, Challenger = 2800+</summary>
+        [property: JsonPropertyName("absoluteLp")] int AbsoluteLp,
         /// <summary>Rank string after this game (e.g., "Silver IV")</summary>
         [property: JsonPropertyName("rank")] string Rank,
         /// <summary>Timestamp of the game</summary>
@@ -50,9 +52,12 @@ public static class TrendDto
 
     /// <summary>
     /// Response DTO for the LP trend endpoint.
+    /// When queueType is 'all' or null, returns separate arrays for ranked solo and ranked flex.
+    /// When queueType is specific (ranked_solo or ranked_flex), returns data in rankedSolo or rankedFlex respectively.
     /// </summary>
     public record LpTrendResponse(
-        [property: JsonPropertyName("lpTrend")] LpTrendPoint[] LpTrend
+        [property: JsonPropertyName("rankedSolo")] LpTrendPoint[] RankedSolo,
+        [property: JsonPropertyName("rankedFlex")] LpTrendPoint[] RankedFlex
     );
 }
 

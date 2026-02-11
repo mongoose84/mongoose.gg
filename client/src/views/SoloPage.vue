@@ -31,16 +31,29 @@
 
     <!-- Zone 3: Trend Charts (LP left, Winrate right) -->
     <template #trend-charts>
-      <!-- LP Trend Chart -->
+      <!-- LP Trend Chart - Ranked Solo/Duo -->
       <TrendChartCard
-        title="LP Progression"
-        subtitle="Track your ranked LP over time"
+        v-if="showSoloLpChart"
+        title="Ranked Solo/Duo"
         :loading="lpLoading"
-        test-id="lp-trend-card"
+        test-id="lp-trend-solo-card"
         @toggle-expand="handleLpExpand"
       >
         <template #default="{ dataLimit }">
-          <LpChart :data="lpTrendData" />
+          <LpChart :data="lpTrendDataSolo" />
+        </template>
+      </TrendChartCard>
+
+      <!-- LP Trend Chart - Ranked Flex -->
+      <TrendChartCard
+        v-if="showFlexLpChart"
+        title="Ranked Flex"
+        :loading="lpLoading"
+        test-id="lp-trend-flex-card"
+        @toggle-expand="handleLpExpand"
+      >
+        <template #default="{ dataLimit }">
+          <LpChart :data="lpTrendDataFlex" />
         </template>
       </TrendChartCard>
 
@@ -63,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
@@ -84,7 +97,8 @@ const isLoading = ref(false)
 const error = ref(null)
 
 // Trend chart data
-const lpTrendData = ref([])
+const lpTrendDataSolo = ref([])
+const lpTrendDataFlex = ref([])
 const winrateTrendData = ref([])
 const lpLoading = ref(false)
 const winrateLoading = ref(false)
@@ -96,6 +110,25 @@ const winrateExpanded = ref(false)
 // UI state for filters
 const queueFilter = ref('all')
 const timeRange = ref('current_season')
+
+// Computed properties to determine which LP charts to show
+const showSoloLpChart = computed(() => {
+  // Show solo chart if:
+  // 1. Queue filter is 'all' and there's solo data, OR
+  // 2. Queue filter is 'ranked_solo' and there's solo data
+  const isRelevantQueue = queueFilter.value === 'all' || queueFilter.value === 'ranked_solo'
+  const hasSoloData = lpTrendDataSolo.value && lpTrendDataSolo.value.length > 0
+  return isRelevantQueue && (hasSoloData || lpLoading.value)
+})
+
+const showFlexLpChart = computed(() => {
+  // Show flex chart if:
+  // 1. Queue filter is 'all' and there's flex data, OR
+  // 2. Queue filter is 'ranked_flex' and there's flex data
+  const isRelevantQueue = queueFilter.value === 'all' || queueFilter.value === 'ranked_flex'
+  const hasFlexData = lpTrendDataFlex.value && lpTrendDataFlex.value.length > 0
+  return isRelevantQueue && (hasFlexData || lpLoading.value)
+})
 
 // Fetch dashboard data (summary stats)
 async function fetchData() {
@@ -127,10 +160,14 @@ async function fetchLpTrend() {
   try {
     const limit = lpExpanded.value ? 500 : 20
     const result = await getLpTrend(authStore.userId, queueFilter.value, limit)
-    lpTrendData.value = result?.lpTrend ?? []
+
+    // Handle new response structure with separate arrays for solo and flex
+    lpTrendDataSolo.value = result?.rankedSolo ?? []
+    lpTrendDataFlex.value = result?.rankedFlex ?? []
   } catch (err) {
     console.error('Failed to fetch LP trend:', err)
-    lpTrendData.value = []
+    lpTrendDataSolo.value = []
+    lpTrendDataFlex.value = []
   } finally {
     lpLoading.value = false
   }

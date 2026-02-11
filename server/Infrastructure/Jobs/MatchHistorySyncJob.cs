@@ -441,6 +441,7 @@ public class MatchHistorySyncJob : BackgroundService
     /// Records LP snapshots for all ranked queues the player participates in.
     /// This provides honest time-series LP data independent of specific matches.
     /// Called on every sync to build LP progression history.
+    /// Only inserts a new snapshot if LP, tier, or division has changed since the last snapshot.
     /// </summary>
     private async Task RecordLpSnapshotsAsync(
         IRiotApiClient riotApiClient,
@@ -468,20 +469,34 @@ public class MatchHistorySyncJob : BackgroundService
                 if (string.IsNullOrEmpty(tier) || string.IsNullOrEmpty(division))
                     continue;
 
-                var snapshot = new LpSnapshot
-                {
-                    Puuid = account.Puuid,
-                    QueueType = queueType,
-                    Tier = tier,
-                    Division = division,
-                    Lp = lp,
-                    RecordedAt = now,
-                    CreatedAt = now
-                };
+                // Check if LP has changed since last snapshot
+                var lastSnapshot = await lpSnapshotsRepo.GetLatestByPuuidAndQueueAsync(account.Puuid, queueType);
 
-                await lpSnapshotsRepo.InsertAsync(snapshot);
-                _logger.LogDebug("Recorded LP snapshot for {Puuid} in {Queue}: {Tier} {Division} {LP} LP",
-                    account.Puuid, queueType, tier, division, lp);
+                if (lastSnapshot == null ||
+                    lastSnapshot.Lp != lp ||
+                    lastSnapshot.Tier != tier ||
+                    lastSnapshot.Division != division)
+                {
+                    var snapshot = new LpSnapshot
+                    {
+                        Puuid = account.Puuid,
+                        QueueType = queueType,
+                        Tier = tier,
+                        Division = division,
+                        Lp = lp,
+                        RecordedAt = now,
+                        CreatedAt = now
+                    };
+
+                    await lpSnapshotsRepo.InsertAsync(snapshot);
+                    _logger.LogDebug("Recorded LP snapshot for {Puuid} in {Queue}: {Tier} {Division} {LP} LP",
+                        account.Puuid, queueType, tier, division, lp);
+                }
+                else
+                {
+                    _logger.LogDebug("Skipped duplicate LP snapshot for {Puuid} in {Queue} (no change)",
+                        account.Puuid, queueType);
+                }
             }
         }
         catch (Exception ex)

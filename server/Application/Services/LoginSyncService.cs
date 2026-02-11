@@ -206,6 +206,7 @@ public class LoginSyncService
     /// <summary>
     /// Records LP snapshots for Solo and Flex queues if the player has ranked data.
     /// Called on every login to build LP progression history.
+    /// Only inserts a new snapshot if LP, tier, or division has changed since the last snapshot.
     /// </summary>
     private async Task RecordLpSnapshotsAsync(
         string puuid,
@@ -219,37 +220,63 @@ public class LoginSyncService
             // Record Solo Queue snapshot if player has solo rank
             if (!string.IsNullOrEmpty(soloTier) && !string.IsNullOrEmpty(soloRank) && soloLp.HasValue)
             {
-                var soloSnapshot = new LpSnapshot
+                // Check if LP has changed since last snapshot
+                var lastSoloSnapshot = await _lpSnapshotsRepo.GetLatestByPuuidAndQueueAsync(puuid, "RANKED_SOLO_5x5");
+
+                if (lastSoloSnapshot == null ||
+                    lastSoloSnapshot.Lp != soloLp.Value ||
+                    lastSoloSnapshot.Tier != soloTier ||
+                    lastSoloSnapshot.Division != soloRank)
                 {
-                    Puuid = puuid,
-                    QueueType = "RANKED_SOLO_5x5",
-                    Tier = soloTier,
-                    Division = soloRank,
-                    Lp = soloLp.Value,
-                    RecordedAt = now,
-                    CreatedAt = now
-                };
-                await _lpSnapshotsRepo.InsertAsync(soloSnapshot);
-                _logger.LogDebug("Recorded LP snapshot for {Puuid} in Solo: {Tier} {Division} {LP} LP",
-                    puuid, soloTier, soloRank, soloLp);
+                    var soloSnapshot = new LpSnapshot
+                    {
+                        Puuid = puuid,
+                        QueueType = "RANKED_SOLO_5x5",
+                        Tier = soloTier,
+                        Division = soloRank,
+                        Lp = soloLp.Value,
+                        RecordedAt = now,
+                        CreatedAt = now
+                    };
+                    await _lpSnapshotsRepo.InsertAsync(soloSnapshot);
+                    _logger.LogDebug("Recorded LP snapshot for {Puuid} in Solo: {Tier} {Division} {LP} LP",
+                        puuid, soloTier, soloRank, soloLp);
+                }
+                else
+                {
+                    _logger.LogDebug("Skipped duplicate LP snapshot for {Puuid} in Solo (no change)", puuid);
+                }
             }
 
             // Record Flex Queue snapshot if player has flex rank
             if (!string.IsNullOrEmpty(flexTier) && !string.IsNullOrEmpty(flexRank) && flexLp.HasValue)
             {
-                var flexSnapshot = new LpSnapshot
+                // Check if LP has changed since last snapshot
+                var lastFlexSnapshot = await _lpSnapshotsRepo.GetLatestByPuuidAndQueueAsync(puuid, "RANKED_FLEX_SR");
+
+                if (lastFlexSnapshot == null ||
+                    lastFlexSnapshot.Lp != flexLp.Value ||
+                    lastFlexSnapshot.Tier != flexTier ||
+                    lastFlexSnapshot.Division != flexRank)
                 {
-                    Puuid = puuid,
-                    QueueType = "RANKED_FLEX_SR",
-                    Tier = flexTier,
-                    Division = flexRank,
-                    Lp = flexLp.Value,
-                    RecordedAt = now,
-                    CreatedAt = now
-                };
-                await _lpSnapshotsRepo.InsertAsync(flexSnapshot);
-                _logger.LogDebug("Recorded LP snapshot for {Puuid} in Flex: {Tier} {Division} {LP} LP",
-                    puuid, flexTier, flexRank, flexLp);
+                    var flexSnapshot = new LpSnapshot
+                    {
+                        Puuid = puuid,
+                        QueueType = "RANKED_FLEX_SR",
+                        Tier = flexTier,
+                        Division = flexRank,
+                        Lp = flexLp.Value,
+                        RecordedAt = now,
+                        CreatedAt = now
+                    };
+                    await _lpSnapshotsRepo.InsertAsync(flexSnapshot);
+                    _logger.LogDebug("Recorded LP snapshot for {Puuid} in Flex: {Tier} {Division} {LP} LP",
+                        puuid, flexTier, flexRank, flexLp);
+                }
+                else
+                {
+                    _logger.LogDebug("Skipped duplicate LP snapshot for {Puuid} in Flex (no change)", puuid);
+                }
             }
         }
         catch (Exception ex)
