@@ -265,12 +265,10 @@ public class TrendRepository : RepositoryBase, ITrendRepository
     public async Task<(LpTrendPoint[] RankedSolo, LpTrendPoint[] RankedFlex)> GetLpTrendBothQueuesAsync(string puuid, int limit = 100)
     {
         // Fetch both queues in parallel
-        var soloTask = GetLpTrendAsync(puuid, "ranked_solo", limit);
-        var flexTask = GetLpTrendAsync(puuid, "ranked_flex", limit);
+        var soloTask = await GetLpTrendAsync(puuid, "ranked_solo", limit);
+        var flexTask = await GetLpTrendAsync(puuid, "ranked_flex", limit);
 
-        await Task.WhenAll(soloTask, flexTask);
-
-        return (soloTask.Result.ToArray(), flexTask.Result.ToArray());
+        return (soloTask.ToArray(), flexTask.ToArray());
     }
 }
 

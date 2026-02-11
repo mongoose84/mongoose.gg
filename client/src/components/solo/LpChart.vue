@@ -202,7 +202,7 @@ const annotations = computed(() => {
         borderDash: rank.isTier ? [3, 3] : [2, 2],
         label: {
           display: true,
-          content: rank.division,
+          content: rank.isTier ? rank.tier.toUpperCase() : rank.division,
           position: 'start',
           backgroundColor: rank.isTier ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.6)',
           color: '#ffffff',
@@ -226,7 +226,6 @@ const chartOptions = computed(() => ({
     annotation: {
       annotations: annotations.value
     },
-    rankIcons: {}, // Enable our custom plugin
     tooltip: {
       backgroundColor: 'rgba(0, 0, 0, 0.9)',
       titleColor: '#ffffff',
@@ -236,14 +235,14 @@ const chartOptions = computed(() => ({
       padding: 12,
       displayColors: false,
       callbacks: {
-        title: (items) => `Snapshot ${props.data[items[0].dataIndex]?.gameIndex}`,
+        title: (items) => `Game ${props.data[items[0].dataIndex]?.gameIndex}`,
         label: (context) => {
           const point = props.data[context.dataIndex]
           const date = new Date(point.timestamp).toLocaleDateString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric'
           })
           const lines = [`${point.rank} - ${point.currentLp} LP`]
-          // Show LP change if available (not first snapshot)
+          // Show LP change if available (not first game)
           if (point.lpGain !== null) {
             const changeText = point.lpGain >= 0 ? `+${point.lpGain}` : `${point.lpGain}`
             lines.push(`Change: ${changeText} LP`)
