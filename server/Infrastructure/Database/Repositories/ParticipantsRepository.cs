@@ -11,6 +11,10 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
 
     public Task<long> InsertAsync(Participant p)
     {
+        // LP fields are updated conditionally to avoid wiping previously estimated/anchored values:
+        // - lp_after/tier_after/rank_after: use incoming value if not null, otherwise keep existing
+        // - is_lp_estimated: set to TRUE only if incoming is TRUE, otherwise keep existing
+        //   (prevents downgrading from estimated to false when reprocessing with null LP)
         const string sql = @"INSERT INTO participants
             (match_id, puuid, team_id, role, lane, champion_id, champion_name, win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec, lp_after, tier_after, rank_after, is_lp_estimated, created_at)
             VALUES (@match_id, @puuid, @team_id, @role, @lane, @champion_id, @champion_name, @win, @kills, @deaths, @assists, @creep_score, @gold_earned, @time_dead_sec, @lp_after, @tier_after, @rank_after, @is_lp_estimated, @created_at) AS new
@@ -27,10 +31,13 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
                 creep_score = new.creep_score,
                 gold_earned = new.gold_earned,
                 time_dead_sec = new.time_dead_sec,
-                lp_after = new.lp_after,
-                tier_after = new.tier_after,
-                rank_after = new.rank_after,
-                is_lp_estimated = new.is_lp_estimated;";
+                lp_after = COALESCE(new.lp_after, lp_after),
+                tier_after = COALESCE(new.tier_after, tier_after),
+                rank_after = COALESCE(new.rank_after, rank_after),
+                is_lp_estimated = CASE
+                    WHEN new.lp_after IS NOT NULL THEN new.is_lp_estimated
+                    ELSE is_lp_estimated
+                END;";
 
         return ExecuteWithConnectionAsync(async conn =>
         {
@@ -194,18 +201,17 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
         return totalUpdated;
     }
 
-    private static LpEstimationMatch MapLpEstimation(MySqlDataReader r) => new()
-    {
-        MatchId = r.GetString(0),
-        Puuid = r.GetString(1),
-        Win = r.GetBoolean(2),
-        GameDurationSec = r.GetInt32(3),
-        LpAfter = r.IsDBNull(4) ? null : r.GetInt32(4),
-        TierAfter = r.IsDBNull(5) ? null : r.GetString(5),
-        RankAfter = r.IsDBNull(6) ? null : r.GetString(6),
-        IsLpEstimated = r.GetBoolean(7),
-        SeasonCode = r.IsDBNull(8) ? null : r.GetString(8)
-    };
+    private static LpEstimationMatch MapLpEstimation(MySqlDataReader r) => new(
+        MatchId: r.GetString(0),
+        Puuid: r.GetString(1),
+        Win: r.GetBoolean(2),
+        GameDurationSec: r.GetInt32(3),
+        LpAfter: r.IsDBNull(4) ? null : r.GetInt32(4),
+        TierAfter: r.IsDBNull(5) ? null : r.GetString(5),
+        RankAfter: r.IsDBNull(6) ? null : r.GetString(6),
+        IsLpEstimated: r.GetBoolean(7),
+        SeasonCode: r.IsDBNull(8) ? null : r.GetString(8)
+    );
 
     private static Participant Map(MySqlDataReader r) => new()
     {

@@ -918,17 +918,17 @@ public class LpEstimationServiceTests
         string? rankAfter = null,
         string puuid = "puuid1")
     {
-        return new LpEstimationMatch
-        {
-            MatchId = matchId,
-            Puuid = puuid,
-            Win = win,
-            GameDurationSec = gameDurationSec,
-            LpAfter = lpAfter,
-            TierAfter = tierAfter,
-            RankAfter = rankAfter,
-            IsLpEstimated = false,
-        };
+        return new LpEstimationMatch(
+            MatchId: matchId,
+            Puuid: puuid,
+            Win: win,
+            GameDurationSec: gameDurationSec,
+            LpAfter: lpAfter,
+            TierAfter: tierAfter,
+            RankAfter: rankAfter,
+            IsLpEstimated: false,
+            SeasonCode: null
+        );
     }
 
     private static LpEstimationMatch MakeMatchWithEstimatedLp(
@@ -941,17 +941,17 @@ public class LpEstimationServiceTests
         string? rankAfter = null,
         string puuid = "puuid1")
     {
-        return new LpEstimationMatch
-        {
-            MatchId = matchId,
-            Puuid = puuid,
-            Win = win,
-            GameDurationSec = gameDurationSec,
-            LpAfter = lpAfter,
-            TierAfter = tierAfter,
-            RankAfter = rankAfter,
-            IsLpEstimated = isLpEstimated,
-        };
+        return new LpEstimationMatch(
+            MatchId: matchId,
+            Puuid: puuid,
+            Win: win,
+            GameDurationSec: gameDurationSec,
+            LpAfter: lpAfter,
+            TierAfter: tierAfter,
+            RankAfter: rankAfter,
+            IsLpEstimated: isLpEstimated,
+            SeasonCode: null
+        );
     }
 
     private static LpEstimationMatch MakeMatchWithSeason(
@@ -964,18 +964,17 @@ public class LpEstimationServiceTests
         string? rankAfter = null,
         string puuid = "puuid1")
     {
-        return new LpEstimationMatch
-        {
-            MatchId = matchId,
-            Puuid = puuid,
-            Win = win,
-            GameDurationSec = gameDurationSec,
-            LpAfter = lpAfter,
-            TierAfter = tierAfter,
-            RankAfter = rankAfter,
-            IsLpEstimated = false,
-            SeasonCode = seasonCode,
-        };
+        return new LpEstimationMatch(
+            MatchId: matchId,
+            Puuid: puuid,
+            Win: win,
+            GameDurationSec: gameDurationSec,
+            LpAfter: lpAfter,
+            TierAfter: tierAfter,
+            RankAfter: rankAfter,
+            IsLpEstimated: false,
+            SeasonCode: seasonCode
+        );
     }
 
     #endregion
