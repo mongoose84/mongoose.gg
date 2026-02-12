@@ -141,7 +141,7 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
     public virtual Task<IList<LpEstimationMatch>> GetRecentRankedMatchesForLpEstimationAsync(string puuid, int queueId, int limit)
     {
         const string sql = @"SELECT p.match_id, p.puuid, p.win, m.game_duration_sec,
-                p.lp_after, p.tier_after, p.rank_after, p.is_lp_estimated
+                p.lp_after, p.tier_after, p.rank_after, p.is_lp_estimated, m.season_code
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE p.puuid = @puuid AND m.queue_id = @queue_id
@@ -157,6 +157,7 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
     /// <summary>
     /// Batch updates estimated LP data for multiple matches.
     /// Only updates rows where lp_after IS NULL (never overwrites existing LP data).
+    /// Uses a transaction to ensure atomicity and a prepared command to reduce round-trips.
     /// </summary>
     public virtual async Task<int> BatchUpdateLpEstimatesAsync(IList<(string matchId, string puuid, int lpAfter, string tierAfter, string rankAfter)> estimates)
     {
@@ -164,25 +165,30 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
 
         int totalUpdated = 0;
 
-        await ExecuteWithConnectionAsync(async conn =>
+        await ExecuteTransactionAsync(async (conn, tx) =>
         {
+            const string sql = @"UPDATE participants
+                SET lp_after = @lp_after, tier_after = @tier_after, rank_after = @rank_after, is_lp_estimated = TRUE
+                WHERE match_id = @match_id AND puuid = @puuid AND lp_after IS NULL";
+
+            await using var cmd = new MySqlCommand(sql, conn, tx);
+            cmd.Parameters.Add("@match_id", MySqlDbType.VarChar);
+            cmd.Parameters.Add("@puuid", MySqlDbType.VarChar);
+            cmd.Parameters.Add("@lp_after", MySqlDbType.Int32);
+            cmd.Parameters.Add("@tier_after", MySqlDbType.VarChar);
+            cmd.Parameters.Add("@rank_after", MySqlDbType.VarChar);
+            await cmd.PrepareAsync();
+
             foreach (var (matchId, puuid, lpAfter, tierAfter, rankAfter) in estimates)
             {
-                const string sql = @"UPDATE participants
-                    SET lp_after = @lp_after, tier_after = @tier_after, rank_after = @rank_after, is_lp_estimated = TRUE
-                    WHERE match_id = @match_id AND puuid = @puuid AND lp_after IS NULL";
-
-                await using var cmd = new MySqlCommand(sql, conn);
-                cmd.Parameters.AddWithValue("@match_id", matchId);
-                cmd.Parameters.AddWithValue("@puuid", puuid);
-                cmd.Parameters.AddWithValue("@lp_after", lpAfter);
-                cmd.Parameters.AddWithValue("@tier_after", tierAfter);
-                cmd.Parameters.AddWithValue("@rank_after", rankAfter);
+                cmd.Parameters["@match_id"].Value = matchId;
+                cmd.Parameters["@puuid"].Value = puuid;
+                cmd.Parameters["@lp_after"].Value = lpAfter;
+                cmd.Parameters["@tier_after"].Value = tierAfter;
+                cmd.Parameters["@rank_after"].Value = rankAfter;
 
                 totalUpdated += await cmd.ExecuteNonQueryAsync();
             }
-
-            return totalUpdated;
         });
 
         return totalUpdated;
@@ -197,7 +203,8 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
         LpAfter = r.IsDBNull(4) ? null : r.GetInt32(4),
         TierAfter = r.IsDBNull(5) ? null : r.GetString(5),
         RankAfter = r.IsDBNull(6) ? null : r.GetString(6),
-        IsLpEstimated = r.GetBoolean(7)
+        IsLpEstimated = r.GetBoolean(7),
+        SeasonCode = r.IsDBNull(8) ? null : r.GetString(8)
     };
 
     private static Participant Map(MySqlDataReader r) => new()

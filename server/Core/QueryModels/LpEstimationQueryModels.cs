@@ -13,5 +13,7 @@ public class LpEstimationMatch
     public string? TierAfter { get; set; }
     public string? RankAfter { get; set; }
     public bool IsLpEstimated { get; set; }
+    /// <summary>Season code for the match (e.g., "S2025_S1"). Used to stop estimation at season boundaries.</summary>
+    public string? SeasonCode { get; set; }
 }
 

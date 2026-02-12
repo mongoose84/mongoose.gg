@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS participants (
     lp_after INT NULL,
     tier_after VARCHAR(20) NULL,
     rank_after VARCHAR(10) NULL,
-    is_lp_estimated BOOLEAN DEFAULT FALSE,
+    is_lp_estimated BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY idx_match_puuid (match_id, puuid),
     KEY idx_puuid (puuid),

@@ -30,6 +30,9 @@ public sealed class LpEstimationService : ILpEstimationService
     private const int PromotionEstimateLp = 75;
     private const int DemotionEstimateLp = 25;
 
+    // Estimation limits
+    private const int MaxEstimatesPerRun = 20;
+
     // Master+ tiers don't have divisions
     private static readonly HashSet<string> ApexTiers = new(StringComparer.OrdinalIgnoreCase)
         { "MASTER", "GRANDMASTER", "CHALLENGER" };
@@ -68,19 +71,55 @@ public sealed class LpEstimationService : ILpEstimationService
         var division = currentDivision;
         var estimates = new List<(string matchId, string puuid, int lpAfter, string tierAfter, string rankAfter)>();
 
+        // Track the current season from the first match we process
+        string? currentSeason = null;
+
         for (int i = 0; i < matches.Count; i++)
         {
             var match = matches[i];
 
-            // If match already has actual LP data, use it and STOP
+            // Initialize current season from the first match
+            currentSeason ??= match.SeasonCode;
+
+            // Stop if we've reached a different season (LP resets between seasons)
+            if (currentSeason != null && match.SeasonCode != null && match.SeasonCode != currentSeason)
+            {
+                _logger.LogDebug("Hit season boundary at match {MatchId} (current: {CurrentSeason}, match: {MatchSeason}), stopping estimation",
+                    match.MatchId, currentSeason, match.SeasonCode);
+                break;
+            }
+
+            // Stop if we've reached the max estimates per run
+            if (estimates.Count >= MaxEstimatesPerRun)
+            {
+                _logger.LogDebug("Reached max estimates ({Max}) at match {MatchId}, stopping estimation",
+                    MaxEstimatesPerRun, match.MatchId);
+                break;
+            }
+
+            // If match has LP data, check if it's actual or estimated
             if (match.LpAfter.HasValue)
             {
-                lp = match.LpAfter.Value;
-                tier = match.TierAfter ?? tier;
-                division = match.RankAfter ?? division;
-                _logger.LogDebug("Hit existing LP data at match {MatchId} ({Tier} {Division} {LP} LP), stopping estimation",
-                    match.MatchId, tier, division, lp);
-                break;
+                if (!match.IsLpEstimated)
+                {
+                    // Actual LP data from Riot API - use as anchor and STOP
+                    lp = match.LpAfter.Value;
+                    tier = match.TierAfter ?? tier;
+                    division = match.RankAfter ?? division;
+                    _logger.LogDebug("Hit actual LP data at match {MatchId} ({Tier} {Division} {LP} LP), stopping estimation",
+                        match.MatchId, tier, division, lp);
+                    break;
+                }
+                else
+                {
+                    // Previously estimated LP - use as anchor but CONTINUE to backfill older matches
+                    lp = match.LpAfter.Value;
+                    tier = match.TierAfter ?? tier;
+                    division = match.RankAfter ?? division;
+                    _logger.LogDebug("Using estimated LP as anchor at match {MatchId} ({Tier} {Division} {LP} LP), continuing backwards",
+                        match.MatchId, tier, division, lp);
+                    continue;
+                }
             }
 
             // Record estimate for this match (LP AFTER this match = current state)
