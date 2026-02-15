@@ -11,10 +11,11 @@ This project helps players (solo, duo, and full teams) understand their performa
 - Maintain consistent code formatting and style
 
 ## Technology Stack
-- **Backend**: C#
-- **Frontend**: JavaScript, Vue with Vue
+- **Backend**: C# (.NET)
+- **Frontend**: Vue 3 + Vite
 - **Database**: MySQL
-- **Testing**: unittests, Playwright
+- **Testing**: xUnit (backend), Vitest (frontend unit tests), Playwright (frontend E2E tests)
+- **Documentation**: Markdown files in `.github/specs/` for architecture, API contracts, and feature templates
 
 ## Code Style
 Follow standard formatting

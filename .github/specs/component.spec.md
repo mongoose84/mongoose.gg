@@ -3,8 +3,8 @@
 ## Overview
 **Purpose**: [Brief description of what this component does]
 
-**Framework**: Vue
-**Language**: JavaScript, Vue
+**Framework**: Vue 3 (`<script setup>`)
+**Language**: JavaScript (no TypeScript)
 
 ## Component Details
 
@@ -15,27 +15,60 @@
 - [ ] Page (route component)
 
 ### Location
-**File Path**: `src/components/[ComponentName]/[ComponentName].tsx`
+**File Path**: `client/src/components/[domain]/[ComponentName].vue`
 
-### Props Interface
-```javascript
-PropTypes = {
-  prop1: PropTypes.string.isRequired,
-  prop2: PropTypes.number,
-  onClick: PropTypes.func,
-  children: PropTypes.node
-}
+> **Naming conventions:**
+> - Components: `PascalCase.vue` (e.g. `MainChampionCard.vue`)
+> - Base/shared components: `client/src/components/base/Base*.vue`
+> - Feature components: `client/src/components/[solo|overview|shared]/*.vue`
+> - Views/pages: `client/src/views/*Page.vue` (e.g. `SoloPage.vue`)
+> - Composables: `client/src/composables/use*.js`
+
+### Props
+```js
+const props = defineProps({
+  /** [description] */
+  prop1: {
+    type: String,
+    required: true
+  },
+  /** [description] */
+  prop2: {
+    type: Number,
+    default: 0
+  },
+  /** [description] — use validator for constrained values */
+  variant: {
+    type: String,
+    default: 'primary',
+    validator: (v) => ['primary', 'secondary', 'ghost'].includes(v)
+  },
+  /** Array/Object defaults must use factory functions */
+  items: {
+    type: Array,
+    default: () => []
+  }
+})
+```
+
+### Emits
+```js
+const emit = defineEmits(['update', 'close'])
+
+// Usage:
+emit('close')
+emit('update', payload)
 ```
 
 ### State Management
-**Local State**:
-- `[stateName]`: [description]
-- `[stateName]`: [description]
+**Local State** (Composition API refs/reactives):
+- `[stateName]`: `ref([initial])` — [description]
+- `[stateName]`: `computed(() => ...)` — [description]
 
-**Global State** (if applicable):
-- Store: `[store name]`
-- Selectors: `[list selectors]`
-- Actions: `[list actions]`
+**Pinia Store** (if applicable):
+- Store: `use[Name]Store` from `@/stores/[name]`
+- State: `[list state properties accessed]`
+- Actions: `[list actions called]`
 
 ## Visual Design
 
@@ -53,14 +86,14 @@ PropTypes = {
 ```
 
 ### Styling
-**Approach**: [CSS Modules / Styled Components / Tailwind / etc.]
+**Approach**: Tailwind utility classes + `<style scoped>` + CSS custom properties (design tokens)
 
-**Style File**: `[ComponentName].module.css` or styled component definition
-
-**Design Tokens**:
-- Colors: [list relevant colors]
-- Spacing: [spacing values]
+**Design Tokens** (CSS variables from theme):
+- Colors: `var(--color-surface)`, `var(--color-border)`, `var(--color-text-primary)`, etc.
+- Spacing: `var(--spacing-xs)`, `var(--spacing-sm)`, `var(--spacing-md)`, etc.
 - Typography: [font styles]
+
+> Use Tailwind utilities in templates for layout/sizing. Use `<style scoped>` with CSS custom properties for component-specific styles and themed values. No CSS Modules.
 
 ### Responsive Behavior
 - **Mobile** (< 768px): [description]
@@ -73,26 +106,23 @@ PropTypes = {
 1. **[Action]**: [Description of what happens]
 2. **[Action]**: [Description of what happens]
 
-### Event Handlers
-- `handle[Action]`: [description]
-- `handle[Action]`: [description]
-
 ### Side Effects
-- [ ] API calls on mount
+- [ ] API calls on mount (`onMounted`)
+- [ ] Watchers (`watch` / `watchEffect`)
 - [ ] Subscriptions/intervals
-- [ ] Event listeners
-- [ ] Cleanup requirements
+- [ ] Cleanup via `onUnmounted`
 
 ## Data Flow
 
 ### Input
 - Props from parent component
-- Data from API: `[endpoint]`
-- Data from store: `[store slice]`
+- Data from API via service: `@/services/[service]`
+- Data from Pinia store: `use[Name]Store`
+- Data from composable: `use[Name]`
 
 ### Output
 - Events emitted to parent: `[list events]`
-- State updates triggered: `[list updates]`
+- Store actions triggered: `[list actions]`
 - API calls made: `[list endpoints]`
 
 ## Accessibility
@@ -115,74 +145,93 @@ PropTypes = {
 ## Testing
 
 ### Unit Tests
-**Framework**: unittests, Playwright
+**Framework**: Vitest + `@vue/test-utils`
+**Test file**: `client/test/unit/[ComponentName].spec.js`
 
 - [ ] Renders without errors
-- [ ] Handles all props correctly
-- [ ] Calls event handlers when expected
-- [ ] Handles edge cases (null, undefined, etc.)
+- [ ] Handles all props correctly (use `it.each` for variants)
+- [ ] Emits correct events on interaction
+- [ ] Handles edge cases (null, undefined, empty arrays)
+- [ ] Loading / empty / error states render correctly
 
-### Integration Tests
-- [ ] Integrates with parent components
-- [ ] API calls work correctly
-- [ ] State management works correctly
+```js
+// Example test structure
+import { describe, it, expect, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
+import ComponentName from '@/components/[domain]/ComponentName.vue'
 
-### Visual Regression Tests
-- [ ] Default state
-- [ ] Interactive states (hover, focus, active)
-- [ ] Error state
-- [ ] Loading state
-- [ ] Responsive breakpoints
+function mountComponent(props = {}, options = {}) {
+  return mount(ComponentName, {
+    props: { /* defaults */ ...props },
+    global: {
+      stubs: { /* child component stubs */ },
+      ...options
+    }
+  })
+}
+
+describe('ComponentName', () => {
+  it('renders correctly with default props', () => {
+    const wrapper = mountComponent()
+    expect(wrapper.exists()).toBe(true)
+  })
+})
+```
+
+### E2E Tests (if applicable)
+**Framework**: Playwright (`client/e2e/*.spec.js`)
+
+- [ ] Component works in full page context
+- [ ] Interactions produce expected navigation/API calls
 
 ## Performance
 
 ### Optimization Strategies
-- [ ] Memoization (`useMemo`, `useCallback`, `React.memo`)
-- [ ] Lazy loading for heavy components
-- [ ] Code splitting if needed
+- [ ] `computed` for derived values (automatic caching)
+- [ ] `shallowRef` for large non-reactive object trees
+- [ ] Lazy loading via `defineAsyncComponent` or route-level code splitting
+- [ ] `v-once` / `v-memo` for static or rarely-changing subtrees
 - [ ] Virtualization for long lists
-
-### Performance Targets
-- Initial render: [target ms]
-- Re-render time: [target ms]
-- Bundle size impact: [target KB]
 
 ## Dependencies
 
 ### External Libraries
-- [ ] [Library name] - [purpose]
+- [ ] [Library name] — [purpose]
 
 ### Internal Dependencies
-- [ ] [Component/hook/utility] - [purpose]
+- [ ] [Component] from `@/components/...` — [purpose]
+- [ ] [Composable] from `@/composables/...` — [purpose]
+- [ ] [Store] from `@/stores/...` — [purpose]
 
 ## Implementation Checklist
-- [ ] Component file created
-- [ ] Types/PropTypes defined
-- [ ] Styles implemented
-- [ ] Logic implemented
-- [ ] Unit tests written
-- [ ] Integration tests written
+- [ ] Component `.vue` file created with `<script setup>`
+- [ ] Props defined with types, defaults, and validators
+- [ ] Emits declared via `defineEmits`
+- [ ] Template implemented with Tailwind + scoped styles
+- [ ] Logic implemented (composables extracted where reusable)
+- [ ] Unit tests written (`client/test/unit/[ComponentName].spec.js`)
 - [ ] Accessibility verified
 - [ ] Documentation updated
-- [ ] Storybook story created (if applicable)
 - [ ] Code review completed
 
 ## Examples
 
 ### Basic Usage
-```jsx
+```vue
 <ComponentName
   prop1="value"
-  prop2={123}
-  onClick={handleClick}
->
-  Content
-</ComponentName>
+  :prop2="123"
+  @update="handleUpdate"
+/>
 ```
 
-### Advanced Usage
-```jsx
-// Example with complex props
+### Usage with slots (if applicable)
+```vue
+<ComponentName prop1="value">
+  <template #default>
+    Slot content
+  </template>
+</ComponentName>
 ```
 
 ## Future Enhancements

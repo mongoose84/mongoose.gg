@@ -13,7 +13,7 @@ dotnet run                          # Starts on http://localhost:5164
 dotnet watch run                    # Hot reload
 ```
 
-Requires a MySQL database. Connection string is resolved from environment variable `CONNECTION_STRING` or user secrets (see `Infrastructure/Configuration/Secrets.cs`). The Riot API key is required for match sync — set `API_KEY` env var or user secret.
+Requires a MySQL database. Connection string is resolved from `ConnectionStrings:Database_production` (production) or `ConnectionStrings:Database_test` (development/testing) via appsettings, env vars, or user secrets (see `Infrastructure/Configuration/Secrets.cs`). The Riot API key is required for match sync — set `RIOT_API_KEY` env var or `Riot:ApiKey` in configuration.
 
 ## Test
 
@@ -163,9 +163,9 @@ All errors return JSON: `{ "error": "message", "code": "ERROR_CODE" }`. Use `Aut
 Secrets resolved in order: `IConfiguration` → environment variables → `Secrets` static class (loaded from user secrets / env).
 
 Key settings:
-- `CONNECTION_STRING` — MySQL connection string
-- `API_KEY` — Riot Games API key
-- `ENCRYPTION_SECRET` — AES encryption key for PII
+- `ConnectionStrings:Database_production` / `ConnectionStrings:Database_test` — MySQL connection string (also checked as env var `Database_production` / `Database_test`)
+- `Riot:ApiKey` or env var `RIOT_API_KEY` — Riot Games API key
+- `Security:EncryptionSecret` or env var `ENCRYPTION_SECRET` — AES encryption key for PII
 - `Auth:SessionTimeout` — session timeout in minutes (default: 30, dev: 5)
 - `Auth:CookieName` — auth cookie name (`mongoose-auth`)
 - `Jobs:MatchRetentionDays` — match data retention (180 days)
