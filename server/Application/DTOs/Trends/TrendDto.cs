@@ -120,5 +120,34 @@ public static class TrendDto
         [property: JsonPropertyName("overallAverage")] double OverallAverage,
         [property: JsonPropertyName("trend")] string Trend
     );
+
+    /// <summary>
+    /// A single data point for the vision score trend chart.
+    /// Represents player's vision score per minute for a specific game.
+    /// </summary>
+    public record VisionScoreTrendPoint(
+        [property: JsonPropertyName("matchId")] string MatchId,
+        [property: JsonPropertyName("gameIndex")] int GameIndex,
+        [property: JsonPropertyName("timestamp")] DateTime Timestamp,
+        [property: JsonPropertyName("visionScore")] int VisionScore,
+        [property: JsonPropertyName("visionScorePerMinute")] double VisionScorePerMinute,
+        [property: JsonPropertyName("rollingAverage")] double RollingAverage,
+        [property: JsonPropertyName("gameDurationMinutes")] double GameDurationMinutes,
+        [property: JsonPropertyName("championName")] string ChampionName,
+        [property: JsonPropertyName("role")] string? Role,
+        [property: JsonPropertyName("wardsPlaced")] int WardsPlaced,
+        [property: JsonPropertyName("wardsDestroyed")] int WardsDestroyed
+    );
+
+    /// <summary>
+    /// Response DTO for the vision score trend endpoint.
+    /// </summary>
+    public record VisionScoreTrendResponse(
+        [property: JsonPropertyName("visionScoreTrend")] VisionScoreTrendPoint[] VisionScoreTrend,
+        [property: JsonPropertyName("averageVisionPerMinute")] double AverageVisionPerMinute,
+        [property: JsonPropertyName("overallAverage")] double OverallAverage,
+        [property: JsonPropertyName("roleTarget")] double RoleTarget,
+        [property: JsonPropertyName("trend")] string Trend
+    );
 }
 

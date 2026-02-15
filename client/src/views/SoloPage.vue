@@ -106,6 +106,24 @@
           />
         </template>
       </TrendChartCard>
+
+      <!-- Vision Score Trend Chart -->
+      <TrendChartCard
+        title="Vision Score Over Time"
+        subtitle="Key metric for map awareness and objective control"
+        :loading="visionScoreLoading"
+        test-id="vision-score-trend-card"
+        @toggle-expand="handleVisionScoreExpand"
+      >
+        <template #default="{ dataLimit }">
+          <VisionChart
+            :data="visionScoreTrendData"
+            :overall-average="visionScoreSummary.overallAverage"
+            :role-target="visionScoreSummary.roleTarget"
+            :trend="visionScoreSummary.trend"
+          />
+        </template>
+      </TrendChartCard>
     </template>
 
     <!-- Zone 4 & 5: Not rendered in v1 -->
@@ -117,7 +135,7 @@ import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend, getDeathsTrend, getDragonParticipationTrend } from '../services/authApi'
+import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend, getDeathsTrend, getDragonParticipationTrend, getVisionScoreTrend } from '../services/authApi'
 import { BaseQueueToggle, BaseTimeRangeSelect } from '../components/base'
 import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
 import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
@@ -127,6 +145,7 @@ import GoldAt15Chart from '../components/solo/GoldAt15Chart.vue'
 import CsPerMinuteChart from '../components/solo/CsPerMinuteChart.vue'
 import DeathsChart from '../components/solo/DeathsChart.vue'
 import DragonParticipationChart from '../components/solo/DragonParticipationChart.vue'
+import VisionChart from '../components/solo/VisionChart.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
@@ -149,6 +168,9 @@ const deathsSummary = ref({ averageDeaths: 0, overallAverage: 0, trend: 'neutral
 const dragonParticipationTrendData = ref([])
 const dragonParticipationLoading = ref(false)
 const dragonParticipationSummary = ref({ averageParticipation: 0, overallAverage: 0, trend: 'neutral' })
+const visionScoreTrendData = ref([])
+const visionScoreLoading = ref(false)
+const visionScoreSummary = ref({ averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' })
 
 // Expand state for charts (default: collapsed = last 20 games)
 const winrateExpanded = ref(false)
@@ -156,6 +178,7 @@ const goldAt15Expanded = ref(false)
 const csPerMinuteExpanded = ref(false)
 const deathsExpanded = ref(false)
 const dragonParticipationExpanded = ref(false)
+const visionScoreExpanded = ref(false)
 
 // UI state for filters
 const queueFilter = ref('all')
@@ -285,6 +308,31 @@ async function fetchDragonParticipationTrend() {
   }
 }
 
+// Fetch vision score trend data
+async function fetchVisionScoreTrend() {
+  if (!authStore.userId) return
+
+  visionScoreLoading.value = true
+  try {
+    // Use limit parameter to get exact number of games at full resolution
+    const limit = visionScoreExpanded.value ? null : 20
+    const result = await getVisionScoreTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+    visionScoreTrendData.value = result?.visionScoreTrend ?? []
+    visionScoreSummary.value = {
+      averageVisionPerMinute: result?.averageVisionPerMinute ?? 0,
+      overallAverage: result?.overallAverage ?? 0,
+      roleTarget: result?.roleTarget ?? 1.0,
+      trend: result?.trend ?? 'neutral'
+    }
+  } catch (err) {
+    console.error('Failed to fetch vision score trend:', err)
+    visionScoreTrendData.value = []
+    visionScoreSummary.value = { averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' }
+  } finally {
+    visionScoreLoading.value = false
+  }
+}
+
 // Handle expand toggle for winrate chart
 function handleWinrateExpand(expanded) {
   winrateExpanded.value = expanded
@@ -315,6 +363,12 @@ function handleDragonParticipationExpand(expanded) {
   fetchDragonParticipationTrend()
 }
 
+// Handle expand toggle for vision score chart
+function handleVisionScoreExpand(expanded) {
+  visionScoreExpanded.value = expanded
+  fetchVisionScoreTrend()
+}
+
 // Fetch all data
 async function fetchAllData() {
   await Promise.all([
@@ -323,7 +377,8 @@ async function fetchAllData() {
     fetchGoldAt15Trend(),
     fetchCsPerMinuteTrend(),
     fetchDeathsTrend(),
-    fetchDragonParticipationTrend()
+    fetchDragonParticipationTrend(),
+    fetchVisionScoreTrend()
   ])
 }
 
