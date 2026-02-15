@@ -97,33 +97,8 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
                 var rankInfo = new RankInfo(soloDuoRank, flexRank);
 
                 // Return enhanced response with performance data and rank info
-                return Results.Ok(new
-                {
-                    performance.GamesPlayed,
-                    performance.Wins,
-                    performance.WinRate,
-                    performance.AvgKda,
-                    performance.AvgGameDurationMinutes,
-                    performance.AvgKills,
-                    performance.AvgDeaths,
-                    performance.AvgAssists,
-                    performance.OverallWinRate,
-                    performance.OverallAvgKills,
-                    performance.OverallAvgDeaths,
-                    performance.OverallAvgAssists,
-                    performance.OverallAvgKda,
-                    performance.SideStats,
-                    performance.UniqueChampsPlayedCount,
-                    performance.MainChampion,
-                    performance.MainChampions,
-                    performance.Last10Games,
-                    performance.Last20Games,
-                    performance.PerformanceByPhase,
-                    performance.RoleBreakdown,
-                    performance.DeathEfficiency,
-                    performance.QueueType,
-                    RankInfo = rankInfo
-                });
+                var response = SoloPerformanceWithRankResponse.FromPerformanceAndRank(performance, rankInfo);
+                return Results.Ok(response);
             }
             catch (ArgumentException ex)
             {

@@ -361,7 +361,7 @@ const assistsTrendClass = computed(() => {
 }
 
 .stat-value-rank {
-  margin-top: -10px;
+  margin-top: -5px;
 }
 
 /* K/D/A Group */
@@ -403,10 +403,6 @@ const assistsTrendClass = computed(() => {
   color: var(--color-error);
 }
 
-.stat-value-rank {
-  margin-top: -10px;
-}
-
 /* Empty state */
 .empty-state {
   text-align: center;
@@ -446,23 +442,6 @@ const assistsTrendClass = computed(() => {
 /* Responsive: stack on mobile */
 @media (max-width: 480px) {
   .stats-container {
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
-  .rank-section {
-    padding-right: 0;
-    padding-bottom: var(--spacing-sm);
-    border-right: none;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .rank-badges-row {
-    flex-direction: row;
-    gap: var(--spacing-lg);
-  }
-
-  .stats-grid {
     flex-direction: column;
     gap: var(--spacing-md);
   }

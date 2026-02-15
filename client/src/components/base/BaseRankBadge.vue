@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="hasRank"
+    v-if="effectiveHasRank"
     class="rank-badge"
     :class="[sizeClass, `rank-badge--${tierLower}`]"
     data-testid="rank-badge"
@@ -13,7 +13,13 @@
     />
     <div class="rank-info">
       <span class="rank-tier" data-testid="rank-tier">{{ formattedTier }}</span>
-      <span v-if="showLp" class="rank-lp" data-testid="rank-lp">{{ lp }} LP</span>
+      <span
+        v-if="showLp && lp !== null && lp !== undefined"
+        class="rank-lp"
+        data-testid="rank-lp"
+      >
+        {{ lp }} LP
+      </span>
     </div>
   </div>
   <div
@@ -61,6 +67,11 @@ const props = defineProps({
     type: Boolean,
     default: true
   }
+})
+
+// Computed: Effective hasRank - only true if hasRank and tier are both valid
+const effectiveHasRank = computed(() => {
+  return props.hasRank && !!props.tier && props.tier.trim() !== ''
 })
 
 // Computed: lowercase tier for CSS class

@@ -75,6 +75,27 @@ describe('BaseRankBadge', () => {
       expect(wrapper.find('[data-testid="rank-emblem"]').exists()).toBe(false)
       expect(wrapper.find('[data-testid="rank-lp"]').exists()).toBe(false)
     })
+
+    it('treats hasRank=true with null tier as unranked', () => {
+      const wrapper = mountComponent({ hasRank: true, tier: null })
+      expect(wrapper.find('[data-testid="rank-badge-unranked"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="rank-emblem"]').exists()).toBe(false)
+      expect(wrapper.text()).toContain('Unranked')
+    })
+
+    it('treats hasRank=true with empty tier as unranked', () => {
+      const wrapper = mountComponent({ hasRank: true, tier: '' })
+      expect(wrapper.find('[data-testid="rank-badge-unranked"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="rank-emblem"]').exists()).toBe(false)
+      expect(wrapper.text()).toContain('Unranked')
+    })
+
+    it('treats hasRank=true with whitespace-only tier as unranked', () => {
+      const wrapper = mountComponent({ hasRank: true, tier: '   ' })
+      expect(wrapper.find('[data-testid="rank-badge-unranked"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="rank-emblem"]').exists()).toBe(false)
+      expect(wrapper.text()).toContain('Unranked')
+    })
   })
 
   describe('Tier display', () => {
