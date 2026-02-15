@@ -34,8 +34,7 @@ public record SoloPerformanceData(
     PerformancePhaseData[] PerformanceByPhase,
     RolePerformanceData[] RoleBreakdown,
     DeathEfficiencyData DeathEfficiency,
-    string QueueType,
-    LpTrendData[] LpTrend
+    string QueueType
 );
 
 public record SideWinDistributionData(

@@ -6,23 +6,20 @@ namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 /// <summary>
 /// Repository for trend-related statistics.
-/// Provides winrate trends, LP trends, and match activity data.
+/// Provides winrate trends and match activity data.
 /// </summary>
 public class TrendRepository : RepositoryBase, ITrendRepository
 {
     private readonly ILogger<TrendRepository> _logger;
     private readonly IQueryFilterBuilder _filterBuilder;
-    private readonly ILpCalculationService _lpCalc;
 
     public TrendRepository(
         IDbConnectionFactory factory,
         ILogger<TrendRepository> logger,
-        IQueryFilterBuilder filterBuilder,
-        ILpCalculationService lpCalc) : base(factory)
+        IQueryFilterBuilder filterBuilder) : base(factory)
     {
         _logger = logger;
         _filterBuilder = filterBuilder;
-        _lpCalc = lpCalc;
     }
 
     /// <inheritdoc />
@@ -157,118 +154,6 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         });
 
         return result;
-    }
-
-    /// <inheritdoc />
-    /// <remarks>
-    /// Uses participants table which has lp_after, tier_after, rank_after for each ranked match.
-    /// This provides accurate per-match LP progression data.
-    /// </remarks>
-    public async Task<IList<LpTrendPoint>> GetLpTrendAsync(string puuid, string? queueType = null, int limit = 100)
-    {
-        // Build queue filter for ranked modes only (420 = Ranked Solo/Duo, 440 = Ranked Flex)
-        var queueFilter = queueType?.ToLowerInvariant() switch
-        {
-            "ranked_solo" => "AND m.queue_id = 420",
-            "ranked_flex" => "AND m.queue_id = 440",
-            _ => "AND m.queue_id IN (420, 440)" // All ranked queues
-        };
-
-        var sql = $@"
-            SELECT
-                p.lp_after,
-                p.tier_after,
-                p.rank_after,
-                p.win,
-                m.game_start_time
-            FROM participants p
-            INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid
-              AND p.lp_after IS NOT NULL
-              AND p.tier_after IS NOT NULL
-              {queueFilter}
-            ORDER BY m.game_start_time ASC
-            LIMIT @limit";
-
-        var points = new List<LpTrendPoint>();
-
-        await ExecuteWithConnectionAsync<int>(async (conn, cmd) =>
-        {
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@puuid", puuid);
-            cmd.Parameters.AddWithValue("@limit", limit);
-
-            await using var reader = await cmd.ExecuteReaderAsync();
-
-            int gameIndex = 1;
-            int? previousLp = null;
-            string? previousTier = null;
-            string? previousDivision = null;
-
-            while (await reader.ReadAsync())
-            {
-                var lp = reader.GetInt32(0);
-                var tier = reader.GetString(1);
-                var division = reader.IsDBNull(2) ? "" : reader.GetString(2);
-                var win = reader.GetBoolean(3);
-                var gameStartTime = reader.GetInt64(4);
-                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(gameStartTime).UtcDateTime;
-
-                // Skip duplicate matches (same LP, tier, and division as previous)
-                // This can happen if there are duplicate match records
-                if (previousLp.HasValue &&
-                    previousLp.Value == lp &&
-                    previousTier == tier &&
-                    previousDivision == division)
-                {
-                    continue; // Skip this duplicate
-                }
-
-                var rankString = _lpCalc.FormatRank(tier, division);
-                var isPromotion = _lpCalc.IsPromotion(previousTier, previousDivision, tier, division);
-                var isDemotion = _lpCalc.IsDemotion(previousTier, previousDivision, tier, division);
-
-                // Calculate absolute LP for accurate chart positioning (handles promotions/demotions correctly)
-                var absoluteLp = _lpCalc.CalculateAbsoluteLp(tier, division, lp);
-
-                int? lpGain = null;
-                if (previousLp.HasValue && !isPromotion && !isDemotion)
-                {
-                    lpGain = lp - previousLp.Value;
-                }
-
-                points.Add(new LpTrendPoint(
-                    GameIndex: gameIndex,
-                    LpGain: lpGain,
-                    CurrentLp: lp,
-                    AbsoluteLp: absoluteLp,
-                    Rank: rankString,
-                    Timestamp: timestamp,
-                    IsPromotion: isPromotion,
-                    IsDemotion: isDemotion,
-                    Win: win // Now we have actual win/loss data from the match
-                ));
-
-                previousLp = lp;
-                previousTier = tier;
-                previousDivision = division;
-                gameIndex++;
-            }
-
-            return 0;
-        });
-
-        return points;
-    }
-
-    /// <inheritdoc />
-    public async Task<(LpTrendPoint[] RankedSolo, LpTrendPoint[] RankedFlex)> GetLpTrendBothQueuesAsync(string puuid, int limit = 100)
-    {
-        // Fetch both queues in parallel
-        var soloTask = await GetLpTrendAsync(puuid, "ranked_solo", limit);
-        var flexTask = await GetLpTrendAsync(puuid, "ranked_flex", limit);
-
-        return (soloTask.ToArray(), flexTask.ToArray());
     }
 }
 

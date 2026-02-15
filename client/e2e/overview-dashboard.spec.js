@@ -152,25 +152,6 @@ test.describe('Overview Dashboard - Content', () => {
     }
   });
 
-  test('should display LP delta with correct styling', async ({ page }) => {
-    const rankSnapshot = page.locator('.rank-snapshot');
-    await expect(rankSnapshot).toBeVisible({ timeout: 10_000 });
-
-    // LP delta should be visible
-    const lpDelta = rankSnapshot.locator('.lp-delta');
-    await expect(lpDelta).toBeVisible();
-
-    // Should have one of the styling classes
-    const hasPositive = await lpDelta.locator('.positive').count() > 0 ||
-                        await lpDelta.evaluate(el => el.classList.contains('positive'));
-    const hasNegative = await lpDelta.locator('.negative').count() > 0 ||
-                        await lpDelta.evaluate(el => el.classList.contains('negative'));
-    const hasNeutral = await lpDelta.locator('.neutral').count() > 0 ||
-                       await lpDelta.evaluate(el => el.classList.contains('neutral'));
-
-    expect(hasPositive || hasNegative || hasNeutral).toBe(true);
-  });
-
   test('should display profile icon or fallback', async ({ page }) => {
     const playerHeader = page.locator('.overview-player-header');
     await expect(playerHeader).toBeVisible({ timeout: 10_000 });

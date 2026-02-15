@@ -3,7 +3,6 @@ using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 using static Mongoose.Api.Application.DTOs.MainChampionDto;
-using static Mongoose.Api.Application.DTOs.TrendDto;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
@@ -16,17 +15,14 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
 {
     private readonly ILogger<SoloPerformanceRepository> _logger;
     private readonly IQueryFilterBuilder _filterBuilder;
-    private readonly ITrendRepository _trendRepository;
 
     public SoloPerformanceRepository(
         IDbConnectionFactory factory,
         ILogger<SoloPerformanceRepository> logger,
-        IQueryFilterBuilder filterBuilder,
-        ITrendRepository trendRepository) : base(factory)
+        IQueryFilterBuilder filterBuilder) : base(factory)
     {
         _logger = logger;
         _filterBuilder = filterBuilder;
-        _trendRepository = trendRepository;
     }
 
     /// <inheritdoc />
@@ -77,14 +73,6 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
             var last10 = await GetRecentTrendAsync(puuid, queueFilter, timeFilter, timeRangeFilter, Math.Min(10, totalGames));
             var last20 = await GetRecentTrendAsync(puuid, queueFilter, timeFilter, timeRangeFilter, Math.Min(20, totalGames));
 
-            // Fetch LP trend for ranked queues only (uses TrendRepository)
-            LpTrendPoint[] lpTrend = Array.Empty<LpTrendPoint>();
-            if (queueType is "ranked_solo" or "ranked_flex" or "all")
-            {
-                var lpTrendList = await _trendRepository.GetLpTrendAsync(puuid, queueType == "all" ? null : queueType, 100);
-                lpTrend = lpTrendList.ToArray();
-            }
-
             var response = new SoloPerformanceResponse(
                 GamesPlayed: totalGames,
                 Wins: overallStats.Value.Wins,
@@ -108,8 +96,7 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 PerformanceByPhase: performancePhases.ToArray(),
                 RoleBreakdown: roleBreakdown.ToArray(),
                 DeathEfficiency: deathStats,
-                QueueType: queueType,
-                LpTrend: lpTrend
+                QueueType: queueType
             );
             _logger.LogInformation("GetSoloPerformanceAsync success: puuid={Puuid}, games={Games}", puuid, totalGames);
             return response;

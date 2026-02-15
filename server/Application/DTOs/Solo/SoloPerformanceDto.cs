@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 using static Mongoose.Api.Application.DTOs.MainChampionDto;
-using static Mongoose.Api.Application.DTOs.TrendDto;
 
 namespace Mongoose.Api.Application.DTOs;
 
@@ -50,10 +49,7 @@ public static class SoloPerformanceDto
         [property: JsonPropertyName("deathEfficiency")] DeathEfficiency DeathEfficiency,
 
         // Queue type
-        [property: JsonPropertyName("queueType")] string QueueType,
-
-        // LP trend (for ranked queues only, empty array if no LP data or non-ranked queue)
-        [property: JsonPropertyName("lpTrend")] LpTrendPoint[] LpTrend
+        [property: JsonPropertyName("queueType")] string QueueType
     );
 
     public record SideWinDistribution(

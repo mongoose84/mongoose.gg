@@ -4,7 +4,7 @@ namespace Mongoose.Api.Core.Interfaces;
 
 /// <summary>
 /// Repository for trend-related statistics.
-/// Provides winrate trends, LP trends, and match activity data.
+/// Provides winrate trends and match activity data.
 /// </summary>
 public interface ITrendRepository
 {
@@ -20,25 +20,6 @@ public interface ITrendRepository
     /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
     /// <returns>Array of winrate trend points</returns>
     Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
-
-    /// <summary>
-    /// Get LP trend data for ranked matches with LP data available.
-    /// Returns LP points ordered from oldest to newest for chart visualization.
-    /// </summary>
-    /// <param name="puuid">Player PUUID</param>
-    /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, or null for both)</param>
-    /// <param name="limit">Maximum number of data points to return</param>
-    /// <returns>List of LP trend points ordered oldest to newest</returns>
-    Task<IList<LpTrendPoint>> GetLpTrendAsync(string puuid, string? queueType = null, int limit = 100);
-
-    /// <summary>
-    /// Get LP trend data for both ranked solo and ranked flex queues separately.
-    /// Returns a tuple with separate arrays for each queue type.
-    /// </summary>
-    /// <param name="puuid">Player PUUID</param>
-    /// <param name="limit">Maximum number of data points to return per queue</param>
-    /// <returns>Tuple containing (rankedSolo, rankedFlex) LP trend arrays</returns>
-    Task<(LpTrendPoint[] RankedSolo, LpTrendPoint[] RankedFlex)> GetLpTrendBothQueuesAsync(string puuid, int limit = 100);
 
     /// <summary>
     /// Get daily match counts for the past N days for heatmap display.

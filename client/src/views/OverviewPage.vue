@@ -31,7 +31,6 @@
         :primary-queue-label="overviewData.rankSnapshot.primaryQueueLabel"
         :rank="overviewData.rankSnapshot.rank"
         :lp="overviewData.rankSnapshot.lp"
-        :lp-delta-last20="overviewData.rankSnapshot.lpDeltaLast20"
         :last20-wins="overviewData.rankSnapshot.last20Wins"
         :last20-losses="overviewData.rankSnapshot.last20Losses"
         :wl-last20="overviewData.rankSnapshot.wlLast20"

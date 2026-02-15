@@ -29,34 +29,8 @@
       />
     </template>
 
-    <!-- Zone 3: Trend Charts (LP left, Winrate right) -->
+    <!-- Zone 3: Trend Charts -->
     <template #trend-charts>
-      <!-- LP Trend Chart - Ranked Solo/Duo -->
-      <TrendChartCard
-        v-if="showSoloLpChart"
-        title="Ranked Solo/Duo"
-        :loading="lpLoading"
-        test-id="lp-trend-solo-card"
-        @toggle-expand="handleLpExpand"
-      >
-        <template #default="{ dataLimit }">
-          <LpChart :data="lpTrendDataSolo" />
-        </template>
-      </TrendChartCard>
-
-      <!-- LP Trend Chart - Ranked Flex -->
-      <TrendChartCard
-        v-if="showFlexLpChart"
-        title="Ranked Flex"
-        :loading="lpLoading"
-        test-id="lp-trend-flex-card"
-        @toggle-expand="handleLpExpand"
-      >
-        <template #default="{ dataLimit }">
-          <LpChart :data="lpTrendDataFlex" />
-        </template>
-      </TrendChartCard>
-
       <!-- Winrate Trend Chart -->
       <TrendChartCard
         title="Winrate Over Time"
@@ -76,16 +50,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard, getLpTrend, getWinrateTrend } from '../services/authApi'
+import { getSoloDashboard, getWinrateTrend } from '../services/authApi'
 import { BaseQueueToggle, BaseTimeRangeSelect } from '../components/base'
 import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
 import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
 import TrendChartCard from '../components/solo/TrendChartCard.vue'
-import LpChart from '../components/solo/LpChart.vue'
 import WinrateChart from '../components/solo/WinrateChart.vue'
 
 const authStore = useAuthStore()
@@ -97,38 +70,15 @@ const isLoading = ref(false)
 const error = ref(null)
 
 // Trend chart data
-const lpTrendDataSolo = ref([])
-const lpTrendDataFlex = ref([])
 const winrateTrendData = ref([])
-const lpLoading = ref(false)
 const winrateLoading = ref(false)
 
 // Expand state for charts (default: collapsed = last 20 games)
-const lpExpanded = ref(false)
 const winrateExpanded = ref(false)
 
 // UI state for filters
 const queueFilter = ref('all')
 const timeRange = ref('current_season')
-
-// Computed properties to determine which LP charts to show
-const showSoloLpChart = computed(() => {
-  // Show solo chart if:
-  // 1. Queue filter is 'all' and there's solo data, OR
-  // 2. Queue filter is 'ranked_solo' and there's solo data
-  const isRelevantQueue = queueFilter.value === 'all' || queueFilter.value === 'ranked_solo'
-  const hasSoloData = lpTrendDataSolo.value && lpTrendDataSolo.value.length > 0
-  return isRelevantQueue && (hasSoloData || lpLoading.value)
-})
-
-const showFlexLpChart = computed(() => {
-  // Show flex chart if:
-  // 1. Queue filter is 'all' and there's flex data, OR
-  // 2. Queue filter is 'ranked_flex' and there's flex data
-  const isRelevantQueue = queueFilter.value === 'all' || queueFilter.value === 'ranked_flex'
-  const hasFlexData = lpTrendDataFlex.value && lpTrendDataFlex.value.length > 0
-  return isRelevantQueue && (hasFlexData || lpLoading.value)
-})
 
 // Fetch dashboard data (summary stats)
 async function fetchData() {
@@ -152,27 +102,6 @@ async function fetchData() {
   }
 }
 
-// Fetch LP trend data
-async function fetchLpTrend() {
-  if (!authStore.userId) return
-
-  lpLoading.value = true
-  try {
-    const limit = lpExpanded.value ? 500 : 20
-    const result = await getLpTrend(authStore.userId, queueFilter.value, limit)
-
-    // Handle new response structure with separate arrays for solo and flex
-    lpTrendDataSolo.value = result?.rankedSolo ?? []
-    lpTrendDataFlex.value = result?.rankedFlex ?? []
-  } catch (err) {
-    console.error('Failed to fetch LP trend:', err)
-    lpTrendDataSolo.value = []
-    lpTrendDataFlex.value = []
-  } finally {
-    lpLoading.value = false
-  }
-}
-
 // Fetch winrate trend data
 async function fetchWinrateTrend() {
   if (!authStore.userId) return
@@ -191,12 +120,6 @@ async function fetchWinrateTrend() {
   }
 }
 
-// Handle expand toggle for LP chart
-function handleLpExpand(expanded) {
-  lpExpanded.value = expanded
-  fetchLpTrend()
-}
-
 // Handle expand toggle for winrate chart
 function handleWinrateExpand(expanded) {
   winrateExpanded.value = expanded
@@ -207,7 +130,6 @@ function handleWinrateExpand(expanded) {
 async function fetchAllData() {
   await Promise.all([
     fetchData(),
-    fetchLpTrend(),
     fetchWinrateTrend()
   ])
 }
