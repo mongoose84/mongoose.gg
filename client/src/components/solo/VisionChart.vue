@@ -223,8 +223,6 @@ const chartOptions = computed(() => ({
             `Vision/Min: ${point.visionScorePerMinute.toFixed(2)}`,
             `Rolling Avg: ${point.rollingAverage.toFixed(2)}`,
             `Vision Score: ${point.visionScore}`,
-            `Wards Placed: ${point.wardsPlaced}`,
-            `Wards Destroyed: ${point.wardsDestroyed}`,
             `Game Duration: ${point.gameDurationMinutes.toFixed(1)} min`,
             point.role ? `Role: ${point.role}` : null,
             `Date: ${date}`

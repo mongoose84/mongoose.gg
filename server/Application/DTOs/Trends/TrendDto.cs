@@ -134,9 +134,7 @@ public static class TrendDto
         [property: JsonPropertyName("rollingAverage")] double RollingAverage,
         [property: JsonPropertyName("gameDurationMinutes")] double GameDurationMinutes,
         [property: JsonPropertyName("championName")] string ChampionName,
-        [property: JsonPropertyName("role")] string? Role,
-        [property: JsonPropertyName("wardsPlaced")] int WardsPlaced,
-        [property: JsonPropertyName("wardsDestroyed")] int WardsDestroyed
+        [property: JsonPropertyName("role")] string? Role
     );
 
     /// <summary>

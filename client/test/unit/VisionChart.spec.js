@@ -51,9 +51,7 @@ describe('VisionChart', () => {
       rollingAverage: 1.2,
       gameDurationMinutes: 37.5,
       championName: 'Jinx',
-      role: 'BOTTOM',
-      wardsPlaced: 12,
-      wardsDestroyed: 3
+      role: 'BOTTOM'
     },
     {
       matchId: 'NA1_124',
@@ -64,9 +62,7 @@ describe('VisionChart', () => {
       rollingAverage: 1.35,
       gameDurationMinutes: 34.7,
       championName: 'Caitlyn',
-      role: 'BOTTOM',
-      wardsPlaced: 15,
-      wardsDestroyed: 4
+      role: 'BOTTOM'
     },
     {
       matchId: 'NA1_125',
@@ -77,9 +73,7 @@ describe('VisionChart', () => {
       rollingAverage: 1.37,
       gameDurationMinutes: 34.3,
       championName: 'Jinx',
-      role: 'BOTTOM',
-      wardsPlaced: 14,
-      wardsDestroyed: 2
+      role: 'BOTTOM'
     }
   ]
 
@@ -93,9 +87,7 @@ describe('VisionChart', () => {
       rollingAverage: 2.5,
       gameDurationMinutes: 36.0,
       championName: 'Lulu',
-      role: 'UTILITY',
-      wardsPlaced: 30,
-      wardsDestroyed: 10
+      role: 'UTILITY'
     }
   ]
 

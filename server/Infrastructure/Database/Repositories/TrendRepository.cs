@@ -623,7 +623,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
             var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
 
-            // Query to get vision score data with ward statistics
+            // Query to get vision score data
             var sql = $@"
                 SELECT
                     p.match_id,
@@ -631,9 +631,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     pm.vision_score,
                     m.game_duration_sec,
                     p.champion_name,
-                    p.role,
-                    p.wards_placed,
-                    p.wards_destroyed
+                    p.role
                 FROM participants p
                 INNER JOIN matches m ON m.match_id = p.match_id
                 INNER JOIN participant_metrics pm ON pm.participant_id = p.id
@@ -647,9 +645,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 int VisionScore,
                 int GameDuration,
                 string ChampionName,
-                string? Role,
-                int WardsPlaced,
-                int WardsDestroyed
+                string? Role
             )>();
 
             await ExecuteWithConnectionAsync(async conn =>
@@ -667,10 +663,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     var gameDuration = reader.GetInt32(3);
                     var championName = reader.GetString(4);
                     var role = reader.IsDBNull(5) ? null : reader.GetString(5);
-                    var wardsPlaced = reader.GetInt32(6);
-                    var wardsDestroyed = reader.GetInt32(7);
 
-                    dataPoints.Add((matchId, timestamp, visionScore, gameDuration, championName, role, wardsPlaced, wardsDestroyed));
+                    dataPoints.Add((matchId, timestamp, visionScore, gameDuration, championName, role));
                 }
                 return 0;
             });
@@ -718,9 +712,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     RollingAverage: rollingAverage,
                     GameDurationMinutes: gameDurationMinutes,
                     ChampionName: point.ChampionName,
-                    Role: point.Role,
-                    WardsPlaced: point.WardsPlaced,
-                    WardsDestroyed: point.WardsDestroyed
+                    Role: point.Role
                 ));
             }
 

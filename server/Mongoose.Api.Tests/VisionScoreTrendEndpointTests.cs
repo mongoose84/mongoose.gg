@@ -130,9 +130,7 @@ public class VisionScoreTrendEndpointTests
                 RollingAverage: 1.2,
                 GameDurationMinutes: 37.5,
                 ChampionName: "Jinx",
-                Role: "BOTTOM",
-                WardsPlaced: 12,
-                WardsDestroyed: 3
+                Role: "BOTTOM"
             ),
             new VisionScoreTrendPoint(
                 MatchId: "NA1_12346",
@@ -143,9 +141,7 @@ public class VisionScoreTrendEndpointTests
                 RollingAverage: 1.35,
                 GameDurationMinutes: 34.7,
                 ChampionName: "Caitlyn",
-                Role: "BOTTOM",
-                WardsPlaced: 15,
-                WardsDestroyed: 4
+                Role: "BOTTOM"
             )
         };
 
@@ -173,8 +169,6 @@ public class VisionScoreTrendEndpointTests
         point1.GetProperty("rollingAverage").GetDouble().Should().BeApproximately(1.2, 0.01);
         point1.GetProperty("championName").GetString().Should().Be("Jinx");
         point1.GetProperty("role").GetString().Should().Be("BOTTOM");
-        point1.GetProperty("wardsPlaced").GetInt32().Should().Be(12);
-        point1.GetProperty("wardsDestroyed").GetInt32().Should().Be(3);
 
         root.TryGetProperty("averageVisionPerMinute", out var avgVision).Should().BeTrue();
         avgVision.GetDouble().Should().BeApproximately(1.35, 0.01);
@@ -211,9 +205,7 @@ public class VisionScoreTrendEndpointTests
                 RollingAverage: 2.5,
                 GameDurationMinutes: 36.0,
                 ChampionName: "Lulu",
-                Role: "UTILITY",
-                WardsPlaced: 30,
-                WardsDestroyed: 10
+                Role: "UTILITY"
             )
         };
 
@@ -254,9 +246,7 @@ public class VisionScoreTrendEndpointTests
                 RollingAverage: 1.2,
                 GameDurationMinutes: 37.5,
                 ChampionName: "Jinx",
-                Role: "BOTTOM",
-                WardsPlaced: 12,
-                WardsDestroyed: 3
+                Role: "BOTTOM"
             )
         };
 
@@ -291,9 +281,7 @@ public class VisionScoreTrendEndpointTests
                 RollingAverage: 1.2,
                 GameDurationMinutes: 37.5,
                 ChampionName: "Jinx",
-                Role: "BOTTOM",
-                WardsPlaced: 12,
-                WardsDestroyed: 3
+                Role: "BOTTOM"
             )
         };
 
@@ -328,9 +316,7 @@ public class VisionScoreTrendEndpointTests
                 RollingAverage: 1.2,
                 GameDurationMinutes: 37.5,
                 ChampionName: "Jinx",
-                Role: "BOTTOM",
-                WardsPlaced: 12,
-                WardsDestroyed: 3
+                Role: "BOTTOM"
             )
         };
 
