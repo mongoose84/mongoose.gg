@@ -94,5 +94,31 @@ public static class TrendDto
         [property: JsonPropertyName("overallAverage")] double OverallAverage,
         [property: JsonPropertyName("trend")] string Trend
     );
+
+    /// <summary>
+    /// A single data point for the dragon participation trend chart.
+    /// Represents player's dragon participation rate for a specific game.
+    /// </summary>
+    public record DragonParticipationTrendPoint(
+        [property: JsonPropertyName("matchId")] string MatchId,
+        [property: JsonPropertyName("gameIndex")] int GameIndex,
+        [property: JsonPropertyName("timestamp")] DateTime Timestamp,
+        [property: JsonPropertyName("teamDragons")] int TeamDragons,
+        [property: JsonPropertyName("dragonsParticipated")] int DragonsParticipated,
+        [property: JsonPropertyName("participationRate")] double ParticipationRate,
+        [property: JsonPropertyName("rollingAverage")] double RollingAverage,
+        [property: JsonPropertyName("championName")] string ChampionName,
+        [property: JsonPropertyName("role")] string? Role
+    );
+
+    /// <summary>
+    /// Response DTO for the dragon participation trend endpoint.
+    /// </summary>
+    public record DragonParticipationTrendResponse(
+        [property: JsonPropertyName("dragonParticipationTrend")] DragonParticipationTrendPoint[] DragonParticipationTrend,
+        [property: JsonPropertyName("averageParticipation")] double AverageParticipation,
+        [property: JsonPropertyName("overallAverage")] double OverallAverage,
+        [property: JsonPropertyName("trend")] string Trend
+    );
 }
 
