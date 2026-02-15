@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
+using static Mongoose.Api.Application.DTOs.RankInfoDto;
 
 namespace Mongoose.Api.Application.Endpoints.Solo;
 
@@ -77,7 +79,26 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
                     return Results.NotFound(new { error = "No match data found for this player" });
                 }
 
-                return Results.Ok(performance);
+                // Build rank info from the account data (no additional DB calls needed)
+                var soloDuoRank = new QueueRankInfo(
+                    primaryAccount.SoloTier,
+                    primaryAccount.SoloRank,
+                    primaryAccount.SoloLp,
+                    !string.IsNullOrEmpty(primaryAccount.SoloTier) && !string.IsNullOrEmpty(primaryAccount.SoloRank)
+                );
+
+                var flexRank = new QueueRankInfo(
+                    primaryAccount.FlexTier,
+                    primaryAccount.FlexRank,
+                    primaryAccount.FlexLp,
+                    !string.IsNullOrEmpty(primaryAccount.FlexTier) && !string.IsNullOrEmpty(primaryAccount.FlexRank)
+                );
+
+                var rankInfo = new RankInfo(soloDuoRank, flexRank);
+
+                // Return enhanced response with performance data and rank info
+                var response = SoloPerformanceWithRankResponse.FromPerformanceAndRank(performance, rankInfo);
+                return Results.Ok(response);
             }
             catch (ArgumentException ex)
             {
