@@ -452,7 +452,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         /// Note: userId parameter kept for API compatibility but not stored on RiotAccount (use UserRiotAccountLink for user-account relationships).
         /// </summary>
         public void AddRiotAccountWithRank(long userId, string puuid, string gameName, string region, string summonerName,
-            int summonerLevel, int profileIconId, string? soloTier, string? soloRank, int? soloLp)
+            int summonerLevel, int profileIconId, string? soloTier, string? soloRank, int? soloLp,
+            string? flexTier = null, string? flexRank = null, int? flexLp = null)
         {
             var account = new RiotAccount
             {
@@ -467,6 +468,9 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 SoloTier = soloTier,
                 SoloRank = soloRank,
                 SoloLp = soloLp,
+                FlexTier = flexTier,
+                FlexRank = flexRank,
+                FlexLp = flexLp,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };

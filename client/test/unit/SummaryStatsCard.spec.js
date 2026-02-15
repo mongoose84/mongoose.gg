@@ -419,5 +419,90 @@ describe('SummaryStatsCard', () => {
       expect(wrapper.find('[data-testid="stat-kda"]').text()).toContain('Average K / D / A')
     })
   })
+
+  describe('Rank display', () => {
+    const soloDuoRank = { tier: 'GOLD', division: 'II', lp: 78, hasRank: true }
+    const flexRank = { tier: 'SILVER', division: 'I', lp: 45, hasRank: true }
+
+    it('shows both ranks for All Queues filter', () => {
+      const wrapper = mountComponent({
+        queueFilter: 'all',
+        soloDuoRank,
+        flexRank
+      })
+      expect(wrapper.find('[data-testid="solo-duo-rank-wrapper"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="flex-rank-wrapper"]').exists()).toBe(true)
+    })
+
+    it('shows only Solo/Duo rank for ranked_solo filter', () => {
+      const wrapper = mountComponent({
+        queueFilter: 'ranked_solo',
+        soloDuoRank,
+        flexRank
+      })
+      expect(wrapper.find('[data-testid="solo-duo-rank-wrapper"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="flex-rank-wrapper"]').exists()).toBe(false)
+    })
+
+    it('shows only Flex rank for ranked_flex filter', () => {
+      const wrapper = mountComponent({
+        queueFilter: 'ranked_flex',
+        soloDuoRank,
+        flexRank
+      })
+      expect(wrapper.find('[data-testid="flex-rank-wrapper"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="solo-duo-rank-wrapper"]').exists()).toBe(false)
+    })
+
+    it('hides both ranks for normal queue filter', () => {
+      const wrapper = mountComponent({
+        queueFilter: 'normal',
+        soloDuoRank,
+        flexRank
+      })
+      expect(wrapper.find('[data-testid="solo-duo-rank-wrapper"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="flex-rank-wrapper"]').exists()).toBe(false)
+    })
+
+    it('hides both ranks for aram queue filter', () => {
+      const wrapper = mountComponent({
+        queueFilter: 'aram',
+        soloDuoRank,
+        flexRank
+      })
+      expect(wrapper.find('[data-testid="solo-duo-rank-wrapper"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="flex-rank-wrapper"]').exists()).toBe(false)
+    })
+
+    it('handles unranked Solo/Duo in All Queues view', () => {
+      const wrapper = mountComponent({
+        queueFilter: 'all',
+        soloDuoRank: { tier: null, division: null, lp: null, hasRank: false },
+        flexRank
+      })
+      expect(wrapper.find('[data-testid="solo-duo-rank-wrapper"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="flex-rank-wrapper"]').exists()).toBe(true)
+    })
+
+    it('handles null rank props gracefully', () => {
+      const wrapper = mountComponent({
+        queueFilter: 'all',
+        soloDuoRank: null,
+        flexRank: null
+      })
+      // Should still render without errors
+      expect(wrapper.exists()).toBe(true)
+    })
+
+    it('displays rank labels correctly', () => {
+      const wrapper = mountComponent({
+        queueFilter: 'all',
+        soloDuoRank,
+        flexRank
+      })
+      expect(wrapper.text()).toContain('Solo/Duo')
+      expect(wrapper.text()).toContain('Flex')
+    })
+  })
 })
 

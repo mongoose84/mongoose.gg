@@ -25,6 +25,9 @@
         :overall-avg-deaths="dashboardData?.overallAvgDeaths ?? null"
         :overall-avg-assists="dashboardData?.overallAvgAssists ?? null"
         :overall-avg-kda="dashboardData?.overallAvgKda ?? null"
+        :solo-duo-rank="dashboardData?.rankInfo?.soloDuoRank ?? null"
+        :flex-rank="dashboardData?.rankInfo?.flexRank ?? null"
+        :queue-filter="queueFilter"
         :loading="isLoading"
       />
     </template>

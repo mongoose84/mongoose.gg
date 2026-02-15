@@ -16,6 +16,34 @@
 
       <!-- Stats display -->
       <div v-else class="stats-grid" data-testid="stats-display">
+        <!-- Solo/Duo Rank (All Queues or Solo filter) -->
+        <div v-if="showSoloDuoRank" class="stat-item" data-testid="solo-duo-rank-wrapper">
+          <span class="stat-label">Solo/Duo</span>
+          <div class="stat-value-rank">
+            <BaseRankBadge
+              :tier="soloDuoRank?.tier"
+              :division="soloDuoRank?.division"
+              :lp="soloDuoRank?.lp"
+              :has-rank="soloDuoRank?.hasRank ?? false"
+              size="sm"
+            />
+          </div>
+        </div>
+
+        <!-- Flex Rank (All Queues or Flex filter) -->
+        <div v-if="showFlexRank" class="stat-item" data-testid="flex-rank-wrapper">
+          <span class="stat-label">Flex</span>
+          <div class="stat-value-rank">
+            <BaseRankBadge
+              :tier="flexRank?.tier"
+              :division="flexRank?.division"
+              :lp="flexRank?.lp"
+              :has-rank="flexRank?.hasRank ?? false"
+              size="sm"
+            />
+          </div>
+        </div>
+
         <!-- Games Played -->
         <div class="stat-item" data-testid="stat-games">
           <span class="stat-label">Games</span>
@@ -73,6 +101,7 @@
 <script setup>
 import { computed } from 'vue'
 import BaseCard from '../base/BaseCard.vue'
+import BaseRankBadge from '../base/BaseRankBadge.vue'
 import { getWinRateColorClass } from '../../composables/useWinRateColor'
 
 const props = defineProps({
@@ -135,7 +164,32 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  /** Solo/Duo rank info object { tier, division, lp, hasRank } */
+  soloDuoRank: {
+    type: Object,
+    default: null
+  },
+  /** Flex rank info object { tier, division, lp, hasRank } */
+  flexRank: {
+    type: Object,
+    default: null
+  },
+  /** Current queue filter (all, ranked_solo, ranked_flex, normal, aram) */
+  queueFilter: {
+    type: String,
+    default: 'all'
   }
+})
+
+// Computed: Show Solo/Duo rank (All Queues or Solo filter)
+const showSoloDuoRank = computed(() => {
+  return props.queueFilter === 'all' || props.queueFilter === 'ranked_solo'
+})
+
+// Computed: Show Flex rank (All Queues or Flex filter)
+const showFlexRank = computed(() => {
+  return props.queueFilter === 'all' || props.queueFilter === 'ranked_flex'
 })
 
 // Computed: Check if data is empty
@@ -268,7 +322,7 @@ const assistsTrendClass = computed(() => {
 <style scoped>
 .summary-stats-card {
   width: 100%;
-  height: 80px;
+  min-height: 80px;
 }
 
 .card-content {
@@ -303,6 +357,10 @@ const assistsTrendClass = computed(() => {
   font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--color-text);
+  margin-top: -10px;
+}
+
+.stat-value-rank {
   margin-top: -10px;
 }
 
@@ -345,6 +403,10 @@ const assistsTrendClass = computed(() => {
   color: var(--color-error);
 }
 
+.stat-value-rank {
+  margin-top: -10px;
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;
@@ -383,6 +445,23 @@ const assistsTrendClass = computed(() => {
 
 /* Responsive: stack on mobile */
 @media (max-width: 480px) {
+  .stats-container {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .rank-section {
+    padding-right: 0;
+    padding-bottom: var(--spacing-sm);
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .rank-badges-row {
+    flex-direction: row;
+    gap: var(--spacing-lg);
+  }
+
   .stats-grid {
     flex-direction: column;
     gap: var(--spacing-md);
