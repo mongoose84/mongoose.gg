@@ -27,6 +27,7 @@ import {
   Legend,
   Filler
 } from 'chart.js'
+import annotationPlugin from 'chartjs-plugin-annotation'
 
 // Register Chart.js components
 ChartJS.register(
@@ -37,7 +38,8 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  annotationPlugin
 )
 
 const props = defineProps({
@@ -49,6 +51,11 @@ const props = defineProps({
   /** Match ID to highlight (optional) */
   highlightMatchId: {
     type: String,
+    default: null
+  },
+  /** Overall winrate to show as reference line */
+  overallWinRate: {
+    type: Number,
     default: null
   }
 })
@@ -94,12 +101,41 @@ const chartData = computed(() => {
   }
 })
 
+// Build annotation config for overall winrate reference line
+const annotationConfig = computed(() => {
+  if (props.overallWinRate === null || props.overallWinRate === undefined) {
+    return {}
+  }
+  return {
+    annotations: {
+      overallLine: {
+        type: 'line',
+        yMin: props.overallWinRate,
+        yMax: props.overallWinRate,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
+        borderWidth: 1,
+        borderDash: [5, 5],
+        label: {
+          display: true,
+          content: `Overall: ${props.overallWinRate.toFixed(1)}%`,
+          position: 'end',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          color: 'rgba(255, 255, 255, 0.8)',
+          font: { size: 10 },
+          padding: 4
+        }
+      }
+    }
+  }
+})
+
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   interaction: { mode: 'index', intersect: false },
   plugins: {
     legend: { display: false },
+    annotation: annotationConfig.value,
     tooltip: {
       backgroundColor: 'rgba(0, 0, 0, 0.9)',
       titleColor: '#ffffff',
