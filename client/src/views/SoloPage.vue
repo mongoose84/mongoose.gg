@@ -40,7 +40,7 @@
         @toggle-expand="handleWinrateExpand"
       >
         <template #default="{ dataLimit }">
-          <WinrateChart :data="winrateTrendData" />
+          <WinrateChart :data="winrateTrendData" :overall-win-rate="dashboardData?.winRate ?? null" />
         </template>
       </TrendChartCard>
     </template>
