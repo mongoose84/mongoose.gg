@@ -42,7 +42,7 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))
                 {
-                    logger.LogWarning("Solo performance: invalid userId format {UserId}", userId);
+                    logger.LogWarning("Solo performance: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
@@ -70,12 +70,12 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
                 var primaryPuuid = primaryAccount.Puuid;
 
                 // Fetch performance data
-                logger.LogInformation("Solo performance request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
+                logger.LogInformation("Solo performance request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", userIdInt, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
                 var performance = await soloPerformanceRepo.GetSoloPerformanceAsync(primaryPuuid, queueType, timeRange);
 
                 if (performance == null)
                 {
-                    logger.LogInformation("Solo performance: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}", primaryPuuid, queueType ?? "all", timeRange ?? "all");
+                    logger.LogInformation("Solo performance: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}", primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
                     return Results.NotFound(new { error = "No match data found for this player" });
                 }
 

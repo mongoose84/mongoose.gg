@@ -40,7 +40,7 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))
                 {
-                    logger.LogWarning("Solo matchups: invalid userId format {UserId}", userId);
+                    logger.LogWarning("Solo matchups: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
@@ -69,7 +69,7 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
 
                 // Fetch matchups data
                 logger.LogInformation("Solo matchups request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
+                    userIdInt, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
                 var matchups = await matchupRepo.GetChampionMatchupsAsync(primaryPuuid, queueType, timeRange);
 
                 return Results.Ok(matchups);
