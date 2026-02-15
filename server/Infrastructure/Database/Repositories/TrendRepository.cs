@@ -629,7 +629,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     p.match_id,
                     m.game_start_time,
                     pm.vision_score,
-                    m.game_duration,
+                    m.game_duration_sec,
                     p.champion_name,
                     p.role,
                     p.wards_placed,
@@ -638,7 +638,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 INNER JOIN matches m ON m.match_id = p.match_id
                 INNER JOIN participant_metrics pm ON pm.participant_id = p.id
                 WHERE p.puuid = @puuid {queueFilter} {timeFilter}
-                  AND m.game_duration >= 600
+                  AND m.game_duration_sec >= 600
                 ORDER BY m.game_start_time ASC";
 
             var dataPoints = new List<(
