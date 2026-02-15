@@ -96,6 +96,9 @@ namespace Mongoose.Api.Application
             var csPerMinuteTrendEndpoint = new CsPerMinuteTrendEndpoint(basePath);
             _endpoints.Add(csPerMinuteTrendEndpoint);
 
+            var deathsTrendEndpoint = new DeathsTrendEndpoint(basePath);
+            _endpoints.Add(deathsTrendEndpoint);
+
             // Overview endpoint (auth required)
             var overviewEndpoint = new OverviewEndpoint(basePath);
             _endpoints.Add(overviewEndpoint);
