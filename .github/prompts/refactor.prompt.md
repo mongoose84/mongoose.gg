@@ -1,6 +1,6 @@
 ---
-mode: agent
-model: gpt-4
+agent: agent
+model: Claude Sonnet 4.5 (copilot)
 tools: ['file-search', 'semantic-search', 'codebase', 'editFiles', 'runTests']
 description: 'Code refactoring workflow with safety checks'
 ---

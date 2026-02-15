@@ -1,6 +1,6 @@
 ---
-mode: agent
-model: gpt-4
+agent: agent
+model: Claude Sonnet 4.5 (copilot)
 tools: ['file-search', 'semantic-search', 'changes', 'problems']
 description: 'Structured code review workflow with validation gates'
 ---

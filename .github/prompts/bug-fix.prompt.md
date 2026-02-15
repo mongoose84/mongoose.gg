@@ -1,6 +1,6 @@
 ---
-mode: agent
-model: gpt-4
+agent: agent
+model: Claude Sonnet 4.5 (copilot)
 tools: ['file-search', 'semantic-search', 'codebase', 'problems', 'testFailure', 'editFiles', 'runTests']
 description: 'Systematic bug investigation and fix workflow'
 ---

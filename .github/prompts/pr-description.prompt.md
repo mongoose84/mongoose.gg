@@ -1,6 +1,6 @@
 ---
-mode: agent
-model: gpt-4
+agent: agent
+model: Claude Sonnet 4.5 (copilot)
 tools: ['changes', 'codebase', 'semantic-search']
 description: 'Generate comprehensive pull request descriptions'
 ---
