@@ -129,16 +129,16 @@ const formattedTier = computed(() => {
 
 /* Size variants */
 .rank-badge--sm .rank-emblem {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
 }
 
 .rank-badge--sm .rank-tier {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
 }
 
 .rank-badge--sm .rank-lp {
-  font-size: 10px;
+  font-size: var(--font-size-xs);
 }
 
 .rank-badge--md .rank-emblem {
