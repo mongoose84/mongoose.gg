@@ -2,22 +2,24 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
+using static Mongoose.Api.Application.DTOs.TrendDto;
 
-namespace Mongoose.Api.Application.Endpoints.Solo;
+namespace Mongoose.Api.Application.Endpoints.Trends;
 
 /// <summary>
-/// Solo Matchups Endpoint
-/// Returns champion matchup data showing top 5 most-played champions with opponent details.
+/// Gold at 15 Trend Endpoint
+/// Returns gold at 15-minute mark trend data for chart display with opponent comparison.
+/// Shared endpoint that can be used by solo, duo, and team dashboards.
 /// Supports optional queue filtering (ranked_solo, ranked_flex, normal, aram, all)
 /// and optional time range filtering (current_season, last_season, 1w, 1m, 3m, 6m).
 /// </summary>
-public sealed class SoloMatchupsEndpoint : IEndpoint
+public sealed class GoldAt15TrendEndpoint : IEndpoint
 {
     public string Route { get; }
 
-    public SoloMatchupsEndpoint(string basePath)
+    public GoldAt15TrendEndpoint(string basePath)
     {
-        Route = basePath + "/solo/matchups/{userId}";
+        Route = basePath + "/trends/gold-at-15/{userId}";
     }
 
     public void Configure(WebApplication app)
@@ -27,9 +29,10 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
+            [FromQuery] int? limit,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
-            [FromServices] IMatchupRepository matchupRepo,
-            [FromServices] ILogger<SoloMatchupsEndpoint> logger
+            [FromServices] ITrendRepository trendRepo,
+            [FromServices] ILogger<GoldAt15TrendEndpoint> logger
         ) =>
         {
             try
@@ -40,7 +43,7 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))
                 {
-                    logger.LogWarning("Solo matchups: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
+                    logger.LogWarning("Gold at 15 trend: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
                     return Results.BadRequest(new { error = "Invalid userId format" });
                 }
 
@@ -48,7 +51,7 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
                 var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
                 {
-                    logger.LogWarning("Solo matchups: user {AuthUserId} attempted to access data for user {RouteUserId}",
+                    logger.LogWarning("Gold at 15 trend: user {AuthUserId} attempted to access data for user {RouteUserId}",
                         authenticatedUserId, userIdInt);
                     return Results.Forbid();
                 }
@@ -58,7 +61,7 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
 
                 if (linkedAccounts == null || linkedAccounts.Count == 0)
                 {
-                    logger.LogWarning("Solo matchups: no riot accounts found for userId {UserId}", userIdInt);
+                    logger.LogWarning("Gold at 15 trend: no riot accounts found for userId {UserId}", userIdInt);
                     return Results.NotFound(new { error = "No riot accounts found for this user" });
                 }
 
@@ -67,21 +70,31 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
                 var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
-                // Fetch matchups data
-                logger.LogInformation("Solo matchups request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    userIdInt, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
-                var matchups = await matchupRepo.GetChampionMatchupsAsync(primaryPuuid, queueType, timeRange);
+                // Validate limit if provided
+                int? validatedLimit = null;
+                if (limit.HasValue)
+                {
+                    validatedLimit = limit.Value;
+                    if (validatedLimit < 1) validatedLimit = 20;
+                    if (validatedLimit > 500) validatedLimit = 500;
+                }
 
-                return Results.Ok(matchups);
+                // Fetch gold at 15 trend data
+                logger.LogInformation("Gold at 15 trend request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, limit={Limit}",
+                    userIdInt, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", validatedLimit?.ToString() ?? "all");
+
+                var goldAt15Trend = await trendRepo.GetGoldAt15TrendAsync(primaryPuuid, queueType, timeRange, validatedLimit);
+
+                return Results.Ok(new GoldAt15TrendResponse(goldAt15Trend));
             }
             catch (ArgumentException ex)
             {
-                logger.LogWarning(ex, "Solo matchups: bad request");
+                logger.LogWarning(ex, "Gold at 15 trend: bad request");
                 return Results.BadRequest(new { error = "Invalid request parameters" });
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Solo matchups: unhandled error");
+                logger.LogError(ex, "Gold at 15 trend: unhandled error");
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });
@@ -89,4 +102,3 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
         endpoint.RequireAuthorization();
     }
 }
-

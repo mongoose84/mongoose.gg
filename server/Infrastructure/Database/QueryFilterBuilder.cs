@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using MySqlConnector;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Application.Endpoints.Shared;
 
 namespace Mongoose.Api.Infrastructure.Database;
 
@@ -92,7 +93,7 @@ public class QueryFilterBuilder : IQueryFilterBuilder
                     // to avoid silently returning "all time" data when seasonal data was expected
                     _logger.LogWarning(
                         "Seasonal time range '{TimeRange}' requested but no season data found. Returning empty result set.",
-                        filter.NormalizedTimeRange);
+                        LogSanitizer.Sanitize(filter.NormalizedTimeRange));
                     return "AND 1=0"; // No matches - explicit empty result
             }
         }
