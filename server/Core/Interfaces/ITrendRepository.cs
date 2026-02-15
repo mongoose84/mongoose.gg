@@ -66,7 +66,7 @@ public interface ITrendRepository
     /// Returns an array of data points with dragon participation rate and rolling average.
     /// When limit is specified, returns the most recent N games at full resolution.
     /// When limit is null, returns all games with downsampling if over 100 data points.
-    /// Filters out games where team didn't secure any dragons.
+    /// Includes games where the team didn't secure any dragons as 0% participation data points.
     /// </summary>
     /// <param name="puuid">Player PUUID</param>
     /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, normal, aram, all)</param>

@@ -466,7 +466,6 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     m.game_start_time,
                     p.champion_name,
                     p.role,
-                    p.team_id,
                     COALESCE(po.dragons_participated, 0) as dragons_participated,
                     COALESCE(tobj.dragons_taken, 0) as dragons_taken
                 FROM participants p
@@ -493,9 +492,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     var timestamp = reader.GetInt64(1);
                     var championName = reader.GetString(2);
                     var role = reader.IsDBNull(3) ? null : reader.GetString(3);
-                    var teamId = reader.GetInt32(4);
-                    var dragonsParticipated = reader.GetInt32(5);
-                    var dragonsTaken = reader.GetInt32(6);
+                    var dragonsParticipated = reader.GetInt32(4);
+                    var dragonsTaken = reader.GetInt32(5);
 
                     dataPoints.Add((matchId, timestamp, championName, role, dragonsTaken, dragonsParticipated));
                 }
@@ -508,6 +506,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 return (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral");
 
             // Calculate rolling 20-game average for each game
+            // Include games with 0 team dragons to show poor objective control
             const int windowSize = 20;
             var trendPoints = new List<DragonParticipationTrendPoint>();
 
@@ -517,20 +516,16 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var windowGames = dataPoints.Skip(windowStart).Take(i - windowStart + 1).ToList();
 
                 // Calculate rolling average participation rate
-                var windowGamesWithDragons = windowGames.Where(g => g.TeamDragons > 0).ToList();
-                double rollingAverage = 0;
-                if (windowGamesWithDragons.Count > 0)
-                {
-                    var totalTeamDragons = windowGamesWithDragons.Sum(g => g.TeamDragons);
-                    var totalParticipated = windowGamesWithDragons.Sum(g => g.DragonsParticipated);
-                    rollingAverage = totalTeamDragons > 0 
-                        ? Math.Round((double)totalParticipated / totalTeamDragons * 100, 1)
-                        : 0;
-                }
+                var totalTeamDragons = windowGames.Sum(g => g.TeamDragons);
+                var totalParticipated = windowGames.Sum(g => g.DragonsParticipated);
+                var rollingAverage = totalTeamDragons > 0 
+                    ? Math.Round((double)totalParticipated / totalTeamDragons * 100, 1)
+                    : 0;
 
                 var point = dataPoints[i];
                 var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(point.Timestamp).UtcDateTime;
-                var participationRate = point.TeamDragons > 0 
+                // If team got 0 dragons, show 0% participation (indicates poor objective control)
+                var participationRate = point.TeamDragons > 0
                     ? Math.Round((double)point.DragonsParticipated / point.TeamDragons * 100, 1)
                     : 0;
 
@@ -547,29 +542,20 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 ));
             }
 
-            // Calculate summary statistics (only from games where team secured dragons)
-            var gamesWithDragons = dataPoints.Where(d => d.TeamDragons > 0).ToList();
-            var overallAverage = 0.0;
-            if (gamesWithDragons.Count > 0)
-            {
-                var totalTeamDragons = gamesWithDragons.Sum(d => d.TeamDragons);
-                var totalParticipated = gamesWithDragons.Sum(d => d.DragonsParticipated);
-                overallAverage = totalTeamDragons > 0 
-                    ? Math.Round((double)totalParticipated / totalTeamDragons * 100, 1)
-                    : 0;
-            }
+            // Calculate summary statistics (include all games to show complete picture)
+            var overallTeamDragons = dataPoints.Sum(d => d.TeamDragons);
+            var overallParticipated = dataPoints.Sum(d => d.DragonsParticipated);
+            var overallAverage = overallTeamDragons > 0 
+                ? Math.Round((double)overallParticipated / overallTeamDragons * 100, 1)
+                : 0;
 
-            var recentCount = Math.Min(20, gamesWithDragons.Count);
-            var recentGamesWithDragons = dataPoints.Where(d => d.TeamDragons > 0).TakeLast(recentCount).ToList();
-            var recentAverage = 0.0;
-            if (recentGamesWithDragons.Count > 0)
-            {
-                var recentTeamDragons = recentGamesWithDragons.Sum(d => d.TeamDragons);
-                var recentParticipated = recentGamesWithDragons.Sum(d => d.DragonsParticipated);
-                recentAverage = recentTeamDragons > 0 
-                    ? Math.Round((double)recentParticipated / recentTeamDragons * 100, 1)
-                    : 0;
-            }
+            var recentCount = Math.Min(20, dataPoints.Count);
+            var recentGames = dataPoints.TakeLast(recentCount).ToList();
+            var recentTeamDragons = recentGames.Sum(d => d.TeamDragons);
+            var recentParticipated = recentGames.Sum(d => d.DragonsParticipated);
+            var recentAverage = recentTeamDragons > 0 
+                ? Math.Round((double)recentParticipated / recentTeamDragons * 100, 1)
+                : 0;
 
             // Determine trend: improving if recent participation is higher
             var trend = "neutral";
