@@ -59,6 +59,19 @@
           <GoldAt15Chart :data="goldAt15TrendData" />
         </template>
       </TrendChartCard>
+
+      <!-- CS Per Minute Trend Chart -->
+      <TrendChartCard
+        title="CS Per Minute"
+        subtitle="Farming efficiency over time"
+        :loading="csPerMinuteLoading"
+        test-id="cs-per-minute-trend-card"
+        @toggle-expand="handleCsPerMinuteExpand"
+      >
+        <template #default="{ dataLimit }">
+          <CsPerMinuteChart :data="csPerMinuteTrendData" />
+        </template>
+      </TrendChartCard>
     </template>
 
     <!-- Zone 4 & 5: Not rendered in v1 -->
@@ -70,13 +83,14 @@ import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend } from '../services/authApi'
+import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend } from '../services/authApi'
 import { BaseQueueToggle, BaseTimeRangeSelect } from '../components/base'
 import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
 import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
 import TrendChartCard from '../components/solo/TrendChartCard.vue'
 import WinrateChart from '../components/solo/WinrateChart.vue'
 import GoldAt15Chart from '../components/solo/GoldAt15Chart.vue'
+import CsPerMinuteChart from '../components/solo/CsPerMinuteChart.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
@@ -91,10 +105,13 @@ const winrateTrendData = ref([])
 const winrateLoading = ref(false)
 const goldAt15TrendData = ref([])
 const goldAt15Loading = ref(false)
+const csPerMinuteTrendData = ref([])
+const csPerMinuteLoading = ref(false)
 
 // Expand state for charts (default: collapsed = last 20 games)
 const winrateExpanded = ref(false)
 const goldAt15Expanded = ref(false)
+const csPerMinuteExpanded = ref(false)
 
 // UI state for filters
 const queueFilter = ref('all')
@@ -158,6 +175,24 @@ async function fetchGoldAt15Trend() {
   }
 }
 
+// Fetch CS per minute trend data
+async function fetchCsPerMinuteTrend() {
+  if (!authStore.userId) return
+
+  csPerMinuteLoading.value = true
+  try {
+    // Use limit parameter to get exact number of games at full resolution
+    const limit = csPerMinuteExpanded.value ? null : 20
+    const result = await getCsPerMinuteTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+    csPerMinuteTrendData.value = result?.csPerMinuteTrend ?? []
+  } catch (err) {
+    console.error('Failed to fetch CS per minute trend:', err)
+    csPerMinuteTrendData.value = []
+  } finally {
+    csPerMinuteLoading.value = false
+  }
+}
+
 // Handle expand toggle for winrate chart
 function handleWinrateExpand(expanded) {
   winrateExpanded.value = expanded
@@ -170,12 +205,19 @@ function handleGoldAt15Expand(expanded) {
   fetchGoldAt15Trend()
 }
 
+// Handle expand toggle for CS per minute chart
+function handleCsPerMinuteExpand(expanded) {
+  csPerMinuteExpanded.value = expanded
+  fetchCsPerMinuteTrend()
+}
+
 // Fetch all data
 async function fetchAllData() {
   await Promise.all([
     fetchData(),
     fetchWinrateTrend(),
-    fetchGoldAt15Trend()
+    fetchGoldAt15Trend(),
+    fetchCsPerMinuteTrend()
   ])
 }
 

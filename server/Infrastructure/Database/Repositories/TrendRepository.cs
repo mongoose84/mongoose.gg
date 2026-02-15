@@ -221,6 +221,103 @@ public class TrendRepository : RepositoryBase, ITrendRepository
     }
 
     /// <inheritdoc />
+    public async Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+    {
+        queueType = _filterBuilder.ValidateQueueType(queueType);
+        var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
+        var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
+        var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+
+        // Query to get CS per minute data - filter out games shorter than 15 minutes (900 seconds)
+        var sql = $@"
+            SELECT
+                p.match_id,
+                m.game_start_time,
+                p.creep_score,
+                m.game_duration_sec,
+                p.champion_name,
+                p.role
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE p.puuid = @puuid 
+            AND m.game_duration_sec >= 900 {queueFilter} {timeFilter}
+            ORDER BY m.game_start_time ASC";
+
+        var dataPoints = new List<CsPerMinuteTrendPoint>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            int gameIndex = 1;
+            while (await reader.ReadAsync())
+            {
+                var matchId = reader.GetString(0);
+                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64(1)).UtcDateTime;
+                var totalCs = reader.GetInt32(2);
+                var gameDurationSec = reader.GetInt32(3);
+                var championName = reader.GetString(4);
+                var role = reader.IsDBNull(5) ? null : reader.GetString(5);
+
+                var gameDurationMinutes = gameDurationSec / 60.0;
+                var csPerMinute = Math.Round(totalCs / gameDurationMinutes, 1);
+
+                dataPoints.Add(new CsPerMinuteTrendPoint(
+                    MatchId: matchId,
+                    GameIndex: gameIndex++,
+                    Timestamp: timestamp,
+                    TotalCs: totalCs,
+                    CsPerMinute: csPerMinute,
+                    GameDurationMinutes: Math.Round(gameDurationMinutes, 1),
+                    ChampionName: championName,
+                    Role: role
+                ));
+            }
+            return 0;
+        });
+
+        if (dataPoints.Count == 0)
+            return Array.Empty<CsPerMinuteTrendPoint>();
+
+        // If limit is specified, return the most recent N games at full resolution
+        if (limit.HasValue && limit.Value > 0)
+        {
+            var limitValue = Math.Min(limit.Value, dataPoints.Count);
+            return dataPoints.TakeLast(limitValue).ToArray();
+        }
+
+        // Downsample if more than 100 data points (only when no limit specified)
+        const int maxDataPoints = 100;
+        if (dataPoints.Count > maxDataPoints)
+        {
+            var step = (double)dataPoints.Count / maxDataPoints;
+            var downsampled = new List<CsPerMinuteTrendPoint>();
+
+            for (int i = 0; i < maxDataPoints; i++)
+            {
+                var index = (int)(i * step);
+                if (index < dataPoints.Count)
+                {
+                    downsampled.Add(dataPoints[index]);
+                }
+            }
+
+            // Always include the last data point
+            if (downsampled.Count > 0 && downsampled[^1].GameIndex != dataPoints[^1].GameIndex)
+            {
+                downsampled[^1] = dataPoints[^1];
+            }
+
+            return downsampled.ToArray();
+        }
+
+        return dataPoints.ToArray();
+    }
+
+    /// <inheritdoc />
     public async Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
     {
         var startDate = DateTime.UtcNow.Date.AddDays(-daysBack);
