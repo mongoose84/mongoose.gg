@@ -46,6 +46,19 @@
           <WinrateChart :data="winrateTrendData" :overall-win-rate="dashboardData?.overallWinRate ?? null" />
         </template>
       </TrendChartCard>
+
+      <!-- Gold at 15 Trend Chart -->
+      <TrendChartCard
+        title="Gold at 15 Minutes"
+        subtitle="Most predictive metric for winning"
+        :loading="goldAt15Loading"
+        test-id="gold-at-15-trend-card"
+        @toggle-expand="handleGoldAt15Expand"
+      >
+        <template #default="{ dataLimit }">
+          <GoldAt15Chart :data="goldAt15TrendData" />
+        </template>
+      </TrendChartCard>
     </template>
 
     <!-- Zone 4 & 5: Not rendered in v1 -->
@@ -57,12 +70,13 @@ import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard, getWinrateTrend } from '../services/authApi'
+import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend } from '../services/authApi'
 import { BaseQueueToggle, BaseTimeRangeSelect } from '../components/base'
 import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
 import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
 import TrendChartCard from '../components/solo/TrendChartCard.vue'
 import WinrateChart from '../components/solo/WinrateChart.vue'
+import GoldAt15Chart from '../components/solo/GoldAt15Chart.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
@@ -75,9 +89,12 @@ const error = ref(null)
 // Trend chart data
 const winrateTrendData = ref([])
 const winrateLoading = ref(false)
+const goldAt15TrendData = ref([])
+const goldAt15Loading = ref(false)
 
 // Expand state for charts (default: collapsed = last 20 games)
 const winrateExpanded = ref(false)
+const goldAt15Expanded = ref(false)
 
 // UI state for filters
 const queueFilter = ref('all')
@@ -123,17 +140,42 @@ async function fetchWinrateTrend() {
   }
 }
 
+// Fetch gold at 15 trend data
+async function fetchGoldAt15Trend() {
+  if (!authStore.userId) return
+
+  goldAt15Loading.value = true
+  try {
+    // Use limit parameter to get exact number of games at full resolution
+    const limit = goldAt15Expanded.value ? null : 20
+    const result = await getGoldAt15Trend(authStore.userId, queueFilter.value, timeRange.value, limit)
+    goldAt15TrendData.value = result?.goldAt15Trend ?? []
+  } catch (err) {
+    console.error('Failed to fetch gold at 15 trend:', err)
+    goldAt15TrendData.value = []
+  } finally {
+    goldAt15Loading.value = false
+  }
+}
+
 // Handle expand toggle for winrate chart
 function handleWinrateExpand(expanded) {
   winrateExpanded.value = expanded
   fetchWinrateTrend()
 }
 
+// Handle expand toggle for gold at 15 chart
+function handleGoldAt15Expand(expanded) {
+  goldAt15Expanded.value = expanded
+  fetchGoldAt15Trend()
+}
+
 // Fetch all data
 async function fetchAllData() {
   await Promise.all([
     fetchData(),
-    fetchWinrateTrend()
+    fetchWinrateTrend(),
+    fetchGoldAt15Trend()
   ])
 }
 

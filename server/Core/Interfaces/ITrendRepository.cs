@@ -22,6 +22,19 @@ public interface ITrendRepository
     Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
 
     /// <summary>
+    /// Get gold at 15 minutes trend data for chart display.
+    /// Returns an array of data points with player gold, opponent gold, and differential at 15-minute mark.
+    /// When limit is specified, returns the most recent N games at full resolution.
+    /// When limit is null, returns all games with downsampling if over 100 data points.
+    /// </summary>
+    /// <param name="puuid">Player PUUID</param>
+    /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, normal, aram, all)</param>
+    /// <param name="timeRange">Time range filter (current_season, last_season, 1w, 1m, 3m, 6m)</param>
+    /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
+    /// <returns>Array of gold at 15 trend points</returns>
+    Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+
+    /// <summary>
     /// Get daily match counts for the past N days for heatmap display.
     /// Returns a dictionary keyed by date (YYYY-MM-DD) with match count values.
     /// </summary>

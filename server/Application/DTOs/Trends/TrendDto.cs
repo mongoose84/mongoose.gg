@@ -24,5 +24,28 @@ public static class TrendDto
     public record WinrateTrendResponse(
         [property: JsonPropertyName("winrateTrend")] WinrateTrendPoint[] WinrateTrend
     );
+
+    /// <summary>
+    /// A single data point for the gold at 15 trend chart.
+    /// Represents player's gold at 15 minutes with opponent comparison.
+    /// </summary>
+    public record GoldAt15TrendPoint(
+        [property: JsonPropertyName("matchId")] string MatchId,
+        [property: JsonPropertyName("gameIndex")] int GameIndex,
+        [property: JsonPropertyName("timestamp")] DateTime Timestamp,
+        [property: JsonPropertyName("playerGold")] int PlayerGold,
+        [property: JsonPropertyName("opponentGold")] int? OpponentGold,
+        [property: JsonPropertyName("goldDifferential")] int? GoldDifferential,
+        [property: JsonPropertyName("championName")] string ChampionName,
+        [property: JsonPropertyName("role")] string? Role,
+        [property: JsonPropertyName("opponentChampion")] string? OpponentChampion
+    );
+
+    /// <summary>
+    /// Response DTO for the gold at 15 trend endpoint.
+    /// </summary>
+    public record GoldAt15TrendResponse(
+        [property: JsonPropertyName("goldAt15Trend")] GoldAt15TrendPoint[] GoldAt15Trend
+    );
 }
 

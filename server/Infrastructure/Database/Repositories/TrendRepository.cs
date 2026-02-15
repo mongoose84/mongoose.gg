@@ -119,6 +119,108 @@ public class TrendRepository : RepositoryBase, ITrendRepository
     }
 
     /// <inheritdoc />
+    public async Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+    {
+        queueType = _filterBuilder.ValidateQueueType(queueType);
+        var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
+        var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
+        var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+
+        // Query to get player's gold at 15 with opponent gold for lane matchup
+        var sql = $@"
+            SELECT
+                p.match_id,
+                m.game_start_time,
+                pc.gold as player_gold,
+                p.champion_name,
+                p.role,
+                opp_pc.gold as opponent_gold,
+                opp_p.champion_name as opponent_champion
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            INNER JOIN participant_checkpoints pc ON pc.participant_id = p.id AND pc.minute_mark = 15
+            LEFT JOIN participants opp_p ON opp_p.match_id = p.match_id 
+                AND opp_p.team_id != p.team_id 
+                AND opp_p.role = p.role
+            LEFT JOIN participant_checkpoints opp_pc ON opp_pc.participant_id = opp_p.id AND opp_pc.minute_mark = 15
+            WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+            ORDER BY m.game_start_time ASC";
+
+        var dataPoints = new List<GoldAt15TrendPoint>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            int gameIndex = 1;
+            while (await reader.ReadAsync())
+            {
+                var matchId = reader.GetString(0);
+                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64(1)).UtcDateTime;
+                var playerGold = reader.GetInt32(2);
+                var championName = reader.GetString(3);
+                var role = reader.IsDBNull(4) ? null : reader.GetString(4);
+                var opponentGold = reader.IsDBNull(5) ? (int?)null : reader.GetInt32(5);
+                var opponentChampion = reader.IsDBNull(6) ? null : reader.GetString(6);
+                var goldDifferential = opponentGold.HasValue ? playerGold - opponentGold.Value : (int?)null;
+
+                dataPoints.Add(new GoldAt15TrendPoint(
+                    MatchId: matchId,
+                    GameIndex: gameIndex++,
+                    Timestamp: timestamp,
+                    PlayerGold: playerGold,
+                    OpponentGold: opponentGold,
+                    GoldDifferential: goldDifferential,
+                    ChampionName: championName,
+                    Role: role,
+                    OpponentChampion: opponentChampion
+                ));
+            }
+            return 0;
+        });
+
+        if (dataPoints.Count == 0)
+            return Array.Empty<GoldAt15TrendPoint>();
+
+        // If limit is specified, return the most recent N games at full resolution
+        if (limit.HasValue && limit.Value > 0)
+        {
+            var limitValue = Math.Min(limit.Value, dataPoints.Count);
+            return dataPoints.TakeLast(limitValue).ToArray();
+        }
+
+        // Downsample if more than 100 data points (only when no limit specified)
+        const int maxDataPoints = 100;
+        if (dataPoints.Count > maxDataPoints)
+        {
+            var step = (double)dataPoints.Count / maxDataPoints;
+            var downsampled = new List<GoldAt15TrendPoint>();
+
+            for (int i = 0; i < maxDataPoints; i++)
+            {
+                var index = (int)(i * step);
+                if (index < dataPoints.Count)
+                {
+                    downsampled.Add(dataPoints[index]);
+                }
+            }
+
+            // Always include the last data point
+            if (downsampled.Count > 0 && downsampled[^1].GameIndex != dataPoints[^1].GameIndex)
+            {
+                downsampled[^1] = dataPoints[^1];
+            }
+
+            return downsampled.ToArray();
+        }
+
+        return dataPoints.ToArray();
+    }
+
+    /// <inheritdoc />
     public async Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
     {
         var startDate = DateTime.UtcNow.Date.AddDays(-daysBack);

@@ -90,6 +90,9 @@ namespace Mongoose.Api.Application
             var winrateTrendEndpoint = new WinrateTrendEndpoint(basePath);
             _endpoints.Add(winrateTrendEndpoint);
 
+            var goldAt15TrendEndpoint = new GoldAt15TrendEndpoint(basePath);
+            _endpoints.Add(goldAt15TrendEndpoint);
+
             // Overview endpoint (auth required)
             var overviewEndpoint = new OverviewEndpoint(basePath);
             _endpoints.Add(overviewEndpoint);
