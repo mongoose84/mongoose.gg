@@ -41,7 +41,7 @@
 │  Registered via MongooseApiApplication.ConfigureEndpoints()       │
 ├──────────────────────────────────────────────────────────────────┤
 │  Application Services — server/Application/Services/              │
-│  LoginSyncService, LpCalculationService, MainChampionRecommender  │
+│  LoginSyncService, MainChampionRecommender                         │
 ├──────────────────────────────────────────────────────────────────┤
 │  Core Layer — server/Core/                                        │
 │  Entities (POCOs) · Interfaces (repos, services) · Enums          │
@@ -123,7 +123,6 @@ server/
 │   │   └── Trends/WinrateTrendEndpoint.cs
 │   └── Services/
 │       ├── LoginSyncService.cs         # Post-login Riot data refresh
-│       ├── LpCalculationService.cs     # LP math (absolute LP, promotions)
 │       └── MainChampionRecommender.cs  # Champion scoring algorithm (MScore)
 ├── Core/
 │   ├── Entities/                       # POCOs: User, RiotAccount, Match, Participant, etc.
@@ -376,7 +375,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 3. Auto-select primary queue by most matches
 4. Get last 20 matches for rank snapshot
 **Tables**: `users`, `user_riot_accounts`, `riot_accounts`  
-**Repos**: `IOverviewStatsRepository`, `IUserRiotAccountsRepository`, `ILpCalculationService`
+**Repos**: `IOverviewStatsRepository`, `IUserRiotAccountsRepository`
 
 ### 6.10 Solo Dashboard
 **Route**: `GET /api/v2/solo/dashboard/{userId}`  
@@ -532,10 +531,8 @@ public record RankSnapshot(
     string PrimaryQueueLabel,
     string? Rank,
     int? Lp,
-    int LpDeltaLast20,
     int Last20Wins,
     int Last20Losses,
-    int[] LpDeltasLast20,       // per-game LP deltas
     bool[] WlLast20             // per-game win/loss booleans
 );
 
@@ -999,25 +996,6 @@ public interface IRateLimiter
 4. If new matches found: sets `sync_status='pending'`, broadcasts via WebSocket
 
 **Sync cooldown**: 5 minutes between syncs for the same account.
-
-### LpCalculationService
-**File**: `server/Application/Services/LpCalculationService.cs`  
-**Purpose**: LP math for rank tracking and trend calculations  
-
-**LP Values**:
-| Tier | Base LP |
-|------|---------|
-| IRON | 0 |
-| BRONZE | 400 |
-| SILVER | 800 |
-| GOLD | 1200 |
-| PLATINUM | 1600 |
-| EMERALD | 2000 |
-| DIAMOND | 2400 |
-| MASTER+ | 2800 |
-
-Divisions: IV=0, III=100, II=200, I=300  
-`AbsoluteLp = TierValue + DivisionValue + LP`
 
 ### MainChampionRecommender
 **File**: `server/Application/Services/MainChampionRecommender.cs`  

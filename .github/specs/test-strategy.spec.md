@@ -105,7 +105,6 @@ server/Mongoose.Api.Tests/
 │   ├── SoloDashboardEndpointTests.cs       # ✅ Exists (needs expansion)
 
 ├── Services/
-│   ├── LpCalculationServiceTests.cs        # ✅ Complete (82 tests)
 │   ├── MainChampionRecommenderTests.cs     # ✅ Exists
 │   ├── LoginSyncServiceTests.cs            # Missing
 │   └── SeasonHelperTests.cs                # Missing
@@ -505,7 +504,6 @@ cd client && npm run test:e2e
 | Purpose | Path |
 |---------|------|
 | Backend test factory | `server/Mongoose.Api.Tests/TestWebApplicationFactory.cs` |
-| LP Calculation tests | `server/Mongoose.Api.Tests/LpCalculationServiceTests.cs` |
 | Riot Match Mapper tests | `server/Mongoose.Api.Tests/RiotMatchMapperTests.cs` |
 | Match Endpoint tests | `server/Mongoose.Api.Tests/MatchEndpointTests.cs` |
 | Auth Store tests | `client/test/unit/authStore.spec.js` |

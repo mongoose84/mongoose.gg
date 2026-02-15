@@ -34,7 +34,6 @@ public sealed class OverviewEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] OverviewStatsRepository overviewStatsRepo,
-            [FromServices] ILpCalculationService lpCalc,
             [FromServices] ILogger<OverviewEndpoint> logger
         ) =>
         {
@@ -170,18 +169,12 @@ public sealed class OverviewEndpoint : IEndpoint
         // Build W/L array (newest first, true = win, false = loss)
         var wlLast20 = last20Matches.Select(m => m.Win).ToArray();
 
-        // LP delta is no longer tracked via snapshots - return 0
-        var lpDeltaLast20 = 0;
-        var lpDeltasLast20 = Array.Empty<int>();
-
         return new RankSnapshot(
             PrimaryQueueLabel: primaryQueueLabel,
             Rank: rank,
             Lp: currentLp,
-            LpDeltaLast20: lpDeltaLast20,
             Last20Wins: last20Wins,
             Last20Losses: last20Losses,
-            LpDeltasLast20: lpDeltasLast20,
             WlLast20: wlLast20
         );
     }

@@ -31,10 +31,8 @@ public record RankSnapshot(
     [property: JsonPropertyName("primaryQueueLabel")] string PrimaryQueueLabel,
     [property: JsonPropertyName("rank")] string? Rank,
     [property: JsonPropertyName("lp")] int? Lp,
-    [property: JsonPropertyName("lpDeltaLast20")] int LpDeltaLast20,
     [property: JsonPropertyName("last20Wins")] int Last20Wins,
     [property: JsonPropertyName("last20Losses")] int Last20Losses,
-    [property: JsonPropertyName("lpDeltasLast20")] int[] LpDeltasLast20,
     [property: JsonPropertyName("wlLast20")] bool[] WlLast20
 );
 
