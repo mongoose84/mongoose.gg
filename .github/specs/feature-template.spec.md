@@ -78,7 +78,7 @@ POST /api/[endpoint]
 ## Testing Strategy
 
 ### Unit Tests
-**Framework**: unittests, Playwright
+**Frameworks**: xUnit (backend), Vitest (frontend)
 
 - [ ] Test data models and validation
 - [ ] Test business logic functions
