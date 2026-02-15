@@ -154,6 +154,29 @@ Scoped (per-request): All repositories, `LoginSyncService`, `IQueryFilterBuilder
 
 All errors return JSON: `{ "error": "message", "code": "ERROR_CODE" }`. Use `AuthResults` helper for auth errors. Common codes: `NOT_AUTHENTICATED`, `SESSION_EXPIRED`, `FORBIDDEN`, `INVALID_PASSWORD`, `RIOT_ACCOUNT_NOT_FOUND`, `ACCOUNT_ALREADY_LINKED`.
 
+### Logging
+
+**Critical**: All user input must be sanitized before logging to prevent log injection/forgery attacks. Use the `LogSanitizer.Sanitize()` helper function for any untrusted input:
+
+```csharp
+// ✅ CORRECT — sanitize user input
+logger.LogWarning("Invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
+logger.LogInformation("Request: queueType={Queue}, timeRange={TimeRange}",
+    LogSanitizer.Sanitize(queueType) ?? "all", 
+    LogSanitizer.Sanitize(timeRange) ?? "all");
+
+// ❌ INCORRECT — raw user input can inject newlines to forge log entries
+logger.LogWarning("Invalid userId format {UserId}", userId);
+```
+
+Sanitization removes newlines (`\r\n`) and control characters that could be used to corrupt log files or forge entries. Always sanitize:
+- Route parameters from users (userId, usernames, etc.)
+- Query parameters (queueType, timeRange, filters, etc.)
+- Request body fields (email, feedback text, etc.)
+- External data (Riot API responses, IP addresses, etc.)
+
+PUIDs and internal IDs resolved from the database don't need sanitization.
+
 ### Background Jobs
 
 `MatchHistorySyncJob` and `MatchCleanupJob` are `BackgroundService` implementations. Controlled via `appsettings.json` flags (`Jobs:EnableMatchHistorySync`, `Jobs:EnableMatchCleanup`). Sync job broadcasts progress via `ISyncProgressBroadcaster` → WebSocket.

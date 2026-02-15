@@ -69,5 +69,30 @@ public static class TrendDto
     public record CsPerMinuteTrendResponse(
         [property: JsonPropertyName("csPerMinuteTrend")] CsPerMinuteTrendPoint[] CsPerMinuteTrend
     );
+
+    /// <summary>
+    /// A single data point for the deaths over time trend chart.
+    /// Represents player's death count per game with rolling average for trend analysis.
+    /// </summary>
+    public record DeathsTrendPoint(
+        [property: JsonPropertyName("matchId")] string MatchId,
+        [property: JsonPropertyName("gameIndex")] int GameIndex,
+        [property: JsonPropertyName("timestamp")] DateTime Timestamp,
+        [property: JsonPropertyName("deaths")] int Deaths,
+        [property: JsonPropertyName("rollingAverage")] double RollingAverage,
+        [property: JsonPropertyName("championName")] string ChampionName,
+        [property: JsonPropertyName("role")] string? Role,
+        [property: JsonPropertyName("gameDurationMinutes")] double GameDurationMinutes
+    );
+
+    /// <summary>
+    /// Response DTO for the deaths trend endpoint.
+    /// </summary>
+    public record DeathsTrendResponse(
+        [property: JsonPropertyName("deathsTrend")] DeathsTrendPoint[] DeathsTrend,
+        [property: JsonPropertyName("averageDeaths")] double AverageDeaths,
+        [property: JsonPropertyName("overallAverage")] double OverallAverage,
+        [property: JsonPropertyName("trend")] string Trend
+    );
 }
 
