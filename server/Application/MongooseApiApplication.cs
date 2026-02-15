@@ -99,6 +99,9 @@ namespace Mongoose.Api.Application
             var deathsTrendEndpoint = new DeathsTrendEndpoint(basePath);
             _endpoints.Add(deathsTrendEndpoint);
 
+            var dragonParticipationTrendEndpoint = new DragonParticipationTrendEndpoint(basePath);
+            _endpoints.Add(dragonParticipationTrendEndpoint);
+
             // Overview endpoint (auth required)
             var overviewEndpoint = new OverviewEndpoint(basePath);
             _endpoints.Add(overviewEndpoint);

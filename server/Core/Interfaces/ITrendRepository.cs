@@ -62,6 +62,20 @@ public interface ITrendRepository
     Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
 
     /// <summary>
+    /// Get dragon participation trend data for chart display.
+    /// Returns an array of data points with dragon participation rate and rolling average.
+    /// When limit is specified, returns the most recent N games at full resolution.
+    /// When limit is null, returns all games with downsampling if over 100 data points.
+    /// Filters out games where team didn't secure any dragons.
+    /// </summary>
+    /// <param name="puuid">Player PUUID</param>
+    /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, normal, aram, all)</param>
+    /// <param name="timeRange">Time range filter (current_season, last_season, 1w, 1m, 3m, 6m)</param>
+    /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
+    /// <returns>Tuple containing array of dragon participation trend points and summary statistics</returns>
+    Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+
+    /// <summary>
     /// Get daily match counts for the past N days for heatmap display.
     /// Returns a dictionary keyed by date (YYYY-MM-DD) with match count values.
     /// </summary>

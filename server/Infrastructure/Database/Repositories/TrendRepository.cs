@@ -448,6 +448,171 @@ public class TrendRepository : RepositoryBase, ITrendRepository
     }
 
     /// <inheritdoc />
+    public async Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+    {
+        queueType = _filterBuilder.ValidateQueueType(queueType);
+        var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
+        var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
+        var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+
+        // Query to get dragon participation per game with team dragon counts
+        var sql = $@"
+            SELECT
+                p.match_id,
+                m.game_start_time,
+                p.champion_name,
+                p.role,
+                p.team_id,
+                po.dragons_participated,
+                to.dragons_taken
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            INNER JOIN participant_objectives po ON po.participant_id = p.id
+            INNER JOIN team_objectives to ON to.match_id = p.match_id AND to.team_id = p.team_id
+            WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+            ORDER BY m.game_start_time ASC";
+
+        var dataPoints = new List<(string MatchId, long Timestamp, string ChampionName, string? Role, int TeamDragons, int DragonsParticipated)>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var matchId = reader.GetString(0);
+                var timestamp = reader.GetInt64(1);
+                var championName = reader.GetString(2);
+                var role = reader.IsDBNull(3) ? null : reader.GetString(3);
+                var teamId = reader.GetInt32(4);
+                var dragonsParticipated = reader.GetInt32(5);
+                var dragonsTaken = reader.GetInt32(6);
+
+                dataPoints.Add((matchId, timestamp, championName, role, dragonsTaken, dragonsParticipated));
+            }
+            return 0;
+        });
+
+        if (dataPoints.Count == 0)
+            return (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral");
+
+        // Calculate rolling 20-game average for each game
+        const int windowSize = 20;
+        var trendPoints = new List<DragonParticipationTrendPoint>();
+
+        for (int i = 0; i < dataPoints.Count; i++)
+        {
+            var windowStart = Math.Max(0, i - windowSize + 1);
+            var windowGames = dataPoints.Skip(windowStart).Take(i - windowStart + 1).ToList();
+
+            // Calculate rolling average participation rate
+            var windowGamesWithDragons = windowGames.Where(g => g.TeamDragons > 0).ToList();
+            double rollingAverage = 0;
+            if (windowGamesWithDragons.Count > 0)
+            {
+                var totalTeamDragons = windowGamesWithDragons.Sum(g => g.TeamDragons);
+                var totalParticipated = windowGamesWithDragons.Sum(g => g.DragonsParticipated);
+                rollingAverage = totalTeamDragons > 0 
+                    ? Math.Round((double)totalParticipated / totalTeamDragons * 100, 1)
+                    : 0;
+            }
+
+            var point = dataPoints[i];
+            var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(point.Timestamp).UtcDateTime;
+            var participationRate = point.TeamDragons > 0 
+                ? Math.Round((double)point.DragonsParticipated / point.TeamDragons * 100, 1)
+                : 0;
+
+            trendPoints.Add(new DragonParticipationTrendPoint(
+                MatchId: point.MatchId,
+                GameIndex: i + 1,
+                Timestamp: timestamp,
+                TeamDragons: point.TeamDragons,
+                DragonsParticipated: point.DragonsParticipated,
+                ParticipationRate: participationRate,
+                RollingAverage: rollingAverage,
+                ChampionName: point.ChampionName,
+                Role: point.Role
+            ));
+        }
+
+        // Calculate summary statistics (only from games where team secured dragons)
+        var gamesWithDragons = dataPoints.Where(d => d.TeamDragons > 0).ToList();
+        var overallAverage = 0.0;
+        if (gamesWithDragons.Count > 0)
+        {
+            var totalTeamDragons = gamesWithDragons.Sum(d => d.TeamDragons);
+            var totalParticipated = gamesWithDragons.Sum(d => d.DragonsParticipated);
+            overallAverage = totalTeamDragons > 0 
+                ? Math.Round((double)totalParticipated / totalTeamDragons * 100, 1)
+                : 0;
+        }
+
+        var recentCount = Math.Min(20, gamesWithDragons.Count);
+        var recentGamesWithDragons = dataPoints.Where(d => d.TeamDragons > 0).TakeLast(recentCount).ToList();
+        var recentAverage = 0.0;
+        if (recentGamesWithDragons.Count > 0)
+        {
+            var recentTeamDragons = recentGamesWithDragons.Sum(d => d.TeamDragons);
+            var recentParticipated = recentGamesWithDragons.Sum(d => d.DragonsParticipated);
+            recentAverage = recentTeamDragons > 0 
+                ? Math.Round((double)recentParticipated / recentTeamDragons * 100, 1)
+                : 0;
+        }
+
+        // Determine trend: improving if recent participation is higher
+        var trend = "neutral";
+        if (recentAverage > overallAverage + 5)
+            trend = "improving";
+        else if (recentAverage < overallAverage - 5)
+            trend = "worsening";
+
+        // If limit is specified, return the most recent N games at full resolution
+        DragonParticipationTrendPoint[] resultPoints;
+        if (limit.HasValue && limit.Value > 0)
+        {
+            var limitValue = Math.Min(limit.Value, trendPoints.Count);
+            resultPoints = trendPoints.TakeLast(limitValue).ToArray();
+        }
+        else
+        {
+            // Downsample if more than 100 data points (only when no limit specified)
+            const int maxDataPoints = 100;
+            if (trendPoints.Count > maxDataPoints)
+            {
+                var step = (double)trendPoints.Count / maxDataPoints;
+                var downsampled = new List<DragonParticipationTrendPoint>();
+
+                for (int i = 0; i < maxDataPoints; i++)
+                {
+                    var index = (int)(i * step);
+                    if (index < trendPoints.Count)
+                    {
+                        downsampled.Add(trendPoints[index]);
+                    }
+                }
+
+                // Always include the last data point
+                if (downsampled.Count > 0 && downsampled[^1].GameIndex != trendPoints[^1].GameIndex)
+                {
+                    downsampled[^1] = trendPoints[^1];
+                }
+
+                resultPoints = downsampled.ToArray();
+            }
+            else
+            {
+                resultPoints = trendPoints.ToArray();
+            }
+        }
+
+        return (resultPoints, recentAverage, overallAverage, trend);
+    }
+
+    /// <inheritdoc />
     public async Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
     {
         var startDate = DateTime.UtcNow.Date.AddDays(-daysBack);
