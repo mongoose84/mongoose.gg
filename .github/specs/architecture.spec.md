@@ -120,7 +120,6 @@ server/
 │   │   ├── Solo/SoloPerformanceEndpoint.cs
 │   │   ├── Solo/SoloMatchupsEndpoint.cs
 │   │   ├── Solo/MatchActivityEndpoint.cs
-│   │   ├── Trends/LpTrendEndpoint.cs
 │   │   └── Trends/WinrateTrendEndpoint.cs
 │   └── Services/
 │       ├── LoginSyncService.cs         # Post-login Riot data refresh
@@ -280,7 +279,6 @@ Credentials: allowed. Methods & Headers: any.
 | `GET` | `/api/v2/matches/{matchId}/details` | Yes | No | `Matches/MatchDetailsEndpoint.cs` | `MatchDetailsResponse` |
 | `GET` | `/api/v2/matches/{matchId}/narrative` | Yes | No | `Matches/MatchNarrativeEndpoint.cs` | `MatchNarrativeResponse` |
 | `GET` | `/api/v2/trends/winrate/{userId}` | Yes | No | `Trends/WinrateTrendEndpoint.cs` | `WinrateTrendResponse` |
-| `GET` | `/api/v2/trends/lp/{userId}` | Yes | No | `Trends/LpTrendEndpoint.cs` | `LpTrendResponse` |
 | `GET` | `/api/v2/champion-select/{userId}` | Yes | No | `ChampionSelect/ChampionSelectEndpoint.cs` | `ChampionSelectResponse` |
 | `POST` | `/api/v2/analytics` | No | No | `Analytics/AnalyticsEndpoint.cs` | `TrackEventResponse` |
 | `POST` | `/api/v2/analytics/batch` | No | No | `Analytics/AnalyticsEndpoint.cs` | `TrackBatchResponse` |
@@ -304,7 +302,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Request body**: `LoginRequest(username, password, rememberMe?)`  
 **Response**: `LoginResponse(userId, username, email, emailVerified, tier, message)`  
 **Side effects**: Sets httpOnly session cookie, updates `last_login_at`, fires `LoginSyncService.CheckAccountsOnLoginAsync()` (updates profile data, rank, checks for new matches)  
-**Tables**: `users`, `riot_accounts`, `user_riot_accounts`, `lp_snapshots`
+**Tables**: `users`, `riot_accounts`, `user_riot_accounts`
 
 ### 6.2 Auth — Register
 **Route**: `POST /api/v2/auth/register`  
@@ -377,17 +375,16 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 2. Build player header (name, level, region, icon, contexts)
 3. Auto-select primary queue by most matches
 4. Get last 20 matches for rank snapshot
-5. Calculate LP delta using LP snapshots (absolute LP comparison)
-**Tables**: `users`, `user_riot_accounts`, `riot_accounts`, `matches`, `participants`, `lp_snapshots`  
-**Repos**: `IOverviewStatsRepository`, `IUserRiotAccountsRepository`, `ILpSnapshotsRepository`, `ILpCalculationService`
+**Tables**: `users`, `user_riot_accounts`, `riot_accounts`  
+**Repos**: `IOverviewStatsRepository`, `IUserRiotAccountsRepository`, `ILpCalculationService`
 
 ### 6.10 Solo Dashboard
 **Route**: `GET /api/v2/solo/dashboard/{userId}`  
 **Auth**: Yes  
 **Query params**: `?queueType=` (ranked_solo|ranked_flex|normal|aram|all), `?timeRange=` (7d|14d|30d|60d|90d|season|all)  
 **Response**: `SoloPerformanceResponse` (see DTOs section for full shape)  
-**Logic**: Single query returning aggregated solo stats — win rate, KDA, side stats, champion pool, recent trends, phase performance, role breakdown, death efficiency, LP trend  
-**Tables**: `matches`, `participants`, `participant_metrics`, `participant_checkpoints`, `lp_snapshots`  
+**Logic**: Single query returning aggregated solo stats — win rate, KDA, side stats, champion pool, recent trends, phase performance, role breakdown, death efficiency  
+**Tables**: `matches`, `participants`, `participant_metrics`, `participant_checkpoints`  
 **Repos**: `ISoloPerformanceRepository`, `IUserRiotAccountsRepository`
 
 ### 6.11 Solo Matchups
@@ -439,14 +436,6 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Auth**: Yes  
 **Query params**: `?queueType=`, `?timeRange=`, `?limit=` (max 500)  
 **Response**: `WinrateTrendResponse(winrateTrend[])`  
-**Repos**: `ITrendRepository`
-
-### 6.17 LP Trend
-**Route**: `GET /api/v2/trends/lp/{userId}`  
-**Auth**: Yes  
-**Query params**: `?queueType=`, `?limit=` (default 100, max 500)  
-**Response**: `LpTrendResponse(rankedSolo[], rankedFlex[])`  
-**Logic**: If queueType=all/null, fetches both queues separately  
 **Repos**: `ITrendRepository`
 
 ### 6.18 Champion Select
@@ -572,8 +561,7 @@ public record SoloPerformanceResponse(
     PerformancePhase[] PerformanceByPhase,
     RolePerformance[] RoleBreakdown,
     DeathEfficiency DeathEfficiency,
-    string QueueType,
-    LpTrendPoint[] LpTrend
+    string QueueType
 );
 
 public record SideWinDistribution(int BlueWins, int RedWins, int BlueGames, int RedGames, int TotalGames, double BlueWinDistribution, double RedWinDistribution);
@@ -636,12 +624,6 @@ public record ChampionSelectResponse(MainChampionRoleGroup[] MainChampions, int 
 // TrendDto.cs
 public record WinrateTrendPoint(int GameIndex, double WinRate, DateTime Timestamp);
 public record WinrateTrendResponse(WinrateTrendPoint[] WinrateTrend);
-
-public record LpTrendPoint(
-    int GameIndex, int? LpGain, int CurrentLp, int AbsoluteLp, string Rank,
-    DateTime Timestamp, bool IsPromotion, bool IsDemotion, bool Win
-);
-public record LpTrendResponse(LpTrendPoint[] RankedSolo, LpTrendPoint[] RankedFlex);
 ```
 
 > **Note**: All DTOs use `[JsonPropertyName("camelCase")]` attributes. Shown without for readability.
@@ -864,18 +846,6 @@ public class DuoMetric : EntityBase
 
 ### Supporting Entities
 ```csharp
-// LpSnapshot — tracks rank changes over time
-public class LpSnapshot : EntityBase
-{
-    public long Id { get; set; }
-    public string Puuid { get; set; }
-    public string QueueType { get; set; }      // "RANKED_SOLO_5x5" | "RANKED_FLEX_SR"
-    public string Tier { get; set; }           // IRON..CHALLENGER
-    public string Division { get; set; }       // I..IV
-    public int Lp { get; set; }
-    public DateTime RecordedAt { get; set; }
-}
-
 // AiSnapshot — AI-generated performance summaries
 public class AiSnapshot : EntityBase
 {
@@ -943,8 +913,6 @@ public interface IMatchupRepository
 public interface ITrendRepository
 {
     Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
-    Task<IList<LpTrendPoint>> GetLpTrendAsync(string puuid, string? queueType = null, int limit = 100);
-    Task<(LpTrendPoint[] RankedSolo, LpTrendPoint[] RankedFlex)> GetLpTrendBothQueuesAsync(string puuid, int limit = 100);
     Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91);
 }
 
@@ -995,15 +963,6 @@ public interface IRiotAccountsRepository
     Task UpdateRankDataAsync(string puuid, string? summonerId, string? soloTier, string? soloRank, int? soloLp, string? flexTier, string? flexRank, int? flexLp);
 }
 
-// LP snapshots
-public interface ILpSnapshotsRepository
-{
-    Task<long> InsertAsync(LpSnapshot snapshot);
-    Task<IList<LpSnapshot>> GetByPuuidAndQueueAsync(string puuid, string queueType, int limit = 100);
-    Task<LpSnapshot?> GetLatestByPuuidAndQueueAsync(string puuid, string queueType);
-    Task<LpSnapshot?> GetSnapshotAtOrBeforeAsync(string puuid, string queueType, DateTime timestamp);
-}
-
 // Query filter builder
 public record TimeRangeFilter(DateTime? TimeRangeStart, string? SeasonCode, string NormalizedTimeRange);
 public interface IQueryFilterBuilder
@@ -1031,14 +990,13 @@ public interface IRateLimiter
 ### LoginSyncService
 **File**: `server/Application/Services/LoginSyncService.cs`  
 **Purpose**: Refreshes Riot account data on login (fire-and-forget from LoginEndpoint)  
-**Dependencies**: `RiotAccountsRepository`, `IUserRiotAccountsRepository`, `ILpSnapshotsRepository`, `IRiotApiClient`, `ISyncProgressBroadcaster`
+**Dependencies**: `RiotAccountsRepository`, `IUserRiotAccountsRepository`, `IRiotApiClient`, `ISyncProgressBroadcaster`
 
 **Flow**:
 1. `CheckAccountsOnLoginAsync(userId)` — gets all linked accounts via junction table
 2. For each account: `UpdateProfileDataAsync` → Riot API (summoner data + league entries)
-3. Records LP snapshots only if rank changed since last snapshot
-4. `CheckForNewMatchesAsync` → gets match IDs since last sync (or 30 days ago)
-5. If new matches found: sets `sync_status='pending'`, broadcasts via WebSocket
+3. `CheckForNewMatchesAsync` → gets match IDs since last sync (or 30 days ago)
+4. If new matches found: sets `sync_status='pending'`, broadcasts via WebSocket
 
 **Sync cooldown**: 5 minutes between syncs for the same account.
 

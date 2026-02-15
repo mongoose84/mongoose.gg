@@ -36,8 +36,8 @@ describe('TrendChartCard', () => {
     })
 
     it('displays the title', () => {
-      const wrapper = mountComponent({ title: 'LP Trend' })
-      expect(wrapper.find('.chart-title').text()).toBe('LP Trend')
+      const wrapper = mountComponent({ title: 'Winrate Trend' })
+      expect(wrapper.find('.chart-title').text()).toBe('Winrate Trend')
     })
 
     it('displays subtitle when provided', () => {

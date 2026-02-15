@@ -349,11 +349,11 @@ Components: `MatchList` → `MatchRow` items → click expands `MatchDetails` wi
 Zone layout via `AnalysisLayout`:
 - Zone 1: `BaseQueueToggle` (centered) + `BaseTimeRangeSelect` (right-aligned)
 - Zone 2: `SummaryStatsCard` — games played, win rate, average KDA (with overall comparisons)
-- Zone 3: `TrendChartCard` × 2-3 — LP trend (Solo/Duo + Flex) + Winrate trend (rolling 20-game)
+- Zone 3: `TrendChartCard` — Winrate trend (rolling 20-game)
 
 Charts default to last 20 games. Expand button switches to full season in-place (no modal).
 
-Data sources: `getSoloDashboard()`, `getLpTrend()`, `getWinrateTrend()` from `authApi`
+Data sources: `getSoloDashboard()`, `getWinrateTrend()` from `authApi`
 
 ### Duo (`/app/duo`) — Pro tier
 **Role**: Pair performance analysis. Free users see preview/teaser with upgrade CTA.
@@ -661,9 +661,6 @@ Table of champion matchup data for champion select context.
 ### `OpponentSearchBar`
 Search input for looking up opponent data in champion select.
 
-### `LpTrendChart`
-Root-level LP trend chart (used in contexts outside solo page).
-
 ### `WinrateChart`
 Root-level winrate chart variant.
 
@@ -727,7 +724,7 @@ Centralized fetch wrapper with:
 - **Auth**: register, login, logout, deleteAccount, verifyEmail, resendVerification
 - **Riot account**: link, unlink, triggerSync, getSyncStatus
 - **Dashboards**: `getOverview()`, `getSoloDashboard()`, `getChampionSelectData()`, `getMatchActivity()`
-- **Trends**: `getWinrateTrend()`, `getLpTrend()`
+- **Trends**: `getWinrateTrend()`
 - **Matchups**: `getChampionMatchups()`
 - **Matches**: `getMatchList()`, `getMatchDetails()`, `getMatchNarrative()`
 - **Public**: `getPublicStats()`

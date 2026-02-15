@@ -32,7 +32,7 @@ Clean Architecture with three layers. Dependencies point inward: Infrastructure 
 ```
 server/
 ├── Core/                    # Domain: entities, interfaces, enums, value objects
-│   ├── Entities/            # POCOs: User, Match, Participant, RiotAccount, LpSnapshot, etc.
+│   ├── Entities/            # POCOs: User, Match, Participant, RiotAccount, etc.
 │   ├── Interfaces/          # Repository + service contracts (29 interfaces)
 │   ├── Enums/
 │   ├── ValueObjects/
@@ -44,7 +44,7 @@ server/
 │   │   ├── Matches/         # MatchList, MatchDetails, MatchNarrative
 │   │   ├── ChampionSelect/
 │   │   ├── Overview/
-│   │   ├── Trends/          # WinrateTrend, LpTrend
+│   │   ├── Trends/          # WinrateTrend
 │   │   ├── Analytics/
 │   │   ├── Feedback/
 │   │   ├── Diagnostics/

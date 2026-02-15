@@ -1193,7 +1193,7 @@ Create a professional user experience with a landing page, pricing, and app shel
 
 ## G5 Epic: Frontend Solo Dashboard
 
-> **Solo v1 MVP scope:** Summary Stats Card (G5b18), LP Trend Chart (G5b5), Winrate Trend Chart (G5b4). These 3 components answer the core user questions: "Am I climbing?", "Am I improving?", "How's my season going?"
+> **Solo v1 MVP scope:** Summary Stats Card (G5b18), Winrate Trend Chart (G5b4). These components answer the core user questions: "Am I improving?", "How's my season going?"
 >
 > **Layout:** Summary stats (full width, lightweight context row) → LP chart (left) + Winrate chart (right) side-by-side, both defaulting to last 20 games with an expand button to view the full season. Charts switch data range within the same half-width space (no modal, no full-width expansion). Uses shared `AnalysisLayout.vue` zone system (G5b19).
 >
@@ -1294,39 +1294,9 @@ The chart component is reusable across Solo, Duo, and Team pages.
 
 ---
 
-### G5b5. [Frontend] LP Over Time Chart ✅
+### G5b5. [Frontend] LP Over Time Chart ❌ REMOVED
 
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 2 points
-**Status:** Complete
-**Depends on:** G5b1, G5b19 (AnalysisLayout), G5b14 (LP trend data)
-**Labels:** `frontend`, `solo`, `dashboard`, `chart`, `epic-g`, `solo-v1-mvp`
-
-#### Description
-
-Create an LP Over Time chart answering "Am I climbing?" Displays LP progression as a line chart with promotion/demotion markers. Placed **side-by-side with the Winrate chart** (left half of Zone 3) in the shared `AnalysisLayout` zone system.
-
-Defaults to **last 20 games** for quick momentum reading. Includes an expand button that switches the data range to the full season within the same half-width space (no modal or full-width expansion).
-
-The chart component is reusable across Solo and Duo pages (Team may use a winrate-only variant).
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/solo/LpTrendChart.vue`
-- [ ] Renders a Chart.js line chart showing LP progression over games
-- [ ] Default data range: last 20 games
-- [ ] Expand button in chart header switches to full season data (all available games)
-- [ ] Data range switch happens within the same half-width space (Option C) – no modal, no full-width expansion
-- [ ] Chart readable at half-width (side-by-side with Winrate chart in a 2-column grid)
-- [ ] Promotion markers (visual indicator when player promotes)
-- [ ] Demotion markers (visual indicator when player demotes)
-- [ ] Win/loss coloring on data points (green dot = win, red dot = loss)
-- [ ] Supports `matchId` query parameter to highlight a specific game point (for "View Analysis" from Matches page)
-- [ ] Reacts to queue filter and time range filter changes
-- [ ] Loading state with skeleton placeholder
-- [ ] Empty state when no data available
-- [ ] Unit tests covering rendering, data range switching, promotion/demotion markers, and highlight behavior
+**Status:** Removed (LP trend tracking simplified - current rank only)
 
 ---
 
@@ -1634,14 +1604,12 @@ Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with
 | G | G5b2 - Profile header button + profile data (FE+BE) | 5 | ✅ |
 | G | G5b3 - Main Champion Card (FE+BE) | 3 | ✅ |
 | G | G5b4 - Winrate Over Time chart + trend data (FE+BE) | 5 | ✅ |
-| G | G5b5 - LP Over Time chart (frontend UI) | 2 | ✅ |
 | G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
 | G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
 | G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
 | G | G5b11 - Create champion matchups endpoint | 3 | ✅ |
 | G | G5b12 - Fetch main champions by role for Solo dashboard | 2 | ✅ |
 | G | G5b13 - Fetch winrate trend data for Solo dashboard | 2 | ✅ |
-| G | G5b14 - Fetch LP trend data for Solo dashboard | 2 | ✅ |
 | G | G5b16 - Update database on login (FE+BE) | 2 | ✅ |
 | G | G5b17 - Implement ranked data display in ProfileHeaderCard (FE+BE) | 5 | ✅ |
 | G | G5b18 - Summary Stats Card | 1 | ✅ |
@@ -1687,15 +1655,15 @@ Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with
 - ✅ G5b8-G5b12 (Profile data storage, fetching, endpoints, matchups, main champions)
 
 ### Sprint 1: Solo v1 MVP
-**Focus:** Ship core Solo dashboard answering "Am I climbing? Am I improving?"
-**Points:** ~10
+**Focus:** Ship core Solo dashboard answering "Am I improving?"
+**Points:** ~6
 
 - G5b19 (AnalysisLayout zone component) - 2 pts
 - G5b18 (Summary Stats Card) - 1 pt
-- G5b4, G5b5 (Winrate chart + LP chart, side-by-side, last 20 games default) - 7 pts
-- G5b13, G5b14 (Backend: winrate trend, LP trend data) - 4 pts
+- G5b4 (Winrate chart, last 20 games default) - 5 pts
+- G5b13 (Backend: winrate trend data) - 2 pts
 
-> **Layout:** Summary stats (full width) → LP chart (left) + Winrate chart (right) side-by-side. Charts default to last 20 games with expand button to view full season (Option C: data range switch within same half-width space).
+> **Layout:** Summary stats (full width) → Winrate chart. Charts default to last 20 games with expand button to view full season.
 >
 > **Deferred to Solo v2:** G5b3 (Main Champions Card – stays on Champion Select page only), G5b6 (Matchups table), G5b7 (Goals panel), G5b15 (Goals data). These require goals system (B9) or add complexity without addressing core user questions.
 
@@ -1783,10 +1751,6 @@ Below is a visual guide to dependencies and recommended implementation order for
 │     ├─ Reusable for Duo/Team     │
 │     └─ Blocks: Chart visible     │
 │                                  │
-│ G5b5: LP Over Time Chart         │
-│     ├─ Depends on: G5b1, F2      │
-│     └─ Blocks: Chart visible     │
-│                                  │
 │ G5b6: Champion Matchups Table    │
 │     ├─ Depends on: G5b1, G5b11   │
 │     └─ Blocks: Table visible     │
@@ -1810,10 +1774,6 @@ Below is a visual guide to dependencies and recommended implementation order for
 │ G5b13: Winrate Trend Data           │
 │     ├─ Depends on: E3, F2           │
 │     └─ Enables: G5b4 to show data   │
-│                                      │
-│ G5b14: LP Trend Data                │
-│     ├─ Depends on: E3, F2           │
-│     └─ Enables: G5b5 to show data   │
 │                                      │
 │ G5b15: Goals Array in Solo Endpoint │
 │     ├─ Depends on: F2, B4           │
@@ -1849,8 +1809,8 @@ G5a → G5b0 → G5b1 → G5b2 → [parallel: G5b3-b7] + [parallel: G5b8-b15]
 - Output: User profile data and champion performance visible
 
 **Week 4: Charts & Analytics**
-- Frontend: G5b4 (winrate chart), G5b5 (LP chart)
-- Backend: G5b13, G5b14 (winrate and LP trend data endpoints)
+- Frontend: G5b4 (winrate chart)
+- Backend: G5b13 (winrate trend data endpoint)
 - Output: Trend analysis visible on dashboard
 
 **Week 5: Tables & Features**

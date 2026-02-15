@@ -127,7 +127,7 @@ import { ref, computed } from 'vue'
 
 ```javascript
 // Pattern: import specific API functions
-import { getSoloDashboard, getLpTrend } from '../services/authApi'
+import { getSoloDashboard } from '../services/authApi'
 const data = await getSoloDashboard(userId, queueType, timeRange)
 ```
 
@@ -192,7 +192,7 @@ const wrapper = createWrapper(MyComponent, {
 - **Props are kebab-case** in templates, camelCase in `<script setup>`
 - **Base components** (`BaseButton`, `BaseCard`, `BaseModal`, `BaseInput`) for all common UI — always reuse before creating custom
 - **Heroicons** (`@heroicons/vue`) for all iconography — `/24/solid` or `/24/outline`
-- **Chart.js + vue-chartjs** for data visualization (LP trends, winrate charts)
+- **Chart.js + vue-chartjs** for data visualization (winrate charts)
 - **Headless UI** (`@headlessui/vue`) for accessible interactive components (Dialog, Menu, Listbox, Transition)
 - **No direct DOM manipulation** — use Vue reactivity and refs
 - **UTC dates** — all timestamps from API are UTC, formatted client-side via `formatters.js`

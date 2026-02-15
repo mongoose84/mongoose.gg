@@ -301,7 +301,7 @@ Per-player, per-match base statistics.
 - `creep_score` = `totalMinionsKilled` + `neutralMinionsKilled` from Riot API
 - `role` comes from `teamPosition` (preferred)
 - `lane` comes from `lane` (may differ due to lane swaps)
-- `lp_after`, `tier_after`, `rank_after` are only populated for ranked matches (queue_id 420 or 440) when synced via MatchHistorySyncJob. These columns enable LP trend charts showing progression over time.
+- `lp_after`, `tier_after`, `rank_after` are only populated for ranked matches (queue_id 420 or 440) when synced via MatchHistorySyncJob.
 
 ---
 
