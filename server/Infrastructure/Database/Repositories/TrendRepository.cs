@@ -1,5 +1,6 @@
 using MySqlConnector;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Application.Endpoints.Shared;
 using static Mongoose.Api.Application.DTOs.TrendDto;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
@@ -621,7 +622,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in GetDragonParticipationTrendAsync for puuid={Puuid}, queueType={QueueType}, timeRange={TimeRange}", 
-                puuid, queueType, timeRange);
+                puuid, LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(timeRange));
             throw;
         }
     }

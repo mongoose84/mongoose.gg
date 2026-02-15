@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
+using static Mongoose.Api.Application.DTOs.TrendDto;
 
 namespace Mongoose.Api.Tests;
 
@@ -33,6 +34,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeSoloPerformanceRepository _soloPerformanceRepository;
     private readonly FakeMatchupRepository _matchupRepository;
     private readonly FakeChampionSelectRepository _championSelectRepository;
+    private readonly FakeTrendRepository _trendRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
@@ -46,6 +48,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeSoloPerformanceRepository SoloPerformanceRepository => _soloPerformanceRepository;
     public FakeMatchupRepository MatchupRepository => _matchupRepository;
     public FakeChampionSelectRepository ChampionSelectRepository => _championSelectRepository;
+    public FakeTrendRepository TrendRepository => _trendRepository;
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
@@ -62,6 +65,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _soloPerformanceRepository = new FakeSoloPerformanceRepository();
         _matchupRepository = new FakeMatchupRepository();
         _championSelectRepository = new FakeChampionSelectRepository();
+        _trendRepository = new FakeTrendRepository();
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -146,6 +150,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace IChampionSelectRepository with a fake
             services.RemoveAll<IChampionSelectRepository>();
             services.AddSingleton<IChampionSelectRepository>(_championSelectRepository);
+
+            // Replace ITrendRepository with a fake
+            services.RemoveAll<ITrendRepository>();
+            services.AddSingleton<ITrendRepository>(_trendRepository);
         });
 
         return base.CreateHost(builder);
@@ -1139,4 +1147,60 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(data);
         }
     }
+
+    /// <summary>
+    /// Fake implementation of ITrendRepository for testing.
+    /// </summary>
+    internal sealed class FakeTrendRepository : ITrendRepository
+    {
+        private readonly ConcurrentDictionary<string, (DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> _dragonParticipationData = new();
+
+        public void SetDragonParticipationData(string puuid, DragonParticipationTrendPoint[] dataPoints, double averageParticipation, double overallAverage, string trend)
+        {
+            _dragonParticipationData[puuid] = (dataPoints, averageParticipation, overallAverage, trend);
+        }
+
+        public void Clear()
+        {
+            _dragonParticipationData.Clear();
+        }
+
+        public Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            if (_dragonParticipationData.TryGetValue(puuid, out var data))
+                return Task.FromResult(data);
+
+            // Return empty result if no data
+            return Task.FromResult<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)>(
+                (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral"));
+        }
+
+        // Other trend methods return empty data for now since we're only testing dragon participation
+        public Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            return Task.FromResult(Array.Empty<WinrateTrendPoint>());
+        }
+
+        public Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            return Task.FromResult(Array.Empty<GoldAt15TrendPoint>());
+        }
+
+        public Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            return Task.FromResult(Array.Empty<CsPerMinuteTrendPoint>());
+        }
+
+        public Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            return Task.FromResult<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)>(
+                (Array.Empty<DeathsTrendPoint>(), 0, 0, "neutral"));
+        }
+
+        public Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
+        {
+            return Task.FromResult(new Dictionary<string, int>());
+        }
+    }
 }
+
