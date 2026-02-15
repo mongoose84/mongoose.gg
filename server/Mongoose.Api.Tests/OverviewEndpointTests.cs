@@ -154,7 +154,7 @@ public class OverviewEndpointTests
     );
     
     private record PlayerHeader(string SummonerName, int Level, string Region, string ProfileIconUrl, string[] ActiveContexts);
-    private record RankSnapshot(string PrimaryQueueLabel, string? Rank, int? Lp, int LpDeltaLast20, int Last20Wins, int Last20Losses, int[] LpDeltasLast20, bool[] WlLast20);
+    private record RankSnapshot(string PrimaryQueueLabel, string? Rank, int? Lp, int Last20Wins, int Last20Losses, bool[] WlLast20);
     private record LastMatch(string MatchId, string ChampionIconUrl, string ChampionName, string Result, string Kda, long Timestamp);
     private record GoalPreview(string GoalId, string Title, string Context, double Progress);
     private record SuggestedAction(string ActionId, string Text, string DeepLink, int Priority);

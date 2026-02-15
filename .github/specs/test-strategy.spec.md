@@ -86,7 +86,7 @@
 ### 3.1 Test Infrastructure
 
 - `TestWebApplicationFactory` provides dependency injection mocking for integration tests
-- Fake repositories for Users, RiotAccounts, Tokens, Analytics, LP snapshots
+- Fake repositories for Users, RiotAccounts, Tokens, Analytics
 - Integration tests use real HTTP client against test server
 - FluentAssertions for readable assertions
 
@@ -103,9 +103,8 @@ server/Mongoose.Api.Tests/
 │   ├── MatchEndpointTests.cs               # ✅ Complete (19 tests)
 │   ├── OverviewEndpointTests.cs            # ✅ Exists
 │   ├── SoloDashboardEndpointTests.cs       # ✅ Exists (needs expansion)
-│   └── Trends/                             # Missing (WinrateTrend, LpTrend)
+
 ├── Services/
-│   ├── LpCalculationServiceTests.cs        # ✅ Complete (82 tests)
 │   ├── MainChampionRecommenderTests.cs     # ✅ Exists
 │   ├── LoginSyncServiceTests.cs            # Missing
 │   └── SeasonHelperTests.cs                # Missing
@@ -125,8 +124,7 @@ server/Mongoose.Api.Tests/
 
 1. **LoginSyncService Tests** — Triggers on login, important for data freshness
 2. **Riot API Client Mocking** — Enable testing sync flows without real API
-3. **Trend Endpoint Tests** — WinrateTrend, LpTrend endpoints
-4. **RiotTimelineMapper Tests** — Timeline data transformation
+3. **RiotTimelineMapper Tests** — Timeline data transformation
 
 ### 3.4 Backend Test Pattern
 
@@ -506,7 +504,6 @@ cd client && npm run test:e2e
 | Purpose | Path |
 |---------|------|
 | Backend test factory | `server/Mongoose.Api.Tests/TestWebApplicationFactory.cs` |
-| LP Calculation tests | `server/Mongoose.Api.Tests/LpCalculationServiceTests.cs` |
 | Riot Match Mapper tests | `server/Mongoose.Api.Tests/RiotMatchMapperTests.cs` |
 | Match Endpoint tests | `server/Mongoose.Api.Tests/MatchEndpointTests.cs` |
 | Auth Store tests | `client/test/unit/authStore.spec.js` |

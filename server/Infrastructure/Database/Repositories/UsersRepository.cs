@@ -132,12 +132,10 @@ public class UsersRepository : RepositoryBase, IUsersRepository
     public virtual async Task<bool> DeleteUserAsync(long userId)
     {
         // Delete in order: child tables first, then parent
-        // 1. Get all puuids linked to this user (for LP snapshot cleanup)
-        // 2. Delete user_riot_accounts (links)
-        // 3. Delete LP snapshots for those puuids (only if no other users link to them)
-        // 4. Delete subscriptions
-        // 5. Delete verification tokens (email verification, password reset, etc.)
-        // 6. Delete the user record
+        // 1. Delete user_riot_accounts (links)
+        // 2. Delete subscriptions
+        // 3. Delete verification tokens (email verification, password reset, etc.)
+        // 4. Delete the user record
 
         return await ExecuteWithConnectionAsync(async conn =>
         {
@@ -146,49 +144,12 @@ public class UsersRepository : RepositoryBase, IUsersRepository
 
             try
             {
-                // Get puuids linked to this user
-                var getPuuidsSql = "SELECT puuid FROM user_riot_accounts WHERE user_id = @user_id";
-                var puuids = new List<string>();
-                await using (var cmd = new MySqlCommand(getPuuidsSql, conn, transaction))
-                {
-                    cmd.Parameters.AddWithValue("@user_id", userId);
-                    await using var reader = await cmd.ExecuteReaderAsync();
-                    while (await reader.ReadAsync())
-                    {
-                        puuids.Add(reader.GetString(0));
-                    }
-                }
-
                 // Delete user_riot_accounts links
                 var deleteLinks = "DELETE FROM user_riot_accounts WHERE user_id = @user_id";
                 await using (var cmd = new MySqlCommand(deleteLinks, conn, transaction))
                 {
                     cmd.Parameters.AddWithValue("@user_id", userId);
                     await cmd.ExecuteNonQueryAsync();
-                }
-
-                // For each puuid, check if any other users still link to it
-                // If not, delete LP snapshots for that puuid
-                foreach (var puuid in puuids)
-                {
-                    var checkOtherLinks = "SELECT COUNT(*) FROM user_riot_accounts WHERE puuid = @puuid";
-                    long otherLinkCount;
-                    await using (var cmd = new MySqlCommand(checkOtherLinks, conn, transaction))
-                    {
-                        cmd.Parameters.AddWithValue("@puuid", puuid);
-                        otherLinkCount = Convert.ToInt64(await cmd.ExecuteScalarAsync());
-                    }
-
-                    if (otherLinkCount == 0)
-                    {
-                        // No other users link to this account, safe to delete LP snapshots
-                        var deleteLpSnapshots = "DELETE FROM lp_snapshots WHERE puuid = @puuid";
-                        await using (var cmd = new MySqlCommand(deleteLpSnapshots, conn, transaction))
-                        {
-                            cmd.Parameters.AddWithValue("@puuid", puuid);
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                    }
                 }
 
                 // Delete subscriptions

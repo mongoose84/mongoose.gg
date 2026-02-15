@@ -32,7 +32,7 @@ Clean Architecture with three layers. Dependencies point inward: Infrastructure 
 ```
 server/
 ├── Core/                    # Domain: entities, interfaces, enums, value objects
-│   ├── Entities/            # POCOs: User, Match, Participant, RiotAccount, LpSnapshot, etc.
+│   ├── Entities/            # POCOs: User, Match, Participant, RiotAccount, etc.
 │   ├── Interfaces/          # Repository + service contracts (29 interfaces)
 │   ├── Enums/
 │   ├── ValueObjects/
@@ -44,13 +44,13 @@ server/
 │   │   ├── Matches/         # MatchList, MatchDetails, MatchNarrative
 │   │   ├── ChampionSelect/
 │   │   ├── Overview/
-│   │   ├── Trends/          # WinrateTrend, LpTrend
+│   │   ├── Trends/          # WinrateTrend
 │   │   ├── Analytics/
 │   │   ├── Feedback/
 │   │   ├── Diagnostics/
 │   │   └── Shared/          # AuthResults helper, IEndpoint interface
 │   ├── DTOs/                # Response records organized by domain (mirrors Endpoints/)
-│   ├── Services/            # LoginSyncService, LpCalculationService, MainChampionRecommender
+│   ├── Services/            # LoginSyncService, MainChampionRecommender
 │   └── QueryModels/
 ├── Infrastructure/          # External concerns: DB, Riot API, email, jobs
 │   ├── Database/            # DbConnectionFactory, QueryFilterBuilder, Repositories/
@@ -138,7 +138,7 @@ Repositories use raw SQL with `MySqlConnector` (no ORM). Parameters use named tu
 
 ### DI Registration
 
-Singletons: `IRiotApiClient`, `IDbConnectionFactory`, `IEncryptor`, `IEmailService`, `ILpCalculationService`, `IRateLimiter`, `SyncProgressHub`
+Singletons: `IRiotApiClient`, `IDbConnectionFactory`, `IEncryptor`, `IEmailService`, `IRateLimiter`, `SyncProgressHub`
 
 Scoped (per-request): All repositories, `LoginSyncService`, `IQueryFilterBuilder`
 

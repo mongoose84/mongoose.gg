@@ -7,7 +7,6 @@ describe('RankSnapshot.vue', () => {
     primaryQueueLabel: 'RANKED SOLO/DUO',
     rank: 'GOLD IV',
     lp: 75,
-    lpDeltaLast20: 45,
     last20Wins: 12,
     last20Losses: 8,
     wlLast20: [true, true, false, true, false, true, true, true, false, true, true, false, true, true, false, true, false, true, true, true]
@@ -95,38 +94,6 @@ describe('RankSnapshot.vue', () => {
     it('displays 0 LP correctly', () => {
       const wrapper = createWrapper({ lp: 0 });
       expect(wrapper.find('.lp-text').text()).toBe('0 LP');
-    });
-  });
-
-  describe('LP Delta', () => {
-    it('displays positive LP delta with plus sign', () => {
-      const wrapper = createWrapper({ lpDeltaLast20: 50 });
-      expect(wrapper.find('.lp-delta').text()).toBe('+50 LP (Last 20)');
-    });
-
-    it('displays negative LP delta', () => {
-      const wrapper = createWrapper({ lpDeltaLast20: -30 });
-      expect(wrapper.find('.lp-delta').text()).toBe('-30 LP (Last 20)');
-    });
-
-    it('displays zero LP delta with plus-minus sign', () => {
-      const wrapper = createWrapper({ lpDeltaLast20: 0 });
-      expect(wrapper.find('.lp-delta').text()).toBe('±0 LP (Last 20)');
-    });
-
-    it('applies positive class for positive delta', () => {
-      const wrapper = createWrapper({ lpDeltaLast20: 25 });
-      expect(wrapper.find('.lp-delta.positive').exists()).toBe(true);
-    });
-
-    it('applies negative class for negative delta', () => {
-      const wrapper = createWrapper({ lpDeltaLast20: -25 });
-      expect(wrapper.find('.lp-delta.negative').exists()).toBe(true);
-    });
-
-    it('applies neutral class for zero delta', () => {
-      const wrapper = createWrapper({ lpDeltaLast20: 0 });
-      expect(wrapper.find('.lp-delta.neutral').exists()).toBe(true);
     });
   });
 

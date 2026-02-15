@@ -42,8 +42,9 @@ First 500 users get free Pro tier. Keep a counter on the landing page of how man
 | **E. Database & Analytics Schema** | Match/participant/timeline schema + ingestion | 0 pts | 20 pts ✅ |
 | **F. API** | API surface aligned with schema and dashboards | 24 pts | 38 pts ✅ |
 | **G. Frontend App & Marketing** | App shell, landing, and dashboards using API | 35 pts | 58 pts ✅ |
+| **H. Research-Based Performance Metrics** | Data-driven improvement charts based on academic research | 28 pts | 0 pts |
 
-**Remaining:** 149 points | **Completed:** 123 points | **Grand Total:** 272 points
+**Remaining:** 177 points | **Completed:** 123 points | **Grand Total:** 300 points
 
 ### G5 Epic: Frontend Solo Dashboard (Vertical slices)
 
@@ -1192,7 +1193,7 @@ Create a professional user experience with a landing page, pricing, and app shel
 
 ## G5 Epic: Frontend Solo Dashboard
 
-> **Solo v1 MVP scope:** Summary Stats Card (G5b18), LP Trend Chart (G5b5), Winrate Trend Chart (G5b4). These 3 components answer the core user questions: "Am I climbing?", "Am I improving?", "How's my season going?"
+> **Solo v1 MVP scope:** Summary Stats Card (G5b18), Winrate Trend Chart (G5b4). These components answer the core user questions: "Am I improving?", "How's my season going?"
 >
 > **Layout:** Summary stats (full width, lightweight context row) → LP chart (left) + Winrate chart (right) side-by-side, both defaulting to last 20 games with an expand button to view the full season. Charts switch data range within the same half-width space (no modal, no full-width expansion). Uses shared `AnalysisLayout.vue` zone system (G5b19).
 >
@@ -1293,39 +1294,9 @@ The chart component is reusable across Solo, Duo, and Team pages.
 
 ---
 
-### G5b5. [Frontend] LP Over Time Chart ✅
+### G5b5. [Frontend] LP Over Time Chart ❌ REMOVED
 
-**Priority:** P0 - Critical
-**Type:** Feature
-**Estimate:** 2 points
-**Status:** Complete
-**Depends on:** G5b1, G5b19 (AnalysisLayout), G5b14 (LP trend data)
-**Labels:** `frontend`, `solo`, `dashboard`, `chart`, `epic-g`, `solo-v1-mvp`
-
-#### Description
-
-Create an LP Over Time chart answering "Am I climbing?" Displays LP progression as a line chart with promotion/demotion markers. Placed **side-by-side with the Winrate chart** (left half of Zone 3) in the shared `AnalysisLayout` zone system.
-
-Defaults to **last 20 games** for quick momentum reading. Includes an expand button that switches the data range to the full season within the same half-width space (no modal or full-width expansion).
-
-The chart component is reusable across Solo and Duo pages (Team may use a winrate-only variant).
-
-#### Acceptance Criteria
-
-- [ ] Component created at `client/src/components/solo/LpTrendChart.vue`
-- [ ] Renders a Chart.js line chart showing LP progression over games
-- [ ] Default data range: last 20 games
-- [ ] Expand button in chart header switches to full season data (all available games)
-- [ ] Data range switch happens within the same half-width space (Option C) – no modal, no full-width expansion
-- [ ] Chart readable at half-width (side-by-side with Winrate chart in a 2-column grid)
-- [ ] Promotion markers (visual indicator when player promotes)
-- [ ] Demotion markers (visual indicator when player demotes)
-- [ ] Win/loss coloring on data points (green dot = win, red dot = loss)
-- [ ] Supports `matchId` query parameter to highlight a specific game point (for "View Analysis" from Matches page)
-- [ ] Reacts to queue filter and time range filter changes
-- [ ] Loading state with skeleton placeholder
-- [ ] Empty state when no data available
-- [ ] Unit tests covering rendering, data range switching, promotion/demotion markers, and highlight behavior
+**Status:** Removed (LP trend tracking simplified - current rank only)
 
 ---
 
@@ -1633,14 +1604,12 @@ Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with
 | G | G5b2 - Profile header button + profile data (FE+BE) | 5 | ✅ |
 | G | G5b3 - Main Champion Card (FE+BE) | 3 | ✅ |
 | G | G5b4 - Winrate Over Time chart + trend data (FE+BE) | 5 | ✅ |
-| G | G5b5 - LP Over Time chart (frontend UI) | 2 | ✅ |
 | G | G5b8 - Add profile_icon_id and summoner_level to riot_accounts | 1 | ✅ |
 | G | G5b9 - Fetch and store profile data during account linking | 2 | ✅ |
 | G | G5b10 - Update User dashboard endpoint with profile data | 1 | ✅ |
 | G | G5b11 - Create champion matchups endpoint | 3 | ✅ |
 | G | G5b12 - Fetch main champions by role for Solo dashboard | 2 | ✅ |
 | G | G5b13 - Fetch winrate trend data for Solo dashboard | 2 | ✅ |
-| G | G5b14 - Fetch LP trend data for Solo dashboard | 2 | ✅ |
 | G | G5b16 - Update database on login (FE+BE) | 2 | ✅ |
 | G | G5b17 - Implement ranked data display in ProfileHeaderCard (FE+BE) | 5 | ✅ |
 | G | G5b18 - Summary Stats Card | 1 | ✅ |
@@ -1686,15 +1655,15 @@ Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with
 - ✅ G5b8-G5b12 (Profile data storage, fetching, endpoints, matchups, main champions)
 
 ### Sprint 1: Solo v1 MVP
-**Focus:** Ship core Solo dashboard answering "Am I climbing? Am I improving?"
-**Points:** ~10
+**Focus:** Ship core Solo dashboard answering "Am I improving?"
+**Points:** ~6
 
 - G5b19 (AnalysisLayout zone component) - 2 pts
 - G5b18 (Summary Stats Card) - 1 pt
-- G5b4, G5b5 (Winrate chart + LP chart, side-by-side, last 20 games default) - 7 pts
-- G5b13, G5b14 (Backend: winrate trend, LP trend data) - 4 pts
+- G5b4 (Winrate chart, last 20 games default) - 5 pts
+- G5b13 (Backend: winrate trend data) - 2 pts
 
-> **Layout:** Summary stats (full width) → LP chart (left) + Winrate chart (right) side-by-side. Charts default to last 20 games with expand button to view full season (Option C: data range switch within same half-width space).
+> **Layout:** Summary stats (full width) → Winrate chart. Charts default to last 20 games with expand button to view full season.
 >
 > **Deferred to Solo v2:** G5b3 (Main Champions Card – stays on Champion Select page only), G5b6 (Matchups table), G5b7 (Goals panel), G5b15 (Goals data). These require goals system (B9) or add complexity without addressing core user questions.
 
@@ -1782,10 +1751,6 @@ Below is a visual guide to dependencies and recommended implementation order for
 │     ├─ Reusable for Duo/Team     │
 │     └─ Blocks: Chart visible     │
 │                                  │
-│ G5b5: LP Over Time Chart         │
-│     ├─ Depends on: G5b1, F2      │
-│     └─ Blocks: Chart visible     │
-│                                  │
 │ G5b6: Champion Matchups Table    │
 │     ├─ Depends on: G5b1, G5b11   │
 │     └─ Blocks: Table visible     │
@@ -1809,10 +1774,6 @@ Below is a visual guide to dependencies and recommended implementation order for
 │ G5b13: Winrate Trend Data           │
 │     ├─ Depends on: E3, F2           │
 │     └─ Enables: G5b4 to show data   │
-│                                      │
-│ G5b14: LP Trend Data                │
-│     ├─ Depends on: E3, F2           │
-│     └─ Enables: G5b5 to show data   │
 │                                      │
 │ G5b15: Goals Array in Solo Endpoint │
 │     ├─ Depends on: F2, B4           │
@@ -1848,11 +1809,174 @@ G5a → G5b0 → G5b1 → G5b2 → [parallel: G5b3-b7] + [parallel: G5b8-b15]
 - Output: User profile data and champion performance visible
 
 **Week 4: Charts & Analytics**
-- Frontend: G5b4 (winrate chart), G5b5 (LP chart)
-- Backend: G5b13, G5b14 (winrate and LP trend data endpoints)
+- Frontend: G5b4 (winrate chart)
+- Backend: G5b13 (winrate trend data endpoint)
 - Output: Trend analysis visible on dashboard
 
 **Week 5: Tables & Features**
 - Frontend: G5b6 (matchups table), G5b7 (goals panel)
 - Backend: G5b15 (goals data in endpoint)
 - Output: Complete solo dashboard ready for testing
+
+---
+
+# Epic H: Research-Based Performance Metrics
+
+Enable players to track the most impactful metrics for improvement based on academic research findings from `docs/win-prediction-metrics-research.md`. Focus on actionable metrics with high win correlation that players can realistically improve.
+
+<!-- AI: START_EPIC_H_TASKS -->
+
+## Issues
+
+### H1. [Frontend + Backend] Enhanced Summary Stats Card with Ranked Display
+
+**Priority:** P1 - High  
+**Type:** Enhancement
+**Estimate:** 5 points
+**Labels:** `frontend`, `backend`, `ui-enhancement`, `epic-h`
+
+#### Description
+
+Enhance the existing SummaryStatsCard to display ranked information contextually based on queue selection. Show Solo/Duo and/or Flex ranks appropriately, with LP and tier information.
+
+**Research Context:** Provides context for performance metrics relative to competitive rank.
+
+#### Acceptance Criteria
+
+- [ ] Display rank badges for Solo/Duo queue when "Solo/Duo" filter selected
+- [ ] Display rank badges for Flex queue when "Ranked Flex" filter selected  
+- [ ] Display both ranks side-by-side when "All Queues" filter selected
+- [ ] No rank display for Normal/ARAM queues
+- [ ] Create reusable BaseRankBadge component with tier/division/LP display
+- [ ] Handle cases where players have no rank in a queue gracefully
+- [ ] Maintain existing card layout and stats display functionality
+- [ ] Use existing user profile data - no additional API calls required
+
+---
+
+### H2. [Frontend + Backend] Deaths Over Time Chart
+
+**Priority:** P0 - Critical
+**Type:** Feature  
+**Estimate:** 8 points
+**Labels:** `frontend`, `backend`, `analytics`, `epic-h`
+
+#### Description
+
+Add Deaths Over Time chart showing the #1 actionable improvement metric from research. Each death causes ~300g loss and cascading negative effects that are preventable through better decision-making.
+
+**Research Context:** Academic research identifies death reduction as the single most impactful AND easiest metric for players to improve.
+
+#### Acceptance Criteria
+
+- [ ] Create DeathsChart.vue component showing deaths per game over time
+- [ ] Display rolling average trend line (10-game rolling average)
+- [ ] Color-code trend: green when deaths decreasing, red when increasing
+- [ ] Include target line based on rank-appropriate death rates
+- [ ] Default to last 20 games with expand option for full season
+- [ ] Backend endpoint: `/api/solo/deaths-trend` with match-by-match death data
+- [ ] Highlight games with unusually high death counts (outliers)
+- [ ] Position in Zone 3 of AnalysisLayout alongside other performance charts
+
+---
+
+### H3. [Frontend + Backend] Gold at 15 Chart  
+
+**Priority:** P0 - Critical
+**Type:** Feature
+**Estimate:** 8 points  
+**Labels:** `frontend`, `backend`, `analytics`, `epic-h`
+
+#### Description
+
+Add Gold at 15 chart showing the #1 win predictor (79% correlation by mid-game). Display player's gold vs opponent at 15-minute mark with differential visualization.
+
+**Research Context:** Gold differential is the strongest predictor of game outcome, becoming 79% predictive by mid-game.
+
+#### Acceptance Criteria
+
+- [ ] Create GoldChart.vue component showing gold at 15 minutes over time
+- [ ] Display player gold vs opponent gold differential as primary metric
+- [ ] Color-code based on gold lead (green) vs deficit (red)
+- [ ] Include role-appropriate benchmark lines (ADC vs Support targets)
+- [ ] Backend endpoint: `/api/solo/gold-trend` with timeline data at 15-minute mark
+- [ ] Handle games shorter than 15 minutes gracefully
+- [ ] Position in Zone 3 of AnalysisLayout as key economic metric
+
+---
+
+### H4. [Frontend + Backend] Dragon Participation Chart
+
+**Priority:** P1 - High
+**Type:** Feature  
+**Estimate:** 6 points
+**Labels:** `frontend`, `backend`, `analytics`, `epic-h`
+
+#### Description
+
+Add Dragon Participation chart tracking the objective with 70.69% win correlation (higher than First Blood at 59.78%). Shows percentage of dragon attempts where player participated.
+
+**Research Context:** First Dragon has significantly higher win correlation than First Blood, making objective participation crucial.
+
+#### Acceptance Criteria
+
+- [ ] Create DragonParticipationChart.vue showing participation percentage over time  
+- [ ] Color-code participation rate: green ≥70%, yellow 50-70%, red <50%
+- [ ] Show breakdown by dragon types (Mountain, Ocean, Infernal, Cloud, Elder)
+- [ ] Include outcome data: secured vs lost when participating
+- [ ] Backend endpoint: `/api/solo/dragon-participation` analyzing timeline events
+- [ ] Display 70% target line based on research findings
+- [ ] Position in Zone 3 of AnalysisLayout as macro skill metric
+
+---
+
+### H5. [Frontend + Backend] Vision Score Chart
+
+**Priority:** P1 - High  
+**Type:** Feature
+**Estimate:** 5 points
+**Labels:** `frontend`, `backend`, `analytics`, `epic-h`
+
+#### Description
+
+Add Vision Score chart tracking a Tier 1 improvement metric (high impact + easy to improve) that supports objective control and map awareness.
+
+**Research Context:** Vision Score is identified as highest impact + easiest to improve, supporting the high-value dragon control activities.
+
+#### Acceptance Criteria
+
+- [ ] Create VisionChart.vue component showing vision score per minute over time
+- [ ] Include role-appropriate target lines (Support >2.0, others >1.0 per minute)
+- [ ] Color-code performance: green above target, yellow approaching, red below
+- [ ] Backend endpoint: `/api/solo/vision-trend` with vision score per minute calculation
+- [ ] Show ward placement/destruction breakdown in tooltip
+- [ ] Position in Zone 3 of AnalysisLayout as foundational macro skill
+
+---
+
+### H6. [Frontend + Backend] CS Per Minute Chart
+
+**Priority:** P2 - Medium
+**Type:** Feature
+**Estimate:** 6 points  
+**Labels:** `frontend`, `backend`, `analytics`, `epic-h`
+
+#### Description
+
+Add CS Per Minute chart tracking farming efficiency, a Tier 2 metric (high impact + moderate difficulty) that directly feeds into gold differential.
+
+**Research Context:** CS improvement directly contributes to gold leads that predict 79% of game outcomes by mid-game.
+
+#### Acceptance Criteria
+
+- [ ] Create CsChart.vue showing CS per minute trends over time
+- [ ] Include role and rank-appropriate benchmark lines 
+- [ ] Filter games shorter than 15 minutes for accuracy
+- [ ] Color-code performance relative to rank/role averages
+- [ ] Backend endpoint: `/api/solo/cs-trend` with farming efficiency data
+- [ ] Show +0.5 CS/min improvement target from research
+- [ ] Position in Zone 3 of AnalysisLayout as economic foundation metric
+
+<!-- AI: END_EPIC_H_TASKS -->
+
+---

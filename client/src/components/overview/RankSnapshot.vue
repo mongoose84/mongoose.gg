@@ -24,8 +24,6 @@
         <span v-if="lp !== null && lp !== undefined" class="lp-text">{{ lp }} LP</span>
       </div>
       <div class="stats-row">
-        <span class="lp-delta" :class="lpDeltaClass">{{ formattedLpDelta }}</span>
-        <span class="separator">•</span>
         <span class="winrate-text">{{ winrateDisplay }}</span>
       </div>
       <!-- W/L Strip -->
@@ -54,7 +52,6 @@ const props = defineProps({
   primaryQueueLabel: { type: String, required: true },
   rank: { type: String, default: null },
   lp: { type: Number, default: null },
-  lpDeltaLast20: { type: Number, default: 0 },
   last20Wins: { type: Number, default: 0 },
   last20Losses: { type: Number, default: 0 },
   wlLast20: { type: Array, default: () => [] }
@@ -89,21 +86,6 @@ const rankDisplay = computed(() => {
   if (parts.length === 0) return props.rank
   const tier = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase()
   return parts.length > 1 ? `${tier} ${parts[1]}` : tier
-})
-
-// LP delta styling
-const lpDeltaClass = computed(() => {
-  if (props.lpDeltaLast20 > 0) return 'positive'
-  if (props.lpDeltaLast20 < 0) return 'negative'
-  return 'neutral'
-})
-
-// Format LP delta with sign
-const formattedLpDelta = computed(() => {
-  const delta = props.lpDeltaLast20
-  if (delta > 0) return `+${delta} LP (Last 20)`
-  if (delta < 0) return `${delta} LP (Last 20)`
-  return '±0 LP (Last 20)'
 })
 
 // Calculate winrate
@@ -205,20 +187,6 @@ function handleEmblemError() {
   align-items: center;
   gap: var(--spacing-xs);
   flex-wrap: wrap;
-}
-
-.lp-delta {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.lp-delta.positive { color: var(--color-success); }
-.lp-delta.negative { color: var(--color-error); }
-.lp-delta.neutral { color: var(--color-text-secondary); }
-
-.separator {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
 }
 
 .winrate-text {

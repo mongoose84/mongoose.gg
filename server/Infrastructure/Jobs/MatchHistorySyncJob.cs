@@ -155,7 +155,6 @@ public class MatchHistorySyncJob : BackgroundService
         var duoMetricsRepo = services.GetRequiredService<DuoMetricsRepository>();
         var teamRoleRepo = services.GetRequiredService<TeamRoleResponsibilitiesRepository>();
         var seasonsRepo = services.GetRequiredService<SeasonsRepository>();
-        var lpSnapshotsRepo = services.GetRequiredService<ILpSnapshotsRepository>();
         var broadcaster = services.GetService<ISyncProgressBroadcaster>();
 
         // TEMPORARY: Subscribe to rate limit events to notify UI when waiting on Riot API
@@ -179,7 +178,7 @@ public class MatchHistorySyncJob : BackgroundService
             return await SyncAccountMatchesInternalAsync(
                 riotApiClient, riotAccountsRepo, matchesRepo, participantsRepo, checkpointsRepo,
                 partMetricsRepo, teamObjectivesRepo, partObjectivesRepo, teamMetricsRepo, duoMetricsRepo,
-                teamRoleRepo, seasonsRepo, lpSnapshotsRepo, broadcaster, account, ct);
+                teamRoleRepo, seasonsRepo, broadcaster, account, ct);
         }
         finally
         {
@@ -211,7 +210,6 @@ public class MatchHistorySyncJob : BackgroundService
         DuoMetricsRepository duoMetricsRepo,
         TeamRoleResponsibilitiesRepository teamRoleRepo,
         SeasonsRepository seasonsRepo,
-        ILpSnapshotsRepository lpSnapshotsRepo,
         ISyncProgressBroadcaster? broadcaster,
         RiotAccount account,
         CancellationToken ct)
@@ -339,12 +337,7 @@ public class MatchHistorySyncJob : BackgroundService
 
         _logger.LogInformation("Synced {Processed}/{Total} matches for {Puuid}", processed, total, account.Puuid);
 
-        // Record LP snapshots for time-series tracking (always, regardless of matches synced)
-        // This provides honest LP progression data independent of specific matches
-        await RecordLpSnapshotsAsync(riotApiClient, lpSnapshotsRepo, account, ct);
-
-        // Legacy: Also update LP on most recent ranked match for backward compatibility
-        // TODO: Consider removing this once UI fully transitions to LP snapshots
+        // Update LP on most recent ranked match
         if (processed > 0)
         {
             await UpdateLpForMostRecentRankedMatchAsync(
@@ -434,75 +427,6 @@ public class MatchHistorySyncJob : BackgroundService
         {
             // Don't fail the sync if LP update fails
             _logger.LogWarning(ex, "Failed to update LP data for {Puuid}", account.Puuid);
-        }
-    }
-
-    /// <summary>
-    /// Records LP snapshots for all ranked queues the player participates in.
-    /// This provides honest time-series LP data independent of specific matches.
-    /// Called on every sync to build LP progression history.
-    /// Only inserts a new snapshot if LP, tier, or division has changed since the last snapshot.
-    /// </summary>
-    private async Task RecordLpSnapshotsAsync(
-        IRiotApiClient riotApiClient,
-        ILpSnapshotsRepository lpSnapshotsRepo,
-        RiotAccount account,
-        CancellationToken ct)
-    {
-        try
-        {
-            using var leagueDoc = await riotApiClient.GetLeagueEntriesByPuuidAsync(account.Region, account.Puuid, ct);
-            var now = DateTime.UtcNow;
-
-            foreach (var entry in leagueDoc.RootElement.EnumerateArray())
-            {
-                var queueType = entry.GetProperty("queueType").GetString();
-
-                // Only record Solo/Duo and Flex queues
-                if (queueType != "RANKED_SOLO_5x5" && queueType != "RANKED_FLEX_SR")
-                    continue;
-
-                var tier = entry.GetProperty("tier").GetString();
-                var division = entry.GetProperty("rank").GetString();
-                var lp = entry.GetProperty("leaguePoints").GetInt32();
-
-                if (string.IsNullOrEmpty(tier) || string.IsNullOrEmpty(division))
-                    continue;
-
-                // Check if LP has changed since last snapshot
-                var lastSnapshot = await lpSnapshotsRepo.GetLatestByPuuidAndQueueAsync(account.Puuid, queueType);
-
-                if (lastSnapshot == null ||
-                    lastSnapshot.Lp != lp ||
-                    lastSnapshot.Tier != tier ||
-                    lastSnapshot.Division != division)
-                {
-                    var snapshot = new LpSnapshot
-                    {
-                        Puuid = account.Puuid,
-                        QueueType = queueType,
-                        Tier = tier,
-                        Division = division,
-                        Lp = lp,
-                        RecordedAt = now,
-                        CreatedAt = now
-                    };
-
-                    await lpSnapshotsRepo.InsertAsync(snapshot);
-                    _logger.LogDebug("Recorded LP snapshot for {Puuid} in {Queue}: {Tier} {Division} {LP} LP",
-                        account.Puuid, queueType, tier, division, lp);
-                }
-                else
-                {
-                    _logger.LogDebug("Skipped duplicate LP snapshot for {Puuid} in {Queue} (no change)",
-                        account.Puuid, queueType);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // Don't fail the sync if LP snapshot recording fails
-            _logger.LogWarning(ex, "Failed to record LP snapshots for {Puuid}", account.Puuid);
         }
     }
 
