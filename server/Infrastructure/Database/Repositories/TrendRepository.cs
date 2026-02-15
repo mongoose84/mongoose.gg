@@ -318,6 +318,136 @@ public class TrendRepository : RepositoryBase, ITrendRepository
     }
 
     /// <inheritdoc />
+    public async Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+    {
+        queueType = _filterBuilder.ValidateQueueType(queueType);
+        var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
+        var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
+        var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+
+        // Query to get death counts per game with champion and role information
+        var sql = $@"
+            SELECT
+                p.match_id,
+                m.game_start_time,
+                p.deaths,
+                p.champion_name,
+                p.role,
+                m.game_duration_sec
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+            ORDER BY m.game_start_time ASC";
+
+        var dataPoints = new List<(string MatchId, long Timestamp, int Deaths, string ChampionName, string? Role, int GameDurationSec)>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var matchId = reader.GetString(0);
+                var timestamp = reader.GetInt64(1);
+                var deaths = reader.GetInt32(2);
+                var championName = reader.GetString(3);
+                var role = reader.IsDBNull(4) ? null : reader.GetString(4);
+                var gameDurationSec = reader.GetInt32(5);
+
+                dataPoints.Add((matchId, timestamp, deaths, championName, role, gameDurationSec));
+            }
+            return 0;
+        });
+
+        if (dataPoints.Count == 0)
+            return (Array.Empty<DeathsTrendPoint>(), 0, 0, "neutral");
+
+        // Calculate rolling 10-game average for each game
+        const int windowSize = 10;
+        var trendPoints = new List<DeathsTrendPoint>();
+
+        for (int i = 0; i < dataPoints.Count; i++)
+        {
+            var windowStart = Math.Max(0, i - windowSize + 1);
+            var windowGames = dataPoints.Skip(windowStart).Take(i - windowStart + 1).ToList();
+
+            var totalDeaths = windowGames.Sum(g => g.Deaths);
+            var rollingAverage = Math.Round((double)totalDeaths / windowGames.Count, 1);
+
+            var point = dataPoints[i];
+            var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(point.Timestamp).UtcDateTime;
+            var gameDurationMinutes = Math.Round(point.GameDurationSec / 60.0, 1);
+
+            trendPoints.Add(new DeathsTrendPoint(
+                MatchId: point.MatchId,
+                GameIndex: i + 1,
+                Timestamp: timestamp,
+                Deaths: point.Deaths,
+                RollingAverage: rollingAverage,
+                ChampionName: point.ChampionName,
+                Role: point.Role,
+                GameDurationMinutes: gameDurationMinutes
+            ));
+        }
+
+        // Calculate summary statistics
+        var overallAverage = Math.Round(dataPoints.Average(d => d.Deaths), 1);
+        var recentCount = Math.Min(20, dataPoints.Count);
+        var recentAverage = Math.Round(dataPoints.TakeLast(recentCount).Average(d => d.Deaths), 1);
+
+        // Determine trend: improving if recent deaths are lower, worsening if higher
+        var trend = "neutral";
+        if (recentAverage < overallAverage - 0.5)
+            trend = "improving";
+        else if (recentAverage > overallAverage + 0.5)
+            trend = "worsening";
+
+        // If limit is specified, return the most recent N games at full resolution
+        DeathsTrendPoint[] resultPoints;
+        if (limit.HasValue && limit.Value > 0)
+        {
+            var limitValue = Math.Min(limit.Value, trendPoints.Count);
+            resultPoints = trendPoints.TakeLast(limitValue).ToArray();
+        }
+        else
+        {
+            // Downsample if more than 100 data points (only when no limit specified)
+            const int maxDataPoints = 100;
+            if (trendPoints.Count > maxDataPoints)
+            {
+                var step = (double)trendPoints.Count / maxDataPoints;
+                var downsampled = new List<DeathsTrendPoint>();
+
+                for (int i = 0; i < maxDataPoints; i++)
+                {
+                    var index = (int)(i * step);
+                    if (index < trendPoints.Count)
+                    {
+                        downsampled.Add(trendPoints[index]);
+                    }
+                }
+
+                // Always include the last data point
+                if (downsampled.Count > 0 && downsampled[^1].GameIndex != trendPoints[^1].GameIndex)
+                {
+                    downsampled[^1] = trendPoints[^1];
+                }
+
+                resultPoints = downsampled.ToArray();
+            }
+            else
+            {
+                resultPoints = trendPoints.ToArray();
+            }
+        }
+
+        return (resultPoints, recentAverage, overallAverage, trend);
+    }
+
+    /// <inheritdoc />
     public async Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
     {
         var startDate = DateTime.UtcNow.Date.AddDays(-daysBack);
