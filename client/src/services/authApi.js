@@ -423,6 +423,36 @@ export async function getGoldAt15Trend(userId, queueType = 'all', timeRange, lim
   return parseResponse(response, 'Failed to get gold at 15 trend')
 }
 
+/**
+ * Get CS per minute trend data for chart display
+ * @param {number} userId - User ID
+ * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
+ * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
+ * @param {number} [limit] - Maximum number of most recent games to return (null for all with downsampling)
+ * @returns {Promise<Object>} CS per minute trend data with csPerMinuteTrend array
+ */
+export async function getCsPerMinuteTrend(userId, queueType = 'all', timeRange, limit) {
+  const params = new URLSearchParams()
+  if (queueType && queueType !== 'all') {
+    params.append('queueType', queueType)
+  }
+  if (timeRange) {
+    params.append('timeRange', timeRange)
+  }
+  if (limit) {
+    params.append('limit', limit.toString())
+  }
+
+  const endpoint = `/trends/cs-per-minute/${userId}${params.toString() ? '?' + params.toString() : ''}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
+
+  if (response.status === 404) {
+    return null // No data found
+  }
+
+  return parseResponse(response, 'Failed to get CS per minute trend')
+}
+
 // ============ Champion Matchups API ============
 
 /**

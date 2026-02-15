@@ -47,5 +47,27 @@ public static class TrendDto
     public record GoldAt15TrendResponse(
         [property: JsonPropertyName("goldAt15Trend")] GoldAt15TrendPoint[] GoldAt15Trend
     );
+
+    /// <summary>
+    /// A single data point for the CS per minute trend chart.
+    /// Represents player's farming efficiency over time.
+    /// </summary>
+    public record CsPerMinuteTrendPoint(
+        [property: JsonPropertyName("matchId")] string MatchId,
+        [property: JsonPropertyName("gameIndex")] int GameIndex,
+        [property: JsonPropertyName("timestamp")] DateTime Timestamp,
+        [property: JsonPropertyName("totalCs")] int TotalCs,
+        [property: JsonPropertyName("csPerMinute")] double CsPerMinute,
+        [property: JsonPropertyName("gameDurationMinutes")] double GameDurationMinutes,
+        [property: JsonPropertyName("championName")] string ChampionName,
+        [property: JsonPropertyName("role")] string? Role
+    );
+
+    /// <summary>
+    /// Response DTO for the CS per minute trend endpoint.
+    /// </summary>
+    public record CsPerMinuteTrendResponse(
+        [property: JsonPropertyName("csPerMinuteTrend")] CsPerMinuteTrendPoint[] CsPerMinuteTrend
+    );
 }
 

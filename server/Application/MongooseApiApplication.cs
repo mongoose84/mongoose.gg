@@ -93,6 +93,9 @@ namespace Mongoose.Api.Application
             var goldAt15TrendEndpoint = new GoldAt15TrendEndpoint(basePath);
             _endpoints.Add(goldAt15TrendEndpoint);
 
+            var csPerMinuteTrendEndpoint = new CsPerMinuteTrendEndpoint(basePath);
+            _endpoints.Add(csPerMinuteTrendEndpoint);
+
             // Overview endpoint (auth required)
             var overviewEndpoint = new OverviewEndpoint(basePath);
             _endpoints.Add(overviewEndpoint);
