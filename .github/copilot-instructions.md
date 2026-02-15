@@ -1,51 +1,39 @@
-
-# Copilot Instructions for Mongoose (mongoose.gg)
+# Global Repository Instructions
 
 ## Project Overview
-- **Mongoose** is a full-stack project with one client:
-	- **Primary client**: Standalone Vue 3 + Vite app in `client/` (see docs/information_architecture.md)
-- The backend is a C# .NET server in `server/Mongoose.Api`.
-- Client(s) and server communicate via HTTP APIs (see docs/api_design.md). The server proxies the Riot Games API and manages user/game data.
-- Sensitive secrets (API keys, DB connection strings, Mollie API keys) are supplied via environment variables or .NET user-secrets (RIOT_API_KEY, `Database_test`, `Database_production`, Mollie keys). 
+This project helps players (solo, duo, and full teams) understand their performance with rich match analytics, timeline-derived metrics, and AI goal recommendations.
 
-## Key Workflows
+## Universal Principles
+- Write clean, maintainable, and well-documented code
+- Follow established project conventions and patterns
+- Ensure proper error handling and logging
+- Implement comprehensive testing for all new features
+- Maintain consistent code formatting and style
 
-### Client (Vue 3 + Vite)
-- Install dependencies: `cd client && npm install`
-- Run dev server: `npm run dev`
-- Run unit tests: `npm run test:unit`, `npm run test:unit:watch`, `npm run test:unit:coverage`
-- Main entry: `client/src/main.js`, root component: `client/src/App.vue`
-- Components: `client/src/components/`, Views: `client/src/views/`
-- API logic: `client/src/services/`, composables in `client/src/composables/`
-- See docs/information_architecture.md for route map and app structure.
+## Technology Stack
+- **Backend**: C# (.NET)
+- **Frontend**: Vue 3 + Vite
+- **Database**: MySQL
+- **Testing**: xUnit (backend), Vitest (frontend unit tests), Playwright (frontend E2E tests)
+- **Documentation**: Markdown files in `.github/specs/` for architecture, API contracts, and feature templates
 
-### Server (.NET 9)
+## Code Style
+Follow standard formatting
 
-## Conventions & Patterns
-- **Client**: Uses Vue SFCs, composition API, composables for state/data logic. API calls are abstracted in `services/`. Follows UI design guidelines in `docs/design/ui-design-guidelines.md`.
-- **Server**: Endpoints are organized by resource in `Application/Endpoints/`. DTOs are used for request/response shapes. SOLID principles for maintainability. Backend tests in `Mongoose.Api.Tests/`.
-- **Testing**: Uses Vitest for client unit tests. Backend tests are present in `server/Mongoose.Api.Tests/`.
-- **Secrets**: Never commit secrets; use env vars/user-secrets (`RIOT_API_KEY`, `Database_test`, `Database_production`, Mollie API keys).
+## API Guidelines
+RESTful API design
 
-## Integration Points
-- Client(s) <-> Server: HTTP API (see docs/api_design.md for endpoints, queue filtering, and response shapes)
-- Server <-> Riot API: Proxy logic in `RiotApiClient.cs`
-- Server <-> Database: Connection via `Database_test` or `Database_production` (env/user-secrets), logic in `Infrastructure/External/Database/`
+## Security Requirements
+Authentication
 
-## Examples
-- Add a new API endpoint: create a new file in `Application/Endpoints/`, update `Program.cs` to register it.
-- Add a new client view: create a `.vue` file in `client/src/views/`, add a route in `client/src/router/index.js`.
+## Documentation Standards
+- Include clear README files for major components
+- Document all public APIs and interfaces
+- Provide usage examples where appropriate
+- Keep documentation up-to-date with code changes
 
-
-## References
-- See [README.md](../README.md) for setup, build, and test commands (Mongoose vision and domain: mongoose.gg).
-- Sensitive config: set via env vars or user-secrets (`RIOT_API_KEY` `Database_test`, `Database_production`, Mollie API keys)
-- Main server logic: [server/Program.cs], [server/Application/Endpoints/]
-- Main client logic: [client/src/], [client/src/services/], [client/src/composables/]
-- Riot API Documentation: https://developer.riotgames.com/
-- API Design: [docs/architecture/api_design.md]
-- Database schema: [docs/architecture/database_schema.md], [server/schema.sql]
-- Information architecture: [docs/architecture/information_architecture.md]
-- UI design guidelines: [docs/design/ui-design-guidelines.md]
-
-For new patterns or changes, update this file to keep AI agents productive and aligned with project conventions.
+## Performance Considerations
+- Write efficient algorithms and data structures
+- Consider scalability implications
+- Optimize for both development and runtime performance
+- Profile and benchmark critical code paths

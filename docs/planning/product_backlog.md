@@ -72,8 +72,8 @@ Each vertical slice has clear acceptance criteria, enabling parallel frontend/ba
 
 - All dashboard endpoints and views support **queue filtering** (Ranked Solo/Duo, Ranked Flex, Normal, ARAM).
 - Queue filtering is backed by the schema via `matches.queue_id` (numeric Riot queue id) and appropriate indexing.
-- Frontend UX and page responsibilities should align with the contracts in `docs/ui-ux/ux-specification.md` (navigation model, page roles, non-negotiable rules). If a task needs to diverge, update that spec alongside this backlog.
-- New UI components and flows should follow `docs/ui-ux/ui-design-guidelines.md`, reusing base components (BaseButton, BaseCard, etc.) and design tokens for colors, typography, spacing, and accessibility.
+- Frontend UX and page responsibilities should align with the contracts in [`../../.github/specs/ui-ux.spec.md`](../../.github/specs/ui-ux.spec.md) (navigation model, page roles, design system, non-negotiable rules). If a task needs to diverge, update that spec alongside this backlog.
+- New UI components and flows should follow [`../../.github/specs/ui-ux.spec.md`](../../.github/specs/ui-ux.spec.md), reusing base components (BaseButton, BaseCard, etc.) and design tokens for colors, typography, spacing, and accessibility.
 
 ## Definition of Done (applies to all tasks)
 
@@ -532,7 +532,7 @@ Extend the database schema so we can persist the extra metrics and derived data 
 #### Acceptance Criteria
 
 - [ ] Identify which additional metrics beyond the current schema are required for post-game AI feedback and medium-term coaching (e.g. lane gold difference at 10/15 minutes, jungle proximity, warding patterns)
-- [ ] Propose schema changes (new tables or columns) and add them to `../architecture/database-schema.md` before implementation
+- [ ] Propose schema changes (new tables or columns) and add them to `../../.github/specs/database-schema.spec.md` before implementation
 - [ ] Implement the schema changes via MySQL migrations and repository updates
 - [ ] Backfill or derive the new metrics for existing matches where feasible, or explicitly document which metrics are only available for newly synced games
 - [ ] Verify that the new metrics can be queried efficiently enough for AI requests without causing performance issues on the main dashboards
@@ -788,7 +788,7 @@ Component to prompt users to upgrade when hitting feature limits.
 - [ ] "Upgrade to Pro" / "Upgrade to Team" buttons
 - [ ] Redirect to Mollie checkout
 - [ ] Default usage pattern is non-blocking on core flows (e.g. Overview, Solo dashboard, match details): prompts appear as inline cards, panels, or sidebars so the primary task remains usable even if the user ignores the upgrade CTA
-- [ ] Visual style and copy follow the dark, tool-like aesthetic from `docs/ui-ux/ui-design-guidelines.md` rather than feeling like a separate marketing page
+- [ ] Visual style and copy follow the dark, tool-like aesthetic from [`../../.github/specs/ui-ux.spec.md`](../../.github/specs/ui-ux.spec.md) rather than feeling like a separate marketing page
 
 ---
 
@@ -1249,7 +1249,7 @@ Create a Summary Stats Card that provides quick orientation on the Solo dashboar
   - Assists: green tint when last 20 games avg > overall avg
   - All three stats have equal visual weight
 - [ ] KDA ratio displayed below K/D/A as secondary text (smaller font, muted color)
-- [ ] Uses `BaseCard` component following `docs/ui-ux/ui-design-guidelines.md`
+- [ ] Uses `BaseCard` component following [`../../.github/specs/ui-ux.spec.md`](../../.github/specs/ui-ux.spec.md)
 - [ ] Responsive: stats stack on mobile, inline on desktop
 - [ ] Loading state with skeleton placeholders
 - [ ] Empty state when no games played: "No games found for this filter"
