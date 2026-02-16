@@ -123,14 +123,28 @@ const lineColor = computed(() => {
 })
 
 /**
+ * Validate that a dataKey exists in at least one data point
+ */
+function validateDataKey(key, data) {
+  if (!key || data.length === 0) return true
+  const exists = data.some(point => point != null && key in point)
+  if (!exists) {
+    console.error(`[TrendLineChart] dataKey "${key}" not found in any data point. Available keys: ${Object.keys(data[0] || {}).join(', ')}`)
+  }
+  return exists
+}
+
+/**
  * Build Chart.js data object
  */
 const chartData = computed(() => {
   if (!hasData.value) return { labels: [], datasets: [] }
   
+  validateDataKey(props.config.dataKey, props.data)
+  
   const labelFormatter = props.config.labelFormatter || defaultLabelFormatter
   const labels = props.data.map(labelFormatter)
-  const dataValues = props.data.map(point => point[props.config.dataKey])
+  const dataValues = props.data.map(point => point?.[props.config.dataKey] ?? null)
   
   const datasets = [{
     label: props.config.label || 'Value',
@@ -149,9 +163,11 @@ const chartData = computed(() => {
   
   // Add additional datasets if configured (e.g., opponent line for GoldAt15)
   if (props.config.additionalDatasets) {
-    datasets.push(...props.config.additionalDatasets.map(dataset => ({
+    datasets.push(...props.config.additionalDatasets.map(dataset => {
+      validateDataKey(dataset.dataKey, props.data)
+      return {
       label: dataset.label,
-      data: props.data.map(point => point[dataset.dataKey]),
+      data: props.data.map(point => point?.[dataset.dataKey] ?? null),
       borderColor: dataset.borderColor || 'rgba(255, 255, 255, 0.4)',
       backgroundColor: dataset.backgroundColor || 'transparent',
       borderWidth: dataset.borderWidth || 2,
@@ -163,7 +179,7 @@ const chartData = computed(() => {
       pointHoverBackgroundColor: dataset.pointHoverBackgroundColor || 'rgba(255, 255, 255, 0.6)',
       pointHoverBorderColor: '#ffffff',
       pointHoverBorderWidth: 2
-    })))
+    }}))
   }
   
   return { labels, datasets }
