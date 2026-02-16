@@ -513,6 +513,36 @@ export async function getDragonParticipationTrend(userId, queueType = 'all', tim
   return parseResponse(response, 'Failed to get dragon participation trend')
 }
 
+/**
+ * Get vision score trend data for chart display
+ * @param {number} userId - User ID
+ * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
+ * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
+ * @param {number} [limit] - Maximum number of most recent games to return (null for all with downsampling)
+ * @returns {Promise<Object>} Vision score trend data with visionScoreTrend array and summary statistics
+ */
+export async function getVisionScoreTrend(userId, queueType = 'all', timeRange, limit) {
+  const params = new URLSearchParams()
+  if (queueType && queueType !== 'all') {
+    params.append('queueType', queueType)
+  }
+  if (timeRange) {
+    params.append('timeRange', timeRange)
+  }
+  if (limit) {
+    params.append('limit', limit.toString())
+  }
+
+  const endpoint = `/trends/vision-score/${userId}${params.toString() ? '?' + params.toString() : ''}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
+
+  if (response.status === 404) {
+    return null // No data found
+  }
+
+  return parseResponse(response, 'Failed to get vision score trend')
+}
+
 // ============ Champion Matchups API ============
 
 /**

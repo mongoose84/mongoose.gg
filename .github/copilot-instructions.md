@@ -573,3 +573,37 @@ Follow conventional commits:
 - [ ] Follows existing patterns and conventions
 - [ ] Accessibility requirements met (frontend)
 - [ ] Performance implications considered
+## Agent Specializations
+
+<instructions>
+<instruction>
+<description>Backend development specialist with security focus</description>
+<file>.github/agents/backend-engineer.agent.md</file>
+<applyTo>**/*.cs</applyTo>
+</instruction>
+<instruction>
+<description>Frontend development specialist with UI/UX focus</description>
+<file>.github/agents/frontend-engineer.agent.md</file>
+<applyTo>**/*.{vue,js,ts}</applyTo>
+</instruction>
+<instruction>
+<description>System architect and planning specialist</description>
+<file>.github/agents/architect.agent.md</file>
+<applyTo>**/*.md</applyTo>
+</instruction>
+<instruction>
+<description>Code review specialist focused on quality and best practices</description>
+<file>.github/agents/code-reviewer.agent.md</file>
+<applyTo>**/*</applyTo>
+</instruction>
+<instruction>
+<description>DevOps and infrastructure specialist</description>
+<file>.github/agents/devops-engineer.agent.md</file>
+<applyTo>**/*.{yml,yaml,json,sh,dockerfile,Dockerfile}</applyTo>
+</instruction>
+<instruction>
+<description>UX/UI design and research specialist</description>
+<file>.github/agents/ux-ui-designer.agent.md</file>
+<applyTo>**/*.{vue,css,scss,sass,less}</applyTo>
+</instruction>
+</instructions>
