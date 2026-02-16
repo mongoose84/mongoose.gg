@@ -79,7 +79,6 @@ const chartData = computed(() => {
   if (!hasData.value) return { labels: [], datasets: [] }
 
   const labels = props.data.map(point => formatDate(point.timestamp))
-  const deathsData = props.data.map(point => point.deaths)
   const rollingAvgData = props.data.map(point => point.rollingAverage)
 
   return {
@@ -87,29 +86,17 @@ const chartData = computed(() => {
     datasets: [
       {
         label: 'Deaths',
-        data: deathsData,
-        borderColor: `${lineColor.value}80`, // 50% opacity
+        data: rollingAvgData,
+        borderColor: lineColor.value,
         backgroundColor: `${lineColor.value}1A`, // 10% opacity
-        borderWidth: 1,
-        fill: false,
-        tension: 0,
-        pointRadius: 3,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
         pointHoverRadius: 6,
-        pointBackgroundColor: lineColor.value,
         pointHoverBackgroundColor: lineColor.value,
         pointHoverBorderColor: '#ffffff',
         pointHoverBorderWidth: 2
-      },
-      {
-        label: 'Rolling Average',
-        data: rollingAvgData,
-        borderColor: lineColor.value,
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        fill: false,
-        tension: 0.3,
-        pointRadius: 0,
-        pointHoverRadius: 0
       }
     ]
   }
@@ -155,19 +142,7 @@ const chartOptions = computed(() => ({
   maintainAspectRatio: false,
   interaction: { mode: 'index', intersect: false },
   plugins: {
-    legend: {
-      display: true,
-      position: 'top',
-      align: 'end',
-      labels: {
-        color: '#888888',
-        font: { size: 11 },
-        usePointStyle: true,
-        boxWidth: 6,
-        boxHeight: 6,
-        padding: 10
-      }
-    },
+    legend: { display: false },
     annotation: annotationConfig.value,
     tooltip: {
       backgroundColor: 'rgba(0, 0, 0, 0.9)',
@@ -177,10 +152,6 @@ const chartOptions = computed(() => ({
       borderWidth: 1,
       padding: 12,
       displayColors: false,
-      filter: (tooltipItem) => {
-        // Only show tooltip for the first dataset (Deaths), not the rolling average
-        return tooltipItem.datasetIndex === 0
-      },
       callbacks: {
         title: (items) => {
           const point = props.data[items[0].dataIndex]

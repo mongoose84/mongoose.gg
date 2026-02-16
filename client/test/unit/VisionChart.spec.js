@@ -4,11 +4,11 @@
  * Tests cover:
  * - Component rendering with data
  * - Empty state display
- * - Dual-line chart (vision per minute + rolling average)
+ * - Single smooth line chart (rolling average only, per-game data in tooltip)
  * - Line color based on performance relative to role target
  * - Role-specific target lines (Support: 2.0/min, Others: 1.0/min)
- * - Overall average reference line
- * - Tooltip callbacks (title, label, filter functions)
+ * - No overall average line (removed to reduce clutter)
+ * - Tooltip callbacks with detailed per-game stats
  */
 
 import { describe, it, expect, vi } from 'vitest'
@@ -129,14 +129,13 @@ describe('VisionChart', () => {
   })
 
   describe('Chart data structure', () => {
-    it('creates two datasets: vision per minute and rolling average', () => {
+    it('creates single dataset with rolling average', () => {
       const wrapper = mountComponent()
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartData = lineChart.props('data')
 
-      expect(chartData.datasets).toHaveLength(2)
-      expect(chartData.datasets[0].label).toBe('Vision/Min')
-      expect(chartData.datasets[1].label).toBe('Rolling Average')
+      expect(chartData.datasets).toHaveLength(1)
+      expect(chartData.datasets[0].label).toBe('Vision Score')
     })
 
     it('formats x-axis labels as dates', () => {
@@ -150,21 +149,12 @@ describe('VisionChart', () => {
       expect(chartData.labels[2]).toBe('Jan 3')
     })
 
-    it('maps vision per minute data correctly', () => {
-      const wrapper = mountComponent()
-      const lineChart = wrapper.findComponent({ name: 'Line' })
-      const chartData = lineChart.props('data')
-
-      const visionData = chartData.datasets[0].data
-      expect(visionData).toEqual([1.2, 1.5, 1.4])
-    })
-
     it('maps rolling average data correctly', () => {
       const wrapper = mountComponent()
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartData = lineChart.props('data')
 
-      const rollingAvgData = chartData.datasets[1].data
+      const rollingAvgData = chartData.datasets[0].data
       expect(rollingAvgData).toEqual([1.2, 1.35, 1.37])
     })
   })
@@ -185,7 +175,7 @@ describe('VisionChart', () => {
       const chartData = lineChart.props('data')
 
       // Green color when meeting target
-      expect(chartData.datasets[0].borderColor).toContain('22c55e')
+      expect(chartData.datasets[0].borderColor).toBe('#22c55e')
     })
 
     it('uses yellow color when approaching target', () => {
@@ -203,7 +193,7 @@ describe('VisionChart', () => {
       const chartData = lineChart.props('data')
 
       // Yellow color when approaching target (80-100%)
-      expect(chartData.datasets[0].borderColor).toContain('eab308')
+      expect(chartData.datasets[0].borderColor).toBe('#eab308')
     })
 
     it('uses red color when below target', () => {
@@ -221,7 +211,7 @@ describe('VisionChart', () => {
       const chartData = lineChart.props('data')
 
       // Red color when below target
-      expect(chartData.datasets[0].borderColor).toContain('ef4444')
+      expect(chartData.datasets[0].borderColor).toBe('#ef4444')
     })
   })
 
@@ -249,25 +239,15 @@ describe('VisionChart', () => {
       expect(chartOptions.plugins.annotation.annotations.targetLine.label.content).toBe('Support Target: 2.0/min')
     })
 
-    it('includes overall average line when provided', () => {
+    it('does not include overall average line (removed to reduce clutter)', () => {
       const wrapper = mountComponent({ overallAverage: 1.3 })
-      const lineChart = wrapper.findComponent({ name: 'Line' })
-      const chartOptions = lineChart.props('options')
-
-      expect(chartOptions.plugins.annotation.annotations.overallLine).toBeDefined()
-      expect(chartOptions.plugins.annotation.annotations.overallLine.yMin).toBe(1.3)
-      expect(chartOptions.plugins.annotation.annotations.overallLine.label.content).toBe('Overall: 1.30/min')
-    })
-
-    it('does not include overall average line when not provided', () => {
-      const wrapper = mountComponent({ overallAverage: null })
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartOptions = lineChart.props('options')
 
       expect(chartOptions.plugins.annotation.annotations.overallLine).toBeUndefined()
     })
 
-    it('configures tooltip with proper callbacks', () => {
+    it('configures tooltip without filter (single dataset)', () => {
       const wrapper = mountComponent()
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartOptions = lineChart.props('options')
@@ -277,10 +257,8 @@ describe('VisionChart', () => {
       expect(chartOptions.plugins.tooltip.backgroundColor).toBe('rgba(0, 0, 0, 0.9)')
       expect(chartOptions.plugins.tooltip.displayColors).toBe(false)
       
-      // Verify filter function exists and works correctly
-      expect(chartOptions.plugins.tooltip.filter).toBeTypeOf('function')
-      const mockFilterContext = { datasetIndex: 0 }
-      expect(chartOptions.plugins.tooltip.filter(mockFilterContext)).toBe(true)
+      // No filter needed with single dataset
+      expect(chartOptions.plugins.tooltip.filter).toBeUndefined()
       
       // Verify callbacks exist
       expect(chartOptions.plugins.tooltip.callbacks).toBeDefined()
@@ -320,21 +298,6 @@ describe('VisionChart', () => {
       expect(resultString).toContain('Game Duration: 37.5 min')
       expect(resultString).toContain('Role: BOTTOM')
       expect(resultString).toContain('Date:')
-    })
-
-    it('tooltip filter only shows tooltips for vision per minute dataset', () => {
-      const wrapper = mountComponent()
-      const lineChart = wrapper.findComponent({ name: 'Line' })
-      const chartOptions = lineChart.props('options')
-
-      const filterFn = chartOptions.plugins.tooltip.filter
-      
-      // Should return true for dataset index 0 (vision per minute)
-      expect(filterFn({ datasetIndex: 0 })).toBe(true)
-      
-      // Should return false for other datasets
-      expect(filterFn({ datasetIndex: 1 })).toBe(false)
-      expect(filterFn({ datasetIndex: 2 })).toBe(false)
     })
   })
 

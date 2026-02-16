@@ -4,11 +4,11 @@
  * Tests cover:
  * - Component rendering with data
  * - Empty state display
- * - Dual-line chart (deaths + rolling average)
+ * - Single smooth line chart (rolling average only, per-game data in tooltip)
  * - Line color based on trend (improving/worsening/neutral)
  * - Overall average reference line
- * - Tooltip callbacks (title, label, filter functions)
- * - Dataset styling and configuration
+ * - Tooltip callbacks (title, label)
+ * - Dataset styling with fill, smooth tension, no visible points
  */
 
 import { describe, it, expect, vi } from 'vitest'
@@ -110,30 +110,21 @@ describe('DeathsChart', () => {
   })
 
   describe('Chart data structure', () => {
-    it('creates two datasets (deaths and rolling average)', () => {
+    it('creates single dataset with rolling average', () => {
       const wrapper = mountComponent()
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartData = lineChart.props('data')
 
-      expect(chartData.datasets).toHaveLength(2)
+      expect(chartData.datasets).toHaveLength(1)
       expect(chartData.datasets[0].label).toBe('Deaths')
-      expect(chartData.datasets[1].label).toBe('Rolling Average')
     })
 
-    it('passes correct death values to first dataset', () => {
+    it('passes rolling average values to dataset', () => {
       const wrapper = mountComponent()
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartData = lineChart.props('data')
 
-      expect(chartData.datasets[0].data).toEqual([5, 3, 4])
-    })
-
-    it('passes correct rolling average values to second dataset', () => {
-      const wrapper = mountComponent()
-      const lineChart = wrapper.findComponent({ name: 'Line' })
-      const chartData = lineChart.props('data')
-
-      expect(chartData.datasets[1].data).toEqual([5.0, 4.0, 4.0])
+      expect(chartData.datasets[0].data).toEqual([5.0, 4.0, 4.0])
     })
 
     it('formats dates as labels', () => {
@@ -152,8 +143,8 @@ describe('DeathsChart', () => {
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartData = lineChart.props('data')
 
-      expect(chartData.datasets[0].pointBackgroundColor).toBe('#22c55e') // Green
-      expect(chartData.datasets[1].borderColor).toBe('#22c55e') // Green
+      expect(chartData.datasets[0].borderColor).toBe('#22c55e') // Green
+      expect(chartData.datasets[0].pointHoverBackgroundColor).toBe('#22c55e') // Green
     })
 
     it('uses red color when trend is worsening', () => {
@@ -161,8 +152,8 @@ describe('DeathsChart', () => {
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartData = lineChart.props('data')
 
-      expect(chartData.datasets[0].pointBackgroundColor).toBe('#ef4444') // Red
-      expect(chartData.datasets[1].borderColor).toBe('#ef4444') // Red
+      expect(chartData.datasets[0].borderColor).toBe('#ef4444') // Red
+      expect(chartData.datasets[0].pointHoverBackgroundColor).toBe('#ef4444') // Red
     })
 
     it('uses purple color when trend is neutral', () => {
@@ -170,8 +161,8 @@ describe('DeathsChart', () => {
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartData = lineChart.props('data')
 
-      expect(chartData.datasets[0].pointBackgroundColor).toBe('#6d28d9') // Purple
-      expect(chartData.datasets[1].borderColor).toBe('#6d28d9') // Purple
+      expect(chartData.datasets[0].borderColor).toBe('#6d28d9') // Purple
+      expect(chartData.datasets[0].pointHoverBackgroundColor).toBe('#6d28d9') // Purple
     })
 
     it('defaults to purple when trend is not provided', () => {
@@ -181,7 +172,7 @@ describe('DeathsChart', () => {
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartData = lineChart.props('data')
 
-      expect(chartData.datasets[0].pointBackgroundColor).toBe('#6d28d9') // Purple
+      expect(chartData.datasets[0].borderColor).toBe('#6d28d9') // Purple
     })
   })
 
@@ -223,13 +214,12 @@ describe('DeathsChart', () => {
   })
 
   describe('Chart configuration', () => {
-    it('displays legend at the top', () => {
+    it('hides legend (single dataset needs no legend)', () => {
       const wrapper = mountComponent()
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const options = lineChart.props('options')
 
-      expect(options.plugins.legend.display).toBe(true)
-      expect(options.plugins.legend.position).toBe('top')
+      expect(options.plugins.legend.display).toBe(false)
     })
 
     it('configures tooltip with proper callbacks', () => {
@@ -242,10 +232,8 @@ describe('DeathsChart', () => {
       expect(options.plugins.tooltip.backgroundColor).toBe('rgba(0, 0, 0, 0.9)')
       expect(options.plugins.tooltip.displayColors).toBe(false)
       
-      // Verify filter function exists and works correctly
-      expect(options.plugins.tooltip.filter).toBeTypeOf('function')
-      const mockFilterContext = { datasetIndex: 0 }
-      expect(options.plugins.tooltip.filter(mockFilterContext)).toBe(true)
+      // No filter needed with single dataset
+      expect(options.plugins.tooltip.filter).toBeUndefined()
       
       // Verify callbacks exist
       expect(options.plugins.tooltip.callbacks).toBeDefined()
@@ -285,20 +273,7 @@ describe('DeathsChart', () => {
       expect(resultString).toContain('Date:')
     })
 
-    it('tooltip filter only shows tooltips for deaths dataset', () => {
-      const wrapper = mountComponent()
-      const lineChart = wrapper.findComponent({ name: 'Line' })
-      const options = lineChart.props('options')
 
-      const filterFn = options.plugins.tooltip.filter
-      
-      // Should return true for dataset index 0 (deaths)
-      expect(filterFn({ datasetIndex: 0 })).toBe(true)
-      
-      // Should return false for other datasets
-      expect(filterFn({ datasetIndex: 1 })).toBe(false)
-      expect(filterFn({ datasetIndex: 2 })).toBe(false)
-    })
 
     it('calculates max Y value with padding', () => {
       const highDeathsData = [
@@ -372,35 +347,27 @@ describe('DeathsChart', () => {
   })
 
   describe('Dataset styling', () => {
-    it('styles deaths dataset with points visible', () => {
+    it('styles dataset as smooth filled line with no visible points', () => {
       const wrapper = mountComponent()
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartData = lineChart.props('data')
 
-      const deathsDataset = chartData.datasets[0]
-      expect(deathsDataset.pointRadius).toBe(3)
-      expect(deathsDataset.pointHoverRadius).toBe(6)
-      expect(deathsDataset.tension).toBe(0) // No smoothing
+      const dataset = chartData.datasets[0]
+      expect(dataset.pointRadius).toBe(0) // No visible points
+      expect(dataset.pointHoverRadius).toBe(6) // Hover reveals point
+      expect(dataset.tension).toBe(0.3) // Smooth line
+      expect(dataset.fill).toBe(true) // Filled area
+      expect(dataset.borderWidth).toBe(2) // Thicker line
     })
 
-    it('styles rolling average dataset with no points', () => {
-      const wrapper = mountComponent()
-      const lineChart = wrapper.findComponent({ name: 'Line' })
-      const chartData = lineChart.props('data')
-
-      const rollingAvgDataset = chartData.datasets[1]
-      expect(rollingAvgDataset.pointRadius).toBe(0)
-      expect(rollingAvgDataset.pointHoverRadius).toBe(0)
-      expect(rollingAvgDataset.tension).toBe(0.3) // Smooth line
-    })
-
-    it('applies opacity to deaths dataset border color', () => {
+    it('applies proper fill color with opacity', () => {
       const wrapper = mountComponent({ trend: 'improving' })
       const lineChart = wrapper.findComponent({ name: 'Line' })
       const chartData = lineChart.props('data')
 
-      const deathsDataset = chartData.datasets[0]
-      expect(deathsDataset.borderColor).toBe('#22c55e80') // 50% opacity
+      const dataset = chartData.datasets[0]
+      expect(dataset.backgroundColor).toBe('#22c55e1A') // 10% opacity fill
+      expect(dataset.borderColor).toBe('#22c55e') // Solid line
     })
   })
 })

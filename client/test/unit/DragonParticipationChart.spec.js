@@ -4,11 +4,11 @@
  * Tests cover:
  * - Component rendering with data
  * - Empty state display
- * - Dual-line chart (participation rate + rolling average)
+ * - Single smooth line chart (rolling average only, per-game data in tooltip)
  * - Line color based on trend (improving/worsening/neutral)
  * - Target line at 70% (research-based win correlation threshold)
- * - Overall average reference line
- * - Tooltip filtering and content
+ * - No overall average line (removed to reduce clutter)
+ * - Tooltip content with per-game participation details
  */
 
 import { describe, it, expect, vi } from 'vitest'
@@ -113,14 +113,13 @@ describe('DragonParticipationChart', () => {
   })
 
   describe('Chart data structure', () => {
-    it('creates two datasets: participation rate and rolling average', () => {
+    it('creates single dataset with rolling average', () => {
       const wrapper = mountComponent()
       const chart = wrapper.find('[data-testid="mock-line-chart"]')
       const chartData = JSON.parse(chart.attributes('data-chart-data'))
 
-      expect(chartData.datasets).toHaveLength(2)
-      expect(chartData.datasets[0].label).toBe('Participation Rate')
-      expect(chartData.datasets[1].label).toBe('Rolling Average')
+      expect(chartData.datasets).toHaveLength(1)
+      expect(chartData.datasets[0].label).toBe('Dragon Participation')
     })
 
     it('formats x-axis labels as dates', () => {
@@ -134,21 +133,12 @@ describe('DragonParticipationChart', () => {
       expect(chartData.labels[2]).toBe('Jan 3')
     })
 
-    it('maps participation rate data correctly', () => {
-      const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
-
-      const participationData = chartData.datasets[0].data
-      expect(participationData).toEqual([66.7, 100.0, 75.0])
-    })
-
     it('maps rolling average data correctly', () => {
       const wrapper = mountComponent()
       const chart = wrapper.find('[data-testid="mock-line-chart"]')
       const chartData = JSON.parse(chart.attributes('data-chart-data'))
 
-      const rollingAvgData = chartData.datasets[1].data
+      const rollingAvgData = chartData.datasets[0].data
       expect(rollingAvgData).toEqual([66.7, 83.3, 80.6])
     })
   })
@@ -159,7 +149,7 @@ describe('DragonParticipationChart', () => {
       const chart = wrapper.find('[data-testid="mock-line-chart"]')
       const chartData = JSON.parse(chart.attributes('data-chart-data'))
 
-      const lineColor = chartData.datasets[0].pointBackgroundColor
+      const lineColor = chartData.datasets[0].borderColor
       expect(lineColor).toBe('#22c55e') // Green
     })
 
@@ -168,7 +158,7 @@ describe('DragonParticipationChart', () => {
       const chart = wrapper.find('[data-testid="mock-line-chart"]')
       const chartData = JSON.parse(chart.attributes('data-chart-data'))
 
-      const lineColor = chartData.datasets[0].pointBackgroundColor
+      const lineColor = chartData.datasets[0].borderColor
       expect(lineColor).toBe('#ef4444') // Red
     })
 
@@ -177,7 +167,7 @@ describe('DragonParticipationChart', () => {
       const chart = wrapper.find('[data-testid="mock-line-chart"]')
       const chartData = JSON.parse(chart.attributes('data-chart-data'))
 
-      const lineColor = chartData.datasets[0].pointBackgroundColor
+      const lineColor = chartData.datasets[0].borderColor
       expect(lineColor).toBe('#6d28d9') // Purple
     })
   })
@@ -195,27 +185,8 @@ describe('DragonParticipationChart', () => {
       expect(options.plugins.annotation.annotations.targetLine.label.content).toBe('Target: 70%')
     })
 
-    it('includes overall average line when overallAverage is provided', () => {
+    it('does not include overall average line (removed to reduce clutter)', () => {
       const wrapper = mountComponent({ overallAverage: 65.5 })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const options = JSON.parse(chart.attributes('data-chart-options'))
-
-      expect(options.plugins.annotation.annotations.overallLine).toBeDefined()
-      expect(options.plugins.annotation.annotations.overallLine.yMin).toBe(65.5)
-      expect(options.plugins.annotation.annotations.overallLine.yMax).toBe(65.5)
-      expect(options.plugins.annotation.annotations.overallLine.label.content).toBe('Overall: 65.5%')
-    })
-
-    it('does not include overall line when overallAverage is null', () => {
-      const wrapper = mountComponent({ overallAverage: null })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const options = JSON.parse(chart.attributes('data-chart-options'))
-
-      expect(options.plugins.annotation.annotations.overallLine).toBeUndefined()
-    })
-
-    it('does not include overall line when overallAverage is undefined', () => {
-      const wrapper = mountComponent({ overallAverage: undefined })
       const chart = wrapper.find('[data-testid="mock-line-chart"]')
       const options = JSON.parse(chart.attributes('data-chart-options'))
 
@@ -242,27 +213,24 @@ describe('DragonParticipationChart', () => {
       expect(options.maintainAspectRatio).toBe(false)
     })
 
-    it('displays legend at top-end position', () => {
+    it('hides legend (single dataset needs no legend)', () => {
       const wrapper = mountComponent()
       const chart = wrapper.find('[data-testid="mock-line-chart"]')
       const options = JSON.parse(chart.attributes('data-chart-options'))
 
-      expect(options.plugins.legend.display).toBe(true)
-      expect(options.plugins.legend.position).toBe('top')
-      expect(options.plugins.legend.align).toBe('end')
+      expect(options.plugins.legend.display).toBe(false)
     })
   })
 
   describe('Tooltip configuration', () => {
-    it('configures tooltip to filter by dataset index', () => {
+    it('configures tooltip without filter (single dataset)', () => {
       const wrapper = mountComponent()
       const chart = wrapper.find('[data-testid="mock-line-chart"]')
       const options = JSON.parse(chart.attributes('data-chart-options'))
 
-      // Note: The actual filter function cannot be tested via JSON.parse
-      // as functions don't serialize. The component uses filter inline.
       expect(options.plugins.tooltip).toBeDefined()
       expect(options.plugins.tooltip.displayColors).toBe(false)
+      // No filter needed with single dataset
     })
 
     it('configures tooltip with title and label callbacks', () => {
