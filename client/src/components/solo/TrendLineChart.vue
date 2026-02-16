@@ -16,31 +16,6 @@
 <script setup>
 import { computed } from 'vue'
 import { Line } from 'vue-chartjs'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js'
-import annotationPlugin from 'chartjs-plugin-annotation'
-
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-  annotationPlugin
-)
 
 const props = defineProps({
   /** Array of data points to plot */

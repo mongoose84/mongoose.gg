@@ -125,7 +125,15 @@ export function dragonParticipationConfig(options = {}) {
         color: 'rgba(34, 197, 94, 0.5)',
         labelBackground: 'rgba(34, 197, 94, 0.7)',
         labelPosition: 'start'
-      }
+      },
+      ...(options.overallAverage !== null && options.overallAverage !== undefined
+        ? [{
+            value: options.overallAverage,
+            label: `Overall: ${options.overallAverage.toFixed(1)}%`,
+            color: 'rgba(255, 255, 255, 0.4)',
+            labelPosition: 'end'
+          }]
+        : [])
     ]
   }
 }
@@ -182,7 +190,15 @@ export function visionScoreConfig(options = {}) {
         color: 'rgba(34, 197, 94, 0.5)',
         labelBackground: 'rgba(34, 197, 94, 0.7)',
         labelPosition: 'start'
-      }
+      },
+      ...(options.overallAverage !== null && options.overallAverage !== undefined
+        ? [{
+            value: options.overallAverage,
+            label: `Overall: ${options.overallAverage.toFixed(2)}`,
+            color: 'rgba(255, 255, 255, 0.4)',
+            labelPosition: 'end'
+          }]
+        : [])
     ]
   }
 }
