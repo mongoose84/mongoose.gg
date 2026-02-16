@@ -8,7 +8,7 @@
  * - Line color based on performance relative to role target
  * - Role-specific target lines (Support: 2.0/min, Others: 1.0/min)
  * - Overall average reference line
- * - Tooltip content with ward statistics
+ * - Tooltip callbacks (title, label, filter functions)
  */
 
 import { describe, it, expect, vi } from 'vitest'
@@ -20,7 +20,7 @@ vi.mock('vue-chartjs', () => ({
   Line: {
     name: 'Line',
     props: ['data', 'options'],
-    template: '<div data-testid="mock-line-chart" :data-chart-data="JSON.stringify(data)" :data-chart-options="JSON.stringify(options)"></div>'
+    template: '<div data-testid="mock-line-chart"></div>'
   }
 }))
 
@@ -131,8 +131,8 @@ describe('VisionChart', () => {
   describe('Chart data structure', () => {
     it('creates two datasets: vision per minute and rolling average', () => {
       const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineChart.props('data')
 
       expect(chartData.datasets).toHaveLength(2)
       expect(chartData.datasets[0].label).toBe('Vision/Min')
@@ -141,8 +141,8 @@ describe('VisionChart', () => {
 
     it('formats x-axis labels as dates', () => {
       const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineChart.props('data')
 
       expect(chartData.labels).toHaveLength(3)
       expect(chartData.labels[0]).toBe('Jan 1')
@@ -152,8 +152,8 @@ describe('VisionChart', () => {
 
     it('maps vision per minute data correctly', () => {
       const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineChart.props('data')
 
       const visionData = chartData.datasets[0].data
       expect(visionData).toEqual([1.2, 1.5, 1.4])
@@ -161,8 +161,8 @@ describe('VisionChart', () => {
 
     it('maps rolling average data correctly', () => {
       const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineChart.props('data')
 
       const rollingAvgData = chartData.datasets[1].data
       expect(rollingAvgData).toEqual([1.2, 1.35, 1.37])
@@ -181,8 +181,8 @@ describe('VisionChart', () => {
         data: highPerformanceData,
         roleTarget: 1.0
       })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineChart.props('data')
 
       // Green color when meeting target
       expect(chartData.datasets[0].borderColor).toContain('22c55e')
@@ -199,8 +199,8 @@ describe('VisionChart', () => {
         data: mediumPerformanceData,
         roleTarget: 1.0
       })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineChart.props('data')
 
       // Yellow color when approaching target (80-100%)
       expect(chartData.datasets[0].borderColor).toContain('eab308')
@@ -217,8 +217,8 @@ describe('VisionChart', () => {
         data: lowPerformanceData,
         roleTarget: 1.0
       })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineChart.props('data')
 
       // Red color when below target
       expect(chartData.datasets[0].borderColor).toContain('ef4444')
@@ -228,8 +228,8 @@ describe('VisionChart', () => {
   describe('Chart options', () => {
     it('includes target line annotation for non-support role', () => {
       const wrapper = mountComponent({ roleTarget: 1.0 })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartOptions = JSON.parse(chart.attributes('data-chart-options'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartOptions = lineChart.props('options')
 
       expect(chartOptions.plugins.annotation.annotations.targetLine).toBeDefined()
       expect(chartOptions.plugins.annotation.annotations.targetLine.yMin).toBe(1.0)
@@ -241,8 +241,8 @@ describe('VisionChart', () => {
         data: supportData,
         roleTarget: 2.0 
       })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartOptions = JSON.parse(chart.attributes('data-chart-options'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartOptions = lineChart.props('options')
 
       expect(chartOptions.plugins.annotation.annotations.targetLine).toBeDefined()
       expect(chartOptions.plugins.annotation.annotations.targetLine.yMin).toBe(2.0)
@@ -251,8 +251,8 @@ describe('VisionChart', () => {
 
     it('includes overall average line when provided', () => {
       const wrapper = mountComponent({ overallAverage: 1.3 })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartOptions = JSON.parse(chart.attributes('data-chart-options'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartOptions = lineChart.props('options')
 
       expect(chartOptions.plugins.annotation.annotations.overallLine).toBeDefined()
       expect(chartOptions.plugins.annotation.annotations.overallLine.yMin).toBe(1.3)
@@ -261,29 +261,88 @@ describe('VisionChart', () => {
 
     it('does not include overall average line when not provided', () => {
       const wrapper = mountComponent({ overallAverage: null })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartOptions = JSON.parse(chart.attributes('data-chart-options'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartOptions = lineChart.props('options')
 
       expect(chartOptions.plugins.annotation.annotations.overallLine).toBeUndefined()
     })
 
-    it('configures tooltip options properly', () => {
+    it('configures tooltip with proper callbacks', () => {
       const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartOptions = JSON.parse(chart.attributes('data-chart-options'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartOptions = lineChart.props('options')
 
       // Check that tooltip plugin is configured
       expect(chartOptions.plugins.tooltip).toBeDefined()
       expect(chartOptions.plugins.tooltip.backgroundColor).toBe('rgba(0, 0, 0, 0.9)')
       expect(chartOptions.plugins.tooltip.displayColors).toBe(false)
+      
+      // Verify filter function exists and works correctly
+      expect(chartOptions.plugins.tooltip.filter).toBeTypeOf('function')
+      const mockFilterContext = { datasetIndex: 0 }
+      expect(chartOptions.plugins.tooltip.filter(mockFilterContext)).toBe(true)
+      
+      // Verify callbacks exist
+      expect(chartOptions.plugins.tooltip.callbacks).toBeDefined()
+      expect(chartOptions.plugins.tooltip.callbacks.title).toBeTypeOf('function')
+      expect(chartOptions.plugins.tooltip.callbacks.label).toBeTypeOf('function')
+    })
+
+    it('tooltip title callback returns game info', () => {
+      const wrapper = mountComponent()
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartOptions = lineChart.props('options')
+
+      const titleCallback = chartOptions.plugins.tooltip.callbacks.title
+      const mockTooltipItems = [{ dataIndex: 0 }]
+      
+      const result = titleCallback(mockTooltipItems)
+      expect(result).toBe('Game 1 - Jinx')
+    })
+
+    it('tooltip label callback returns detailed stats', () => {
+      const wrapper = mountComponent()
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartOptions = lineChart.props('options')
+
+      const labelCallback = chartOptions.plugins.tooltip.callbacks.label
+      const mockContext = { dataIndex: 0 }
+      
+      const result = labelCallback(mockContext)
+      expect(result).toBeInstanceOf(Array)
+      expect(result.length).toBeGreaterThan(0)
+      
+      // Check for expected fields
+      const resultString = result.join(' ')
+      expect(resultString).toContain('Vision/Min: 1.20')
+      expect(resultString).toContain('Rolling Avg: 1.20')
+      expect(resultString).toContain('Vision Score: 45')
+      expect(resultString).toContain('Game Duration: 37.5 min')
+      expect(resultString).toContain('Role: BOTTOM')
+      expect(resultString).toContain('Date:')
+    })
+
+    it('tooltip filter only shows tooltips for vision per minute dataset', () => {
+      const wrapper = mountComponent()
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartOptions = lineChart.props('options')
+
+      const filterFn = chartOptions.plugins.tooltip.filter
+      
+      // Should return true for dataset index 0 (vision per minute)
+      expect(filterFn({ datasetIndex: 0 })).toBe(true)
+      
+      // Should return false for other datasets
+      expect(filterFn({ datasetIndex: 1 })).toBe(false)
+      expect(filterFn({ datasetIndex: 2 })).toBe(false)
     })
   })
 
   describe('Y-axis scaling', () => {
     it('suggests max based on role target for non-support', () => {
       const wrapper = mountComponent({ roleTarget: 1.0 })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartOptions = JSON.parse(chart.attributes('data-chart-options'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartOptions = lineChart.props('options')
 
       // Should be at least 1.5 times the role target (1.5) or 3.0
       expect(chartOptions.scales.y.suggestedMax).toBeGreaterThanOrEqual(1.5)
@@ -294,8 +353,8 @@ describe('VisionChart', () => {
         data: supportData,
         roleTarget: 2.0 
       })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartOptions = JSON.parse(chart.attributes('data-chart-options'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartOptions = lineChart.props('options')
 
       // Should be 1.5 times the role target (3.0)
       expect(chartOptions.scales.y.suggestedMax).toBe(3.0)
@@ -305,8 +364,8 @@ describe('VisionChart', () => {
   describe('Edge cases', () => {
     it('handles single data point', () => {
       const wrapper = mountComponent({ data: [sampleData[0]] })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+      const lineChart = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineChart.props('data')
 
       expect(chartData.datasets[0].data).toHaveLength(1)
       expect(chartData.labels).toHaveLength(1)

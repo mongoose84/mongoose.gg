@@ -578,32 +578,32 @@ Follow conventional commits:
 <instructions>
 <instruction>
 <description>Backend development specialist with security focus</description>
-<file>/home/thread/Documents/mongoose.gg/.github/agents/backend-engineer.agent.md</file>
+<file>.github/agents/backend-engineer.agent.md</file>
 <applyTo>**/*.cs</applyTo>
 </instruction>
 <instruction>
 <description>Frontend development specialist with UI/UX focus</description>
-<file>/home/thread/Documents/mongoose.gg/.github/agents/frontend-engineer.agent.md</file>
+<file>.github/agents/frontend-engineer.agent.md</file>
 <applyTo>**/*.{vue,js,ts}</applyTo>
 </instruction>
 <instruction>
 <description>System architect and planning specialist</description>
-<file>/home/thread/Documents/mongoose.gg/.github/agents/architect.agent.md</file>
+<file>.github/agents/architect.agent.md</file>
 <applyTo>**/*.md</applyTo>
 </instruction>
 <instruction>
 <description>Code review specialist focused on quality and best practices</description>
-<file>/home/thread/Documents/mongoose.gg/.github/agents/code-reviewer.agent.md</file>
+<file>.github/agents/code-reviewer.agent.md</file>
 <applyTo>**/*</applyTo>
 </instruction>
 <instruction>
 <description>DevOps and infrastructure specialist</description>
-<file>/home/thread/Documents/mongoose.gg/.github/agents/devops-engineer.agent.md</file>
+<file>.github/agents/devops-engineer.agent.md</file>
 <applyTo>**/*.{yml,yaml,json,sh,dockerfile,Dockerfile}</applyTo>
 </instruction>
 <instruction>
 <description>UX/UI design and research specialist</description>
-<file>/home/thread/Documents/mongoose.gg/.github/agents/ux-ui-designer.agent.md</file>
+<file>.github/agents/ux-ui-designer.agent.md</file>
 <applyTo>**/*.{vue,css,scss,sass,less}</applyTo>
 </instruction>
 </instructions>

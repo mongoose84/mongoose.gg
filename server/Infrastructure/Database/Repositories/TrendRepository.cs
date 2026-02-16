@@ -624,6 +624,14 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
 
             // Query to get vision score data
+            // When limit is provided, fetch limit + windowSize - 1 rows (need extra rows for rolling average)
+            // Use DESC order with LIMIT for efficiency, then reverse to ASC in-memory
+            const int windowSize = 20;
+            var useDbLimit = limit.HasValue && limit.Value > 0;
+            var dbLimit = useDbLimit ? limit.Value + windowSize - 1 : int.MaxValue;
+            var orderDirection = useDbLimit ? "DESC" : "ASC";
+            var limitClause = useDbLimit ? $"LIMIT {dbLimit}" : "";
+
             var sql = $@"
                 SELECT
                     p.match_id,
@@ -637,7 +645,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 INNER JOIN participant_metrics pm ON pm.participant_id = p.id
                 WHERE p.puuid = @puuid {queueFilter} {timeFilter}
                   AND m.game_duration_sec >= 600
-                ORDER BY m.game_start_time ASC";
+                ORDER BY m.game_start_time {orderDirection}
+                {limitClause}";
 
             var dataPoints = new List<(
                 string MatchId,
@@ -669,6 +678,12 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 return 0;
             });
 
+            // If we fetched in DESC order (for DB efficiency), reverse to ASC for chronological processing
+            if (useDbLimit)
+            {
+                dataPoints.Reverse();
+            }
+
             _logger.LogDebug("Vision score: Retrieved {Count} dataPoints", dataPoints.Count);
 
             if (dataPoints.Count == 0)
@@ -686,7 +701,6 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             var roleTarget = (mostCommonRole?.Equals("UTILITY", StringComparison.OrdinalIgnoreCase) == true) ? 2.0 : 1.0;
 
             // Calculate rolling 20-game average for each game
-            const int windowSize = 20;
             var trendPoints = new List<VisionScoreTrendPoint>();
 
             for (int i = 0; i < dataPoints.Count; i++)
@@ -732,10 +746,12 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             else if (recentAverage < overallAverage - 0.1)
                 trend = "worsening";
 
-            // If limit is specified, return the most recent N games at full resolution
+            // Apply final result limiting and downsampling
             VisionScoreTrendPoint[] resultPoints;
             if (limit.HasValue && limit.Value > 0)
             {
+                // When limit was provided, we already fetched limited data from DB
+                // Just take the last N points (may be less than limit if not enough history)
                 var limitValue = Math.Min(limit.Value, trendPoints.Count);
                 resultPoints = trendPoints.TakeLast(limitValue).ToArray();
             }
