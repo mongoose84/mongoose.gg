@@ -34,7 +34,7 @@
 
     <!-- Zone 3: Trend Charts -->
     <template #trend-charts>
-      <!-- Winrate Trend Chart -->
+      <!-- Winrate Trend Chart — "How am I doing overall?" -->
       <TrendChartCard
         title="Winrate Over Time"
         subtitle="Rolling 20-game average"
@@ -47,7 +47,7 @@
         </template>
       </TrendChartCard>
 
-      <!-- Deaths Over Time Chart -->
+      <!-- Deaths Over Time Chart — "What's the #1 thing I can fix?" -->
       <TrendChartCard
         title="Deaths Over Time"
         subtitle="Most actionable metric for improvement"
@@ -64,33 +64,7 @@
         </template>
       </TrendChartCard>
 
-      <!-- Gold at 15 Trend Chart -->
-      <TrendChartCard
-        title="Gold at 15 Minutes"
-        subtitle="Most predictive metric for winning"
-        :loading="goldAt15Loading"
-        test-id="gold-at-15-trend-card"
-        @toggle-expand="handleGoldAt15Expand"
-      >
-        <template #default="{ dataLimit }">
-          <GoldAt15Chart :data="goldAt15TrendData" />
-        </template>
-      </TrendChartCard>
-
-      <!-- CS Per Minute Trend Chart -->
-      <TrendChartCard
-        title="CS Per Minute"
-        subtitle="Farming efficiency over time"
-        :loading="csPerMinuteLoading"
-        test-id="cs-per-minute-trend-card"
-        @toggle-expand="handleCsPerMinuteExpand"
-      >
-        <template #default="{ dataLimit }">
-          <CsPerMinuteChart :data="csPerMinuteTrendData" />
-        </template>
-      </TrendChartCard>
-
-      <!-- Dragon Participation Trend Chart -->
+      <!-- Dragon Participation Trend Chart — "Am I showing up for objectives?" -->
       <TrendChartCard
         title="Dragon Participation"
         subtitle="First Dragon = 70.69% win rate correlation"
@@ -107,7 +81,7 @@
         </template>
       </TrendChartCard>
 
-      <!-- Vision Score Trend Chart -->
+      <!-- Vision Score Trend Chart — "Am I giving myself information?" -->
       <TrendChartCard
         title="Vision Score Over Time"
         subtitle="Key metric for map awareness and objective control"
@@ -122,6 +96,32 @@
             :role-target="visionScoreSummary.roleTarget"
             :trend="visionScoreSummary.trend"
           />
+        </template>
+      </TrendChartCard>
+
+      <!-- Gold at 15 Trend Chart — "Am I winning my lane?" -->
+      <TrendChartCard
+        title="Gold at 15 Minutes"
+        subtitle="Most predictive metric for winning"
+        :loading="goldAt15Loading"
+        test-id="gold-at-15-trend-card"
+        @toggle-expand="handleGoldAt15Expand"
+      >
+        <template #default="{ dataLimit }">
+          <GoldAt15Chart :data="goldAt15TrendData" />
+        </template>
+      </TrendChartCard>
+
+      <!-- CS Per Minute Trend Chart — "Am I farming efficiently?" -->
+      <TrendChartCard
+        title="CS Per Minute"
+        subtitle="Farming efficiency over time"
+        :loading="csPerMinuteLoading"
+        test-id="cs-per-minute-trend-card"
+        @toggle-expand="handleCsPerMinuteExpand"
+      >
+        <template #default="{ dataLimit }">
+          <CsPerMinuteChart :data="csPerMinuteTrendData" />
         </template>
       </TrendChartCard>
     </template>

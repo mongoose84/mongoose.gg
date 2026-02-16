@@ -149,7 +149,7 @@
               <img src="/mongoose.png" alt="Mongoose" class="w-16 h-8" />
               <span class="text-xl font-bold tracking-tight text-text">Mongoose.gg <span class="beta-tag">Beta</span></span>
             </div>
-            <p class="text-sm text-text-secondary m-0">Built with ❤️ in the nordics by the Agile Astronaut</p>
+            <p class="text-sm text-text-secondary m-0">Built with ❤️ in the nordics</p>
           </div>
 
           <div class="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-xl">

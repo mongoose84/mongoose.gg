@@ -1,261 +1,76 @@
-/**
- * Unit tests for CsPerMinuteChart.vue
- *
- * Tests cover:
- * - Component rendering with data
- * - Empty state display
- * - Line chart with CS per minute data
- * - Line color based on average CS/min performance
- * - Role target annotation (if provided)
- */
-
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CsPerMinuteChart from '@/components/solo/CsPerMinuteChart.vue'
+import { csPerMinuteConfig } from '@/utils/chartConfigs.js'
 
-// Mock Chart.js and vue-chartjs to avoid canvas rendering issues in tests
 vi.mock('vue-chartjs', () => ({
   Line: {
     name: 'Line',
     props: ['data', 'options'],
-    template: '<div data-testid="mock-line-chart" :data-chart-data="JSON.stringify(data)" :data-chart-options="JSON.stringify(options)"></div>'
+    template: '<div data-testid="mock-chart"></div>'
   }
 }))
 
-vi.mock('chart.js', () => ({
-  Chart: { register: vi.fn() },
-  CategoryScale: {},
-  LinearScale: {},
-  PointElement: {},
-  LineElement: {},
-  Title: {},
-  Tooltip: {},
-  Legend: {},
-  Filler: {}
-}))
-
-vi.mock('chartjs-plugin-annotation', () => ({
-  default: {}
-}))
-
 describe('CsPerMinuteChart', () => {
-  const sampleData = [
-    {
-      matchId: 'NA1_123',
-      gameIndex: 1,
-      timestamp: '2026-01-01T12:00:00Z',
-      totalCs: 180,
-      csPerMinute: 6.5,
-      gameDurationMinutes: 27.7,
-      championName: 'Jinx',
-      role: 'ADC'
-    },
-    {
-      matchId: 'NA1_124',
-      gameIndex: 2,
-      timestamp: '2026-01-02T12:00:00Z',
-      totalCs: 195,
-      csPerMinute: 7.2,
-      gameDurationMinutes: 27.1,
-      championName: 'Jinx',
-      role: 'ADC'
-    },
-    {
-      matchId: 'NA1_125',
-      gameIndex: 3,
-      timestamp: '2026-01-03T12:00:00Z',
-      totalCs: 165,
-      csPerMinute: 5.8,
-      gameDurationMinutes: 28.4,
-      championName: 'Caitlyn',
-      role: 'ADC'
-    }
+  const mockData = [
+    { timestamp: '2024-01-01T00:00:00Z', csPerMinute: 7.2, totalCs: 216, gameDurationMinutes: 30, championName: 'Ahri', gameIndex: 1, role: 'MID' },
+    { timestamp: '2024-01-02T00:00:00Z', csPerMinute: 6.8, totalCs: 204, gameDurationMinutes: 30, championName: 'Zed', gameIndex: 2, role: 'MID' }
   ]
 
   const mountComponent = (props = {}) => {
     return mount(CsPerMinuteChart, {
-      props: {
-        data: sampleData,
-        ...props
-      }
+      props: { data: [], ...props }
     })
   }
 
   describe('Rendering', () => {
-    it('renders the component with data', () => {
-      const wrapper = mountComponent()
+    it('renders chart when data is provided', () => {
+      const wrapper = mountComponent({ data: mockData })
       expect(wrapper.find('[data-testid="cs-per-minute-chart"]').exists()).toBe(true)
-      expect(wrapper.find('[data-testid="mock-line-chart"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="mock-chart"]').exists()).toBe(true)
     })
 
     it('shows empty state when no data', () => {
       const wrapper = mountComponent({ data: [] })
       expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(true)
-      expect(wrapper.text()).toContain('No CS per minute data available')
-    })
-
-    it('shows empty state when data is null-ish', () => {
-      const wrapper = mountComponent({ data: null })
-      expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="empty-state"]').text()).toContain('No CS per minute data available')
     })
   })
 
-  describe('Chart data', () => {
-    it('creates chart data with CS per minute line', () => {
-      const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+  describe('Config Integration', () => {
+    it('passes correct base config', () => {
+      const wrapper = mountComponent({ data: mockData })
+      const config = wrapper.findComponent({ name: 'TrendLineChart' }).props('config')
 
-      expect(chartData.datasets).toHaveLength(1)
-      expect(chartData.datasets[0].label).toBe('CS/min')
-      expect(chartData.datasets[0].data).toEqual([6.5, 7.2, 5.8])
+      expect(config.dataKey).toBe('csPerMinute')
+      expect(config.label).toBe('CS/min')
     })
 
-    it('formats labels as dates', () => {
-      const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+    it('includes roleTarget annotation when provided', () => {
+      const wrapper = mountComponent({ data: mockData, roleTarget: 7.0 })
+      const config = wrapper.findComponent({ name: 'TrendLineChart' }).props('config')
 
-      expect(chartData.labels).toHaveLength(3)
-      expect(chartData.labels[0]).toMatch(/Jan \d+/)
-    })
-  })
-
-  describe('Line color based on average CS/min', () => {
-    it('uses green color when average CS/min is good (>= 6)', () => {
-      const goodCsData = [
-        {
-          matchId: 'NA1_123',
-          gameIndex: 1,
-          timestamp: '2026-01-01T12:00:00Z',
-          totalCs: 180,
-          csPerMinute: 6.5,
-          gameDurationMinutes: 27.7,
-          championName: 'Jinx',
-          role: 'ADC'
-        },
-        {
-          matchId: 'NA1_124',
-          gameIndex: 2,
-          timestamp: '2026-01-02T12:00:00Z',
-          totalCs: 195,
-          csPerMinute: 7.0,
-          gameDurationMinutes: 27.9,
-          championName: 'Jinx',
-          role: 'ADC'
-        }
-      ]
-      const wrapper = mountComponent({ data: goodCsData })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
-
-      expect(chartData.datasets[0].borderColor).toBe('#22c55e') // Green
+      expect(config.annotations).toHaveLength(1)
+      expect(config.annotations[0].value).toBe(7.0)
+      expect(config.annotations[0].label).toContain('7.0 CS/min')
     })
 
-    it('uses red color when average CS/min is poor (< 5)', () => {
-      const poorCsData = [
-        {
-          matchId: 'NA1_123',
-          gameIndex: 1,
-          timestamp: '2026-01-01T12:00:00Z',
-          totalCs: 120,
-          csPerMinute: 4.2,
-          gameDurationMinutes: 28.6,
-          championName: 'Blitzcrank',
-          role: 'SUPPORT'
-        },
-        {
-          matchId: 'NA1_124',
-          gameIndex: 2,
-          timestamp: '2026-01-02T12:00:00Z',
-          totalCs: 130,
-          csPerMinute: 4.6,
-          gameDurationMinutes: 28.3,
-          championName: 'Thresh',
-          role: 'SUPPORT'
-        }
-      ]
-      const wrapper = mountComponent({ data: poorCsData })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
-
-      expect(chartData.datasets[0].borderColor).toBe('#ef4444') // Red
+    it('has no annotations when roleTarget is null', () => {
+      const wrapper = mountComponent({ data: mockData, roleTarget: null })
+      const config = wrapper.findComponent({ name: 'TrendLineChart' }).props('config')
+      expect(config.annotations).toHaveLength(0)
     })
 
-    it('uses purple color when average CS/min is neutral (between 5 and 6)', () => {
-      const neutralCsData = [
-        {
-          matchId: 'NA1_123',
-          gameIndex: 1,
-          timestamp: '2026-01-01T12:00:00Z',
-          totalCs: 155,
-          csPerMinute: 5.5,
-          gameDurationMinutes: 28.2,
-          championName: 'Jinx',
-          role: 'ADC'
-        },
-        {
-          matchId: 'NA1_124',
-          gameIndex: 2,
-          timestamp: '2026-01-02T12:00:00Z',
-          totalCs: 150,
-          csPerMinute: 5.3,
-          gameDurationMinutes: 28.3,
-          championName: 'Jinx',
-          role: 'ADC'
-        }
-      ]
-      const wrapper = mountComponent({ data: neutralCsData })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
+    it('generates config matching csPerMinuteConfig function', () => {
+      const wrapper = mountComponent({ data: mockData, roleTarget: 6.5 })
+      const config = wrapper.findComponent({ name: 'TrendLineChart' }).props('config')
+      const expected = csPerMinuteConfig({ roleTarget: 6.5 })
 
-      expect(chartData.datasets[0].borderColor).toBe('#6d28d9') // Purple
-    })
-  })
-
-  describe('Role target annotation', () => {
-    it('shows target line when roleTarget is provided', () => {
-      const wrapper = mountComponent({ roleTarget: 7.0 })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartOptions = JSON.parse(chart.attributes('data-chart-options'))
-
-      expect(chartOptions.plugins.annotation.annotations.targetLine).toBeDefined()
-      expect(chartOptions.plugins.annotation.annotations.targetLine.yMin).toBe(7.0)
-      expect(chartOptions.plugins.annotation.annotations.targetLine.yMax).toBe(7.0)
-    })
-
-    it('does not show target line when roleTarget is null', () => {
-      const wrapper = mountComponent({ roleTarget: null })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartOptions = JSON.parse(chart.attributes('data-chart-options'))
-
-      expect(chartOptions.plugins.annotation).toEqual({})
-    })
-  })
-
-  describe('Chart options', () => {
-    it('configures tooltip with game details', () => {
-      const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      
-      expect(chart.exists()).toBe(true)
-      expect(chart.attributes('data-chart-options')).toBeDefined()
-    })
-
-    it('configures y-axis with CS values', () => {
-      const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      
-      expect(chart.exists()).toBe(true)
-      expect(chart.attributes('data-chart-options')).toBeDefined()
-    })
-
-    it('hides legend by default', () => {
-      const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartOptions = JSON.parse(chart.attributes('data-chart-options'))
-      
-      expect(chartOptions.plugins.legend.display).toBe(false)
+      expect(config.dataKey).toBe(expected.dataKey)
+      expect(config.label).toBe(expected.label)
+      expect(config.yAxis.min).toBe(expected.yAxis.min)
+      expect(typeof config.yAxis.formatter).toBe('function')
+      expect(config.annotations).toEqual(expected.annotations)
     })
   })
 })

@@ -1,132 +1,71 @@
-/**
- * Unit tests for WinrateChart.vue
- *
- * Tests cover:
- * - Component rendering with data
- * - Empty state display
- * - Overall winrate reference line feature
- * - Line color based on current winrate
- */
-
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import WinrateChart from '@/components/solo/WinrateChart.vue'
+import { winrateConfig } from '@/utils/chartConfigs.js'
 
-// Mock Chart.js and vue-chartjs to avoid canvas rendering issues in tests
 vi.mock('vue-chartjs', () => ({
   Line: {
     name: 'Line',
     props: ['data', 'options'],
-    template: '<div data-testid="mock-line-chart" :data-chart-data="JSON.stringify(data)" :data-chart-options="JSON.stringify(options)"></div>'
+    template: '<div data-testid="mock-chart"></div>'
   }
 }))
 
-vi.mock('chart.js', () => ({
-  Chart: { register: vi.fn() },
-  CategoryScale: {},
-  LinearScale: {},
-  PointElement: {},
-  LineElement: {},
-  Title: {},
-  Tooltip: {},
-  Legend: {},
-  Filler: {}
-}))
-
-vi.mock('chartjs-plugin-annotation', () => ({
-  default: {}
-}))
-
 describe('WinrateChart', () => {
-  const sampleData = [
-    { gameIndex: 1, winRate: 50.0, timestamp: '2026-01-01T12:00:00Z' },
-    { gameIndex: 2, winRate: 55.0, timestamp: '2026-01-02T12:00:00Z' },
-    { gameIndex: 3, winRate: 52.5, timestamp: '2026-01-03T12:00:00Z' }
+  const mockData = [
+    { timestamp: '2024-01-01T00:00:00Z', winRate: 52.5, wins: 21, losses: 19, gameIndex: 1, isWin: true },
+    { timestamp: '2024-01-02T00:00:00Z', winRate: 53.0, wins: 22, losses: 19, gameIndex: 2, isWin: true }
   ]
 
   const mountComponent = (props = {}) => {
     return mount(WinrateChart, {
-      props: {
-        data: sampleData,
-        ...props
-      }
+      props: { data: [], ...props }
     })
   }
 
   describe('Rendering', () => {
-    it('renders the component with data', () => {
-      const wrapper = mountComponent()
+    it('renders chart when data is provided', () => {
+      const wrapper = mountComponent({ data: mockData })
       expect(wrapper.find('[data-testid="winrate-chart"]').exists()).toBe(true)
-      expect(wrapper.find('[data-testid="mock-line-chart"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="mock-chart"]').exists()).toBe(true)
     })
 
     it('shows empty state when no data', () => {
       const wrapper = mountComponent({ data: [] })
       expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(true)
-      expect(wrapper.text()).toContain('No winrate data available')
-    })
-
-    it('shows empty state when data is null-ish', () => {
-      const wrapper = mountComponent({ data: null })
-      expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="empty-state"]').text()).toContain('No winrate data available')
     })
   })
 
-  describe('Overall winrate reference line', () => {
-    it('includes annotation config when overallWinRate is provided', () => {
-      const wrapper = mountComponent({ overallWinRate: 48.5 })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const options = JSON.parse(chart.attributes('data-chart-options'))
+  describe('Config Integration', () => {
+    it('passes correct config with overallWinRate annotation', () => {
+      const wrapper = mountComponent({ data: mockData, overallWinRate: 55.3 })
+      const trendLineChart = wrapper.findComponent({ name: 'TrendLineChart' })
 
-      expect(options.plugins.annotation).toBeDefined()
-      expect(options.plugins.annotation.annotations).toBeDefined()
-      expect(options.plugins.annotation.annotations.overallLine).toBeDefined()
-      expect(options.plugins.annotation.annotations.overallLine.yMin).toBe(48.5)
-      expect(options.plugins.annotation.annotations.overallLine.yMax).toBe(48.5)
+      const config = trendLineChart.props('config')
+      expect(config.dataKey).toBe('winRate')
+      expect(config.label).toBe('Winrate %')
+      expect(config.annotations).toHaveLength(1)
+      expect(config.annotations[0].value).toBe(55.3)
+      expect(config.annotations[0].label).toContain('55.3%')
     })
 
-    it('annotation label shows formatted overall winrate', () => {
-      const wrapper = mountComponent({ overallWinRate: 48.5 })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const options = JSON.parse(chart.attributes('data-chart-options'))
-
-      expect(options.plugins.annotation.annotations.overallLine.label.content).toBe('Overall: 48.5%')
+    it('has no annotations when overallWinRate is null', () => {
+      const wrapper = mountComponent({ data: mockData, overallWinRate: null })
+      const config = wrapper.findComponent({ name: 'TrendLineChart' }).props('config')
+      expect(config.annotations).toHaveLength(0)
     })
 
-    it('does not include annotation when overallWinRate is null', () => {
-      const wrapper = mountComponent({ overallWinRate: null })
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const options = JSON.parse(chart.attributes('data-chart-options'))
+    it('generates config matching winrateConfig function', () => {
+      const wrapper = mountComponent({ data: mockData, overallWinRate: 50 })
+      const config = wrapper.findComponent({ name: 'TrendLineChart' }).props('config')
+      const expected = winrateConfig({ overallWinRate: 50 })
 
-      expect(options.plugins.annotation).toEqual({})
-    })
-
-    it('does not include annotation when overallWinRate is not provided', () => {
-      const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const options = JSON.parse(chart.attributes('data-chart-options'))
-
-      expect(options.plugins.annotation).toEqual({})
-    })
-  })
-
-  describe('Chart data', () => {
-    it('passes correct data to chart', () => {
-      const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
-
-      expect(chartData.datasets).toHaveLength(1)
-      expect(chartData.datasets[0].data).toEqual([50.0, 55.0, 52.5])
-    })
-
-    it('formats dates as labels', () => {
-      const wrapper = mountComponent()
-      const chart = wrapper.find('[data-testid="mock-line-chart"]')
-      const chartData = JSON.parse(chart.attributes('data-chart-data'))
-
-      // Labels should be formatted dates
-      expect(chartData.labels).toHaveLength(3)
+      expect(config.dataKey).toBe(expected.dataKey)
+      expect(config.label).toBe(expected.label)
+      expect(config.yAxis.min).toBe(expected.yAxis.min)
+      expect(config.yAxis.max).toBe(expected.yAxis.max)
+      expect(typeof config.yAxis.formatter).toBe('function')
     })
   })
 })

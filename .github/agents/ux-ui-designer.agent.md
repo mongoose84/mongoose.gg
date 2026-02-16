@@ -51,6 +51,5 @@ Reference [architecture spec](../../.github/specs/architecture.spec.md) for avai
 - [ ] Data visualizations are readable and colorblind-safe
 - [ ] Empty states, loading states, and error states are handled
 - [ ] User flow is intuitive with minimal friction
-- [ ] Aligns with data actually available from the API
 
 ```
