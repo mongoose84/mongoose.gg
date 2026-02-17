@@ -1,0 +1,212 @@
+using MySqlConnector;
+using Mongoose.Api.Application.Interfaces;
+using Mongoose.Api.Application.Services;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core.Interfaces;
+using static Mongoose.Api.Application.DTOs.Solo.DeathPositionsDto;
+
+namespace Mongoose.Api.Infrastructure.Database.Repositories;
+
+/// <summary>
+/// Repository for death positions data (danger zone heatmap).
+/// Provides death coordinates, phase summary, and match metadata for visualization.
+/// </summary>
+public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepository
+{
+    private readonly ILogger<DeathPositionsRepository> _logger;
+    private readonly IQueryFilterBuilder _filterBuilder;
+
+    public DeathPositionsRepository(
+        IDbConnectionFactory factory,
+        ILogger<DeathPositionsRepository> logger,
+        IQueryFilterBuilder filterBuilder) : base(factory)
+    {
+        _logger = logger;
+        _filterBuilder = filterBuilder;
+    }
+
+    /// <inheritdoc />
+    public async Task<DeathPositionsResponse?> GetDeathPositionsAsync(
+        string puuid, 
+        string? queueType = null, 
+        string? timeRange = null, 
+        string? side = null)
+    {
+        queueType = _filterBuilder.ValidateQueueType(queueType);
+        var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
+        var effectiveTimeRange = string.IsNullOrWhiteSpace(timeRangeFilter.NormalizedTimeRange) 
+            ? "all" 
+            : timeRangeFilter.NormalizedTimeRange;
+
+        _logger.LogInformation(
+            "GetDeathPositionsAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
+            puuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
+
+        var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
+        var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        var sideFilter = BuildSideFilter(side);
+
+        try
+        {
+            // Fetch death positions
+            var deathPositions = await GetDeathPositionsInternalAsync(
+                puuid, queueFilter, timeFilter, sideFilter, timeRangeFilter);
+
+            // Fetch summary metrics
+            var summary = await GetDeathSummaryAsync(
+                puuid, queueFilter, timeFilter, sideFilter, timeRangeFilter);
+
+            var response = new DeathPositionsResponse(
+                Deaths: deathPositions.ToArray(),
+                TotalDeaths: summary.TotalDeaths,
+                MatchesAnalyzed: summary.MatchesAnalyzed,
+                PhaseSummary: new PhaseSummary(
+                    summary.EarlyDeaths,
+                    summary.MidDeaths,
+                    summary.LateDeaths,
+                    summary.VeryLateDeaths
+                )
+            );
+
+            _logger.LogInformation(
+                "GetDeathPositionsAsync success: puuid={Puuid}, totalDeaths={Deaths}, matches={Matches}",
+                puuid, summary.TotalDeaths, summary.MatchesAnalyzed);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, 
+                "GetDeathPositionsAsync error: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
+                puuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
+            throw;
+        }
+    }
+
+    private async Task<List<DeathPosition>> GetDeathPositionsInternalAsync(
+        string puuid,
+        string queueFilter,
+        string timeFilter,
+        string sideFilter,
+        TimeRangeFilter timeRangeFilter)
+    {
+        var sql = $@"
+            SELECT
+                pde.position_x,
+                pde.position_y,
+                pde.minute_mark,
+                pde.killer_champion_id,
+                pde.assist_count
+            FROM participant_death_events pde
+            INNER JOIN participants p ON p.id = pde.participant_id
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE p.puuid = @puuid
+                {queueFilter}
+                {timeFilter}
+                {sideFilter}
+            ORDER BY m.game_start_time DESC, pde.minute_mark ASC";
+
+        _logger.LogDebug(
+            "GetDeathPositionsInternalAsync SQL: {Sql} | puuid={Puuid}, seasonCode={SeasonCode}",
+            sql, puuid, timeRangeFilter.SeasonCode);
+
+        return await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
+
+            var results = new List<DeathPosition>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var x = reader.GetInt32(0);
+                var y = reader.GetInt32(1);
+                var minuteMark = reader.GetInt32(2);
+                var killerChampionId = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3);
+                var assistCount = reader.GetInt32(4);
+                var phase = ClassifyPhase(minuteMark);
+
+                results.Add(new DeathPosition(
+                    X: x,
+                    Y: y,
+                    MinuteMark: minuteMark,
+                    Phase: phase,
+                    KillerChampionId: killerChampionId,
+                    AssistCount: assistCount
+                ));
+            }
+
+            return results;
+        });
+    }
+
+    private async Task<(int TotalDeaths, int MatchesAnalyzed, int EarlyDeaths, int MidDeaths, int LateDeaths, int VeryLateDeaths)> 
+        GetDeathSummaryAsync(
+            string puuid,
+            string queueFilter,
+            string timeFilter,
+            string sideFilter,
+            TimeRangeFilter timeRangeFilter)
+    {
+        var sql = $@"
+            SELECT
+                COUNT(*) AS total_deaths,
+                COUNT(DISTINCT p.match_id) AS matches_analyzed,
+                SUM(CASE WHEN pde.minute_mark < 10 THEN 1 ELSE 0 END) AS early_deaths,
+                SUM(CASE WHEN pde.minute_mark BETWEEN 10 AND 19 THEN 1 ELSE 0 END) AS mid_deaths,
+                SUM(CASE WHEN pde.minute_mark BETWEEN 20 AND 29 THEN 1 ELSE 0 END) AS late_deaths,
+                SUM(CASE WHEN pde.minute_mark >= 30 THEN 1 ELSE 0 END) AS very_late_deaths
+            FROM participant_death_events pde
+            INNER JOIN participants p ON p.id = pde.participant_id
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE p.puuid = @puuid
+                {queueFilter}
+                {timeFilter}
+                {sideFilter}";
+
+        _logger.LogDebug(
+            "GetDeathSummaryAsync SQL: {Sql} | puuid={Puuid}, seasonCode={SeasonCode}",
+            sql, puuid, timeRangeFilter.SeasonCode);
+
+        return await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            await reader.ReadAsync(); // Aggregate queries always return exactly one row
+            
+            var totalDeaths = reader.GetInt32(0);
+            var matchesAnalyzed = reader.GetInt32(1);
+            var earlyDeaths = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
+            var midDeaths = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
+            var lateDeaths = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
+            var veryLateDeaths = reader.IsDBNull(5) ? 0 : reader.GetInt32(5);
+
+            return (totalDeaths, matchesAnalyzed, earlyDeaths, midDeaths, lateDeaths, veryLateDeaths);
+        });
+    }
+
+    private static string BuildSideFilter(string? side)
+    {
+        return side?.ToLowerInvariant() switch
+        {
+            "blue" => "AND p.team_id = 100",
+            "red" => "AND p.team_id = 200",
+            _ => "" // "all" or null
+        };
+    }
+
+    private static string ClassifyPhase(int minute)
+    {
+        return minute switch
+        {
+            < 10 => "early",
+            < 20 => "mid",
+            < 30 => "late",
+            _ => "veryLate"
+        };
+    }
+}

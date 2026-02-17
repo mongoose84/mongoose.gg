@@ -70,6 +70,10 @@ namespace Mongoose.Api.Application
             var soloMatchupsEndpoint = new SoloMatchupsEndpoint(basePath);
             _endpoints.Add(soloMatchupsEndpoint);
 
+            // Death Positions / Danger Zones (auth required)
+            var deathPositionsEndpoint = new DeathPositionsEndpoint(basePath);
+            _endpoints.Add(deathPositionsEndpoint);
+
             // Match Activity Heatmap (auth required)
             var matchActivityEndpoint = new MatchActivityEndpoint(basePath);
             _endpoints.Add(matchActivityEndpoint);

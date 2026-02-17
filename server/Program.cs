@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Mongoose.Api.Application;
+using Mongoose.Api.Application.Interfaces;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure;
@@ -53,6 +54,8 @@ builder.Services.AddScoped<ParticipantCheckpointsRepository>();
 builder.Services.AddScoped<ParticipantMetricsRepository>();
 builder.Services.AddScoped<TeamObjectivesRepository>();
 builder.Services.AddScoped<ParticipantObjectivesRepository>();
+builder.Services.AddScoped<IParticipantDeathEventsRepository, ParticipantDeathEventsRepository>();
+builder.Services.AddScoped<IDeathPositionsRepository, DeathPositionsRepository>();
 builder.Services.AddScoped<TeamMatchMetricsRepository>();
 builder.Services.AddScoped<TeamRoleResponsibilitiesRepository>();
 builder.Services.AddScoped<DuoMetricsRepository>();

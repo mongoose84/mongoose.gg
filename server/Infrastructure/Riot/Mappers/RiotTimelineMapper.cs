@@ -229,6 +229,84 @@ public static class RiotTimelineMapper
     }
 
     /// <summary>
+    /// Extracts death position data from timeline events for danger zone heatmap.
+    /// Returns a dictionary mapping participantId to a list of death position events.
+    /// Each event includes x/y coordinates, minute mark, killer champion ID, and assist count.
+    /// </summary>
+    public static Dictionary<int, List<DeathPositionData>> ExtractDeathPositions(JsonElement timelineRoot)
+    {
+        var result = new Dictionary<int, List<DeathPositionData>>();
+        var info = timelineRoot.GetProperty("info");
+
+        foreach (var frame in info.GetProperty("frames").EnumerateArray())
+        {
+            if (!frame.TryGetProperty("events", out var events)) continue;
+            if (events.ValueKind == JsonValueKind.Null) continue;
+
+            foreach (var evt in events.EnumerateArray())
+            {
+                if (evt.GetProperty("type").GetString() != "CHAMPION_KILL") continue;
+
+                var victimId = evt.GetProperty("victimId").GetInt32();
+                var timestamp = evt.GetProperty("timestamp").GetInt64();
+                var minute = (int)(timestamp / 60000);
+
+                // Extract position
+                var position = evt.TryGetProperty("position", out var pos) ? pos : default;
+                if (position.ValueKind == JsonValueKind.Undefined || position.ValueKind == JsonValueKind.Null)
+                    continue;
+
+                var posX = position.GetProperty("x").GetInt32();
+                var posY = position.GetProperty("y").GetInt32();
+
+                // Extract killer champion ID (may be null for execute deaths)
+                int? killerChampionId = null;
+                if (evt.TryGetProperty("killerId", out var killer))
+                {
+                    var killerId = killer.GetInt32();
+                    if (killerId > 0)
+                    {
+                        // killerId is the Riot participantId (1-10), we need the champion ID
+                        // This will be resolved by looking up the killer's champion in the match data
+                        // For now, store the killerId as placeholder - caller will resolve to championId
+                        killerChampionId = killerId;
+                    }
+                }
+
+                // Count assists
+                int assistCount = 0;
+                if (evt.TryGetProperty("assistingParticipantIds", out var assists))
+                {
+                    assistCount = assists.GetArrayLength();
+                }
+
+                if (!result.ContainsKey(victimId))
+                    result[victimId] = new List<DeathPositionData>();
+
+                result[victimId].Add(new DeathPositionData
+                {
+                    MinuteMark = minute,
+                    PositionX = posX,
+                    PositionY = posY,
+                    KillerParticipantId = killerChampionId,
+                    AssistCount = assistCount
+                });
+            }
+        }
+
+        return result;
+    }
+
+    public class DeathPositionData
+    {
+        public int MinuteMark { get; set; }
+        public int PositionX { get; set; }
+        public int PositionY { get; set; }
+        public int? KillerParticipantId { get; set; }  // Riot participantId (1-10), needs resolution to championId
+        public int AssistCount { get; set; }
+    }
+
+    /// <summary>
     /// Extracts team gold metrics from timeline frames for team_match_metrics table.
     /// </summary>
     public static Dictionary<int, TeamGoldMetrics> ExtractTeamGoldMetrics(

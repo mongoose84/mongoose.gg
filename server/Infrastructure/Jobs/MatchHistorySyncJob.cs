@@ -151,6 +151,7 @@ public class MatchHistorySyncJob : BackgroundService
         var partMetricsRepo = services.GetRequiredService<ParticipantMetricsRepository>();
         var teamObjectivesRepo = services.GetRequiredService<TeamObjectivesRepository>();
         var partObjectivesRepo = services.GetRequiredService<ParticipantObjectivesRepository>();
+        var deathEventsRepo = services.GetRequiredService<IParticipantDeathEventsRepository>();
         var teamMetricsRepo = services.GetRequiredService<TeamMatchMetricsRepository>();
         var duoMetricsRepo = services.GetRequiredService<DuoMetricsRepository>();
         var teamRoleRepo = services.GetRequiredService<TeamRoleResponsibilitiesRepository>();
@@ -177,7 +178,7 @@ public class MatchHistorySyncJob : BackgroundService
         {
             return await SyncAccountMatchesInternalAsync(
                 riotApiClient, riotAccountsRepo, matchesRepo, participantsRepo, checkpointsRepo,
-                partMetricsRepo, teamObjectivesRepo, partObjectivesRepo, teamMetricsRepo, duoMetricsRepo,
+                partMetricsRepo, teamObjectivesRepo, partObjectivesRepo, deathEventsRepo, teamMetricsRepo, duoMetricsRepo,
                 teamRoleRepo, seasonsRepo, broadcaster, account, ct);
         }
         finally
@@ -206,6 +207,7 @@ public class MatchHistorySyncJob : BackgroundService
         ParticipantMetricsRepository partMetricsRepo,
         TeamObjectivesRepository teamObjectivesRepo,
         ParticipantObjectivesRepository partObjectivesRepo,
+        IParticipantDeathEventsRepository deathEventsRepo,
         TeamMatchMetricsRepository teamMetricsRepo,
         DuoMetricsRepository duoMetricsRepo,
         TeamRoleResponsibilitiesRepository teamRoleRepo,
@@ -294,6 +296,7 @@ public class MatchHistorySyncJob : BackgroundService
                     partMetricsRepo,
                     checkpointsRepo,
                     partObjectivesRepo,
+                    deathEventsRepo,
                     teamMetricsRepo,
                     teamRoleRepo,
                     seasonsRepo);
@@ -522,6 +525,7 @@ public class MatchHistorySyncJob : BackgroundService
         ParticipantMetricsRepository partMetricsRepo,
         ParticipantCheckpointsRepository checkpointsRepo,
         ParticipantObjectivesRepository partObjectivesRepo,
+        IParticipantDeathEventsRepository deathEventsRepo,
         TeamMatchMetricsRepository teamMetricsRepo,
         TeamRoleResponsibilitiesRepository teamRoleRepo,
         SeasonsRepository seasonsRepo)
@@ -542,6 +546,7 @@ public class MatchHistorySyncJob : BackgroundService
         var participantIdMap = new Dictionary<int, long>(); // Riot participantId (1-10) -> DB id
         var participantTeams = new Dictionary<int, int>();
         var participantRoles = new Dictionary<int, string?>();
+        var participantChampions = new Dictionary<int, int>(); // Riot participantId (1-10) -> championId
 
         var info = matchRoot.GetProperty("info");
         var gameDurationSec = info.GetProperty("gameDuration").GetInt32();
@@ -569,6 +574,7 @@ public class MatchHistorySyncJob : BackgroundService
             participantIdMap[riotParticipantId] = dbId;
             participantTeams[riotParticipantId] = participant.TeamId;
             participantRoles[riotParticipantId] = participant.Role;
+            participantChampions[riotParticipantId] = participant.ChampionId;
 
             // Map and persist participant metrics (info-derived only)
             var teamTotalKills = teamKills[participant.TeamId];
@@ -633,6 +639,41 @@ public class MatchHistorySyncJob : BackgroundService
                     TowersParticipated = data.Towers,
                     CreatedAt = DateTime.UtcNow
                 });
+            }
+
+            // Death position events (for danger zone heatmap)
+            var deathPositions = RiotTimelineMapper.ExtractDeathPositions(timelineRoot.Value);
+            foreach (var (riotPid, positions) in deathPositions)
+            {
+                if (!participantIdMap.TryGetValue(riotPid, out var dbPid)) continue;
+                
+                var deathEvents = new List<ParticipantDeathEvent>();
+                foreach (var pos in positions)
+                {
+                    // Resolve killer championId from killer participantId
+                    int? killerChampionId = null;
+                    if (pos.KillerParticipantId.HasValue && 
+                        participantChampions.TryGetValue(pos.KillerParticipantId.Value, out var killerChampId))
+                    {
+                        killerChampionId = killerChampId;
+                    }
+
+                    deathEvents.Add(new ParticipantDeathEvent
+                    {
+                        ParticipantId = dbPid,
+                        MinuteMark = pos.MinuteMark,
+                        PositionX = pos.PositionX,
+                        PositionY = pos.PositionY,
+                        KillerChampionId = killerChampionId,
+                        AssistCount = pos.AssistCount,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                
+                if (deathEvents.Count > 0)
+                {
+                    await deathEventsRepo.InsertBatchAsync(deathEvents);
+                }
             }
 
             // Team match metrics (gold leads)
