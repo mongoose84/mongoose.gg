@@ -126,7 +126,24 @@
       </TrendChartCard>
     </template>
 
-    <!-- Zone 4 & 5: Not rendered in v1 -->
+    <!-- Zone 4: Deep Analysis -->
+    <template #deep-analysis>
+      <BaseCard title="Danger Zones" subtitle="Where you die most on the map" data-testid="danger-zones-card">
+        <DangerZonesMap
+          :deaths="deathPositionsData?.deaths ?? []"
+          :total-deaths="deathPositionsData?.totalDeaths ?? 0"
+          :matches-analyzed="deathPositionsData?.matchesAnalyzed ?? 0"
+          :phase-summary="deathPositionsData?.phaseSummary ?? { early: 0, mid: 0, late: 0, veryLate: 0 }"
+          :loading="deathPositionsLoading"
+          :error="deathPositionsError"
+          :queue-type="queueFilter"
+          :time-range="timeRange"
+          @update:side="onSideFilterChange"
+        />
+      </BaseCard>
+    </template>
+
+    <!-- Zone 5: Not rendered in v1 -->
   </AnalysisLayout>
 </template>
 
@@ -135,8 +152,8 @@ import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend, getDeathsTrend, getDragonParticipationTrend, getVisionScoreTrend } from '../services/authApi'
-import { BaseQueueToggle, BaseTimeRangeSelect } from '../components/base'
+import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend, getDeathsTrend, getDragonParticipationTrend, getVisionScoreTrend, getDeathPositions } from '../services/authApi'
+import { BaseQueueToggle, BaseTimeRangeSelect, BaseCard } from '../components/base'
 import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
 import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
 import TrendChartCard from '../components/solo/TrendChartCard.vue'
@@ -146,6 +163,7 @@ import CsPerMinuteChart from '../components/solo/CsPerMinuteChart.vue'
 import DeathsChart from '../components/solo/DeathsChart.vue'
 import DragonParticipationChart from '../components/solo/DragonParticipationChart.vue'
 import VisionChart from '../components/solo/VisionChart.vue'
+import DangerZonesMap from '../components/solo/DangerZonesMap.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
@@ -171,6 +189,12 @@ const dragonParticipationSummary = ref({ averageParticipation: 0, overallAverage
 const visionScoreTrendData = ref([])
 const visionScoreLoading = ref(false)
 const visionScoreSummary = ref({ averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' })
+
+// Death positions data for danger zones
+const deathPositionsData = ref(null)
+const deathPositionsLoading = ref(false)
+const deathPositionsError = ref(null)
+const sideFilter = ref('all')
 
 // Expand state for charts (default: collapsed = last 20 games)
 const winrateExpanded = ref(false)
@@ -333,6 +357,35 @@ async function fetchVisionScoreTrend() {
   }
 }
 
+// Fetch death positions data for danger zones
+async function fetchDeathPositions() {
+  if (!authStore.userId) return
+
+  deathPositionsLoading.value = true
+  deathPositionsError.value = null
+  try {
+    const result = await getDeathPositions(
+      authStore.userId,
+      queueFilter.value,
+      timeRange.value,
+      sideFilter.value
+    )
+    deathPositionsData.value = result
+  } catch (err) {
+    console.error('Failed to fetch death positions:', err)
+    deathPositionsError.value = err.message
+    deathPositionsData.value = null
+  } finally {
+    deathPositionsLoading.value = false
+  }
+}
+
+// Handle side filter change (server-side re-fetch)
+function onSideFilterChange(newSide) {
+  sideFilter.value = newSide
+  fetchDeathPositions()
+}
+
 // Handle expand toggle for winrate chart
 function handleWinrateExpand(expanded) {
   winrateExpanded.value = expanded
@@ -378,7 +431,8 @@ async function fetchAllData() {
     fetchCsPerMinuteTrend(),
     fetchDeathsTrend(),
     fetchDragonParticipationTrend(),
-    fetchVisionScoreTrend()
+    fetchVisionScoreTrend(),
+    fetchDeathPositions()
   ])
 }
 
