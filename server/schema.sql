@@ -250,6 +250,21 @@ CREATE TABLE IF NOT EXISTS participant_objectives (
     CONSTRAINT fk_participant_objectives_participant FOREIGN KEY (participant_id) REFERENCES participants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- DEATH POSITION EVENTS (for danger zone heatmap)
+CREATE TABLE IF NOT EXISTS participant_death_events (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    participant_id BIGINT UNSIGNED NOT NULL,
+    minute_mark INT NOT NULL,
+    position_x INT NOT NULL,
+    position_y INT NOT NULL,
+    killer_champion_id INT NULL,
+    assist_count INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_participant_id (participant_id),
+    KEY idx_minute_mark (minute_mark),
+    CONSTRAINT fk_death_events_participant FOREIGN KEY (participant_id) REFERENCES participants(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- DUO ANALYTICS
 CREATE TABLE IF NOT EXISTS duo_metrics (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
