@@ -122,9 +122,15 @@ defineProps({
   }
 }
 
-/* Zone 4: Deep Analysis */
+/* Zone 4: Deep Analysis — half-width card, left-aligned */
 .zone-deep-analysis {
-  /* Future: styling for danger zones, champion matrix */
+  max-width: 50%;
+}
+
+@media (max-width: 768px) {
+  .zone-deep-analysis {
+    max-width: 100%;
+  }
 }
 
 /* Zone 5: Goals */

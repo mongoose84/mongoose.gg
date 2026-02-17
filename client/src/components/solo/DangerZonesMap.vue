@@ -152,7 +152,7 @@ const mapLoaded = ref(false)
 
 // Constants
 const MAP_SIZE = 15000 // Riot API coordinate max
-const mapImageSrc = '/assets/images/summoners-rift-minimap.png'
+const mapImageSrc = '/assets/images/summoners-rift-minimap.jpg'
 
 // Side filter options
 const sideOptions = [
@@ -233,16 +233,6 @@ const phaseSegments = computed(() => {
   ].filter(segment => segment.count > 0)
 })
 
-const heatPoints = computed(() => {
-  if (!mapLoaded.value || !heatCanvas.value) return []
-  
-  const canvas = heatCanvas.value
-  return filteredDeaths.value.map(death => {
-    const coords = riotToCanvas(death.x, death.y, canvas.width, canvas.height)
-    return [coords.x, coords.y, 1] // intensity = 1 for all deaths
-  })
-})
-
 // Methods
 function selectPhase(phase) {
   selectedPhase.value = phase
@@ -282,16 +272,27 @@ function riotToCanvas(x, y, canvasWidth, canvasHeight) {
 }
 
 function renderHeatmap() {
-  if (!heatCanvas.value || !mapLoaded.value || heatPoints.value.length === 0) {
+  if (!heatCanvas.value || !mapLoaded.value) {
     return
   }
-  
+
   const canvas = heatCanvas.value
-  const ctx = canvas.getContext('2d')
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
   if (!ctx) return
-  
-  // Clear canvas
+
+  // Compute points from filteredDeaths using current (live) canvas dimensions
+  // This avoids stale coordinates from a computed that caches non-reactive canvas.width/height
+  const points = filteredDeaths.value.map(death => {
+    const coords = riotToCanvas(death.x, death.y, canvas.width, canvas.height)
+    return [coords.x, coords.y, 1]
+  })
+
+  // Always clear canvas, even when there are no points (e.g. switching to an empty phase filter)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+  if (points.length === 0) {
+    return
+  }
   
   // Initialize simpleheat
   const heat = simpleheat(canvas)
@@ -306,22 +307,27 @@ function renderHeatmap() {
     1.0: 'rgba(255, 0, 0, 0.9)'
   })
   
-  heat.data(heatPoints.value)
+  heat.data(points)
   heat.draw()
 }
 
 // Watchers
-watch(heatPoints, () => {
-  if (mapLoaded.value) {
-    renderHeatmap()
-  }
-})
 
-watch(() => props.deaths, () => {
+// Re-render when filtered deaths change (covers both new data from API and phase filter toggles)
+watch(filteredDeaths, () => {
   if (mapLoaded.value) {
     nextTick(() => {
       renderHeatmap()
     })
+  }
+})
+
+// Reset mapLoaded when loading starts — the map content unmounts (v-if chain),
+// so the canvas will be a new DOM element when it re-mounts.
+// This prevents rendering with stale/default canvas dimensions before onMapLoaded fires.
+watch(() => props.loading, (isLoading) => {
+  if (isLoading) {
+    mapLoaded.value = false
   }
 })
 

@@ -284,6 +284,48 @@ describe('DangerZonesMap', () => {
     })
   })
 
+  describe('Loading Resets Map State', () => {
+    it('resets internal map state when loading starts so canvas is re-initialized on re-mount', async () => {
+      // Mount with data so map content renders
+      const wrapper = mountComponent({
+        deaths: mockDeaths,
+        totalDeaths: 5,
+        matchesAnalyzed: 10,
+        phaseSummary: mockPhaseSummary
+      })
+
+      // Simulate image load to set mapLoaded = true
+      const img = wrapper.find('.minimap-image')
+      Object.defineProperty(img.element, 'clientWidth', { value: 512, writable: false })
+      Object.defineProperty(img.element, 'clientHeight', { value: 512, writable: false })
+      await img.trigger('load')
+      await nextTick()
+
+      // Now set loading = true (simulates side filter server re-fetch)
+      await wrapper.setProps({ loading: true })
+      await nextTick()
+
+      // Map content should be unmounted, loading skeleton shown
+      expect(wrapper.find('[data-testid="loading-state"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="map-container"]').exists()).toBe(false)
+
+      // When loading completes with new data, the image @load must fire again
+      // to properly size the new canvas before rendering the heatmap
+      await wrapper.setProps({
+        loading: false,
+        deaths: mockDeaths.slice(0, 2),
+        totalDeaths: 2,
+        phaseSummary: { early: 2, mid: 0, late: 0, veryLate: 0 }
+      })
+      await nextTick()
+
+      // Map content should re-mount
+      expect(wrapper.find('[data-testid="map-container"]').exists()).toBe(true)
+      // New canvas element exists, image needs to load again
+      expect(wrapper.find('[data-testid="heat-overlay"]').exists()).toBe(true)
+    })
+  })
+
   describe('Coordinate Normalization', () => {
     it('normalizes riot coordinates to canvas coordinates', () => {
       const wrapper = mountComponent({
