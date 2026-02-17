@@ -17,6 +17,7 @@ As a solo player, I want to see where on the Summoner's Rift map I die most freq
 
 ### Additional User Stories
 - As a solo player, I want to filter death positions by game phase (0–10, 10–20, 20–30, 30+ minutes) so that I can distinguish laning deaths from teamfight deaths
+- As a solo player, I want to filter by map side (blue side vs red side) so that I can analyze side-specific death patterns
 - As a solo player, I want to filter by queue type and time range so that I see recent and relevant data
 - As a solo player, I want to see death positions from enough games (last 20+) so that meaningful patterns emerge
 
@@ -27,8 +28,8 @@ As a solo player, I want to see where on the Summoner's Rift map I die most freq
 2. Extract death position data from `CHAMPION_KILL` timeline events during match sync
 3. Store death events for ALL 10 participants in each match (not just the syncing player) to support future Duo/Team features
 4. Serve aggregated death positions for a player across their recent matches
-5. Support filtering by game phase (early: 0–10, mid: 10–20, late: 20–30, very late: 30+), queue type, and time range
-6. Return death count per match for density context
+5. Support filtering by queue type, time range, and map side (blue/red/all). Phase filtering is client-side.
+6. Return death count per match for density context and phase summary for UI badges
 7. New matches should automatically have death events extracted — no backfill required initially (only applies to matches synced after this feature ships)
 
 ### Non-Functional Requirements
@@ -197,14 +198,15 @@ public interface IParticipantDeathEventsRepository
 public interface IDeathPositionsRepository
 {
     Task<DeathPositionsResponse?> GetDeathPositionsAsync(
-        string puuid, string? queueType = null, string? timeRange = null, string? phase = null);
+        string puuid, string? queueType = null, string? timeRange = null, string? side = null);
 }
 ```
 
 **Implementation**: `server/Infrastructure/Database/Repositories/DeathPositionsRepository.cs`
 - Extends `RepositoryBase`, injects `IQueryFilterBuilder`
 - Joins `participant_death_events` → `participants` → `matches` for filtering
-- Optional `phase` filter adds `AND pde.minute_mark < 10` / `BETWEEN 10 AND 19` / `BETWEEN 20 AND 29` / `>= 30`
+- No phase filtering in SQL — returns all death positions with minute_mark for client-side phase filtering
+- Side filtering: `side=blue` adds `AND p.team_id = 100`, `side=red` adds `AND p.team_id = 200`, `side=all` or null adds no team filter
 
 ### API Contract
 
@@ -215,7 +217,9 @@ public interface IDeathPositionsRepository
 |-----------|------|----------|---------|--------|
 | `queueType` | string | No | `all` | `ranked_solo`, `ranked_flex`, `normal`, `aram`, `all` |
 | `timeRange` | string | No | `null` (all time) | `1w`, `1m`, `3m`, `6m`, `current_season`, `last_season` |
-| `phase` | string | No | `null` (all phases) | `early` (0–10), `mid` (10–20), `late` (20–30), `very_late` (30+) |
+| `side` | string | No | `all` | `blue`, `red`, `all` |
+
+**Note**: Phase filtering (early/mid/late/very_late) is handled **client-side** for instant toggle UX. Side filtering is **server-side** since it reduces data volume and allows side-specific pattern analysis.
 
 **Response (200)**:
 ```json
@@ -283,7 +287,7 @@ public static class DeathPositionsDto
 |--------|-----------|
 | 401 | Not authenticated |
 | 403 | UserId mismatch |
-| 400 | Invalid userId format or invalid phase value |
+| 400 | Invalid userId format or invalid side value |
 | 404 | No linked Riot account |
 | 200 | Empty `deaths` array if no death events stored yet |
 
@@ -299,13 +303,15 @@ Follow existing endpoint patterns:
 
 1. **Endpoint** (`DeathPositionsEndpoint`): implements `IEndpoint`, sealed class
    - Route: `basePath + "/solo/death-positions/{userId}"`
-   - Standard auth → parse → verify → resolve PUUID → validate phase param → call repository → return DTO
-   - Validate `phase` param: must be one of `early`, `mid`, `late`, `very_late`, or null
+   - Standard auth → parse → verify → resolve PUUID → validate side param → call repository → return DTO
+   - Validate `side` param: must be one of `blue`, `red`, `all`, or null (defaults to `all`)
+   - No phase parameter validation (phase filtering is client-side)
 
 2. **Read Repository** (`DeathPositionsRepository`): extends `RepositoryBase`
    - SQL query joining `participant_death_events pde` → `participants p` → `matches m`
-   - WHERE `p.puuid = @puuid` + queue/time/phase filters
-   - Phase filter mapping: `early` → `pde.minute_mark < 10`, `mid` → `BETWEEN 10 AND 19`, `late` → `BETWEEN 20 AND 29`, `very_late` → `>= 30`
+   - WHERE `p.puuid = @puuid` + queue/time/side filters (no phase filter)
+   - Side filter: `blue` → `p.team_id = 100`, `red` → `p.team_id = 200`, `all` → no filter
+   - Returns all death positions with minute_mark included for client-side filtering
    - Also compute `matchesAnalyzed` (COUNT DISTINCT p.match_id) and `phaseSummary` in the same query or a second query
 
 3. **Write Repository** (`ParticipantDeathEventsRepository`): extends `RepositoryBase`
@@ -329,8 +335,18 @@ INNER JOIN matches m ON m.match_id = p.match_id
 WHERE p.puuid = @puuid
     {queueFilter}
     {timeFilter}
-    {phaseFilter}
+    {sideFilter}
 ORDER BY m.game_start_time DESC, pde.minute_mark ASC
+```
+
+**Side filter logic**:
+```csharp
+string sideFilter = side switch
+{
+    "blue" => "AND p.team_id = 100",
+    "red" => "AND p.team_id = 200",
+    _ => "" // "all" or null
+};
 ```
 
 Summary query:
@@ -348,6 +364,7 @@ INNER JOIN matches m ON m.match_id = p.match_id
 WHERE p.puuid = @puuid
     {queueFilter}
     {timeFilter}
+    {sideFilter}
 ```
 
 ## Testing Strategy
@@ -360,10 +377,10 @@ WHERE p.puuid = @puuid
 - [ ] `GetDeathPositions_Returns403_WhenAccessingOtherUsersData`
 - [ ] `GetDeathPositions_Returns404_WhenNoRiotAccountLinked`
 - [ ] `GetDeathPositions_ReturnsEmptyArray_WhenNoDeathEventsStored`
-- [ ] `GetDeathPositions_SupportsPhaseFilter` — verify phase filtering returns correct subset
 - [ ] `GetDeathPositions_SupportsQueueFilter`
 - [ ] `GetDeathPositions_SupportsTimeRangeFilter`
-- [ ] `GetDeathPositions_Returns400_ForInvalidPhase`
+- [ ] `GetDeathPositions_SupportsSideFilter` — verify blue/red/all filtering works correctly
+- [ ] `GetDeathPositions_Returns400_ForInvalidSide`
 
 **Fake**: Add `FakeDeathPositionsRepository` to `TestWebApplicationFactory.cs`.
 

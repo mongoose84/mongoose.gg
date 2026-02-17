@@ -1,6 +1,5 @@
 # Solo Page Feature Research: 5 Scientifically-Backed Additions
 
-> **Research Date**: June 2025  
 > **Purpose**: Identify high-value features to add to the Solo Dashboard beyond existing trend charts  
 > **Current State**: 6 trend charts (winrate, CS/min, gold@15, deaths, dragon participation, vision score)  
 > **Methodology**: Academic literature review + feasibility assessment against the Riot Games API v5 + UX analysis

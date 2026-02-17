@@ -12,6 +12,7 @@ As a solo player, I want to see a heatmap of where I die on the Summoner's Rift 
 
 ### Additional User Stories
 - As a solo player, I want to filter the heatmap by game phase (early/mid/late) so that I can distinguish laning deaths from teamfight deaths
+- As a solo player, I want to filter the heatmap by map side (blue side vs red side) so that I can analyze side-specific death patterns and identify if I die more on one side
 - As a solo player, I want to see a summary bar showing death counts per phase so that I understand my temporal death distribution
 - As a solo player, I want the heatmap to respect my queue and time range filters so that I see relevant data
 - As a solo player, I want to see how many matches contributed to the heatmap so that I know if the data is meaningful
@@ -22,13 +23,13 @@ As a solo player, I want to see a heatmap of where I die on the Summoner's Rift 
 1. Render a Summoner's Rift minimap as the background (static image asset)
 2. Overlay a canvas-based heatmap of death positions using Gaussian kernel density estimation
 3. Normalize Riot API coordinates (0–15000 range) to minimap image pixel space
-4. Provide phase filter buttons: All, Early (0–10), Mid (10–20), Late (20–30), Very Late (30+)
-5. Show a phase summary bar with death counts per phase (already returned by API)
-6. Display "matches analyzed" and "total deaths" as context text
-7. Show loading skeleton while data fetches
-8. Show empty state when no death position data exists (e.g., new account, no matches synced since feature shipped)
-9. Respect existing queue and time range filters from the Solo page
-10. Handle blue/red side normalization (optional v1 enhancement — not required for initial release, coordinates are absolute)
+4. Provide phase filter buttons: All, Early (0–10), Mid (10–20), Late (20–30), Very Late (30+) — client-side filtering
+5. Provide side filter buttons: All Deaths, Blue Side, Red Side — server-side filtering (re-fetches data)
+6. Show a phase summary bar with death counts per phase (already returned by API)
+7. Display "matches analyzed" and "total deaths" as context text
+8. Show loading skeleton while data fetches
+9. Show empty state when no death position data exists (e.g., new account, no matches synced since feature shipped)
+10. Respect existing queue and time range filters from the Solo page
 
 ### Non-Functional Requirements
 - **Performance**: Heatmap should render in < 200ms for up to 1000 death points
@@ -74,7 +75,20 @@ As a solo player, I want to see a heatmap of where I die on the Summoner's Rift 
 
     <!-- Content -->
     <div v-else class="map-content">
-      <!-- Phase filter buttons -->
+      <!-- Side filter buttons (server-side) -->
+      <div class="side-filters" data-testid="side-filters">
+        <button
+          v-for="option in sideOptions"
+          :key="option.value"
+          :class="['side-btn', { active: selectedSide === option.value }]"
+          :data-testid="`side-${option.value}`"
+          @click="selectSide(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+
+      <!-- Phase filter buttons (client-side) -->
       <div class="phase-filters" data-testid="phase-filters">
         <button
           v-for="phase in phaseOptions"
@@ -139,26 +153,37 @@ As a solo player, I want to see a heatmap of where I die on the Summoner's Rift 
 | `matchesAnalyzed` | `Number` | `0` | Number of matches contributing data |
 | `phaseSummary` | `Object` | `{ early: 0, mid: 0, late: 0, veryLate: 0 }` | Death counts per phase |
 | `loading` | `Boolean` | `false` | Loading state |
+| `queueType` | `String` | `'all'` | Current queue filter (for side filter re-fetch) |
+| `timeRange` | `String` | `null` | Current time range filter (for side filter re-fetch) |
+
+**Emits**:
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `update:side` | `String` (`'all'`, `'blue'`, `'red'`) | Emitted when side filter changes (parent re-fetches data) |
 
 **Internal State**:
-- `selectedPhase` — `ref('all')` — current phase filter (local to component, not API filter. Filters the `deaths` prop client-side for instant switching)
+- `selectedPhase` — `ref('all')` — current phase filter (local to component, client-side. Filters the `deaths` prop client-side for instant switching)
+- `selectedSide` — `ref('all')` — current side filter (emits to parent for server-side re-fetch)
 - `mapLoaded` — `ref(false)` — whether the minimap image has loaded
 
 **Key Computed**:
 - `hasData` — `deaths.length > 0`
 - `filteredDeaths` — deaths filtered by `selectedPhase` (all, early, mid, late, very_late)
 - `phaseOptions` — array of `{ value, label, count }` for phase filter buttons
+- `sideOptions` — array of `{ value, label }` for side filter buttons: `[{ value: 'all', label: 'All Deaths' }, { value: 'blue', label: 'Blue Side' }, { value: 'red', label: 'Red Side' }]`
 - `phaseSegments` — computed from `phaseSummary` for the stacked bar (with colors and width percentages)
 - `heatPoints` — `filteredDeaths` mapped to canvas pixel coordinates `[canvasX, canvasY, intensity]`
 
 **Methods**:
-- `selectPhase(phase)` — sets `selectedPhase`, re-renders heatmap
+- `selectPhase(phase)` — sets `selectedPhase`, re-renders heatmap (client-side)
+- `selectSide(side)` — emits `update:side` event to parent (triggers server-side re-fetch)
 - `onMapLoaded()` — sets `mapLoaded`, initializes canvas size and draws initial heatmap
 - `renderHeatmap()` — uses `simpleheat` to draw heat points on canvas
 
 **Watchers**:
 - Watch `filteredDeaths` → call `renderHeatmap()`
-- Watch `deaths` (prop) → re-render when parent provides new data (filter/time range change)
+- Watch `deaths` (prop) → re-render when parent provides new data (filter/time range/side change)
+- Watch `selectedSide` → reset `selectedPhase` to 'all' (when side changes, reset phase filter)
 
 ### Coordinate Normalization
 
@@ -236,6 +261,9 @@ Extend the Zone 4 `#deep-analysis` slot to include both the Radar Chart and Dang
         :matches-analyzed="deathPositionsData?.matchesAnalyzed ?? 0"
         :phase-summary="deathPositionsData?.phaseSummary ?? { early: 0, mid: 0, late: 0, veryLate: 0 }"
         :loading="deathPositionsLoading"
+        :queue-type="queueFilter"
+        :time-range="timeRange"
+        @update:side="onSideFilterChange"
       />
     </BaseCard>
   </div>
@@ -249,12 +277,18 @@ import { getDeathPositions } from '../services/authApi'
 
 const deathPositionsData = ref(null)
 const deathPositionsLoading = ref(false)
+const sideFilter = ref('all')
 
 async function fetchDeathPositions() {
   if (!authStore.userId) return
   deathPositionsLoading.value = true
   try {
-    deathPositionsData.value = await getDeathPositions(authStore.userId, queueFilter.value, timeRange.value)
+    deathPositionsData.value = await getDeathPositions(
+      authStore.userId, 
+      queueFilter.value, 
+      timeRange.value,
+      sideFilter.value
+    )
   } catch (err) {
     console.error('Failed to fetch death positions:', err)
     deathPositionsData.value = null
@@ -262,11 +296,16 @@ async function fetchDeathPositions() {
     deathPositionsLoading.value = false
   }
 }
+
+function onSideFilterChange(newSide) {
+  sideFilter.value = newSide
+  fetchDeathPositions()
+}
 ```
 
 Add `fetchDeathPositions()` to the `fetchAllData()` `Promise.all` array.
 
-**Note**: The phase filter is **client-side only** — all death positions are fetched at once (no phase param to API) and filtered in the component for instant switching. This avoids re-fetching on every phase toggle.
+**Note**: The phase filter is **client-side only** — all death positions are fetched at once (no phase param to API) and filtered in the component for instant switching. The **side filter is server-side** — it reduces data volume by filtering blue/red team deaths and emits to the parent for re-fetching.
 
 ### API Service Function
 
@@ -278,12 +317,14 @@ Add `fetchDeathPositions()` to the `fetchAllData()` `Promise.all` array.
  * @param {number} userId - User ID
  * @param {string} queueType - Optional queue filter
  * @param {string} [timeRange] - Optional time range
+ * @param {string} [side] - Optional side filter ('all', 'blue', 'red')
  * @returns {Promise<Object|null>} Death positions data or null
  */
-export async function getDeathPositions(userId, queueType = 'all', timeRange) {
+export async function getDeathPositions(userId, queueType = 'all', timeRange, side = 'all') {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') params.append('queueType', queueType)
   if (timeRange) params.append('timeRange', timeRange)
+  if (side && side !== 'all') params.append('side', side)
 
   const endpoint = `/solo/death-positions/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -313,6 +354,31 @@ Source options:
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+}
+
+.side-filters {
+  display: flex;
+  gap: var(--spacing-xs);
+  justify-content: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.side-btn {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--background-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.side-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
 }
 
 .map-container {
@@ -421,11 +487,14 @@ Test cases:
 - [ ] `renders map when data is provided` — mount with deaths prop, verify map image and canvas exist
 - [ ] `shows loading state` — mount with `loading: true`, verify skeleton visible
 - [ ] `shows empty state when no data` — mount with empty deaths, verify empty message
+- [ ] `renders side filter buttons` — verify 3 buttons (All Deaths, Blue Side, Red Side)
+- [ ] `emits update:side event when side button clicked` — click "Blue Side", verify event emitted with 'blue' payload
 - [ ] `renders phase filter buttons` — verify 5 buttons (All, Early, Mid, Late, Very Late)
 - [ ] `filters deaths client-side when phase button clicked` — click "Early", verify only early-phase deaths are in filteredDeaths
 - [ ] `shows phase summary bar` — verify phase segments render with correct colors
 - [ ] `displays context text with death count and match count` — verify text content
 - [ ] `normalizes coordinates correctly` — test `riotToCanvas` function with known values (center of map ~7500,7500 should map to ~center of canvas)
+- [ ] `resets phase filter when side changes` — set phase to "Early", change side, verify phase resets to "All"
 
 **File**: `client/test/unit/views/SoloPage.spec.js` (extend)
 - [ ] `renders Zone 4 with both radar chart and danger zones map` — verify both cards present
@@ -433,13 +502,16 @@ Test cases:
 ### Integration Tests (Playwright)
 **File**: Extend `client/e2e/solo-dashboard.spec.js`
 - [ ] `danger zones map loads on solo page` — verify `[data-testid="danger-zones-map"]` visible
-- [ ] `phase filter buttons work` — click phase button, verify canvas re-renders (or check button active state)
+- [ ] `side filter buttons work` — click side button, verify loading state appears (refetch)
+- [ ] `phase filter buttons work` — click phase button, verify canvas re-renders instantly (no loading state)
 
 ## Validation Criteria
 Feature is considered complete when:
 - [ ] Minimap image renders with heatmap overlay
 - [ ] Death positions plot at correct map locations (verified visually with known coordinates)
+- [ ] Side filter buttons trigger server-side re-fetch with correct side parameter
 - [ ] Phase filter buttons toggle instantly (client-side filtering)
+- [ ] Phase filter resets to "All" when side filter changes
 - [ ] Phase summary bar shows correct death distribution with colored segments
 - [ ] Loading skeleton displays while data fetches
 - [ ] Empty state shows when no data available
@@ -466,7 +538,7 @@ Feature is considered complete when:
 | Sparse heatmap with few games | Medium | Medium | Show minimum games warning: "Play 20+ games for accurate danger zones". Even sparse data provides value. |
 | Minimap image sizing/DPI issues | Low | Medium | Use CSS `object-fit: contain` and match canvas size to rendered image size via `onMapLoaded` callback. |
 | Canvas rendering performance | Low | Low | `simpleheat` handles 10K+ points efficiently. Cap at 1000 most recent deaths if needed. |
-| Blue/red side normalization | Low | Low | Defer to v2. Most deaths happen in neutral zones (river, jungle). Side-specific analysis is a future enhancement. |
+| Side imbalance (mostly play one side) | Low | Medium | Users play both sides roughly equally in ranked. If data is sparse for one side, the empty heatmap still provides insight. |
 
 ## References
 - [Solo Page Graph Alternatives](../../../docs/solo-page-graph-alternatives.md) — Danger Zones section (UX analysis, implementation options)
