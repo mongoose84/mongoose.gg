@@ -543,6 +543,36 @@ export async function getVisionScoreTrend(userId, queueType = 'all', timeRange, 
   return parseResponse(response, 'Failed to get vision score trend')
 }
 
+/**
+ * Get death position data for danger zone heatmap
+ * @param {number} userId - User ID
+ * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
+ * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
+ * @param {string} [side] - Optional side filter (all, blue, red)
+ * @returns {Promise<Object>} Death positions data with deaths array and phase summary
+ */
+export async function getDeathPositions(userId, queueType = 'all', timeRange, side = 'all') {
+  const params = new URLSearchParams()
+  if (queueType && queueType !== 'all') {
+    params.append('queueType', queueType)
+  }
+  if (timeRange) {
+    params.append('timeRange', timeRange)
+  }
+  if (side && side !== 'all') {
+    params.append('side', side)
+  }
+
+  const endpoint = `/solo/death-positions/${userId}${params.toString() ? '?' + params.toString() : ''}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
+
+  if (response.status === 404) {
+    return null // No data found
+  }
+
+  return parseResponse(response, 'Failed to get death positions')
+}
+
 // ============ Champion Matchups API ============
 
 /**
