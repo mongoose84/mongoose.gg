@@ -10,6 +10,7 @@ using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Security;
 using Mongoose.Api.Infrastructure.Email;
 using Mongoose.Api.Application.DTOs;
+using Mongoose.Api.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
 using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;

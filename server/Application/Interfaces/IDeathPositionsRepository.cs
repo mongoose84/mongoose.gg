@@ -1,6 +1,6 @@
 using static Mongoose.Api.Application.DTOs.Solo.DeathPositionsDto;
 
-namespace Mongoose.Api.Core.Interfaces;
+namespace Mongoose.Api.Application.Interfaces;
 
 /// <summary>
 /// Repository for death positions data (danger zone heatmap).

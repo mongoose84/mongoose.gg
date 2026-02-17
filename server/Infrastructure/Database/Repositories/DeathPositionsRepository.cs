@@ -1,5 +1,7 @@
 using MySqlConnector;
+using Mongoose.Api.Application.Interfaces;
 using Mongoose.Api.Application.Services;
+using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.Solo.DeathPositionsDto;
 
@@ -38,7 +40,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
 
         _logger.LogInformation(
             "GetDeathPositionsAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
-            puuid, queueType, effectiveTimeRange, side ?? "all");
+            puuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
 
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
@@ -54,32 +56,21 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
             var summary = await GetDeathSummaryAsync(
                 puuid, queueFilter, timeFilter, sideFilter, timeRangeFilter);
 
-            if (summary == null)
-            {
-                _logger.LogInformation("No death events found for puuid={Puuid}", puuid);
-                return new DeathPositionsResponse(
-                    Deaths: Array.Empty<DeathPosition>(),
-                    TotalDeaths: 0,
-                    MatchesAnalyzed: 0,
-                    PhaseSummary: new PhaseSummary(0, 0, 0, 0)
-                );
-            }
-
             var response = new DeathPositionsResponse(
                 Deaths: deathPositions.ToArray(),
-                TotalDeaths: summary.Value.TotalDeaths,
-                MatchesAnalyzed: summary.Value.MatchesAnalyzed,
+                TotalDeaths: summary.TotalDeaths,
+                MatchesAnalyzed: summary.MatchesAnalyzed,
                 PhaseSummary: new PhaseSummary(
-                    summary.Value.EarlyDeaths,
-                    summary.Value.MidDeaths,
-                    summary.Value.LateDeaths,
-                    summary.Value.VeryLateDeaths
+                    summary.EarlyDeaths,
+                    summary.MidDeaths,
+                    summary.LateDeaths,
+                    summary.VeryLateDeaths
                 )
             );
 
             _logger.LogInformation(
                 "GetDeathPositionsAsync success: puuid={Puuid}, totalDeaths={Deaths}, matches={Matches}",
-                puuid, summary.Value.TotalDeaths, summary.Value.MatchesAnalyzed);
+                puuid, summary.TotalDeaths, summary.MatchesAnalyzed);
 
             return response;
         }
@@ -87,7 +78,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
         {
             _logger.LogError(ex, 
                 "GetDeathPositionsAsync error: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
-                puuid, queueType, effectiveTimeRange, side ?? "all");
+                puuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
             throw;
         }
     }
@@ -150,7 +141,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
         });
     }
 
-    private async Task<(int TotalDeaths, int MatchesAnalyzed, int EarlyDeaths, int MidDeaths, int LateDeaths, int VeryLateDeaths)?> 
+    private async Task<(int TotalDeaths, int MatchesAnalyzed, int EarlyDeaths, int MidDeaths, int LateDeaths, int VeryLateDeaths)> 
         GetDeathSummaryAsync(
             string puuid,
             string queueFilter,
@@ -185,20 +176,16 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
             await using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync() && !reader.IsDBNull(0))
-            {
-                var totalDeaths = reader.GetInt32(0);
-                var matchesAnalyzed = reader.GetInt32(1);
-                var earlyDeaths = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
-                var midDeaths = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
-                var lateDeaths = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
-                var veryLateDeaths = reader.IsDBNull(5) ? 0 : reader.GetInt32(5);
+            await reader.ReadAsync(); // Aggregate queries always return exactly one row
+            
+            var totalDeaths = reader.GetInt32(0);
+            var matchesAnalyzed = reader.GetInt32(1);
+            var earlyDeaths = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
+            var midDeaths = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
+            var lateDeaths = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
+            var veryLateDeaths = reader.IsDBNull(5) ? 0 : reader.GetInt32(5);
 
-                return ((int, int, int, int, int, int)?)(
-                    totalDeaths, matchesAnalyzed, earlyDeaths, midDeaths, lateDeaths, veryLateDeaths);
-            }
-
-            return null;
+            return (totalDeaths, matchesAnalyzed, earlyDeaths, midDeaths, lateDeaths, veryLateDeaths);
         });
     }
 

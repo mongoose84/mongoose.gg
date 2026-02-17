@@ -1,4 +1,3 @@
-using MySqlConnector;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using System.Text;

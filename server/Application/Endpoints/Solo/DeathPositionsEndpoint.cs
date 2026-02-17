@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Interfaces;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure.Helpers;
 
@@ -79,9 +80,12 @@ public sealed class DeathPositionsEndpoint : IEndpoint
                     return Results.NotFound(new { error = "No riot accounts found for this user" });
                 }
 
-                // Use primary account or first account
-                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
-                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
+                // Use primary account or first account (null-safe)
+                var primaryAccount = linkedAccounts
+                    .Where(la => la.Link.IsPrimary)
+                    .Select(la => la.Account)
+                    .FirstOrDefault() 
+                    ?? linkedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
                 // Fetch death positions data
