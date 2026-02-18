@@ -225,6 +225,28 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Change password for the authenticated user.
+   * The server invalidates all sessions after a successful change,
+   * so we clear the local user state and the caller should redirect to login.
+   */
+  async function changePassword({ currentPassword, newPassword }) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      await authApi.changePassword({ currentPassword, newPassword })
+      // Server has cleared the session — mirror that client-side
+      user.value = null
+      return { success: true }
+    } catch (e) {
+      error.value = e.message
+      throw e
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
    * Trigger a sync for a Riot account
    */
   async function triggerSync(puuid) {
@@ -270,6 +292,7 @@ export const useAuthStore = defineStore('auth', () => {
     clearSessionExpired,
     initializeSessionHandler,
     refreshUser,
+    changePassword,
     linkRiotAccount,
     unlinkRiotAccount,
     triggerSync

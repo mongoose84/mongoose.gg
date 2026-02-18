@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.DTOs.Auth;
+using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure.Database.Repositories;
