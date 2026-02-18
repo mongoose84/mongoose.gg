@@ -12,5 +12,13 @@ public interface IEmailService
     /// <param name="username">Username for personalization</param>
     /// <param name="verificationCode">6-digit verification code</param>
     Task SendVerificationEmailAsync(string toEmail, string username, string verificationCode);
+
+    /// <summary>
+    /// Send a password reset email with a 6-digit code
+    /// </summary>
+    /// <param name="toEmail">Recipient email address</param>
+    /// <param name="username">Username for personalization</param>
+    /// <param name="resetCode">6-digit password reset code</param>
+    Task SendPasswordResetEmailAsync(string toEmail, string username, string resetCode);
 }
 

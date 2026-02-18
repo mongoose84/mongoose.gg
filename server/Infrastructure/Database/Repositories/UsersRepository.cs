@@ -114,6 +114,20 @@ public class UsersRepository : RepositoryBase, IUsersRepository
 	        return result;
 	    }
 
+    public virtual async Task UpdatePasswordHashAsync(long userId, string passwordHash)
+    {
+        const string sql = "UPDATE users SET password_hash = @password_hash, updated_at = @updated_at WHERE user_id = @user_id";
+        await ExecuteWithConnectionAsync<object?>(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@password_hash", passwordHash);
+            cmd.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
+            cmd.Parameters.AddWithValue("@user_id", userId);
+            await cmd.ExecuteNonQueryAsync();
+            return null;
+        });
+    }
+
     public virtual async Task UpdateEmailVerifiedAsync(long userId, bool verified)
     {
         const string sql = "UPDATE users SET email_verified = @verified, updated_at = @updated_at WHERE user_id = @user_id";

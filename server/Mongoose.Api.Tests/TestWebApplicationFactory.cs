@@ -234,6 +234,15 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.CompletedTask;
         }
 
+        public override Task UpdatePasswordHashAsync(long userId, string passwordHash)
+        {
+            if (_usersById.TryGetValue(userId, out var user))
+            {
+                user.PasswordHash = passwordHash;
+            }
+            return Task.CompletedTask;
+        }
+
         public void AddUnverifiedUser(string username, string email, string password)
         {
             var user = new User
@@ -402,8 +411,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     internal sealed class FakeEmailService : IEmailService
     {
         private readonly List<SentEmail> _sentEmails = new();
+        private readonly List<SentPasswordResetEmail> _sentPasswordResetEmails = new();
 
         public IReadOnlyList<SentEmail> SentEmails => _sentEmails;
+        public IReadOnlyList<SentPasswordResetEmail> SentPasswordResetEmails => _sentPasswordResetEmails;
 
         public Task SendVerificationEmailAsync(string toEmail, string username, string verificationCode)
         {
@@ -411,9 +422,20 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.CompletedTask;
         }
 
-        public void Clear() => _sentEmails.Clear();
+        public Task SendPasswordResetEmailAsync(string toEmail, string username, string resetCode)
+        {
+            _sentPasswordResetEmails.Add(new SentPasswordResetEmail(toEmail, username, resetCode));
+            return Task.CompletedTask;
+        }
+
+        public void Clear()
+        {
+            _sentEmails.Clear();
+            _sentPasswordResetEmails.Clear();
+        }
 
         public record SentEmail(string ToEmail, string Username, string VerificationCode);
+        public record SentPasswordResetEmail(string ToEmail, string Username, string ResetCode);
     }
 
     /// <summary>
