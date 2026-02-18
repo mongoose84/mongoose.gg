@@ -209,6 +209,204 @@ public record ChangePasswordResponse(
 2. Change Password section: current password + new password inputs + submit button
 3. On submit → `POST /auth/change-password` → user is signed out → redirect to `/auth?mode=login`
 
+### UI/UX Requirements
+
+All views follow the existing design system defined in [UI/UX Spec](../ui-ux.spec.md). Use design tokens — never hardcode colors, spacing, or shadows.
+
+#### Forgot Password State (on `AuthPage.vue`)
+
+**Layout**: Reuse the existing auth card container (`max-w-[440px]`, `bg-background-surface`, `border border-border`, `rounded-lg`, `backdrop-blur-[10px]`). This is a third form state alongside login and register — toggled via internal state, not a separate route.
+
+**Structure**:
+```
+┌─────────────────────────────────────┐
+│         [Mongoose logo]             │
+│       Forgot Your Password?         │
+│  Enter your email to receive a      │
+│         reset code                  │
+│                                     │
+│  ┌─ Error alert (conditional) ────┐ │
+│  │ {errorMessage}                 │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  Email                              │
+│  ┌────────────────────────────────┐ │
+│  │ you@example.com                │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  ┌────────────────────────────────┐ │
+│  │        Send Reset Code         │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  ─────────────────────────────────  │
+│      ← Back to Sign In             │
+└─────────────────────────────────────┘
+```
+
+**Components**:
+- Logo + heading: Same pattern as login/register — `img` (mongoose.png, `w-32 h-16`), `h1` (`text-2xl font-bold tracking-tight`), `p` (`text-base text-text-secondary`)
+- Error alert: `p-md bg-error-soft border border-error-border rounded-md text-error text-sm` (same pattern as `LinkRiotAccountModal`)
+- Email input: `BaseInput` — `type="email"`, `label="Email"`, `placeholder="you@example.com"`, `autocomplete="email"`, `required`
+- Submit button: `BaseButton` — `variant="primary"`, `size="lg"`, `:loading="isSubmitting"`. Label: `"Send Reset Code"` / `"Sending..."` when loading
+- Footer: `BaseButton variant="ghost" size="sm"` — `"← Back to Sign In"`, calls `toggleMode` back to login state
+
+**Behavior**:
+- On submit success: redirect to `/auth/reset-password?email={email}` (URL-encoded)
+- On submit: button enters loading state (spinner + disabled). All form fields disabled during submission
+- The success response is always 200 (no email enumeration) — no client-side success message needed, just redirect
+- If network/server error: show error alert above form
+
+**Accessibility**:
+- `h1` heading updates to "Forgot Your Password?" for screen readers
+- Email input has associated `label` via `BaseInput`
+- Submit button has visible loading state text change
+- Error alert has `role="alert"` for screen reader announcement
+- Entire form is keyboard-navigable (Tab order: email → submit → back link)
+
+---
+
+#### Reset Password Page (`ResetPasswordPage.vue`)
+
+**Layout**: Same centered card pattern as `AuthPage` and `VerifyPage`. Full-page view with `NavBar` at top. Card centered vertically and horizontally (`min-h-[calc(100vh-64px)] flex items-center justify-center p-xl`).
+
+**Structure**:
+```
+┌─────────────────────────────────────┐
+│         [Mongoose logo]             │
+│        Reset Your Password          │
+│   Enter the code sent to your       │
+│     email and set a new password    │
+│                                     │
+│  ┌─ Success alert (conditional) ──┐ │
+│  │ {successMessage}               │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  ┌─ Error alert (conditional) ────┐ │
+│  │ {errorMessage}                 │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  Email                              │
+│  ┌────────────────────────────────┐ │
+│  │ user@example.com  (pre-filled) │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  Reset Code                         │
+│  ┌────────────────────────────────┐ │
+│  │       0  0  0  0  0  0        │ │
+│  └────────────────────────────────┘ │
+│  Enter the 6-digit code from email  │
+│                                     │
+│  New Password                       │
+│  ┌────────────────────────────────┐ │
+│  │ ••••••••                       │ │
+│  └────────────────────────────────┘ │
+│  Must be at least 8 characters      │
+│                                     │
+│  ┌────────────────────────────────┐ │
+│  │       Reset Password           │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  ─────────────────────────────────  │
+│  Remember your password? Sign in    │
+└─────────────────────────────────────┘
+```
+
+**Components**:
+- Header: Same auth card header pattern — logo, `h1` (`text-2xl font-bold tracking-tight`), `p` description (`text-base text-text-secondary`)
+- Success alert: `p-md bg-success-soft border border-success-border rounded-md text-success text-sm text-center` (same as VerifyPage)
+- Error alert: `p-md bg-error-soft border border-error-border rounded-md text-error text-sm` with `role="alert"`
+- Email input: `BaseInput` — `type="email"`, `label="Email"`, pre-filled from `?email=` query param, editable, `autocomplete="email"`
+- Code input: Styled monospace input — same pattern as VerifyPage code input (`text-2xl font-bold text-center tracking-[0.5em]`, `inputmode="numeric"`, `maxlength="6"`, `pattern="[0-9]{6}"`, `autocomplete="one-time-code"`). Hint text below: `"Enter the 6-digit code from your email"` (`text-xs text-text-secondary text-center`)
+- New password input: `BaseInput` — `type="password"`, `label="New Password"`, `placeholder="••••••••"`, `minlength="8"`, `autocomplete="new-password"`. Hint text: `"Must be at least 8 characters"` (`text-xs text-text-secondary`)
+- Submit button: `BaseButton` — `variant="primary"`, `size="lg"`, `:loading="isSubmitting"`, disabled when code length ≠ 6 or password < 8 chars. Label: `"Reset Password"` / `"Resetting..."` when loading
+- Footer: `BaseButton variant="ghost" size="sm"` — `"Remember your password? Sign in"`, links to `/auth?mode=login`
+
+**Behavior**:
+- Email field pre-filled from `route.query.email` (URL-decoded) but remains editable
+- Code input: filter non-numeric characters on input (same `handleCodeInput` pattern as VerifyPage — `e.target.value.replace(/\D/g, '').slice(0, 6)`)
+- Submit disabled until code is exactly 6 digits AND password is ≥ 8 characters
+- All fields disabled during submission
+- On success: redirect to `/auth?mode=login` (user must log in with new password). Optionally pass a success indicator via query param or route state
+- Error mapping:
+  - `INVALID_CODE` → `"Invalid or expired code. Please request a new one."`
+  - `PASSWORD_TOO_SHORT` → `"Password must be at least 8 characters."`
+  - `INVALID_EMAIL` → `"Please enter a valid email address."`
+  - Network error → `"Something went wrong. Please try again."`
+
+**Accessibility**:
+- All inputs have associated labels via `BaseInput` `label` prop or explicit `<label>` elements
+- Code input has `inputmode="numeric"` for mobile numeric keyboard
+- Submit button disabled state communicated via `aria-disabled` (inherited from `BaseButton`)
+- Error and success alerts use `role="alert"` for live region announcements
+- Tab order: email → code → password → submit → footer link
+
+---
+
+#### Change Password Section (on `UserSettingsPage.vue`)
+
+**Layout**: New section inserted between the existing "Account" section and the "Session" section. Follows the exact same section pattern used throughout the page: `h2` heading + surface card.
+
+**Structure**:
+```
+── Account section (existing) ──────────
+
+── Security ────────────────────────────
+┌─────────────────────────────────────┐
+│  Change Password                    │
+│  Update your account password.      │
+│  You will be signed out afterward.  │
+│                                     │
+│  ┌─ Error alert (conditional) ────┐ │
+│  │ {errorMessage}                 │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  Current Password                   │
+│  ┌────────────────────────────────┐ │
+│  │ ••••••••                       │ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  New Password                       │
+│  ┌────────────────────────────────┐ │
+│  │ ••••••••                       │ │
+│  └────────────────────────────────┘ │
+│  Must be at least 8 characters      │
+│                                     │
+│  ┌──────────────────┐              │
+│  │ Change Password  │              │
+│  └──────────────────┘              │
+└─────────────────────────────────────┘
+
+── Session section (existing) ──────────
+```
+
+**Components**:
+- Section heading: `h2` — `text-lg font-semibold text-text tracking-tight` with text `"Security"` (matches existing section heading pattern)
+- Card: `bg-background-surface border border-border rounded-lg p-xl` (matches existing card pattern)
+- Section title: `h3` — `text-sm font-semibold text-text` with text `"Change Password"`
+- Description: `p` — `text-xs text-text-secondary mt-xs` with text `"Update your account password. You will be signed out afterward."`
+- Error alert: `p-md bg-error-soft border border-error-border rounded-md text-error text-sm` with `role="alert"`
+- Current password: `BaseInput` — `type="password"`, `label="Current Password"`, `placeholder="Your current password"`, `autocomplete="current-password"`, `required`
+- New password: `BaseInput` — `type="password"`, `label="New Password"`, `placeholder="••••••••"`, `minlength="8"`, `autocomplete="new-password"`, `required`. Hint text below: `"Must be at least 8 characters"` (`text-xs text-text-secondary`)
+- Submit button: `BaseButton` — `variant="primary"`, `size="md"`, `:loading="isChangingPassword"`, disabled when either field is empty or new password < 8 chars. Label: `"Change Password"` / `"Changing..."` when loading. Left-aligned (not full-width — matches the Danger Zone button alignment style)
+
+**Behavior**:
+- Both fields required — submit button disabled until current password is non-empty AND new password is ≥ 8 characters
+- All fields disabled during submission
+- On success: `authStore.user` is set to `null` (session is invalidated server-side), redirect to `/auth?mode=login`
+- Error mapping:
+  - `INVALID_PASSWORD` → `"Current password is incorrect."`
+  - `PASSWORD_TOO_SHORT` → `"New password must be at least 8 characters."`
+  - `SAME_PASSWORD` → `"New password must be different from your current password."`
+  - Network error → `"Something went wrong. Please try again."`
+- Form resets on error (clear new password field only, keep current password for retry)
+
+**Accessibility**:
+- All inputs have associated labels via `BaseInput` `label` prop
+- Error alert uses `role="alert"` for screen reader announcement
+- Submit button disabled state communicated via native `disabled` attribute
+- Tab order: current password → new password → submit button
+- `autocomplete="current-password"` and `autocomplete="new-password"` for password manager support
+
 ## Testing Strategy
 
 ### Integration Tests
