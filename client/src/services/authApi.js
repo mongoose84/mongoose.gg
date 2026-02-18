@@ -549,7 +549,7 @@ export async function getVisionScoreTrend(userId, queueType = 'all', timeRange, 
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
  * @param {string} [side] - Optional side filter (all, blue, red)
- * @returns {Promise<Object>} Death positions data with deaths array and phase summary
+ * @returns {Promise<Object|null>} Death positions data with deaths array and phase summary, or null if no data found
  */
 export async function getDeathPositions(userId, queueType = 'all', timeRange, side = 'all') {
   const params = new URLSearchParams()

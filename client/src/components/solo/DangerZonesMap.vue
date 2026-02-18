@@ -1,11 +1,13 @@
 <template>
   <div class="danger-zones-map" data-testid="danger-zones-map" aria-label="Death heatmap on Summoner's Rift">
     <!-- Side Filters -->
-    <div class="side-filters">
+    <div class="side-filters" role="group" aria-label="Filter deaths by side">
       <button
         v-for="option in sideOptions"
         :key="option.value"
+        type="button"
         :class="['side-btn', { active: selectedSide === option.value }]"
+        :aria-pressed="selectedSide === option.value"
         :data-testid="`side-filter-${option.value}`"
         @click="selectSide(option.value)"
       >
@@ -48,11 +50,13 @@
       </div>
 
       <!-- Phase Filters -->
-      <div class="phase-filters">
+      <div class="phase-filters" role="group" aria-label="Filter deaths by game phase">
         <button
           v-for="option in phaseOptions"
           :key="option.value"
+          type="button"
           :class="['phase-btn', { active: selectedPhase === option.value }]"
+          :aria-pressed="selectedPhase === option.value"
           :data-testid="`phase-filter-${option.value}`"
           @click="selectPhase(option.value)"
         >
@@ -149,6 +153,7 @@ const heatCanvas = ref(null)
 const selectedPhase = ref('all')
 const selectedSide = ref('all')
 const mapLoaded = ref(false)
+let heatInstance = null
 
 // Constants
 const MAP_SIZE = 15000 // Riot API coordinate max
@@ -251,6 +256,21 @@ function onMapLoaded() {
   const img = mapImage.value
   heatCanvas.value.width = img.clientWidth
   heatCanvas.value.height = img.clientHeight
+
+  // Create simpleheat instance once per canvas mount
+  const canvas = heatCanvas.value
+  heatInstance = simpleheat(canvas)
+  heatInstance.radius(25, 35) // radius, blur
+  heatInstance.max(2) // max data value for color scaling
+  heatInstance.gradient({
+    0.0: 'rgba(0, 0, 255, 0)',
+    0.2: 'rgba(0, 0, 255, 0.5)',
+    0.4: 'rgba(0, 255, 255, 0.6)',
+    0.6: 'rgba(0, 255, 0, 0.7)',
+    0.8: 'rgba(255, 255, 0, 0.8)',
+    1.0: 'rgba(255, 0, 0, 0.9)'
+  })
+
   mapLoaded.value = true
   
   // Initial render
@@ -272,12 +292,12 @@ function riotToCanvas(x, y, canvasWidth, canvasHeight) {
 }
 
 function renderHeatmap() {
-  if (!heatCanvas.value || !mapLoaded.value) {
+  if (!heatCanvas.value || !mapLoaded.value || !heatInstance) {
     return
   }
 
   const canvas = heatCanvas.value
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  const ctx = canvas.getContext('2d')
   if (!ctx) return
 
   // Compute points from filteredDeaths using current (live) canvas dimensions
@@ -288,27 +308,14 @@ function renderHeatmap() {
   })
 
   // Always clear canvas, even when there are no points (e.g. switching to an empty phase filter)
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  heatInstance.clear()
 
   if (points.length === 0) {
     return
   }
-  
-  // Initialize simpleheat
-  const heat = simpleheat(canvas)
-  heat.radius(25, 35) // radius, blur
-  heat.max(2) // max data value for color scaling
-  heat.gradient({
-    0.0: 'rgba(0, 0, 255, 0)',
-    0.2: 'rgba(0, 0, 255, 0.5)',
-    0.4: 'rgba(0, 255, 255, 0.6)',
-    0.6: 'rgba(0, 255, 0, 0.7)',
-    0.8: 'rgba(255, 255, 0, 0.8)',
-    1.0: 'rgba(255, 0, 0, 0.9)'
-  })
-  
-  heat.data(points)
-  heat.draw()
+
+  heatInstance.data(points)
+  heatInstance.draw()
 }
 
 // Watchers
@@ -328,6 +335,7 @@ watch(filteredDeaths, () => {
 watch(() => props.loading, (isLoading) => {
   if (isLoading) {
     mapLoaded.value = false
+    heatInstance = null
   }
 })
 
