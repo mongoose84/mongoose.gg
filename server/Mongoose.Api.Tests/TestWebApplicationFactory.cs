@@ -184,6 +184,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 Username = "tester",
                 Email = "tester@test.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("test-password"),
+                SecurityStamp = Guid.NewGuid().ToString(),
                 EmailVerified = true,
                 IsActive = true,
                 Tier = "free",
@@ -239,8 +240,15 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             if (_usersById.TryGetValue(userId, out var user))
             {
                 user.PasswordHash = passwordHash;
+                user.SecurityStamp = Guid.NewGuid().ToString();
             }
             return Task.CompletedTask;
+        }
+
+        public override Task<string?> GetSecurityStampAsync(long userId)
+        {
+            _usersById.TryGetValue(userId, out var user);
+            return Task.FromResult(user?.SecurityStamp);
         }
 
         public void AddUnverifiedUser(string username, string email, string password)
@@ -251,6 +259,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 Username = username,
                 Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                SecurityStamp = Guid.NewGuid().ToString(),
                 EmailVerified = false,
                 IsActive = true,
                 Tier = "free",
@@ -270,6 +279,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 Username = username,
                 Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                SecurityStamp = Guid.NewGuid().ToString(),
                 EmailVerified = true,
                 IsActive = false,
                 Tier = "free",

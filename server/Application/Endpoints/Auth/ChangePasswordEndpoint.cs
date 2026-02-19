@@ -12,7 +12,9 @@ namespace Mongoose.Api.Application.Endpoints.Auth;
 /// <summary>
 /// Change Password Endpoint
 /// Allows an authenticated user to change their password.
-/// On success, the session is invalidated and the user must re-login.
+/// On success, the security stamp is rotated which invalidates all sessions
+/// (including other browsers/devices). The current session is also explicitly
+/// signed out so the caller gets an immediate signal to redirect to login.
 /// </summary>
 public sealed class ChangePasswordEndpoint : IEndpoint
 {
@@ -76,11 +78,15 @@ public sealed class ChangePasswordEndpoint : IEndpoint
                     return Results.BadRequest(new { error = "New password must be different from your current password.", code = "SAME_PASSWORD" });
                 }
 
-                // Hash and store the new password
+                // Hash and store the new password (also rotates the security stamp,
+                // which invalidates all sessions — including the current one — on their
+                // next request when OnValidatePrincipal checks the stamp).
                 var newPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
                 await usersRepo.UpdatePasswordHashAsync(userId, newPasswordHash);
 
-                // Sign out the user (invalidate session)
+                // Sign out the current session immediately so the caller gets a
+                // clear signal to redirect to login rather than waiting for the
+                // next request to be rejected by the stamp check.
                 await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
                 logger.LogInformation("Password changed successfully for user {UserId}", userId);

@@ -10,6 +10,7 @@ public class User : EntityBase
     public bool IsActive { get; set; } = true;
     public string Tier { get; set; } = "free";
     public string? MollieCustomerId { get; set; }
+    public string SecurityStamp { get; set; } = Guid.NewGuid().ToString();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }

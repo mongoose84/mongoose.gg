@@ -226,8 +226,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Change password for the authenticated user.
-   * The server invalidates all sessions after a successful change,
-   * so we clear the local user state and the caller should redirect to login.
+   * The server rotates the security stamp in the database and immediately signs out
+   * the current session. All other active sessions are invalidated on their next
+   * request when OnValidatePrincipal detects the stamp mismatch and rejects the cookie.
+   * We clear the local user state so the caller can redirect to login.
    */
   async function changePassword({ currentPassword, newPassword }) {
     isLoading.value = true
@@ -235,7 +237,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       await authApi.changePassword({ currentPassword, newPassword })
-      // Server has cleared the session — mirror that client-side
+      // Server signed out this session and rotated the security stamp —
+      // all other sessions will be rejected on their next request. Mirror locally.
       user.value = null
       return { success: true }
     } catch (e) {

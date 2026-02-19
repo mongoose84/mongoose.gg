@@ -135,7 +135,8 @@ public sealed class LoginEndpoint : IEndpoint
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.Email, user.Email),
                     new Claim("email_verified", user.EmailVerified.ToString().ToLowerInvariant()),
-                    new Claim("tier", user.Tier)
+                    new Claim("tier", user.Tier),
+                    new Claim("security_stamp", user.SecurityStamp)
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

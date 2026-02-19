@@ -17,12 +17,13 @@ public class UsersRepository : RepositoryBase, IUsersRepository
     public virtual async Task<long> UpsertAsync(User user)
     {
         const string sql = @"INSERT INTO users
-            (user_id, email, username, password_hash, email_verified, is_active, tier, mollie_customer_id, created_at, updated_at, last_login_at)
-            VALUES (@user_id, @email, @username, @password_hash, @email_verified, @is_active, @tier, @mollie_customer_id, @created_at, @updated_at, @last_login_at) AS new
+            (user_id, email, username, password_hash, security_stamp, email_verified, is_active, tier, mollie_customer_id, created_at, updated_at, last_login_at)
+            VALUES (@user_id, @email, @username, @password_hash, @security_stamp, @email_verified, @is_active, @tier, @mollie_customer_id, @created_at, @updated_at, @last_login_at) AS new
             ON DUPLICATE KEY UPDATE
                 email = new.email,
                 username = new.username,
                 password_hash = new.password_hash,
+                security_stamp = new.security_stamp,
                 email_verified = new.email_verified,
                 is_active = new.is_active,
                 tier = new.tier,
@@ -41,6 +42,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
             cmd.Parameters.AddWithValue("@email", encryptedEmail);
             cmd.Parameters.AddWithValue("@username", encryptedUsername);
             cmd.Parameters.AddWithValue("@password_hash", user.PasswordHash);
+            cmd.Parameters.AddWithValue("@security_stamp", user.SecurityStamp);
             cmd.Parameters.AddWithValue("@email_verified", user.EmailVerified);
             cmd.Parameters.AddWithValue("@is_active", user.IsActive);
             cmd.Parameters.AddWithValue("@tier", user.Tier);
@@ -116,15 +118,29 @@ public class UsersRepository : RepositoryBase, IUsersRepository
 
     public virtual async Task UpdatePasswordHashAsync(long userId, string passwordHash)
     {
-        const string sql = "UPDATE users SET password_hash = @password_hash, updated_at = @updated_at WHERE user_id = @user_id";
+        const string sql = "UPDATE users SET password_hash = @password_hash, security_stamp = @security_stamp, updated_at = @updated_at WHERE user_id = @user_id";
         await ExecuteWithConnectionAsync<object?>(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@password_hash", passwordHash);
+            cmd.Parameters.AddWithValue("@security_stamp", Guid.NewGuid().ToString());
             cmd.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
             cmd.Parameters.AddWithValue("@user_id", userId);
             await cmd.ExecuteNonQueryAsync();
             return null;
+        });
+    }
+
+    /// <inheritdoc />
+    public virtual async Task<string?> GetSecurityStampAsync(long userId)
+    {
+        const string sql = "SELECT security_stamp FROM users WHERE user_id = @user_id LIMIT 1";
+        return await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@user_id", userId);
+            var result = await cmd.ExecuteScalarAsync();
+            return result as string;
         });
     }
 
@@ -263,13 +279,14 @@ public class UsersRepository : RepositoryBase, IUsersRepository
             Email = decryptedEmail,
             Username = decryptedUsername,
             PasswordHash = r.GetString(3),
-            EmailVerified = r.GetBoolean(4),
-            IsActive = r.GetBoolean(5),
-            Tier = r.GetString(6),
-            MollieCustomerId = r.IsDBNull(7) ? null : r.GetString(7),
-            CreatedAt = r.GetDateTimeUtc(8),
-            UpdatedAt = r.GetDateTimeUtc(9),
-            LastLoginAt = r.GetDateTimeUtcOrNull(10)
+            SecurityStamp = r.GetString(4),
+            EmailVerified = r.GetBoolean(5),
+            IsActive = r.GetBoolean(6),
+            Tier = r.GetString(7),
+            MollieCustomerId = r.IsDBNull(8) ? null : r.GetString(8),
+            CreatedAt = r.GetDateTimeUtc(9),
+            UpdatedAt = r.GetDateTimeUtc(10),
+            LastLoginAt = r.GetDateTimeUtcOrNull(11)
         };
     }
 }

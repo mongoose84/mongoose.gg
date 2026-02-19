@@ -199,7 +199,8 @@ public sealed class RegisterEndpoint : IEndpoint
                     new Claim(ClaimTypes.Name, newUser.Username),
                     new Claim(ClaimTypes.Email, newUser.Email),
                     new Claim("email_verified", autoVerifyEmail ? "true" : "false"),
-                    new Claim("tier", newUser.Tier)
+                    new Claim("tier", newUser.Tier),
+                    new Claim("security_stamp", newUser.SecurityStamp)
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
