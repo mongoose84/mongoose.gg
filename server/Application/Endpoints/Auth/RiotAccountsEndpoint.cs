@@ -48,7 +48,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
 
     private void ConfigureLinkEndpoint(WebApplication app)
     {
-        app.MapPost(Route, [Authorize] async (
+        _ = app.MapPost(Route, [Authorize] async (
             HttpContext httpContext,
             [FromBody] LinkRiotAccountRequest request,
             [FromServices] UsersRepository usersRepo,
@@ -141,7 +141,8 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     var existingAccount = await riotAccountsRepo.GetByPuuidAsync(puuid);
                     var existingLinks = await userRiotAccountsRepo.GetByUserIdAsync(userId.Value);
                     var existingLink = existingLinks.FirstOrDefault(l => l.Link.Puuid == puuid);
-
+                    // Defensive: If existingLink is null, default isPrimary to false
+                    var existingIsPrimary = existingLink.Link != null && existingLink.Link.IsPrimary;
                     logger.LogInformation("Account {GameName}#{TagLine} already linked to user {UserId}",
                         request.GameName, request.TagLine, userId);
 
@@ -150,7 +151,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                         existingAccount?.GameName ?? request.GameName,
                         existingAccount?.TagLine ?? request.TagLine,
                         existingAccount?.Region ?? request.Region.ToLowerInvariant(),
-                        existingLink.Link.IsPrimary,
+                        existingIsPrimary,
                         existingAccount?.SyncStatus ?? "pending"
                     ));
                 }
