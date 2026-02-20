@@ -198,6 +198,8 @@ async function handleSubmit() {
     // Map error codes to user-friendly messages
     if (e.code === 'RIOT_ACCOUNT_NOT_FOUND') {
       errorMessage.value = 'Riot account not found. Please check your Game Name and Tag Line.'
+    } else if (e.code === 'ACCOUNT_ALREADY_LINKED') {
+      errorMessage.value = 'This Riot account is already linked to another user.'
     } else {
       errorMessage.value = e.message || 'Failed to link account. Please try again.'
     }

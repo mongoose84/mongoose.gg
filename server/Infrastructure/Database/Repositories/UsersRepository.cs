@@ -57,7 +57,22 @@ public class UsersRepository : RepositoryBase, IUsersRepository
 
     public virtual async Task<User?> GetByEmailAsync(string email)
     {
-        const string sql = "SELECT * FROM users WHERE email = @email LIMIT 1";
+        const string sql = @"SELECT
+                user_id,
+                email,
+                username,
+                password_hash,
+                security_stamp,
+                email_verified,
+                is_active,
+                tier,
+                mollie_customer_id,
+                created_at,
+                updated_at,
+                last_login_at
+            FROM users
+            WHERE email = @email
+            LIMIT 1";
         // Encrypt the search email to match stored encrypted value
         var encryptedEmail = _encryptor.Encrypt(email);
         return await ExecuteSingleAsync(sql, MapWithDecryption, ("@email", encryptedEmail));
@@ -65,13 +80,43 @@ public class UsersRepository : RepositoryBase, IUsersRepository
 
     public virtual Task<User?> GetByIdAsync(long userId)
     {
-        const string sql = "SELECT * FROM users WHERE user_id = @user_id LIMIT 1";
+        const string sql = @"SELECT
+                user_id,
+                email,
+                username,
+                password_hash,
+                security_stamp,
+                email_verified,
+                is_active,
+                tier,
+                mollie_customer_id,
+                created_at,
+                updated_at,
+                last_login_at
+            FROM users
+            WHERE user_id = @user_id
+            LIMIT 1";
         return ExecuteSingleAsync(sql, MapWithDecryption, ("@user_id", userId));
     }
 
     public virtual Task<User?> GetByUsernameAsync(string username)
     {
-        const string sql = "SELECT * FROM users WHERE username = @username LIMIT 1";
+        const string sql = @"SELECT
+                user_id,
+                email,
+                username,
+                password_hash,
+                security_stamp,
+                email_verified,
+                is_active,
+                tier,
+                mollie_customer_id,
+                created_at,
+                updated_at,
+                last_login_at
+            FROM users
+            WHERE username = @username
+            LIMIT 1";
         // Use case-preserving encryption for lookup (IV derived from normalized value)
         var encryptedUsername = _encryptor.EncryptPreserveCase(username);
         return ExecuteSingleAsync(sql, MapWithDecryption, ("@username", encryptedUsername));
@@ -223,9 +268,22 @@ public class UsersRepository : RepositoryBase, IUsersRepository
     /// </summary>
     private User MapWithDecryption(MySqlDataReader r)
     {
-        var userId = r.GetInt64(0);
-        var encryptedEmail = r.GetString(1);
-        var encryptedUsername = r.GetString(2);
+        var userIdOrdinal = r.GetOrdinal("user_id");
+        var emailOrdinal = r.GetOrdinal("email");
+        var usernameOrdinal = r.GetOrdinal("username");
+        var passwordHashOrdinal = r.GetOrdinal("password_hash");
+        var securityStampOrdinal = r.GetOrdinal("security_stamp");
+        var emailVerifiedOrdinal = r.GetOrdinal("email_verified");
+        var isActiveOrdinal = r.GetOrdinal("is_active");
+        var tierOrdinal = r.GetOrdinal("tier");
+        var mollieCustomerIdOrdinal = r.GetOrdinal("mollie_customer_id");
+        var createdAtOrdinal = r.GetOrdinal("created_at");
+        var updatedAtOrdinal = r.GetOrdinal("updated_at");
+        var lastLoginAtOrdinal = r.GetOrdinal("last_login_at");
+
+        var userId = r.GetInt64(userIdOrdinal);
+        var encryptedEmail = r.GetString(emailOrdinal);
+        var encryptedUsername = r.GetString(usernameOrdinal);
 
         string decryptedEmail;
         string decryptedUsername;
@@ -278,15 +336,15 @@ public class UsersRepository : RepositoryBase, IUsersRepository
             UserId = userId,
             Email = decryptedEmail,
             Username = decryptedUsername,
-            PasswordHash = r.GetString(3),
-            SecurityStamp = r.GetString(4),
-            EmailVerified = r.GetBoolean(5),
-            IsActive = r.GetBoolean(6),
-            Tier = r.GetString(7),
-            MollieCustomerId = r.IsDBNull(8) ? null : r.GetString(8),
-            CreatedAt = r.GetDateTimeUtc(9),
-            UpdatedAt = r.GetDateTimeUtc(10),
-            LastLoginAt = r.GetDateTimeUtcOrNull(11)
+            PasswordHash = r.GetString(passwordHashOrdinal),
+            SecurityStamp = r.GetString(securityStampOrdinal),
+            EmailVerified = r.GetFieldValue<bool>(emailVerifiedOrdinal),
+            IsActive = r.GetFieldValue<bool>(isActiveOrdinal),
+            Tier = r.GetString(tierOrdinal),
+            MollieCustomerId = r.IsDBNull(mollieCustomerIdOrdinal) ? null : r.GetString(mollieCustomerIdOrdinal),
+            CreatedAt = r.GetDateTimeUtc(createdAtOrdinal),
+            UpdatedAt = r.GetDateTimeUtc(updatedAtOrdinal),
+            LastLoginAt = r.GetDateTimeUtcOrNull(lastLoginAtOrdinal)
         };
     }
 }
