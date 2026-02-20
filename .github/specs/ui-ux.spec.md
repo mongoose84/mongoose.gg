@@ -232,7 +232,8 @@ All routes defined in `client/src/router/index.js`.
 | Route | View | Notes |
 |-------|------|-------|
 | `/` | `LandingPage.vue` | Marketing page with NavBar |
-| `/auth` | `AuthPage.vue` | Login/register, `?mode=login\|register` |
+| `/auth` | `AuthPage.vue` | Login/register/forgot-password, `?mode=login\|register` |
+| `/auth/reset-password` | `ResetPasswordPage.vue` | Code + new password, `?email=` pre-fills |
 | `/privacy` | `PrivacyPage.vue` | Static legal |
 | `/terms` | `TermsPage.vue` | Static legal |
 
@@ -377,7 +378,14 @@ Components: `DeleteAccountModal`, `LinkRiotAccountModal`
 **Role**: Bug reports / feature requests. Captures browser/OS context, referrer route.
 
 ### Auth (`/auth`)
-**Role**: Login/register toggle. `?mode=login|register&redirect={path}`
+**Role**: Login/register/forgot-password toggle. `?mode=login|register&redirect={path}`
+
+Forgot-password is a third form state: email input → submit → redirect to reset page. "Forgot password?" link visible in login mode. Back link returns to login.
+
+### Reset Password (`/auth/reset-password`)
+**Role**: Consume 6-digit reset code + set new password. Public route, no auth required.
+
+Pre-fills email from `?email=` query param. Code input uses same monospace `tracking-[0.5em]` pattern as VerifyPage. Submit disabled until code is 6 digits and password ≥ 8 chars. On success redirects to `/auth?mode=login`.
 
 ### Verify (`/auth/verify`)
 **Role**: 6-digit email verification. Auto-submit on completion. Resend cooldown (60s, server-controlled).
@@ -695,7 +703,7 @@ Located in `client/src/stores/`. Using **Pinia**.
 
 ### `authStore`
 - **State**: user object, session expiry tracking (`wasAuthenticated` pattern)
-- **Actions**: `initialize()`, `login()`, `register()`, `verify()`, `logout()`, `linkRiotAccount()`, `unlinkRiotAccount()`, `triggerSync()`, `refreshUser()`
+- **Actions**: `initialize()`, `login()`, `register()`, `verify()`, `logout()`, `changePassword()`, `linkRiotAccount()`, `unlinkRiotAccount()`, `triggerSync()`, `refreshUser()`
 - **Computed**: `isAuthenticated`, `isVerified`, `isInitialized`, `username`, `email`, `tier`, `primaryRiotAccount`
 
 ### `uiStore`
@@ -721,7 +729,7 @@ Centralized fetch wrapper with:
 - `parseResponse()` with structured error codes
 
 ### `authApi.js` (main API surface — 505 lines)
-- **Auth**: register, login, logout, deleteAccount, verifyEmail, resendVerification
+- **Auth**: register, login, logout, deleteAccount, verifyEmail, resendVerification, forgotPassword, resetPassword, changePassword
 - **Riot account**: link, unlink, triggerSync, getSyncStatus
 - **Dashboards**: `getOverview()`, `getSoloDashboard()`, `getChampionSelectData()`, `getMatchActivity()`
 - **Trends**: `getWinrateTrend()`

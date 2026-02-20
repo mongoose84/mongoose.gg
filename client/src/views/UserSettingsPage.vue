@@ -38,6 +38,56 @@
           </div>
         </div>
 
+        <!-- Security Section -->
+        <div class="flex flex-col gap-md">
+          <h2 class="text-lg font-semibold text-text tracking-tight">Security</h2>
+          <div class="bg-background-surface border border-border rounded-lg p-xl">
+            <h3 class="text-sm font-semibold text-text">Change Password</h3>
+            <p class="text-xs text-text-secondary mt-xs">Update your account password. You will be signed out afterward.</p>
+
+            <!-- Error alert -->
+            <div v-if="changePasswordError" class="mt-md p-md bg-error-soft border border-error-border rounded-md text-error text-sm" role="alert">
+              {{ changePasswordError }}
+            </div>
+
+            <form @submit.prevent="handleChangePassword" class="flex flex-col gap-lg mt-lg">
+              <BaseInput
+                id="current-password"
+                v-model="currentPassword"
+                type="password"
+                label="Current Password"
+                placeholder="Your current password"
+                autocomplete="current-password"
+                required
+                :disabled="isChangingPassword"
+              />
+              <BaseInput
+                id="new-password"
+                v-model="newPassword"
+                type="password"
+                label="New Password"
+                placeholder="••••••••"
+                hint="Must be at least 8 characters"
+                minlength="8"
+                autocomplete="new-password"
+                required
+                :disabled="isChangingPassword"
+              />
+              <div>
+                <BaseButton
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  :loading="isChangingPassword"
+                  :disabled="isChangingPassword || !currentPassword || newPassword.length < 8"
+                >
+                  {{ isChangingPassword ? 'Changing...' : 'Change Password' }}
+                </BaseButton>
+              </div>
+            </form>
+          </div>
+        </div>
+
         <!-- Logout Section -->
         <div class="flex flex-col gap-md">
           <h2 class="text-lg font-semibold text-text tracking-tight">Session</h2>
@@ -94,12 +144,47 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
 import { trackAuth } from '../services/analyticsApi';
 import DeleteAccountModal from '../components/DeleteAccountModal.vue';
+import { BaseInput, BaseButton } from '@/components/base';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
 const isLoggingOut = ref(false);
 const showDeleteModal = ref(false);
+
+// ── Change Password ──
+const currentPassword = ref('');
+const newPassword = ref('');
+const isChangingPassword = ref(false);
+const changePasswordError = ref('');
+
+const CHANGE_PASSWORD_ERRORS = {
+  INVALID_PASSWORD: 'Current password is incorrect.',
+  PASSWORD_TOO_SHORT: 'New password must be at least 8 characters.',
+  SAME_PASSWORD: 'New password must be different from your current password.'
+};
+
+async function handleChangePassword() {
+  if (isChangingPassword.value) return;
+
+  isChangingPassword.value = true;
+  changePasswordError.value = '';
+
+  try {
+    await authStore.changePassword({
+      currentPassword: currentPassword.value,
+      newPassword: newPassword.value
+    });
+    // Session is now invalid — redirect to login
+    router.push({ path: '/auth', query: { mode: 'login' } });
+  } catch (e) {
+    changePasswordError.value = CHANGE_PASSWORD_ERRORS[e.code] || e.message || 'Something went wrong. Please try again.';
+    // Clear only the new password field on error (keep current for retry)
+    newPassword.value = '';
+  } finally {
+    isChangingPassword.value = false;
+  }
+}
 
 const username = computed(() => authStore.username || 'User');
 const email = computed(() => authStore.email || 'Not set');

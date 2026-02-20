@@ -17,12 +17,13 @@ public class UsersRepository : RepositoryBase, IUsersRepository
     public virtual async Task<long> UpsertAsync(User user)
     {
         const string sql = @"INSERT INTO users
-            (user_id, email, username, password_hash, email_verified, is_active, tier, mollie_customer_id, created_at, updated_at, last_login_at)
-            VALUES (@user_id, @email, @username, @password_hash, @email_verified, @is_active, @tier, @mollie_customer_id, @created_at, @updated_at, @last_login_at) AS new
+            (user_id, email, username, password_hash, security_stamp, email_verified, is_active, tier, mollie_customer_id, created_at, updated_at, last_login_at)
+            VALUES (@user_id, @email, @username, @password_hash, @security_stamp, @email_verified, @is_active, @tier, @mollie_customer_id, @created_at, @updated_at, @last_login_at) AS new
             ON DUPLICATE KEY UPDATE
                 email = new.email,
                 username = new.username,
                 password_hash = new.password_hash,
+                security_stamp = new.security_stamp,
                 email_verified = new.email_verified,
                 is_active = new.is_active,
                 tier = new.tier,
@@ -41,6 +42,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
             cmd.Parameters.AddWithValue("@email", encryptedEmail);
             cmd.Parameters.AddWithValue("@username", encryptedUsername);
             cmd.Parameters.AddWithValue("@password_hash", user.PasswordHash);
+            cmd.Parameters.AddWithValue("@security_stamp", user.SecurityStamp);
             cmd.Parameters.AddWithValue("@email_verified", user.EmailVerified);
             cmd.Parameters.AddWithValue("@is_active", user.IsActive);
             cmd.Parameters.AddWithValue("@tier", user.Tier);
@@ -55,7 +57,22 @@ public class UsersRepository : RepositoryBase, IUsersRepository
 
     public virtual async Task<User?> GetByEmailAsync(string email)
     {
-        const string sql = "SELECT * FROM users WHERE email = @email LIMIT 1";
+        const string sql = @"SELECT
+                user_id,
+                email,
+                username,
+                password_hash,
+                security_stamp,
+                email_verified,
+                is_active,
+                tier,
+                mollie_customer_id,
+                created_at,
+                updated_at,
+                last_login_at
+            FROM users
+            WHERE email = @email
+            LIMIT 1";
         // Encrypt the search email to match stored encrypted value
         var encryptedEmail = _encryptor.Encrypt(email);
         return await ExecuteSingleAsync(sql, MapWithDecryption, ("@email", encryptedEmail));
@@ -63,13 +80,43 @@ public class UsersRepository : RepositoryBase, IUsersRepository
 
     public virtual Task<User?> GetByIdAsync(long userId)
     {
-        const string sql = "SELECT * FROM users WHERE user_id = @user_id LIMIT 1";
+        const string sql = @"SELECT
+                user_id,
+                email,
+                username,
+                password_hash,
+                security_stamp,
+                email_verified,
+                is_active,
+                tier,
+                mollie_customer_id,
+                created_at,
+                updated_at,
+                last_login_at
+            FROM users
+            WHERE user_id = @user_id
+            LIMIT 1";
         return ExecuteSingleAsync(sql, MapWithDecryption, ("@user_id", userId));
     }
 
     public virtual Task<User?> GetByUsernameAsync(string username)
     {
-        const string sql = "SELECT * FROM users WHERE username = @username LIMIT 1";
+        const string sql = @"SELECT
+                user_id,
+                email,
+                username,
+                password_hash,
+                security_stamp,
+                email_verified,
+                is_active,
+                tier,
+                mollie_customer_id,
+                created_at,
+                updated_at,
+                last_login_at
+            FROM users
+            WHERE username = @username
+            LIMIT 1";
         // Use case-preserving encryption for lookup (IV derived from normalized value)
         var encryptedUsername = _encryptor.EncryptPreserveCase(username);
         return ExecuteSingleAsync(sql, MapWithDecryption, ("@username", encryptedUsername));
@@ -113,6 +160,34 @@ public class UsersRepository : RepositoryBase, IUsersRepository
 	        var result = await ExecuteScalarAsync<long>(sql);
 	        return result;
 	    }
+
+    public virtual async Task UpdatePasswordHashAsync(long userId, string passwordHash)
+    {
+        const string sql = "UPDATE users SET password_hash = @password_hash, security_stamp = @security_stamp, updated_at = @updated_at WHERE user_id = @user_id";
+        await ExecuteWithConnectionAsync<object?>(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@password_hash", passwordHash);
+            cmd.Parameters.AddWithValue("@security_stamp", Guid.NewGuid().ToString());
+            cmd.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
+            cmd.Parameters.AddWithValue("@user_id", userId);
+            await cmd.ExecuteNonQueryAsync();
+            return null;
+        });
+    }
+
+    /// <inheritdoc />
+    public virtual async Task<string?> GetSecurityStampAsync(long userId)
+    {
+        const string sql = "SELECT security_stamp FROM users WHERE user_id = @user_id LIMIT 1";
+        return await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@user_id", userId);
+            var result = await cmd.ExecuteScalarAsync();
+            return result as string;
+        });
+    }
 
     public virtual async Task UpdateEmailVerifiedAsync(long userId, bool verified)
     {
@@ -193,9 +268,22 @@ public class UsersRepository : RepositoryBase, IUsersRepository
     /// </summary>
     private User MapWithDecryption(MySqlDataReader r)
     {
-        var userId = r.GetInt64(0);
-        var encryptedEmail = r.GetString(1);
-        var encryptedUsername = r.GetString(2);
+        var userIdOrdinal = r.GetOrdinal("user_id");
+        var emailOrdinal = r.GetOrdinal("email");
+        var usernameOrdinal = r.GetOrdinal("username");
+        var passwordHashOrdinal = r.GetOrdinal("password_hash");
+        var securityStampOrdinal = r.GetOrdinal("security_stamp");
+        var emailVerifiedOrdinal = r.GetOrdinal("email_verified");
+        var isActiveOrdinal = r.GetOrdinal("is_active");
+        var tierOrdinal = r.GetOrdinal("tier");
+        var mollieCustomerIdOrdinal = r.GetOrdinal("mollie_customer_id");
+        var createdAtOrdinal = r.GetOrdinal("created_at");
+        var updatedAtOrdinal = r.GetOrdinal("updated_at");
+        var lastLoginAtOrdinal = r.GetOrdinal("last_login_at");
+
+        var userId = r.GetInt64(userIdOrdinal);
+        var encryptedEmail = r.GetString(emailOrdinal);
+        var encryptedUsername = r.GetString(usernameOrdinal);
 
         string decryptedEmail;
         string decryptedUsername;
@@ -248,14 +336,15 @@ public class UsersRepository : RepositoryBase, IUsersRepository
             UserId = userId,
             Email = decryptedEmail,
             Username = decryptedUsername,
-            PasswordHash = r.GetString(3),
-            EmailVerified = r.GetBoolean(4),
-            IsActive = r.GetBoolean(5),
-            Tier = r.GetString(6),
-            MollieCustomerId = r.IsDBNull(7) ? null : r.GetString(7),
-            CreatedAt = r.GetDateTimeUtc(8),
-            UpdatedAt = r.GetDateTimeUtc(9),
-            LastLoginAt = r.GetDateTimeUtcOrNull(10)
+            PasswordHash = r.GetString(passwordHashOrdinal),
+            SecurityStamp = r.GetString(securityStampOrdinal),
+            EmailVerified = r.GetFieldValue<bool>(emailVerifiedOrdinal),
+            IsActive = r.GetFieldValue<bool>(isActiveOrdinal),
+            Tier = r.GetString(tierOrdinal),
+            MollieCustomerId = r.IsDBNull(mollieCustomerIdOrdinal) ? null : r.GetString(mollieCustomerIdOrdinal),
+            CreatedAt = r.GetDateTimeUtc(createdAtOrdinal),
+            UpdatedAt = r.GetDateTimeUtc(updatedAtOrdinal),
+            LastLoginAt = r.GetDateTimeUtcOrNull(lastLoginAtOrdinal)
         };
     }
 }

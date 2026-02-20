@@ -91,7 +91,7 @@ export default async function globalSetup() {
 
     // Step 2: Link Riot account
     console.log(`🎮 Linking Riot account: ${RIOT_ACCOUNT.gameName}#${RIOT_ACCOUNT.tagLine}`);
-    
+
     const linkResponse = await context.request.post('/api/v2/users/me/riot-accounts', {
       data: {
         gameName: RIOT_ACCOUNT.gameName,
@@ -102,15 +102,16 @@ export default async function globalSetup() {
 
     if (!linkResponse.ok()) {
       const error = await linkResponse.json().catch(() => ({}));
-      // Don't fail if account is already linked (from a previous failed run)
-      if (error.code !== 'ACCOUNT_ALREADY_LINKED') {
-        throw new Error(`Failed to link Riot account: ${error.error || linkResponse.statusText()}`);
-      }
-      console.log('⚠️ Riot account was already linked, continuing...');
-    } else {
-      const linkData = await linkResponse.json();
-      console.log(`✅ Riot account linked: ${linkData.gameName}#${linkData.tagLine} (PUUID: ${linkData.puuid})`);
+      // Log detailed error information for debugging
+      console.error(`❌ Failed to link Riot account (${linkResponse.status()}):`, error);
+      throw new Error(`Failed to link Riot account: ${error.error || linkResponse.statusText()} (code: ${error.code || 'UNKNOWN'})`);
     }
+
+    const linkData = await linkResponse.json();
+    console.log(`✅ Riot account linked: ${linkData.gameName}#${linkData.tagLine} (PUUID: ${linkData.puuid})`);
+
+    // Note: The backend supports M:M relationships, so the same Riot account can be linked
+    // to multiple users. This is expected behavior and not an error.
 
     // Step 3: Save authentication state
     // We need to navigate to the app to ensure cookies are properly set for the domain

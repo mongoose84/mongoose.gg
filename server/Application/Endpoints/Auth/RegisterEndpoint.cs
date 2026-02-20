@@ -63,30 +63,35 @@ public sealed class RegisterEndpoint : IEndpoint
             try
             {
                 // Check rate limit before processing (IP-based only, no user yet)
-                var clientIp = GetClientIpAddress(httpContext);
-                var rateLimitResult = await rateLimiter.CheckEndpointAsync(
-                    "register",
-                    clientIp,
-                    null, // No user ID for registration
-                    RateLimitRequests,
-                    RateLimitWindow);
-
-                if (!rateLimitResult.IsAllowed)
+                // Can be disabled for E2E tests via RateLimiting:Enabled config flag
+                var rateLimitingEnabled = config.GetValue<bool>("RateLimiting:Enabled", true);
+                if (rateLimitingEnabled)
                 {
-                    logger.LogWarning(
-                        "Rate limit exceeded for register endpoint. IP: {IP}",
-                        LogSanitizer.Sanitize(clientIp) ?? "unknown");
+                    var clientIp = GetClientIpAddress(httpContext);
+                    var rateLimitResult = await rateLimiter.CheckEndpointAsync(
+                        "register",
+                        clientIp,
+                        null, // No user ID for registration
+                        RateLimitRequests,
+                        RateLimitWindow);
 
-                    httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
-                    if (rateLimitResult.RetryAfter.HasValue)
+                    if (!rateLimitResult.IsAllowed)
                     {
-                        httpContext.Response.Headers["Retry-After"] =
-                            ((int)rateLimitResult.RetryAfter.Value.TotalSeconds).ToString();
-                    }
+                        logger.LogWarning(
+                            "Rate limit exceeded for register endpoint. IP: {IP}",
+                            LogSanitizer.Sanitize(clientIp) ?? "unknown");
 
-                    return Results.Json(
-                        new { error = "Too many registration attempts. Please try again later." },
-                        statusCode: 429);
+                        httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
+                        if (rateLimitResult.RetryAfter.HasValue)
+                        {
+                            httpContext.Response.Headers["Retry-After"] =
+                                ((int)rateLimitResult.RetryAfter.Value.TotalSeconds).ToString();
+                        }
+
+                        return Results.Json(
+                            new { error = "Too many registration attempts. Please try again later." },
+                            statusCode: 429);
+                    }
                 }
 
                 // Feature flag gate
@@ -135,7 +140,7 @@ public sealed class RegisterEndpoint : IEndpoint
                 // Check if email already exists
                 if (await usersRepo.EmailExistsAsync(request.Email))
                 {
-                    logger.LogWarning("Registration attempt with existing email from IP: {IP}", LogSanitizer.Sanitize(clientIp) ?? "unknown");
+                    logger.LogWarning("Registration attempt with existing email: {Email}", LogSanitizer.Sanitize(request.Email));
                     return Results.Conflict(new { error = "This email is already registered", code = "EMAIL_TAKEN" });
                 }
 
@@ -152,6 +157,7 @@ public sealed class RegisterEndpoint : IEndpoint
                     Email = request.Email.ToLowerInvariant().Trim(),
                     Username = normalizedUsername,
                     PasswordHash = passwordHash,
+                    SecurityStamp = Guid.NewGuid().ToString(),
                     EmailVerified = autoVerifyEmail,
                     IsActive = true,
                     Tier = "free",
@@ -199,7 +205,8 @@ public sealed class RegisterEndpoint : IEndpoint
                     new Claim(ClaimTypes.Name, newUser.Username),
                     new Claim(ClaimTypes.Email, newUser.Email),
                     new Claim("email_verified", autoVerifyEmail ? "true" : "false"),
-                    new Claim("tier", newUser.Tier)
+                    new Claim("tier", newUser.Tier),
+                    new Claim("security_stamp", newUser.SecurityStamp)
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

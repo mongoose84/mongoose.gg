@@ -225,6 +225,31 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Change password for the authenticated user.
+   * The server rotates the security stamp in the database and immediately signs out
+   * the current session. All other active sessions are invalidated on their next
+   * request when OnValidatePrincipal detects the stamp mismatch and rejects the cookie.
+   * We clear the local user state so the caller can redirect to login.
+   */
+  async function changePassword({ currentPassword, newPassword }) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      await authApi.changePassword({ currentPassword, newPassword })
+      // Server signed out this session and rotated the security stamp —
+      // all other sessions will be rejected on their next request. Mirror locally.
+      user.value = null
+      return { success: true }
+    } catch (e) {
+      error.value = e.message
+      throw e
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
    * Trigger a sync for a Riot account
    */
   async function triggerSync(puuid) {
@@ -270,6 +295,7 @@ export const useAuthStore = defineStore('auth', () => {
     clearSessionExpired,
     initializeSessionHandler,
     refreshUser,
+    changePassword,
     linkRiotAccount,
     unlinkRiotAccount,
     triggerSync

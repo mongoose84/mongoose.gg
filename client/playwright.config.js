@@ -86,9 +86,9 @@ export default defineConfig({
 
   // Web server configuration - start the Vue dev server
   // NOTE: The .NET backend must be started separately with E2E flags:
-  //   Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run --project server
+  //   Auth__AutoVerifyEmail=true RateLimiting__Enabled=false Email__DevMode=true dotnet run --project server
   // In CI, this is handled by the ci-e2e.yml workflow which generates
-  // appsettings.Production.json with AutoVerifyEmail: true
+  // appsettings.Production.json with AutoVerifyEmail: true and RateLimiting.Enabled: false
   webServer: [
     {
       command: 'npm run dev',

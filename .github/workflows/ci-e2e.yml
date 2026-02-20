@@ -102,6 +102,9 @@ jobs:
             "Jobs": {
               "EnableMatchHistorySync": false
             },
+            "RateLimiting": {
+              "Enabled": false
+            },
             "Security": {
               "EncryptionSecret": "${ENC_SECRET}"
             }
