@@ -6,11 +6,11 @@ public class User : EntityBase
     public string Email { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
+    public string SecurityStamp { get; set; } = string.Empty;
     public bool EmailVerified { get; set; }
     public bool IsActive { get; set; } = true;
     public string Tier { get; set; } = "free";
     public string? MollieCustomerId { get; set; }
-    public string SecurityStamp { get; set; } = Guid.NewGuid().ToString();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }

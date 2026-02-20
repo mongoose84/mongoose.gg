@@ -157,6 +157,7 @@ public sealed class RegisterEndpoint : IEndpoint
                     Email = request.Email.ToLowerInvariant().Trim(),
                     Username = normalizedUsername,
                     PasswordHash = passwordHash,
+                    SecurityStamp = Guid.NewGuid().ToString(),
                     EmailVerified = autoVerifyEmail,
                     IsActive = true,
                     Tier = "free",
