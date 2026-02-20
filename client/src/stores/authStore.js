@@ -49,7 +49,13 @@ export const useAuthStore = defineStore('auth', () => {
         // Skip session check during initialization - user wasn't previously authenticated
         // in this browser session, so we don't want to show session expired banner
         const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
-        if (userData || !user.value) {
+        const currentUserId = user.value?.userId ?? null
+        const fetchedUserId = userData?.userId ?? null
+        const canApplyFetchedUser =
+          !currentUserId ||
+          (fetchedUserId && currentUserId === fetchedUserId)
+
+        if (canApplyFetchedUser) {
           user.value = userData
         }
 
