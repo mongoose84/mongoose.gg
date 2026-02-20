@@ -290,6 +290,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _usersByEmail[email] = user;
             _usersById[user.UserId] = user;
         }
+
+        public void SetSecurityStamp(string username, string securityStamp)
+        {
+            if (_usersByUsername.TryGetValue(username, out var user))
+            {
+                user.SecurityStamp = securityStamp;
+            }
+        }
     }
 
     /// <summary>

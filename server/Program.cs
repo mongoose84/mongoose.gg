@@ -18,6 +18,10 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var cookieSecurePolicy = builder.Environment.IsDevelopment()
+    ? CookieSecurePolicy.SameAsRequest
+    : CookieSecurePolicy.Always;
+
 // Read secrets from configuration/environment (no local secret files required)
 Secrets.Initialize(builder.Configuration);
 
@@ -123,7 +127,7 @@ builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(sessionTimeoutMinutes);
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // set to SameAsRequest for local dev
+    options.Cookie.SecurePolicy = cookieSecurePolicy;
     options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
@@ -135,7 +139,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LogoutPath = "/logout";
         options.AccessDeniedPath = "/access-denied";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // set to SameAsRequest for local dev
+        options.Cookie.SecurePolicy = cookieSecurePolicy;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(sessionTimeoutMinutes);
         options.SlidingExpiration = true;

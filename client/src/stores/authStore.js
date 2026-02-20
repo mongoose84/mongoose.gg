@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isInitialized = ref(false)
   const error = ref(null)
   const isLinkingAccount = ref(false)
+  let initializePromise = null
 
   // Session expiry state
   const sessionExpired = ref(false)
@@ -35,26 +36,45 @@ export const useAuthStore = defineStore('auth', () => {
   // Actions
   async function initialize() {
     if (isInitialized.value) return
-
-    isLoading.value = true
-    error.value = null
-
-    try {
-      // Skip session check during initialization - user wasn't previously authenticated
-      // in this browser session, so we don't want to show session expired banner
-      const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
-      user.value = userData
-      // Mark that user was authenticated if we found a valid session
-      if (userData) {
-        wasAuthenticated.value = true
-      }
-    } catch (e) {
-      // Not authenticated is not an error state
-      user.value = null
-    } finally {
-      isLoading.value = false
-      isInitialized.value = true
+    if (initializePromise) {
+      await initializePromise
+      return
     }
+
+    initializePromise = (async () => {
+      isLoading.value = true
+      error.value = null
+
+      try {
+        // Skip session check during initialization - user wasn't previously authenticated
+        // in this browser session, so we don't want to show session expired banner
+        const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
+        const currentUserId = user.value?.userId ?? null
+        const fetchedUserId = userData?.userId ?? null
+        const canApplyFetchedUser =
+          !currentUserId ||
+          (fetchedUserId && currentUserId === fetchedUserId)
+
+        if (canApplyFetchedUser) {
+          user.value = userData
+        }
+
+        // Mark that user was authenticated if we found a valid session
+        if (userData) {
+          wasAuthenticated.value = true
+        }
+      } catch (e) {
+        if (!user.value) {
+          user.value = null
+        }
+      } finally {
+        isLoading.value = false
+        isInitialized.value = true
+        initializePromise = null
+      }
+    })()
+
+    await initializePromise
   }
 
   async function login({ username: uname, password, rememberMe = false }) {

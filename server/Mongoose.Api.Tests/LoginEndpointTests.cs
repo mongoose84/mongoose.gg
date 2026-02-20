@@ -71,6 +71,26 @@ public class LoginEndpointTests
     }
 
     [Fact]
+    public async Task Login_backfills_missing_security_stamp_for_legacy_user()
+    {
+        using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
+        {
+            ["Auth:CookieName"] = "mongoose-auth-test"
+        });
+
+        factory.UsersRepository.SetSecurityStamp("tester", string.Empty);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var loginResponse = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var updatedUser = await factory.UsersRepository.GetByUsernameAsync("tester");
+        updatedUser.Should().NotBeNull();
+        updatedUser!.SecurityStamp.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
     public async Task Login_returns_INVALID_CREDENTIALS_code_for_wrong_password()
     {
         using var factory = new TestWebApplicationFactory();

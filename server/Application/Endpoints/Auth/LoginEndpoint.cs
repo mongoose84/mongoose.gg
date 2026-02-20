@@ -133,6 +133,14 @@ public sealed class LoginEndpoint : IEndpoint
                     return AuthResults.AccountDeactivated();
                 }
 
+                if (string.IsNullOrWhiteSpace(user.SecurityStamp))
+                {
+                    user.SecurityStamp = Guid.NewGuid().ToString();
+                }
+
+                user.LastLoginAt = DateTime.UtcNow;
+                await usersRepo.UpsertAsync(user);
+
                 // Create claims identity for cookie auth
                 var claims = new List<Claim>
                 {
@@ -163,10 +171,6 @@ public sealed class LoginEndpoint : IEndpoint
                     new ClaimsPrincipal(claimsIdentity),
                     authProperties
                 );
-
-                // Update last login timestamp
-                user.LastLoginAt = DateTime.UtcNow;
-                await usersRepo.UpsertAsync(user);
 
                 logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", LogSanitizer.Sanitize(user.Username), user.UserId);
 

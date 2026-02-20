@@ -99,6 +99,42 @@ describe('authStore', () => {
 
       expect(authApi.getCurrentUser).toHaveBeenCalledOnce();
     });
+
+    it('does not clear an already authenticated user with stale initialize result', async () => {
+      let resolveCurrentUser;
+      authApi.getCurrentUser.mockImplementationOnce(() => new Promise(resolve => {
+        resolveCurrentUser = resolve;
+      }));
+
+      const store = useAuthStore();
+      const initializePromise = store.initialize();
+
+      store.user = { userId: 7, username: 'fresh-login', emailVerified: true };
+
+      resolveCurrentUser(null);
+      await initializePromise;
+
+      expect(store.user).toEqual({ userId: 7, username: 'fresh-login', emailVerified: true });
+      expect(store.isAuthenticated).toBe(true);
+    });
+
+    it('does not replace authenticated user with stale initialize user from different account', async () => {
+      let resolveCurrentUser;
+      authApi.getCurrentUser.mockImplementationOnce(() => new Promise(resolve => {
+        resolveCurrentUser = resolve;
+      }));
+
+      const store = useAuthStore();
+      const initializePromise = store.initialize();
+
+      store.user = { userId: 7, username: 'fresh-login', emailVerified: true };
+
+      resolveCurrentUser({ userId: 99, username: 'stale-user', emailVerified: true });
+      await initializePromise;
+
+      expect(store.user).toEqual({ userId: 7, username: 'fresh-login', emailVerified: true });
+      expect(store.isAuthenticated).toBe(true);
+    });
   });
 
   describe('login', () => {
