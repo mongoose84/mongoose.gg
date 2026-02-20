@@ -133,6 +133,12 @@ public sealed class LoginEndpoint : IEndpoint
                     return AuthResults.AccountDeactivated();
                 }
 
+                if (string.IsNullOrWhiteSpace(user.SecurityStamp))
+                {
+                    user.SecurityStamp = Guid.NewGuid().ToString();
+                    await usersRepo.UpsertAsync(user);
+                }
+
                 // Create claims identity for cookie auth
                 var claims = new List<Claim>
                 {
