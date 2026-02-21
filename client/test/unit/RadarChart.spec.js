@@ -12,12 +12,12 @@ vi.mock('vue-chartjs', () => ({
 
 describe('RadarChart', () => {
   const mockAxes = [
-    { key: 'laning', label: 'Laning', value: 62.5, rawValue: '+500', rawUnit: 'Gold diff @15' },
-    { key: 'farming', label: 'Farming', value: 58, rawValue: '7.2', rawUnit: 'CS/min' },
-    { key: 'combat', label: 'Combat', value: 64.2, rawValue: '620', rawUnit: 'DPM' },
-    { key: 'vision', label: 'Vision', value: 44, rawValue: '1.0', rawUnit: 'Vision/min' },
-    { key: 'objectives', label: 'Objectives', value: 55.3, rawValue: '61%', rawUnit: 'Participation' },
-    { key: 'survivability', label: 'Survivability', value: 56, rawValue: '5.1', rawUnit: 'Deaths/game' }
+    { key: 'laning', label: 'Laning', value: 62.5, rawValue: 500, rawUnit: 'Gold diff @15' },
+    { key: 'farming', label: 'Farming', value: 58, rawValue: 7.2, rawUnit: 'CS/min' },
+    { key: 'combat', label: 'Combat', value: 64.2, rawValue: 620, rawUnit: 'DPM' },
+    { key: 'vision', label: 'Vision', value: 44, rawValue: 1.0, rawUnit: 'Vision/min' },
+    { key: 'objectives', label: 'Objectives', value: 55.3, rawValue: 61.0, rawUnit: 'Participation' },
+    { key: 'survivability', label: 'Survivability', value: 56, rawValue: 5.1, rawUnit: 'Deaths/game' }
   ]
 
   const mountComponent = (props = {}) => {
@@ -51,6 +51,20 @@ describe('RadarChart', () => {
     expect(wrapper.text()).toContain('No performance data available')
   })
 
+  it('shows empty state when axes exist but gamesAnalyzed is 0', () => {
+    const wrapper = mountComponent({ axes: mockAxes, gamesAnalyzed: 0 })
+
+    expect(wrapper.find('[data-testid="radar-empty"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="mock-radar-chart"]').exists()).toBe(false)
+  })
+
+  it('shows empty state when gamesAnalyzed > 0 but axes are empty', () => {
+    const wrapper = mountComponent({ axes: [], gamesAnalyzed: 10 })
+
+    expect(wrapper.find('[data-testid="radar-empty"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="mock-radar-chart"]').exists()).toBe(false)
+  })
+
   it('shows games analyzed count', () => {
     const wrapper = mountComponent({ axes: mockAxes, gamesAnalyzed: 17 })
 
@@ -71,5 +85,16 @@ describe('RadarChart', () => {
 
     expect(radarOptions.scales.r.min).toBe(0)
     expect(radarOptions.scales.r.max).toBe(100)
+  })
+
+  it('handles missing rawValue and rawUnit fields in axis objects', () => {
+    const minimalAxes = [
+      { key: 'laning', label: 'Laning', value: 62.5 }
+    ]
+    const wrapper = mountComponent({ axes: minimalAxes, gamesAnalyzed: 5 })
+    const radarOptions = wrapper.findComponent({ name: 'Radar' }).props('options')
+
+    const tooltipLabel = radarOptions.plugins.tooltip.callbacks.label({ dataIndex: 0 })
+    expect(tooltipLabel).toBe('Laning: 62.5 — Raw value: N/A')
   })
 })
