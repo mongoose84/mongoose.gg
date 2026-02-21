@@ -122,9 +122,9 @@ defineProps({
   }
 }
 
-/* Zone 4: Deep Analysis — half-width card, left-aligned */
+/* Zone 4: Deep Analysis — full-width */
 .zone-deep-analysis {
-  max-width: 50%;
+  width: 100%;
 }
 
 @media (max-width: 768px) {

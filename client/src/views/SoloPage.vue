@@ -128,19 +128,33 @@
 
     <!-- Zone 4: Deep Analysis -->
     <template #deep-analysis>
-      <BaseCard title="Danger Zones" subtitle="Where you die most on the map" data-testid="danger-zones-card">
-        <DangerZonesMap
-          :deaths="deathPositionsData?.deaths ?? []"
-          :total-deaths="deathPositionsData?.totalDeaths ?? 0"
-          :matches-analyzed="deathPositionsData?.matchesAnalyzed ?? 0"
-          :phase-summary="deathPositionsData?.phaseSummary ?? { early: 0, mid: 0, late: 0, veryLate: 0 }"
-          :loading="deathPositionsLoading"
-          :error="deathPositionsError"
-          :queue-type="queueFilter"
-          :time-range="timeRange"
-          @update:side="onSideFilterChange"
-        />
-      </BaseCard>
+      <div class="deep-analysis-grid" data-testid="deep-analysis-grid">
+        <BaseCard
+          title="Performance Profile"
+          subtitle="Your strengths and weaknesses across 6 dimensions"
+          data-testid="radar-chart-card"
+        >
+          <RadarChart
+            :axes="radarChartData?.axes ?? []"
+            :games-analyzed="radarChartData?.gamesAnalyzed ?? 0"
+            :loading="radarChartLoading"
+          />
+        </BaseCard>
+
+        <BaseCard title="Danger Zones" subtitle="Where you die most on the map" data-testid="danger-zones-card">
+          <DangerZonesMap
+            :deaths="deathPositionsData?.deaths ?? []"
+            :total-deaths="deathPositionsData?.totalDeaths ?? 0"
+            :matches-analyzed="deathPositionsData?.matchesAnalyzed ?? 0"
+            :phase-summary="deathPositionsData?.phaseSummary ?? { early: 0, mid: 0, late: 0, veryLate: 0 }"
+            :loading="deathPositionsLoading"
+            :error="deathPositionsError"
+            :queue-type="queueFilter"
+            :time-range="timeRange"
+            @update:side="onSideFilterChange"
+          />
+        </BaseCard>
+      </div>
     </template>
 
     <!-- Zone 5: Not rendered in v1 -->
@@ -152,7 +166,7 @@ import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend, getDeathsTrend, getDragonParticipationTrend, getVisionScoreTrend, getDeathPositions } from '../services/authApi'
+import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend, getDeathsTrend, getDragonParticipationTrend, getVisionScoreTrend, getDeathPositions, getRadarChart } from '../services/authApi'
 import { BaseQueueToggle, BaseTimeRangeSelect, BaseCard } from '../components/base'
 import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
 import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
@@ -164,6 +178,7 @@ import DeathsChart from '../components/solo/DeathsChart.vue'
 import DragonParticipationChart from '../components/solo/DragonParticipationChart.vue'
 import VisionChart from '../components/solo/VisionChart.vue'
 import DangerZonesMap from '../components/solo/DangerZonesMap.vue'
+import RadarChart from '../components/solo/RadarChart.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
@@ -189,6 +204,10 @@ const dragonParticipationSummary = ref({ averageParticipation: 0, overallAverage
 const visionScoreTrendData = ref([])
 const visionScoreLoading = ref(false)
 const visionScoreSummary = ref({ averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' })
+
+// Radar chart data
+const radarChartData = ref(null)
+const radarChartLoading = ref(false)
 
 // Death positions data for danger zones
 const deathPositionsData = ref(null)
@@ -357,6 +376,21 @@ async function fetchVisionScoreTrend() {
   }
 }
 
+// Fetch radar chart profile data
+async function fetchRadarChart() {
+  if (!authStore.userId) return
+
+  radarChartLoading.value = true
+  try {
+    radarChartData.value = await getRadarChart(authStore.userId, queueFilter.value, timeRange.value)
+  } catch (err) {
+    console.error('Failed to fetch radar chart:', err)
+    radarChartData.value = null
+  } finally {
+    radarChartLoading.value = false
+  }
+}
+
 // Fetch death positions data for danger zones
 async function fetchDeathPositions() {
   if (!authStore.userId) return
@@ -432,6 +466,7 @@ async function fetchAllData() {
     fetchDeathsTrend(),
     fetchDragonParticipationTrend(),
     fetchVisionScoreTrend(),
+    fetchRadarChart(),
     fetchDeathPositions()
   ])
 }
@@ -469,5 +504,20 @@ watch(syncProgress, (progress) => {
   }
 }, { deep: true })
 </script>
+
+<style scoped>
+.deep-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-items: start;
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .deep-analysis-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
 
 
