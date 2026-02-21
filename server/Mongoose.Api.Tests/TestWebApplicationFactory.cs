@@ -17,6 +17,7 @@ using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
 using static Mongoose.Api.Application.DTOs.TrendDto;
+using static Mongoose.Api.Application.DTOs.Solo.RadarChartDto;
 using static Mongoose.Api.Application.DTOs.Solo.DeathPositionsDto;
 
 namespace Mongoose.Api.Tests;
@@ -37,6 +38,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeMatchupRepository _matchupRepository;
     private readonly FakeChampionSelectRepository _championSelectRepository;
     private readonly FakeTrendRepository _trendRepository;
+    private readonly FakeRadarChartRepository _radarChartRepository;
     private readonly FakeDeathPositionsRepository _deathPositionsRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
@@ -52,6 +54,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeMatchupRepository MatchupRepository => _matchupRepository;
     public FakeChampionSelectRepository ChampionSelectRepository => _championSelectRepository;
     public FakeTrendRepository TrendRepository => _trendRepository;
+    public FakeRadarChartRepository RadarChartRepository => _radarChartRepository;
     public FakeDeathPositionsRepository DeathPositionsRepository => _deathPositionsRepository;
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
@@ -70,6 +73,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _matchupRepository = new FakeMatchupRepository();
         _championSelectRepository = new FakeChampionSelectRepository();
         _trendRepository = new FakeTrendRepository();
+        _radarChartRepository = new FakeRadarChartRepository();
         _deathPositionsRepository = new FakeDeathPositionsRepository();
     }
 
@@ -159,6 +163,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace ITrendRepository with a fake
             services.RemoveAll<ITrendRepository>();
             services.AddSingleton<ITrendRepository>(_trendRepository);
+
+            // Replace IRadarChartRepository with a fake
+            services.RemoveAll<IRadarChartRepository>();
+            services.AddSingleton<IRadarChartRepository>(_radarChartRepository);
 
             // Replace IDeathPositionsRepository with a fake
             services.RemoveAll<IDeathPositionsRepository>();
@@ -1266,6 +1274,30 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
         {
             return Task.FromResult(new Dictionary<string, int>());
+        }
+    }
+
+    /// <summary>
+    /// Fake implementation of IRadarChartRepository for testing.
+    /// </summary>
+    internal sealed class FakeRadarChartRepository : IRadarChartRepository
+    {
+        private readonly ConcurrentDictionary<string, RadarChartResponse> _radarData = new();
+
+        public void SetRadarData(string puuid, RadarChartResponse response)
+        {
+            _radarData[puuid] = response;
+        }
+
+        public void Clear()
+        {
+            _radarData.Clear();
+        }
+
+        public Task<RadarChartResponse?> GetRadarChartAsync(string puuid, string? queueType = null, string? timeRange = null)
+        {
+            _radarData.TryGetValue(puuid, out var data);
+            return Task.FromResult(data);
         }
     }
 

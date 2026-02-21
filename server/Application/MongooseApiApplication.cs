@@ -87,6 +87,10 @@ namespace Mongoose.Api.Application
             var matchActivityEndpoint = new MatchActivityEndpoint(basePath);
             _endpoints.Add(matchActivityEndpoint);
 
+            // Solo radar chart (auth required)
+            var radarChartEndpoint = new RadarChartEndpoint(basePath);
+            _endpoints.Add(radarChartEndpoint);
+
             // Match List (auth required)
             var matchListEndpoint = new MatchListEndpoint(basePath);
             _endpoints.Add(matchListEndpoint);
