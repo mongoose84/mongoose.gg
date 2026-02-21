@@ -544,6 +544,32 @@ export async function getVisionScoreTrend(userId, queueType = 'all', timeRange, 
 }
 
 /**
+ * Get radar chart performance profile data
+ * @param {number} userId - User ID
+ * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
+ * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
+ * @returns {Promise<Object|null>} Radar profile data with axes and gamesAnalyzed, or null if no data found
+ */
+export async function getRadarChart(userId, queueType = 'all', timeRange) {
+  const params = new URLSearchParams()
+  if (queueType && queueType !== 'all') {
+    params.append('queueType', queueType)
+  }
+  if (timeRange) {
+    params.append('timeRange', timeRange)
+  }
+
+  const endpoint = `/solo/radar-chart/${userId}${params.toString() ? '?' + params.toString() : ''}`
+  const response = await apiRequest(endpoint, { method: 'GET' })
+
+  if (response.status === 404) {
+    return null // No data found
+  }
+
+  return parseResponse(response, 'Failed to get radar chart')
+}
+
+/**
  * Get death position data for danger zone heatmap
  * @param {number} userId - User ID
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
