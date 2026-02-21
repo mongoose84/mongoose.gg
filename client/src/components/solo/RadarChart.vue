@@ -189,10 +189,8 @@ function formatScore(score) {
 .chart-wrapper {
   width: min(500px, 100%);
   height: 380px;
-}
-
-.chart-wrapper :deep(canvas) {
-  transform: translateX(40px);
+  box-sizing: border-box;
+  padding: 0 12px 0 24px;
 }
 
 .games-context {
@@ -201,6 +199,13 @@ function formatScore(score) {
   text-align: center;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
+}
+
+@media (max-width: 768px) {
+  .chart-wrapper {
+    height: 340px;
+    padding: 0 6px 0 12px;
+  }
 }
 
 @keyframes radar-shimmer {
