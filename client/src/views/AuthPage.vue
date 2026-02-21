@@ -4,86 +4,143 @@
 
     <div class="min-h-[calc(100vh-64px)] flex items-center justify-center p-xl">
       <div class="w-full max-w-[440px] p-2xl bg-background-surface border border-border rounded-lg backdrop-blur-[10px]" data-testid="auth-card">
-        <div class="flex flex-col items-center justify-center text-center mb-xl min-h-[200px]">
-          <img src="/mongoose.png" alt="Mongoose" class="w-32 h-16 mb-md" data-testid="auth-logo" />
-          <h1 class="text-2xl font-bold tracking-tight mb-xs text-text">Welcome to Mongoose.gg <span class="text-[0.5em] text-text-secondary font-normal align-top">Beta</span></h1>
-          <p class="text-base text-text-secondary">{{ isLogin ? 'Sign in to your account' : 'Create your account' }}</p>
-        </div>
 
-        <!-- Error message -->
-        <div v-if="errorMessage" class="p-md bg-error-soft border border-error-border rounded-md text-error text-sm text-center mb-md" role="alert">
-          {{ errorMessage }}
-        </div>
-
-        <form @submit.prevent="handleSubmit" class="flex flex-col gap-lg" data-testid="auth-form">
-          <!-- Username field for both login and signup -->
-          <BaseInput
-            id="username"
-            v-model="formData.username"
-            label="Username"
-            placeholder="Your username"
-            :error="usernameError"
-            required
-            minlength="3"
-            maxlength="50"
-            data-testid="form-group"
-            @input="validateUsername"
-          />
-
-          <!-- Email field only for signup -->
-          <BaseInput
-            v-if="!isLogin"
-            id="email"
-            v-model="formData.email"
-            type="email"
-            label="Email"
-            placeholder="you@example.com"
-            required
-          />
-
-          <BaseInput
-            id="password"
-            v-model="formData.password"
-            type="password"
-            label="Password"
-            placeholder="••••••••"
-            required
-            minlength="8"
-          />
-
-          <!-- Remember me checkbox for login -->
-          <div v-if="isLogin" class="flex items-center gap-sm">
-            <input
-              id="rememberMe"
-              v-model="formData.rememberMe"
-              type="checkbox"
-              class="w-[18px] h-[18px] accent-primary cursor-pointer"
-            />
-            <label for="rememberMe" class="text-sm text-text-secondary cursor-pointer">Keep me logged in for 30 days</label>
+        <!-- ── Forgot Password State ── -->
+        <template v-if="isForgotPassword">
+          <div class="flex flex-col items-center justify-center text-center mb-xl">
+            <img src="/mongoose.png" alt="Mongoose" class="w-32 h-16 mb-md" data-testid="auth-logo" />
+            <h1 class="text-2xl font-bold tracking-tight mb-xs text-text">Forgot Your Password?</h1>
+            <p class="text-base text-text-secondary">Enter your email to receive a reset code</p>
           </div>
 
-          <BaseButton
-            type="submit"
-            variant="primary"
-            size="lg"
-            :loading="isSubmitting"
-            class="mt-md"
-          >
-            {{ isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account') }}
-          </BaseButton>
-        </form>
+          <div v-if="forgotErrorMessage" class="p-md bg-error-soft border border-error-border rounded-md text-error text-sm mb-md" role="alert">
+            {{ forgotErrorMessage }}
+          </div>
 
-        <div class="mt-xl pt-xl border-t border-border text-center">
-          <BaseButton
-            variant="ghost"
-            size="sm"
-            :disabled="isSubmitting"
-            data-testid="auth-toggle"
-            @click="toggleMode"
-          >
-            {{ isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in' }}
-          </BaseButton>
-        </div>
+          <form @submit.prevent="handleForgotSubmit" class="flex flex-col gap-lg" data-testid="forgot-form">
+            <BaseInput
+              id="forgot-email"
+              v-model="forgotEmail"
+              type="email"
+              label="Email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              required
+              :disabled="isSubmitting"
+            />
+
+            <BaseButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              :loading="isSubmitting"
+              :disabled="isSubmitting"
+              block
+            >
+              {{ isSubmitting ? 'Sending...' : 'Send Reset Code' }}
+            </BaseButton>
+          </form>
+
+          <div class="mt-xl pt-xl border-t border-border text-center">
+            <BaseButton variant="ghost" size="sm" :disabled="isSubmitting" @click="showLogin">
+              ← Back to Sign In
+            </BaseButton>
+          </div>
+        </template>
+
+        <!-- ── Login / Register State ── -->
+        <template v-else>
+          <div class="flex flex-col items-center justify-center text-center mb-xl min-h-[200px]">
+            <img src="/mongoose.png" alt="Mongoose" class="w-32 h-16 mb-md" data-testid="auth-logo" />
+            <h1 class="text-2xl font-bold tracking-tight mb-xs text-text">Welcome to Mongoose.gg <span class="text-[0.5em] text-text-secondary font-normal align-top">Beta</span></h1>
+            <p class="text-base text-text-secondary">{{ isLogin ? 'Sign in to your account' : 'Create your account' }}</p>
+          </div>
+
+          <!-- Error message -->
+          <div v-if="errorMessage" class="p-md bg-error-soft border border-error-border rounded-md text-error text-sm text-center mb-md" role="alert">
+            {{ errorMessage }}
+          </div>
+
+          <form @submit.prevent="handleSubmit" class="flex flex-col gap-lg" data-testid="auth-form">
+            <!-- Username field for both login and signup -->
+            <BaseInput
+              id="username"
+              v-model="formData.username"
+              label="Username"
+              placeholder="Your username"
+              :error="usernameError"
+              required
+              minlength="3"
+              maxlength="50"
+              data-testid="form-group"
+              @input="validateUsername"
+            />
+
+            <!-- Email field only for signup -->
+            <BaseInput
+              v-if="!isLogin"
+              id="email"
+              v-model="formData.email"
+              type="email"
+              label="Email"
+              placeholder="you@example.com"
+              required
+            />
+
+            <BaseInput
+              id="password"
+              v-model="formData.password"
+              type="password"
+              label="Password"
+              placeholder="••••••••"
+              required
+              minlength="8"
+            />
+
+            <!-- Remember me + Forgot password row (login only) -->
+            <div v-if="isLogin" class="flex items-center justify-between gap-sm">
+              <div class="flex items-center gap-sm">
+                <input
+                  id="rememberMe"
+                  v-model="formData.rememberMe"
+                  type="checkbox"
+                  class="w-[18px] h-[18px] accent-primary cursor-pointer"
+                />
+                <label for="rememberMe" class="text-sm text-text-secondary cursor-pointer">Keep me logged in for 30 days</label>
+              </div>
+              <button
+                type="button"
+                class="text-sm text-primary hover:opacity-80 transition-opacity bg-transparent border-none cursor-pointer"
+                @click="showForgotPassword"
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            <BaseButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              :loading="isSubmitting"
+              class="mt-md"
+            >
+              {{ isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account') }}
+            </BaseButton>
+          </form>
+
+          <div class="mt-xl pt-xl border-t border-border text-center">
+            <BaseButton
+              variant="ghost"
+              size="sm"
+              :disabled="isSubmitting"
+              data-testid="auth-toggle"
+              @click="toggleMode"
+            >
+              {{ isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in' }}
+            </BaseButton>
+          </div>
+        </template>
+
       </div>
     </div>
   </div>
@@ -96,11 +153,13 @@ import NavBar from '../components/NavBar.vue';
 import { BaseInput, BaseButton } from '@/components/base';
 import { useAuthStore } from '../stores/authStore';
 import { trackAuth } from '../services/analyticsApi';
+import { forgotPassword } from '../services/authApi';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 
+// ── Login / Register state ──
 const isLogin = ref(true);
 const isSubmitting = ref(false);
 const errorMessage = ref('');
@@ -112,6 +171,11 @@ const formData = ref({
   password: '',
   rememberMe: false
 });
+
+// ── Forgot password state ──
+const isForgotPassword = ref(false);
+const forgotEmail = ref('');
+const forgotErrorMessage = ref('');
 
 // Get redirect destination from query params (for session expiry flow)
 const redirectTo = computed(() => {
@@ -167,6 +231,20 @@ const validateUsername = () => {
   }
 };
 
+const showForgotPassword = () => {
+  isForgotPassword.value = true;
+  forgotEmail.value = '';
+  forgotErrorMessage.value = '';
+  errorMessage.value = '';
+};
+
+const showLogin = () => {
+  isForgotPassword.value = false;
+  isLogin.value = true;
+  forgotErrorMessage.value = '';
+  router.replace({ path: '/auth', query: { mode: 'login' } });
+};
+
 const toggleMode = () => {
   isLogin.value = !isLogin.value;
   formData.value = { username: '', email: '', password: '', rememberMe: false };
@@ -178,6 +256,23 @@ const toggleMode = () => {
     path: '/auth',
     query: { mode: isLogin.value ? 'login' : 'signup' }
   });
+};
+
+const handleForgotSubmit = async () => {
+  if (isSubmitting.value) return;
+
+  isSubmitting.value = true;
+  forgotErrorMessage.value = '';
+
+  try {
+    await forgotPassword(forgotEmail.value);
+    // Always redirect — the API never leaks whether the email exists
+    router.push({ path: '/auth/reset-password', query: { email: forgotEmail.value } });
+  } catch (e) {
+    forgotErrorMessage.value = e.message || 'Something went wrong. Please try again.';
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 
 const handleSubmit = async () => {

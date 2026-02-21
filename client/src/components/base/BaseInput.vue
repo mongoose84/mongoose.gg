@@ -120,6 +120,9 @@ const emit = defineEmits(['update:modelValue'])
 
 const inputRef = ref(null)
 
+const focus = () => inputRef.value?.focus()
+const blur = () => inputRef.value?.blur()
+
 // Generate unique IDs
 const generatedId = useId()
 const inputId = computed(() => props.id || `input-${generatedId}`)
@@ -139,8 +142,8 @@ const containerClasses = computed(() => ({
 
 // Expose input ref for programmatic focus
 defineExpose({
-  focus: () => inputRef.value?.focus(),
-  blur: () => inputRef.value?.blur(),
+  focus,
+  blur,
   inputRef
 })
 </script>

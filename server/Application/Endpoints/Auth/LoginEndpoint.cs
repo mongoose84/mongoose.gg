@@ -59,30 +59,35 @@ public sealed class LoginEndpoint : IEndpoint
             try
             {
                 // Check rate limit before processing (IP-based only)
-                var clientIp = GetClientIpAddress(httpContext);
-                var rateLimitResult = await rateLimiter.CheckEndpointAsync(
-                    "login",
-                    clientIp,
-                    null, // No user ID for login attempts
-                    RateLimitRequests,
-                    RateLimitWindow);
-
-                if (!rateLimitResult.IsAllowed)
+                // Can be disabled for E2E tests via RateLimiting:Enabled config flag
+                var rateLimitingEnabled = config.GetValue<bool>("RateLimiting:Enabled", true);
+                if (rateLimitingEnabled)
                 {
-                    logger.LogWarning(
-                        "Rate limit exceeded for login endpoint. IP: {IP}",
-                        LogSanitizer.Sanitize(clientIp) ?? "unknown");
+                    var clientIp = GetClientIpAddress(httpContext);
+                    var rateLimitResult = await rateLimiter.CheckEndpointAsync(
+                        "login",
+                        clientIp,
+                        null, // No user ID for login attempts
+                        RateLimitRequests,
+                        RateLimitWindow);
 
-                    httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
-                    if (rateLimitResult.RetryAfter.HasValue)
+                    if (!rateLimitResult.IsAllowed)
                     {
-                        httpContext.Response.Headers["Retry-After"] =
-                            ((int)rateLimitResult.RetryAfter.Value.TotalSeconds).ToString();
-                    }
+                        logger.LogWarning(
+                            "Rate limit exceeded for login endpoint. IP: {IP}",
+                            LogSanitizer.Sanitize(clientIp) ?? "unknown");
 
-                    return Results.Json(
-                        new { error = "Too many login attempts. Please try again later." },
-                        statusCode: 429);
+                        httpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
+                        if (rateLimitResult.RetryAfter.HasValue)
+                        {
+                            httpContext.Response.Headers["Retry-After"] =
+                                ((int)rateLimitResult.RetryAfter.Value.TotalSeconds).ToString();
+                        }
+
+                        return Results.Json(
+                            new { error = "Too many login attempts. Please try again later." },
+                            statusCode: 429);
+                    }
                 }
 
                 // Feature flag gate: disable MVP login unless explicitly enabled
@@ -128,6 +133,14 @@ public sealed class LoginEndpoint : IEndpoint
                     return AuthResults.AccountDeactivated();
                 }
 
+                if (string.IsNullOrWhiteSpace(user.SecurityStamp))
+                {
+                    user.SecurityStamp = Guid.NewGuid().ToString();
+                }
+
+                user.LastLoginAt = DateTime.UtcNow;
+                await usersRepo.UpsertAsync(user);
+
                 // Create claims identity for cookie auth
                 var claims = new List<Claim>
                 {
@@ -135,7 +148,8 @@ public sealed class LoginEndpoint : IEndpoint
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.Email, user.Email),
                     new Claim("email_verified", user.EmailVerified.ToString().ToLowerInvariant()),
-                    new Claim("tier", user.Tier)
+                    new Claim("tier", user.Tier),
+                    new Claim("security_stamp", user.SecurityStamp)
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -157,10 +171,6 @@ public sealed class LoginEndpoint : IEndpoint
                     new ClaimsPrincipal(claimsIdentity),
                     authProperties
                 );
-
-                // Update last login timestamp
-                user.LastLoginAt = DateTime.UtcNow;
-                await usersRepo.UpsertAsync(user);
 
                 logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", LogSanitizer.Sanitize(user.Username), user.UserId);
 

@@ -16,9 +16,21 @@ vi.mock('@/stores/authStore', () => ({
   })
 }));
 
+// Mock analytics
+vi.mock('@/services/analyticsApi', () => ({
+  trackAuth: vi.fn()
+}));
+
+// Mock authApi — forgotPassword
+const mockForgotPassword = vi.fn().mockResolvedValue({ message: 'ok' });
+vi.mock('@/services/authApi', () => ({
+  forgotPassword: (...args) => mockForgotPassword(...args)
+}));
+
 describe('AuthPage.vue', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    mockForgotPassword.mockReset().mockResolvedValue({ message: 'ok' });
   });
 
   const createWrapper = (query = {}) => {
@@ -28,6 +40,7 @@ describe('AuthPage.vue', () => {
         { path: '/', component: { template: '<div>Home</div>' } },
         { path: '/auth', component: { template: '<div>Auth</div>' } },
         { path: '/auth/verify', component: { template: '<div>Verify</div>' } },
+        { path: '/auth/reset-password', component: { template: '<div>Reset</div>' } },
         { path: '/app/overview', component: { template: '<div>Overview</div>' } },
       ]
     });
@@ -157,5 +170,184 @@ describe('AuthPage.vue', () => {
     const wrapper = createWrapper();
     const passwordInput = wrapper.find('input[type="password"]');
     expect(passwordInput.exists()).toBe(true);
+  });
+
+  // ── Forgot Password Flow ──
+
+  describe('Forgot Password', () => {
+    const switchToForgotPassword = async (wrapper) => {
+      const forgotBtn = wrapper.find('button[type="button"]');
+      // The "Forgot password?" button is a plain <button type="button">
+      const btn = wrapper.findAll('button').find(b => b.text().includes('Forgot password'));
+      expect(btn).toBeTruthy();
+      await btn.trigger('click');
+    };
+
+    it('shows forgot password UI when "Forgot password?" is clicked', async () => {
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      expect(wrapper.text()).toContain('Forgot Your Password?');
+      expect(wrapper.text()).toContain('Enter your email to receive a reset code');
+      expect(wrapper.find('[data-testid="forgot-form"]').exists()).toBe(true);
+    });
+
+    it('hides login/register form when in forgot password state', async () => {
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      expect(wrapper.find('[data-testid="auth-form"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="auth-toggle"]').exists()).toBe(false);
+    });
+
+    it('shows email input in forgot password form', async () => {
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      const emailInput = wrapper.find('#forgot-email');
+      expect(emailInput.exists()).toBe(true);
+      expect(emailInput.attributes('type')).toBe('email');
+    });
+
+    it('shows "Send Reset Code" submit button', async () => {
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      expect(wrapper.text()).toContain('Send Reset Code');
+    });
+
+    it('shows "Back to Sign In" button', async () => {
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      const backBtn = wrapper.findAll('button').find(b => b.text().includes('Back to Sign In'));
+      expect(backBtn).toBeTruthy();
+    });
+
+    it('returns to login mode when "Back to Sign In" is clicked', async () => {
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+      expect(wrapper.find('[data-testid="forgot-form"]').exists()).toBe(true);
+
+      const backBtn = wrapper.findAll('button').find(b => b.text().includes('Back to Sign In'));
+      await backBtn.trigger('click');
+
+      expect(wrapper.find('[data-testid="forgot-form"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="auth-form"]').exists()).toBe(true);
+      expect(wrapper.text()).toContain('Sign in to your account');
+    });
+
+    it('calls forgotPassword API on form submit', async () => {
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      const emailInput = wrapper.find('#forgot-email');
+      await emailInput.setValue('test@example.com');
+
+      const form = wrapper.find('[data-testid="forgot-form"]');
+      await form.trigger('submit');
+
+      expect(mockForgotPassword).toHaveBeenCalledWith('test@example.com');
+    });
+
+    it('redirects to reset-password page on successful submit', async () => {
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      const emailInput = wrapper.find('#forgot-email');
+      await emailInput.setValue('test@example.com');
+
+      const form = wrapper.find('[data-testid="forgot-form"]');
+      await form.trigger('submit');
+
+      // Wait for async handler to complete
+      await vi.dynamicImportSettled();
+      await wrapper.vm.$nextTick();
+
+      // Router should have navigated to reset-password with email query param
+      const { currentRoute } = wrapper.vm.$.appContext.config.globalProperties.$router;
+      expect(currentRoute.value.path).toBe('/auth/reset-password');
+      expect(currentRoute.value.query.email).toBe('test@example.com');
+    });
+
+    it('displays error message when forgotPassword API fails', async () => {
+      mockForgotPassword.mockRejectedValueOnce(new Error('Rate limit exceeded'));
+
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      const emailInput = wrapper.find('#forgot-email');
+      await emailInput.setValue('test@example.com');
+
+      const form = wrapper.find('[data-testid="forgot-form"]');
+      await form.trigger('submit');
+
+      // Wait for async handler
+      await vi.dynamicImportSettled();
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain('Rate limit exceeded');
+    });
+
+    it('displays generic error when API error has no message', async () => {
+      mockForgotPassword.mockRejectedValueOnce(new Error());
+
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      const emailInput = wrapper.find('#forgot-email');
+      await emailInput.setValue('test@example.com');
+
+      const form = wrapper.find('[data-testid="forgot-form"]');
+      await form.trigger('submit');
+
+      await vi.dynamicImportSettled();
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain('Something went wrong. Please try again.');
+    });
+
+    it('clears forgot error message when switching back to login', async () => {
+      mockForgotPassword.mockRejectedValueOnce(new Error('Some error'));
+
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      // Trigger error
+      const emailInput = wrapper.find('#forgot-email');
+      await emailInput.setValue('fail@example.com');
+      await wrapper.find('[data-testid="forgot-form"]').trigger('submit');
+      await vi.dynamicImportSettled();
+      await wrapper.vm.$nextTick();
+      expect(wrapper.text()).toContain('Some error');
+
+      // Go back to login
+      const backBtn = wrapper.findAll('button').find(b => b.text().includes('Back to Sign In'));
+      await backBtn.trigger('click');
+
+      // Switch back to forgot — error should be cleared
+      await switchToForgotPassword(wrapper);
+      expect(wrapper.text()).not.toContain('Some error');
+    });
+
+    it('displays auth logo in forgot password state', async () => {
+      const wrapper = createWrapper();
+
+      await switchToForgotPassword(wrapper);
+
+      const logo = wrapper.find('[data-testid="auth-logo"]');
+      expect(logo.exists()).toBe(true);
+    });
   });
 });

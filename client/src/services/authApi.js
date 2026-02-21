@@ -643,6 +643,77 @@ export async function getMatchDetails(matchId, puuid) {
   return parseResponse(response, 'Failed to get match details')
 }
 
+// ============ Password Management API ============
+
+/**
+ * Request a password reset code (forgot password)
+ * Always returns 200 regardless of whether email exists (prevents email enumeration)
+ * @param {string} email - User's email address
+ * @returns {Promise<Object>} Success response
+ */
+export async function forgotPassword(email) {
+  const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const error = new Error(data.error || 'Failed to send reset code')
+    error.status = response.status
+    error.code = data.code
+    throw error
+  }
+
+  return data
+}
+
+/**
+ * Reset password using 6-digit code received via email
+ * @param {Object} params - Reset params
+ * @param {string} params.email - User's email address
+ * @param {string} params.code - 6-digit reset code
+ * @param {string} params.newPassword - New password (≥ 8 chars)
+ * @returns {Promise<Object>} Success response
+ */
+export async function resetPassword({ email, code, newPassword }) {
+  const response = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code, newPassword })
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const error = new Error(data.error || 'Failed to reset password')
+    error.status = response.status
+    error.code = data.code
+    throw error
+  }
+
+  return data
+}
+
+/**
+ * Change password for the currently authenticated user
+ * The server will invalidate the session after a successful change
+ * @param {Object} params - Change password params
+ * @param {string} params.currentPassword - User's current password
+ * @param {string} params.newPassword - New password (≥ 8 chars)
+ * @returns {Promise<Object>} Success response
+ */
+export async function changePassword({ currentPassword, newPassword }) {
+  const response = await apiRequest('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword })
+  })
+
+  return parseResponse(response, 'Failed to change password')
+}
+
 /**
  * Get match narrative (lane matchups) for a specific match
  * @param {string} matchId - The match ID

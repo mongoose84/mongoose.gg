@@ -50,6 +50,15 @@ namespace Mongoose.Api.Application
             var resendVerificationEndpoint = new ResendVerificationEndpoint(basePath);
             _endpoints.Add(resendVerificationEndpoint);
 
+            var forgotPasswordEndpoint = new ForgotPasswordEndpoint(basePath);
+            _endpoints.Add(forgotPasswordEndpoint);
+
+            var resetPasswordEndpoint = new ResetPasswordEndpoint(basePath);
+            _endpoints.Add(resetPasswordEndpoint);
+
+            var changePasswordEndpoint = new ChangePasswordEndpoint(basePath);
+            _endpoints.Add(changePasswordEndpoint);
+
             // Users endpoint - auth required
             var usersMeEndpoint = new UsersMeEndpoint(basePath);
             _endpoints.Add(usersMeEndpoint);

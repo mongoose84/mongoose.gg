@@ -75,6 +75,43 @@ POST /api/[endpoint]
 }
 ```
 
+## UI/UX Requirements
+
+All views must follow the existing design system defined in [UI/UX Spec](../ui-ux.spec.md). Use design tokens — never hardcode colors, spacing, or shadows.
+
+### [View/Page/Component Name]
+
+**Layout**: [Describe where this view lives — new page, existing page section, modal, etc. Reference existing layout patterns to reuse, e.g., "Same centered card pattern as AuthPage" or "New section on UserSettingsPage between X and Y".]
+
+**Structure**:
+```
+[ASCII wireframe showing visual layout — card boundaries, field placement, buttons, conditional alerts, etc.]
+```
+
+**Components**:
+- [Element]: [Base component] — [key props: type, label, placeholder, variant, size, autocomplete, etc.]
+- [Element]: [Base component] — [key props]
+- [Conditional element]: [Styling tokens, e.g., `p-md bg-error-soft border border-error-border rounded-md text-error text-sm`] with `role="alert"`
+
+**Behavior**:
+- [Loading states — what disables, what shows spinners, button label changes]
+- [Submit gating — when is the submit button disabled]
+- [Success handling — redirect, toast, clear form, etc.]
+- Error mapping:
+  - `ERROR_CODE` → `"User-friendly message"`
+  - Network error → `"Something went wrong. Please try again."`
+
+**Accessibility**:
+- [Label associations — how inputs connect to labels]
+- [Keyboard navigation — Tab order through interactive elements]
+- [Screen reader support — role="alert" for errors, aria attributes]
+- [Input modes — e.g., `inputmode="numeric"` for code fields]
+- [Autocomplete attributes — e.g., `autocomplete="email"`, `autocomplete="new-password"`]
+
+---
+
+*Repeat the above block for each distinct view, page, or component the feature introduces or modifies.*
+
 ## Testing Strategy
 
 ### Unit Tests

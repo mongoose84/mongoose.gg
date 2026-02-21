@@ -9,6 +9,7 @@ vi.mock('@/services/authApi', () => ({
   logout: vi.fn(),
   verify: vi.fn(),
   getCurrentUser: vi.fn(),
+  changePassword: vi.fn(),
   linkRiotAccount: vi.fn(),
   unlinkRiotAccount: vi.fn(),
   triggerRiotAccountSync: vi.fn(),
@@ -97,6 +98,42 @@ describe('authStore', () => {
       await store.initialize();
 
       expect(authApi.getCurrentUser).toHaveBeenCalledOnce();
+    });
+
+    it('does not clear an already authenticated user with stale initialize result', async () => {
+      let resolveCurrentUser;
+      authApi.getCurrentUser.mockImplementationOnce(() => new Promise(resolve => {
+        resolveCurrentUser = resolve;
+      }));
+
+      const store = useAuthStore();
+      const initializePromise = store.initialize();
+
+      store.user = { userId: 7, username: 'fresh-login', emailVerified: true };
+
+      resolveCurrentUser(null);
+      await initializePromise;
+
+      expect(store.user).toEqual({ userId: 7, username: 'fresh-login', emailVerified: true });
+      expect(store.isAuthenticated).toBe(true);
+    });
+
+    it('does not replace authenticated user with stale initialize user from different account', async () => {
+      let resolveCurrentUser;
+      authApi.getCurrentUser.mockImplementationOnce(() => new Promise(resolve => {
+        resolveCurrentUser = resolve;
+      }));
+
+      const store = useAuthStore();
+      const initializePromise = store.initialize();
+
+      store.user = { userId: 7, username: 'fresh-login', emailVerified: true };
+
+      resolveCurrentUser({ userId: 99, username: 'stale-user', emailVerified: true });
+      await initializePromise;
+
+      expect(store.user).toEqual({ userId: 7, username: 'fresh-login', emailVerified: true });
+      expect(store.isAuthenticated).toBe(true);
     });
   });
 
@@ -334,6 +371,113 @@ describe('authStore', () => {
 
       expect(authApi.unlinkRiotAccount).toHaveBeenCalledWith('abc');
       expect(result).toEqual({ success: true });
+    });
+  });
+
+  describe('changePassword', () => {
+    it('calls authApi.changePassword with currentPassword and newPassword', async () => {
+      authApi.changePassword.mockResolvedValue();
+
+      const store = useAuthStore();
+      await store.changePassword({ currentPassword: 'oldPass1', newPassword: 'newPass1' });
+
+      expect(authApi.changePassword).toHaveBeenCalledWith({
+        currentPassword: 'oldPass1',
+        newPassword: 'newPass1',
+      });
+    });
+
+    it('clears user state on success', async () => {
+      authApi.changePassword.mockResolvedValue();
+
+      const store = useAuthStore();
+      store.user = { userId: 1, username: 'testuser' };
+
+      await store.changePassword({ currentPassword: 'oldPass1', newPassword: 'newPass1' });
+
+      expect(store.user).toBeNull();
+    });
+
+    it('returns { success: true } on success', async () => {
+      authApi.changePassword.mockResolvedValue();
+
+      const store = useAuthStore();
+      const result = await store.changePassword({ currentPassword: 'oldPass1', newPassword: 'newPass1' });
+
+      expect(result).toEqual({ success: true });
+    });
+
+    it('resets isLoading to false after success', async () => {
+      authApi.changePassword.mockResolvedValue();
+
+      const store = useAuthStore();
+      await store.changePassword({ currentPassword: 'oldPass1', newPassword: 'newPass1' });
+
+      expect(store.isLoading).toBe(false);
+    });
+
+    it('clears any pre-existing error before calling the API', async () => {
+      authApi.changePassword.mockResolvedValue();
+
+      const store = useAuthStore();
+      store.error = 'stale error';
+
+      await store.changePassword({ currentPassword: 'oldPass1', newPassword: 'newPass1' });
+
+      expect(store.error).toBeNull();
+    });
+
+    it('sets store.error to e.message on failure', async () => {
+      const err = new Error('WRONG_PASSWORD');
+      authApi.changePassword.mockRejectedValue(err);
+
+      const store = useAuthStore();
+      await expect(
+        store.changePassword({ currentPassword: 'wrong', newPassword: 'newPass1' })
+      ).rejects.toThrow('WRONG_PASSWORD');
+
+      expect(store.error).toBe('WRONG_PASSWORD');
+    });
+
+    it('re-throws the error with e.code intact so callers can map it to UI messages', async () => {
+      const err = new Error('raw message');
+      err.code = 'WRONG_PASSWORD';
+      authApi.changePassword.mockRejectedValue(err);
+
+      const store = useAuthStore();
+      let caught;
+      try {
+        await store.changePassword({ currentPassword: 'wrong', newPassword: 'newPass1' });
+      } catch (e) {
+        caught = e;
+      }
+
+      expect(caught).toBeDefined();
+      expect(caught.code).toBe('WRONG_PASSWORD');
+    });
+
+    it('resets isLoading to false after failure', async () => {
+      authApi.changePassword.mockRejectedValue(new Error('WRONG_PASSWORD'));
+
+      const store = useAuthStore();
+      await expect(
+        store.changePassword({ currentPassword: 'wrong', newPassword: 'newPass1' })
+      ).rejects.toThrow();
+
+      expect(store.isLoading).toBe(false);
+    });
+
+    it('preserves user state on failure', async () => {
+      authApi.changePassword.mockRejectedValue(new Error('WRONG_PASSWORD'));
+
+      const store = useAuthStore();
+      store.user = { userId: 1, username: 'testuser' };
+
+      await expect(
+        store.changePassword({ currentPassword: 'wrong', newPassword: 'newPass1' })
+      ).rejects.toThrow();
+
+      expect(store.user).toEqual({ userId: 1, username: 'testuser' });
     });
   });
 

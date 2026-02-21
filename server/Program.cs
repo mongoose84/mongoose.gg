@@ -18,6 +18,10 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var cookieSecurePolicy = builder.Environment.IsDevelopment()
+    ? CookieSecurePolicy.SameAsRequest
+    : CookieSecurePolicy.Always;
+
 // Read secrets from configuration/environment (no local secret files required)
 Secrets.Initialize(builder.Configuration);
 
@@ -123,7 +127,7 @@ builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(sessionTimeoutMinutes);
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // set to SameAsRequest for local dev
+    options.Cookie.SecurePolicy = cookieSecurePolicy;
     options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
@@ -135,7 +139,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LogoutPath = "/logout";
         options.AccessDeniedPath = "/access-denied";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // set to SameAsRequest for local dev
+        options.Cookie.SecurePolicy = cookieSecurePolicy;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(sessionTimeoutMinutes);
         options.SlidingExpiration = true;
@@ -181,6 +185,35 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
             var json = System.Text.Json.JsonSerializer.Serialize(new { error = "Access denied.", code = "FORBIDDEN" });
             await context.Response.WriteAsync(json);
+        };
+
+        // Security stamp validation — rejects cookies whose security_stamp
+        // no longer matches the database (e.g. after a password change).
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            var userIdClaim = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var stampClaim = context.Principal?.FindFirst("security_stamp")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+            {
+                context.RejectPrincipal();
+                return;
+            }
+
+            // If no stamp claim (pre-migration cookie), reject so user re-logs and gets a stamp
+            if (string.IsNullOrEmpty(stampClaim))
+            {
+                context.RejectPrincipal();
+                return;
+            }
+
+            var usersRepo = context.HttpContext.RequestServices.GetRequiredService<UsersRepository>();
+            var currentStamp = await usersRepo.GetSecurityStampAsync(userId);
+
+            if (currentStamp == null || !string.Equals(stampClaim, currentStamp, StringComparison.Ordinal))
+            {
+                context.RejectPrincipal();
+            }
         };
     });
 
