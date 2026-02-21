@@ -139,7 +139,7 @@ function formatScore(score) {
 
 <style scoped>
 .radar-chart {
-  min-height: 320px;
+  min-height: 400px;
 }
 
 .loading-state,
@@ -148,13 +148,13 @@ function formatScore(score) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 320px;
+  min-height: 400px;
   gap: var(--spacing-xs);
 }
 
 .skeleton-radar {
-  width: min(320px, 100%);
-  height: 320px;
+  width: min(400px, 100%);
+  height: 400px;
   border-radius: 50%;
   background: linear-gradient(
     90deg,
@@ -182,15 +182,23 @@ function formatScore(score) {
 .chart-container {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--spacing-sm);
 }
 
 .chart-wrapper {
-  height: 320px;
+  width: min(500px, 100%);
+  height: 380px;
+}
+
+.chart-wrapper :deep(canvas) {
+  transform: translateX(40px);
 }
 
 .games-context {
+  width: min(500px, 100%);
   margin: 0;
+  text-align: center;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
 }

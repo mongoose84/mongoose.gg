@@ -509,6 +509,7 @@ watch(syncProgress, (progress) => {
 .deep-analysis-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  align-items: start;
   gap: var(--spacing-lg);
 }
 
