@@ -170,10 +170,20 @@ public class RadarChartRepository : RepositoryBase, IRadarChartRepository
 
     private static double Clamp(double value, double min, double max)
     {
+        double clamped;
         if (value < min)
-            return min;
-        if (value > max)
-            return max;
-        return value;
+        {
+            clamped = min;
+        }
+        else if (value > max)
+        {
+            clamped = max;
+        }
+        else
+        {
+            clamped = value;
+        }
+        // Ensure consistent precision for normalized values that rely on Clamp directly.
+        return Math.Round(clamped, 1);
     }
 }
