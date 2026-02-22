@@ -21,11 +21,6 @@ public sealed class ForgotPasswordEndpoint : IEndpoint
     private const int RateLimitRequests = 5;
     private static readonly TimeSpan RateLimitWindow = TimeSpan.FromHours(1);
 
-    private static string? GetClientIpAddress(HttpContext context)
-    {
-        return context.Connection.RemoteIpAddress?.ToString();
-    }
-
     public ForgotPasswordEndpoint(string basePath)
     {
         Route = basePath + "/auth/forgot-password";
@@ -45,7 +40,7 @@ public sealed class ForgotPasswordEndpoint : IEndpoint
         {
             try
             {
-                var clientIp = GetClientIpAddress(httpContext);
+                var clientIp = ClientIpAddressResolver.GetClientIpAddress(httpContext);
                 var rateLimitResult = await rateLimiter.CheckEndpointAsync(
                     "forgot-password",
                     clientIp,

@@ -107,25 +107,6 @@ public sealed class FeedbackEndpoint : IEndpoint
             .Replace("\t", " ");    // Replace tabs with space
     }
 
-    /// <summary>
-    /// Extracts the client IP address from the HTTP context.
-    /// Checks X-Forwarded-For header first (for proxies/load balancers),
-    /// then falls back to the direct connection IP.
-    /// </summary>
-    private static string? GetClientIpAddress(HttpContext context)
-    {
-        // Check X-Forwarded-For header first (for proxies/load balancers)
-        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(forwardedFor))
-        {
-            // X-Forwarded-For can contain multiple IPs; the first is the original client
-            return forwardedFor.Split(',')[0].Trim();
-        }
-
-        // Fall back to direct connection IP
-        return context.Connection.RemoteIpAddress?.ToString();
-    }
-
     public FeedbackEndpoint(string basePath)
     {
         Route = basePath + "/feedback";
@@ -156,7 +137,7 @@ public sealed class FeedbackEndpoint : IEndpoint
                 
 
                 // Check rate limit before processing
-                var clientIp = GetClientIpAddress(httpContext);
+                var clientIp = ClientIpAddressResolver.GetClientIpAddress(httpContext);
                 var rateLimitResult = await rateLimiter.CheckEndpointAsync(
                     "feedback",
                     clientIp,

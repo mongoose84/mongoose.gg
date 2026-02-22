@@ -27,21 +27,6 @@ public sealed class RegisterEndpoint : IEndpoint
     private const int RateLimitRequests = 3;
     private static readonly TimeSpan RateLimitWindow = TimeSpan.FromHours(1);
 
-    /// <summary>
-    /// Extracts the client IP address from the HTTP context.
-    /// Checks X-Forwarded-For header first (for proxies/load balancers),
-    /// then falls back to the direct connection IP.
-    /// </summary>
-    private static string? GetClientIpAddress(HttpContext context)
-    {
-        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(forwardedFor))
-        {
-            return forwardedFor.Split(',')[0].Trim();
-        }
-        return context.Connection.RemoteIpAddress?.ToString();
-    }
-
     public RegisterEndpoint(string basePath)
     {
         Route = basePath + "/auth/register";
@@ -67,7 +52,7 @@ public sealed class RegisterEndpoint : IEndpoint
                 var rateLimitingEnabled = config.GetValue<bool>("RateLimiting:Enabled", true);
                 if (rateLimitingEnabled)
                 {
-                    var clientIp = GetClientIpAddress(httpContext);
+                    var clientIp = ClientIpAddressResolver.GetClientIpAddress(httpContext);
                     var rateLimitResult = await rateLimiter.CheckEndpointAsync(
                         "register",
                         clientIp,

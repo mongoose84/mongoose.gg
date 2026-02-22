@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Mongoose.Api.Application;
 using Mongoose.Api.Application.Interfaces;
 using Mongoose.Api.Application.Services;
@@ -220,6 +221,16 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    // Infrastructure can include dynamic proxy addresses (cloud load balancers, ingress).
+    // Trust forwarded headers and rely on edge proxy/network controls.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddCors(options =>
 {
     // Give the policy a name so you can refer to it later
@@ -268,6 +279,9 @@ var app = builder.Build();
 
 // Use custom JSON exception middleware globally
 app.UseMiddleware<JsonExceptionMiddleware>();
+
+// Normalize RemoteIpAddress/Request.Scheme when running behind reverse proxies.
+app.UseForwardedHeaders();
 
 // Apply the CORS policy globally
 app.UseCors("VueClientPolicy");

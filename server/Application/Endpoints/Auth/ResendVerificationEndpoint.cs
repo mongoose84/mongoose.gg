@@ -23,21 +23,6 @@ public sealed class ResendVerificationEndpoint : IEndpoint
     private const int RateLimitRequests = 5;
     private static readonly TimeSpan RateLimitWindow = TimeSpan.FromHours(1);
 
-    /// <summary>
-    /// Extracts the client IP address from the HTTP context.
-    /// Checks X-Forwarded-For header first (for proxies/load balancers),
-    /// then falls back to the direct connection IP.
-    /// </summary>
-    private static string? GetClientIpAddress(HttpContext context)
-    {
-        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(forwardedFor))
-        {
-            return forwardedFor.Split(',')[0].Trim();
-        }
-        return context.Connection.RemoteIpAddress?.ToString();
-    }
-
     public ResendVerificationEndpoint(string basePath)
     {
         Route = basePath + "/auth/resend-verification";
@@ -65,7 +50,7 @@ public sealed class ResendVerificationEndpoint : IEndpoint
                 }
 
                 // Check rate limit before processing (user-based for authenticated users, IP fallback)
-                var clientIp = GetClientIpAddress(httpContext);
+                var clientIp = ClientIpAddressResolver.GetClientIpAddress(httpContext);
                 var rateLimitResult = await rateLimiter.CheckEndpointAsync(
                     "resend-verification",
                     clientIp,
