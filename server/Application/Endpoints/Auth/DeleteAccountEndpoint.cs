@@ -44,7 +44,7 @@ public sealed class DeleteAccountEndpoint : IEndpoint
                 // Validate password is provided
                 if (string.IsNullOrWhiteSpace(request.Password))
                 {
-                    return Results.BadRequest(new { error = "Password is required" });
+                    return Results.BadRequest(new { error = "Password is required", code = "INVALID_PASSWORD" });
                 }
 
                 // Get user from database
