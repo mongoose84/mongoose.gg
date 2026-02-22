@@ -23,11 +23,6 @@ public sealed class ForgotPasswordEndpoint : IEndpoint
 
     private static string? GetClientIpAddress(HttpContext context)
     {
-        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(forwardedFor))
-        {
-            return forwardedFor.Split(',')[0].Trim();
-        }
         return context.Connection.RemoteIpAddress?.ToString();
     }
 

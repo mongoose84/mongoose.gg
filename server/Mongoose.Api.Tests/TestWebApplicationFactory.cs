@@ -259,6 +259,18 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(user?.SecurityStamp);
         }
 
+        public override Task<bool> DeleteUserAsync(long userId)
+        {
+            if (!_usersById.TryRemove(userId, out var removedUser))
+            {
+                return Task.FromResult(false);
+            }
+
+            _usersByUsername.TryRemove(removedUser.Username, out _);
+            _usersByEmail.TryRemove(removedUser.Email, out _);
+            return Task.FromResult(true);
+        }
+
         public void AddUnverifiedUser(string username, string email, string password)
         {
             var user = new User
