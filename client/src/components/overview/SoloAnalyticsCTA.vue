@@ -3,6 +3,15 @@
     to="/app/solo"
     class="solo-analytics-cta"
   >
+    <div
+      class="cta-mural-layer"
+      :class="muralClass"
+      aria-hidden="true"
+      data-testid="solo-analytics-mural"
+    ></div>
+    <div class="cta-overlay-layer" aria-hidden="true"></div>
+
+    <div class="cta-foreground">
     <div class="cta-icon-wrapper">
       <ArrowTrendingUpIcon
         v-if="props.trendDirection === 'up'"
@@ -31,10 +40,12 @@
         <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
       </svg>
     </div>
+    </div>
   </router-link>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { ChartBarIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/vue/24/solid'
 
 const props = defineProps({
@@ -48,10 +59,25 @@ const props = defineProps({
     validator: (value) => ['up', 'down', 'neutral'].includes(value)
   }
 })
+
+const muralClass = computed(() => {
+  if (props.trendDirection === 'up') {
+    return 'cta-mural-layer--up'
+  }
+
+  if (props.trendDirection === 'down') {
+    return 'cta-mural-layer--down'
+  }
+
+  return 'cta-mural-layer--neutral'
+})
 </script>
 
 <style scoped>
 .solo-analytics-cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
@@ -64,6 +90,61 @@ const props = defineProps({
   color: inherit;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.cta-mural-layer {
+  --mural-color: var(--color-primary);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--mural-color) 35%, transparent) 0%,
+      color-mix(in srgb, var(--mural-color) 18%, transparent) 42%,
+      transparent 100%
+    ),
+    repeating-linear-gradient(
+      -18deg,
+      color-mix(in srgb, var(--mural-color) 20%, transparent) 0 2px,
+      transparent 2px 13px
+    );
+}
+
+.cta-mural-layer--neutral {
+  --mural-color: var(--color-primary);
+}
+
+.cta-mural-layer--up {
+  --mural-color: var(--color-success);
+}
+
+.cta-mural-layer--down {
+  --mural-color: var(--color-error);
+}
+
+.cta-overlay-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--color-surface) 98%, transparent) 0%,
+    color-mix(in srgb, var(--color-surface) 92%, transparent) 45%,
+    color-mix(in srgb, var(--color-surface) 78%, transparent) 100%
+  );
+}
+
+.cta-foreground {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  width: 100%;
 }
 
 .solo-analytics-cta:hover {
@@ -146,10 +227,13 @@ const props = defineProps({
 }
 
 @media (max-width: 480px) {
-  .solo-analytics-cta {
+  .cta-foreground {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-md);
+  }
+
+  .solo-analytics-cta {
     padding: var(--spacing-md);
   }
 

@@ -38,11 +38,18 @@ describe('SoloAnalyticsCTA', () => {
     expect(wrapper.find('.cta-arrow svg').exists()).toBe(true)
   })
 
+  it('renders mural and overlay layers', () => {
+    const wrapper = mountCTA()
+    expect(wrapper.find('[data-testid="solo-analytics-mural"]').exists()).toBe(true)
+    expect(wrapper.find('.cta-overlay-layer').exists()).toBe(true)
+  })
+
   it('renders up icon and success color when trendDirection is up', () => {
     const wrapper = mountCTA({ props: { trendDirection: 'up' } })
     expect(wrapper.find('.cta-icon--up').exists()).toBe(true)
     expect(wrapper.find('.cta-icon--down').exists()).toBe(false)
     expect(wrapper.find('.cta-icon--neutral').exists()).toBe(false)
+    expect(wrapper.find('.cta-mural-layer--up').exists()).toBe(true)
   })
 
   it('renders down icon and error color when trendDirection is down', () => {
@@ -50,6 +57,7 @@ describe('SoloAnalyticsCTA', () => {
     expect(wrapper.find('.cta-icon--down').exists()).toBe(true)
     expect(wrapper.find('.cta-icon--up').exists()).toBe(false)
     expect(wrapper.find('.cta-icon--neutral').exists()).toBe(false)
+    expect(wrapper.find('.cta-mural-layer--down').exists()).toBe(true)
   })
 
   it('renders neutral icon when trendDirection is neutral', () => {
@@ -57,6 +65,7 @@ describe('SoloAnalyticsCTA', () => {
     expect(wrapper.find('.cta-icon--neutral').exists()).toBe(true)
     expect(wrapper.find('.cta-icon--up').exists()).toBe(false)
     expect(wrapper.find('.cta-icon--down').exists()).toBe(false)
+    expect(wrapper.find('.cta-mural-layer--neutral').exists()).toBe(true)
   })
 
   it('renders provided subtitle text', () => {
