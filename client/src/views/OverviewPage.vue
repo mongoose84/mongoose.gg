@@ -39,7 +39,9 @@
 
     <!-- Today at a glance: Right - Champion Select CTA -->
     <template #glance-right>
-      <ChampionSelectCTA />
+      <div class="glance-right-fill">
+        <ChampionSelectCTA />
+      </div>
     </template>
 
     <!-- Recent games: Left - Match Activity Heatmap -->
@@ -247,6 +249,16 @@ onMounted(() => {
 
 .recent-right-stack :deep(.analysis-status-card),
 .recent-right-stack :deep(.solo-analytics-cta) {
+  flex: 1;
+  height: 100%;
+}
+
+.glance-right-fill {
+  display: flex;
+  height: 100%;
+}
+
+.glance-right-fill :deep(.champion-select-cta) {
   flex: 1;
   height: 100%;
 }

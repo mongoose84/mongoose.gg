@@ -31,6 +31,7 @@ import { SparklesIcon } from '@heroicons/vue/24/solid'
 .champion-select-cta {
   display: flex;
   align-items: center;
+  height: 100%;
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
   background: var(--color-surface);
