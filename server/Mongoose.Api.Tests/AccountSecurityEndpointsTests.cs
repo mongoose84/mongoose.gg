@@ -15,9 +15,7 @@ public class AccountSecurityEndpointsTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var loginResponse = await client.PostAsJsonAsync("/api/v2/auth/login", new { username, password });
         loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        loginResponse.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
-        return cookies!.First().Split(';', 2)[0];
+        return AuthCookieTestHelper.GetAuthCookie(loginResponse);
     }
 
     [Fact]

@@ -15,10 +15,7 @@ public class DiagnosticsEndpointTests
         // Use the password that matches the BCrypt hash in FakeUsersRepository
         var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
-        var cookie = cookies!.First();
-        var authCookie = cookie.Split(';', 2)[0]; // name=value
-        return authCookie;
+        return AuthCookieTestHelper.GetAuthCookie(response);
     }
 
     [Fact]
