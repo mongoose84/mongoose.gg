@@ -667,6 +667,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly ConcurrentDictionary<string, List<MatchResultData>> _matchesByPuuid = new();
         private readonly ConcurrentDictionary<string, LastMatchData> _lastMatchByPuuid = new();
+        private readonly ConcurrentDictionary<string, MostPlayedChampionData> _mostPlayedChampionByPuuid = new();
         private int _defaultQueueId = 420;
         private string _defaultQueueLabel = "Ranked Solo/Duo";
 
@@ -694,6 +695,12 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             _lastMatchByPuuid.TryGetValue(puuid, out var lastMatch);
             return Task.FromResult(lastMatch);
+        }
+
+        public override Task<MostPlayedChampionData?> GetMostPlayedChampionAsync(string puuid)
+        {
+            _mostPlayedChampionByPuuid.TryGetValue(puuid, out var mostPlayedChampion);
+            return Task.FromResult(mostPlayedChampion);
         }
 
         public override Task<int?> GetCurrentLpAsync(string puuid, int queueId)
@@ -734,6 +741,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             bool win, int kills, int deaths, int assists, long gameStartTime, int queueId = 420)
         {
             _lastMatchByPuuid[puuid] = new LastMatchData(matchId, championId, championName, win, kills, deaths, assists, gameStartTime, queueId);
+        }
+
+        /// <summary>
+        /// Sets the most played champion for a player.
+        /// </summary>
+        public void SetMostPlayedChampion(string puuid, string championName, int gamesPlayed)
+        {
+            _mostPlayedChampionByPuuid[puuid] = new MostPlayedChampionData(championName, gamesPlayed);
         }
     }
 

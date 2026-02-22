@@ -190,6 +190,52 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
     }
 
     /// <summary>
+    /// Gets the most played champion for the player in the current season.
+    /// Returns null when season data is unavailable or no matches exist.
+    /// </summary>
+    public virtual async Task<MostPlayedChampionData?> GetMostPlayedChampionAsync(string puuid)
+    {
+        const string sql = @"
+            SELECT
+                p.champion_name,
+                COUNT(*) AS games_played
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE p.puuid = @puuid
+              AND m.season_code = (
+                  SELECT season_code
+                  FROM seasons
+                  WHERE end_date IS NULL
+                  ORDER BY start_date DESC
+                  LIMIT 1
+              )
+            GROUP BY p.champion_name
+            ORDER BY games_played DESC, MAX(m.game_start_time) DESC
+            LIMIT 1";
+
+        MostPlayedChampionData? result = null;
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                result = new MostPlayedChampionData(
+                    ChampionName: reader.GetString(0),
+                    GamesPlayed: reader.GetInt32(1)
+                );
+            }
+
+            return 0;
+        });
+
+        return result;
+    }
+
+    /// <summary>
     /// Gets the current LP for the player in the specified ranked queue.
     /// Returns null if no LP data is available.
     /// </summary>

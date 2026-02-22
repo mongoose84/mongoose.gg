@@ -9,6 +9,7 @@ public record OverviewResponse(
     [property: JsonPropertyName("playerHeader")] PlayerHeader PlayerHeader,
     [property: JsonPropertyName("rankSnapshot")] RankSnapshot RankSnapshot,
     [property: JsonPropertyName("lastMatch")] LastMatch? LastMatch,
+    [property: JsonPropertyName("mostPlayedChampion")] MostPlayedChampion? MostPlayedChampion,
     [property: JsonPropertyName("activeGoals")] GoalPreview[] ActiveGoals,
     [property: JsonPropertyName("suggestedActions")] SuggestedAction[] SuggestedActions
 );
@@ -47,6 +48,15 @@ public record LastMatch(
     [property: JsonPropertyName("kda")] string Kda,
     [property: JsonPropertyName("timestamp")] long Timestamp,
     [property: JsonPropertyName("queueType")] string QueueType
+);
+
+/// <summary>
+/// Most played champion in the current season window for CTA personalization.
+/// </summary>
+public record MostPlayedChampion(
+    [property: JsonPropertyName("championName")] string ChampionName,
+    [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
+    [property: JsonPropertyName("source")] string Source
 );
 
 /// <summary>

@@ -33,3 +33,11 @@ public record MatchResultData(
     long GameStartTime
 );
 
+/// <summary>
+/// Internal DTO for most played champion aggregation.
+/// </summary>
+public record MostPlayedChampionData(
+    string ChampionName,
+    int GamesPlayed
+);
+

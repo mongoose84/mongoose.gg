@@ -144,11 +144,58 @@ public class OverviewEndpointTests
         body.SuggestedActions.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task Overview_returns_most_played_champion_when_available()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        factory.OverviewStatsRepository.SetMostPlayedChampion("test-puuid-123", "Ahri", 28);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body.Should().NotBeNull();
+        body!.MostPlayedChampion.Should().NotBeNull();
+        body.MostPlayedChampion!.ChampionName.Should().Be("Ahri");
+        body.MostPlayedChampion.GamesPlayed.Should().Be(28);
+        body.MostPlayedChampion.Source.Should().Be("current_season");
+    }
+
+    [Fact]
+    public async Task Overview_returns_null_most_played_champion_when_unavailable()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body.Should().NotBeNull();
+        body!.MostPlayedChampion.Should().BeNull();
+    }
+
     // Response DTOs for deserialization
     private record OverviewResponse(
         PlayerHeader PlayerHeader,
         RankSnapshot RankSnapshot,
         LastMatch? LastMatch,
+        MostPlayedChampion? MostPlayedChampion,
         GoalPreview[] ActiveGoals,
         SuggestedAction[] SuggestedActions
     );
@@ -156,6 +203,7 @@ public class OverviewEndpointTests
     private record PlayerHeader(string SummonerName, int Level, string Region, string ProfileIconUrl, string[] ActiveContexts);
     private record RankSnapshot(string PrimaryQueueLabel, string? Rank, int? Lp, int Last20Wins, int Last20Losses, bool[] WlLast20);
     private record LastMatch(string MatchId, string ChampionIconUrl, string ChampionName, string Result, string Kda, long Timestamp);
+    private record MostPlayedChampion(string ChampionName, int GamesPlayed, string Source);
     private record GoalPreview(string GoalId, string Title, string Context, double Progress);
     private record SuggestedAction(string ActionId, string Text, string DeepLink, int Priority);
 }
