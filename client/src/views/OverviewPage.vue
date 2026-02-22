@@ -55,7 +55,13 @@
 
     <!-- Recent games: Right - Analysis Status Card -->
     <template #recent-right>
-      <AnalysisStatusCard />
+      <div class="recent-right-stack">
+        <AnalysisStatusCard />
+        <SoloAnalyticsCTA
+          :subtitle="soloCtaSubtitle"
+          :trend-direction="soloCtaTrendDirection"
+        />
+      </div>
     </template>
 
     <!-- Latest match (full width) -->
@@ -85,7 +91,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
-import { getOverview, getMatchActivity } from '../services/authApi'
+import { getOverview, getMatchActivity, getSoloDashboard } from '../services/authApi'
 import OverviewLayout from '../components/overview/OverviewLayout.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
 import MatchActivityHeatmap from '../components/overview/MatchActivityHeatmap.vue'
@@ -93,6 +99,7 @@ import RankSnapshot from '../components/overview/RankSnapshot.vue'
 import LastMatchCard from '../components/overview/LastMatchCard.vue'
 import ChampionSelectCTA from '../components/overview/ChampionSelectCTA.vue'
 import AnalysisStatusCard from '../components/overview/AnalysisStatusCard.vue'
+import SoloAnalyticsCTA from '../components/overview/SoloAnalyticsCTA.vue'
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
 
 const authStore = useAuthStore()
@@ -101,9 +108,43 @@ const { syncProgress, subscribe, resetProgress } = useSyncWebSocket()
 // State
 const overviewData = ref(null)
 const matchActivityData = ref(null)
+const soloDashboardData = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
 const showLinkModal = ref(false)
+
+const soloCtaSubtitle = computed(() => {
+  const avgKda = soloDashboardData.value?.avgKda
+  const overallAvgKda = soloDashboardData.value?.overallAvgKda
+
+  if (typeof avgKda !== 'number' || typeof overallAvgKda !== 'number') {
+    return 'Track your trends and improve'
+  }
+
+  const diff = avgKda - overallAvgKda
+  if (Math.abs(diff) < 0.05) {
+    return `KDA trend: ${avgKda.toFixed(1)} (even vs overall)`
+  }
+
+  const sign = diff > 0 ? '+' : ''
+  return `KDA trend: ${avgKda.toFixed(1)} (${sign}${diff.toFixed(1)} vs overall)`
+})
+
+const soloCtaTrendDirection = computed(() => {
+  const avgKda = soloDashboardData.value?.avgKda
+  const overallAvgKda = soloDashboardData.value?.overallAvgKda
+
+  if (typeof avgKda !== 'number' || typeof overallAvgKda !== 'number') {
+    return 'neutral'
+  }
+
+  const diff = avgKda - overallAvgKda
+  if (Math.abs(diff) < 0.05) {
+    return 'neutral'
+  }
+
+  return diff > 0 ? 'up' : 'down'
+})
 
 // Get primary account PUUID for sync status tracking
 const primaryPuuid = computed(() => {
@@ -117,13 +158,15 @@ async function fetchData() {
   error.value = null
 
   try {
-    // Fetch overview and match activity data in parallel
-    const [overview, activity] = await Promise.all([
+    // Fetch overview, match activity, and KDA trend context in parallel
+    const [overview, activity, soloDashboard] = await Promise.all([
       getOverview(authStore.userId),
-      getMatchActivity(authStore.userId)
+      getMatchActivity(authStore.userId),
+      getSoloDashboard(authStore.userId)
     ])
     overviewData.value = overview
     matchActivityData.value = activity
+    soloDashboardData.value = soloDashboard
   } catch (e) {
     console.error('Failed to fetch overview data:', e)
     error.value = e.message || 'Failed to load overview'
@@ -193,6 +236,19 @@ onMounted(() => {
 .btn-link-account:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
+}
+
+.recent-right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  height: 100%;
+}
+
+.recent-right-stack :deep(.analysis-status-card),
+.recent-right-stack :deep(.solo-analytics-cta) {
+  flex: 1;
+  height: 100%;
 }
 </style>
 

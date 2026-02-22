@@ -18,7 +18,7 @@ Project: mongoose.gg
 Code Style: Follow standard formatting
 Security Requirements: Authentication
 
-Review [coding standards](../../docs/standards/) and [security guidelines](../../docs/security/) before reviewing code.
+Review [coding standards](../copilot-instructions.md) and [security guidelines](../specs/architecture.spec.md) before reviewing code.
 
 ## Tool Boundaries
 - **CAN**: Review code, search codebase, identify issues, suggest improvements
