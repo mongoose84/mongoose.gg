@@ -22,16 +22,6 @@ public sealed class ResetPasswordEndpoint : IEndpoint
     private static readonly Regex CodeRegex = new(@"^\d{6}$", RegexOptions.Compiled);
     private static readonly Regex EmailRegex = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
 
-    private static string? GetClientIpAddress(HttpContext context)
-    {
-        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(forwardedFor))
-        {
-            return forwardedFor.Split(',')[0].Trim();
-        }
-        return context.Connection.RemoteIpAddress?.ToString();
-    }
-
     public ResetPasswordEndpoint(string basePath)
     {
         Route = basePath + "/auth/reset-password";
@@ -51,7 +41,7 @@ public sealed class ResetPasswordEndpoint : IEndpoint
         {
             try
             {
-                var clientIp = GetClientIpAddress(httpContext);
+                var clientIp = ClientIpAddressResolver.GetClientIpAddress(httpContext);
                 var rateLimitResult = await rateLimiter.CheckEndpointAsync(
                     "reset-password",
                     clientIp,

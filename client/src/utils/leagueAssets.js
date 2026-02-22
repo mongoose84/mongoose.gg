@@ -38,6 +38,18 @@ export function getChampionIconUrl(championName) {
 }
 
 /**
+ * Generates a Data Dragon splash URL for champion mural artwork.
+ * @param {string} championName - The champion name (e.g., "Cho'Gath", "Lee Sin")
+ * @returns {string} The full URL to the default champion splash image
+ */
+export function getChampionSplashUrl(championName) {
+  const normalized = normalizeChampionName(championName)
+  return normalized
+    ? `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${normalized}_0.jpg`
+    : ''
+}
+
+/**
  * Role icon mapping for Community Dragon URLs.
  * Maps Riot API role names to URL-friendly names.
  */

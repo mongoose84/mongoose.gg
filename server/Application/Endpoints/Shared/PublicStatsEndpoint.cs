@@ -17,21 +17,6 @@ namespace Mongoose.Api.Application.Endpoints
         private const int RateLimitRequests = 60;
         private static readonly TimeSpan RateLimitWindow = TimeSpan.FromMinutes(1);
 
-        /// <summary>
-        /// Extracts the client IP address from the HTTP context.
-        /// Checks X-Forwarded-For header first (for proxies/load balancers),
-        /// then falls back to the direct connection IP.
-        /// </summary>
-        private static string? GetClientIpAddress(HttpContext context)
-        {
-            var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-            if (!string.IsNullOrEmpty(forwardedFor))
-            {
-                return forwardedFor.Split(',')[0].Trim();
-            }
-            return context.Connection.RemoteIpAddress?.ToString();
-        }
-
         public PublicStatsEndpoint(string basePath)
         {
             Route = basePath + "/public/stats";
@@ -47,7 +32,7 @@ namespace Mongoose.Api.Application.Endpoints
                 [FromServices] ILogger<PublicStatsEndpoint> logger) =>
             {
                 // Check rate limit before processing (IP-based only)
-                var clientIp = GetClientIpAddress(httpContext);
+                var clientIp = ClientIpAddressResolver.GetClientIpAddress(httpContext);
                 var rateLimitResult = await rateLimiter.CheckEndpointAsync(
                     "public-stats",
                     clientIp,

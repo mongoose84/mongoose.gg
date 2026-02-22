@@ -14,10 +14,7 @@ public class FeedbackEndpointTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
-        var cookie = cookies!.First();
-        var authCookie = cookie.Split(';', 2)[0];
-        return authCookie;
+        return AuthCookieTestHelper.GetAuthCookie(response);
     }
 
     // Response DTOs for deserialization

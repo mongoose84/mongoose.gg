@@ -45,8 +45,19 @@ public sealed class OverviewEndpoint : IEndpoint
                 // Parse userId
                 if (!int.TryParse(userId, out var userIdInt))
                 {
-                    logger.LogWarning("Overview: invalid userId format {UserId}", userId);
+                    logger.LogWarning("Overview: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
                     return Results.BadRequest(new { error = "Invalid userId format" });
+                }
+
+                // Authorization - user can only access their own data
+                var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (authenticatedUserId != userIdInt.ToString())
+                {
+                    logger.LogWarning(
+                        "Overview: user {AuthUserId} attempted to access data for user {RouteUserId}",
+                        LogSanitizer.Sanitize(authenticatedUserId),
+                        userIdInt);
+                    return Results.Forbid();
                 }
 
                 // Get riot accounts for the user via junction table
@@ -93,6 +104,15 @@ public sealed class OverviewEndpoint : IEndpoint
                 var lastMatchData = await overviewStatsRepo.GetLastMatchAsync(primaryPuuid);
                 var lastMatch = lastMatchData != null ? BuildLastMatch(lastMatchData) : null;
 
+                // Most played champion for CTA mural personalization
+                var mostPlayedChampionData = await overviewStatsRepo.GetMostPlayedChampionAsync(primaryPuuid);
+                var mostPlayedChampion = mostPlayedChampionData != null
+                    ? new MostPlayedChampion(
+                        ChampionName: mostPlayedChampionData.ChampionName,
+                        GamesPlayed: mostPlayedChampionData.GamesPlayed,
+                        Source: "current_season")
+                    : null;
+
                 // Active goals (placeholder - no goals table yet, return empty)
                 var activeGoals = Array.Empty<GoalPreview>();
 
@@ -103,6 +123,7 @@ public sealed class OverviewEndpoint : IEndpoint
                     PlayerHeader: playerHeader,
                     RankSnapshot: rankSnapshot,
                     LastMatch: lastMatch,
+                    MostPlayedChampion: mostPlayedChampion,
                     ActiveGoals: activeGoals,
                     SuggestedActions: suggestedActions
                 );
@@ -111,7 +132,7 @@ public sealed class OverviewEndpoint : IEndpoint
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Overview: unhandled error for userId {UserId}", userId);
+                logger.LogError(ex, "Overview: unhandled error for userId {UserId}", LogSanitizer.Sanitize(userId));
                 return Results.Problem("An unexpected error occurred");
             }
         }).RequireAuthorization();

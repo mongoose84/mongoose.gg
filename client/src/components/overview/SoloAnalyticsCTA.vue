@@ -3,6 +3,20 @@
     to="/app/solo"
     class="solo-analytics-cta"
   >
+    <div
+      class="cta-mural-layer"
+      aria-hidden="true"
+      data-testid="solo-analytics-mural"
+    >
+      <img
+        src="/assets/images/solo-page.png"
+        alt=""
+        class="cta-mural-image"
+      />
+    </div>
+    <div class="cta-overlay-layer" aria-hidden="true"></div>
+
+    <div class="cta-foreground">
     <div class="cta-icon-wrapper">
       <ArrowTrendingUpIcon
         v-if="props.trendDirection === 'up'"
@@ -31,6 +45,7 @@
         <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
       </svg>
     </div>
+    </div>
   </router-link>
 </template>
 
@@ -52,6 +67,9 @@ const props = defineProps({
 
 <style scoped>
 .solo-analytics-cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
@@ -64,6 +82,46 @@ const props = defineProps({
   color: inherit;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.cta-mural-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.cta-mural-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  opacity: 0.6;
+  filter: blur(3px) saturate(0.85);
+  transform: scale(1.08);
+}
+
+.cta-overlay-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--color-surface) 98%, transparent) 0%,
+    color-mix(in srgb, var(--color-surface) 92%, transparent) 45%,
+    color-mix(in srgb, var(--color-surface) 78%, transparent) 100%
+  );
+}
+
+.cta-foreground {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  width: 100%;
 }
 
 .solo-analytics-cta:hover {
@@ -146,10 +204,13 @@ const props = defineProps({
 }
 
 @media (max-width: 480px) {
-  .solo-analytics-cta {
+  .cta-foreground {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-md);
+  }
+
+  .solo-analytics-cta {
     padding: var(--spacing-md);
   }
 

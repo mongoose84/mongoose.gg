@@ -17,8 +17,7 @@ public class VerifyEndpointTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "unverified", password = "test-password" });
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
-        var cookie = cookies!.First().Split(';', 2)[0];
+        var cookie = AuthCookieTestHelper.GetAuthCookie(response);
         
         // Get the user ID for adding tokens
         var user = await factory.UsersRepository.GetByUsernameAsync("unverified");

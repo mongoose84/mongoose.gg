@@ -38,6 +38,12 @@ describe('SoloAnalyticsCTA', () => {
     expect(wrapper.find('.cta-arrow svg').exists()).toBe(true)
   })
 
+  it('renders mural and overlay layers', () => {
+    const wrapper = mountCTA()
+    expect(wrapper.find('[data-testid="solo-analytics-mural"]').exists()).toBe(true)
+    expect(wrapper.find('.cta-overlay-layer').exists()).toBe(true)
+  })
+
   it('renders up icon and success color when trendDirection is up', () => {
     const wrapper = mountCTA({ props: { trendDirection: 'up' } })
     expect(wrapper.find('.cta-icon--up').exists()).toBe(true)
