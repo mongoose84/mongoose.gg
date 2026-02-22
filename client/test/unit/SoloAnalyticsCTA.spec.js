@@ -40,14 +40,23 @@ describe('SoloAnalyticsCTA', () => {
 
   it('renders up icon and success color when trendDirection is up', () => {
     const wrapper = mountCTA({ props: { trendDirection: 'up' } })
-    expect(wrapper.find('[data-testid="solo-kda-trend-up-icon"]').exists()).toBe(true)
     expect(wrapper.find('.cta-icon--up').exists()).toBe(true)
+    expect(wrapper.find('.cta-icon--down').exists()).toBe(false)
+    expect(wrapper.find('.cta-icon--neutral').exists()).toBe(false)
   })
 
   it('renders down icon and error color when trendDirection is down', () => {
     const wrapper = mountCTA({ props: { trendDirection: 'down' } })
-    expect(wrapper.find('[data-testid="solo-kda-trend-down-icon"]').exists()).toBe(true)
     expect(wrapper.find('.cta-icon--down').exists()).toBe(true)
+    expect(wrapper.find('.cta-icon--up').exists()).toBe(false)
+    expect(wrapper.find('.cta-icon--neutral').exists()).toBe(false)
+  })
+
+  it('renders neutral icon when trendDirection is neutral', () => {
+    const wrapper = mountCTA({ props: { trendDirection: 'neutral' } })
+    expect(wrapper.find('.cta-icon--neutral').exists()).toBe(true)
+    expect(wrapper.find('.cta-icon--up').exists()).toBe(false)
+    expect(wrapper.find('.cta-icon--down').exists()).toBe(false)
   })
 
   it('renders provided subtitle text', () => {

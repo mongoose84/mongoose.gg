@@ -52,6 +52,26 @@ describe('OverviewPage', () => {
     })
   }
 
+  function mountPageWithCtaStub() {
+    return mount(OverviewPage, {
+      global: {
+        stubs: {
+          OverviewPlayerHeader: true,
+          MatchActivityHeatmap: true,
+          RankSnapshot: true,
+          LastMatchCard: true,
+          ChampionSelectCTA: true,
+          AnalysisStatusCard: true,
+          SoloAnalyticsCTA: {
+            props: ['subtitle', 'trendDirection'],
+            template: '<div data-testid="solo-cta-stub">{{ subtitle }}|{{ trendDirection }}</div>'
+          },
+          LinkRiotAccountModal: true
+        }
+      }
+    })
+  }
+
   it('renders SoloAnalyticsCTA when overview data is present', async () => {
     mockGetOverview.mockResolvedValue({})
 
@@ -69,5 +89,44 @@ describe('OverviewPage', () => {
     await flushPromises()
 
     expect(wrapper.find('solo-analytics-c-t-a-stub').exists()).toBe(false)
+  })
+
+  it('passes KDA trend subtitle and direction to SoloAnalyticsCTA', async () => {
+    mockGetOverview.mockResolvedValue({})
+    mockGetSoloDashboard.mockResolvedValue({
+      avgKda: 3.4,
+      overallAvgKda: 2.9
+    })
+
+    const wrapper = mountPageWithCtaStub()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="solo-cta-stub"]').text()).toBe('KDA trend: 3.4 (+0.5 vs overall)|up')
+  })
+
+  it('passes neutral trend when KDA difference is below threshold', async () => {
+    mockGetOverview.mockResolvedValue({})
+    mockGetSoloDashboard.mockResolvedValue({
+      avgKda: 3.02,
+      overallAvgKda: 3.0
+    })
+
+    const wrapper = mountPageWithCtaStub()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="solo-cta-stub"]').text()).toBe('KDA trend: 3.0 (even vs overall)|neutral')
+  })
+
+  it('passes down trend when KDA is below overall baseline', async () => {
+    mockGetOverview.mockResolvedValue({})
+    mockGetSoloDashboard.mockResolvedValue({
+      avgKda: 2.3,
+      overallAvgKda: 2.9
+    })
+
+    const wrapper = mountPageWithCtaStub()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="solo-cta-stub"]').text()).toBe('KDA trend: 2.3 (-0.6 vs overall)|down')
   })
 })

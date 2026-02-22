@@ -4,11 +4,20 @@
     class="solo-analytics-cta"
   >
     <div class="cta-icon-wrapper">
-      <component
-        :is="trendIcon"
-        class="cta-icon"
-        :class="trendIconClass"
-        :data-testid="trendIconTestId"
+      <ArrowTrendingUpIcon
+        v-if="props.trendDirection === 'up'"
+        class="cta-icon cta-icon--up"
+        data-testid="solo-kda-trend-up-icon"
+      />
+      <ArrowTrendingDownIcon
+        v-else-if="props.trendDirection === 'down'"
+        class="cta-icon cta-icon--down"
+        data-testid="solo-kda-trend-down-icon"
+      />
+      <ChartBarIcon
+        v-else
+        class="cta-icon cta-icon--neutral"
+        data-testid="solo-kda-trend-neutral-icon"
       />
     </div>
 
@@ -26,7 +35,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import { ChartBarIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/vue/24/solid'
 
 const props = defineProps({
@@ -39,42 +47,6 @@ const props = defineProps({
     default: 'neutral',
     validator: (value) => ['up', 'down', 'neutral'].includes(value)
   }
-})
-
-const trendIcon = computed(() => {
-  if (props.trendDirection === 'up') {
-    return ArrowTrendingUpIcon
-  }
-
-  if (props.trendDirection === 'down') {
-    return ArrowTrendingDownIcon
-  }
-
-  return ChartBarIcon
-})
-
-const trendIconClass = computed(() => {
-  if (props.trendDirection === 'up') {
-    return 'cta-icon--up'
-  }
-
-  if (props.trendDirection === 'down') {
-    return 'cta-icon--down'
-  }
-
-  return 'cta-icon--neutral'
-})
-
-const trendIconTestId = computed(() => {
-  if (props.trendDirection === 'up') {
-    return 'solo-kda-trend-up-icon'
-  }
-
-  if (props.trendDirection === 'down') {
-    return 'solo-kda-trend-down-icon'
-  }
-
-  return 'solo-kda-trend-neutral-icon'
 })
 </script>
 
