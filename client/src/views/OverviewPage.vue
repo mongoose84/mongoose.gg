@@ -55,7 +55,10 @@
 
     <!-- Recent games: Right - Analysis Status Card -->
     <template #recent-right>
-      <AnalysisStatusCard />
+      <div class="recent-right-stack">
+        <AnalysisStatusCard />
+        <SoloAnalyticsCTA />
+      </div>
     </template>
 
     <!-- Latest match (full width) -->
@@ -93,6 +96,7 @@ import RankSnapshot from '../components/overview/RankSnapshot.vue'
 import LastMatchCard from '../components/overview/LastMatchCard.vue'
 import ChampionSelectCTA from '../components/overview/ChampionSelectCTA.vue'
 import AnalysisStatusCard from '../components/overview/AnalysisStatusCard.vue'
+import SoloAnalyticsCTA from '../components/overview/SoloAnalyticsCTA.vue'
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
 
 const authStore = useAuthStore()
@@ -193,6 +197,12 @@ onMounted(() => {
 .btn-link-account:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
+}
+
+.recent-right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 </style>
 
