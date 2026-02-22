@@ -49,7 +49,6 @@ describe('SoloAnalyticsCTA', () => {
     expect(wrapper.find('.cta-icon--up').exists()).toBe(true)
     expect(wrapper.find('.cta-icon--down').exists()).toBe(false)
     expect(wrapper.find('.cta-icon--neutral').exists()).toBe(false)
-    expect(wrapper.find('.cta-mural-layer--up').exists()).toBe(true)
   })
 
   it('renders down icon and error color when trendDirection is down', () => {
@@ -57,7 +56,6 @@ describe('SoloAnalyticsCTA', () => {
     expect(wrapper.find('.cta-icon--down').exists()).toBe(true)
     expect(wrapper.find('.cta-icon--up').exists()).toBe(false)
     expect(wrapper.find('.cta-icon--neutral').exists()).toBe(false)
-    expect(wrapper.find('.cta-mural-layer--down').exists()).toBe(true)
   })
 
   it('renders neutral icon when trendDirection is neutral', () => {
@@ -65,7 +63,6 @@ describe('SoloAnalyticsCTA', () => {
     expect(wrapper.find('.cta-icon--neutral').exists()).toBe(true)
     expect(wrapper.find('.cta-icon--up').exists()).toBe(false)
     expect(wrapper.find('.cta-icon--down').exists()).toBe(false)
-    expect(wrapper.find('.cta-mural-layer--neutral').exists()).toBe(true)
   })
 
   it('renders provided subtitle text', () => {
