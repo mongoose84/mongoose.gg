@@ -14,12 +14,7 @@
     </div>
     <div v-if="hasMural" class="cta-overlay-layer" aria-hidden="true"></div>
 
-    <!-- Icon -->
     <div class="cta-foreground">
-      <div class="cta-icon-wrapper">
-        <SparklesIcon class="cta-icon" />
-      </div>
-
       <!-- Content -->
       <div class="cta-content">
         <h3 class="cta-title">Champion Select Helper</h3>
@@ -38,7 +33,6 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { SparklesIcon } from '@heroicons/vue/24/solid'
 
 const props = defineProps({
   muralUrl: {
@@ -116,7 +110,7 @@ watch(() => props.muralUrl, () => {
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
   width: 100%;
 }
 
@@ -130,24 +124,6 @@ watch(() => props.muralUrl, () => {
 .champion-select-cta:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--color-primary-soft);
-}
-
-/* Icon wrapper - matches rank emblem size from RankSnapshot */
-.cta-icon-wrapper {
-  width: 72px;
-  height: 72px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary-soft);
-  border-radius: 50%;
-}
-
-.cta-icon {
-  width: 36px;
-  height: 36px;
-  color: var(--color-primary);
 }
 
 /* Content */
@@ -201,16 +177,6 @@ watch(() => props.muralUrl, () => {
 
   .champion-select-cta {
     padding: var(--spacing-md);
-  }
-
-  .cta-icon-wrapper {
-    width: 56px;
-    height: 56px;
-  }
-
-  .cta-icon {
-    width: 28px;
-    height: 28px;
   }
 
   .cta-title {
