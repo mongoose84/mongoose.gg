@@ -628,7 +628,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             // Use DESC order with LIMIT for efficiency, then reverse to ASC in-memory
             const int windowSize = 20;
             var useDbLimit = limit.HasValue && limit.Value > 0;
-            var dbLimit = useDbLimit ? limit.Value + windowSize - 1 : int.MaxValue;
+            var dbLimit = useDbLimit ? limit!.Value + windowSize - 1 : int.MaxValue;
             var orderDirection = useDbLimit ? "DESC" : "ASC";
             var limitClause = useDbLimit ? $"LIMIT {dbLimit}" : "";
 
