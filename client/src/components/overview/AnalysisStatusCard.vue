@@ -1,6 +1,6 @@
 <template>
   <BaseCard class="analysis-status-card">
-    <div class="flex items-center justify-between gap-4">
+    <div class="analysis-status-content flex items-center justify-between gap-4">
       <!-- Status indicator and text -->
       <div class="flex items-center gap-3 min-w-0">
         <!-- Status dot/icon -->
@@ -148,6 +148,17 @@ async function handleAction() {
 <style scoped>
 .analysis-status-card {
   padding: var(--spacing-md);
+  height: 100%;
+}
+
+.analysis-status-card :deep(.card-body) {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.analysis-status-content {
+  width: 100%;
 }
 
 /* Status spinner for running state */

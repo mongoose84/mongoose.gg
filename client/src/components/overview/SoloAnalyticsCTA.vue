@@ -4,12 +4,17 @@
     class="solo-analytics-cta"
   >
     <div class="cta-icon-wrapper">
-      <ChartBarIcon class="cta-icon" />
+      <component
+        :is="trendIcon"
+        class="cta-icon"
+        :class="trendIconClass"
+        :data-testid="trendIconTestId"
+      />
     </div>
 
     <div class="cta-content">
       <h3 class="cta-title">Solo Analytics</h3>
-      <p class="cta-subtitle">Track your trends and improve</p>
+      <p class="cta-subtitle">{{ subtitle }}</p>
     </div>
 
     <div class="cta-arrow">
@@ -21,7 +26,56 @@
 </template>
 
 <script setup>
-import { ChartBarIcon } from '@heroicons/vue/24/solid'
+import { computed } from 'vue'
+import { ChartBarIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/vue/24/solid'
+
+const props = defineProps({
+  subtitle: {
+    type: String,
+    default: 'Track your trends and improve'
+  },
+  trendDirection: {
+    type: String,
+    default: 'neutral',
+    validator: (value) => ['up', 'down', 'neutral'].includes(value)
+  }
+})
+
+const trendIcon = computed(() => {
+  if (props.trendDirection === 'up') {
+    return ArrowTrendingUpIcon
+  }
+
+  if (props.trendDirection === 'down') {
+    return ArrowTrendingDownIcon
+  }
+
+  return ChartBarIcon
+})
+
+const trendIconClass = computed(() => {
+  if (props.trendDirection === 'up') {
+    return 'cta-icon--up'
+  }
+
+  if (props.trendDirection === 'down') {
+    return 'cta-icon--down'
+  }
+
+  return 'cta-icon--neutral'
+})
+
+const trendIconTestId = computed(() => {
+  if (props.trendDirection === 'up') {
+    return 'solo-kda-trend-up-icon'
+  }
+
+  if (props.trendDirection === 'down') {
+    return 'solo-kda-trend-down-icon'
+  }
+
+  return 'solo-kda-trend-neutral-icon'
+})
 </script>
 
 <style scoped>
@@ -66,7 +120,18 @@ import { ChartBarIcon } from '@heroicons/vue/24/solid'
 .cta-icon {
   width: 36px;
   height: 36px;
+}
+
+.cta-icon--neutral {
   color: var(--color-primary);
+}
+
+.cta-icon--up {
+  color: var(--color-success);
+}
+
+.cta-icon--down {
+  color: var(--color-error);
 }
 
 .cta-content {

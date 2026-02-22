@@ -5,6 +5,7 @@ import OverviewPage from '@/views/OverviewPage.vue'
 
 const mockGetOverview = vi.fn()
 const mockGetMatchActivity = vi.fn()
+const mockGetSoloDashboard = vi.fn()
 
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({
@@ -24,12 +25,14 @@ vi.mock('@/composables/useSyncWebSocket', () => ({
 
 vi.mock('@/services/authApi', () => ({
   getOverview: (...args) => mockGetOverview(...args),
-  getMatchActivity: (...args) => mockGetMatchActivity(...args)
+  getMatchActivity: (...args) => mockGetMatchActivity(...args),
+  getSoloDashboard: (...args) => mockGetSoloDashboard(...args)
 }))
 
 describe('OverviewPage', () => {
   beforeEach(() => {
     mockGetMatchActivity.mockResolvedValue(null)
+    mockGetSoloDashboard.mockResolvedValue(null)
   })
 
   function mountPage() {
