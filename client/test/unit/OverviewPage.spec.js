@@ -60,7 +60,10 @@ describe('OverviewPage', () => {
           MatchActivityHeatmap: true,
           RankSnapshot: true,
           LastMatchCard: true,
-          ChampionSelectCTA: true,
+          ChampionSelectCTA: {
+            props: ['muralUrl', 'championName'],
+            template: '<div data-testid="champion-select-cta-stub">{{ championName }}|{{ muralUrl }}</div>'
+          },
           AnalysisStatusCard: true,
           SoloAnalyticsCTA: {
             props: ['subtitle', 'trendDirection'],
@@ -128,5 +131,30 @@ describe('OverviewPage', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="solo-cta-stub"]').text()).toBe('KDA trend: 2.3 (-0.6 vs overall)|down')
+  })
+
+  it('passes mural props to ChampionSelectCTA when most played champion exists', async () => {
+    mockGetOverview.mockResolvedValue({
+      mostPlayedChampion: {
+        championName: 'Ahri',
+        gamesPlayed: 28,
+        source: 'current_season'
+      }
+    })
+
+    const wrapper = mountPageWithCtaStub()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="champion-select-cta-stub"]').text())
+      .toBe('Ahri|https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Ahri_0.jpg')
+  })
+
+  it('passes empty mural props to ChampionSelectCTA when no champion data exists', async () => {
+    mockGetOverview.mockResolvedValue({})
+
+    const wrapper = mountPageWithCtaStub()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="champion-select-cta-stub"]').text()).toBe('|')
   })
 })

@@ -63,6 +63,46 @@ describe('ChampionSelectCTA', () => {
       // The arrow wrapper contains an svg (ArrowRightIcon)
       expect(wrapper.find('.cta-arrow svg').exists()).toBe(true);
     });
+
+    it('renders mural and overlay when muralUrl is provided', () => {
+      const wrapper = mountCTA({
+        props: {
+          muralUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Ahri_0.jpg',
+          championName: 'Ahri'
+        }
+      });
+
+      expect(wrapper.find('.cta-mural-layer').exists()).toBe(true);
+      expect(wrapper.find('.cta-mural-image').attributes('src')).toContain('Ahri_0.jpg');
+      expect(wrapper.find('.cta-overlay-layer').exists()).toBe(true);
+    });
+
+    it('uses neutral style when muralUrl is missing', () => {
+      const wrapper = mountCTA({
+        props: {
+          muralUrl: '',
+          championName: ''
+        }
+      });
+
+      expect(wrapper.find('.cta-mural-layer').exists()).toBe(false);
+      expect(wrapper.find('.cta-overlay-layer').exists()).toBe(false);
+    });
+
+    it('falls back to neutral style when mural image fails to load', async () => {
+      const wrapper = mountCTA({
+        props: {
+          muralUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Invalid_0.jpg',
+          championName: 'Invalid'
+        }
+      });
+
+      await wrapper.find('.cta-mural-image').trigger('error');
+
+      expect(wrapper.find('.cta-mural-layer').exists()).toBe(false);
+      expect(wrapper.find('.cta-overlay-layer').exists()).toBe(false);
+      expect(wrapper.find('.cta-title').text()).toBe('Champion Select Helper');
+    });
   });
 
   describe('structure', () => {
@@ -114,6 +154,19 @@ describe('ChampionSelectCTA', () => {
       const wrapper = mountCTA();
       // The component has text-decoration: none in CSS
       expect(wrapper.find('.champion-select-cta').exists()).toBe(true);
+    });
+
+    it('keeps text and route intact with mural enabled', () => {
+      const wrapper = mountCTA({
+        props: {
+          muralUrl: 'https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Ahri_0.jpg',
+          championName: 'Ahri'
+        }
+      });
+
+      expect(wrapper.find('.cta-title').text()).toBe('Champion Select Helper');
+      expect(wrapper.find('.cta-subtitle').text()).toBe('Get personal matchup tips before you lock in');
+      expect(wrapper.find('.router-link-stub').attributes('href')).toBe('/app/champion-select');
     });
   });
 

@@ -40,7 +40,10 @@
     <!-- Today at a glance: Right - Champion Select CTA -->
     <template #glance-right>
       <div class="glance-right-fill">
-        <ChampionSelectCTA />
+        <ChampionSelectCTA
+          :mural-url="championSelectMuralUrl"
+          :champion-name="mostPlayedChampionName"
+        />
       </div>
     </template>
 
@@ -94,6 +97,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { getOverview, getMatchActivity, getSoloDashboard } from '../services/authApi'
+import { getChampionSplashUrl } from '../utils/leagueAssets'
 import OverviewLayout from '../components/overview/OverviewLayout.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
 import MatchActivityHeatmap from '../components/overview/MatchActivityHeatmap.vue'
@@ -105,15 +109,27 @@ import SoloAnalyticsCTA from '../components/overview/SoloAnalyticsCTA.vue'
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
 
 const authStore = useAuthStore()
-const { syncProgress, subscribe, resetProgress } = useSyncWebSocket()
+const { syncProgress, resetProgress } = useSyncWebSocket()
 
 // State
 const overviewData = ref(null)
 const matchActivityData = ref(null)
 const soloDashboardData = ref(null)
 const isLoading = ref(false)
+const isRefreshing = ref(false)
 const error = ref(null)
 const showLinkModal = ref(false)
+const previousSyncStatuses = ref(new Map())
+
+const mostPlayedChampionName = computed(() => {
+  return overviewData.value?.mostPlayedChampion?.championName || ''
+})
+
+const championSelectMuralUrl = computed(() => {
+  return mostPlayedChampionName.value
+    ? getChampionSplashUrl(mostPlayedChampionName.value)
+    : ''
+})
 
 const soloCtaSubtitle = computed(() => {
   const avgKda = soloDashboardData.value?.avgKda
@@ -148,15 +164,16 @@ const soloCtaTrendDirection = computed(() => {
   return diff > 0 ? 'up' : 'down'
 })
 
-// Get primary account PUUID for sync status tracking
-const primaryPuuid = computed(() => {
-  return authStore.primaryRiotAccount?.puuid || null
-})
-
 async function fetchData() {
   if (!authStore.userId) return
 
-  isLoading.value = true
+  const isInitialLoad = !overviewData.value
+
+  if (isInitialLoad) {
+    isLoading.value = true
+  } else {
+    isRefreshing.value = true
+  }
   error.value = null
 
   try {
@@ -173,22 +190,38 @@ async function fetchData() {
     console.error('Failed to fetch overview data:', e)
     error.value = e.message || 'Failed to load overview'
   } finally {
-    isLoading.value = false
+    if (isInitialLoad) {
+      isLoading.value = false
+    } else {
+      isRefreshing.value = false
+    }
   }
 }
 
 // Watch for sync completion to refresh data
 watch(syncProgress, (progress) => {
   for (const [puuid, data] of progress.entries()) {
-    if (data.status === 'completed') {
-      // Refresh user data to get updated profile info
-      authStore.refreshUser()
-      // Refresh overview data to get updated stats
-      fetchData()
+    const previousStatus = previousSyncStatuses.value.get(puuid)
+    const currentStatus = data.status
+
+    if (previousStatus === 'syncing' && currentStatus === 'completed') {
+      const totalSynced = typeof data.totalSynced === 'number' ? data.totalSynced : 0
+      const shouldRefreshOverview = totalSynced > 0
+
+      if (shouldRefreshOverview) {
+        // Refresh user data to get updated profile info
+        authStore.refreshUser()
+        // Refresh overview data to get updated stats
+        fetchData()
+      }
+
       // Reset the status after refresh to avoid repeated refreshes
       resetProgress(puuid)
+      previousSyncStatuses.value.set(puuid, null)
       break
     }
+
+    previousSyncStatuses.value.set(puuid, currentStatus)
   }
 }, { deep: true })
 
@@ -196,20 +229,12 @@ watch(syncProgress, (progress) => {
 async function handleLinkSuccess() {
   // Refresh user data to get updated riot accounts list
   await authStore.refreshUser()
-  // Subscribe to sync updates for the newly linked account
-  if (primaryPuuid.value) {
-    subscribe(primaryPuuid.value)
-  }
   // Refresh overview data
   fetchData()
 }
 
 onMounted(() => {
   fetchData()
-  // Subscribe to sync updates for primary account
-  if (primaryPuuid.value) {
-    subscribe(primaryPuuid.value)
-  }
 })
 </script>
 
