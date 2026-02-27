@@ -74,12 +74,12 @@
       <router-link
         to="/app/solo"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :title="isCollapsed ? 'Solo' : ''"
+        :title="isCollapsed ? 'Solo Stats' : ''"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
           <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
         </svg>
-        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Solo</span>
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Solo Stats</span>
       </router-link>
 
       <router-link

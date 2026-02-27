@@ -49,7 +49,7 @@ client/
 │   ├── router/index.js          # All routes, auth guards, page view tracking
 │   ├── views/                   # Page components (one per route)
 │   │   ├── OverviewPage.vue     # Post-login landing — orientation dashboard
-│   │   ├── SoloPage.vue         # Solo analysis — LP + winrate trends (free tier)
+│   │   ├── SoloStatsPage.vue    # Solo analysis — LP + winrate trends (free tier)
 │   │   ├── TeamPage.vue         # Team analysis (Pro tier — shows teaser for free)
 │   │   ├── MatchesPage.vue      # Match history list + expandable details
 │   │   ├── ChampionSelectPage.vue # Real-time champion select support

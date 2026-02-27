@@ -21,7 +21,7 @@
 > - Components: `PascalCase.vue` (e.g. `MainChampionCard.vue`)
 > - Base/shared components: `client/src/components/base/Base*.vue`
 > - Feature components: `client/src/components/[solo|overview|shared]/*.vue`
-> - Views/pages: `client/src/views/*Page.vue` (e.g. `SoloPage.vue`)
+> - Views/pages: `client/src/views/*Page.vue` (e.g. `SoloStatsPage.vue`)
 > - Composables: `client/src/composables/use*.js`
 
 ### Props

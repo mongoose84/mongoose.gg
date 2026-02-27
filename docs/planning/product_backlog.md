@@ -1333,7 +1333,7 @@ Zones 4 and 5 are defined as slots but not rendered in v1 (no content). The layo
 - [ ] Zones 4 and 5 only render when slot content is provided (conditional rendering)
 - [ ] Consistent spacing between zones using design tokens
 - [ ] Supports `matchId` prop for "View Analysis" match-highlight mode (passed to child components)
-- [ ] Used by `SoloPage.vue` in v1; will be used by `TeamPage.vue` when implemented
+- [ ] Used by `SoloStatsPage.vue` in v1; will be used by `TeamPage.vue` when implemented
 - [ ] Unit tests covering slot rendering and conditional zone visibility
 
 ---
