@@ -76,9 +76,12 @@ builder.Services.AddScoped<VerificationTokensRepository>();
 
 // Application services
 builder.Services.AddScoped<LoginSyncService>();
+builder.Services.AddScoped<PuuidResolutionService>();
 
 // Query filter builder for centralized SQL filter generation
 builder.Services.AddScoped<IQueryFilterBuilder, QueryFilterBuilder>();
+
+// Authorization helper for consistent authentication/authorization checks (static helper, no DI needed)
 
 // Email service for verification emails
 builder.Services.AddSingleton<IEmailService, SmtpEmailService>();

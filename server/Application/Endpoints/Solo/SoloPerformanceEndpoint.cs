@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.RankInfoDto;
 
@@ -29,69 +29,55 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
-            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
+            [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ISoloPerformanceRepository soloPerformanceRepo,
             [FromServices] ILogger<SoloPerformanceEndpoint> logger
         ) =>
         {
             try
             {
-                if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return AuthResults.NotAuthenticated();
+                // Validate authentication and authorization
+                var (authError, authorizedUser) = AuthorizationHelper.ValidateAndGetUser(httpContext, userId, logger);
+                if (authError != null)
+                    return authError;
 
-                // Parse userId
-                if (!int.TryParse(userId, out var userIdInt))
-                {
-                    logger.LogWarning("Solo performance: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
-                    return Results.BadRequest(new { error = "Invalid userId format" });
-                }
+                // Resolve primary Riot account (includes PUUID and rank data)
+                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                if (accountError != null)
+                    return accountError;
 
-                // Verify authenticated user matches route userId
-                var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
-                {
-                    logger.LogWarning("Solo performance: user {AuthUserId} attempted to access data for user {RouteUserId}",
-                        authenticatedUserId, userIdInt);
-                    return Results.Forbid();
-                }
-
-                // Get riot accounts for this user via junction table
-                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
-
-                if (linkedAccounts == null || linkedAccounts.Count == 0)
-                {
-                    logger.LogWarning("Solo performance: no riot accounts found for userId {UserId}", userIdInt);
-                    return Results.NotFound(new { error = "No riot accounts found for this user" });
-                }
-
-                // Use primary account or first account
-                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
-                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
-                var primaryPuuid = primaryAccount.Puuid;
+                var riotAccount = resolvedAccount!.Account;
 
                 // Fetch performance data
-                logger.LogInformation("Solo performance request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", userIdInt, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
-                var performance = await soloPerformanceRepo.GetSoloPerformanceAsync(primaryPuuid, queueType, timeRange);
+                logger.LogInformation("Solo performance request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
+                    authorizedUser.UserId, riotAccount.Puuid,
+                    LogSanitizer.Sanitize(queueType) ?? "all",
+                    LogSanitizer.Sanitize(timeRange) ?? "all");
+
+                var performance = await soloPerformanceRepo.GetSoloPerformanceAsync(riotAccount.Puuid, queueType, timeRange);
 
                 if (performance == null)
                 {
-                    logger.LogInformation("Solo performance: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}", primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
+                    logger.LogInformation("Solo performance: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}",
+                        riotAccount.Puuid,
+                        LogSanitizer.Sanitize(queueType) ?? "all",
+                        LogSanitizer.Sanitize(timeRange) ?? "all");
                     return Results.NotFound(new { error = "No match data found for this player" });
                 }
 
                 // Build rank info from the account data (no additional DB calls needed)
                 var soloDuoRank = new QueueRankInfo(
-                    primaryAccount.SoloTier,
-                    primaryAccount.SoloRank,
-                    primaryAccount.SoloLp,
-                    !string.IsNullOrEmpty(primaryAccount.SoloTier) && !string.IsNullOrEmpty(primaryAccount.SoloRank)
+                    riotAccount.SoloTier,
+                    riotAccount.SoloRank,
+                    riotAccount.SoloLp,
+                    !string.IsNullOrEmpty(riotAccount.SoloTier) && !string.IsNullOrEmpty(riotAccount.SoloRank)
                 );
 
                 var flexRank = new QueueRankInfo(
-                    primaryAccount.FlexTier,
-                    primaryAccount.FlexRank,
-                    primaryAccount.FlexLp,
-                    !string.IsNullOrEmpty(primaryAccount.FlexTier) && !string.IsNullOrEmpty(primaryAccount.FlexRank)
+                    riotAccount.FlexTier,
+                    riotAccount.FlexRank,
+                    riotAccount.FlexLp,
+                    !string.IsNullOrEmpty(riotAccount.FlexTier) && !string.IsNullOrEmpty(riotAccount.FlexRank)
                 );
 
                 var rankInfo = new RankInfo(soloDuoRank, flexRank);
