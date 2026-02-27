@@ -83,21 +83,23 @@
       <router-link
         to="/app/team"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :title="isCollapsed ? 'Team Analytics' : ''"
+        :title="isCollapsed ? 'Team Analytics (Pro)' : ''"
       >
         <UserGroupIcon class="nav-icon w-5 h-5 shrink-0" />
         <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Team Analytics</span>
+        <span v-if="!isCollapsed" class="pro-badge">PRO</span>
       </router-link>
 
       <router-link
         to="/app/goals"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :title="isCollapsed ? 'Goals' : ''"
+        :title="isCollapsed ? 'Goals (Pro)' : ''"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
         </svg>
         <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Goals</span>
+        <span v-if="!isCollapsed" class="pro-badge">PRO</span>
       </router-link>
     </nav>
 
@@ -281,6 +283,19 @@ function handleLinkedIconError() {
 .nav-label {
   opacity: 1;
   transition: opacity 0.15s ease-out;
+}
+
+.pro-badge {
+  margin-left: auto;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 6px;
+  border-radius: var(--border-radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 /* Router-link-active state styles */
