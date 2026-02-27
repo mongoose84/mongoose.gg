@@ -1,148 +1,102 @@
 using Mongoose.Api.Application.Endpoints;
-using Mongoose.Api.Application.Endpoints.Analytics;
-using Mongoose.Api.Application.Endpoints.Auth;
-using Mongoose.Api.Application.Endpoints.ChampionSelect;
-using Mongoose.Api.Application.Endpoints.Diagnostics;
-using Mongoose.Api.Application.Endpoints.Feedback;
-using Mongoose.Api.Application.Endpoints.Matches;
-using Mongoose.Api.Application.Endpoints.Overview;
-using Mongoose.Api.Application.Endpoints.Solo;
-using Mongoose.Api.Application.Endpoints.Trends;
+using Mongoose.Api.Application.Extensions;
 
-namespace Mongoose.Api.Application
+namespace Mongoose.Api.Application;
+
+/// <summary>
+/// Automatically discovers and configures all endpoint implementations.
+/// Eliminates manual registration - endpoints are discovered via reflection.
+/// </summary>
+public sealed class MongooseApiApplication
 {
-    public class MongooseApiApplication
+    private readonly WebApplication _app;
+    private readonly IList<IEndpoint> _endpoints;
+
+    /// <summary>
+    /// Initialize the application with automatic endpoint discovery.
+    /// </summary>
+    /// <param name="app">The WebApplication instance</param>
+    /// <exception cref="InvalidOperationException">Thrown if endpoint discovery fails</exception>
+    public MongooseApiApplication(WebApplication app)
     {
-        private readonly WebApplication _app;
-        private readonly IList<IEndpoint> _endpoints = [];
-        public MongooseApiApplication(WebApplication app)
+        _app = app;
+
+        const string apiVersion = "v2";
+        const string basePath = "/api/" + apiVersion;
+
+        // Automatically discover all IEndpoint implementations
+        try
         {
-            _app = app;
-            var apiVersion = "v2";
-            var basePath = "/api/" + apiVersion;
-            var homeEndPoint = new HomeEndpoint(apiVersion, basePath);
-            _endpoints.Add(homeEndPoint);
+            _endpoints = EndpointDiscoveryExtension.DiscoverEndpoints(basePath);
 
-            // Diagnostics endpoint (public, no auth required)
-            var diagnosticsEndpoint = new DiagnosticsEndpoint(basePath);
-            _endpoints.Add(diagnosticsEndpoint);
-
-            // Public stats endpoint (no auth required)
-            var publicStatsEndpoint = new PublicStatsEndpoint(basePath);
-            _endpoints.Add(publicStatsEndpoint);
-
-            // Auth endpoints (no auth required)
-            var registerEndpoint = new RegisterEndpoint(basePath);
-            _endpoints.Add(registerEndpoint);
-
-            var loginEndpoint = new LoginEndpoint(basePath);
-            _endpoints.Add(loginEndpoint);
-
-            var logoutEndpoint = new LogoutEndpoint(basePath);
-            _endpoints.Add(logoutEndpoint);
-
-            var deleteAccountEndpoint = new DeleteAccountEndpoint(basePath);
-            _endpoints.Add(deleteAccountEndpoint);
-
-            var verifyEndpoint = new VerifyEndpoint(basePath);
-            _endpoints.Add(verifyEndpoint);
-
-            var resendVerificationEndpoint = new ResendVerificationEndpoint(basePath);
-            _endpoints.Add(resendVerificationEndpoint);
-
-            var forgotPasswordEndpoint = new ForgotPasswordEndpoint(basePath);
-            _endpoints.Add(forgotPasswordEndpoint);
-
-            var resetPasswordEndpoint = new ResetPasswordEndpoint(basePath);
-            _endpoints.Add(resetPasswordEndpoint);
-
-            var changePasswordEndpoint = new ChangePasswordEndpoint(basePath);
-            _endpoints.Add(changePasswordEndpoint);
-
-            // Users endpoint - auth required
-            var usersMeEndpoint = new UsersMeEndpoint(basePath);
-            _endpoints.Add(usersMeEndpoint);
-
-            // Riot account linking endpoints - auth required
-            var riotAccountsEndpoint = new RiotAccountsEndpoint(basePath);
-            _endpoints.Add(riotAccountsEndpoint);
-            
-            // Solo Performance (auth required)
-            var soloPerformanceEndpoint = new SoloPerformanceEndpoint(basePath);
-            _endpoints.Add(soloPerformanceEndpoint);
-
-            // Champion Select (auth required)
-            var championSelectEndpoint = new ChampionSelectEndpoint(basePath);
-            _endpoints.Add(championSelectEndpoint);
-
-            // Solo Matchups (auth required)
-            var soloMatchupsEndpoint = new SoloMatchupsEndpoint(basePath);
-            _endpoints.Add(soloMatchupsEndpoint);
-
-            // Death Positions / Danger Zones (auth required)
-            var deathPositionsEndpoint = new DeathPositionsEndpoint(basePath);
-            _endpoints.Add(deathPositionsEndpoint);
-
-            // Match Activity Heatmap (auth required)
-            var matchActivityEndpoint = new MatchActivityEndpoint(basePath);
-            _endpoints.Add(matchActivityEndpoint);
-
-            // Solo radar chart (auth required)
-            var radarChartEndpoint = new RadarChartEndpoint(basePath);
-            _endpoints.Add(radarChartEndpoint);
-
-            // Match List (auth required)
-            var matchListEndpoint = new MatchListEndpoint(basePath);
-            _endpoints.Add(matchListEndpoint);
-
-            // Match Details (auth required) - on-demand full match data
-            var matchDetailsEndpoint = new MatchDetailsEndpoint(basePath);
-            _endpoints.Add(matchDetailsEndpoint);
-
-            // Match Narrative (auth required)
-            var matchNarrativeEndpoint = new MatchNarrativeEndpoint(basePath);
-            _endpoints.Add(matchNarrativeEndpoint);
-
-            // Trends endpoints (shared, auth required)
-            var winrateTrendEndpoint = new WinrateTrendEndpoint(basePath);
-            _endpoints.Add(winrateTrendEndpoint);
-
-            var goldAt15TrendEndpoint = new GoldAt15TrendEndpoint(basePath);
-            _endpoints.Add(goldAt15TrendEndpoint);
-
-            var csPerMinuteTrendEndpoint = new CsPerMinuteTrendEndpoint(basePath);
-            _endpoints.Add(csPerMinuteTrendEndpoint);
-
-            var deathsTrendEndpoint = new DeathsTrendEndpoint(basePath);
-            _endpoints.Add(deathsTrendEndpoint);
-
-            var dragonParticipationTrendEndpoint = new DragonParticipationTrendEndpoint(basePath);
-            _endpoints.Add(dragonParticipationTrendEndpoint);
-
-            var visionScoreTrendEndpoint = new VisionScoreTrendEndpoint(basePath);
-            _endpoints.Add(visionScoreTrendEndpoint);
-
-            // Overview endpoint (auth required)
-            var overviewEndpoint = new OverviewEndpoint(basePath);
-            _endpoints.Add(overviewEndpoint);
-
-            // Analytics endpoint (public, no auth required - captures anonymous + authenticated events)
-            var analyticsEndpoint = new AnalyticsEndpoint(basePath);
-            _endpoints.Add(analyticsEndpoint);
-
-            // Feedback endpoint (public, no auth required - captures user context if authenticated)
-            var feedbackEndpoint = new FeedbackEndpoint(basePath);
-            _endpoints.Add(feedbackEndpoint);
-        }
-
-        public void ConfigureEndpoints()
-        {
-            Console.WriteLine("Available endpoints:");
-            foreach (var endpoint in _endpoints)
+            if (_endpoints.Count == 0)
             {
-                endpoint.Configure(_app);
-                Console.WriteLine(endpoint.Route);
+                throw new InvalidOperationException(
+                    "No endpoints were discovered. Check that endpoint classes implement IEndpoint.");
             }
         }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                $"Failed to initialize MongooseApiApplication - endpoint discovery failed: {ex.Message}",
+                ex);
+        }
+    }
+
+    /// <summary>
+    /// Configures all discovered endpoints with the WebApplication.
+    /// Call this after Application/Infrastructure services are registered.
+    /// </summary>
+    public void ConfigureEndpoints()
+    {
+        Console.WriteLine($"Configuring {_endpoints.Count} discovered endpoints:");
+        Console.WriteLine();
+
+        // Group endpoints by category for informative logging
+        var groupedEndpoints = _endpoints
+            .GroupBy(e => ExtractCategory(e.GetType().Name))
+            .OrderBy(g => g.Key);
+
+        foreach (var group in groupedEndpoints)
+        {
+            Console.WriteLine($"  [{group.Key}]");
+            foreach (var endpoint in group.OrderBy(e => e.Route))
+            {
+                endpoint.Configure(_app);
+                Console.WriteLine($"    {endpoint.Route}");
+            }
+            Console.WriteLine();
+        }
+
+        Console.WriteLine($"✓ All {_endpoints.Count} endpoints configured successfully");
+    }
+
+    /// <summary>
+    /// Extracts the endpoint category from the class name for logging organization.
+    /// E.g., "SoloPerformanceEndpoint" -> "Solo"
+    /// </summary>
+    private static string ExtractCategory(string className)
+    {
+        // Remove "Endpoint" suffix
+        var withoutEndpoint = className.Replace("Endpoint", string.Empty);
+
+        // Special cases for clarity
+        return withoutEndpoint switch
+        {
+            "Auth" => "Authentication",
+            "Users" => "User Management",
+            "RiotAccounts" => "Account Linking",
+            "Solo" => "Solo Dashboard",
+            "ChampionSelect" => "Real-time",
+            "Match" => "Matches",
+            "Trend" or "Winrate" or "GoldAt15" or "CsPerMinute" or "Deaths" or "DragonParticipation" or "VisionScore" => "Trends",
+            "Overview" => "Overview",
+            "Analytics" => "Analytics",
+            "Feedback" => "Feedback",
+            "Diagnostics" => "Diagnostics",
+            "Home" => "Status",
+            "PublicStats" => "Public",
+            _ => withoutEndpoint
+        };
     }
 }
