@@ -48,7 +48,7 @@
 
 **Core Principles**:
 1. **Tool over website** — speed and clarity over exploration
-2. **Context > Pages** — same data, different perspectives (Solo/Duo/Team); each gets its own route
+2. **Context > Pages** — same data, different perspectives (Solo/Team); each gets its own route
 3. **Fast paths for stressed moments** — Champion Select and Match Review must load instantly
 4. **Overview is orientation, not work** — 5–15 seconds, one scroll max
 5. **Goals are horizontal** — visible everywhere, managed centrally
@@ -210,13 +210,12 @@ Overview         → /app/overview
 Champion Select  → /app/champion-select
 Matches          → /app/matches
 Solo             → /app/solo
-Duo              → /app/duo       (Pro tier — lock icon for free users)
 Team             → /app/team      (Pro tier — lock icon for free users)
 Goals            → /app/goals
 User             → /app/user
 ```
 
-**Architecture decision**: Solo, Duo, and Team are **separate top-level pages** (not tabs) for:
+**Architecture decision**: Solo and Team are **separate top-level pages** (not tabs) for:
 1. Better upgrade perceived value
 2. Content diverges significantly in v2
 3. Cleaner gating UX — locked page with preview/teaser
@@ -251,7 +250,6 @@ All routes defined in `client/src/router/index.js`.
 | `/app/champion-select` | `app-champion-select` | `ChampionSelectPage.vue` | Free |
 | `/app/matches` | `app-matches` | `MatchesPage.vue` | Free |
 | `/app/solo` | `app-solo` | `SoloPage.vue` | Free |
-| `/app/duo` | `app-duo` | `DuoPage.vue` | Pro |
 | `/app/team` | `app-team` | `TeamPage.vue` | Pro |
 | `/app/goals` | `app-goals` | `GoalsPage.vue` | Free |
 | `/app/user` | `app-user` | `UserSettingsPage.vue` | Free |
@@ -283,7 +281,7 @@ All routes defined in `client/src/router/index.js`.
 - Handles loading (spinner), error (retry), empty (link account CTA) states
 - Single-column layout, one-scroll max
 
-### `AnalysisLayout.vue` (shared by Solo/Duo/Team)
+### `AnalysisLayout.vue` (shared by Solo/Team)
 - Zone-based layout with named slots:
   - `#context-bar` — Zone 1: Filters (queue toggle, time range)
   - `#summary` — Zone 2: Summary stats row
@@ -356,18 +354,13 @@ Charts default to last 20 games. Expand button switches to full season in-place 
 
 Data sources: `getSoloDashboard()`, `getWinrateTrend()` from `authApi`
 
-### Duo (`/app/duo`) — Pro tier
-**Role**: Pair performance analysis. Free users see preview/teaser with upgrade CTA.
-
-v2 additions: Champion Matrix (synergy), Danger Zones (two-player death heatmap).
-
 ### Team (`/app/team`) — Pro tier
-**Role**: Team performance analysis. Same gating pattern as Duo.
+**Role**: Team performance analysis.
 
 v2 additions: Team comp patterns, Danger Zones (all players, different colors).
 
 ### Goals (`/app/goals`)
-**Role**: Central goal management. Create/edit/archive. Filter by context (Solo/Duo/Team).
+**Role**: Central goal management. Create/edit/archive. Filter by context (Solo/Team).
 
 ### User Settings (`/app/user`)
 **Role**: Account management — profile, email, password, tier, subscription, Riot account linking.
@@ -480,7 +473,7 @@ Slots: `#header`, `#glance-left`, `#glance-right`, `#recent-left`, `#recent-righ
 | `level` | `Number` | Summoner level |
 | `region` | `String` | Server region |
 | `profileIconUrl` | `String` | Profile icon URL |
-| `activeContexts` | `Array` | Context badges (Solo/Duo/Team) |
+| `activeContexts` | `Array` | Context badges (Solo/Team) |
 
 ### `RankSnapshot`
 
@@ -621,7 +614,7 @@ Chart.js line chart for rolling win rate. Prop: `data` (array of win rate data p
 ## 14. Shared Components
 
 ### `AnalysisLayout` (`client/src/components/shared/`)
-Zone-based layout used by Solo, Duo, and Team pages.
+Zone-based layout used by Solo and Team pages.
 
 | Prop | Type | Description |
 |------|------|-------------|
@@ -934,8 +927,8 @@ These prevent common UX errors in stressful gaming contexts:
 1. Champion Select reachable in one click from any page
 2. Overview never blocks user flow
 3. No duplicated deep analysis across pages
-4. Context (Solo/Duo/Team) always visible via separate sidebar entries
-5. Duo/Team show lock icon for free users (not 403 or blank wall)
+4. Context (Solo/Team) always visible via separate sidebar entries
+5. Team shows lock icon for free users (not 403 or blank wall)
 6. Navigation hierarchy remains stable across all pages
 7. Every chart/stat must have actionable meaning
 8. Single-match insights always framed as trends

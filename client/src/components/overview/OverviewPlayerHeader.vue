@@ -23,9 +23,9 @@
       </div>
 
       <!-- Context Badges -->
-      <div v-if="activeContexts && activeContexts.length > 0" class="context-badges">
+      <div v-if="visibleContexts.length > 0" class="context-badges">
         <span
-          v-for="context in activeContexts"
+          v-for="context in visibleContexts"
           :key="context"
           :class="['context-badge', `context-${context.toLowerCase()}`]"
         >
@@ -89,6 +89,10 @@ const regionDisplay = computed(() => {
   return regionLabels[region] || props.region?.toUpperCase() || ''
 })
 
+const visibleContexts = computed(() => {
+  return (props.activeContexts || []).filter(context => context?.toLowerCase() !== 'duo')
+})
+
 function handleIconError() {
   iconError.value = true
 }
@@ -96,7 +100,6 @@ function handleIconError() {
 function contextLabel(context) {
   const labels = {
     'Solo': 'Solo',
-    'Duo': 'Duo',
     'Team': 'Team'
   }
   return labels[context] || context
@@ -205,11 +208,6 @@ function contextLabel(context) {
 .context-solo {
   background: rgba(109, 40, 217, 0.2);
   color: var(--color-primary);
-}
-
-.context-duo {
-  background: var(--color-success-soft);
-  color: var(--color-success);
 }
 
 .context-team {

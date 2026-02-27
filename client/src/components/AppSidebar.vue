@@ -71,59 +71,27 @@
         />
       </router-link>
 
-      <!-- Analysis Section with Submenu -->
-      <!-- Expanded: show inline submenu -->
-      <div v-if="!isCollapsed" class="mb-xs" data-testid="nav-section-analysis">
-        <div
-          class="flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-default whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
-            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-          </svg>
-          <span class="text-sm font-medium tracking-tight">Analysis</span>
-        </div>
-        <div class="ml-xl mt-xs">
-          <router-link to="/app/solo" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text" data-testid="nav-subitem-solo">
-            <span class="font-medium tracking-tight">Solo</span>
-          </router-link>
-          <router-link to="/app/duo" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text" data-testid="nav-subitem-duo">
-            <span class="font-medium tracking-tight">Duo</span>
-          </router-link>
-          <router-link to="/app/team" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text" data-testid="nav-subitem-team">
-            <span class="font-medium tracking-tight">Team</span>
-          </router-link>
-        </div>
-      </div>
+      <router-link
+        to="/app/solo"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
+        :title="isCollapsed ? 'Solo' : ''"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
+          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+        </svg>
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Solo</span>
+      </router-link>
 
-      <!-- Collapsed: show popout menu using HeadlessUI Popover -->
-      <Popover v-else class="relative mb-xs" data-testid="nav-section-analysis">
-        <PopoverButton
-          class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text w-[calc(100%-1rem)] focus:outline-none"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
-            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-          </svg>
-        </PopoverButton>
-
-        <transition
-          enter-active-class="transition duration-200 ease-out"
-          enter-from-class="opacity-0 -translate-x-2"
-          enter-to-class="opacity-100 translate-x-0"
-          leave-active-class="transition duration-150 ease-in"
-          leave-from-class="opacity-100 translate-x-0"
-          leave-to-class="opacity-0 -translate-x-2"
-        >
-          <PopoverPanel
-            class="absolute left-full top-0 min-w-[140px] bg-background-surface border border-border rounded-md p-xs shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[100] ml-xs focus:outline-none"
-            v-slot="{ close }"
-          >
-            <div class="py-sm px-md text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border mb-xs">Analysis</div>
-            <router-link to="/app/solo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="close" data-testid="popout-item-solo">Solo</router-link>
-            <router-link to="/app/duo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="close" data-testid="popout-item-duo">Duo</router-link>
-            <router-link to="/app/team" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="close" data-testid="popout-item-team">Team</router-link>
-          </PopoverPanel>
-        </transition>
-      </Popover>
+      <router-link
+        to="/app/team"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
+        :title="isCollapsed ? 'Team' : ''"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
+          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+        </svg>
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Team</span>
+      </router-link>
 
       <router-link
         to="/app/goals"
@@ -207,7 +175,6 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
 import { ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
@@ -322,16 +289,6 @@ function handleLinkedIconError() {
 
 /* Router-link-active state styles */
 .nav-item.router-link-active {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.nav-subitem.router-link-active {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.popout-item.router-link-active {
   background: var(--color-primary-soft);
   color: var(--color-primary);
 }

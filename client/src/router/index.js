@@ -71,11 +71,6 @@ const router = createRouter({
           component: () => import('../views/SoloPage.vue')
         },
         {
-          path: 'duo',
-          name: 'app-duo',
-          component: () => import('../views/DuoPage.vue')
-        },
-        {
           path: 'team',
           name: 'app-team',
           component: () => import('../views/TeamPage.vue')
