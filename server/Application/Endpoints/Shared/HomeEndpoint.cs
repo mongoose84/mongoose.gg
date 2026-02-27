@@ -4,12 +4,12 @@ namespace Mongoose.Api.Application.Endpoints
 {
     public class HomeEndpoint : IEndpoint
     {
-        private readonly string _apiVersion;
+        private const string ApiVersion = "v2";
         private readonly string _basePath;
         public string Route { get; } = "/";
-        public HomeEndpoint(string apiVersion, string basePath)
+
+        public HomeEndpoint(string basePath)
         {
-            _apiVersion = apiVersion;
             _basePath = basePath;
         }
 
@@ -20,7 +20,7 @@ namespace Mongoose.Api.Application.Endpoints
                 Metrics.IncrementHome();
 
                 var sitemap = $@"{{  ""Description"": ""Welcome to the League of Legends API. Below are the available endpoints."",  
-                                    ""ApiVersion"": ""{_apiVersion}"",
+                                    ""ApiVersion"": ""{ApiVersion}"",
                                     ""{_basePath}/Metrics"": ""Metrics available for this API."", 
                                     ""{_basePath}/Summoner"": ""Retrieve summoner information by game name and tag line."",
                                     ""{_basePath}/Winrate"": ""Retrieve summoner winrate by region and puuid""
