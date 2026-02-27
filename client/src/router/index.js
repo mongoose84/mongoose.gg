@@ -73,7 +73,7 @@ const router = createRouter({
         {
           path: 'team',
           name: 'app-team',
-          component: () => import('../views/TeamPage.vue')
+          component: () => import('../views/TeamAnalytics.vue')
         },
         {
           path: 'goals',

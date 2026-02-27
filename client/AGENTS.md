@@ -50,7 +50,7 @@ client/
 │   ├── views/                   # Page components (one per route)
 │   │   ├── OverviewPage.vue     # Post-login landing — orientation dashboard
 │   │   ├── SoloStatsPage.vue    # Solo analysis — LP + winrate trends (free tier)
-│   │   ├── TeamPage.vue         # Team analysis (Pro tier — shows teaser for free)
+│   │   ├── TeamAnalytics.vue    # Team analysis (Pro tier — shows teaser for free)
 │   │   ├── MatchesPage.vue      # Match history list + expandable details
 │   │   ├── ChampionSelectPage.vue # Real-time champion select support
 │   │   ├── GoalsPage.vue        # Goal management

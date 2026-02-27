@@ -1333,7 +1333,7 @@ Zones 4 and 5 are defined as slots but not rendered in v1 (no content). The layo
 - [ ] Zones 4 and 5 only render when slot content is provided (conditional rendering)
 - [ ] Consistent spacing between zones using design tokens
 - [ ] Supports `matchId` prop for "View Analysis" match-highlight mode (passed to child components)
-- [ ] Used by `SoloStatsPage.vue` in v1; will be used by `TeamPage.vue` when implemented
+- [ ] Used by `SoloStatsPage.vue` in v1; will be used by `TeamAnalytics.vue` when implemented
 - [ ] Unit tests covering slot rendering and conditional zone visibility
 
 ---
@@ -1394,7 +1394,7 @@ Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with
 #### Acceptance Criteria
 
 **Page & Routing**
-- [ ] Page created at `client/src/views/TeamPage.vue`
+- [ ] Page created at `client/src/views/TeamAnalytics.vue`
 - [ ] Route registered at `/app/team` with `meta: { requiresPro: true }`
 - [ ] Sidebar shows "Team" as a separate top-level nav item (not under Analysis submenu)
 - [ ] Sidebar shows a lock/badge icon on Team for free users
