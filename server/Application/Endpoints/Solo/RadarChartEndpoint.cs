@@ -1,6 +1,6 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.Solo.RadarChartDto;
 
@@ -26,44 +26,28 @@ public sealed class RadarChartEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
-            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
+            [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IRadarChartRepository radarChartRepo,
             [FromServices] ILogger<RadarChartEndpoint> logger
         ) =>
         {
             try
             {
-                if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return AuthResults.NotAuthenticated();
+                // Validate authentication and authorization
+                var (authError, authorizedUser) = AuthorizationHelper.ValidateAndGetUser(httpContext, userId, logger);
+                if (authError != null)
+                    return authError;
 
-                if (!int.TryParse(userId, out var userIdInt))
-                {
-                    logger.LogWarning("Radar chart: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
-                    return Results.BadRequest(new { error = "Invalid userId format" });
-                }
+                // Resolve primary Riot account
+                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                if (accountError != null)
+                    return accountError;
 
-                var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
-                {
-                    logger.LogWarning("Radar chart: user {AuthUserId} attempted to access data for user {RouteUserId}",
-                        authenticatedUserId, userIdInt);
-                    return Results.Forbid();
-                }
-
-                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
-                if (linkedAccounts == null || linkedAccounts.Count == 0)
-                {
-                    logger.LogWarning("Radar chart: no riot accounts found for userId {UserId}", userIdInt);
-                    return Results.NotFound(new { error = "No riot accounts found for this user" });
-                }
-
-                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
-                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
-                var primaryPuuid = primaryAccount.Puuid;
+                var primaryPuuid = resolvedAccount!.Account.Puuid;
 
                 logger.LogInformation(
                     "Radar chart request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    userIdInt,
+                    authorizedUser.UserId,
                     primaryPuuid,
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all");

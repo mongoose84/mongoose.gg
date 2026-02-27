@@ -107,4 +107,17 @@ public sealed class PuuidResolutionService
 
         return (null, accounts);
     }
-}
+
+    /// <summary>
+    /// Verifies that a PUUID belongs to a specific user.
+    /// Used by endpoints like MatchDetailsEndpoint that require PUUID ownership validation.
+    /// </summary>
+    /// <param name="userId">The user ID to verify ownership for</param>
+    /// <param name="puuid">The PUUID to verify</param>
+    /// <returns>
+    /// True if the PUUID is linked to the user, false otherwise.
+    /// </returns>
+    public async Task<bool> VerifyPuuidOwnershipAsync(long userId, string puuid)
+    {
+        return await _userRiotAccountsRepo.IsLinkedAsync(userId, puuid);
+    }}

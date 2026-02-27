@@ -104,4 +104,35 @@ public sealed class AuthorizationHelper
         var user = GetAuthorizedUser(httpContext);
         return (null, user);
     }
+
+    /// <summary>
+    /// Validates authentication and extracts user ID without checking route userId.
+    /// Used by endpoints that verify data ownership through other means (e.g., PUUID linking).
+    /// </summary>
+    /// <param name="httpContext">The HTTP context containing user claims</param>
+    /// <param name="logger">Logger for audit trail</param>
+    /// <returns>
+    /// A tuple containing either (null, AuthorizedUser) on success or (IResult, null) on failure.
+    /// </returns>
+    public static (IResult? ErrorResult, AuthorizedUser? User) GetAuthenticatedUser(
+        HttpContext httpContext,
+        ILogger logger)
+    {
+        // Check authentication
+        if (httpContext.User?.Identity?.IsAuthenticated != true)
+        {
+            return (AuthResults.NotAuthenticated(), null);
+        }
+
+        // Extract user ID
+        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+        {
+            logger.LogWarning("Invalid or missing user ID claim in authentication");
+            return (AuthResults.InvalidSession(), null);
+        }
+
+        var username = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+        return (null, new AuthorizedUser(userId, username));
+    }
 }
