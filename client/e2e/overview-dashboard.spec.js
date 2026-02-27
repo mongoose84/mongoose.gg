@@ -218,20 +218,9 @@ test.describe('Overview Dashboard - Navigation', () => {
   });
 
   test('should navigate to Solo dashboard from sidebar', async ({ page }) => {
-    const sidebar = page.locator('[data-testid="app-sidebar"]');
-    const isCollapsed = await sidebar.getAttribute('data-collapsed') === 'true';
-
-    if (isCollapsed) {
-      const analysisSection = page.locator('[data-testid="nav-section-analysis"]');
-      await analysisSection.hover();
-      const popoutSoloLink = page.locator('[data-testid="popout-item-solo"]');
-      await expect(popoutSoloLink).toBeVisible({ timeout: 5_000 });
-      await popoutSoloLink.click();
-    } else {
-      const sidebarSoloLink = page.locator('[data-testid="nav-subitem-solo"]');
-      await expect(sidebarSoloLink).toBeVisible({ timeout: 5_000 });
-      await sidebarSoloLink.click();
-    }
+    const soloLink = page.locator('[data-testid="nav-solo"]');
+    await expect(soloLink).toBeVisible({ timeout: 5_000 });
+    await soloLink.click();
 
     await expect(page).toHaveURL('/app/solo');
   });
@@ -239,7 +228,7 @@ test.describe('Overview Dashboard - Navigation', () => {
   test('should navigate to Matches page from sidebar', async ({ page }) => {
     // Matches is a top-level nav item (not under Analysis section)
     // It's visible in both collapsed and expanded states
-    const matchesLink = page.locator('a[href="/app/matches"]');
+    const matchesLink = page.locator('[data-testid="nav-matches"]');
     await expect(matchesLink).toBeVisible({ timeout: 5_000 });
     await matchesLink.click();
 

@@ -1187,7 +1187,7 @@ Create a professional user experience with a landing page, pricing, and app shel
 ### Architecture Notes
 - **Framework**: Vue 3 + Vite application in `/client/` directory
 - **Style direction**: Vercel developer aesthetic (dark, sharp, neon-tinged) with theme tokens configurable via CSS variables
-- **Scope**: Marketing landing page + app shell + solo experience first; duo/team dashboards follow once solo is stable in production.
+- **Scope**: Marketing landing page + app shell + solo experience first; team dashboard follows once solo is stable in production.
 
 <!-- AI: START_EPIC_G_TASKS -->
 
@@ -1199,7 +1199,7 @@ Create a professional user experience with a landing page, pricing, and app shel
 >
 > **Research-informed design:** Summary Stats Card shows K/D/A breakdown (not just KDA ratio) with trend-based color treatment. Deaths are highlighted as the #1 actionable metric per academic research (see `docs/win-prediction-metrics-research.md`). Color treatment compares recent performance vs player's own average to answer "Am I improving?" at a glance.
 >
-> **Architecture:** Solo, Duo, and Team are **separate pages** with distinct routes (`/app/solo`, `/app/duo`, `/app/team`). Duo and Team are gated behind Pro tier. All three use the same zone-based layout component but fill zones with context-specific content.
+> **Architecture:** Solo and Team are **separate pages** with distinct routes (`/app/solo`, `/app/team`). Team is gated behind Pro tier. Both use the same zone-based layout component but fill zones with context-specific content.
 >
 > **Solo v2 (deferred):** Goals Panel (G5b7), Matchups Table (G5b6), Performance by Phase, Danger Zones Map (death heatmap informed by research), Session Performance Tracking (8-10% fatigue decline per research), Main Champions Card on Solo (stays on Champion Select).
 
@@ -1274,7 +1274,7 @@ Create a Winrate Over Time chart answering "Am I improving?" Displays rolling av
 
 Defaults to **last 20 games** for quick momentum reading. Includes an expand button that switches the data range to the full season within the same half-width space (no modal or full-width expansion).
 
-The chart component is reusable across Solo, Duo, and Team pages.
+The chart component is reusable across Solo and Team pages.
 
 #### Acceptance Criteria
 
@@ -1311,7 +1311,7 @@ The chart component is reusable across Solo, Duo, and Team pages.
 
 #### Description
 
-Create a shared `AnalysisLayout.vue` component that defines the zone-based layout structure used by Solo, Duo, and Team analysis pages. Each page fills the zones with context-specific content via named slots.
+Create a shared `AnalysisLayout.vue` component that defines the zone-based layout structure used by Solo and Team analysis pages. Each page fills the zones with context-specific content via named slots.
 
 **Zone model:**
 
@@ -1333,7 +1333,7 @@ Zones 4 and 5 are defined as slots but not rendered in v1 (no content). The layo
 - [ ] Zones 4 and 5 only render when slot content is provided (conditional rendering)
 - [ ] Consistent spacing between zones using design tokens
 - [ ] Supports `matchId` prop for "View Analysis" match-highlight mode (passed to child components)
-- [ ] Used by `SoloPage.vue` in v1; will be used by `DuoPage.vue` and `TeamPage.vue` when implemented
+- [ ] Used by `SoloStatsPage.vue` in v1; will be used by `TeamAnalytics.vue` when implemented
 - [ ] Unit tests covering slot rendering and conditional zone visibility
 
 ---
@@ -1375,55 +1375,6 @@ In-app feedback page at `/app/feedback` with bug/feature request forms, inline v
 
 ---
 
-### G6. [Frontend] Implement Duo Dashboard Page (Separate Gated Page)
-
-**Priority:** P1 - High
-**Type:** Feature
-**Estimate:** 5 points
-**Depends on:** G5b19 (AnalysisLayout), F3 (Duo dashboard endpoint), C9 (feature gate middleware), C12 (upgrade prompt)
-**Labels:** `frontend`, `duo`, `dashboard`, `gated`, `epic-g`
-
-#### Description
-
-Create a dedicated Duo dashboard page at `/app/duo` as a **separate route** (not a tab or toggle on the Solo page). This page is gated behind Pro tier for full access.
-
-Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with duo-specific content: pair summary stats, LP/winrate trends for the duo, and (v2) Champion Matrix + Danger Zones with multi-player color coding.
-
-**Free user experience:** When a free user navigates to `/app/duo`, they see a preview/teaser page with a description of duo analysis features and a clear upgrade CTA. They do NOT see a blank wall or a generic 403.
-
-**Architecture decision:** Separate pages (Solo/Duo/Team) were chosen over a shared page with toggles for three reasons:
-1. Better perceived value when upgrading ("You get Duo Analysis and Team Analysis" vs "You get two extra tabs")
-2. Content will diverge significantly in v2 (Champion Matrix, team comp patterns)
-3. Cleaner gating UX – locked page with preview is a well-understood pattern
-
-#### Acceptance Criteria
-
-**Page & Routing**
-- [ ] Page created at `client/src/views/DuoPage.vue`
-- [ ] Route registered at `/app/duo` with `meta: { requiresPro: true }`
-- [ ] Sidebar shows "Duo" as a separate top-level nav item (not under Analysis submenu)
-- [ ] Sidebar shows a lock/badge icon on Duo for free users
-
-**Free User (Gated) View**
-- [ ] Free users see a preview/teaser page (not a 403 or blank wall)
-- [ ] Preview describes duo analysis features: pair synergy, champion combos, shared improvement tracking
-- [ ] Clear upgrade CTA with link to pricing/upgrade page
-- [ ] Preview may include blurred/dimmed mockup of what the page looks like with data
-
-**Pro User View**
-- [ ] Uses `AnalysisLayout.vue` zone system
-- [ ] Zone 1: Queue toggle + time range filter
-- [ ] Zone 2: Pair summary stats (games played together, winrate, KDA per player)
-- [ ] Zone 3: LP chart (left) + Winrate chart (right), scoped to duo games, last 20 games default
-- [ ] Zones 4-5: Not rendered in v1 (Champion Matrix and Danger Zones are v2)
-- [ ] Supports `matchId` query parameter for "View Analysis" from Matches page
-
-**v2 placeholders (not implemented in v1)**
-- Champion Matrix: which champion combos the duo plays and their success rates
-- Danger Zones: death heatmap with both players in different colors
-
----
-
 ### G7. [Frontend] Implement Team Dashboard Page (Separate Gated Page)
 
 **Priority:** P1 - High
@@ -1443,7 +1394,7 @@ Uses the shared `AnalysisLayout.vue` zone component (G5b19) and fills zones with
 #### Acceptance Criteria
 
 **Page & Routing**
-- [ ] Page created at `client/src/views/TeamPage.vue`
+- [ ] Page created at `client/src/views/TeamAnalytics.vue`
 - [ ] Route registered at `/app/team` with `meta: { requiresPro: true }`
 - [ ] Sidebar shows "Team" as a separate top-level nav item (not under Analysis submenu)
 - [ ] Sidebar shows a lock/badge icon on Team for free users

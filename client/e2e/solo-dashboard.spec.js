@@ -24,26 +24,12 @@ test.describe('Solo Dashboard Flow', () => {
     await page.waitForLoadState('networkidle');
 
     // Navigate to Solo Dashboard via the sidebar navigation
-    const sidebar = page.locator('[data-testid="app-sidebar"]');
-    const isCollapsed = await sidebar.getAttribute('data-collapsed') === 'true';
-
-    if (isCollapsed) {
-      const analysisSection = page.locator('[data-testid="nav-section-analysis"]');
-      await analysisSection.hover();
-      const popoutSoloLink = page.locator('[data-testid="popout-item-solo"]');
-      await expect(popoutSoloLink).toBeVisible({ timeout: 5_000 });
-      await Promise.all([
-        page.waitForURL('/app/solo', { timeout: 10_000 }),
-        popoutSoloLink.click(),
-      ]);
-    } else {
-      const sidebarSoloLink = page.locator('[data-testid="nav-subitem-solo"]');
-      await expect(sidebarSoloLink).toBeVisible({ timeout: 5_000 });
-      await Promise.all([
-        page.waitForURL('/app/solo', { timeout: 10_000 }),
-        sidebarSoloLink.click(),
-      ]);
-    }
+    const soloLink = page.locator('[data-testid="nav-solo"]');
+    await expect(soloLink).toBeVisible({ timeout: 5_000 });
+    await Promise.all([
+      page.waitForURL('/app/solo', { timeout: 10_000 }),
+      soloLink.click(),
+    ]);
 
     // Verify we're on the Solo Dashboard
     await expect(page).toHaveURL('/app/solo');

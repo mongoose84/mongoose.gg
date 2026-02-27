@@ -51,7 +51,7 @@
 
 <script setup>
 /**
- * AnalysisLayout - Zone-based layout for Solo, Duo, and Team analysis pages
+ * AnalysisLayout - Zone-based layout for Solo and Team analysis pages
  *
  * Zones:
  * 1. context-bar: Filters, time range selector

@@ -49,9 +49,8 @@ client/
 │   ├── router/index.js          # All routes, auth guards, page view tracking
 │   ├── views/                   # Page components (one per route)
 │   │   ├── OverviewPage.vue     # Post-login landing — orientation dashboard
-│   │   ├── SoloPage.vue         # Solo analysis — LP + winrate trends (free tier)
-│   │   ├── DuoPage.vue          # Duo analysis (Pro tier — shows teaser for free)
-│   │   ├── TeamPage.vue         # Team analysis (Pro tier — shows teaser for free)
+│   │   ├── SoloStatsPage.vue    # Solo analysis — LP + winrate trends (free tier)
+│   │   ├── TeamAnalytics.vue    # Team analysis (Pro tier — shows teaser for free)
 │   │   ├── MatchesPage.vue      # Match history list + expandable details
 │   │   ├── ChampionSelectPage.vue # Real-time champion select support
 │   │   ├── GoalsPage.vue        # Goal management
@@ -70,7 +69,7 @@ client/
 │   │   │                        #   MatchNarrative, StatSnapshot, ImpactStats, LaneMatchupDetails,
 │   │   │                        #   TeamComparison, TrendBadge, HighlightTile, MatchActions
 │   │   ├── solo/                # SummaryStatsCard, TrendChartCard, LpChart, WinrateChart
-│   │   ├── shared/              # AnalysisLayout (zone-based layout for Solo/Duo/Team)
+│   │   ├── shared/              # AnalysisLayout (zone-based layout for Solo/Team)
 │   │   ├── AppSidebar.vue       # Left nav with collapsible state, Pro tier lock icons
 │   │   ├── AppHeader.vue
 │   │   └── ...                  # Modals, NavBar, VersionBadge, chart components
@@ -116,7 +115,7 @@ import { ref, computed } from 'vue'
 - **Public pages** (`LandingPage`, `AuthPage`, `PrivacyPage`, `TermsPage`): standalone, use `NavBar`
 - **App pages**: wrapped in `AppLayout` (sidebar + content area)
   - **Overview**: uses `OverviewLayout` with named slots (`#header`, `#glance-left`, `#glance-right`, etc.)
-  - **Solo/Duo/Team**: use `AnalysisLayout` with zone slots (`#context-bar`, `#summary`, `#trend-charts`)
+  - **Solo/Team**: use `AnalysisLayout` with zone slots (`#context-bar`, `#summary`, `#trend-charts`)
 
 ### API Layer
 

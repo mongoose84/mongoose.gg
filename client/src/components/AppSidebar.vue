@@ -32,6 +32,7 @@
     <nav class="flex-1 py-md overflow-y-auto overflow-x-hidden" :class="{ 'overflow-visible': isCollapsed }">
       <router-link
         to="/app/overview"
+        data-testid="nav-overview"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Overview' : ''"
       >
@@ -43,6 +44,7 @@
 
       <router-link
         to="/app/champion-select"
+        data-testid="nav-champion-select"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Champion Select' : ''"
       >
@@ -54,6 +56,7 @@
 
       <router-link
         to="/app/matches"
+        data-testid="nav-matches"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Matches' : ''"
       >
@@ -71,69 +74,38 @@
         />
       </router-link>
 
-      <!-- Analysis Section with Submenu -->
-      <!-- Expanded: show inline submenu -->
-      <div v-if="!isCollapsed" class="mb-xs" data-testid="nav-section-analysis">
-        <div
-          class="flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 cursor-default whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
-            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-          </svg>
-          <span class="text-sm font-medium tracking-tight">Analysis</span>
-        </div>
-        <div class="ml-xl mt-xs">
-          <router-link to="/app/solo" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text" data-testid="nav-subitem-solo">
-            <span class="font-medium tracking-tight">Solo</span>
-          </router-link>
-          <router-link to="/app/duo" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text" data-testid="nav-subitem-duo">
-            <span class="font-medium tracking-tight">Duo</span>
-          </router-link>
-          <router-link to="/app/team" class="nav-subitem flex items-center py-sm px-md mx-sm text-text-secondary no-underline rounded-md transition-all duration-200 text-sm hover:bg-background-elevated hover:text-text" data-testid="nav-subitem-team">
-            <span class="font-medium tracking-tight">Team</span>
-          </router-link>
-        </div>
-      </div>
+      <router-link
+        to="/app/solo"
+        data-testid="nav-solo"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
+        :title="isCollapsed ? 'Solo Stats' : ''"
+      >
+        <ChartBarIcon class="nav-icon w-5 h-5 shrink-0" />
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Solo Stats</span>
+      </router-link>
 
-      <!-- Collapsed: show popout menu using HeadlessUI Popover -->
-      <Popover v-else class="relative mb-xs" data-testid="nav-section-analysis">
-        <PopoverButton
-          class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text w-[calc(100%-1rem)] focus:outline-none"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
-            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-          </svg>
-        </PopoverButton>
-
-        <transition
-          enter-active-class="transition duration-200 ease-out"
-          enter-from-class="opacity-0 -translate-x-2"
-          enter-to-class="opacity-100 translate-x-0"
-          leave-active-class="transition duration-150 ease-in"
-          leave-from-class="opacity-100 translate-x-0"
-          leave-to-class="opacity-0 -translate-x-2"
-        >
-          <PopoverPanel
-            class="absolute left-full top-0 min-w-[140px] bg-background-surface border border-border rounded-md p-xs shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[100] ml-xs focus:outline-none"
-            v-slot="{ close }"
-          >
-            <div class="py-sm px-md text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border mb-xs">Analysis</div>
-            <router-link to="/app/solo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="close" data-testid="popout-item-solo">Solo</router-link>
-            <router-link to="/app/duo" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="close" data-testid="popout-item-duo">Duo</router-link>
-            <router-link to="/app/team" class="popout-item block py-sm px-md text-text-secondary no-underline text-sm font-medium rounded-sm transition-all duration-150 hover:bg-background-elevated hover:text-text" @click="close" data-testid="popout-item-team">Team</router-link>
-          </PopoverPanel>
-        </transition>
-      </Popover>
+      <router-link
+        to="/app/team"
+        data-testid="nav-team"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
+        :title="isCollapsed ? 'Team Analytics (Pro)' : ''"
+      >
+        <UserGroupIcon class="nav-icon w-5 h-5 shrink-0" />
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Team Analytics</span>
+        <span v-if="!isCollapsed" class="pro-badge">PRO</span>
+      </router-link>
 
       <router-link
         to="/app/goals"
+        data-testid="nav-goals"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :title="isCollapsed ? 'Goals' : ''"
+        :title="isCollapsed ? 'Goals (Pro)' : ''"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
         </svg>
         <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Goals</span>
+        <span v-if="!isCollapsed" class="pro-badge">PRO</span>
       </router-link>
     </nav>
 
@@ -141,6 +113,7 @@
     <div class="border-t border-border py-sm">
       <router-link
         to="/app/feedback"
+        data-testid="nav-feedback"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Feedback' : ''"
       >
@@ -207,8 +180,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
-import { ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline';
+import { ChatBubbleLeftEllipsisIcon, ChartBarIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';
@@ -320,18 +292,21 @@ function handleLinkedIconError() {
   transition: opacity 0.15s ease-out;
 }
 
+.pro-badge {
+  margin-left: auto;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 6px;
+  border-radius: var(--border-radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
 /* Router-link-active state styles */
 .nav-item.router-link-active {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.nav-subitem.router-link-active {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.popout-item.router-link-active {
   background: var(--color-primary-soft);
   color: var(--color-primary);
 }

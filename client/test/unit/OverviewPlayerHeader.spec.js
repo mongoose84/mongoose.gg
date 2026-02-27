@@ -8,7 +8,7 @@ describe('OverviewPlayerHeader.vue', () => {
     level: 150,
     region: 'EUW',
     profileIconUrl: 'https://ddragon.leagueoflegends.com/cdn/16.1.1/img/profileicon/29.png',
-    activeContexts: ['Solo', 'Duo']
+    activeContexts: ['Solo', 'Team']
   };
 
   const createWrapper = (props = {}) => {
@@ -104,7 +104,7 @@ describe('OverviewPlayerHeader.vue', () => {
     it('displays context badges for each active context', () => {
       const wrapper = createWrapper({ activeContexts: ['Solo', 'Duo', 'Team'] });
       const badges = wrapper.findAll('.context-badge');
-      expect(badges.length).toBe(3);
+      expect(badges.length).toBe(2);
     });
 
     it('displays correct text for Solo context', () => {
@@ -112,9 +112,9 @@ describe('OverviewPlayerHeader.vue', () => {
       expect(wrapper.find('.context-badge').text()).toBe('Solo');
     });
 
-    it('displays correct text for Duo context', () => {
+    it('does not display Duo context badge', () => {
       const wrapper = createWrapper({ activeContexts: ['Duo'] });
-      expect(wrapper.find('.context-badge').text()).toBe('Duo');
+      expect(wrapper.find('.context-badges').exists()).toBe(false);
     });
 
     it('displays correct text for Team context', () => {
@@ -125,11 +125,6 @@ describe('OverviewPlayerHeader.vue', () => {
     it('applies correct CSS class for Solo context', () => {
       const wrapper = createWrapper({ activeContexts: ['Solo'] });
       expect(wrapper.find('.context-badge.context-solo').exists()).toBe(true);
-    });
-
-    it('applies correct CSS class for Duo context', () => {
-      const wrapper = createWrapper({ activeContexts: ['Duo'] });
-      expect(wrapper.find('.context-badge.context-duo').exists()).toBe(true);
     });
 
     it('applies correct CSS class for Team context', () => {

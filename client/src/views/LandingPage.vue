@@ -20,14 +20,14 @@
 
           <h1 class="hero-title">
             The <span class="hero-gradient">Solo Queue</span> Improvement Tracker<br />
-            Built for <span class="hero-gradient">Duos & Teams</span>
+            Built for <span class="hero-gradient">Teams</span>
           </h1>
 
           <p class="text-lg text-text-secondary leading-relaxed mb-xl max-w-[600px] mx-auto">
             Not just another builds app.
           </p>
           <p class="text-lg text-text-secondary leading-relaxed mb-xl max-w-[600px] mx-auto">
-            Better champ select picks, post-game takeaways that stick, and track your progress over time—and climb together with your duo or team.
+            Better champ select picks, post-game takeaways that stick, and track your progress over time—and climb better as a team.
           </p>
 
           <div class="flex gap-md justify-center flex-wrap mb-2xl">
@@ -238,8 +238,8 @@ const features = [
     icon: '📈'
   },
   {
-    title: 'Duo & Team Dashboards',
-    description: 'Upgrade to Pro and unlock shared views with your duo or team. Set goals together and climb as a unit.',
+    title: 'Team Dashboards',
+    description: 'Upgrade to Pro and unlock shared team views. Set goals together and climb as a unit.',
     icon: '👥'
   },
   {
@@ -269,7 +269,7 @@ const steps = [
   },
   {
     title: 'Climb Together (Pro)',
-    description: 'Invite your duo or team. Unlock shared dashboards and set goals you can achieve together.'
+    description: 'Invite your team. Unlock shared dashboards and set goals you can achieve together.'
   }
 ];
 
@@ -297,8 +297,8 @@ const pricingTiers = [
       'Full solo history',
       'Goal setting + tracking',
       'Deeper post-game coaching',
-      'Duo & Team spaces',
-      'Duo & Team dashboards',
+      'Team spaces',
+      'Team dashboards',
       'Shared goals (Guests can join, Pro can collaborate)'
     ]
   }

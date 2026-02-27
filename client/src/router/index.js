@@ -68,17 +68,12 @@ const router = createRouter({
         {
           path: 'solo',
           name: 'app-solo',
-          component: () => import('../views/SoloPage.vue')
-        },
-        {
-          path: 'duo',
-          name: 'app-duo',
-          component: () => import('../views/DuoPage.vue')
+          component: () => import('../views/SoloStatsPage.vue')
         },
         {
           path: 'team',
           name: 'app-team',
-          component: () => import('../views/TeamPage.vue')
+          component: () => import('../views/TeamAnalytics.vue')
         },
         {
           path: 'goals',

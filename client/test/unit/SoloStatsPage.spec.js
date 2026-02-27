@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
-import SoloPage from '@/views/SoloPage.vue'
+import SoloPage from '@/views/SoloStatsPage.vue'
 
 const mockGetSoloDashboard = vi.fn()
 const mockGetWinrateTrend = vi.fn()

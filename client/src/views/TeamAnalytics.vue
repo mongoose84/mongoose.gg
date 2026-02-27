@@ -2,16 +2,16 @@
   <div class="min-h-screen p-2xl">
     <div class="max-w-[1400px] mx-auto">
       <div class="mb-2xl">
-        <h1 class="text-2xl font-bold text-text tracking-tight">Duo Analysis</h1>
+        <h1 class="text-2xl font-bold text-text tracking-tight">Team Analytics</h1>
       </div>
       <div class="bg-background-surface border border-border rounded-lg p-2xl text-center">
-        <p class="text-lg text-text-secondary">Duo analysis feature coming soon...</p>
+        <p class="text-lg text-text-secondary">Team analytics feature coming soon...</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-// Duo Analysis page - to be implemented
+// Team Analytics page - to be implemented
 </script>
 

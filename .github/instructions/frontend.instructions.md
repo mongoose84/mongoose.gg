@@ -128,7 +128,7 @@ watch(() => props.data, (newData) => {
 
 ### File Naming
 - **Components**: `PascalCase.vue` (e.g., `BaseButton.vue`, `WinrateChart.vue`)
-- **Pages/Views**: `PascalCasePage.vue` (e.g., `SoloPage.vue`, `AuthPage.vue`)
+- **Pages/Views**: `PascalCasePage.vue` (e.g., `SoloStatsPage.vue`, `AuthPage.vue`)
 - **Composables**: `camelCase.js` with `use` prefix (e.g., `useWinRateColor.js`, `useSyncWebSocket.js`)
 - **Stores**: `camelCaseStore.js` (e.g., `authStore.js`, `uiStore.js`)
 - **Services**: `camelCaseApi.js` (e.g., `authApi.js`, `analyticsApi.js`)
