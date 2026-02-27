@@ -218,7 +218,7 @@ test.describe('Overview Dashboard - Navigation', () => {
   });
 
   test('should navigate to Solo dashboard from sidebar', async ({ page }) => {
-    const soloLink = page.locator('a[href="/app/solo"]');
+    const soloLink = page.locator('[data-testid="nav-solo"]');
     await expect(soloLink).toBeVisible({ timeout: 5_000 });
     await soloLink.click();
 
@@ -228,7 +228,7 @@ test.describe('Overview Dashboard - Navigation', () => {
   test('should navigate to Matches page from sidebar', async ({ page }) => {
     // Matches is a top-level nav item (not under Analysis section)
     // It's visible in both collapsed and expanded states
-    const matchesLink = page.locator('a[href="/app/matches"]');
+    const matchesLink = page.locator('[data-testid="nav-matches"]');
     await expect(matchesLink).toBeVisible({ timeout: 5_000 });
     await matchesLink.click();
 

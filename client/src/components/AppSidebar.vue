@@ -32,6 +32,7 @@
     <nav class="flex-1 py-md overflow-y-auto overflow-x-hidden" :class="{ 'overflow-visible': isCollapsed }">
       <router-link
         to="/app/overview"
+        data-testid="nav-overview"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Overview' : ''"
       >
@@ -43,6 +44,7 @@
 
       <router-link
         to="/app/champion-select"
+        data-testid="nav-champion-select"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Champion Select' : ''"
       >
@@ -54,6 +56,7 @@
 
       <router-link
         to="/app/matches"
+        data-testid="nav-matches"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Matches' : ''"
       >
@@ -73,6 +76,7 @@
 
       <router-link
         to="/app/solo"
+        data-testid="nav-solo"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Solo Stats' : ''"
       >
@@ -82,6 +86,7 @@
 
       <router-link
         to="/app/team"
+        data-testid="nav-team"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Team Analytics (Pro)' : ''"
       >
@@ -92,6 +97,7 @@
 
       <router-link
         to="/app/goals"
+        data-testid="nav-goals"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Goals (Pro)' : ''"
       >
@@ -107,6 +113,7 @@
     <div class="border-t border-border py-sm">
       <router-link
         to="/app/feedback"
+        data-testid="nav-feedback"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
         :title="isCollapsed ? 'Feedback' : ''"
       >

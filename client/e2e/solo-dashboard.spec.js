@@ -24,7 +24,7 @@ test.describe('Solo Dashboard Flow', () => {
     await page.waitForLoadState('networkidle');
 
     // Navigate to Solo Dashboard via the sidebar navigation
-    const soloLink = page.locator('a[href="/app/solo"]');
+    const soloLink = page.locator('[data-testid="nav-solo"]');
     await expect(soloLink).toBeVisible({ timeout: 5_000 });
     await Promise.all([
       page.waitForURL('/app/solo', { timeout: 10_000 }),
