@@ -71,7 +71,7 @@
 
           <div class="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-lg">
             <div v-for="feature in features" :key="feature.title" class="feature-card">
-              <div class="text-[3rem] mb-md" v-html="feature.icon"></div>
+              <div class="text-[3rem] mb-md" data-testid="feature-icon">{{ feature.icon }}</div>
               <h3 class="text-xl font-bold tracking-tight mb-sm text-text m-0">{{ feature.title }}</h3>
               <p class="text-md text-text-secondary leading-relaxed m-0">{{ feature.description }}</p>
             </div>
