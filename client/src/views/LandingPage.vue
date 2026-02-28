@@ -183,9 +183,10 @@
   </div>
 </template>
 
-	<script setup>
-	import { ref, computed, onMounted } from 'vue';
+  <script setup>
+  import { ref, computed, onMounted } from 'vue';
 	import NavBar from '../components/NavBar.vue';
+  import { useAsyncData } from '../composables/useAsyncData';
 	import { getPublicStats } from '../services/authApi';
 
 	const freeUsersLeft = ref(493);
@@ -207,9 +208,13 @@
 	  return activePlayers.value.toLocaleString();
 	});
 
+  const { execute: executePublicStatsFetch } = useAsyncData(async () => {
+    return await getPublicStats();
+  }, { immediate: false, errorMessage: 'Failed to load public stats' });
+
 	onMounted(async () => {
 	  try {
-	    const stats = await getPublicStats();
+      const stats = await executePublicStatsFetch();
 	    if (stats && typeof stats.totalMatches === 'number') {
 	      gamesAnalyzed.value = stats.totalMatches;
 	    }

@@ -165,6 +165,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
+import { useAsyncData } from '../composables/useAsyncData'
 import { trackFilterChange } from '../services/analyticsApi'
 import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend, getDeathsTrend, getDragonParticipationTrend, getVisionScoreTrend, getDeathPositions, getRadarChart } from '../services/authApi'
 import { BaseQueueToggle, BaseTimeRangeSelect, BaseCard } from '../components/base'
@@ -184,35 +185,96 @@ const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
 
 // Dashboard data from API
-const dashboardData = ref(null)
-const isLoading = ref(false)
-const error = ref(null)
+const {
+  data: dashboardData,
+  isLoading,
+  error,
+  execute: executeDashboardFetch
+} = useAsyncData(async () => {
+  return await getSoloDashboard(
+    authStore.userId,
+    queueFilter.value,
+    timeRange.value
+  )
+}, { immediate: false, errorMessage: 'Failed to load solo dashboard' })
 
 // Trend chart data
 const winrateTrendData = ref([])
-const winrateLoading = ref(false)
+const {
+  isLoading: winrateLoading,
+  execute: executeWinrateTrendFetch
+} = useAsyncData(async (limit) => {
+  return await getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+}, { immediate: false, errorMessage: 'Failed to load winrate trend' })
+
 const goldAt15TrendData = ref([])
-const goldAt15Loading = ref(false)
+const {
+  isLoading: goldAt15Loading,
+  execute: executeGoldAt15TrendFetch
+} = useAsyncData(async (limit) => {
+  return await getGoldAt15Trend(authStore.userId, queueFilter.value, timeRange.value, limit)
+}, { immediate: false, errorMessage: 'Failed to load gold at 15 trend' })
+
 const csPerMinuteTrendData = ref([])
-const csPerMinuteLoading = ref(false)
+const {
+  isLoading: csPerMinuteLoading,
+  execute: executeCsPerMinuteTrendFetch
+} = useAsyncData(async (limit) => {
+  return await getCsPerMinuteTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+}, { immediate: false, errorMessage: 'Failed to load CS per minute trend' })
+
 const deathsTrendData = ref([])
-const deathsLoading = ref(false)
+const {
+  isLoading: deathsLoading,
+  execute: executeDeathsTrendFetch
+} = useAsyncData(async (limit) => {
+  return await getDeathsTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+}, { immediate: false, errorMessage: 'Failed to load deaths trend' })
+
 const deathsSummary = ref({ averageDeaths: 0, overallAverage: 0, trend: 'neutral' })
 const dragonParticipationTrendData = ref([])
-const dragonParticipationLoading = ref(false)
+const {
+  isLoading: dragonParticipationLoading,
+  execute: executeDragonParticipationTrendFetch
+} = useAsyncData(async (limit) => {
+  return await getDragonParticipationTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+}, { immediate: false, errorMessage: 'Failed to load dragon participation trend' })
+
 const dragonParticipationSummary = ref({ averageParticipation: 0, overallAverage: 0, trend: 'neutral' })
 const visionScoreTrendData = ref([])
-const visionScoreLoading = ref(false)
+const {
+  isLoading: visionScoreLoading,
+  execute: executeVisionScoreTrendFetch
+} = useAsyncData(async (limit) => {
+  return await getVisionScoreTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+}, { immediate: false, errorMessage: 'Failed to load vision score trend' })
+
 const visionScoreSummary = ref({ averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' })
 
 // Radar chart data
-const radarChartData = ref(null)
-const radarChartLoading = ref(false)
+const {
+  data: radarChartData,
+  isLoading: radarChartLoading,
+  execute: executeRadarChartFetch
+} = useAsyncData(async () => {
+  return await getRadarChart(authStore.userId, queueFilter.value, timeRange.value)
+}, { immediate: false, errorMessage: 'Failed to load radar chart' })
 
 // Death positions data for danger zones
-const deathPositionsData = ref(null)
-const deathPositionsLoading = ref(false)
-const deathPositionsError = ref(null)
+const {
+  data: deathPositionsData,
+  isLoading: deathPositionsLoading,
+  error: deathPositionsError,
+  execute: executeDeathPositionsFetch
+} = useAsyncData(async () => {
+  return await getDeathPositions(
+    authStore.userId,
+    queueFilter.value,
+    timeRange.value,
+    sideFilter.value
+  )
+}, { immediate: false, errorMessage: 'Failed to load death positions' })
+
 const sideFilter = ref('all')
 
 // Expand state for charts (default: collapsed = last 20 games)
@@ -231,21 +293,10 @@ const timeRange = ref('current_season')
 async function fetchData() {
   if (!authStore.userId) return
 
-  isLoading.value = true
-  error.value = null
-
   try {
-    dashboardData.value = await getSoloDashboard(
-      authStore.userId,
-      queueFilter.value,
-      timeRange.value
-    )
-  } catch (err) {
-    console.error('Failed to fetch solo dashboard:', err)
-    error.value = err.message
+    await executeDashboardFetch()
+  } catch {
     dashboardData.value = null
-  } finally {
-    isLoading.value = false
   }
 }
 
@@ -253,17 +304,13 @@ async function fetchData() {
 async function fetchWinrateTrend() {
   if (!authStore.userId) return
 
-  winrateLoading.value = true
   try {
     // Use limit parameter to get exact number of games at full resolution
     const limit = winrateExpanded.value ? null : 20
-    const result = await getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+    const result = await executeWinrateTrendFetch(limit)
     winrateTrendData.value = result?.winrateTrend ?? []
-  } catch (err) {
-    console.error('Failed to fetch winrate trend:', err)
+  } catch {
     winrateTrendData.value = []
-  } finally {
-    winrateLoading.value = false
   }
 }
 
@@ -271,17 +318,13 @@ async function fetchWinrateTrend() {
 async function fetchGoldAt15Trend() {
   if (!authStore.userId) return
 
-  goldAt15Loading.value = true
   try {
     // Use limit parameter to get exact number of games at full resolution
     const limit = goldAt15Expanded.value ? null : 20
-    const result = await getGoldAt15Trend(authStore.userId, queueFilter.value, timeRange.value, limit)
+    const result = await executeGoldAt15TrendFetch(limit)
     goldAt15TrendData.value = result?.goldAt15Trend ?? []
-  } catch (err) {
-    console.error('Failed to fetch gold at 15 trend:', err)
+  } catch {
     goldAt15TrendData.value = []
-  } finally {
-    goldAt15Loading.value = false
   }
 }
 
@@ -289,17 +332,13 @@ async function fetchGoldAt15Trend() {
 async function fetchCsPerMinuteTrend() {
   if (!authStore.userId) return
 
-  csPerMinuteLoading.value = true
   try {
     // Use limit parameter to get exact number of games at full resolution
     const limit = csPerMinuteExpanded.value ? null : 20
-    const result = await getCsPerMinuteTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+    const result = await executeCsPerMinuteTrendFetch(limit)
     csPerMinuteTrendData.value = result?.csPerMinuteTrend ?? []
-  } catch (err) {
-    console.error('Failed to fetch CS per minute trend:', err)
+  } catch {
     csPerMinuteTrendData.value = []
-  } finally {
-    csPerMinuteLoading.value = false
   }
 }
 
@@ -307,23 +346,19 @@ async function fetchCsPerMinuteTrend() {
 async function fetchDeathsTrend() {
   if (!authStore.userId) return
 
-  deathsLoading.value = true
   try {
     // Use limit parameter to get exact number of games at full resolution
     const limit = deathsExpanded.value ? null : 20
-    const result = await getDeathsTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+    const result = await executeDeathsTrendFetch(limit)
     deathsTrendData.value = result?.deathsTrend ?? []
     deathsSummary.value = {
       averageDeaths: result?.averageDeaths ?? 0,
       overallAverage: result?.overallAverage ?? 0,
       trend: result?.trend ?? 'neutral'
     }
-  } catch (err) {
-    console.error('Failed to fetch deaths trend:', err)
+  } catch {
     deathsTrendData.value = []
     deathsSummary.value = { averageDeaths: 0, overallAverage: 0, trend: 'neutral' }
-  } finally {
-    deathsLoading.value = false
   }
 }
 
@@ -331,23 +366,19 @@ async function fetchDeathsTrend() {
 async function fetchDragonParticipationTrend() {
   if (!authStore.userId) return
 
-  dragonParticipationLoading.value = true
   try {
     // Use limit parameter to get exact number of games at full resolution
     const limit = dragonParticipationExpanded.value ? null : 20
-    const result = await getDragonParticipationTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+    const result = await executeDragonParticipationTrendFetch(limit)
     dragonParticipationTrendData.value = result?.dragonParticipationTrend ?? []
     dragonParticipationSummary.value = {
       averageParticipation: result?.averageParticipation ?? 0,
       overallAverage: result?.overallAverage ?? 0,
       trend: result?.trend ?? 'neutral'
     }
-  } catch (err) {
-    console.error('Failed to fetch dragon participation trend:', err)
+  } catch {
     dragonParticipationTrendData.value = []
     dragonParticipationSummary.value = { averageParticipation: 0, overallAverage: 0, trend: 'neutral' }
-  } finally {
-    dragonParticipationLoading.value = false
   }
 }
 
@@ -355,11 +386,10 @@ async function fetchDragonParticipationTrend() {
 async function fetchVisionScoreTrend() {
   if (!authStore.userId) return
 
-  visionScoreLoading.value = true
   try {
     // Use limit parameter to get exact number of games at full resolution
     const limit = visionScoreExpanded.value ? null : 20
-    const result = await getVisionScoreTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
+    const result = await executeVisionScoreTrendFetch(limit)
     visionScoreTrendData.value = result?.visionScoreTrend ?? []
     visionScoreSummary.value = {
       averageVisionPerMinute: result?.averageVisionPerMinute ?? 0,
@@ -367,12 +397,9 @@ async function fetchVisionScoreTrend() {
       roleTarget: result?.roleTarget ?? 1.0,
       trend: result?.trend ?? 'neutral'
     }
-  } catch (err) {
-    console.error('Failed to fetch vision score trend:', err)
+  } catch {
     visionScoreTrendData.value = []
     visionScoreSummary.value = { averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' }
-  } finally {
-    visionScoreLoading.value = false
   }
 }
 
@@ -380,14 +407,10 @@ async function fetchVisionScoreTrend() {
 async function fetchRadarChart() {
   if (!authStore.userId) return
 
-  radarChartLoading.value = true
   try {
-    radarChartData.value = await getRadarChart(authStore.userId, queueFilter.value, timeRange.value)
-  } catch (err) {
-    console.error('Failed to fetch radar chart:', err)
+    await executeRadarChartFetch()
+  } catch {
     radarChartData.value = null
-  } finally {
-    radarChartLoading.value = false
   }
 }
 
@@ -395,22 +418,10 @@ async function fetchRadarChart() {
 async function fetchDeathPositions() {
   if (!authStore.userId) return
 
-  deathPositionsLoading.value = true
-  deathPositionsError.value = null
   try {
-    const result = await getDeathPositions(
-      authStore.userId,
-      queueFilter.value,
-      timeRange.value,
-      sideFilter.value
-    )
-    deathPositionsData.value = result
-  } catch (err) {
-    console.error('Failed to fetch death positions:', err)
-    deathPositionsError.value = err.message
+    await executeDeathPositionsFetch()
+  } catch {
     deathPositionsData.value = null
-  } finally {
-    deathPositionsLoading.value = false
   }
 }
 
