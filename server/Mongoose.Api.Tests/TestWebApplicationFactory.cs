@@ -10,6 +10,7 @@ using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Security;
 using Mongoose.Api.Infrastructure.Email;
 using Mongoose.Api.Infrastructure.Jobs;
+using Mongoose.Api.Infrastructure.Riot;
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
@@ -29,6 +30,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeUsersRepository _usersRepository;
     private readonly FakeVerificationTokensRepository _tokensRepository;
     private readonly FakeEmailService _emailService;
+    private readonly FakeRiotApiClient _riotApiClient;
     private readonly FakeRiotAccountsRepository _riotAccountsRepository;
     private readonly FakeUserRiotAccountsRepository _userRiotAccountsRepository;
     private readonly FakeOverviewStatsRepository _overviewStatsRepository;
@@ -45,6 +47,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeUsersRepository UsersRepository => _usersRepository;
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
     public FakeEmailService EmailService => _emailService;
+    public FakeRiotApiClient RiotApiClient => _riotApiClient;
     public FakeRiotAccountsRepository RiotAccountsRepository => _riotAccountsRepository;
     public FakeUserRiotAccountsRepository UserRiotAccountsRepository => _userRiotAccountsRepository;
     public FakeOverviewStatsRepository OverviewStatsRepository => _overviewStatsRepository;
@@ -64,6 +67,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _usersRepository = new FakeUsersRepository();
         _tokensRepository = new FakeVerificationTokensRepository();
         _emailService = new FakeEmailService();
+        _riotApiClient = new FakeRiotApiClient();
         _riotAccountsRepository = new FakeRiotAccountsRepository();
         _userRiotAccountsRepository = new FakeUserRiotAccountsRepository(_riotAccountsRepository);
         _overviewStatsRepository = new FakeOverviewStatsRepository();
@@ -140,6 +144,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace IEmailService with a fake
             services.RemoveAll<IEmailService>();
             services.AddSingleton<IEmailService>(_emailService);
+
+            // Replace IRiotApiClient with a fake
+            services.RemoveAll<IRiotApiClient>();
+            services.AddSingleton<IRiotApiClient>(_riotApiClient);
 
             // Replace RiotAccountsRepository with a fake
             services.RemoveAll<RiotAccountsRepository>();
@@ -336,6 +344,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 user.SecurityStamp = securityStamp;
             }
         }
+
+        public void SetTier(string username, string tier)
+        {
+            if (_usersByUsername.TryGetValue(username, out var user))
+            {
+                user.Tier = tier;
+            }
+        }
     }
 
     /// <summary>
@@ -492,6 +508,84 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         public record SentEmail(string ToEmail, string Username, string VerificationCode);
         public record SentPasswordResetEmail(string ToEmail, string Username, string ResetCode);
+    }
+
+    /// <summary>
+    /// Fake Riot API client for testing.
+    /// </summary>
+    internal sealed class FakeRiotApiClient : IRiotApiClient
+    {
+        private readonly ConcurrentDictionary<string, string> _puuidByRiotId = new(StringComparer.OrdinalIgnoreCase);
+
+        public event EventHandler<Mongoose.Api.Infrastructure.Riot.LimitHandler.RateLimitWaitEventArgs>? RateLimitWaitStarted;
+
+        public Task<double> GetWinrateAsync(string puuid)
+        {
+            return Task.FromResult(50.0);
+        }
+
+        public Task<string> GetPuuIdAsync(string gameName, string tagLine, CancellationToken ct = default)
+        {
+            var key = BuildRiotIdKey(gameName, tagLine);
+            if (_puuidByRiotId.TryGetValue(key, out var mappedPuuid))
+            {
+                return Task.FromResult(mappedPuuid);
+            }
+
+            var generated = $"test-puuid-{gameName.Trim().ToLowerInvariant()}-{tagLine.Trim().ToLowerInvariant()}";
+            _puuidByRiotId[key] = generated;
+            return Task.FromResult(generated);
+        }
+
+        public Task<JsonDocument> GetMatchHistoryAsync(string puuid, int start = 0, int count = 100, long? startTime = null, CancellationToken ct = default)
+        {
+            return Task.FromResult(JsonDocument.Parse("[]"));
+        }
+
+        public Task<JsonDocument> GetMatchInfoAsync(string matchId, CancellationToken ct = default)
+        {
+            return Task.FromResult(JsonDocument.Parse("{}"));
+        }
+
+        public Task<JsonDocument> GetMatchTimelineAsync(string matchId, CancellationToken ct = default)
+        {
+            return Task.FromResult(JsonDocument.Parse("{}"));
+        }
+
+        public Task<JsonDocument> GetSummonerByPuuIdAsync(string tagline, string puuid, CancellationToken ct = default)
+        {
+            return Task.FromResult(JsonDocument.Parse("{}"));
+        }
+
+        public Task<JsonDocument> GetLeagueEntriesBySummonerIdAsync(string region, string summonerId, CancellationToken ct = default)
+        {
+            return Task.FromResult(JsonDocument.Parse("[]"));
+        }
+
+        public Task<JsonDocument> GetLeagueEntriesByPuuidAsync(string region, string puuid, CancellationToken ct = default)
+        {
+            return Task.FromResult(JsonDocument.Parse("[]"));
+        }
+
+        public Task<string> GetLolVersionAsync(CancellationToken ct = default)
+        {
+            return Task.FromResult("14.1.1");
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
+
+        public void MapRiotIdToPuuid(string gameName, string tagLine, string puuid)
+        {
+            _puuidByRiotId[BuildRiotIdKey(gameName, tagLine)] = puuid;
+        }
+
+        private static string BuildRiotIdKey(string gameName, string tagLine)
+        {
+            return $"{gameName.Trim().ToLowerInvariant()}#{tagLine.Trim().ToLowerInvariant()}";
+        }
     }
 
     /// <summary>
@@ -679,6 +773,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public Task<int> GetLinkCountAsync(string puuid)
         {
             return Task.FromResult(_links.Count(kvp => kvp.Key.Puuid == puuid));
+        }
+
+        public Task<int> GetLinkCountForUserAsync(long userId)
+        {
+            return Task.FromResult(_links.Count(kvp => kvp.Key.UserId == userId));
         }
 
         /// <summary>

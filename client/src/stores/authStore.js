@@ -29,7 +29,21 @@ export const useAuthStore = defineStore('auth', () => {
   const userId = computed(() => user.value?.userId ?? null)
 
   // Riot account getters
-  const riotAccounts = computed(() => user.value?.riotAccounts ?? [])
+  const riotAccounts = computed(() => {
+    const accounts = user.value?.riotAccounts ?? []
+    const currentTier = (user.value?.tier ?? 'free').toLowerCase()
+
+    if (currentTier !== 'free') {
+      return accounts
+    }
+
+    const primaryAccounts = accounts.filter(account => account.isPrimary)
+    if (primaryAccounts.length > 0) {
+      return primaryAccounts
+    }
+
+    return accounts.length > 0 ? [accounts[0]] : []
+  })
   const hasLinkedAccount = computed(() => riotAccounts.value.length > 0)
   const primaryRiotAccount = computed(() => riotAccounts.value.find(a => a.isPrimary) ?? riotAccounts.value[0] ?? null)
 
@@ -245,6 +259,22 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Set a linked Riot account as primary
+   */
+  async function setPrimary(puuid) {
+    error.value = null
+
+    try {
+      await authApi.setPrimaryRiotAccount(puuid)
+      await refreshUser()
+      return { success: true }
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
+  /**
    * Change password for the authenticated user.
    * The server rotates the security stamp in the database and immediately signs out
    * the current session. All other active sessions are invalidated on their next
@@ -318,6 +348,7 @@ export const useAuthStore = defineStore('auth', () => {
     changePassword,
     linkRiotAccount,
     unlinkRiotAccount,
+    setPrimary,
     triggerSync
   }
 })

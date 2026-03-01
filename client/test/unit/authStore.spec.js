@@ -12,6 +12,7 @@ vi.mock('@/services/authApi', () => ({
   changePassword: vi.fn(),
   linkRiotAccount: vi.fn(),
   unlinkRiotAccount: vi.fn(),
+  setPrimaryRiotAccount: vi.fn(),
   triggerRiotAccountSync: vi.fn(),
 }));
 
@@ -318,6 +319,28 @@ describe('authStore', () => {
       expect(store.riotAccounts).toEqual(accounts);
     });
 
+    it('returns only primary riot account for free tier', () => {
+      const store = useAuthStore();
+      const accounts = [
+        { puuid: 'abc', isPrimary: false },
+        { puuid: 'def', isPrimary: true }
+      ];
+      store.user = { userId: 1, tier: 'free', riotAccounts: accounts };
+
+      expect(store.riotAccounts).toEqual([{ puuid: 'def', isPrimary: true }]);
+    });
+
+    it('returns all riot accounts for pro tier', () => {
+      const store = useAuthStore();
+      const accounts = [
+        { puuid: 'abc', isPrimary: false },
+        { puuid: 'def', isPrimary: true }
+      ];
+      store.user = { userId: 1, tier: 'pro', riotAccounts: accounts };
+
+      expect(store.riotAccounts).toEqual(accounts);
+    });
+
     it('hasLinkedAccount is true when accounts exist', () => {
       const store = useAuthStore();
       store.user = { userId: 1, riotAccounts: [{ puuid: 'abc' }] };
@@ -370,6 +393,23 @@ describe('authStore', () => {
       const result = await store.unlinkRiotAccount('abc');
 
       expect(authApi.unlinkRiotAccount).toHaveBeenCalledWith('abc');
+      expect(result).toEqual({ success: true });
+    });
+
+    it('setPrimary calls API and refreshes user', async () => {
+      authApi.setPrimaryRiotAccount.mockResolvedValue({ success: true });
+      authApi.getCurrentUser.mockResolvedValue({
+        userId: 1,
+        riotAccounts: [
+          { puuid: 'abc', isPrimary: true },
+          { puuid: 'def', isPrimary: false }
+        ]
+      });
+
+      const store = useAuthStore();
+      const result = await store.setPrimary('abc');
+
+      expect(authApi.setPrimaryRiotAccount).toHaveBeenCalledWith('abc');
       expect(result).toEqual({ success: true });
     });
   });

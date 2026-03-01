@@ -231,6 +231,19 @@ export async function unlinkRiotAccount(puuid) {
 }
 
 /**
+ * Set a linked Riot account as primary for the current user
+ * @param {string} puuid - The PUUID of the account to set as primary
+ * @returns {Promise<Object>} Success response
+ */
+export async function setPrimaryRiotAccount(puuid) {
+  const response = await apiRequest(`/users/me/riot-accounts/${puuid}/primary`, {
+    method: 'PUT'
+  })
+
+  return parseResponse(response, 'Failed to set primary Riot account')
+}
+
+/**
  * Trigger a sync for a Riot account
  * @param {string} puuid - The PUUID of the account to sync
  * @returns {Promise<Object>} Sync status

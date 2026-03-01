@@ -116,8 +116,10 @@ async function handleDelete() {
 
   try {
     await deleteAccount(password.value)
+    isDeleting.value = false
+    resetState()
     emit('deleted')
-    handleClose()
+    emit('close')
   } catch (e) {
     if (e.code === 'INVALID_PASSWORD') {
       error.value = 'Invalid password. Please try again.'

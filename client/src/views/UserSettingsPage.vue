@@ -38,6 +38,8 @@
           </div>
         </div>
 
+        <LinkedAccountsSection />
+
         <!-- Security Section -->
         <div class="flex flex-col gap-md">
           <h2 class="text-lg font-semibold text-text tracking-tight">Security</h2>
@@ -144,6 +146,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
 import { trackAuth } from '../services/analyticsApi';
 import DeleteAccountModal from '../components/DeleteAccountModal.vue';
+import LinkedAccountsSection from '../components/settings/LinkedAccountsSection.vue';
 import { BaseInput, BaseButton } from '@/components/base';
 
 const router = useRouter();

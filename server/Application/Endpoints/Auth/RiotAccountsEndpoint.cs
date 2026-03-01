@@ -16,6 +16,7 @@ namespace Mongoose.Api.Application.Endpoints.Auth;
 /// Provides all operations on linked Riot accounts:
 /// - POST /api/v2/users/me/riot-accounts - Link a new Riot account
 /// - DELETE /api/v2/users/me/riot-accounts/{puuid} - Unlink a Riot account
+/// - PUT /api/v2/users/me/riot-accounts/{puuid}/primary - Set a linked account as primary
 /// - POST /api/v2/users/me/riot-accounts/{puuid}/sync - Trigger a sync
 /// - GET /api/v2/users/me/riot-accounts/{puuid}/sync-status - Get sync status
 /// </summary>
@@ -42,6 +43,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
     {
         ConfigureLinkEndpoint(app);
         ConfigureDeleteEndpoint(app);
+        ConfigureSetPrimaryEndpoint(app);
         ConfigureSyncEndpoint(app);
         ConfigureSyncStatusEndpoint(app);
     }
@@ -159,6 +161,22 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                         existingIsPrimary,
                         existingAccount?.SyncStatus ?? "pending"
                     ));
+                }
+
+                var userTier = user.Tier?.Trim().ToLowerInvariant() ?? "free";
+                if (userTier == "free")
+                {
+                    var currentLinkCount = await userRiotAccountsRepo.GetLinkCountForUserAsync(userId.Value);
+                    if (currentLinkCount >= 1)
+                    {
+                        return Results.BadRequest(new
+                        {
+                            error = "Free tier is limited to 1 linked account. Upgrade to Pro for unlimited accounts.",
+                            code = "ACCOUNT_LIMIT_REACHED",
+                            currentLimit = 1,
+                            tier = "free"
+                        });
+                    }
                 }
 
                 // Fetch summoner profile data (icon, level, summonerId) - gracefully handle failures
@@ -320,8 +338,26 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     return Results.NotFound(new { error = "Riot account not found", code = "ACCOUNT_NOT_FOUND" });
                 }
 
+                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userId.Value);
+                var removedWasPrimary = linkedAccounts.Any(a =>
+                    a.Link.Puuid.Equals(puuid, StringComparison.Ordinal) && a.Link.IsPrimary);
+                var nextPrimaryPuuid = removedWasPrimary
+                    ? linkedAccounts
+                        .Where(a => !a.Link.Puuid.Equals(puuid, StringComparison.Ordinal))
+                        .OrderBy(a => a.Link.LinkedAt)
+                        .Select(a => a.Link.Puuid)
+                        .FirstOrDefault()
+                    : null;
+
                 // Unlink the account from this user
                 await userRiotAccountsRepo.UnlinkAsync(userId.Value, puuid);
+
+                // If the removed account was primary, promote the next oldest linked account
+                if (!string.IsNullOrWhiteSpace(nextPrimaryPuuid))
+                {
+                    await userRiotAccountsRepo.SetPrimaryAsync(userId.Value, nextPrimaryPuuid);
+                }
+
                 logger.LogInformation("Unlinked Riot account {Puuid} from user {UserId}", LogSanitizer.Sanitize(puuid), userId);
 
                 // Optionally: If no users are linked to this Riot account anymore, we could delete it
@@ -334,6 +370,39 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error deleting Riot account {Puuid}", LogSanitizer.Sanitize(puuid));
+                return Results.Json(new { error = "Internal server error" }, statusCode: 500);
+            }
+        });
+    }
+
+    private void ConfigureSetPrimaryEndpoint(WebApplication app)
+    {
+        app.MapPut(Route + "/{puuid}/primary", [Authorize] async (
+            string puuid,
+            HttpContext httpContext,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
+            [FromServices] ILogger<RiotAccountsEndpoint> logger
+        ) =>
+        {
+            try
+            {
+                var userId = GetUserId(httpContext);
+                if (userId == null) return AuthResults.InvalidSession();
+
+                var isLinked = await userRiotAccountsRepo.IsLinkedAsync(userId.Value, puuid);
+                if (!isLinked)
+                {
+                    return Results.NotFound(new { error = "Account not linked", code = "ACCOUNT_NOT_LINKED" });
+                }
+
+                await userRiotAccountsRepo.SetPrimaryAsync(userId.Value, puuid);
+                logger.LogInformation("Set Riot account {Puuid} as primary for user {UserId}", LogSanitizer.Sanitize(puuid), userId);
+
+                return Results.Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error setting primary Riot account {Puuid}", LogSanitizer.Sanitize(puuid));
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });

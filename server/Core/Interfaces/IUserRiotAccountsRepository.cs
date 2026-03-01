@@ -51,5 +51,10 @@ public interface IUserRiotAccountsRepository
     /// Get count of users linked to a Riot account.
     /// </summary>
     Task<int> GetLinkCountAsync(string puuid);
+
+    /// <summary>
+    /// Get count of Riot accounts linked to a user.
+    /// </summary>
+    Task<int> GetLinkCountForUserAsync(long userId);
 }
 
