@@ -2,7 +2,7 @@ using Mongoose.Api.Infrastructure.Telemetry;
 
 namespace Mongoose.Api.Application.Endpoints
 {
-    public class HomeEndpoint : IEndpoint
+    public sealed class HomeEndpoint : IEndpoint
     {
         private const string ApiVersion = "v2";
         private readonly string _basePath;

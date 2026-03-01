@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -54,6 +55,15 @@ namespace Mongoose.Api.Infrastructure.Middleware
             _logger.LogError(exception,
                 "Unhandled exception occurred. CorrelationId={CorrelationId}",
                 correlationId);
+
+            if (context.Response.HasStarted)
+            {
+                _logger.LogWarning(
+                    "Cannot write JSON error response because the response has already started. CorrelationId={CorrelationId}",
+                    correlationId);
+
+                ExceptionDispatchInfo.Capture(exception).Throw();
+            }
 
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;

@@ -10,6 +10,7 @@ namespace Mongoose.Api.Application;
 public sealed class MongooseApiApplication
 {
     private readonly WebApplication _app;
+    private readonly ILogger<MongooseApiApplication> _logger;
     private readonly IList<IEndpoint> _endpoints;
 
     /// <summary>
@@ -20,6 +21,7 @@ public sealed class MongooseApiApplication
     public MongooseApiApplication(WebApplication app)
     {
         _app = app;
+        _logger = app.Services.GetRequiredService<ILogger<MongooseApiApplication>>();
 
         const string apiVersion = "v2";
         const string basePath = "/api/" + apiVersion;
@@ -49,8 +51,12 @@ public sealed class MongooseApiApplication
     /// </summary>
     public void ConfigureEndpoints()
     {
-        Console.WriteLine($"Configuring {_endpoints.Count} discovered endpoints:");
-        Console.WriteLine();
+        var shouldLogEndpointDiscovery = !_app.Environment.IsEnvironment("Testing");
+
+        if (shouldLogEndpointDiscovery)
+        {
+            _logger.LogInformation("Configuring {EndpointCount} discovered endpoints", _endpoints.Count);
+        }
 
         // Group endpoints by category for informative logging
         var groupedEndpoints = _endpoints
@@ -59,16 +65,25 @@ public sealed class MongooseApiApplication
 
         foreach (var group in groupedEndpoints)
         {
-            Console.WriteLine($"  [{group.Key}]");
+            if (shouldLogEndpointDiscovery)
+            {
+                _logger.LogInformation("[{Category}]", group.Key);
+            }
+
             foreach (var endpoint in group.OrderBy(e => e.Route))
             {
                 endpoint.Configure(_app);
-                Console.WriteLine($"    {endpoint.Route}");
+                if (shouldLogEndpointDiscovery)
+                {
+                    _logger.LogInformation("{Route}", endpoint.Route);
+                }
             }
-            Console.WriteLine();
         }
 
-        Console.WriteLine($"✓ All {_endpoints.Count} endpoints configured successfully");
+        if (shouldLogEndpointDiscovery)
+        {
+            _logger.LogInformation("All {EndpointCount} endpoints configured successfully", _endpoints.Count);
+        }
     }
 
     /// <summary>
@@ -80,23 +95,55 @@ public sealed class MongooseApiApplication
         // Remove "Endpoint" suffix
         var withoutEndpoint = className.Replace("Endpoint", string.Empty);
 
-        // Special cases for clarity
-        return withoutEndpoint switch
-        {
-            "Auth" => "Authentication",
-            "Users" => "User Management",
-            "RiotAccounts" => "Account Linking",
-            "Solo" => "Solo Dashboard",
-            "ChampionSelect" => "Real-time",
-            "Match" => "Matches",
-            "Trend" or "Winrate" or "GoldAt15" or "CsPerMinute" or "Deaths" or "DragonParticipation" or "VisionScore" => "Trends",
-            "Overview" => "Overview",
-            "Analytics" => "Analytics",
-            "Feedback" => "Feedback",
-            "Diagnostics" => "Diagnostics",
-            "Home" => "Status",
-            "PublicStats" => "Public",
-            _ => withoutEndpoint
-        };
+        // Match real endpoint naming patterns (e.g., SoloPerformance, MatchDetails, WinrateTrend)
+        if (withoutEndpoint.EndsWith("Trend", StringComparison.Ordinal))
+            return "Trends";
+
+        if (withoutEndpoint.StartsWith("Solo", StringComparison.Ordinal)
+            || withoutEndpoint is "RadarChart" or "DeathPositions" or "MatchActivity")
+            return "Solo Dashboard";
+
+        if (withoutEndpoint.StartsWith("Match", StringComparison.Ordinal))
+            return "Matches";
+
+        if (withoutEndpoint == "ChampionSelect")
+            return "Real-time";
+
+        if (withoutEndpoint == "Overview")
+            return "Overview";
+
+        if (withoutEndpoint == "Analytics")
+            return "Analytics";
+
+        if (withoutEndpoint == "Feedback")
+            return "Feedback";
+
+        if (withoutEndpoint == "Diagnostics")
+            return "Diagnostics";
+
+        if (withoutEndpoint == "Home")
+            return "Status";
+
+        if (withoutEndpoint == "PublicStats")
+            return "Public";
+
+        if (withoutEndpoint == "UsersMe")
+            return "User Management";
+
+        if (withoutEndpoint == "RiotAccounts")
+            return "Account Linking";
+
+        if (withoutEndpoint is "Register"
+            or "Login"
+            or "Logout"
+            or "Verify"
+            or "ResendVerification"
+            or "ForgotPassword"
+            or "ResetPassword"
+            or "ChangePassword"
+            or "DeleteAccount")
+            return "Authentication";
+
+        return withoutEndpoint;
     }
 }

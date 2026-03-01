@@ -1,4 +1,5 @@
 using Mongoose.Api.Application.Endpoints;
+using System.Reflection;
 
 namespace Mongoose.Api.Application.Extensions;
 
@@ -12,13 +13,17 @@ public static class EndpointDiscoveryExtension
     /// Discovers all IEndpoint implementations in the application assembly and creates instances.
     /// </summary>
     /// <param name="basePath">The API base path (e.g., "/api/v2")</param>
+    /// <param name="assemblyOverride">
+    /// Optional assembly to scan for endpoint implementations.
+    /// Defaults to the application assembly containing <see cref="IEndpoint"/>.
+    /// </param>
     /// <returns>A list of all discovered endpoint instances</returns>
-    public static IList<IEndpoint> DiscoverEndpoints(string basePath)
+    public static IList<IEndpoint> DiscoverEndpoints(string basePath, Assembly? assemblyOverride = null)
     {
         var endpoints = new List<IEndpoint>();
 
         // Get all types in the current assembly
-        var assembly = typeof(IEndpoint).Assembly;
+        var assembly = assemblyOverride ?? typeof(IEndpoint).Assembly;
         var endpointTypes = assembly.GetTypes()
             .Where(t =>
                 // Type must implement IEndpoint

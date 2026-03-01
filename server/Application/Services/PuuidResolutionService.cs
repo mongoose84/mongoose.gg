@@ -44,14 +44,14 @@ public sealed class PuuidResolutionService
         {
             _logger.LogWarning("No riot accounts found for userId {UserId}", userId);
             return (
-                Results.NotFound(new { error = "No riot accounts found for this user" }),
+                Results.NotFound(new { error = "No riot accounts found for this user", code = "RIOT_ACCOUNT_NOT_FOUND" }),
                 null
             );
         }
 
         // Use primary account if one is marked, otherwise use the first account
-        var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
-        if (primaryLink != default)
+        var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link?.IsPrimary == true);
+        if (primaryLink.Link?.IsPrimary == true)
         {
             return (null, new ResolvedAccount(primaryLink.Account, true));
         }
@@ -96,13 +96,13 @@ public sealed class PuuidResolutionService
         {
             _logger.LogWarning("No riot accounts found for userId {UserId}", userId);
             return (
-                Results.NotFound(new { error = "No riot accounts found for this user" }),
+                Results.NotFound(new { error = "No riot accounts found for this user", code = "RIOT_ACCOUNT_NOT_FOUND" }),
                 null
             );
         }
 
         var accounts = linkedAccounts
-            .Select(la => new ResolvedAccount(la.Account, la.Link.IsPrimary))
+            .Select(la => new ResolvedAccount(la.Account, la.Link?.IsPrimary == true))
             .ToList();
 
         return (null, accounts);

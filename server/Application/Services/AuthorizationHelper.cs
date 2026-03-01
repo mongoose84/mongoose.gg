@@ -52,7 +52,7 @@ public sealed class AuthorizationHelper
         {
             logger.LogWarning("User {AuthUserId} attempted to access data for user {UserId}",
                 authenticatedUserId ?? "unknown", userIdInt);
-            return Results.Forbid();
+            return AuthResults.Forbidden();
         }
 
         return null; // Validation succeeded
