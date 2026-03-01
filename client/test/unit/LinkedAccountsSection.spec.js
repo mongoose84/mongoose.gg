@@ -96,6 +96,28 @@ describe('LinkedAccountsSection.vue', () => {
     expect(wrapper.find('[data-testid="upgrade-prompt"]').exists()).toBe(false)
   })
 
+  it('normalizes tier label and CTA behavior for mixed-case pro tier', () => {
+    mockAuthStore.riotAccounts = [accounts[0]]
+    mockAuthStore.tier = ' Pro '
+
+    const wrapper = createWrapper()
+
+    expect(wrapper.text()).toContain('Pro tier')
+    expect(wrapper.find('[data-testid="link-another-account-button"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="upgrade-prompt"]').exists()).toBe(false)
+  })
+
+  it('normalizes tier label and CTA behavior for whitespace free tier', () => {
+    mockAuthStore.riotAccounts = [accounts[0]]
+    mockAuthStore.tier = ' free '
+
+    const wrapper = createWrapper()
+
+    expect(wrapper.text()).toContain('Free tier')
+    expect(wrapper.find('[data-testid="upgrade-prompt"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="link-another-account-button"]').exists()).toBe(false)
+  })
+
   it('remove confirmation flow unlinks account on confirm', async () => {
     mockAuthStore.riotAccounts = [accounts[0]]
     mockAuthStore.unlinkRiotAccount.mockResolvedValue({ success: true })

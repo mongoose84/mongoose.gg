@@ -124,6 +124,32 @@ public class RiotAccountsEndpointTests
     }
 
     [Fact]
+    public async Task LinkAccount_Returns200_WhenFreeTierAtLimit_AndAccountAlreadyLinked()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "free");
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-existing", "Main", "na1", "Main#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-existing", isPrimary: true);
+        factory.RiotApiClient.MapRiotIdToPuuid("Main", "NA1", "puuid-existing");
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts")
+        {
+            Content = JsonContent.Create(new { gameName = "Main", tagLine = "NA1", region = "na1" })
+        };
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("puuid").GetString().Should().Be("puuid-existing");
+        json.RootElement.GetProperty("isPrimary").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
     public async Task UsersMe_ReturnsPrimaryOnly_WhenTierIsFree()
     {
         using var factory = new TestWebApplicationFactory();

@@ -118,22 +118,6 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     return AuthResults.InvalidSession();
                 }
 
-                var userTier = user.Tier?.Trim().ToLowerInvariant() ?? "free";
-                if (userTier == "free")
-                {
-                    var currentLinkCount = await userRiotAccountsRepo.GetLinkCountForUserAsync(userId.Value);
-                    if (currentLinkCount >= 1)
-                    {
-                        return Results.BadRequest(new
-                        {
-                            error = "Free tier is limited to 1 linked account. Upgrade to Pro for unlimited accounts.",
-                            code = "ACCOUNT_LIMIT_REACHED",
-                            currentLimit = 1,
-                            tier = "free"
-                        });
-                    }
-                }
-
                 // Lookup PUUID from Riot API
                 string puuid;
                 try
@@ -177,6 +161,22 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                         existingIsPrimary,
                         existingAccount?.SyncStatus ?? "pending"
                     ));
+                }
+
+                var userTier = user.Tier?.Trim().ToLowerInvariant() ?? "free";
+                if (userTier == "free")
+                {
+                    var currentLinkCount = await userRiotAccountsRepo.GetLinkCountForUserAsync(userId.Value);
+                    if (currentLinkCount >= 1)
+                    {
+                        return Results.BadRequest(new
+                        {
+                            error = "Free tier is limited to 1 linked account. Upgrade to Pro for unlimited accounts.",
+                            code = "ACCOUNT_LIMIT_REACHED",
+                            currentLimit = 1,
+                            tier = "free"
+                        });
+                    }
                 }
 
                 // Fetch summoner profile data (icon, level, summonerId) - gracefully handle failures

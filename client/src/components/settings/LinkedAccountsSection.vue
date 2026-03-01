@@ -105,17 +105,21 @@ const isRemoving = ref(false)
 const liveMessage = ref('')
 
 const linkedAccounts = computed(() => authStore.riotAccounts)
-const tier = computed(() => authStore.tier || 'free')
+const normalizedTier = computed(() => {
+  const rawTier = authStore.tier
+  if (typeof rawTier !== 'string') return 'free'
+  return rawTier.trim().toLowerCase() || 'free'
+})
 
 const tierLabel = computed(() => {
-  const value = tier.value
+  const value = normalizedTier.value
   if (value === 'pro') return 'Pro'
   if (value === 'premium') return 'Premium'
   return 'Free'
 })
 
 const showLinkButton = computed(() => {
-  if (tier.value !== 'free') return true
+  if (normalizedTier.value !== 'free') return true
   return linkedAccounts.value.length === 0
 })
 
