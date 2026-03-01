@@ -51,7 +51,7 @@ public sealed class PuuidResolutionService
 
         // Use primary account if one is marked, otherwise use the first account
         var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
-        if (primaryLink.Link != null)
+        if (primaryLink != default)
         {
             return (null, new ResolvedAccount(primaryLink.Account, true));
         }
@@ -120,4 +120,5 @@ public sealed class PuuidResolutionService
     public async Task<bool> VerifyPuuidOwnershipAsync(long userId, string puuid)
     {
         return await _userRiotAccountsRepo.IsLinkedAsync(userId, puuid);
-    }}
+    }
+}
