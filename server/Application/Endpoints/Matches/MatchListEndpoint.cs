@@ -4,6 +4,7 @@ using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
+using Mongoose.Api.Infrastructure.Helpers;
 
 namespace Mongoose.Api.Application.Endpoints.Matches;
 
@@ -54,7 +55,7 @@ public sealed class MatchListEndpoint : IEndpoint
                 var queueFilter = filterBuilder.BuildQueueFilter(validatedQueueType);
 
                 logger.LogInformation("Match list request: userId={UserId}, puuid={Puuid}, queueType={Queue}",
-                    authorizedUser.UserId, primaryPuuid, validatedQueueType);
+                    authorizedUser.UserId, primaryPuuid, LogSanitizer.Sanitize(validatedQueueType) ?? "all");
 
                 // Fetch role baselines first (for trend badge computation)
                 var baselines = await matchesRepo.GetRoleBaselinesAsync(primaryPuuid, queueFilter);
@@ -65,7 +66,7 @@ public sealed class MatchListEndpoint : IEndpoint
                 if (matches.Count == 0)
                 {
                     logger.LogInformation("Match list: no matches found for puuid {Puuid} with queueType {Queue}",
-                        primaryPuuid, validatedQueueType);
+                        primaryPuuid, LogSanitizer.Sanitize(validatedQueueType) ?? "all");
                     return Results.Ok(new MatchListResponse(
                         Matches: Array.Empty<MatchListSummaryItem>(),
                         BaselinesByRole: baselines,

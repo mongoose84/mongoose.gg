@@ -45,9 +45,6 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                     return Results.BadRequest(new { error = "puuid query parameter is required" });
                 }
 
-                // Sanitize user-provided puuid for safe logging (prevent log forging via line breaks)
-                var sanitizedPuuid = puuid!.Replace("\r", string.Empty).Replace("\n", string.Empty);
-
                 // Validate authentication and extract user ID
                 var (authError, authenticatedUser) = AuthorizationHelper.GetAuthenticatedUser(httpContext, logger);
                 if (authError != null)
@@ -58,19 +55,19 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                 if (!isLinked)
                 {
                     logger.LogWarning("Match narrative: user {UserId} attempted to access data for unowned puuid {Puuid}",
-                        authenticatedUser.UserId, sanitizedPuuid);
+                        authenticatedUser.UserId, LogSanitizer.Sanitize(puuid));
                     return Results.Forbid();
                 }
 
                 logger.LogInformation("Match narrative request: matchId={MatchId}, puuid={Puuid}",
-                    matchId, sanitizedPuuid);
+                    LogSanitizer.Sanitize(matchId), LogSanitizer.Sanitize(puuid));
 
                 // Fetch all participants for this match
                 var participants = await matchesRepo.GetMatchParticipantsAsync(matchId);
 
                 if (participants.Count == 0)
                 {
-                    logger.LogWarning("Match narrative: no participants found for matchId {MatchId}", matchId);
+                    logger.LogWarning("Match narrative: no participants found for matchId {MatchId}", LogSanitizer.Sanitize(matchId));
                     return Results.NotFound(new { error = "Match not found or no participant data" });
                 }
 
@@ -78,7 +75,8 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                 var userParticipant = participants.FirstOrDefault(p => p.Puuid == puuid);
                 if (userParticipant == null)
                 {
-                    logger.LogWarning("Match narrative: user puuid {Puuid} not found in match {MatchId}", sanitizedPuuid, matchId);
+                    logger.LogWarning("Match narrative: user puuid {Puuid} not found in match {MatchId}",
+                        LogSanitizer.Sanitize(puuid), LogSanitizer.Sanitize(matchId));
                     return Results.NotFound(new { error = "User not found in this match" });
                 }
 
@@ -104,7 +102,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Match narrative: unhandled error for matchId {MatchId}", matchId);
+                logger.LogError(ex, "Match narrative: unhandled error for matchId {MatchId}", LogSanitizer.Sanitize(matchId));
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });
