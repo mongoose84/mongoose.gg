@@ -19,6 +19,19 @@
       </div>
 
       <div class="flex items-center gap-xs flex-wrap justify-end">
+
+         <BaseButton
+          v-if="!account.isPrimary"
+          variant="ghost"
+          size="sm"
+          :disabled="isBusy"
+          :aria-label="`Set ${accountLabel} as primary account`"
+          data-testid="set-primary-button"
+          @click="$emit('set-primary', account)"
+        >
+          Set as Primary
+        </BaseButton>
+
         <BaseButton
           variant="ghost"
           size="sm"
@@ -29,18 +42,6 @@
           @click="$emit('sync', account)"
         >
           Sync
-        </BaseButton>
-
-        <BaseButton
-          v-if="!account.isPrimary"
-          variant="ghost"
-          size="sm"
-          :disabled="isBusy"
-          :aria-label="`Set ${accountLabel} as primary account`"
-          data-testid="set-primary-button"
-          @click="$emit('set-primary', account)"
-        >
-          Set Primary
         </BaseButton>
 
         <BaseButton
