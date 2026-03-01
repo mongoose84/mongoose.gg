@@ -16,6 +16,7 @@ using Mongoose.Api.Infrastructure.Serialization;
 using Mongoose.Api.Infrastructure.RateLimiting;
 using Mongoose.Api.Infrastructure.WebSocket;
 using System.Security.Claims;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,9 +77,12 @@ builder.Services.AddScoped<VerificationTokensRepository>();
 
 // Application services
 builder.Services.AddScoped<LoginSyncService>();
+builder.Services.AddScoped<PuuidResolutionService>();
 
 // Query filter builder for centralized SQL filter generation
 builder.Services.AddScoped<IQueryFilterBuilder, QueryFilterBuilder>();
+
+// Authorization helper for consistent authentication/authorization checks (static helper, no DI needed)
 
 // Email service for verification emails
 builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
@@ -225,10 +229,45 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
 
-    // Infrastructure can include dynamic proxy addresses (cloud load balancers, ingress).
-    // Trust forwarded headers and rely on edge proxy/network controls.
-    options.KnownNetworks.Clear();
-    options.KnownProxies.Clear();
+    // Secure by default: only accept forwarded headers from trusted proxies/networks.
+    // To trust all forwarded headers, set Networking:TrustAllForwardedHeaders=true explicitly.
+    var trustAllForwardedHeaders = builder.Configuration.GetValue<bool>("Networking:TrustAllForwardedHeaders", false);
+    if (trustAllForwardedHeaders)
+    {
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    }
+    else
+    {
+        var trustedProxies = builder.Configuration.GetSection("Networking:TrustedProxies").Get<string[]>();
+        if (trustedProxies != null)
+        {
+            foreach (var proxy in trustedProxies)
+            {
+                if (IPAddress.TryParse(proxy, out var proxyIp))
+                {
+                    options.KnownProxies.Add(proxyIp);
+                }
+            }
+        }
+
+        var trustedNetworks = builder.Configuration.GetSection("Networking:TrustedNetworks").Get<string[]>();
+        if (trustedNetworks != null)
+        {
+            foreach (var network in trustedNetworks)
+            {
+                var parts = network.Split('/', 2, StringSplitOptions.TrimEntries);
+                if (parts.Length == 2 &&
+                    IPAddress.TryParse(parts[0], out var networkIp) &&
+                    int.TryParse(parts[1], out var prefixLength))
+                {
+                    options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(networkIp, prefixLength));
+                }
+            }
+        }
+    }
+
+    options.ForwardLimit = builder.Configuration.GetValue<int?>("Networking:ForwardLimit") ?? 1;
 });
 
 builder.Services.AddCors(options =>

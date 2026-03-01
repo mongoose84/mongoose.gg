@@ -1,9 +1,10 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
+using Mongoose.Api.Infrastructure.Helpers;
 
 namespace Mongoose.Api.Application.Endpoints.Matches;
 
@@ -29,7 +30,7 @@ public sealed class MatchListEndpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string userId,
             [FromQuery] string? queueType,
-            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
+            [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IMatchesRepository matchesRepo,
             [FromServices] IQueryFilterBuilder filterBuilder,
             [FromServices] ILogger<MatchListEndpoint> logger
@@ -37,45 +38,24 @@ public sealed class MatchListEndpoint : IEndpoint
         {
             try
             {
-                if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return AuthResults.NotAuthenticated();
+                // Validate authentication and authorization
+                var (authError, authorizedUser) = AuthorizationHelper.ValidateAndGetUser(httpContext, userId, logger);
+                if (authError != null)
+                    return authError;
 
-                // Parse userId
-                if (!int.TryParse(userId, out var userIdInt))
-                {
-                    logger.LogWarning("Match list: invalid userId format {UserId}", userId);
-                    return Results.BadRequest(new { error = "Invalid userId format" });
-                }
+                // Resolve primary Riot account
+                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                if (accountError != null)
+                    return accountError;
 
-                // Verify authenticated user matches route userId
-                var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
-                {
-                    logger.LogWarning("Match list: user {AuthUserId} attempted to access data for user {RouteUserId}",
-                        authenticatedUserId, userIdInt);
-                    return Results.Forbid();
-                }
-
-                // Get riot accounts for this user via junction table
-                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
-
-                if (linkedAccounts == null || linkedAccounts.Count == 0)
-                {
-                    logger.LogWarning("Match list: no riot accounts found for userId {UserId}", userIdInt);
-                    return Results.NotFound(new { error = "No riot accounts found for this user" });
-                }
-
-                // Use primary account or first account
-                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
-                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
-                var primaryPuuid = primaryAccount.Puuid;
+                var primaryPuuid = resolvedAccount!.Account.Puuid;
 
                 // Validate and build queue filter using centralized filter builder
                 var validatedQueueType = filterBuilder.ValidateQueueType(queueType);
                 var queueFilter = filterBuilder.BuildQueueFilter(validatedQueueType);
 
                 logger.LogInformation("Match list request: userId={UserId}, puuid={Puuid}, queueType={Queue}",
-                    userIdInt, primaryPuuid, validatedQueueType);
+                    authorizedUser.UserId, primaryPuuid, LogSanitizer.Sanitize(validatedQueueType) ?? "all");
 
                 // Fetch role baselines first (for trend badge computation)
                 var baselines = await matchesRepo.GetRoleBaselinesAsync(primaryPuuid, queueFilter);
@@ -86,7 +66,7 @@ public sealed class MatchListEndpoint : IEndpoint
                 if (matches.Count == 0)
                 {
                     logger.LogInformation("Match list: no matches found for puuid {Puuid} with queueType {Queue}",
-                        primaryPuuid, validatedQueueType);
+                        primaryPuuid, LogSanitizer.Sanitize(validatedQueueType) ?? "all");
                     return Results.Ok(new MatchListResponse(
                         Matches: Array.Empty<MatchListSummaryItem>(),
                         BaselinesByRole: baselines,

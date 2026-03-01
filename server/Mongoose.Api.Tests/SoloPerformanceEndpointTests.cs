@@ -178,5 +178,76 @@ public class SoloPerformanceEndpointTests
         rankInfo.TryGetProperty("flexRank", out var flexRank).Should().BeTrue();
         flexRank.GetProperty("hasRank").GetBoolean().Should().BeFalse();
     }
+
+    [Fact]
+    public async Task Solo_performance_falls_back_to_first_linked_account_when_no_primary_is_set()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        // Add two linked accounts where neither is marked as primary
+        factory.RiotAccountsRepository.AddRiotAccount(
+            userId: 1,
+            puuid: "test-puuid-first",
+            gameName: "FirstPlayer",
+            region: "NA1",
+            summonerName: "FirstPlayer#NA1",
+            summonerLevel: 100,
+            profileIconId: 42
+        );
+        factory.RiotAccountsRepository.AddRiotAccount(
+            userId: 1,
+            puuid: "test-puuid-second",
+            gameName: "SecondPlayer",
+            region: "NA1",
+            summonerName: "SecondPlayer#NA1",
+            summonerLevel: 101,
+            profileIconId: 43
+        );
+
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-first", isPrimary: false);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-second", isPrimary: false);
+
+        // Seed performance data for first linked account (fallback target)
+        factory.SoloPerformanceRepository.SetPerformanceData("test-puuid-first", new SoloPerformanceResponse(
+            GamesPlayed: 12,
+            Wins: 7,
+            WinRate: 58.3,
+            AvgKda: 3.1,
+            AvgGameDurationMinutes: 27.4,
+            AvgKills: 6.1,
+            AvgDeaths: 3.8,
+            AvgAssists: 5.7,
+            OverallWinRate: 54.0,
+            OverallAvgKills: 5.4,
+            OverallAvgDeaths: 4.0,
+            OverallAvgAssists: 6.2,
+            OverallAvgKda: 2.9,
+            SideStats: new SideWinDistribution(4, 3, 6, 6, 12, 57.1, 50.0),
+            UniqueChampsPlayedCount: 6,
+            MainChampion: null,
+            MainChampions: Array.Empty<MainChampionRoleGroup>(),
+            Last10Games: null,
+            Last20Games: null,
+            PerformanceByPhase: Array.Empty<PerformancePhase>(),
+            RoleBreakdown: Array.Empty<RolePerformance>(),
+            DeathEfficiency: new DeathEfficiency(3, 4, 5, 0, 5.8, 3.9),
+            QueueType: "all"
+        ));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/dashboard/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        root.GetProperty("gamesPlayed").GetInt32().Should().Be(12);
+        root.GetProperty("winRate").GetDouble().Should().Be(58.3);
+    }
 }
 

@@ -52,4 +52,14 @@ describe('LandingPage.vue', () => {
     const wrapper = createWrapper();
     expect(wrapper.text()).toContain('Start Improving Now');
   });
+
+  it('renders feature icons as plain text', () => {
+    const wrapper = createWrapper();
+    const featureIcons = wrapper.findAll('[data-testid="feature-icon"]');
+
+    expect(featureIcons.length).toBeGreaterThan(0);
+    expect(featureIcons[0].text()).toBe('⚔️');
+    expect(featureIcons[0].find('img').exists()).toBe(false);
+    expect(featureIcons[0].find('script').exists()).toBe(false);
+  });
 });

@@ -75,6 +75,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import { useAuthStore } from '../stores/authStore';
+import { useAsyncData } from '../composables/useAsyncData';
 import { resendVerification } from '../services/authApi';
 
 const router = useRouter();
@@ -89,18 +90,24 @@ const resendCooldown = ref(0);
 
 const email = computed(() => authStore.email || 'your email');
 
-onMounted(async () => {
+const { execute: executeInitializeFlow } = useAsyncData(async () => {
   await authStore.initialize();
 
-  // Redirect if not authenticated
   if (!authStore.isAuthenticated) {
     router.push('/auth?mode=login');
     return;
   }
 
-  // Redirect if already verified
   if (authStore.isVerified) {
     router.push('/app/overview');
+  }
+}, { immediate: false, errorMessage: 'Failed to initialize verification flow' });
+
+onMounted(async () => {
+  try {
+    await executeInitializeFlow();
+  } catch (e) {
+    console.error('Failed to initialize verify page:', e);
   }
 });
 

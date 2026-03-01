@@ -1,8 +1,8 @@
-using System.Security.Claims;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure.Database.Repositories;
 
@@ -32,30 +32,28 @@ public sealed class UsersMeEndpoint : IEndpoint
         {
             try
             {
-                // Get current user ID from claims
-                var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
-                {
-                    return AuthResults.InvalidSession();
-                }
+                // Validate authentication and extract user ID
+                var (authError, authenticatedUser) = AuthorizationHelper.GetAuthenticatedUser(httpContext, logger);
+                if (authError != null)
+                    return authError;
 
                 // Get user from database
-                var user = await usersRepo.GetByIdAsync(userId);
+                var user = await usersRepo.GetByIdAsync(authenticatedUser!.UserId);
                 if (user == null)
                 {
-                    logger.LogWarning("User not found for ID: {UserId}", userId);
+                    logger.LogWarning("User not found for ID: {UserId}", authenticatedUser.UserId);
                     return AuthResults.InvalidSession();
                 }
 
                 // Check if user is active
                 if (!user.IsActive)
                 {
-                    logger.LogWarning("Inactive user attempted to access /users/me: {UserId}", userId);
+                    logger.LogWarning("Inactive user attempted to access /users/me: {UserId}", authenticatedUser.UserId);
                     return AuthResults.AccountDeactivated();
                 }
 
                 // Get linked Riot accounts via junction table
-                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userId);
+                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(authenticatedUser.UserId);
                 var riotAccountResponses = linkedAccounts.Select(la => new RiotAccountResponse(
                     la.Account.Puuid,
                     la.Account.GameName,

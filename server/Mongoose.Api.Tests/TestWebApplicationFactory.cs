@@ -9,6 +9,7 @@ using Mongoose.Api.Core.QueryModels;
 using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Security;
 using Mongoose.Api.Infrastructure.Email;
+using Mongoose.Api.Infrastructure.Jobs;
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
@@ -97,6 +98,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["Auth:CookieName"] = "mongoose-auth",
                 ["Auth:SessionTimeout"] = "30",
                 ["Jobs:EnableMatchHistorySync"] = "false",
+                ["Jobs:EnableMatchCleanup"] = "false",
                 ["RIOT_API_KEY"] = "test-key",
                 ["Database_test"] = "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;",
                 ["Security:EmailEncryptionKey"] = testEmailEncryptionKey
@@ -111,6 +113,22 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
+            // Remove background jobs in integration tests to avoid noisy logs and side effects
+            for (var index = services.Count - 1; index >= 0; index--)
+            {
+                var descriptor = services[index];
+                if (descriptor.ServiceType != typeof(IHostedService))
+                {
+                    continue;
+                }
+
+                if (descriptor.ImplementationType == typeof(MatchHistorySyncJob)
+                    || descriptor.ImplementationType == typeof(MatchCleanupJob))
+                {
+                    services.RemoveAt(index);
+                }
+            }
+
             // Replace UsersRepository with a fake to avoid real DB connections
             services.RemoveAll<UsersRepository>();
             services.AddSingleton<UsersRepository>(_usersRepository);
