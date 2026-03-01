@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Infrastructure.Database.Repositories;
 using static Mongoose.Api.Application.DTOs.AnalyticsDto;
@@ -99,13 +100,13 @@ public sealed class AnalyticsEndpoint : IEndpoint
                 await analyticsRepo.InsertAsync(evt);
 
                 logger.LogDebug("Analytics event recorded: {EventName} for user {UserId}", 
-                    request.EventName, userId?.ToString() ?? "anonymous");
+                    LogSanitizer.Sanitize(request.EventName), userId?.ToString() ?? "anonymous");
 
                 return Results.Ok(new TrackEventResponse(true));
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to record analytics event: {EventName}", request.EventName);
+                logger.LogError(ex, "Failed to record analytics event: {EventName}", LogSanitizer.Sanitize(request.EventName));
                 // Don't fail the user experience for analytics errors
                 return Results.Ok(new TrackEventResponse(false));
             }

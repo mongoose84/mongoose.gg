@@ -129,7 +129,8 @@ public sealed class VerifyEndpoint : IEndpoint
                     authProperties
                 );
 
-                logger.LogInformation("User {Username} (ID: {UserId}) email verified successfully", user.Username, userId);
+                logger.LogInformation("User {Username} (ID: {UserId}) email verified successfully",
+                    LogSanitizer.Sanitize(user.Username), userId);
 
                 return Results.Ok(new VerifyResponse(true, "Email verified successfully"));
             }

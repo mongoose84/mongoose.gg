@@ -69,7 +69,8 @@ public sealed class DeleteAccountEndpoint : IEndpoint
                     return Results.Json(new { error = "Account deletion failed" }, statusCode: 500);
                 }
 
-                logger.LogInformation("User {UserId} ({Username}) account deleted successfully", authenticatedUser.UserId, user.Username);
+                logger.LogInformation("User {UserId} ({Username}) account deleted successfully",
+                    authenticatedUser.UserId, LogSanitizer.Sanitize(user.Username));
 
                 // Sign out the user (clear the auth cookie)
                 await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
