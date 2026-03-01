@@ -71,7 +71,7 @@
 
           <div class="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-lg">
             <div v-for="feature in features" :key="feature.title" class="feature-card">
-              <div class="text-[3rem] mb-md" v-html="feature.icon"></div>
+              <div class="text-[3rem] mb-md" data-testid="feature-icon">{{ feature.icon }}</div>
               <h3 class="text-xl font-bold tracking-tight mb-sm text-text m-0">{{ feature.title }}</h3>
               <p class="text-md text-text-secondary leading-relaxed m-0">{{ feature.description }}</p>
             </div>
@@ -183,9 +183,10 @@
   </div>
 </template>
 
-	<script setup>
-	import { ref, computed, onMounted } from 'vue';
+  <script setup>
+  import { ref, computed, onMounted } from 'vue';
 	import NavBar from '../components/NavBar.vue';
+  import { useAsyncData } from '../composables/useAsyncData';
 	import { getPublicStats } from '../services/authApi';
 
 	const freeUsersLeft = ref(493);
@@ -207,9 +208,13 @@
 	  return activePlayers.value.toLocaleString();
 	});
 
+  const { execute: executePublicStatsFetch } = useAsyncData(async () => {
+    return await getPublicStats();
+  }, { immediate: false, errorMessage: 'Failed to load public stats' });
+
 	onMounted(async () => {
 	  try {
-	    const stats = await getPublicStats();
+      const stats = await executePublicStatsFetch();
 	    if (stats && typeof stats.totalMatches === 'number') {
 	      gamesAnalyzed.value = stats.totalMatches;
 	    }

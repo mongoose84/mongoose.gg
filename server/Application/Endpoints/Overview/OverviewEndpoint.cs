@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
 using Mongoose.Api.Infrastructure.Database.Repositories;
@@ -32,52 +32,35 @@ public sealed class OverviewEndpoint : IEndpoint
         var endpoint = app.MapGet(Route, async (
             HttpContext httpContext,
             [FromRoute] string userId,
-            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
+            [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] OverviewStatsRepository overviewStatsRepo,
             [FromServices] ILogger<OverviewEndpoint> logger
         ) =>
         {
             try
             {
-                if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return AuthResults.NotAuthenticated();
+                // Validate authentication and authorization
+                var (authError, authorizedUser) = AuthorizationHelper.ValidateAndGetUser(httpContext, userId, logger);
+                if (authError != null)
+                    return authError;
 
-                // Parse userId
-                if (!int.TryParse(userId, out var userIdInt))
-                {
-                    logger.LogWarning("Overview: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
-                    return Results.BadRequest(new { error = "Invalid userId format" });
-                }
+                // Resolve primary Riot account (also includes linked accounts count for context)
+                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                if (accountError != null)
+                    return accountError;
 
-                // Authorization - user can only access their own data
-                var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (authenticatedUserId != userIdInt.ToString())
-                {
-                    logger.LogWarning(
-                        "Overview: user {AuthUserId} attempted to access data for user {RouteUserId}",
-                        LogSanitizer.Sanitize(authenticatedUserId),
-                        userIdInt);
-                    return Results.Forbid();
-                }
-
-                // Get riot accounts for the user via junction table
-                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
-                if (linkedAccounts == null || linkedAccounts.Count == 0)
-                {
-                    logger.LogWarning("Overview: no Riot accounts found for userId {UserId}", userIdInt);
-                    return Results.NotFound(new { error = "No linked Riot accounts found" });
-                }
-
-                // Use primary account or first account
-                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
-                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
+                var primaryAccount = resolvedAccount!.Account;
                 var primaryPuuid = primaryAccount.Puuid;
 
-                logger.LogInformation("Overview request: userId={UserId}, puuid={Puuid}", userIdInt, primaryPuuid);
+                // Get all linked accounts for active contexts determination
+                var (allAccountsError, allAccounts) = await puuidResolutionService.ResolveAllAccountsAsync(authorizedUser.UserId);
+                var linkedAccountsCount = allAccounts?.Count ?? 1;
+
+                logger.LogInformation("Overview request: userId={UserId}, puuid={Puuid}", authorizedUser.UserId, primaryPuuid);
 
                 // Build player header
                 var profileIconUrl = BuildProfileIconUrl(primaryAccount.ProfileIconId);
-                var activeContexts = DetermineActiveContexts(linkedAccounts.Count);
+                var activeContexts = DetermineActiveContexts(linkedAccountsCount);
                 var playerHeader = new PlayerHeader(
                     SummonerName: primaryAccount.SummonerName,
                     Level: primaryAccount.SummonerLevel ?? 0,

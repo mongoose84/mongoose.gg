@@ -1,6 +1,6 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.TrendDto;
 
@@ -29,45 +29,24 @@ public sealed class DeathsTrendEndpoint : IEndpoint
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
             [FromQuery] int? limit,
-            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
+            [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ITrendRepository trendRepo,
             [FromServices] ILogger<DeathsTrendEndpoint> logger
         ) =>
         {
             try
             {
-                if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return AuthResults.NotAuthenticated();
+                // Validate authentication and authorization
+                var (authError, authorizedUser) = AuthorizationHelper.ValidateAndGetUser(httpContext, userId, logger);
+                if (authError != null)
+                    return authError;
 
-                // Parse userId
-                if (!int.TryParse(userId, out var userIdInt))
-                {
-                    logger.LogWarning("Deaths trend: invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
-                    return Results.BadRequest(new { error = "Invalid userId format" });
-                }
+                // Resolve primary Riot account
+                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                if (accountError != null)
+                    return accountError;
 
-                // Verify authenticated user matches route userId
-                var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
-                {
-                    logger.LogWarning("Deaths trend: user {AuthUserId} attempted to access data for user {RouteUserId}",
-                        authenticatedUserId, userIdInt);
-                    return Results.Forbid();
-                }
-
-                // Get riot accounts for this user via junction table
-                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
-
-                if (linkedAccounts == null || linkedAccounts.Count == 0)
-                {
-                    logger.LogWarning("Deaths trend: no riot accounts found for userId {UserId}", userIdInt);
-                    return Results.NotFound(new { error = "No riot accounts found for this user" });
-                }
-
-                // Use primary account or first account
-                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
-                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
-                var primaryPuuid = primaryAccount.Puuid;
+                var primaryPuuid = resolvedAccount!.Account.Puuid;
 
                 // Validate limit if provided
                 int? validatedLimit = null;
@@ -80,7 +59,7 @@ public sealed class DeathsTrendEndpoint : IEndpoint
 
                 // Fetch deaths trend data
                 logger.LogInformation("Deaths trend request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, limit={Limit}",
-                    userIdInt, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", validatedLimit?.ToString() ?? "all");
+                    authorizedUser.UserId, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", validatedLimit?.ToString() ?? "all");
 
                 var (dataPoints, averageDeaths, overallAverage, trend) = await trendRepo.GetDeathsTrendAsync(primaryPuuid, queueType, timeRange, validatedLimit);
 

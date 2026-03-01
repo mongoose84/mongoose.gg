@@ -1,6 +1,6 @@
 <template>
   <OverviewLayout
-    :is-loading="isLoading"
+    :is-loading="pageIsLoading"
     :error="error"
     :is-empty="!overviewData"
     @retry="fetchData"
@@ -96,6 +96,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
+import { useAsyncData } from '../composables/useAsyncData'
 import { getOverview, getMatchActivity, getSoloDashboard } from '../services/authApi'
 import { getChampionSplashUrl } from '../utils/leagueAssets'
 import OverviewLayout from '../components/overview/OverviewLayout.vue'
@@ -115,11 +116,29 @@ const { syncProgress, resetProgress } = useSyncWebSocket()
 const overviewData = ref(null)
 const matchActivityData = ref(null)
 const soloDashboardData = ref(null)
-const isLoading = ref(false)
 const isRefreshing = ref(false)
-const error = ref(null)
 const showLinkModal = ref(false)
 const previousSyncStatuses = ref(new Map())
+
+const {
+  error,
+  isLoading,
+  execute: executeOverviewFetch
+} = useAsyncData(async () => {
+  const [overview, activity, soloDashboard] = await Promise.all([
+    getOverview(authStore.userId),
+    getMatchActivity(authStore.userId),
+    getSoloDashboard(authStore.userId)
+  ])
+
+  return {
+    overview,
+    activity,
+    soloDashboard
+  }
+}, { immediate: false, errorMessage: 'Failed to load overview' })
+
+const pageIsLoading = computed(() => isLoading.value && !overviewData.value)
 
 const mostPlayedChampionName = computed(() => {
   return overviewData.value?.mostPlayedChampion?.championName || ''
@@ -169,30 +188,21 @@ async function fetchData() {
 
   const isInitialLoad = !overviewData.value
 
-  if (isInitialLoad) {
-    isLoading.value = true
-  } else {
+  if (!isInitialLoad) {
     isRefreshing.value = true
   }
-  error.value = null
 
   try {
-    // Fetch overview, match activity, and KDA trend context in parallel
-    const [overview, activity, soloDashboard] = await Promise.all([
-      getOverview(authStore.userId),
-      getMatchActivity(authStore.userId),
-      getSoloDashboard(authStore.userId)
-    ])
-    overviewData.value = overview
-    matchActivityData.value = activity
-    soloDashboardData.value = soloDashboard
-  } catch (e) {
-    console.error('Failed to fetch overview data:', e)
-    error.value = e.message || 'Failed to load overview'
+    const result = await executeOverviewFetch()
+    overviewData.value = result.overview
+    matchActivityData.value = result.activity
+    soloDashboardData.value = result.soloDashboard
+  } catch {
+    overviewData.value = null
+    matchActivityData.value = null
+    soloDashboardData.value = null
   } finally {
-    if (isInitialLoad) {
-      isLoading.value = false
-    } else {
+    if (!isInitialLoad) {
       isRefreshing.value = false
     }
   }

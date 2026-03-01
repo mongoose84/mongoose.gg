@@ -1,8 +1,9 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Helpers;
 
 namespace Mongoose.Api.Application.Endpoints.Matches;
 
@@ -27,17 +28,14 @@ public sealed class MatchDetailsEndpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string matchId,
             [FromQuery] string? puuid,
+            [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IMatchesRepository matchesRepo,
-            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] IQueryFilterBuilder filterBuilder,
             [FromServices] ILogger<MatchDetailsEndpoint> logger
         ) =>
         {
             try
             {
-                if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return AuthResults.NotAuthenticated();
-
                 if (string.IsNullOrWhiteSpace(matchId))
                 {
                     return Results.BadRequest(new { error = "matchId is required" });
@@ -48,24 +46,22 @@ public sealed class MatchDetailsEndpoint : IEndpoint
                     return Results.BadRequest(new { error = "puuid query parameter is required" });
                 }
 
-                // Verify the puuid belongs to the authenticated user
-                var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
-                {
-                    return AuthResults.InvalidSession();
-                }
+                // Validate authentication and extract user ID
+                var (authError, authenticatedUser) = AuthorizationHelper.GetAuthenticatedUser(httpContext, logger);
+                if (authError != null)
+                    return authError;
 
-                // Check if user has this puuid linked via junction table
-                var isLinked = await userRiotAccountsRepo.IsLinkedAsync(userId, puuid);
+                // Verify the puuid belongs to the authenticated user
+                var isLinked = await puuidResolutionService.VerifyPuuidOwnershipAsync(authenticatedUser!.UserId, puuid);
                 if (!isLinked)
                 {
                     logger.LogWarning("Match details: user {UserId} attempted to access data for unowned puuid {Puuid}",
-                        userId, puuid);
+                        authenticatedUser.UserId, LogSanitizer.Sanitize(puuid));
                     return Results.Forbid();
                 }
 
                 logger.LogInformation("Match details request: matchId={MatchId}, puuid={Puuid}",
-                    matchId, puuid);
+                    LogSanitizer.Sanitize(matchId), LogSanitizer.Sanitize(puuid));
 
                 // Fetch match details using optimized query (CTEs instead of correlated subqueries)
                 var matchDetails = await matchesRepo.GetMatchDetailsAsync(matchId, puuid);
@@ -73,7 +69,7 @@ public sealed class MatchDetailsEndpoint : IEndpoint
                 if (matchDetails == null)
                 {
                     logger.LogWarning("Match details: match not found for matchId={MatchId}, puuid={Puuid}",
-                        matchId, puuid);
+                        LogSanitizer.Sanitize(matchId), LogSanitizer.Sanitize(puuid));
                     return Results.NotFound(new { error = "Match not found" });
                 }
 
@@ -91,7 +87,7 @@ public sealed class MatchDetailsEndpoint : IEndpoint
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Match details: unhandled error for matchId {MatchId}", matchId);
+                logger.LogError(ex, "Match details: unhandled error for matchId {MatchId}", LogSanitizer.Sanitize(matchId));
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });

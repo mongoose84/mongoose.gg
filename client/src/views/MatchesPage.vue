@@ -61,6 +61,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { useAsyncData } from '../composables/useAsyncData'
 import { getMatchList, getMatchDetails } from '../services/authApi'
 import { trackFilterChange, trackMatchSelect } from '../services/analyticsApi'
 import MatchList from '../components/matches/MatchList.vue'
@@ -71,12 +72,18 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 // State
-const loading = ref(false)
-const error = ref(null)
-const data = ref(null)
 const queueFilter = ref('all')
 const selectedMatchId = ref(null)
 const matchDetailsRef = ref(null)
+
+const {
+  data,
+  error,
+  isLoading: loading,
+  execute: executeMatchListFetch
+} = useAsyncData(async () => {
+  return await getMatchList(authStore.userId, queueFilter.value)
+}, { immediate: false, errorMessage: 'Failed to load matches' })
 
 // Match details state (fetched on-demand)
 const matchDetails = ref(null)
@@ -88,12 +95,8 @@ const detailsError = ref(null)
 async function fetchMatches() {
   if (!authStore.userId) return
 
-  loading.value = true
-  error.value = null
-
   try {
-    const result = await getMatchList(authStore.userId, queueFilter.value)
-    data.value = result
+    const result = await executeMatchListFetch()
 
     // Use matchId from query param if provided, otherwise auto-select first match
     const queryMatchId = route.query.matchId
@@ -102,11 +105,8 @@ async function fetchMatches() {
     } else if (result?.matches?.length > 0 && !selectedMatchId.value) {
       selectedMatchId.value = result.matches[0].matchId
     }
-  } catch (err) {
-    console.error('Failed to fetch matches:', err)
-    error.value = err.message || 'Failed to load matches'
-  } finally {
-    loading.value = false
+  } catch {
+    selectedMatchId.value = null
   }
 }
 

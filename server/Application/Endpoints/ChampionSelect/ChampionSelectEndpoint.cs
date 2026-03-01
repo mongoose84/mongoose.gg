@@ -1,6 +1,6 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 
 namespace Mongoose.Api.Application.Endpoints.ChampionSelect;
@@ -29,49 +29,28 @@ public sealed class ChampionSelectEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
-            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
+            [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IChampionSelectRepository championSelectRepo,
             [FromServices] ILogger<ChampionSelectEndpoint> logger
         ) =>
         {
             try
             {
-                if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return AuthResults.NotAuthenticated();
+                // Validate authentication and authorization
+                var (authError, authorizedUser) = AuthorizationHelper.ValidateAndGetUser(httpContext, userId, logger);
+                if (authError != null)
+                    return authError;
 
-                // Parse userId
-                if (!int.TryParse(userId, out var userIdInt))
-                {
-                    logger.LogWarning("Champion select: invalid userId format {UserId}", userId);
-                    return Results.BadRequest(new { error = "Invalid userId format" });
-                }
+                // Resolve primary Riot account
+                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                if (accountError != null)
+                    return accountError;
 
-                // Verify authenticated user matches route userId
-                var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
-                {
-                    logger.LogWarning("Champion select: user {AuthUserId} attempted to access data for user {RouteUserId}",
-                        authenticatedUserId, userIdInt);
-                    return Results.Forbid();
-                }
-
-                // Get linked riot accounts for this user via junction table
-                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
-
-                if (linkedAccounts == null || linkedAccounts.Count == 0)
-                {
-                    logger.LogWarning("Champion select: no riot accounts found for userId {UserId}", userIdInt);
-                    return Results.NotFound(new { error = "No riot accounts found for this user" });
-                }
-
-                // Use primary account or first account
-                var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary);
-                var primaryAccount = primaryLink.Account ?? linkedAccounts[0].Account;
-                var primaryPuuid = primaryAccount.Puuid;
+                var primaryPuuid = resolvedAccount!.Account.Puuid;
 
                 // Fetch champion select data (only main champions, games played, win rate)
                 logger.LogInformation("Champion select request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    userIdInt, primaryPuuid, queueType ?? "all", timeRange ?? "all");
+                    authorizedUser.UserId, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
                 var championSelectData = await championSelectRepo.GetChampionSelectDataAsync(primaryPuuid, queueType, timeRange);
 
                 if (championSelectData == null)

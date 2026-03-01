@@ -1,9 +1,9 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Infrastructure.Database.Repositories;
 using static Mongoose.Api.Application.DTOs.DeleteAccountDto;
 
@@ -34,12 +34,10 @@ public sealed class DeleteAccountEndpoint : IEndpoint
         {
             try
             {
-                // Get current user ID from claims
-                var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
-                {
-                    return AuthResults.InvalidSession();
-                }
+                // Validate authentication and extract user ID
+                var (authError, authenticatedUser) = AuthorizationHelper.GetAuthenticatedUser(httpContext, logger);
+                if (authError != null)
+                    return authError;
 
                 // Validate password is provided
                 if (string.IsNullOrWhiteSpace(request.Password))
@@ -48,30 +46,31 @@ public sealed class DeleteAccountEndpoint : IEndpoint
                 }
 
                 // Get user from database
-                var user = await usersRepo.GetByIdAsync(userId);
+                var user = await usersRepo.GetByIdAsync(authenticatedUser!.UserId);
                 if (user == null)
                 {
-                    logger.LogWarning("Delete account requested for non-existent user ID: {UserId}", userId);
+                    logger.LogWarning("Delete account requested for non-existent user ID: {UserId}", authenticatedUser.UserId);
                     return AuthResults.InvalidSession();
                 }
 
                 // Verify password using BCrypt
                 if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
-                    logger.LogWarning("Delete account attempt with invalid password for user: {UserId}", userId);
+                    logger.LogWarning("Delete account attempt with invalid password for user: {UserId}", authenticatedUser.UserId);
                     return Results.Json(new { error = "Invalid password", code = "INVALID_PASSWORD" }, statusCode: 401);
                 }
 
                 // Perform the deletion
-                var deleted = await usersRepo.DeleteUserAsync(userId);
+                var deleted = await usersRepo.DeleteUserAsync(authenticatedUser.UserId);
                 
                 if (!deleted)
                 {
-                    logger.LogError("Failed to delete user {UserId} - user not found during deletion", userId);
+                    logger.LogError("Failed to delete user {UserId} - user not found during deletion", authenticatedUser.UserId);
                     return Results.Json(new { error = "Account deletion failed" }, statusCode: 500);
                 }
 
-                logger.LogInformation("User {UserId} ({Username}) account deleted successfully", userId, user.Username);
+                logger.LogInformation("User {UserId} ({Username}) account deleted successfully",
+                    authenticatedUser.UserId, LogSanitizer.Sanitize(user.Username));
 
                 // Sign out the user (clear the auth cookie)
                 await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

@@ -1,9 +1,8 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Interfaces;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Helpers;
 
 namespace Mongoose.Api.Application.Endpoints.Solo;
 
@@ -32,32 +31,17 @@ public sealed class DeathPositionsEndpoint : IEndpoint
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
             [FromQuery] string? side,
-            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
+            [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IDeathPositionsRepository deathPositionsRepo,
             [FromServices] ILogger<DeathPositionsEndpoint> logger
         ) =>
         {
             try
             {
-                if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return AuthResults.NotAuthenticated();
-
-                // Parse userId
-                if (!int.TryParse(userId, out var userIdInt))
-                {
-                    logger.LogWarning("Death positions: invalid userId format {UserId}", 
-                        LogSanitizer.Sanitize(userId));
-                    return Results.BadRequest(new { error = "Invalid userId format" });
-                }
-
-                // Verify authenticated user matches route userId
-                var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
-                {
-                    logger.LogWarning("Death positions: user {AuthUserId} attempted to access data for user {RouteUserId}",
-                        authenticatedUserId, userIdInt);
-                    return Results.Forbid();
-                }
+                // Validate authentication and authorization
+                var (authError, authorizedUser) = AuthorizationHelper.ValidateAndGetUser(httpContext, userId, logger);
+                if (authError != null)
+                    return authError;
 
                 // Validate side parameter
                 if (!string.IsNullOrEmpty(side))
@@ -71,27 +55,17 @@ public sealed class DeathPositionsEndpoint : IEndpoint
                     }
                 }
 
-                // Get riot accounts for this user via junction table
-                var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
+                // Resolve primary Riot account
+                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                if (accountError != null)
+                    return accountError;
 
-                if (linkedAccounts == null || linkedAccounts.Count == 0)
-                {
-                    logger.LogWarning("Death positions: no riot accounts found for userId {UserId}", userIdInt);
-                    return Results.NotFound(new { error = "No riot accounts found for this user" });
-                }
-
-                // Use primary account or first account (null-safe)
-                var primaryAccount = linkedAccounts
-                    .Where(la => la.Link.IsPrimary)
-                    .Select(la => la.Account)
-                    .FirstOrDefault() 
-                    ?? linkedAccounts[0].Account;
-                var primaryPuuid = primaryAccount.Puuid;
+                var primaryPuuid = resolvedAccount!.Account.Puuid;
 
                 // Fetch death positions data
                 logger.LogInformation(
                     "Death positions request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
-                    userIdInt, primaryPuuid, 
+                    authorizedUser.UserId, primaryPuuid, 
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",
                     LogSanitizer.Sanitize(side) ?? "all");

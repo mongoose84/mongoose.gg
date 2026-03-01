@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
 using Mongoose.Api.Infrastructure.Database.Repositories;
@@ -28,16 +28,13 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string matchId,
             [FromQuery] string? puuid,
+            [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IMatchesRepository matchesRepo,
-            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ILogger<MatchNarrativeEndpoint> logger
         ) =>
         {
             try
             {
-                if (httpContext.User?.Identity?.IsAuthenticated != true)
-                    return AuthResults.NotAuthenticated();
-
                 if (string.IsNullOrWhiteSpace(matchId))
                 {
                     return Results.BadRequest(new { error = "matchId is required" });
@@ -48,31 +45,29 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                     return Results.BadRequest(new { error = "puuid query parameter is required" });
                 }
 
-                // Verify the puuid belongs to the authenticated user
-                var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
-                {
-                    return AuthResults.InvalidSession();
-                }
+                // Validate authentication and extract user ID
+                var (authError, authenticatedUser) = AuthorizationHelper.GetAuthenticatedUser(httpContext, logger);
+                if (authError != null)
+                    return authError;
 
-                // Check if user has this puuid linked via junction table
-                var isLinked = await userRiotAccountsRepo.IsLinkedAsync(userId, puuid);
+                // Verify the puuid belongs to the authenticated user
+                var isLinked = await puuidResolutionService.VerifyPuuidOwnershipAsync(authenticatedUser!.UserId, puuid);
                 if (!isLinked)
                 {
                     logger.LogWarning("Match narrative: user {UserId} attempted to access data for unowned puuid {Puuid}",
-                        userId, puuid);
+                        authenticatedUser.UserId, LogSanitizer.Sanitize(puuid));
                     return Results.Forbid();
                 }
 
                 logger.LogInformation("Match narrative request: matchId={MatchId}, puuid={Puuid}",
-                    matchId, puuid);
+                    LogSanitizer.Sanitize(matchId), LogSanitizer.Sanitize(puuid));
 
                 // Fetch all participants for this match
                 var participants = await matchesRepo.GetMatchParticipantsAsync(matchId);
 
                 if (participants.Count == 0)
                 {
-                    logger.LogWarning("Match narrative: no participants found for matchId {MatchId}", matchId);
+                    logger.LogWarning("Match narrative: no participants found for matchId {MatchId}", LogSanitizer.Sanitize(matchId));
                     return Results.NotFound(new { error = "Match not found or no participant data" });
                 }
 
@@ -80,7 +75,8 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                 var userParticipant = participants.FirstOrDefault(p => p.Puuid == puuid);
                 if (userParticipant == null)
                 {
-                    logger.LogWarning("Match narrative: user puuid {Puuid} not found in match {MatchId}", puuid, matchId);
+                    logger.LogWarning("Match narrative: user puuid {Puuid} not found in match {MatchId}",
+                        LogSanitizer.Sanitize(puuid), LogSanitizer.Sanitize(matchId));
                     return Results.NotFound(new { error = "User not found in this match" });
                 }
 
@@ -106,7 +102,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Match narrative: unhandled error for matchId {MatchId}", matchId);
+                logger.LogError(ex, "Match narrative: unhandled error for matchId {MatchId}", LogSanitizer.Sanitize(matchId));
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });

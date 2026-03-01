@@ -124,12 +124,16 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 }
                 catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    logger.LogWarning("Riot account not found: {GameName}#{TagLine}", request.GameName, request.TagLine);
+                    logger.LogWarning("Riot account not found: {GameName}#{TagLine}",
+                        LogSanitizer.Sanitize(request.GameName),
+                        LogSanitizer.Sanitize(request.TagLine));
                     return Results.NotFound(new { error = "Riot account not found", code = "RIOT_ACCOUNT_NOT_FOUND" });
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error looking up Riot account: {GameName}#{TagLine}", request.GameName, request.TagLine);
+                    logger.LogError(ex, "Error looking up Riot account: {GameName}#{TagLine}",
+                        LogSanitizer.Sanitize(request.GameName),
+                        LogSanitizer.Sanitize(request.TagLine));
                     return Results.Json(new { error = "Failed to verify Riot account", code = "RIOT_API_ERROR" }, statusCode: 503);
                 }
 
@@ -144,7 +148,8 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     // Defensive: If existingLink is null, default isPrimary to false
                     var existingIsPrimary = existingLink.Link != null && existingLink.Link.IsPrimary;
                     logger.LogInformation("Account {GameName}#{TagLine} already linked to user {UserId}",
-                        request.GameName, request.TagLine, userId);
+                        LogSanitizer.Sanitize(request.GameName),
+                        LogSanitizer.Sanitize(request.TagLine), userId);
 
                     return Results.Ok(new LinkRiotAccountResponse(
                         puuid,
@@ -177,7 +182,9 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 catch (Exception ex)
                 {
                     // Log but don't fail - profile data is optional
-                    logger.LogWarning(ex, "Failed to fetch summoner profile data for {GameName}#{TagLine}", request.GameName, request.TagLine);
+                    logger.LogWarning(ex, "Failed to fetch summoner profile data for {GameName}#{TagLine}",
+                        LogSanitizer.Sanitize(request.GameName),
+                        LogSanitizer.Sanitize(request.TagLine));
                 }
 
                 // Fetch ranked data using PUUID (standardized approach)
@@ -212,7 +219,9 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 catch (Exception ex)
                 {
                     // Log but don't fail - rank data is optional
-                    logger.LogWarning(ex, "Failed to fetch ranked data for {GameName}#{TagLine}", request.GameName, request.TagLine);
+                    logger.LogWarning(ex, "Failed to fetch ranked data for {GameName}#{TagLine}",
+                        LogSanitizer.Sanitize(request.GameName),
+                        LogSanitizer.Sanitize(request.TagLine));
                 }
 
                 // Check if this Riot account already exists (linked by another user)
@@ -228,7 +237,8 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     await userRiotAccountsRepo.LinkAsync(userId.Value, puuid, isPrimary);
 
                     logger.LogInformation("Linked existing Riot account {GameName}#{TagLine} (PUUID: {Puuid}) to user {UserId}",
-                        existingRiotAccount.GameName, existingRiotAccount.TagLine, puuid, userId);
+                        LogSanitizer.Sanitize(existingRiotAccount.GameName),
+                        LogSanitizer.Sanitize(existingRiotAccount.TagLine), puuid, userId);
 
                     return Results.Created($"{Route}/{puuid}", new LinkRiotAccountResponse(
                         puuid,
@@ -268,7 +278,8 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 await userRiotAccountsRepo.LinkAsync(userId.Value, puuid, isPrimary);
 
                 logger.LogInformation("Created and linked new Riot account {GameName}#{TagLine} (PUUID: {Puuid}) to user {UserId}",
-                    request.GameName, request.TagLine, puuid, userId);
+                    LogSanitizer.Sanitize(request.GameName),
+                    LogSanitizer.Sanitize(request.TagLine), puuid, userId);
 
                 return Results.Created($"{Route}/{puuid}", new LinkRiotAccountResponse(
                     puuid,
@@ -311,7 +322,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
 
                 // Unlink the account from this user
                 await userRiotAccountsRepo.UnlinkAsync(userId.Value, puuid);
-                logger.LogInformation("Unlinked Riot account {Puuid} from user {UserId}", puuid, userId);
+                logger.LogInformation("Unlinked Riot account {Puuid} from user {UserId}", LogSanitizer.Sanitize(puuid), userId);
 
                 // Optionally: If no users are linked to this Riot account anymore, we could delete it
                 // For now, keep it for historical match data
@@ -322,7 +333,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error deleting Riot account {Puuid}", puuid);
+                logger.LogError(ex, "Error deleting Riot account {Puuid}", LogSanitizer.Sanitize(puuid));
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });
@@ -369,13 +380,13 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 // status='pending' and perform the actual match synchronization,
                 // updating status to 'syncing' -> 'completed'/'failed'.
                 await riotAccountsRepo.UpdateSyncStatusAsync(puuid, "pending");
-                logger.LogInformation("Queued sync for Riot account {Puuid}, user {UserId}", puuid, userId);
+                logger.LogInformation("Queued sync for Riot account {Puuid}, user {UserId}", LogSanitizer.Sanitize(puuid), userId);
 
                 return Results.Accepted($"{Route}/{puuid}/sync-status", new SyncResponse(puuid, "pending", "Sync queued"));
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error triggering sync for Riot account {Puuid}", puuid);
+                logger.LogError(ex, "Error triggering sync for Riot account {Puuid}", LogSanitizer.Sanitize(puuid));
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });
@@ -417,7 +428,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error getting sync status for Riot account {Puuid}", puuid);
+                logger.LogError(ex, "Error getting sync status for Riot account {Puuid}", LogSanitizer.Sanitize(puuid));
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });
