@@ -4,7 +4,7 @@
 All data endpoints currently resolve a single primary PUUID via `PuuidResolutionService.ResolvePrimaryPuuidAsync()` and query data for that one account. To support the "Overall" view (aggregated data across all linked accounts) and per-account switching, endpoints need to accept a PUUID parameter and optionally query across multiple PUUIDs.
 
 ## Proposed Solution
-Extend data endpoints to accept an optional `?account=` query parameter. When set to a specific PUUID, query that account's data. When set to `all` (or omitted — making "Overall" the default), query all linked PUUIDs and aggregate. Extend `PuuidResolutionService` with a method that resolves PUUIDs based on this parameter.
+Extend data endpoints to accept an optional `?account=` query parameter. When set to `all`, query all linked PUUIDs and aggregate. When set to a specific PUUID, query that account's data. When omitted, default to the user's primary PUUID (preserving current single-account behavior). The frontend explicitly sends `?account=all` to opt into the aggregate "Overall" view. Extend `PuuidResolutionService` with a method that resolves PUUIDs based on this parameter.
 
 ## User Stories
 ### Primary User Story
@@ -17,19 +17,20 @@ As the frontend, I need to request data for a specific linked account or all lin
 ## Requirements
 
 ### Functional Requirements
-1. All data endpoints accept an optional `?account=` query parameter
-2. `account=all` (or omitted): resolved to all linked PUUIDs for the user
-3. `account={puuid}`: resolved to that specific PUUID (must be linked to the user)
-4. `PuuidResolutionService` gains a `ResolveRequestedAccountsAsync(userId, accountParam)` method
-5. Repositories that query by single PUUID gain multi-PUUID variants (WHERE puuid IN (...))
-6. Aggregation logic for stats (win rate, KDA, games played) computed server-side across PUUIDs
-7. Overview endpoint returns per-account summary cards when `account=all`
-8. Match list endpoint returns interleaved matches from all PUUIDs when `account=all`, each tagged with account info
+1. All data endpoints accept an optional `?account=` query parameter with three distinct behaviors:
+   - **Omitted** → resolves to the user's primary PUUID (backwards compatible with existing single-account behavior)
+   - **`account=all`** → resolves to all linked PUUIDs for the user (aggregate/Overall mode)
+   - **`account={puuid}`** → resolves to that specific PUUID (must be linked to the user)
+2. `PuuidResolutionService` gains a `ResolveRequestedAccountsAsync(userId, accountParam)` method
+3. Repositories that query by single PUUID gain multi-PUUID variants (WHERE puuid IN (...))
+4. Aggregation logic for stats (win rate, KDA, games played) computed server-side across PUUIDs
+5. Overview endpoint returns per-account summary cards when `account=all`
+6. Match list endpoint returns interleaved matches from all PUUIDs when `account=all`, each tagged with account info
 
 ### Non-Functional Requirements
 - **Performance**: Multi-PUUID queries must use `IN (...)` clauses, not N+1 queries. Index on `puuid` already exists.
 - **Security**: `VerifyPuuidOwnershipAsync` must validate that the requested PUUID belongs to the authenticated user. Cannot request another user's PUUID.
-- **Backwards compatibility**: Omitting `?account=` parameter must work identically to current behavior (primary PUUID) during rollout, switching to "all" once frontend sends it.
+- **Backwards compatibility**: Omitting `?account=` parameter defaults to the user's primary PUUID, preserving current single-account behavior. The frontend must explicitly send `?account=all` for aggregated data.
 
 ## Technical Approach
 
@@ -39,9 +40,10 @@ As the frontend, I need to request data for a specific linked account or all lin
 
 #### PuuidResolutionService (new method)
 - [ ] `ResolveRequestedAccountsAsync(long userId, string? accountParam)` → returns `List<ResolvedAccount>`
-  - `null` or `"all"` → calls `ResolveAllAccountsAsync(userId)`
+  - `null` → calls `ResolvePrimaryPuuidAsync(userId)` and returns single primary account (backwards compatible default)
+  - `"all"` → calls `ResolveAllAccountsAsync(userId)` and returns all linked accounts
   - specific PUUID → calls `VerifyPuuidOwnershipAsync(userId, puuid)` + returns single account
-  - invalid PUUID → returns 403 error
+  - invalid/unlinked PUUID → returns 403 error
 
 #### Affected Endpoints
 Each endpoint below needs to:
@@ -81,7 +83,8 @@ None — existing indexes on `puuid` support IN queries efficiently.
 #### Query Parameter
 All data endpoints gain:
 ```
-?account=all          → aggregate all linked accounts (default)
+(omitted)             → primary PUUID only (backwards compatible default)
+?account=all          → aggregate all linked accounts
 ?account={puuid}      → specific account data only
 ```
 
@@ -131,8 +134,8 @@ Stats are aggregated. Response shape is identical, values are computed across al
 ## Testing Strategy
 
 ### Unit Tests (xUnit)
-- [ ] `ResolveRequestedAccountsAsync` with `null` → returns all accounts
-- [ ] `ResolveRequestedAccountsAsync` with `"all"` → returns all accounts
+- [ ] `ResolveRequestedAccountsAsync` with `null` → returns primary account only
+- [ ] `ResolveRequestedAccountsAsync` with `"all"` → returns all linked accounts
 - [ ] `ResolveRequestedAccountsAsync` with valid PUUID → returns single account
 - [ ] `ResolveRequestedAccountsAsync` with unlinked PUUID → returns 403
 
@@ -155,7 +158,7 @@ Stats are aggregated. Response shape is identical, values are computed across al
 |------|--------|-------------|------------|
 | Performance regression with multi-PUUID IN queries | Medium | Low | Existing indexes handle IN clauses well; monitor query times |
 | Aggregation edge cases (0 games on one account) | Low | Medium | Guard against division by zero; exclude accounts with 0 games from averages |
-| Breaking existing API consumers | High | Low | `?account=` is optional; omitting it preserves current behavior initially |
+| Breaking existing API consumers | High | Low | `?account=` is optional; omitting it defaults to primary PUUID, preserving current behavior |
 
 ## Open Questions
-- [ ] During rollout, should omitting `?account=` default to primary (backwards compat) or all (new default)? Recommend: primary during rollout, switch to all when frontend is ready.
+- [x] ~During rollout, should omitting `?account=` default to primary or all?~ **Resolved**: Omitting `?account=` defaults to primary PUUID. Frontend sends `?account=all` explicitly for aggregate data.

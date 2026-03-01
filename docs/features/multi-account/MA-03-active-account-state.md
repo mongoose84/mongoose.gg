@@ -26,7 +26,7 @@ As a user, I want my selected account context (Overall or specific account) to p
 7. Computed `activeAccount` getter returns the full `RiotAccount` object for the active PUUID, or `null` for `'overall'`
 8. Computed `isOverallMode` getter returns `true` when `activeAccountPuuid === 'overall'`
 9. `setActiveAccount(puuid)` action validates the PUUID is linked before setting
-10. All API calls in `authApi.js` include `?account={activeAccountPuuid}` parameter
+10. All API calls in `authApi.js` include `?account=` parameter, mapped from `activeAccountPuuid` via `getAccountParam()`: `'overall'` → `'all'`, PUUID string → passed through verbatim
 
 ### Non-Functional Requirements
 - **Performance**: Switching accounts should not cause full page reload — only data re-fetches
@@ -60,6 +60,13 @@ function setActiveAccount(puuid) {
   localStorage.setItem('mongoose_active_account', puuid)
 }
 
+// API parameter mapping: frontend sentinel 'overall' → backend value 'all'
+// This is the single translation point between frontend state and backend contract (MA-02)
+function getAccountParam() {
+  const puuid = activeAccountPuuid.value
+  return puuid === 'overall' ? 'all' : puuid
+}
+
 // Validation on init: ensure stored account is still linked
 function validateActiveAccount() {
   if (activeAccountPuuid.value === 'overall') return
@@ -71,8 +78,8 @@ function validateActiveAccount() {
 ```
 
 #### authApi.js Changes
-- [ ] Add helper `getAccountParam()` that reads from `authStore.activeAccountPuuid` and returns the query parameter value
-- [ ] All data-fetching functions (`getOverview`, `getSoloDashboard`, `getWinrateTrend`, `getMatchList`, etc.) append `?account={value}` to their requests
+- [ ] Add helper `getAccountParam()` that reads from `authStore.activeAccountPuuid` and maps it to the backend query parameter value: `'overall'` → `'all'`, PUUID string → passed through verbatim. This is the **single boundary** between the frontend sentinel and the backend contract (MA-02 expects `?account=all`, not `?account=overall`)
+- [ ] All data-fetching functions (`getOverview`, `getSoloDashboard`, `getWinrateTrend`, `getMatchList`, etc.) append `?account={getAccountParam()}` to their requests
 - [ ] Auth-only functions (login, register, link, unlink) are NOT affected
 
 #### Page Changes (watchers)
@@ -95,6 +102,8 @@ None.
 - [ ] `setActiveAccount(invalidPuuid)` does not change value
 - [ ] `activeAccount` returns correct RiotAccount object
 - [ ] `isOverallMode` is true for 'overall', false for PUUID
+- [ ] `getAccountParam()` returns `'all'` when `activeAccountPuuid` is `'overall'`
+- [ ] `getAccountParam()` returns the PUUID verbatim when `activeAccountPuuid` is a PUUID string
 - [ ] `validateActiveAccount` resets to 'overall' when stored PUUID is no longer linked
 - [ ] On unlink of active account, resets to 'overall'
 
