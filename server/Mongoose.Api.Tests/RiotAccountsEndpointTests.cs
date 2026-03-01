@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Linq;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -96,5 +97,76 @@ public class RiotAccountsEndpointTests
         links.Should().HaveCount(1);
         links[0].Link.Puuid.Should().Be("puuid-second");
         links[0].Link.IsPrimary.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LinkAccount_Returns400_WhenFreeTierAlreadyAtLimit()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "free");
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-existing", "Main", "na1", "Main#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-existing", isPrimary: true);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts")
+        {
+            Content = JsonContent.Create(new { gameName = "Another", tagLine = "EUW", region = "euw1" })
+        };
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("ACCOUNT_LIMIT_REACHED");
+    }
+
+    [Fact]
+    public async Task UsersMe_ReturnsPrimaryOnly_WhenTierIsFree()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "free");
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-primary", "Main", "na1", "Main#NA1", 100, 1);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-second", "Smurf", "na1", "Smurf#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-primary", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-second", isPrimary: false);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/users/me");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var riotAccounts = json.RootElement.GetProperty("riotAccounts");
+        riotAccounts.GetArrayLength().Should().Be(1);
+        riotAccounts.EnumerateArray().First().GetProperty("puuid").GetString().Should().Be("puuid-primary");
+    }
+
+    [Fact]
+    public async Task UsersMe_ReturnsAllLinkedAccounts_WhenTierIsPro()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "pro");
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-primary", "Main", "na1", "Main#NA1", 100, 1);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-second", "Smurf", "na1", "Smurf#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-primary", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-second", isPrimary: false);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/users/me");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var riotAccounts = json.RootElement.GetProperty("riotAccounts");
+        riotAccounts.GetArrayLength().Should().Be(2);
     }
 }

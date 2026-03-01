@@ -54,7 +54,17 @@ public sealed class UsersMeEndpoint : IEndpoint
 
                 // Get linked Riot accounts via junction table
                 var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(authenticatedUser.UserId);
-                var riotAccountResponses = linkedAccounts.Select(la => new RiotAccountResponse(
+                var normalizedTier = user.Tier?.Trim().ToLowerInvariant() ?? "free";
+                var visibleLinkedAccounts = linkedAccounts;
+                if (normalizedTier == "free")
+                {
+                    var primaryOnly = linkedAccounts.Where(la => la.Link.IsPrimary).ToList();
+                    visibleLinkedAccounts = primaryOnly.Count > 0
+                        ? primaryOnly
+                        : linkedAccounts.Take(1).ToList();
+                }
+
+                var riotAccountResponses = visibleLinkedAccounts.Select(la => new RiotAccountResponse(
                     la.Account.Puuid,
                     la.Account.GameName,
                     la.Account.TagLine,

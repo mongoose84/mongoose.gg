@@ -103,6 +103,12 @@ public class UserRiotAccountsRepository : RepositoryBase, IUserRiotAccountsRepos
         return (int)await ExecuteScalarAsync<long>(sql, ("@puuid", puuid));
     }
 
+    public async Task<int> GetLinkCountForUserAsync(long userId)
+    {
+        const string sql = "SELECT COUNT(*) FROM user_riot_accounts WHERE user_id = @user_id";
+        return (int)await ExecuteScalarAsync<long>(sql, ("@user_id", userId));
+    }
+
     private static (UserRiotAccountLink, RiotAccount) MapLinkWithAccount(MySqlDataReader r)
     {
         var link = new UserRiotAccountLink

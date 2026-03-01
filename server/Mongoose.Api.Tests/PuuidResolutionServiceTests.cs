@@ -109,5 +109,6 @@ public sealed class PuuidResolutionServiceTests
         public Task<(UserRiotAccountLink Link, RiotAccount Account)?> GetPrimaryByUserIdAsync(long userId) => throw new NotImplementedException();
         public Task<bool> HasAnyLinksAsync(string puuid) => throw new NotImplementedException();
         public Task<int> GetLinkCountAsync(string puuid) => throw new NotImplementedException();
+        public Task<int> GetLinkCountForUserAsync(long userId) => throw new NotImplementedException();
     }
 }

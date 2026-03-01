@@ -336,6 +336,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 user.SecurityStamp = securityStamp;
             }
         }
+
+        public void SetTier(string username, string tier)
+        {
+            if (_usersByUsername.TryGetValue(username, out var user))
+            {
+                user.Tier = tier;
+            }
+        }
     }
 
     /// <summary>
@@ -679,6 +687,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public Task<int> GetLinkCountAsync(string puuid)
         {
             return Task.FromResult(_links.Count(kvp => kvp.Key.Puuid == puuid));
+        }
+
+        public Task<int> GetLinkCountForUserAsync(long userId)
+        {
+            return Task.FromResult(_links.Count(kvp => kvp.Key.UserId == userId));
         }
 
         /// <summary>

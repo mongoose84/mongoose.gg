@@ -319,6 +319,28 @@ describe('authStore', () => {
       expect(store.riotAccounts).toEqual(accounts);
     });
 
+    it('returns only primary riot account for free tier', () => {
+      const store = useAuthStore();
+      const accounts = [
+        { puuid: 'abc', isPrimary: false },
+        { puuid: 'def', isPrimary: true }
+      ];
+      store.user = { userId: 1, tier: 'free', riotAccounts: accounts };
+
+      expect(store.riotAccounts).toEqual([{ puuid: 'def', isPrimary: true }]);
+    });
+
+    it('returns all riot accounts for pro tier', () => {
+      const store = useAuthStore();
+      const accounts = [
+        { puuid: 'abc', isPrimary: false },
+        { puuid: 'def', isPrimary: true }
+      ];
+      store.user = { userId: 1, tier: 'pro', riotAccounts: accounts };
+
+      expect(store.riotAccounts).toEqual(accounts);
+    });
+
     it('hasLinkedAccount is true when accounts exist', () => {
       const store = useAuthStore();
       store.user = { userId: 1, riotAccounts: [{ puuid: 'abc' }] };
