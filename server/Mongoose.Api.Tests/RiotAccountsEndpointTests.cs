@@ -1,0 +1,100 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using FluentAssertions;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Xunit;
+
+namespace Mongoose.Api.Tests;
+
+public class RiotAccountsEndpointTests
+{
+    private static async Task<string> LoginAndGetCookieAsync(
+        TestWebApplicationFactory factory,
+        string username = "tester",
+        string password = "test-password")
+    {
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var loginResponse = await client.PostAsJsonAsync("/api/v2/auth/login", new { username, password });
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        return AuthCookieTestHelper.GetAuthCookie(loginResponse);
+    }
+
+    [Fact]
+    public async Task SetPrimary_Returns200_AndUpdatesPrimary_WhenAccountIsLinked()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-primary-old", "Main", "na1", "Main#NA1", 100, 1);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-target", "Smurf", "na1", "Smurf#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-primary-old", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-target", isPrimary: false);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/riot-accounts/puuid-target/primary");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("success").GetBoolean().Should().BeTrue();
+
+        var links = await factory.UserRiotAccountsRepository.GetByUserIdAsync(1);
+        links.Single(l => l.Link.Puuid == "puuid-target").Link.IsPrimary.Should().BeTrue();
+        links.Single(l => l.Link.Puuid == "puuid-primary-old").Link.IsPrimary.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetPrimary_Returns404_WhenAccountIsNotLinked()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/riot-accounts/not-linked/primary");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("ACCOUNT_NOT_LINKED");
+    }
+
+    [Fact]
+    public async Task SetPrimary_Returns401_WhenUnauthenticated()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PutAsync("/api/v2/users/me/riot-accounts/any/primary", content: null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task UnlinkPrimary_PromotesNextOldestAccountToPrimary()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-primary", "Main", "na1", "Main#NA1", 100, 1);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-second", "Second", "na1", "Second#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-primary", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-second", isPrimary: false);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, "/api/v2/users/me/riot-accounts/puuid-primary");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var links = await factory.UserRiotAccountsRepository.GetByUserIdAsync(1);
+        links.Should().HaveCount(1);
+        links[0].Link.Puuid.Should().Be("puuid-second");
+        links[0].Link.IsPrimary.Should().BeTrue();
+    }
+}

@@ -245,6 +245,22 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Set a linked Riot account as primary
+   */
+  async function setPrimary(puuid) {
+    error.value = null
+
+    try {
+      await authApi.setPrimaryRiotAccount(puuid)
+      await refreshUser()
+      return { success: true }
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
+  /**
    * Change password for the authenticated user.
    * The server rotates the security stamp in the database and immediately signs out
    * the current session. All other active sessions are invalidated on their next
@@ -318,6 +334,7 @@ export const useAuthStore = defineStore('auth', () => {
     changePassword,
     linkRiotAccount,
     unlinkRiotAccount,
+    setPrimary,
     triggerSync
   }
 })

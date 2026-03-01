@@ -12,6 +12,7 @@ vi.mock('@/services/authApi', () => ({
   changePassword: vi.fn(),
   linkRiotAccount: vi.fn(),
   unlinkRiotAccount: vi.fn(),
+  setPrimaryRiotAccount: vi.fn(),
   triggerRiotAccountSync: vi.fn(),
 }));
 
@@ -370,6 +371,23 @@ describe('authStore', () => {
       const result = await store.unlinkRiotAccount('abc');
 
       expect(authApi.unlinkRiotAccount).toHaveBeenCalledWith('abc');
+      expect(result).toEqual({ success: true });
+    });
+
+    it('setPrimary calls API and refreshes user', async () => {
+      authApi.setPrimaryRiotAccount.mockResolvedValue({ success: true });
+      authApi.getCurrentUser.mockResolvedValue({
+        userId: 1,
+        riotAccounts: [
+          { puuid: 'abc', isPrimary: true },
+          { puuid: 'def', isPrimary: false }
+        ]
+      });
+
+      const store = useAuthStore();
+      const result = await store.setPrimary('abc');
+
+      expect(authApi.setPrimaryRiotAccount).toHaveBeenCalledWith('abc');
       expect(result).toEqual({ success: true });
     });
   });
