@@ -153,7 +153,7 @@ public sealed class PuuidResolutionService
 
         if (requestedAccount.Account == null)
         {
-            _logger.LogWarning("User {UserId} requested unlinked accountId {AccountId}", LogSanitizer.Sanitize(userId.ToString()), LogSanitizer.Sanitize(accountIdParam));
+            _logger.LogWarning("User {UserId} requested unlinked accountId {AccountId}", LogSanitizer.Sanitize(userId.ToString()), LogSanitizer.HashForLog(accountIdParam));
             return (AuthResults.Forbidden(), null);
         }
 

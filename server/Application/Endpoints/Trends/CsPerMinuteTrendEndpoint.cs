@@ -61,7 +61,7 @@ public sealed class CsPerMinuteTrendEndpoint : IEndpoint
 
                 // Fetch CS per minute trend data
                 logger.LogInformation("CS per minute trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
-                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.Sanitize(accountId) ?? "primary", validatedLimit?.ToString() ?? "all");
+                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
 
                 var csPerMinuteTrend = await trendRepo.GetCsPerMinuteTrendAsync(puuids, queueType, timeRange, validatedLimit);
 

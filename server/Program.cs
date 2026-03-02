@@ -71,6 +71,7 @@ builder.Services.AddScoped<ITrendRepository, TrendRepository>();
 builder.Services.AddScoped<IRadarChartRepository, RadarChartRepository>();
 builder.Services.AddScoped<IMatchupRepository, MatchupRepository>();
 builder.Services.AddScoped<OverviewStatsRepository>();
+builder.Services.AddScoped<IOverviewStatsRepository>(sp => sp.GetRequiredService<OverviewStatsRepository>());
 builder.Services.AddScoped<SeasonsRepository>();
 builder.Services.AddScoped<AnalyticsEventsRepository>();
 builder.Services.AddScoped<VerificationTokensRepository>();

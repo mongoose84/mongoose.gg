@@ -52,7 +52,7 @@ public sealed class RadarChartEndpoint : IEndpoint
                     puuids.Count,
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",
-                    LogSanitizer.Sanitize(accountId) ?? "primary");
+                    LogSanitizer.HashForLog(accountId, "primary"));
 
                 var radarData = await radarChartRepo.GetRadarChartAsync(puuids, queueType, timeRange);
                 if (radarData == null)

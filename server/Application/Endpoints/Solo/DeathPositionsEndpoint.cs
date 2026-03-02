@@ -70,7 +70,7 @@ public sealed class DeathPositionsEndpoint : IEndpoint
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",
                     LogSanitizer.Sanitize(side) ?? "all",
-                    LogSanitizer.Sanitize(accountId) ?? "primary");
+                    LogSanitizer.HashForLog(accountId, "primary"));
 
                 var deathPositions = await deathPositionsRepo.GetDeathPositionsAsync(
                     puuids, queueType, timeRange, side);

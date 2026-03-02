@@ -61,7 +61,7 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
                     authorizedUser.UserId, puuids.Count,
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",
-                    LogSanitizer.Sanitize(accountId) ?? "primary");
+                        LogSanitizer.HashForLog(accountId, "primary"));
 
                 var performance = await soloPerformanceRepo.GetSoloPerformanceAsync(puuids, queueType, timeRange);
 

@@ -56,7 +56,7 @@ public sealed class MatchListEndpoint : IEndpoint
                 var queueFilter = filterBuilder.BuildQueueFilter(validatedQueueType);
 
                 logger.LogInformation("Match list request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, account={Account}",
-                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(validatedQueueType) ?? "all", LogSanitizer.Sanitize(accountId) ?? "primary");
+                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(validatedQueueType) ?? "all", LogSanitizer.HashForLog(accountId, "primary"));
 
                 // Fetch role baselines first (for trend badge computation)
                 var baselines = await matchesRepo.GetRoleBaselinesAsync(puuids, queueFilter);
