@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace Mongoose.Api.Application.Endpoints.Shared;
 
 /// <summary>
@@ -22,6 +25,26 @@ public static class LogSanitizer
             .Replace("\r", "")
             .Replace("\n", "")
             .Replace("\t", " ");
+    }
+
+    /// <summary>
+    /// Creates a non-reversible, deterministic hash representation for log fields.
+    /// Use this for identifiers that should not be persisted in clear text.
+    /// </summary>
+    /// <param name="input">The potentially sensitive value to represent in logs</param>
+    /// <param name="emptyValue">Value to return when input is null/empty</param>
+    /// <returns>Stable hash token suitable for logs, or emptyValue when input is missing</returns>
+    public static string HashForLog(string? input, string emptyValue = "empty")
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return emptyValue;
+
+        var sanitized = Sanitize(input);
+        if (string.IsNullOrEmpty(sanitized))
+            return emptyValue;
+
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(sanitized));
+        return $"sha256:{Convert.ToHexStringLower(hash[..8])}";
     }
 }
 

@@ -56,12 +56,12 @@ public sealed class MatchDetailsEndpoint : IEndpoint
                 if (!isLinked)
                 {
                     logger.LogWarning("Match details: user {UserId} attempted to access data for unowned puuid {Puuid}",
-                        authenticatedUser.UserId, LogSanitizer.Sanitize(puuid));
+                        authenticatedUser.UserId, LogSanitizer.HashForLog(puuid));
                     return Results.Forbid();
                 }
 
                 logger.LogInformation("Match details request: matchId={MatchId}, puuid={Puuid}",
-                    LogSanitizer.Sanitize(matchId), LogSanitizer.Sanitize(puuid));
+                    LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(puuid));
 
                 // Fetch match details using optimized query (CTEs instead of correlated subqueries)
                 var matchDetails = await matchesRepo.GetMatchDetailsAsync(matchId, puuid);
@@ -69,7 +69,7 @@ public sealed class MatchDetailsEndpoint : IEndpoint
                 if (matchDetails == null)
                 {
                     logger.LogWarning("Match details: match not found for matchId={MatchId}, puuid={Puuid}",
-                        LogSanitizer.Sanitize(matchId), LogSanitizer.Sanitize(puuid));
+                        LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(puuid));
                     return Results.NotFound(new { error = "Match not found" });
                 }
 

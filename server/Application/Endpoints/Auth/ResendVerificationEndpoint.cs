@@ -87,7 +87,7 @@ public sealed class ResendVerificationEndpoint : IEndpoint
                 var user = await usersRepo.GetByIdAsync(userId.Value);
                 if (user == null)
                 {
-                    logger.LogWarning("Resend verification attempt for non-existent user ID: {UserId}", userId);
+                    logger.LogWarning("Resend verification attempt for non-existent user ID: {UserId}", LogSanitizer.Sanitize(userId.ToString()));
                     return AuthResults.InvalidSession();
                 }
 
@@ -127,11 +127,11 @@ public sealed class ResendVerificationEndpoint : IEndpoint
                 try
                 {
                     await emailService.SendVerificationEmailAsync(user.Email, user.Username, verificationCode);
-                    logger.LogInformation("Resent verification email to user {UserId}", userId);
+                    logger.LogInformation("Resent verification email to user {UserId}", LogSanitizer.Sanitize(userId.ToString()));
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Failed to send verification email for user {UserId}", userId);
+                    logger.LogError(ex, "Failed to send verification email for user {UserId}", LogSanitizer.Sanitize(userId.ToString()));
                     return Results.Json(new { error = "Failed to send verification email. Please try again later." }, statusCode: 500);
                 }
 

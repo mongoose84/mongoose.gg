@@ -4,7 +4,6 @@ using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
-using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Helpers;
 
 namespace Mongoose.Api.Application.Endpoints.Overview;
@@ -32,8 +31,10 @@ public sealed class OverviewEndpoint : IEndpoint
         var endpoint = app.MapGet(Route, async (
             HttpContext httpContext,
             [FromRoute] string userId,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
-            [FromServices] OverviewStatsRepository overviewStatsRepo,
+            [FromServices] IOverviewStatsRepository overviewStatsRepo,
+            [FromServices] ISoloPerformanceRepository soloPerformanceRepo,
             [FromServices] ILogger<OverviewEndpoint> logger
         ) =>
         {
@@ -44,19 +45,24 @@ public sealed class OverviewEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                // Resolve primary Riot account (also includes linked accounts count for context)
-                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                // Resolve requested account scope (primary/all/specific)
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
-                var primaryAccount = resolvedAccount!.Account;
+                var selectedAccounts = resolvedAccounts!;
+                var primaryAccount = selectedAccounts.FirstOrDefault(a => a.IsPrimary)?.Account ?? selectedAccounts[0].Account;
                 var primaryPuuid = primaryAccount.Puuid;
+                var selectedPuuids = selectedAccounts.Select(a => a.Account.Puuid).ToList();
 
                 // Get all linked accounts for active contexts determination
                 var (allAccountsError, allAccounts) = await puuidResolutionService.ResolveAllAccountsAsync(authorizedUser.UserId);
+                if (allAccountsError != null)
+                    return allAccountsError;
+
                 var linkedAccountsCount = allAccounts?.Count ?? 1;
 
-                logger.LogInformation("Overview request: userId={UserId}, puuid={Puuid}", authorizedUser.UserId, primaryPuuid);
+                logger.LogInformation("Overview request: userId={UserId}, accountCount={AccountCount}, account={Account}", authorizedUser.UserId, selectedPuuids.Count, LogSanitizer.HashForLog(accountId, "primary"));
 
                 // Build player header
                 var profileIconUrl = BuildProfileIconUrl(primaryAccount.ProfileIconId);
@@ -70,10 +76,10 @@ public sealed class OverviewEndpoint : IEndpoint
                 );
 
                 // Determine primary queue
-                var (primaryQueueId, primaryQueueLabel, _) = await overviewStatsRepo.GetPrimaryQueueAsync(primaryPuuid);
+                var (primaryQueueId, primaryQueueLabel, _) = await overviewStatsRepo.GetPrimaryQueueAsync(selectedPuuids);
 
                 // Get last 20 matches for primary queue
-                var last20Matches = await overviewStatsRepo.GetLast20MatchesAsync(primaryPuuid, primaryQueueId);
+                var last20Matches = await overviewStatsRepo.GetLast20MatchesAsync(selectedPuuids, primaryQueueId);
 
                 // Calculate rank snapshot
                 var rankSnapshot = BuildRankSnapshot(
@@ -84,11 +90,11 @@ public sealed class OverviewEndpoint : IEndpoint
                 );
 
                 // Get last match
-                var lastMatchData = await overviewStatsRepo.GetLastMatchAsync(primaryPuuid);
+                var lastMatchData = await overviewStatsRepo.GetLastMatchAsync(selectedPuuids);
                 var lastMatch = lastMatchData != null ? BuildLastMatch(lastMatchData) : null;
 
                 // Most played champion for CTA mural personalization
-                var mostPlayedChampionData = await overviewStatsRepo.GetMostPlayedChampionAsync(primaryPuuid);
+                var mostPlayedChampionData = await overviewStatsRepo.GetMostPlayedChampionAsync(selectedPuuids);
                 var mostPlayedChampion = mostPlayedChampionData != null
                     ? new MostPlayedChampion(
                         ChampionName: mostPlayedChampionData.ChampionName,
@@ -102,13 +108,44 @@ public sealed class OverviewEndpoint : IEndpoint
                 // Suggested actions (placeholder - return empty for now)
                 var suggestedActions = Array.Empty<SuggestedAction>();
 
+                AccountSummary[]? accountSummaries = null;
+                CombinedStats? combinedStats = null;
+                var isAllMode = string.Equals(accountId, "all", StringComparison.OrdinalIgnoreCase);
+                if (isAllMode && allAccounts != null)
+                {
+                    accountSummaries = allAccounts
+                        .Select(resolved => new AccountSummary(
+                            AccountId: resolved.AccountId,
+                            GameName: resolved.Account.GameName,
+                            TagLine: resolved.Account.TagLine,
+                            Region: resolved.Account.Region,
+                            Rank: BuildRankString(resolved.Account),
+                            Lp: BuildLpValue(resolved.Account),
+                            GamesToday: 0,
+                            GamesThisWeek: 0
+                        ))
+                        .ToArray();
+
+                    var aggregatePerformance = await soloPerformanceRepo.GetSoloPerformanceAsync(selectedPuuids, "all", null);
+                    if (aggregatePerformance != null)
+                    {
+                        combinedStats = new CombinedStats(
+                            TotalGames: aggregatePerformance.GamesPlayed,
+                            WinRate: aggregatePerformance.WinRate,
+                            AvgKda: aggregatePerformance.AvgKda
+                        );
+                    }
+                }
+
                 var response = new OverviewResponse(
                     PlayerHeader: playerHeader,
                     RankSnapshot: rankSnapshot,
                     LastMatch: lastMatch,
                     MostPlayedChampion: mostPlayedChampion,
                     ActiveGoals: activeGoals,
-                    SuggestedActions: suggestedActions
+                    SuggestedActions: suggestedActions,
+                    AccountSummaries: accountSummaries,
+                    CombinedStats: combinedStats
                 );
 
                 return Results.Ok(response);
@@ -206,6 +243,36 @@ public sealed class OverviewEndpoint : IEndpoint
         // Normalize champion name for Data Dragon URL
         var normalized = championName.Replace(" ", "").Replace("'", "");
         return $"https://ddragon.leagueoflegends.com/cdn/{DataDragonVersion}/img/champion/{normalized}.png";
+    }
+
+    private static string? BuildRankString(Mongoose.Api.Core.Entities.RiotAccount account)
+    {
+        if (!string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank))
+        {
+            return $"{account.SoloTier} {account.SoloRank}";
+        }
+
+        if (!string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank))
+        {
+            return $"{account.FlexTier} {account.FlexRank}";
+        }
+
+        return null;
+    }
+
+    private static int? BuildLpValue(Mongoose.Api.Core.Entities.RiotAccount account)
+    {
+        if (!string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank))
+        {
+            return account.SoloLp;
+        }
+
+        if (!string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank))
+        {
+            return account.FlexLp;
+        }
+
+        return null;
     }
 }
 

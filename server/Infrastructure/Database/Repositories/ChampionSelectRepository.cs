@@ -1,4 +1,5 @@
 using MySqlConnector;
+using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
@@ -30,7 +31,7 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var effectiveTimeRangeForLog = string.IsNullOrWhiteSpace(timeRangeFilter.NormalizedTimeRange) ? "all" : timeRangeFilter.NormalizedTimeRange;
-        _logger.LogInformation("GetChampionSelectDataAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", puuid, queueType, effectiveTimeRangeForLog);
+        _logger.LogInformation("GetChampionSelectDataAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", LogSanitizer.HashForLog(puuid), LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(effectiveTimeRangeForLog));
 
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
@@ -51,12 +52,12 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
                 WinRate: basicStats.Value.WinRate
             );
 
-            _logger.LogInformation("GetChampionSelectDataAsync success: puuid={Puuid}, games={Games}", puuid, basicStats.Value.Games);
+            _logger.LogInformation("GetChampionSelectDataAsync success: puuid={Puuid}, games={Games}", LogSanitizer.HashForLog(puuid), basicStats.Value.Games);
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetChampionSelectDataAsync error: puuid={Puuid}, queueType={Queue}", puuid, queueType);
+            _logger.LogError(ex, "GetChampionSelectDataAsync error: puuid={Puuid}, queueType={Queue}", LogSanitizer.HashForLog(puuid), LogSanitizer.Sanitize(queueType));
             throw;
         }
     }

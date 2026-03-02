@@ -30,6 +30,7 @@ public sealed class MatchListEndpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string userId,
             [FromQuery] string? queueType,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IMatchesRepository matchesRepo,
             [FromServices] IQueryFilterBuilder filterBuilder,
@@ -43,30 +44,30 @@ public sealed class MatchListEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                // Resolve primary Riot account
-                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                // Resolve requested account scope
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
-                var primaryPuuid = resolvedAccount!.Account.Puuid;
+                var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
 
                 // Validate and build queue filter using centralized filter builder
                 var validatedQueueType = filterBuilder.ValidateQueueType(queueType);
                 var queueFilter = filterBuilder.BuildQueueFilter(validatedQueueType);
 
-                logger.LogInformation("Match list request: userId={UserId}, puuid={Puuid}, queueType={Queue}",
-                    authorizedUser.UserId, primaryPuuid, LogSanitizer.Sanitize(validatedQueueType) ?? "all");
+                logger.LogInformation("Match list request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, account={Account}",
+                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(validatedQueueType) ?? "all", LogSanitizer.HashForLog(accountId, "primary"));
 
                 // Fetch role baselines first (for trend badge computation)
-                var baselines = await matchesRepo.GetRoleBaselinesAsync(primaryPuuid, queueFilter);
+                var baselines = await matchesRepo.GetRoleBaselinesAsync(puuids, queueFilter);
 
                 // Fetch lightweight match summaries (no expensive team stat queries)
-                var matches = await matchesRepo.GetMatchListSummaryAsync(primaryPuuid, queueFilter, 20, baselines);
+                var matches = await matchesRepo.GetMatchListSummaryAsync(puuids, queueFilter, 20, baselines);
 
                 if (matches.Count == 0)
                 {
                     logger.LogInformation("Match list: no matches found for puuid {Puuid} with queueType {Queue}",
-                        primaryPuuid, LogSanitizer.Sanitize(validatedQueueType) ?? "all");
+                        string.Join(",", puuids.Select(p => LogSanitizer.HashForLog(p))), LogSanitizer.Sanitize(validatedQueueType) ?? "all");
                     return Results.Ok(new MatchListResponse(
                         Matches: Array.Empty<MatchListSummaryItem>(),
                         BaselinesByRole: baselines,

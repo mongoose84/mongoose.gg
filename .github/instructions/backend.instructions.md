@@ -67,7 +67,7 @@ public sealed class MyEndpoint : IEndpoint
             if (authenticatedUserId != userIdInt.ToString())
             {
                 logger.LogWarning("User {AuthUserId} attempted to access data for user {RouteUserId}",
-                    authenticatedUserId, userIdInt);
+                    LogSanitizer.Sanitize(authenticatedUserId), LogSanitizer.Sanitize(userIdInt.ToString()));
                 return Results.Forbid();
             }
             
@@ -75,7 +75,7 @@ public sealed class MyEndpoint : IEndpoint
             var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
             if (linkedAccounts == null || linkedAccounts.Count == 0)
             {
-                logger.LogWarning("No riot accounts found for userId {UserId}", userIdInt);
+                logger.LogWarning("No riot accounts found for userId {UserId}", LogSanitizer.Sanitize(userIdInt.ToString()));
                 return Results.NotFound(new { error = "No riot accounts found" });
             }
             
@@ -165,10 +165,16 @@ logger.LogWarning("Invalid userId: {UserId}", LogSanitizer.Sanitize(userId));
 logger.LogInformation("Request: queue={Queue}, timeRange={Range}",
     LogSanitizer.Sanitize(queueType) ?? "all",
     LogSanitizer.Sanitize(timeRange) ?? "all");
+logger.LogInformation("Claim user {UserId}", LogSanitizer.Sanitize(userId.ToString()));
 
 // ❌ INCORRECT — log injection vulnerability
 logger.LogWarning("Invalid userId: {UserId}", userId);
 ```
+
+**Mandatory Rule**:
+- If a log template has dynamic arguments, sanitize all string-like/untrusted values before passing them.
+- For numeric/enum/boolean values derived from user/session claims or external payloads, convert to string and sanitize (`LogSanitizer.Sanitize(value.ToString())`).
+- Use `LogSanitizer` from `Mongoose.Api.Application.Endpoints.Shared` in both `Application` and `Infrastructure` layers.
 
 **What to Sanitize**:
 - Route parameters (userId, challengeId, etc.)
@@ -177,10 +183,9 @@ logger.LogWarning("Invalid userId: {UserId}", userId);
 - External API responses
 - IP addresses
 
-**What NOT to Sanitize**:
-- Database-resolved IDs (PUUIDs, numeric IDs)
-- Enum values from your code
-- Boolean flags
+**What can remain unsanitized** (trusted internal-only values):
+- Compile-time constants and fixed literals
+- Purely internal counters/timers not derived from user/external input
 
 ## Error Handling
 

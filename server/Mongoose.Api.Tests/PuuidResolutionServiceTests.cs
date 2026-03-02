@@ -1,7 +1,10 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Xunit;
 
 namespace Mongoose.Api.Tests;
@@ -166,6 +169,146 @@ public sealed class PuuidResolutionServiceTests
         Assert.True(accounts[0].IsPrimary);
         Assert.Equal("puuid-secondary", accounts[1].Account.Puuid);
         Assert.False(accounts[1].IsPrimary);
+    }
+
+    [Fact]
+    public async Task ResolveRequestedAccountsAsync_ReturnsPrimary_WhenAccountIdIsNull()
+    {
+        var linkedAccounts = new List<(UserRiotAccountLink Link, RiotAccount Account)>
+        {
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-primary", IsPrimary = true, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-primary", GameName = "Primary", TagLine = "NA1", SummonerName = "Primary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            ),
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-secondary", IsPrimary = false, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-secondary", GameName = "Secondary", TagLine = "NA1", SummonerName = "Secondary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            )
+        };
+
+        var service = new PuuidResolutionService(
+            new FakeUserRiotAccountsRepository(linkedAccounts),
+            new FakeUsersRepository("pro"),
+            NullLogger<PuuidResolutionService>.Instance);
+
+        var (error, accounts) = await service.ResolveRequestedAccountsAsync(1, null);
+
+        Assert.Null(error);
+        Assert.NotNull(accounts);
+        Assert.Single(accounts!);
+        Assert.Equal("puuid-primary", accounts[0].Account.Puuid);
+    }
+
+    [Fact]
+    public async Task ResolveRequestedAccountsAsync_ReturnsAll_WhenAccountIdIsAll()
+    {
+        var linkedAccounts = new List<(UserRiotAccountLink Link, RiotAccount Account)>
+        {
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-primary", IsPrimary = true, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-primary", GameName = "Primary", TagLine = "NA1", SummonerName = "Primary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            ),
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-secondary", IsPrimary = false, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-secondary", GameName = "Secondary", TagLine = "NA1", SummonerName = "Secondary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            )
+        };
+
+        var service = new PuuidResolutionService(
+            new FakeUserRiotAccountsRepository(linkedAccounts),
+            new FakeUsersRepository("pro"),
+            NullLogger<PuuidResolutionService>.Instance);
+
+        var (error, accounts) = await service.ResolveRequestedAccountsAsync(1, "all");
+
+        Assert.Null(error);
+        Assert.NotNull(accounts);
+        Assert.Equal(2, accounts!.Count);
+    }
+
+    [Fact]
+    public async Task ResolveRequestedAccountsAsync_ReturnsSpecificAccount_WhenAccountIdIsOwned()
+    {
+        var linkedAccounts = new List<(UserRiotAccountLink Link, RiotAccount Account)>
+        {
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-primary", IsPrimary = true, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-primary", GameName = "Primary", TagLine = "NA1", SummonerName = "Primary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            ),
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-secondary", IsPrimary = false, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-secondary", GameName = "Secondary", TagLine = "NA1", SummonerName = "Secondary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            )
+        };
+
+        var service = new PuuidResolutionService(
+            new FakeUserRiotAccountsRepository(linkedAccounts),
+            new FakeUsersRepository("pro"),
+            NullLogger<PuuidResolutionService>.Instance);
+
+        var accountId = BuildAccountIdForTest(1, "puuid-secondary");
+        var (error, accounts) = await service.ResolveRequestedAccountsAsync(1, accountId);
+
+        Assert.Null(error);
+        Assert.NotNull(accounts);
+        Assert.Single(accounts!);
+        Assert.Equal("puuid-secondary", accounts[0].Account.Puuid);
+    }
+
+    [Fact]
+    public async Task ResolveRequestedAccountsAsync_ReturnsForbidden_WhenAccountIdIsNotOwned()
+    {
+        var linkedAccounts = new List<(UserRiotAccountLink Link, RiotAccount Account)>
+        {
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-primary", IsPrimary = true, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-primary", GameName = "Primary", TagLine = "NA1", SummonerName = "Primary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            )
+        };
+
+        var service = new PuuidResolutionService(
+            new FakeUserRiotAccountsRepository(linkedAccounts),
+            new FakeUsersRepository("pro"),
+            NullLogger<PuuidResolutionService>.Instance);
+
+        var (error, accounts) = await service.ResolveRequestedAccountsAsync(1, "acc_not-owned");
+
+        Assert.NotNull(error);
+        Assert.Null(accounts);
+        var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, statusCodeResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task ResolveRequestedAccountsAsync_ReturnsForbidden_WhenRawPuuidIsProvided()
+    {
+        var linkedAccounts = new List<(UserRiotAccountLink Link, RiotAccount Account)>
+        {
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-primary", IsPrimary = true, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-primary", GameName = "Primary", TagLine = "NA1", SummonerName = "Primary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            )
+        };
+
+        var service = new PuuidResolutionService(
+            new FakeUserRiotAccountsRepository(linkedAccounts),
+            new FakeUsersRepository("pro"),
+            NullLogger<PuuidResolutionService>.Instance);
+
+        var (error, accounts) = await service.ResolveRequestedAccountsAsync(1, "puuid-primary");
+
+        Assert.NotNull(error);
+        Assert.Null(accounts);
+        var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, statusCodeResult.StatusCode);
+    }
+
+    private static string BuildAccountIdForTest(long userId, string puuid)
+    {
+        var bytes = Encoding.UTF8.GetBytes($"{userId}:{puuid}");
+        var hash = SHA256.HashData(bytes);
+        var accountId = Convert.ToHexStringLower(hash[..16]);
+        return $"acc_{accountId}";
     }
 
     private sealed class FakeUserRiotAccountsRepository : IUserRiotAccountsRepository

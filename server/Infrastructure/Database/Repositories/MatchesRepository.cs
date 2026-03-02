@@ -83,10 +83,24 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         string queueFilter,
         int limit = 20,
         Dictionary<string, RoleBaseline>? baselines = null)
+        => await GetMatchListAsync([puuid], queueFilter, limit, baselines);
+
+    public async Task<IList<MatchListItem>> GetMatchListAsync(
+        IReadOnlyList<string> puuids,
+        string queueFilter,
+        int limit = 20,
+        Dictionary<string, RoleBaseline>? baselines = null)
     {
+        if (puuids.Count == 0)
+        {
+            return new List<MatchListItem>();
+        }
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
                 m.match_id,
+                p.puuid,
                 m.queue_id,
                 p.champion_id,
                 p.champion_name,
@@ -127,14 +141,17 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             LEFT JOIN team_match_metrics tmm ON tmm.match_id = p.match_id AND tmm.team_id = p.team_id
             LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
             LEFT JOIN team_objectives tobj_enemy ON tobj_enemy.match_id = p.match_id AND tobj_enemy.team_id != p.team_id
-            WHERE p.puuid = @puuid
+            WHERE {puuidPredicate}
             {queueFilter}
             ORDER BY m.game_start_time DESC
             LIMIT @limit";
 
-        var rawData = await ExecuteListAsync(sql, MapMatchListRaw,
-            ("@puuid", puuid),
-            ("@limit", limit));
+        var parameters = new List<(string name, object? value)>(puuidParams)
+        {
+            ("@limit", limit)
+        };
+
+        var rawData = await ExecuteListAsync(sql, MapMatchListRaw, parameters.ToArray());
 
         // Transform to MatchListItem with computed fields
         var items = new List<MatchListItem>();
@@ -204,33 +221,53 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         string queueFilter,
         int limit = 20,
         Dictionary<string, RoleBaseline>? baselines = null)
+        => await GetMatchListSummaryAsync([puuid], queueFilter, limit, baselines);
+
+    public async Task<IList<MatchListSummaryItem>> GetMatchListSummaryAsync(
+        IReadOnlyList<string> puuids,
+        string queueFilter,
+        int limit = 20,
+        Dictionary<string, RoleBaseline>? baselines = null)
     {
+        if (puuids.Count == 0)
+        {
+            return new List<MatchListSummaryItem>();
+        }
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
-                m.match_id,
-                m.queue_id,
-                p.champion_id,
-                p.champion_name,
+                m.match_id as match_id,
+                ra.game_name as account_game_name,
+                ra.tag_line as account_tag_line,
+                ra.region as account_region,
+                m.queue_id as queue_id,
+                p.champion_id as champion_id,
+                p.champion_name as champion_name,
                 COALESCE(p.role, 'UNKNOWN') as role,
-                p.lane,
-                p.win,
-                p.kills,
-                p.deaths,
-                p.assists,
-                p.creep_score,
-                p.gold_earned,
-                m.game_duration_sec,
-                m.game_start_time
+                p.lane as lane,
+                p.win as win,
+                p.kills as kills,
+                p.deaths as deaths,
+                p.assists as assists,
+                p.creep_score as creep_score,
+                p.gold_earned as gold_earned,
+                m.game_duration_sec as game_duration_sec,
+                m.game_start_time as game_start_time
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid
+            LEFT JOIN riot_accounts ra ON ra.puuid = p.puuid
+            WHERE {puuidPredicate}
             {queueFilter}
             ORDER BY m.game_start_time DESC
             LIMIT @limit";
 
-        var rawData = await ExecuteListAsync(sql, MapMatchListSummaryRaw,
-            ("@puuid", puuid),
-            ("@limit", limit));
+        var parameters = new List<(string name, object? value)>(puuidParams)
+        {
+            ("@limit", limit)
+        };
+
+        var rawData = await ExecuteListAsync(sql, MapMatchListSummaryRaw, parameters.ToArray());
 
         // Transform to MatchListSummaryItem with computed fields
         var items = new List<MatchListSummaryItem>();
@@ -249,6 +286,9 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
 
             items.Add(new MatchListSummaryItem(
                 MatchId: raw.MatchId,
+                AccountGameName: raw.AccountGameName,
+                AccountTagLine: raw.AccountTagLine,
+                AccountRegion: raw.AccountRegion,
                 QueueId: raw.QueueId,
                 QueueType: LeagueDataHelper.GetQueueLabelShort(raw.QueueId),
                 ChampionId: raw.ChampionId,
@@ -397,22 +437,46 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         );
     }
 
-    private static MatchListSummaryRawData MapMatchListSummaryRaw(MySqlDataReader r) => new(
-        MatchId: r.GetString(0),
-        QueueId: r.GetInt32(1),
-        ChampionId: r.GetInt32(2),
-        ChampionName: r.GetString(3),
-        Role: r.GetString(4),
-        Lane: r.IsDBNull(5) ? null : r.GetString(5),
-        Win: r.GetBoolean(6),
-        Kills: r.GetInt32(7),
-        Deaths: r.GetInt32(8),
-        Assists: r.GetInt32(9),
-        CreepScore: r.GetInt32(10),
-        GoldEarned: r.GetInt32(11),
-        GameDurationSec: r.GetInt32(12),
-        GameStartTime: r.GetInt64(13)
-    );
+    private static MatchListSummaryRawData MapMatchListSummaryRaw(MySqlDataReader r)
+    {
+        var matchIdOrdinal = r.GetOrdinal("match_id");
+        var accountGameNameOrdinal = r.GetOrdinal("account_game_name");
+        var accountTagLineOrdinal = r.GetOrdinal("account_tag_line");
+        var accountRegionOrdinal = r.GetOrdinal("account_region");
+        var queueIdOrdinal = r.GetOrdinal("queue_id");
+        var championIdOrdinal = r.GetOrdinal("champion_id");
+        var championNameOrdinal = r.GetOrdinal("champion_name");
+        var roleOrdinal = r.GetOrdinal("role");
+        var laneOrdinal = r.GetOrdinal("lane");
+        var winOrdinal = r.GetOrdinal("win");
+        var killsOrdinal = r.GetOrdinal("kills");
+        var deathsOrdinal = r.GetOrdinal("deaths");
+        var assistsOrdinal = r.GetOrdinal("assists");
+        var creepScoreOrdinal = r.GetOrdinal("creep_score");
+        var goldEarnedOrdinal = r.GetOrdinal("gold_earned");
+        var gameDurationSecOrdinal = r.GetOrdinal("game_duration_sec");
+        var gameStartTimeOrdinal = r.GetOrdinal("game_start_time");
+
+        return new MatchListSummaryRawData(
+            MatchId: r.GetString(matchIdOrdinal),
+            AccountGameName: r.IsDBNull(accountGameNameOrdinal) ? null : r.GetString(accountGameNameOrdinal),
+            AccountTagLine: r.IsDBNull(accountTagLineOrdinal) ? null : r.GetString(accountTagLineOrdinal),
+            AccountRegion: r.IsDBNull(accountRegionOrdinal) ? null : r.GetString(accountRegionOrdinal),
+            QueueId: r.GetInt32(queueIdOrdinal),
+            ChampionId: r.GetInt32(championIdOrdinal),
+            ChampionName: r.GetString(championNameOrdinal),
+            Role: r.GetString(roleOrdinal),
+            Lane: r.IsDBNull(laneOrdinal) ? null : r.GetString(laneOrdinal),
+            Win: r.GetBoolean(winOrdinal),
+            Kills: r.GetInt32(killsOrdinal),
+            Deaths: r.GetInt32(deathsOrdinal),
+            Assists: r.GetInt32(assistsOrdinal),
+            CreepScore: r.GetInt32(creepScoreOrdinal),
+            GoldEarned: r.GetInt32(goldEarnedOrdinal),
+            GameDurationSec: r.GetInt32(gameDurationSecOrdinal),
+            GameStartTime: r.GetInt64(gameStartTimeOrdinal)
+        );
+    }
 
     private static MatchDetailsRawData MapMatchDetailsRaw(MySqlDataReader r) => new(
         MatchId: r.GetString(0),
@@ -500,7 +564,16 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
     /// Used for trend comparisons in the match list.
     /// </summary>
     public async Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(string puuid, string queueFilter)
+        => await GetRoleBaselinesAsync([puuid], queueFilter);
+
+    public async Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(IReadOnlyList<string> puuids, string queueFilter)
     {
+        if (puuids.Count == 0)
+        {
+            return new Dictionary<string, RoleBaseline>();
+        }
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             WITH RankedMatches AS (
                 SELECT
@@ -520,7 +593,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 FROM participants p
                 INNER JOIN matches m ON m.match_id = p.match_id
                 LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
-                WHERE p.puuid = @puuid
+                WHERE {puuidPredicate}
                 {queueFilter}
             )
             SELECT
@@ -549,7 +622,10 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             await using var reader = await cmd.ExecuteReaderAsync();
 
             while (await reader.ReadAsync())

@@ -1,5 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Application.Endpoints.Shared;
 
 namespace Mongoose.Api.Application.Services;
 
@@ -28,7 +31,8 @@ public sealed class PuuidResolutionService
     /// </summary>
     /// <param name="Account">The full Riot account entity with rank and profile data</param>
     /// <param name="IsPrimary">Whether this is the user's primary account</param>
-    public record ResolvedAccount(RiotAccount Account, bool IsPrimary);
+    /// <param name="AccountId">Opaque account identifier safe for client usage</param>
+    public record ResolvedAccount(RiotAccount Account, bool IsPrimary, string AccountId);
 
     /// <summary>
     /// Resolves the primary Riot account for a user.
@@ -45,7 +49,7 @@ public sealed class PuuidResolutionService
 
         if (linkedAccounts == null || linkedAccounts.Count == 0)
         {
-            _logger.LogWarning("No riot accounts found for userId {UserId}", userId);
+            _logger.LogWarning("No riot accounts found for userId {UserId}", LogSanitizer.Sanitize(userId.ToString()));
             return (
                 Results.NotFound(new { error = "No riot accounts found for this user", code = "RIOT_ACCOUNT_NOT_FOUND" }),
                 null
@@ -56,12 +60,12 @@ public sealed class PuuidResolutionService
         var primaryLink = linkedAccounts.FirstOrDefault(la => la.Link?.IsPrimary == true);
         if (primaryLink.Link?.IsPrimary == true)
         {
-            return (null, new ResolvedAccount(primaryLink.Account, true));
+            return (null, new ResolvedAccount(primaryLink.Account, true, BuildAccountId(userId, primaryLink.Account.Puuid)));
         }
 
         // Fallback to first account (not marked as primary)
         var firstAccount = linkedAccounts[0].Account;
-        return (null, new ResolvedAccount(firstAccount, false));
+        return (null, new ResolvedAccount(firstAccount, false, BuildAccountId(userId, firstAccount.Puuid)));
     }
 
     /// <summary>
@@ -97,7 +101,7 @@ public sealed class PuuidResolutionService
 
         if (linkedAccounts == null || linkedAccounts.Count == 0)
         {
-            _logger.LogWarning("No riot accounts found for userId {UserId}", userId);
+            _logger.LogWarning("No riot accounts found for userId {UserId}", LogSanitizer.Sanitize(userId.ToString()));
             return (
                 Results.NotFound(new { error = "No riot accounts found for this user", code = "RIOT_ACCOUNT_NOT_FOUND" }),
                 null
@@ -105,10 +109,58 @@ public sealed class PuuidResolutionService
         }
 
         var accounts = linkedAccounts
-            .Select(la => new ResolvedAccount(la.Account, la.Link?.IsPrimary == true))
+            .Select(la => new ResolvedAccount(la.Account, la.Link?.IsPrimary == true, BuildAccountId(userId, la.Account.Puuid)))
             .ToList();
 
         return (null, accounts);
+    }
+
+    /// <summary>
+    /// Resolves accounts based on an optional accountId query parameter.
+    /// - null/empty: resolves to the primary account for backwards compatibility.
+    /// - "all": resolves to all linked (visible) accounts.
+    /// - specific accountId: resolves that single account when it belongs to the user.
+    /// </summary>
+    /// <param name="userId">The user ID to resolve accounts for</param>
+    /// <param name="accountIdParam">Optional opaque account identifier query parameter</param>
+    /// <returns>
+    /// A tuple containing either (null, List&lt;ResolvedAccount&gt;) on success or (IResult, null) on failure.
+    /// </returns>
+    public async Task<(IResult? ErrorResult, List<ResolvedAccount>? Accounts)> ResolveRequestedAccountsAsync(long userId, string? accountIdParam)
+    {
+        if (string.IsNullOrWhiteSpace(accountIdParam))
+        {
+            var (errorResult, primaryAccount) = await ResolvePrimaryAccountAsync(userId);
+            if (errorResult != null)
+            {
+                return (errorResult, null);
+            }
+
+            return (null, [primaryAccount!]);
+        }
+
+        if (string.Equals(accountIdParam, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ResolveAllAccountsAsync(userId);
+        }
+
+        var linkedAccounts = await GetVisibleLinkedAccountsAsync(userId);
+        var requestedAccount = linkedAccounts
+            .FirstOrDefault(linkedAccount => string.Equals(
+                BuildAccountId(userId, linkedAccount.Account.Puuid),
+                accountIdParam,
+                StringComparison.Ordinal));
+
+        if (requestedAccount.Account == null)
+        {
+            _logger.LogWarning("User {UserId} requested unlinked accountId {AccountId}", LogSanitizer.Sanitize(userId.ToString()), LogSanitizer.HashForLog(accountIdParam));
+            return (AuthResults.Forbidden(), null);
+        }
+
+        return (null, [new ResolvedAccount(
+            requestedAccount.Account,
+            requestedAccount.Link?.IsPrimary == true,
+            BuildAccountId(userId, requestedAccount.Account.Puuid))]);
     }
 
     /// <summary>
@@ -162,5 +214,13 @@ public sealed class PuuidResolutionService
     private static string NormalizeTier(string? tier)
     {
         return tier?.Trim().ToLowerInvariant() ?? "free";
+    }
+
+    private static string BuildAccountId(long userId, string puuid)
+    {
+        var bytes = Encoding.UTF8.GetBytes($"{userId}:{puuid}");
+        var hash = SHA256.HashData(bytes);
+        var accountId = Convert.ToHexStringLower(hash[..16]);
+        return $"acc_{accountId}";
     }
 }

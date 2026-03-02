@@ -106,7 +106,7 @@ public sealed class ResetPasswordEndpoint : IEndpoint
                 if (token.Attempts >= maxAttempts)
                 {
                     await tokensRepo.MarkTokenAsUsedAsync(token.Id);
-                    logger.LogWarning("User {UserId} exceeded max password reset attempts. Token invalidated.", user.UserId);
+                    logger.LogWarning("User {UserId} exceeded max password reset attempts. Token invalidated.", LogSanitizer.Sanitize(user.UserId.ToString()));
                     return Results.BadRequest(new { error = "Invalid or expired code. Please request a new one.", code = "INVALID_CODE" });
                 }
 
@@ -114,7 +114,7 @@ public sealed class ResetPasswordEndpoint : IEndpoint
                 if (!string.Equals(request.Code, token.Code, StringComparison.Ordinal))
                 {
                     await tokensRepo.IncrementAttemptsAsync(token.Id);
-                    logger.LogWarning("User {UserId} submitted incorrect reset code (attempt {Attempts}/{MaxAttempts})", user.UserId, token.Attempts + 1, maxAttempts);
+                    logger.LogWarning("User {UserId} submitted incorrect reset code (attempt {Attempts}/{MaxAttempts})", LogSanitizer.Sanitize(user.UserId.ToString()), token.Attempts + 1, maxAttempts);
                     return Results.BadRequest(new { error = "Invalid or expired code. Please request a new one.", code = "INVALID_CODE" });
                 }
 
@@ -123,7 +123,7 @@ public sealed class ResetPasswordEndpoint : IEndpoint
                 await usersRepo.UpdatePasswordHashAsync(user.UserId, newPasswordHash);
                 await tokensRepo.MarkTokenAsUsedAsync(token.Id);
 
-                logger.LogInformation("Password reset successfully for user {UserId}", user.UserId);
+                logger.LogInformation("Password reset successfully for user {UserId}", LogSanitizer.Sanitize(user.UserId.ToString()));
 
                 return Results.Ok(new ResetPasswordResponse(true, "Password has been reset. Please log in with your new password."));
             }

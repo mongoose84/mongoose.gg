@@ -100,21 +100,21 @@ public sealed class LoginEndpoint : IEndpoint
 
                 if (user == null)
                 {
-                    logger.LogWarning("Login attempt with non-existent username/email: {Input}", LogSanitizer.Sanitize(request.Username));
+                    logger.LogWarning("Login attempt with non-existent username/email: {Input}", LogSanitizer.HashForLog(request.Username));
                     return AuthResults.InvalidCredentials();
                 }
 
                 // Verify password using BCrypt
                 if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
-                    logger.LogWarning("Login attempt with invalid password for username: {Username}", LogSanitizer.Sanitize(user.Username));
+                    logger.LogWarning("Login attempt with invalid password for username: {Username}", LogSanitizer.HashForLog(user.Username));
                     return AuthResults.InvalidCredentials();
                 }
 
                 // Check if user is active
                 if (!user.IsActive)
                 {
-                    logger.LogWarning("Login attempt for inactive user: {Username}", LogSanitizer.Sanitize(user.Username));
+                    logger.LogWarning("Login attempt for inactive user: {Username}", LogSanitizer.HashForLog(user.Username));
                     return AuthResults.AccountDeactivated();
                 }
 
@@ -157,7 +157,7 @@ public sealed class LoginEndpoint : IEndpoint
                     authProperties
                 );
 
-                logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", LogSanitizer.Sanitize(user.Username), user.UserId);
+                logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", LogSanitizer.Sanitize(user.Username), LogSanitizer.Sanitize(user.UserId.ToString()));
 
                 // Check linked Riot accounts for new matches and update profile data
                 // Run in background (fire-and-forget) to avoid slowing down login response
@@ -169,7 +169,7 @@ public sealed class LoginEndpoint : IEndpoint
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Background sync check failed for user {UserId}", user.UserId);
+                        logger.LogError(ex, "Background sync check failed for user {UserId}", LogSanitizer.Sanitize(user.UserId.ToString()));
                     }
                 });
 

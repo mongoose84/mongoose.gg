@@ -20,4 +20,13 @@ public interface IDeathPositionsRepository
         string? queueType = null, 
         string? timeRange = null, 
         string? side = null);
+
+    /// <summary>
+    /// Gets death positions for one or more players across their matches.
+    /// </summary>
+    Task<DeathPositionsResponse?> GetDeathPositionsAsync(
+        IReadOnlyList<string> puuids,
+        string? queueType = null,
+        string? timeRange = null,
+        string? side = null);
 }

@@ -29,6 +29,7 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ISoloPerformanceRepository soloPerformanceRepo,
             [FromServices] ILogger<SoloPerformanceEndpoint> logger
@@ -41,25 +42,33 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                // Resolve primary Riot account (includes PUUID and rank data)
-                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                // Resolve requested account scope (primary/all/specific)
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
-                var riotAccount = resolvedAccount!.Account;
+                if (resolvedAccounts == null || resolvedAccounts.Count == 0)
+                {
+                    return Results.NotFound(new { error = "No riot accounts found for this user", code = "RIOT_ACCOUNT_NOT_FOUND" });
+                }
+
+                var primaryResolvedAccount = resolvedAccounts.FirstOrDefault(a => a.IsPrimary);
+                var riotAccount = primaryResolvedAccount?.Account ?? resolvedAccounts[0].Account;
+                var puuids = resolvedAccounts.Select(a => a.Account.Puuid).ToList();
 
                 // Fetch performance data
-                logger.LogInformation("Solo performance request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    authorizedUser.UserId, riotAccount.Puuid,
+                logger.LogInformation("Solo performance request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}",
+                    authorizedUser.UserId, puuids.Count,
                     LogSanitizer.Sanitize(queueType) ?? "all",
-                    LogSanitizer.Sanitize(timeRange) ?? "all");
+                    LogSanitizer.Sanitize(timeRange) ?? "all",
+                        LogSanitizer.HashForLog(accountId, "primary"));
 
-                var performance = await soloPerformanceRepo.GetSoloPerformanceAsync(riotAccount.Puuid, queueType, timeRange);
+                var performance = await soloPerformanceRepo.GetSoloPerformanceAsync(puuids, queueType, timeRange);
 
                 if (performance == null)
                 {
                     logger.LogInformation("Solo performance: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}",
-                        riotAccount.Puuid,
+                        LogSanitizer.HashForLog(riotAccount.Puuid),
                         LogSanitizer.Sanitize(queueType) ?? "all",
                         LogSanitizer.Sanitize(timeRange) ?? "all");
                     return Results.NotFound(new { error = "No match data found for this player" });

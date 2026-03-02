@@ -20,6 +20,7 @@ public interface ITrendRepository
     /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
     /// <returns>Array of winrate trend points</returns>
     Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    Task<WinrateTrendPoint[]> GetWinrateTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null);
 
     /// <summary>
     /// Get gold at 15 minutes trend data for chart display.
@@ -33,6 +34,7 @@ public interface ITrendRepository
     /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
     /// <returns>Array of gold at 15 trend points</returns>
     Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null);
 
     /// <summary>
     /// Get CS per minute trend data for chart display.
@@ -47,6 +49,7 @@ public interface ITrendRepository
     /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
     /// <returns>Array of CS per minute trend points</returns>
     Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null);
 
     /// <summary>
     /// Get deaths over time trend data for chart display.
@@ -60,6 +63,7 @@ public interface ITrendRepository
     /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
     /// <returns>Tuple containing array of deaths trend points and summary statistics</returns>
     Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null);
 
     /// <summary>
     /// Get dragon participation trend data for chart display.
@@ -74,6 +78,7 @@ public interface ITrendRepository
     /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
     /// <returns>Tuple containing array of dragon participation trend points and summary statistics</returns>
     Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null);
 
     /// <summary>
     /// Get vision score trend data for chart display.
@@ -88,6 +93,7 @@ public interface ITrendRepository
     /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
     /// <returns>Tuple containing array of vision score trend points and summary statistics</returns>
     Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null);
 
     /// <summary>
     /// Get daily match counts for the past N days for heatmap display.
@@ -97,5 +103,6 @@ public interface ITrendRepository
     /// <param name="daysBack">Number of days to look back (default: 91)</param>
     /// <returns>Dictionary of date strings to match counts</returns>
     Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91);
+    Task<Dictionary<string, int>> GetDailyMatchCountsAsync(IReadOnlyList<string> puuids, int daysBack = 91);
 }
 

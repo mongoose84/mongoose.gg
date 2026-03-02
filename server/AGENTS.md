@@ -158,6 +158,8 @@ All errors return JSON: `{ "error": "message", "code": "ERROR_CODE" }`. Use `Aut
 
 **Critical**: All user input must be sanitized before logging to prevent log injection/forgery attacks. Use the `LogSanitizer.Sanitize()` helper function for any untrusted input:
 
+All logging should use `LogSanitizer` from `Mongoose.Api.Application.Endpoints.Shared`.
+
 ```csharp
 // ✅ CORRECT — sanitize user input
 logger.LogWarning("Invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
@@ -175,7 +177,8 @@ Sanitization removes newlines (`\r\n`) and control characters that could be used
 - Request body fields (email, feedback text, etc.)
 - External data (Riot API responses, IP addresses, etc.)
 
-PUIDs and internal IDs resolved from the database don't need sanitization.
+For consistency, sanitize all dynamic log values that can originate from user/session/external sources. Use `LogSanitizer.Sanitize(value.ToString())` when needed.
+PUUIDs and internal IDs resolved from the database are lower risk, but sanitizing before logging is still preferred.
 
 ### Background Jobs
 

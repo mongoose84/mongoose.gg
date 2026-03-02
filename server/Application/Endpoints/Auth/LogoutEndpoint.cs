@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Mongoose.Api.Application.Endpoints.Shared;
 using static Mongoose.Api.Application.DTOs.LogoutDto;
 
 namespace Mongoose.Api.Application.Endpoints.Auth;
@@ -32,7 +33,7 @@ public sealed class LogoutEndpoint : IEndpoint
                 await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 
                 if (!string.IsNullOrEmpty(userId))
-                    logger.LogInformation("User {UserId} logged out successfully", userId);
+                    logger.LogInformation("User {UserId} logged out successfully", LogSanitizer.Sanitize(userId));
                 
                 return Results.Ok(new LogoutResponse("Logged out successfully"));
             }

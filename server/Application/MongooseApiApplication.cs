@@ -1,4 +1,5 @@
 using Mongoose.Api.Application.Endpoints;
+using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Extensions;
 
 namespace Mongoose.Api.Application;
@@ -67,7 +68,7 @@ public sealed class MongooseApiApplication
         {
             if (shouldLogEndpointDiscovery)
             {
-                _logger.LogInformation("[{Category}]", group.Key);
+                _logger.LogInformation("[{Category}]", LogSanitizer.Sanitize(group.Key));
             }
 
             foreach (var endpoint in group.OrderBy(e => e.Route))
@@ -75,7 +76,7 @@ public sealed class MongooseApiApplication
                 endpoint.Configure(_app);
                 if (shouldLogEndpointDiscovery)
                 {
-                    _logger.LogInformation("{Route}", endpoint.Route);
+                    _logger.LogInformation("{Route}", LogSanitizer.Sanitize(endpoint.Route));
                 }
             }
         }

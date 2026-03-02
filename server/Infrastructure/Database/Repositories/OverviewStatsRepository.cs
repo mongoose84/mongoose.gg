@@ -34,17 +34,27 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
     /// Returns the queue_id with highest match count, using tie-breaker order if counts are equal.
     /// </summary>
     public virtual async Task<(int QueueId, string QueueLabel, int MatchCount)> GetPrimaryQueueAsync(string puuid)
+        => await GetPrimaryQueueAsync([puuid]);
+
+    public virtual async Task<(int QueueId, string QueueLabel, int MatchCount)> GetPrimaryQueueAsync(IReadOnlyList<string> puuids)
     {
+        if (puuids.Count == 0)
+        {
+            return (420, "Ranked Solo/Duo", 0);
+        }
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        var (subqueryPuuidPredicate, subqueryPuuidParams) = BuildStringInClause("p2.puuid", puuids, "puuid_sub");
         // Get match counts per queue for last 50 matches OR last 30 days (whichever gives more games)
         var thirtyDaysAgo = DateTimeOffset.UtcNow.AddDays(-30).ToUnixTimeMilliseconds();
 
-        const string sql = @"
+        var sql = $@"
             SELECT 
                 m.queue_id,
                 COUNT(*) as match_count
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid
+            WHERE {puuidPredicate}
               AND (
                   m.game_start_time >= @thirty_days_ago
                   OR p.match_id IN (
@@ -52,7 +62,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
                           SELECT p2.match_id 
                           FROM participants p2
                           INNER JOIN matches m2 ON m2.match_id = p2.match_id
-                          WHERE p2.puuid = @puuid
+                          WHERE {subqueryPuuidPredicate}
                           ORDER BY m2.game_start_time DESC
                           LIMIT 50
                       ) recent_matches
@@ -66,7 +76,14 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
+            foreach (var (name, value) in subqueryPuuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             cmd.Parameters.AddWithValue("@thirty_days_ago", thirtyDaysAgo);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -101,8 +118,17 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
     /// Returns newest first (index 0 = most recent).
     /// </summary>
     public virtual async Task<List<MatchResultData>> GetLast20MatchesAsync(string puuid, int queueId)
+        => await GetLast20MatchesAsync([puuid], queueId);
+
+    public virtual async Task<List<MatchResultData>> GetLast20MatchesAsync(IReadOnlyList<string> puuids, int queueId)
     {
-        const string sql = @"
+        if (puuids.Count == 0)
+        {
+            return new List<MatchResultData>();
+        }
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        var sql = $@"
             SELECT 
                 p.match_id,
                 p.win,
@@ -110,7 +136,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
                 m.game_start_time
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid
+            WHERE {puuidPredicate}
               AND m.queue_id = @queue_id
             ORDER BY m.game_start_time DESC
             LIMIT 20";
@@ -120,7 +146,10 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             cmd.Parameters.AddWithValue("@queue_id", queueId);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -143,8 +172,17 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
     /// Gets the most recent match for the player across all queues.
     /// </summary>
     public virtual async Task<LastMatchData?> GetLastMatchAsync(string puuid)
+        => await GetLastMatchAsync([puuid]);
+
+    public virtual async Task<LastMatchData?> GetLastMatchAsync(IReadOnlyList<string> puuids)
     {
-        const string sql = @"
+        if (puuids.Count == 0)
+        {
+            return null;
+        }
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        var sql = $@"
             SELECT
                 p.match_id,
                 p.champion_id,
@@ -157,7 +195,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
                 m.queue_id
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid
+            WHERE {puuidPredicate}
             ORDER BY m.game_start_time DESC
             LIMIT 1";
 
@@ -166,7 +204,10 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
 
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -194,14 +235,23 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
     /// Returns null when season data is unavailable or no matches exist.
     /// </summary>
     public virtual async Task<MostPlayedChampionData?> GetMostPlayedChampionAsync(string puuid)
+        => await GetMostPlayedChampionAsync([puuid]);
+
+    public virtual async Task<MostPlayedChampionData?> GetMostPlayedChampionAsync(IReadOnlyList<string> puuids)
     {
-        const string sql = @"
+        if (puuids.Count == 0)
+        {
+            return null;
+        }
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        var sql = $@"
             SELECT
                 p.champion_name,
                 COUNT(*) AS games_played
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid
+            WHERE {puuidPredicate}
               AND m.season_code = (
                   SELECT season_code
                   FROM seasons
@@ -218,7 +268,10 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
 
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())

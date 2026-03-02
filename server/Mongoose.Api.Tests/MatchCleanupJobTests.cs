@@ -288,9 +288,12 @@ internal sealed class FakeMatchesRepository : IMatchesRepository
     public Task<long> GetTotalMatchCountAsync() => Task.FromResult(0L);
     public Task<IList<Match>> GetRecentMatchHeadersAsync(string puuid, int? queueId, int limit) => Task.FromResult<IList<Match>>(new List<Match>());
     public Task<IList<Core.QueryModels.MatchListSummaryItem>> GetMatchListSummaryAsync(string puuid, string queueFilter, int limit = 20, Dictionary<string, Core.QueryModels.RoleBaseline>? baselines = null) => Task.FromResult<IList<Core.QueryModels.MatchListSummaryItem>>(new List<Core.QueryModels.MatchListSummaryItem>());
+    public Task<IList<Core.QueryModels.MatchListSummaryItem>> GetMatchListSummaryAsync(IReadOnlyList<string> puuids, string queueFilter, int limit = 20, Dictionary<string, Core.QueryModels.RoleBaseline>? baselines = null) => Task.FromResult<IList<Core.QueryModels.MatchListSummaryItem>>(new List<Core.QueryModels.MatchListSummaryItem>());
     public Task<Core.QueryModels.MatchDetailsItem?> GetMatchDetailsAsync(string matchId, string puuid) => Task.FromResult<Core.QueryModels.MatchDetailsItem?>(null);
     public Task<IList<Core.QueryModels.MatchListItem>> GetMatchListAsync(string puuid, string queueFilter, int limit = 20, Dictionary<string, Core.QueryModels.RoleBaseline>? baselines = null) => Task.FromResult<IList<Core.QueryModels.MatchListItem>>(new List<Core.QueryModels.MatchListItem>());
+    public Task<IList<Core.QueryModels.MatchListItem>> GetMatchListAsync(IReadOnlyList<string> puuids, string queueFilter, int limit = 20, Dictionary<string, Core.QueryModels.RoleBaseline>? baselines = null) => Task.FromResult<IList<Core.QueryModels.MatchListItem>>(new List<Core.QueryModels.MatchListItem>());
     public Task<Dictionary<string, Core.QueryModels.RoleBaseline>> GetRoleBaselinesAsync(string puuid, string queueFilter) => Task.FromResult(new Dictionary<string, Core.QueryModels.RoleBaseline>());
+    public Task<Dictionary<string, Core.QueryModels.RoleBaseline>> GetRoleBaselinesAsync(IReadOnlyList<string> puuids, string queueFilter) => Task.FromResult(new Dictionary<string, Core.QueryModels.RoleBaseline>());
     public Task<IList<Core.QueryModels.MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId) => Task.FromResult<IList<Core.QueryModels.MatchupParticipantRaw>>(new List<Core.QueryModels.MatchupParticipantRaw>());
 }
 
