@@ -57,6 +57,9 @@ public sealed class OverviewEndpoint : IEndpoint
 
                 // Get all linked accounts for active contexts determination
                 var (allAccountsError, allAccounts) = await puuidResolutionService.ResolveAllAccountsAsync(authorizedUser.UserId);
+                if (allAccountsError != null)
+                    return allAccountsError;
+
                 var linkedAccountsCount = allAccounts?.Count ?? 1;
 
                 logger.LogInformation("Overview request: userId={UserId}, accountCount={AccountCount}, account={Account}", authorizedUser.UserId, selectedPuuids.Count, LogSanitizer.Sanitize(account) ?? "primary");
