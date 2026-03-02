@@ -520,6 +520,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         public event EventHandler<Mongoose.Api.Infrastructure.Riot.LimitHandler.RateLimitWaitEventArgs>? RateLimitWaitStarted;
 
+        private void NotifyRateLimitWaitStarted(Mongoose.Api.Infrastructure.Riot.LimitHandler.RateLimitWaitEventArgs args)
+        {
+            RateLimitWaitStarted?.Invoke(this, args);
+        }
+
         public Task<double> GetWinrateAsync(string puuid)
         {
             return Task.FromResult(50.0);
