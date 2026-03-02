@@ -244,7 +244,7 @@ public class MatchEndpointTests
     }
 
     [Fact]
-    public async Task MatchDetails_returns_not_found_when_pro_tier_uses_non_primary_linked_puuid()
+    public async Task MatchDetails_returns_ok_when_pro_tier_uses_non_primary_linked_puuid_and_match_exists()
     {
         using var factory = new TestWebApplicationFactory();
         factory.UsersRepository.SetTier("tester", "pro");
@@ -255,13 +255,38 @@ public class MatchEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-primary", isPrimary: true);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-secondary", isPrimary: false);
 
+        factory.MatchesRepository.AddMatch("NA1_12345", queueId: 420);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_12345",
+            Puuid: "test-puuid-secondary",
+            ChampionId: 103,
+            ChampionName: "Ahri",
+            Role: "MIDDLE",
+            Lane: "MIDDLE",
+            Win: true,
+            Kills: 9,
+            Deaths: 2,
+            Assists: 11,
+            CreepScore: 225,
+            GoldEarned: 13500,
+            TeamId: 100,
+            DamageDealt: 31000,
+            DamageTaken: 12000,
+            VisionScore: 24
+        ));
+
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/details?puuid=test-puuid-secondary");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
 
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<MatchDetailsResponse>();
+        body.Should().NotBeNull();
+        body!.Match.Should().NotBeNull();
+        body.Match.MatchId.Should().Be("NA1_12345");
+        body.Match.ChampionName.Should().Be("Ahri");
     }
 
     [Fact]
