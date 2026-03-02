@@ -29,6 +29,7 @@ describe('authStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -65,6 +66,87 @@ describe('authStore', () => {
     it('hasLinkedAccount is false when no riot accounts', () => {
       const store = useAuthStore();
       expect(store.hasLinkedAccount).toBe(false);
+    });
+
+    it('activeAccountPuuid defaults to overall', () => {
+      const store = useAuthStore();
+      expect(store.activeAccountPuuid).toBe('overall');
+      expect(store.isOverallMode).toBe(true);
+      expect(store.activeAccount).toBeNull();
+    });
+
+    it('activeAccountPuuid restores from localStorage', () => {
+      localStorage.setItem('mongoose_active_account', 'puuid-123');
+
+      const store = useAuthStore();
+      expect(store.activeAccountPuuid).toBe('puuid-123');
+    });
+  });
+
+  describe('active account state management', () => {
+    it('setActiveAccount(overall) updates state and localStorage', () => {
+      const store = useAuthStore();
+
+      store.setActiveAccount('overall');
+
+      expect(store.activeAccountPuuid).toBe('overall');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('overall');
+      expect(store.getAccountParam()).toBe('all');
+    });
+
+    it('setActiveAccount(validPuuid) updates state when account is linked', () => {
+      const store = useAuthStore();
+      store.user = {
+        userId: 1,
+        tier: 'pro',
+        riotAccounts: [
+          { puuid: 'puuid-1', isPrimary: true },
+          { puuid: 'puuid-2', isPrimary: false }
+        ]
+      };
+
+      store.setActiveAccount('puuid-2');
+
+      expect(store.activeAccountPuuid).toBe('puuid-2');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('puuid-2');
+      expect(store.activeAccount).toEqual({ puuid: 'puuid-2', isPrimary: false });
+      expect(store.isOverallMode).toBe(false);
+      expect(store.getAccountParam()).toBe('puuid-2');
+    });
+
+    it('setActiveAccount(invalidPuuid) does not update state', () => {
+      const store = useAuthStore();
+      store.user = {
+        userId: 1,
+        tier: 'pro',
+        riotAccounts: [{ puuid: 'puuid-1', isPrimary: true }]
+      };
+
+      store.setActiveAccount('puuid-1');
+      store.setActiveAccount('puuid-invalid');
+
+      expect(store.activeAccountPuuid).toBe('puuid-1');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('puuid-1');
+    });
+
+    it('validateActiveAccount resets to overall when active account is no longer linked', () => {
+      const store = useAuthStore();
+      store.user = {
+        userId: 1,
+        tier: 'pro',
+        riotAccounts: [{ puuid: 'puuid-1', isPrimary: true }]
+      };
+      store.setActiveAccount('puuid-1');
+
+      store.user = {
+        userId: 1,
+        tier: 'pro',
+        riotAccounts: [{ puuid: 'puuid-2', isPrimary: true }]
+      };
+      store.validateActiveAccount();
+
+      expect(store.activeAccountPuuid).toBe('overall');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('overall');
     });
   });
 
@@ -190,6 +272,42 @@ describe('authStore', () => {
       await loginPromise;
 
       expect(store.isLoading).toBe(false);
+    });
+
+    it('restores stored active account on login when still linked', async () => {
+      localStorage.setItem('mongoose_active_account', 'puuid-2');
+      authApi.login.mockResolvedValue({ success: true });
+      authApi.getCurrentUser.mockResolvedValue({
+        userId: 1,
+        emailVerified: true,
+        tier: 'pro',
+        riotAccounts: [
+          { puuid: 'puuid-1', isPrimary: true },
+          { puuid: 'puuid-2', isPrimary: false }
+        ]
+      });
+
+      const store = useAuthStore();
+      await store.login({ username: 'testuser', password: 'password123' });
+
+      expect(store.activeAccountPuuid).toBe('puuid-2');
+    });
+
+    it('resets to overall on login when stored active account is no longer linked', async () => {
+      localStorage.setItem('mongoose_active_account', 'puuid-missing');
+      authApi.login.mockResolvedValue({ success: true });
+      authApi.getCurrentUser.mockResolvedValue({
+        userId: 1,
+        emailVerified: true,
+        tier: 'pro',
+        riotAccounts: [{ puuid: 'puuid-1', isPrimary: true }]
+      });
+
+      const store = useAuthStore();
+      await store.login({ username: 'testuser', password: 'password123' });
+
+      expect(store.activeAccountPuuid).toBe('overall');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('overall');
     });
   });
 
@@ -469,6 +587,40 @@ describe('authStore', () => {
 
       expect(authApi.unlinkRiotAccount).toHaveBeenCalledWith('abc');
       expect(result).toEqual({ success: true });
+    });
+
+    it('unlinkRiotAccount resets active account to overall when unlinking active account', async () => {
+      authApi.unlinkRiotAccount.mockResolvedValue();
+      authApi.getCurrentUser.mockResolvedValue({ userId: 1, riotAccounts: [] });
+
+      const store = useAuthStore();
+      store.user = {
+        userId: 1,
+        tier: 'pro',
+        riotAccounts: [{ puuid: 'abc', isPrimary: true }]
+      };
+      store.setActiveAccount('abc');
+
+      await store.unlinkRiotAccount('abc');
+
+      expect(store.activeAccountPuuid).toBe('overall');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('overall');
+    });
+
+    it('linkRiotAccount sets first linked account as active', async () => {
+      const linkedAccount = { puuid: 'new-puuid', gameName: 'NewPlayer', tagLine: 'EUW', isPrimary: true };
+      authApi.linkRiotAccount.mockResolvedValue(linkedAccount);
+      authApi.getCurrentUser.mockResolvedValue({
+        userId: 1,
+        tier: 'free',
+        riotAccounts: [linkedAccount]
+      });
+
+      const store = useAuthStore();
+      await store.linkRiotAccount({ gameName: 'NewPlayer', tagLine: 'EUW', region: 'euw1' });
+
+      expect(store.activeAccountPuuid).toBe('new-puuid');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('new-puuid');
     });
 
     it('setPrimary calls API and refreshes user', async () => {

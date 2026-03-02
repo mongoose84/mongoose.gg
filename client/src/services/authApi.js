@@ -7,6 +7,16 @@ import { getBaseApi } from './apiConfig'
 import { apiRequest, parseResponse } from './apiClient'
 
 const API_BASE = getBaseApi()
+const ACTIVE_ACCOUNT_STORAGE_KEY = 'mongoose_active_account'
+
+export function getAccountParam() {
+  const activeAccount = localStorage.getItem(ACTIVE_ACCOUNT_STORAGE_KEY) || 'overall'
+  return activeAccount === 'overall' ? 'all' : activeAccount
+}
+
+function appendAccountParam(params) {
+  params.append('account', getAccountParam())
+}
 
 		/**
 		 * Get public aggregate stats for the landing page
@@ -288,14 +298,12 @@ export async function getRiotAccountSyncStatus(puuid) {
 /**
  * Get overview dashboard data for a user
  * @param {number} userId - User ID
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object>} Overview data including playerHeader, rankSnapshot, lastMatch, activeGoals, suggestedActions
  */
-export async function getOverview(userId, accountId) {
+export async function getOverview(userId) {
   const params = new URLSearchParams()
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/overview/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -314,10 +322,10 @@ export async function getOverview(userId, accountId) {
  * @param {number} userId - User ID
  * @param {string} queueType - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object>} Solo dashboard data
  */
-export async function getSoloDashboard(userId, queueType = 'all', timeRange, accountId) {
+export async function getSoloDashboard(userId, queueType = 'all', timeRange) {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
@@ -325,9 +333,7 @@ export async function getSoloDashboard(userId, queueType = 'all', timeRange, acc
   if (timeRange) {
     params.append('timeRange', timeRange)
   }
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/solo/dashboard/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -373,6 +379,7 @@ export async function getChampionSelectData(userId, queueType = 'all', timeRange
   if (timeRange) {
     params.append('timeRange', timeRange)
   }
+  appendAccountParam(params)
 
   const endpoint = `/champion-select/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -387,14 +394,12 @@ export async function getChampionSelectData(userId, queueType = 'all', timeRange
 /**
  * Get match activity data for heatmap (daily match counts for past 6 months)
  * @param {number} userId - User ID
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object>} Match activity data with dailyMatchCounts, startDate, endDate, totalMatches
  */
-export async function getMatchActivity(userId, accountId) {
+export async function getMatchActivity(userId) {
   const params = new URLSearchParams()
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/solo/activity/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -414,10 +419,10 @@ export async function getMatchActivity(userId, accountId) {
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
  * @param {number} [limit] - Maximum number of most recent games to return (null for all with downsampling)
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object>} Winrate trend data with winrateTrend array
  */
-export async function getWinrateTrend(userId, queueType = 'all', timeRange, limit, accountId) {
+export async function getWinrateTrend(userId, queueType = 'all', timeRange, limit) {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
@@ -428,9 +433,7 @@ export async function getWinrateTrend(userId, queueType = 'all', timeRange, limi
   if (limit) {
     params.append('limit', limit.toString())
   }
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/trends/winrate/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -448,10 +451,10 @@ export async function getWinrateTrend(userId, queueType = 'all', timeRange, limi
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
  * @param {number} [limit] - Maximum number of most recent games to return (null for all with downsampling)
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object>} Gold at 15 trend data with goldAt15Trend array
  */
-export async function getGoldAt15Trend(userId, queueType = 'all', timeRange, limit, accountId) {
+export async function getGoldAt15Trend(userId, queueType = 'all', timeRange, limit) {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
@@ -462,9 +465,7 @@ export async function getGoldAt15Trend(userId, queueType = 'all', timeRange, lim
   if (limit) {
     params.append('limit', limit.toString())
   }
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/trends/gold-at-15/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -482,10 +483,10 @@ export async function getGoldAt15Trend(userId, queueType = 'all', timeRange, lim
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
  * @param {number} [limit] - Maximum number of most recent games to return (null for all with downsampling)
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object>} CS per minute trend data with csPerMinuteTrend array
  */
-export async function getCsPerMinuteTrend(userId, queueType = 'all', timeRange, limit, accountId) {
+export async function getCsPerMinuteTrend(userId, queueType = 'all', timeRange, limit) {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
@@ -496,9 +497,7 @@ export async function getCsPerMinuteTrend(userId, queueType = 'all', timeRange, 
   if (limit) {
     params.append('limit', limit.toString())
   }
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/trends/cs-per-minute/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -516,10 +515,10 @@ export async function getCsPerMinuteTrend(userId, queueType = 'all', timeRange, 
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
  * @param {number} [limit] - Maximum number of most recent games to return (null for all with downsampling)
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object>} Deaths trend data with deathsTrend array and summary statistics
  */
-export async function getDeathsTrend(userId, queueType = 'all', timeRange, limit, accountId) {
+export async function getDeathsTrend(userId, queueType = 'all', timeRange, limit) {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
@@ -530,9 +529,7 @@ export async function getDeathsTrend(userId, queueType = 'all', timeRange, limit
   if (limit) {
     params.append('limit', limit.toString())
   }
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/trends/deaths/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -550,10 +547,10 @@ export async function getDeathsTrend(userId, queueType = 'all', timeRange, limit
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
  * @param {number} [limit] - Maximum number of most recent games to return (null for all with downsampling)
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object>} Dragon participation trend data with dragonParticipationTrend array and summary statistics
  */
-export async function getDragonParticipationTrend(userId, queueType = 'all', timeRange, limit, accountId) {
+export async function getDragonParticipationTrend(userId, queueType = 'all', timeRange, limit) {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
@@ -564,9 +561,7 @@ export async function getDragonParticipationTrend(userId, queueType = 'all', tim
   if (limit) {
     params.append('limit', limit.toString())
   }
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/trends/dragon-participation/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -584,10 +579,10 @@ export async function getDragonParticipationTrend(userId, queueType = 'all', tim
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
  * @param {number} [limit] - Maximum number of most recent games to return (null for all with downsampling)
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object>} Vision score trend data with visionScoreTrend array and summary statistics
  */
-export async function getVisionScoreTrend(userId, queueType = 'all', timeRange, limit, accountId) {
+export async function getVisionScoreTrend(userId, queueType = 'all', timeRange, limit) {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
@@ -598,9 +593,7 @@ export async function getVisionScoreTrend(userId, queueType = 'all', timeRange, 
   if (limit) {
     params.append('limit', limit.toString())
   }
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/trends/vision-score/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -617,10 +610,10 @@ export async function getVisionScoreTrend(userId, queueType = 'all', timeRange, 
  * @param {number} userId - User ID
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object|null>} Radar profile data with axes and gamesAnalyzed, or null if no data found
  */
-export async function getRadarChart(userId, queueType = 'all', timeRange, accountId) {
+export async function getRadarChart(userId, queueType = 'all', timeRange) {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
@@ -628,9 +621,7 @@ export async function getRadarChart(userId, queueType = 'all', timeRange, accoun
   if (timeRange) {
     params.append('timeRange', timeRange)
   }
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/solo/radar-chart/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -648,10 +639,10 @@ export async function getRadarChart(userId, queueType = 'all', timeRange, accoun
  * @param {string} [queueType] - Optional queue filter (all, ranked_solo, ranked_flex, normal, aram)
  * @param {string} [timeRange] - Optional time range (1w, 1m, 3m, 6m, current_season, last_season)
  * @param {string} [side] - Optional side filter (all, blue, red)
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<Object|null>} Death positions data with deaths array and phase summary, or null if no data found
  */
-export async function getDeathPositions(userId, queueType = 'all', timeRange, side = 'all', accountId) {
+export async function getDeathPositions(userId, queueType = 'all', timeRange, side = 'all') {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
@@ -662,9 +653,7 @@ export async function getDeathPositions(userId, queueType = 'all', timeRange, si
   if (side && side !== 'all') {
     params.append('side', side)
   }
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/solo/death-positions/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -694,6 +683,7 @@ export async function getChampionMatchups(userId, queueType = 'all', timeRange) 
   if (timeRange) {
     params.append('timeRange', timeRange)
   }
+  appendAccountParam(params)
 
   const endpoint = `/solo/matchups/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
@@ -709,17 +699,15 @@ export async function getChampionMatchups(userId, queueType = 'all', timeRange) 
  * Get match list with trend badges and role baselines
  * @param {number} userId - The user ID
  * @param {string} queueType - Queue filter (ranked_solo, ranked_flex, normal, aram, all)
- * @param {string} [accountId] - Optional opaque account scope identifier (or 'all')
+ * Includes active account context from authStore (`overall` maps to `all`).
  * @returns {Promise<{ matches: Array, baselinesByRole: Object, queueType: string, totalMatches: number } | null>}
  */
-export async function getMatchList(userId, queueType = 'all', accountId) {
+export async function getMatchList(userId, queueType = 'all') {
   const params = new URLSearchParams()
   if (queueType && queueType !== 'all') {
     params.append('queueType', queueType)
   }
-  if (accountId) {
-    params.append('accountId', accountId)
-  }
+  appendAccountParam(params)
 
   const endpoint = `/matches/${userId}${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })

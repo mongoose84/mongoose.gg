@@ -189,6 +189,14 @@ watch(queueFilter, (newValue) => {
   fetchMatches()
 })
 
+watch(() => authStore.activeAccountPuuid, () => {
+  selectedMatchId.value = null
+  matchDetails.value = null
+  matchDetailsBaseline.value = null
+  detailsError.value = null
+  fetchMatches()
+})
+
 // Watch for changes to matchId in the route query and sync selection
 watch(
   () => route.query.matchId,
