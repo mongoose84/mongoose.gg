@@ -7,6 +7,8 @@ import { headlessUIStubs } from '../helpers/testUtils'
 const mockAuthStore = {
   riotAccounts: [],
   tier: 'free',
+  normalizedTier: 'free',
+  hasReachedRiotAccountLimit: false,
   setPrimary: vi.fn(),
   triggerSync: vi.fn(),
   unlinkRiotAccount: vi.fn(),
@@ -61,6 +63,8 @@ describe('LinkedAccountsSection.vue', () => {
   beforeEach(() => {
     mockAuthStore.riotAccounts = []
     mockAuthStore.tier = 'free'
+    mockAuthStore.normalizedTier = 'free'
+    mockAuthStore.hasReachedRiotAccountLimit = false
     mockAuthStore.setPrimary.mockReset()
     mockAuthStore.triggerSync.mockReset()
     mockAuthStore.unlinkRiotAccount.mockReset()
@@ -78,7 +82,8 @@ describe('LinkedAccountsSection.vue', () => {
 
   it('shows upgrade prompt for free tier after first linked account', () => {
     mockAuthStore.riotAccounts = [accounts[0]]
-    mockAuthStore.tier = 'free'
+    mockAuthStore.normalizedTier = 'free'
+    mockAuthStore.hasReachedRiotAccountLimit = true
 
     const wrapper = createWrapper()
 
@@ -88,7 +93,8 @@ describe('LinkedAccountsSection.vue', () => {
 
   it('shows link another account button for pro tier', () => {
     mockAuthStore.riotAccounts = [accounts[0]]
-    mockAuthStore.tier = 'pro'
+    mockAuthStore.normalizedTier = 'pro'
+    mockAuthStore.hasReachedRiotAccountLimit = false
 
     const wrapper = createWrapper()
 
@@ -96,9 +102,10 @@ describe('LinkedAccountsSection.vue', () => {
     expect(wrapper.find('[data-testid="upgrade-prompt"]').exists()).toBe(false)
   })
 
-  it('normalizes tier label and CTA behavior for mixed-case pro tier', () => {
+  it('uses normalizedTier getter for pro tier label and CTA behavior', () => {
     mockAuthStore.riotAccounts = [accounts[0]]
-    mockAuthStore.tier = ' Pro '
+    mockAuthStore.normalizedTier = 'pro'
+    mockAuthStore.hasReachedRiotAccountLimit = false
 
     const wrapper = createWrapper()
 
@@ -107,9 +114,10 @@ describe('LinkedAccountsSection.vue', () => {
     expect(wrapper.find('[data-testid="upgrade-prompt"]').exists()).toBe(false)
   })
 
-  it('normalizes tier label and CTA behavior for whitespace free tier', () => {
+  it('uses normalizedTier getter for free tier label and CTA behavior', () => {
     mockAuthStore.riotAccounts = [accounts[0]]
-    mockAuthStore.tier = ' free '
+    mockAuthStore.normalizedTier = 'free'
+    mockAuthStore.hasReachedRiotAccountLimit = true
 
     const wrapper = createWrapper()
 

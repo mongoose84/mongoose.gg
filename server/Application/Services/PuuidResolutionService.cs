@@ -112,33 +112,6 @@ public sealed class PuuidResolutionService
     }
 
     /// <summary>
-    /// Resolves requested Riot accounts based on the account query parameter.
-    /// Free tier users requesting account=all are restricted to primary-only resolution.
-    /// </summary>
-    /// <param name="userId">The user ID to resolve accounts for</param>
-    /// <param name="accountParam">Account selector query parameter (e.g. null, "primary", "all")</param>
-    /// <returns>
-    /// A tuple containing either (null, List&lt;ResolvedAccount&gt;) on success or (IResult, null) on failure.
-    /// </returns>
-    public async Task<(IResult? ErrorResult, List<ResolvedAccount>? Accounts)> ResolveRequestedAccountsAsync(long userId, string? accountParam)
-    {
-        var normalizedAccount = accountParam?.Trim().ToLowerInvariant();
-
-        if (normalizedAccount == "all")
-        {
-            return await ResolveAllAccountsAsync(userId);
-        }
-
-        var (primaryError, primaryAccount) = await ResolvePrimaryAccountAsync(userId);
-        if (primaryError != null)
-        {
-            return (primaryError, null);
-        }
-
-        return (null, [primaryAccount!]);
-    }
-
-    /// <summary>
     /// Verifies that a PUUID belongs to a specific user.
     /// Used by endpoints like MatchDetailsEndpoint that require PUUID ownership validation.
     /// </summary>

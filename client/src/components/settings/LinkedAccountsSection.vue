@@ -124,11 +124,7 @@ const isRemoving = ref(false)
 const liveMessage = ref('')
 
 const linkedAccounts = computed(() => authStore.riotAccounts)
-const normalizedTier = computed(() => {
-  const rawTier = authStore.tier
-  if (typeof rawTier !== 'string') return 'free'
-  return rawTier.trim().toLowerCase() || 'free'
-})
+const normalizedTier = computed(() => authStore.normalizedTier)
 
 const tierLabel = computed(() => {
   const value = normalizedTier.value
@@ -138,8 +134,7 @@ const tierLabel = computed(() => {
 })
 
 const showLinkButton = computed(() => {
-  if (normalizedTier.value !== 'free') return true
-  return linkedAccounts.value.length === 0
+  return !authStore.hasReachedRiotAccountLimit
 })
 
 const pendingRemoveLabel = computed(() => {

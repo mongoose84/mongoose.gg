@@ -149,30 +149,7 @@ const errors = reactive({
 const isSubmitting = ref(false)
 const errorMessage = ref('')
 
-const normalizedTier = computed(() => {
-  if (typeof authStore.normalizedTier === 'string') {
-    return authStore.normalizedTier
-  }
-
-  const rawTier = authStore.tier
-  if (typeof rawTier !== 'string') return 'free'
-  return rawTier.trim().toLowerCase() || 'free'
-})
-
-const linkedAccountCount = computed(() => {
-  if (Array.isArray(authStore.riotAccounts)) {
-    return authStore.riotAccounts.length
-  }
-  return 0
-})
-
-const isAtAccountLimit = computed(() => {
-  if (typeof authStore.hasReachedRiotAccountLimit === 'boolean') {
-    return authStore.hasReachedRiotAccountLimit
-  }
-
-  return normalizedTier.value === 'free' && linkedAccountCount.value >= 1
-})
+const isAtAccountLimit = computed(() => authStore.hasReachedRiotAccountLimit)
 
 // Validation
 const isFormValid = computed(() => {
