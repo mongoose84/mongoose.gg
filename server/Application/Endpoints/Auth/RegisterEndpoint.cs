@@ -118,14 +118,14 @@ public sealed class RegisterEndpoint : IEndpoint
                 // Check if username already exists (case-insensitive)
                 if (await usersRepo.UsernameExistsAsync(normalizedUsername))
                 {
-                    logger.LogWarning("Registration attempt with existing username: {Username}", LogSanitizer.Sanitize(request.Username));
+                    logger.LogWarning("Registration attempt with existing username: {Username}", LogSanitizer.HashForLog(request.Username));
                     return Results.Conflict(new { error = "This username is already taken", code = "USERNAME_TAKEN" });
                 }
 
                 // Check if email already exists
                 if (await usersRepo.EmailExistsAsync(request.Email))
                 {
-                    logger.LogWarning("Registration attempt with existing email: {Email}", LogSanitizer.Sanitize(request.Email));
+                    logger.LogWarning("Registration attempt with existing email: {Email}", LogSanitizer.HashForLog(request.Email));
                     return Results.Conflict(new { error = "This email is already registered", code = "EMAIL_TAKEN" });
                 }
 

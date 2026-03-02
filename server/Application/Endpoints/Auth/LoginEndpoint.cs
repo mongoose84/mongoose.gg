@@ -100,21 +100,21 @@ public sealed class LoginEndpoint : IEndpoint
 
                 if (user == null)
                 {
-                    logger.LogWarning("Login attempt with non-existent username/email: {Input}", LogSanitizer.Sanitize(request.Username));
+                    logger.LogWarning("Login attempt with non-existent username/email: {Input}", LogSanitizer.HashForLog(request.Username));
                     return AuthResults.InvalidCredentials();
                 }
 
                 // Verify password using BCrypt
                 if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
-                    logger.LogWarning("Login attempt with invalid password for username: {Username}", LogSanitizer.Sanitize(user.Username));
+                    logger.LogWarning("Login attempt with invalid password for username: {Username}", LogSanitizer.HashForLog(user.Username));
                     return AuthResults.InvalidCredentials();
                 }
 
                 // Check if user is active
                 if (!user.IsActive)
                 {
-                    logger.LogWarning("Login attempt for inactive user: {Username}", LogSanitizer.Sanitize(user.Username));
+                    logger.LogWarning("Login attempt for inactive user: {Username}", LogSanitizer.HashForLog(user.Username));
                     return AuthResults.AccountDeactivated();
                 }
 

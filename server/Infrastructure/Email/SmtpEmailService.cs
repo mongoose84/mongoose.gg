@@ -21,15 +21,15 @@ public class SmtpEmailService : IEmailService
 
     public async Task SendVerificationEmailAsync(string toEmail, string username, string verificationCode)
     {
-        // Dev mode: log verification code instead of sending email
+        // Dev mode: do not log raw secrets (email/code)
         var devMode = _config.GetValue<bool>("Email:DevMode", false);
         if (devMode)
         {
             _logger.LogWarning("========================================");
             _logger.LogWarning("DEV MODE: Email sending disabled");
-            _logger.LogWarning("To: {Email}", LogSanitizer.Sanitize(toEmail));
-            _logger.LogWarning("Username: {Username}", LogSanitizer.Sanitize(username));
-            _logger.LogWarning("Verification Code: {Code}", LogSanitizer.Sanitize(verificationCode));
+            _logger.LogWarning("To: {Email}", RedactEmailForLog(toEmail));
+            _logger.LogWarning("Username: {Username}", LogSanitizer.HashForLog(username));
+            _logger.LogWarning("Verification Code Hash: {CodeHash}", LogSanitizer.HashForLog(verificationCode));
             _logger.LogWarning("========================================");
             await Task.CompletedTask;
             return;
@@ -45,7 +45,7 @@ public class SmtpEmailService : IEmailService
         var smtpPort = _config.GetValue<int>("Email:SmtpPort", 587);
         if (smtpPort <= 0)
         {
-            var errorMessage = $"SMTP port is not configured. Email not sent to {toEmail}";
+            var errorMessage = "SMTP port is not configured. Email not sent.";
             _logger.LogError(errorMessage);
             throw new InvalidOperationException(errorMessage);
         }
@@ -53,7 +53,7 @@ public class SmtpEmailService : IEmailService
         var smtpUsername = _config["Email:SmtpUsername"] ?? Environment.GetEnvironmentVariable("SMTP_USERNAME");
         if (string.IsNullOrWhiteSpace(smtpUsername))
         {
-            var errorMessage = $"SMTP username is not configured. Email not sent to {toEmail}";
+            var errorMessage = "SMTP username is not configured. Email not sent.";
             _logger.LogError(errorMessage);
             throw new InvalidOperationException(errorMessage);
         }
@@ -61,7 +61,7 @@ public class SmtpEmailService : IEmailService
         var smtpPassword = _config["Email:SmtpPassword"] ?? Environment.GetEnvironmentVariable("SMTP_PASSWORD");
         if (string.IsNullOrWhiteSpace(smtpPassword))
         {
-            var errorMessage = $"SMTP password is not configured. Email not sent to {toEmail}";
+            var errorMessage = "SMTP password is not configured. Email not sent.";
             _logger.LogError(errorMessage);
             throw new InvalidOperationException(errorMessage);
         }
@@ -69,7 +69,7 @@ public class SmtpEmailService : IEmailService
         var fromEmail = _config["Email:FromEmail"] ?? Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? smtpUsername;
         if (string.IsNullOrWhiteSpace(fromEmail))
         {
-            var errorMessage = $"SMTP from email is not configured. Email not sent to {toEmail}";
+            var errorMessage = "SMTP from email is not configured. Email not sent.";
             _logger.LogError(errorMessage);
             throw new InvalidOperationException(errorMessage);
         }
@@ -77,14 +77,14 @@ public class SmtpEmailService : IEmailService
         var fromName = "The Mongoose.gg Team";
         if (string.IsNullOrWhiteSpace(fromName))
         {
-            var errorMessage = $"SMTP from name is not configured. Email not sent to {toEmail}";
+            var errorMessage = "SMTP from name is not configured. Email not sent.";
             _logger.LogError(errorMessage);
             throw new InvalidOperationException(errorMessage);
         }
 
         if (string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(smtpUsername) || string.IsNullOrWhiteSpace(smtpPassword))
         {
-            _logger.LogError("SMTP configuration is incomplete. Email not sent to {Email}", LogSanitizer.Sanitize(toEmail));
+            _logger.LogError("SMTP configuration is incomplete. Email not sent to {Email}", RedactEmailForLog(toEmail));
             throw new InvalidOperationException("SMTP configuration is incomplete. Please configure Email:SmtpHost, Email:SmtpUsername, and Email:SmtpPassword.");
         }
 
@@ -135,15 +135,15 @@ public class SmtpEmailService : IEmailService
 
     public async Task SendPasswordResetEmailAsync(string toEmail, string username, string resetCode)
     {
-        // Dev mode: log reset code instead of sending email
+        // Dev mode: do not log raw secrets (email/code)
         var devMode = _config.GetValue<bool>("Email:DevMode", false);
         if (devMode)
         {
             _logger.LogWarning("========================================");
             _logger.LogWarning("DEV MODE: Email sending disabled");
-            _logger.LogWarning("To: {Email}", LogSanitizer.Sanitize(toEmail));
-            _logger.LogWarning("Username: {Username}", LogSanitizer.Sanitize(username));
-            _logger.LogWarning("Password Reset Code: {Code}", LogSanitizer.Sanitize(resetCode));
+            _logger.LogWarning("To: {Email}", RedactEmailForLog(toEmail));
+            _logger.LogWarning("Username: {Username}", LogSanitizer.HashForLog(username));
+            _logger.LogWarning("Password Reset Code Hash: {CodeHash}", LogSanitizer.HashForLog(resetCode));
             _logger.LogWarning("========================================");
             await Task.CompletedTask;
             return;
@@ -163,7 +163,7 @@ public class SmtpEmailService : IEmailService
 
         if (string.IsNullOrWhiteSpace(smtpUsername) || string.IsNullOrWhiteSpace(smtpPassword) || string.IsNullOrWhiteSpace(fromEmail))
         {
-            _logger.LogError("SMTP configuration is incomplete. Password reset email not sent to {Email}", LogSanitizer.Sanitize(toEmail));
+            _logger.LogError("SMTP configuration is incomplete. Password reset email not sent to {Email}", RedactEmailForLog(toEmail));
             throw new InvalidOperationException("SMTP configuration is incomplete.");
         }
 
@@ -298,6 +298,29 @@ public class SmtpEmailService : IEmailService
     </table>
 </body>
 </html>";
+    }
+
+    private static string RedactEmailForLog(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return "empty";
+        }
+
+        var sanitized = LogSanitizer.Sanitize(email);
+        var atIndex = sanitized.IndexOf('@');
+        if (atIndex <= 0 || atIndex == sanitized.Length - 1)
+        {
+            return LogSanitizer.HashForLog(sanitized);
+        }
+
+        var local = sanitized[..atIndex];
+        var domain = sanitized[(atIndex + 1)..];
+        var localRedacted = local.Length <= 2
+            ? "**"
+            : $"{local[0]}***{local[^1]}";
+
+        return $"{localRedacted}@{domain}";
     }
 
     private string BuildEmailBody(string username, string verificationCode, bool hasLogo)
