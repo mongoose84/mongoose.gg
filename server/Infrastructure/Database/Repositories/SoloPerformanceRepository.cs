@@ -1,5 +1,6 @@
 using MySqlConnector;
 using Mongoose.Api.Application.Services;
+using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 using static Mongoose.Api.Application.DTOs.MainChampionDto;
@@ -38,7 +39,9 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var effectiveTimeRangeForLog = string.IsNullOrWhiteSpace(timeRangeFilter.NormalizedTimeRange) ? "all" : timeRangeFilter.NormalizedTimeRange;
-        _logger.LogInformation("GetSoloPerformanceAsync start: accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}", puuids.Count, queueType, effectiveTimeRangeForLog);
+        var sanitizedQueueForLog = LogSanitizer.Sanitize(queueType) ?? "all";
+        var sanitizedTimeRangeForLog = LogSanitizer.Sanitize(effectiveTimeRangeForLog) ?? "all";
+        _logger.LogInformation("GetSoloPerformanceAsync start: accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}", puuids.Count, sanitizedQueueForLog, sanitizedTimeRangeForLog);
 
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
@@ -110,7 +113,7 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetSoloPerformanceAsync error: accountCount={AccountCount}, queueType={Queue}", puuids.Count, queueType);
+            _logger.LogError(ex, "GetSoloPerformanceAsync error: accountCount={AccountCount}, queueType={Queue}", puuids.Count, sanitizedQueueForLog);
             throw;
         }
     }
