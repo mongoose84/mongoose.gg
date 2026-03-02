@@ -142,7 +142,7 @@ public sealed class PuuidResolutionService
 
         var user = await _usersRepository.GetByIdAsync(userId);
         var normalizedTier = NormalizeTier(user?.Tier);
-        if (normalizedTier == "pro")
+        if (normalizedTier != "free")
         {
             return linkedAccounts;
         }

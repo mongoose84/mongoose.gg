@@ -115,7 +115,7 @@ public sealed class PuuidResolutionServiceTests
     }
 
     [Fact]
-    public async Task ResolveAllAccountsAsync_ReturnsPrimaryOnly_WhenTierIsUnknown()
+    public async Task VerifyPuuidOwnershipAsync_ReturnsTrue_ForNonPrimaryLinkedAccount_WhenTierIsPremium()
     {
         var linkedAccounts = new List<(UserRiotAccountLink Link, RiotAccount Account)>
         {
@@ -133,13 +133,39 @@ public sealed class PuuidResolutionServiceTests
         var usersRepository = new FakeUsersRepository("premium");
         var service = new PuuidResolutionService(repository, usersRepository, NullLogger<PuuidResolutionService>.Instance);
 
+        var ownsSecondaryAccount = await service.VerifyPuuidOwnershipAsync(1, "puuid-secondary");
+
+        Assert.True(ownsSecondaryAccount);
+    }
+
+    [Fact]
+    public async Task ResolveAllAccountsAsync_ReturnsAllAccounts_WhenTierIsUnknown()
+    {
+        var linkedAccounts = new List<(UserRiotAccountLink Link, RiotAccount Account)>
+        {
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-primary", IsPrimary = true, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-primary", GameName = "Primary", TagLine = "NA1", SummonerName = "Primary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            ),
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-secondary", IsPrimary = false, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-secondary", GameName = "Secondary", TagLine = "NA1", SummonerName = "Secondary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            )
+        };
+
+        var repository = new FakeUserRiotAccountsRepository(linkedAccounts);
+        var usersRepository = new FakeUsersRepository("weird_tier");
+        var service = new PuuidResolutionService(repository, usersRepository, NullLogger<PuuidResolutionService>.Instance);
+
         var (errorResult, accounts) = await service.ResolveAllAccountsAsync(1);
 
         Assert.Null(errorResult);
         Assert.NotNull(accounts);
-        Assert.Single(accounts!);
+        Assert.Equal(2, accounts!.Count);
         Assert.Equal("puuid-primary", accounts[0].Account.Puuid);
         Assert.True(accounts[0].IsPrimary);
+        Assert.Equal("puuid-secondary", accounts[1].Account.Puuid);
+        Assert.False(accounts[1].IsPrimary);
     }
 
     private sealed class FakeUserRiotAccountsRepository : IUserRiotAccountsRepository
