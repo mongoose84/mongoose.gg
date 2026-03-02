@@ -50,13 +50,13 @@ public sealed class ChampionSelectEndpoint : IEndpoint
 
                 // Fetch champion select data (only main champions, games played, win rate)
                 logger.LogInformation("Champion select request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    authorizedUser.UserId, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
+                    authorizedUser.UserId, LogSanitizer.HashForLog(primaryPuuid), LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
                 var championSelectData = await championSelectRepo.GetChampionSelectDataAsync(primaryPuuid, queueType, timeRange);
 
                 if (championSelectData == null)
                 {
                     logger.LogInformation("Champion select: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}",
-                        primaryPuuid, queueType ?? "all", timeRange ?? "all");
+                        LogSanitizer.HashForLog(primaryPuuid), LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
                     return Results.NotFound(new { error = "No match data found for this player" });
                 }
 

@@ -55,12 +55,12 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                 if (!isLinked)
                 {
                     logger.LogWarning("Match narrative: user {UserId} attempted to access data for unowned puuid {Puuid}",
-                        authenticatedUser.UserId, LogSanitizer.Sanitize(puuid));
+                        authenticatedUser.UserId, LogSanitizer.HashForLog(puuid));
                     return Results.Forbid();
                 }
 
                 logger.LogInformation("Match narrative request: matchId={MatchId}, puuid={Puuid}",
-                    LogSanitizer.Sanitize(matchId), LogSanitizer.Sanitize(puuid));
+                    LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(puuid));
 
                 // Fetch all participants for this match
                 var participants = await matchesRepo.GetMatchParticipantsAsync(matchId);
@@ -76,7 +76,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                 if (userParticipant == null)
                 {
                     logger.LogWarning("Match narrative: user puuid {Puuid} not found in match {MatchId}",
-                        LogSanitizer.Sanitize(puuid), LogSanitizer.Sanitize(matchId));
+                        LogSanitizer.HashForLog(puuid), LogSanitizer.Sanitize(matchId));
                     return Results.NotFound(new { error = "User not found in this match" });
                 }
 

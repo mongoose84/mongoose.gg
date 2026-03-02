@@ -67,7 +67,7 @@ public sealed class MatchListEndpoint : IEndpoint
                 if (matches.Count == 0)
                 {
                     logger.LogInformation("Match list: no matches found for puuid {Puuid} with queueType {Queue}",
-                        string.Join(",", puuids), LogSanitizer.Sanitize(validatedQueueType) ?? "all");
+                        string.Join(",", puuids.Select(p => LogSanitizer.HashForLog(p))), LogSanitizer.Sanitize(validatedQueueType) ?? "all");
                     return Results.Ok(new MatchListResponse(
                         Matches: Array.Empty<MatchListSummaryItem>(),
                         BaselinesByRole: baselines,

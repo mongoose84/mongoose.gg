@@ -81,7 +81,7 @@ public class LoginSyncService
                 DateTime.UtcNow - account.LastSyncAt.Value < SyncCooldown)
             {
                 _logger.LogDebug("Skipping match sync check for {Puuid} - last sync was {LastSync}",
-                    LogSanitizer.Sanitize(account.Puuid), account.LastSyncAt);
+                    LogSanitizer.HashForLog(account.Puuid), account.LastSyncAt);
                 return;
             }
 
@@ -89,7 +89,7 @@ public class LoginSyncService
             if (account.SyncStatus == "syncing" || account.SyncStatus == "pending")
             {
                 _logger.LogDebug("Skipping match sync check for {Puuid} - already {Status}",
-                    LogSanitizer.Sanitize(account.Puuid), LogSanitizer.Sanitize(account.SyncStatus));
+                    LogSanitizer.HashForLog(account.Puuid), LogSanitizer.Sanitize(account.SyncStatus));
                 return;
             }
 
@@ -98,7 +98,7 @@ public class LoginSyncService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error checking account {Puuid} on login", LogSanitizer.Sanitize(account.Puuid));
+            _logger.LogWarning(ex, "Error checking account {Puuid} on login", LogSanitizer.HashForLog(account.Puuid));
             // Don't throw - continue with other accounts
         }
     }
@@ -123,12 +123,12 @@ public class LoginSyncService
                 {
                     await _riotAccountsRepo.UpdateProfileDataAsync(account.Puuid, profileIconId, summonerLevel);
                     _logger.LogInformation("Updated profile data for {Puuid}: icon={Icon}, level={Level}",
-                        LogSanitizer.Sanitize(account.Puuid), profileIconId, summonerLevel);
+                        LogSanitizer.HashForLog(account.Puuid), profileIconId, summonerLevel);
                 }
             }
             else
             {
-                _logger.LogWarning("Invalid summoner response for {Puuid}", LogSanitizer.Sanitize(account.Puuid));
+                _logger.LogWarning("Invalid summoner response for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
             }
 
             // Update rank data using PUUID (new Riot API endpoint)
@@ -136,7 +136,7 @@ public class LoginSyncService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to update profile data for {Puuid}", LogSanitizer.Sanitize(account.Puuid));
+            _logger.LogWarning(ex, "Failed to update profile data for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
             // Don't throw - continue with sync check
         }
     }
@@ -187,12 +187,12 @@ public class LoginSyncService
                     soloTier, soloRank, soloLp,
                     flexTier, flexRank, flexLp);
                 _logger.LogInformation("Updated rank data for {Puuid}: solo={SoloTier} {SoloRank}, flex={FlexTier} {FlexRank}",
-                    LogSanitizer.Sanitize(account.Puuid), LogSanitizer.Sanitize(soloTier), LogSanitizer.Sanitize(soloRank), LogSanitizer.Sanitize(flexTier), LogSanitizer.Sanitize(flexRank));
+                    LogSanitizer.HashForLog(account.Puuid), LogSanitizer.Sanitize(soloTier), LogSanitizer.Sanitize(soloRank), LogSanitizer.Sanitize(flexTier), LogSanitizer.Sanitize(flexRank));
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to update rank data for {Puuid}", LogSanitizer.Sanitize(account.Puuid));
+            _logger.LogWarning(ex, "Failed to update rank data for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
             // Don't throw - rank data is optional
         }
     }
@@ -213,7 +213,7 @@ public class LoginSyncService
                 matchIdsDoc.RootElement.GetArrayLength() > 0)
             {
                 // New matches found - trigger sync
-                _logger.LogInformation("New matches found for {Puuid}, triggering sync", LogSanitizer.Sanitize(account.Puuid));
+                _logger.LogInformation("New matches found for {Puuid}, triggering sync", LogSanitizer.HashForLog(account.Puuid));
                 await _riotAccountsRepo.UpdateSyncStatusAsync(account.Puuid, "pending");
                 
                 // Notify frontend that sync is starting
@@ -221,12 +221,12 @@ public class LoginSyncService
             }
             else
             {
-                _logger.LogDebug("No new matches for {Puuid}", LogSanitizer.Sanitize(account.Puuid));
+                _logger.LogDebug("No new matches for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to check for new matches for {Puuid}", LogSanitizer.Sanitize(account.Puuid));
+            _logger.LogWarning(ex, "Failed to check for new matches for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
             // Don't throw - this is a best-effort check
         }
     }

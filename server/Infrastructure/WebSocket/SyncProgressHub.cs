@@ -171,13 +171,13 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
         var isLinked = await repo.IsLinkedAsync(userId, puuid);
         if (!isLinked)
         {
-            _logger.LogWarning("User {UserId} attempted to subscribe to unlinked account {Puuid}", LogSanitizer.Sanitize(userId.ToString()), LogSanitizer.Sanitize(puuid));
+            _logger.LogWarning("User {UserId} attempted to subscribe to unlinked account {Puuid}", LogSanitizer.Sanitize(userId.ToString()), LogSanitizer.HashForLog(puuid));
             return false;
         }
 
         var subscribers = _subscriptions.GetOrAdd(puuid, _ => new ConcurrentDictionary<string, byte>());
         subscribers[connectionId] = 0;
-        _logger.LogDebug("Connection {ConnectionId} subscribed to account {Puuid}", LogSanitizer.Sanitize(connectionId), LogSanitizer.Sanitize(puuid));
+        _logger.LogDebug("Connection {ConnectionId} subscribed to account {Puuid}", LogSanitizer.Sanitize(connectionId), LogSanitizer.HashForLog(puuid));
         return true;
     }
 
@@ -186,7 +186,7 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
         if (_subscriptions.TryGetValue(puuid, out var subscribers))
         {
             subscribers.TryRemove(connectionId, out _);
-            _logger.LogDebug("Connection {ConnectionId} unsubscribed from account {Puuid}", LogSanitizer.Sanitize(connectionId), LogSanitizer.Sanitize(puuid));
+            _logger.LogDebug("Connection {ConnectionId} unsubscribed from account {Puuid}", LogSanitizer.Sanitize(connectionId), LogSanitizer.HashForLog(puuid));
         }
     }
 

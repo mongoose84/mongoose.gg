@@ -97,7 +97,7 @@ public class MatchHistorySyncJob : BackgroundService
             return false; // No work
 
         _logger.LogInformation("Starting sync for account {Puuid} ({GameName}#{TagLine})",
-            LogSanitizer.Sanitize(account.Puuid), LogSanitizer.Sanitize(account.GameName), LogSanitizer.Sanitize(account.TagLine));
+            LogSanitizer.HashForLog(account.Puuid), LogSanitizer.Sanitize(account.GameName), LogSanitizer.Sanitize(account.TagLine));
 
         try
         {
@@ -105,7 +105,7 @@ public class MatchHistorySyncJob : BackgroundService
 
             // Mark completed
             await riotAccountsRepo.UpdateSyncStatusAsync(account.Puuid, "completed", DateTime.UtcNow);
-            _logger.LogInformation("Sync completed for account {Puuid}", LogSanitizer.Sanitize(account.Puuid));
+            _logger.LogInformation("Sync completed for account {Puuid}", LogSanitizer.HashForLog(account.Puuid));
 
             // Broadcast completion via WebSocket
             var broadcaster = scope.ServiceProvider.GetService<ISyncProgressBroadcaster>();
@@ -117,12 +117,12 @@ public class MatchHistorySyncJob : BackgroundService
         catch (OperationCanceledException)
         {
             // Don't mark as failed on cancellation - leave as syncing for recovery
-            _logger.LogWarning("Sync cancelled for account {Puuid}", LogSanitizer.Sanitize(account.Puuid));
+            _logger.LogWarning("Sync cancelled for account {Puuid}", LogSanitizer.HashForLog(account.Puuid));
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Sync failed for account {Puuid}", LogSanitizer.Sanitize(account.Puuid));
+            _logger.LogError(ex, "Sync failed for account {Puuid}", LogSanitizer.HashForLog(account.Puuid));
             await riotAccountsRepo.UpdateSyncStatusAsync(account.Puuid, "failed");
 
             // Broadcast error via WebSocket
@@ -236,14 +236,14 @@ public class MatchHistorySyncJob : BackgroundService
             startTime = new DateTimeOffset(backfillStart).ToUnixTimeSeconds();
             maxMatches = MaxBackfillMatches;
             _logger.LogInformation("Starting initial backfill for {Puuid} (last 6 months, max {MaxMatches} matches)",
-                LogSanitizer.Sanitize(account.Puuid), maxMatches);
+                LogSanitizer.HashForLog(account.Puuid), maxMatches);
         }
         else
         {
             startTime = new DateTimeOffset(account.LastSyncAt!.Value).ToUnixTimeSeconds();
             maxMatches = MaxIncrementalMatches;
             _logger.LogInformation("Starting incremental sync for {Puuid} (since {LastSync})",
-                LogSanitizer.Sanitize(account.Puuid), account.LastSyncAt);
+                LogSanitizer.HashForLog(account.Puuid), account.LastSyncAt);
         }
 
         // 2. Fetch new match IDs from Riot
@@ -251,7 +251,7 @@ public class MatchHistorySyncJob : BackgroundService
         // For incremental sync: stop early when we hit an existing match (we trust previous syncs completed)
         var matchIds = await FetchNewMatchIdsAsync(riotApiClient, account.Puuid, existingSet, startTime, maxMatches, isInitialSync, ct);
 
-        _logger.LogInformation("Found {Count} new matches for {Puuid}", matchIds.Count, LogSanitizer.Sanitize(account.Puuid));
+        _logger.LogInformation("Found {Count} new matches for {Puuid}", matchIds.Count, LogSanitizer.HashForLog(account.Puuid));
 
         // 3. Process each match
         int processed = 0;
@@ -305,13 +305,13 @@ public class MatchHistorySyncJob : BackgroundService
                 timeline?.Dispose();
 
                 _logger.LogDebug("Processed match {MatchId} ({Processed}/{Total}) for {Puuid}{TimelineInfo}",
-                    LogSanitizer.Sanitize(matchId), processed + 1, total, LogSanitizer.Sanitize(account.Puuid),
+                    LogSanitizer.Sanitize(matchId), processed + 1, total, LogSanitizer.HashForLog(account.Puuid),
                     LogSanitizer.Sanitize(needsTimeline ? " (with timeline)" : " (info only)"));
             }
             catch (TaskCanceledException)
             {
                 // Timeout - common for timeline requests, don't log full stack trace
-                _logger.LogDebug("Timeout fetching match {MatchId} for {Puuid} - skipping", LogSanitizer.Sanitize(matchId), LogSanitizer.Sanitize(account.Puuid));
+                _logger.LogDebug("Timeout fetching match {MatchId} for {Puuid} - skipping", LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(account.Puuid));
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -320,7 +320,7 @@ public class MatchHistorySyncJob : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to process match {MatchId} for {Puuid} - skipping", LogSanitizer.Sanitize(matchId), LogSanitizer.Sanitize(account.Puuid));
+                _logger.LogWarning(ex, "Failed to process match {MatchId} for {Puuid} - skipping", LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(account.Puuid));
             }
             finally
             {
@@ -339,7 +339,7 @@ public class MatchHistorySyncJob : BackgroundService
             }
         }
 
-        _logger.LogInformation("Synced {Processed}/{Total} matches for {Puuid}", processed, total, LogSanitizer.Sanitize(account.Puuid));
+        _logger.LogInformation("Synced {Processed}/{Total} matches for {Puuid}", processed, total, LogSanitizer.HashForLog(account.Puuid));
 
         // Update LP on most recent ranked match
         if (processed > 0)
@@ -387,7 +387,7 @@ public class MatchHistorySyncJob : BackgroundService
 
             if (mostRecentRankedMatch == null)
             {
-                _logger.LogDebug("No ranked matches found for {Puuid}, skipping LP update", LogSanitizer.Sanitize(account.Puuid));
+                _logger.LogDebug("No ranked matches found for {Puuid}, skipping LP update", LogSanitizer.HashForLog(account.Puuid));
                 return;
             }
 
@@ -420,17 +420,17 @@ public class MatchHistorySyncJob : BackgroundService
                     rank);
 
                 _logger.LogDebug("Updated LP for {Puuid} on match {MatchId}: {Tier} {Rank} {LP} LP",
-                    LogSanitizer.Sanitize(account.Puuid), LogSanitizer.Sanitize(mostRecentRankedMatch.MatchId), LogSanitizer.Sanitize(tier), LogSanitizer.Sanitize(rank), lp);
+                    LogSanitizer.HashForLog(account.Puuid), LogSanitizer.Sanitize(mostRecentRankedMatch.MatchId), LogSanitizer.Sanitize(tier), LogSanitizer.Sanitize(rank), lp);
             }
             else
             {
-                _logger.LogDebug("No ranked data found for {Puuid} in queue {QueueType}", LogSanitizer.Sanitize(account.Puuid), LogSanitizer.Sanitize(queueType));
+                _logger.LogDebug("No ranked data found for {Puuid} in queue {QueueType}", LogSanitizer.HashForLog(account.Puuid), LogSanitizer.Sanitize(queueType));
             }
         }
         catch (Exception ex)
         {
             // Don't fail the sync if LP update fails
-            _logger.LogWarning(ex, "Failed to update LP data for {Puuid}", LogSanitizer.Sanitize(account.Puuid));
+            _logger.LogWarning(ex, "Failed to update LP data for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
         }
     }
 
@@ -569,7 +569,7 @@ public class MatchHistorySyncJob : BackgroundService
         foreach (var p in info.GetProperty("participants").EnumerateArray())
         {
             var participant = participants.First(x => x.Puuid == p.GetProperty("puuid").GetString());
-            _logger.LogTrace("Inserting participant {Puuid} for match {MatchId}", LogSanitizer.Sanitize(participant.Puuid), LogSanitizer.Sanitize(match.MatchId));
+            _logger.LogTrace("Inserting participant {Puuid} for match {MatchId}", LogSanitizer.HashForLog(participant.Puuid), LogSanitizer.Sanitize(match.MatchId));
             var dbId = await participantsRepo.InsertAsync(participant);
 
             participantIdMap[riotParticipantId] = dbId;

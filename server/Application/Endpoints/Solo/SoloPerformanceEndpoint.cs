@@ -68,7 +68,7 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
                 if (performance == null)
                 {
                     logger.LogInformation("Solo performance: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}",
-                        riotAccount.Puuid,
+                        LogSanitizer.HashForLog(riotAccount.Puuid),
                         LogSanitizer.Sanitize(queueType) ?? "all",
                         LogSanitizer.Sanitize(timeRange) ?? "all");
                     return Results.NotFound(new { error = "No match data found for this player" });

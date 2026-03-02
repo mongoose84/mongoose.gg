@@ -79,7 +79,7 @@ public sealed class DeathPositionsEndpoint : IEndpoint
                 {
                     logger.LogInformation(
                         "Death positions: no data for puuid {Puuid} with filters queueType={Queue}, timeRange={TimeRange}, side={Side}",
-                        string.Join(",", puuids),
+                        string.Join(",", puuids.Select(p => LogSanitizer.HashForLog(p))),
                         LogSanitizer.Sanitize(queueType) ?? "all",
                         LogSanitizer.Sanitize(timeRange) ?? "all",
                         LogSanitizer.Sanitize(side) ?? "all");
