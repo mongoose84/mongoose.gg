@@ -246,6 +246,10 @@ async function handleLinkSuccess() {
 onMounted(() => {
   fetchData()
 })
+
+watch(() => authStore.activeAccountPuuid, () => {
+  fetchData()
+})
 </script>
 
 <style scoped>

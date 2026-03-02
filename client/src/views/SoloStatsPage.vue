@@ -492,6 +492,10 @@ watch([queueFilter, timeRange], () => {
   fetchAllData()
 })
 
+watch(() => authStore.activeAccountPuuid, () => {
+  fetchAllData()
+})
+
 // Track filter changes for analytics
 watch(queueFilter, (newValue) => {
   trackFilterChange('queue', newValue)

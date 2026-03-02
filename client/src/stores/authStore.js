@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import * as authApi from '../services/authApi'
 import { setSessionExpiredCallback } from '../services/apiClient'
 
+const ACTIVE_ACCOUNT_STORAGE_KEY = 'mongoose_active_account'
+
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref(null)
@@ -11,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref(null)
   const isLinkingAccount = ref(false)
   const linkAccountLimitInfo = ref(null)
+  const activeAccountPuuid = ref(localStorage.getItem(ACTIVE_ACCOUNT_STORAGE_KEY) || 'overall')
   let initializePromise = null
 
   // Session expiry state
@@ -59,6 +62,81 @@ export const useAuthStore = defineStore('auth', () => {
   const hasLinkedAccount = computed(() => riotAccounts.value.length > 0)
   const primaryRiotAccount = computed(() => riotAccounts.value.find(a => a.isPrimary) ?? riotAccounts.value[0] ?? null)
 
+  function getAccountIdentifier(account) {
+    if (!account) {
+      return null
+    }
+
+    if (typeof account.accountId === 'string' && account.accountId.trim().length > 0) {
+      return account.accountId
+    }
+
+    if (typeof account.puuid === 'string' && account.puuid.trim().length > 0) {
+      return account.puuid
+    }
+
+    return null
+  }
+
+  function findLinkedAccount(identifier) {
+    return riotAccounts.value.find(account => {
+      const accountId = getAccountIdentifier(account)
+      return accountId === identifier || account.puuid === identifier
+    }) ?? null
+  }
+
+  const activeAccount = computed(() => {
+    if (activeAccountPuuid.value === 'overall') {
+      return null
+    }
+
+    return findLinkedAccount(activeAccountPuuid.value)
+  })
+  const isOverallMode = computed(() => activeAccountPuuid.value === 'overall')
+
+  function setActiveAccount(accountIdentifier) {
+    if (accountIdentifier !== 'overall') {
+      const linkedAccount = findLinkedAccount(accountIdentifier)
+      if (!linkedAccount) {
+        return
+      }
+
+      const normalizedAccountIdentifier = getAccountIdentifier(linkedAccount)
+      if (!normalizedAccountIdentifier) {
+        return
+      }
+
+      activeAccountPuuid.value = normalizedAccountIdentifier
+      localStorage.setItem(ACTIVE_ACCOUNT_STORAGE_KEY, normalizedAccountIdentifier)
+      return
+    }
+
+    activeAccountPuuid.value = accountIdentifier
+    localStorage.setItem(ACTIVE_ACCOUNT_STORAGE_KEY, accountIdentifier)
+  }
+
+  function getAccountParam() {
+    return activeAccountPuuid.value === 'overall' ? 'all' : activeAccountPuuid.value
+  }
+
+  function validateActiveAccount() {
+    if (activeAccountPuuid.value === 'overall') {
+      return
+    }
+
+    const linkedAccount = findLinkedAccount(activeAccountPuuid.value)
+    if (!linkedAccount) {
+      setActiveAccount('overall')
+      return
+    }
+
+    const normalizedAccountIdentifier = getAccountIdentifier(linkedAccount)
+    if (normalizedAccountIdentifier && normalizedAccountIdentifier !== activeAccountPuuid.value) {
+      activeAccountPuuid.value = normalizedAccountIdentifier
+      localStorage.setItem(ACTIVE_ACCOUNT_STORAGE_KEY, normalizedAccountIdentifier)
+    }
+  }
+
   // Actions
   async function initialize() {
     if (isInitialized.value) return
@@ -83,6 +161,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         if (canApplyFetchedUser) {
           user.value = userData
+          validateActiveAccount()
         }
 
         // Mark that user was authenticated if we found a valid session
@@ -113,6 +192,7 @@ export const useAuthStore = defineStore('auth', () => {
       // After login, fetch full user data (session is fresh, skip session check)
       const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
+      validateActiveAccount()
       // Mark that user is now authenticated and clear any previous session expiry state
       wasAuthenticated.value = true
       sessionExpired.value = false
@@ -136,6 +216,7 @@ export const useAuthStore = defineStore('auth', () => {
       // After registration, user is logged in but not verified (session is fresh, skip session check)
       const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
+      validateActiveAccount()
       return { success: true, needsVerification: true }
     } catch (e) {
       error.value = e.message
@@ -154,6 +235,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Refresh user data to get updated emailVerified status (session is fresh, skip session check)
       const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
+      validateActiveAccount()
       return { success: true }
     } catch (e) {
       error.value = e.message
@@ -170,10 +252,12 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await authApi.logout()
       user.value = null
+      setActiveAccount('overall')
     } catch (e) {
       error.value = e.message
       // Clear user anyway on logout failure
       user.value = null
+      setActiveAccount('overall')
       throw e
     } finally {
       isLoading.value = false
@@ -227,6 +311,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Don't skip session check - if session expired, show the banner
       const userData = await authApi.getCurrentUser()
       user.value = userData
+      validateActiveAccount()
     } catch (e) {
       // Silent fail - user might be logged out
       console.error('Failed to refresh user:', e)
@@ -245,6 +330,14 @@ export const useAuthStore = defineStore('auth', () => {
       const linkedAccount = await authApi.linkRiotAccount({ gameName, tagLine, region })
       // Refresh user data to get updated riot accounts list
       await refreshUser()
+
+      if (riotAccounts.value.length === 1) {
+        const firstAccountIdentifier = getAccountIdentifier(riotAccounts.value[0])
+        if (firstAccountIdentifier) {
+          setActiveAccount(firstAccountIdentifier)
+        }
+      }
+
       return { success: true, account: linkedAccount }
     } catch (e) {
       error.value = e.message
@@ -270,9 +363,15 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
+      const isUnlinkingActiveAccount = activeAccount.value?.puuid === puuid || activeAccountPuuid.value === puuid
       await authApi.unlinkRiotAccount(puuid)
       // Refresh user data to get updated riot accounts list
       await refreshUser()
+
+      if (isUnlinkingActiveAccount) {
+        setActiveAccount('overall')
+      }
+
       return { success: true }
     } catch (e) {
       error.value = e.message
@@ -312,6 +411,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Server signed out this session and rotated the security stamp —
       // all other sessions will be rejected on their next request. Mirror locally.
       user.value = null
+      setActiveAccount('overall')
       return { success: true }
     } catch (e) {
       error.value = e.message
@@ -361,6 +461,9 @@ export const useAuthStore = defineStore('auth', () => {
     canUseOverallAccountView,
     hasLinkedAccount,
     primaryRiotAccount,
+    activeAccountPuuid,
+    activeAccount,
+    isOverallMode,
     // Actions
     initialize,
     login,
@@ -372,6 +475,9 @@ export const useAuthStore = defineStore('auth', () => {
     initializeSessionHandler,
     refreshUser,
     changePassword,
+    setActiveAccount,
+    getAccountParam,
+    validateActiveAccount,
     linkRiotAccount,
     unlinkRiotAccount,
     setPrimary,

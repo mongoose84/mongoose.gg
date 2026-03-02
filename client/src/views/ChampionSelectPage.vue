@@ -18,6 +18,7 @@
       <!-- Main Champions Card -->
       <div class="w-full">
         <MainChampionCard
+          :key="authStore.activeAccountPuuid"
           v-if="dashboardData?.mainChampions && dashboardData.mainChampions.length"
           :main-champions="dashboardData.mainChampions"
           :user-id="authStore.userId"
@@ -114,6 +115,10 @@ watch(() => authStore.userId, (newUserId, oldUserId) => {
   if (newUserId && !oldUserId) {
     fetchData()
   }
+})
+
+watch(() => authStore.activeAccountPuuid, () => {
+  fetchData()
 })
 
 // Handle opponent selection from search
