@@ -15,6 +15,7 @@ using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
+using System.Text.Json;
 using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
@@ -518,6 +519,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         private readonly ConcurrentDictionary<string, string> _puuidByRiotId = new(StringComparer.OrdinalIgnoreCase);
 
         public event EventHandler<Mongoose.Api.Infrastructure.Riot.LimitHandler.RateLimitWaitEventArgs>? RateLimitWaitStarted;
+
+        private void NotifyRateLimitWaitStarted(Mongoose.Api.Infrastructure.Riot.LimitHandler.RateLimitWaitEventArgs args)
+        {
+            RateLimitWaitStarted?.Invoke(this, args);
+        }
 
         public Task<double> GetWinrateAsync(string puuid)
         {

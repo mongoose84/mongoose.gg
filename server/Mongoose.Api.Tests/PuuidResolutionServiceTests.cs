@@ -24,7 +24,8 @@ public sealed class PuuidResolutionServiceTests
         };
 
         var repository = new FakeUserRiotAccountsRepository(linkedAccounts);
-        var service = new PuuidResolutionService(repository, NullLogger<PuuidResolutionService>.Instance);
+        var usersRepository = new FakeUsersRepository("pro");
+        var service = new PuuidResolutionService(repository, usersRepository, NullLogger<PuuidResolutionService>.Instance);
 
         var (errorResult, account) = await service.ResolvePrimaryAccountAsync(1);
 
@@ -50,7 +51,8 @@ public sealed class PuuidResolutionServiceTests
         };
 
         var repository = new FakeUserRiotAccountsRepository(linkedAccounts);
-        var service = new PuuidResolutionService(repository, NullLogger<PuuidResolutionService>.Instance);
+        var usersRepository = new FakeUsersRepository("pro");
+        var service = new PuuidResolutionService(repository, usersRepository, NullLogger<PuuidResolutionService>.Instance);
 
         var (errorResult, account) = await service.ResolvePrimaryAccountAsync(1);
 
@@ -76,7 +78,8 @@ public sealed class PuuidResolutionServiceTests
         };
 
         var repository = new FakeUserRiotAccountsRepository(linkedAccounts);
-        var service = new PuuidResolutionService(repository, NullLogger<PuuidResolutionService>.Instance);
+        var usersRepository = new FakeUsersRepository("pro");
+        var service = new PuuidResolutionService(repository, usersRepository, NullLogger<PuuidResolutionService>.Instance);
 
         var (errorResult, accounts) = await service.ResolveAllAccountsAsync(1);
 
@@ -85,6 +88,84 @@ public sealed class PuuidResolutionServiceTests
         Assert.Equal(2, accounts!.Count);
         Assert.False(accounts[0].IsPrimary);
         Assert.True(accounts[1].IsPrimary);
+    }
+
+    [Fact]
+    public async Task VerifyPuuidOwnershipAsync_ReturnsFalse_ForNonPrimaryLinkedAccount_WhenFreeTier()
+    {
+        var linkedAccounts = new List<(UserRiotAccountLink Link, RiotAccount Account)>
+        {
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-primary", IsPrimary = true, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-primary", GameName = "Primary", TagLine = "NA1", SummonerName = "Primary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            ),
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-secondary", IsPrimary = false, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-secondary", GameName = "Secondary", TagLine = "NA1", SummonerName = "Secondary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            )
+        };
+
+        var repository = new FakeUserRiotAccountsRepository(linkedAccounts);
+        var usersRepository = new FakeUsersRepository("free");
+        var service = new PuuidResolutionService(repository, usersRepository, NullLogger<PuuidResolutionService>.Instance);
+
+        var ownsSecondaryAccount = await service.VerifyPuuidOwnershipAsync(1, "puuid-secondary");
+
+        Assert.False(ownsSecondaryAccount);
+    }
+
+    [Fact]
+    public async Task VerifyPuuidOwnershipAsync_ReturnsTrue_ForNonPrimaryLinkedAccount_WhenTierIsPremium()
+    {
+        var linkedAccounts = new List<(UserRiotAccountLink Link, RiotAccount Account)>
+        {
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-primary", IsPrimary = true, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-primary", GameName = "Primary", TagLine = "NA1", SummonerName = "Primary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            ),
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-secondary", IsPrimary = false, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-secondary", GameName = "Secondary", TagLine = "NA1", SummonerName = "Secondary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            )
+        };
+
+        var repository = new FakeUserRiotAccountsRepository(linkedAccounts);
+        var usersRepository = new FakeUsersRepository("premium");
+        var service = new PuuidResolutionService(repository, usersRepository, NullLogger<PuuidResolutionService>.Instance);
+
+        var ownsSecondaryAccount = await service.VerifyPuuidOwnershipAsync(1, "puuid-secondary");
+
+        Assert.True(ownsSecondaryAccount);
+    }
+
+    [Fact]
+    public async Task ResolveAllAccountsAsync_ReturnsAllAccounts_WhenTierIsUnknown()
+    {
+        var linkedAccounts = new List<(UserRiotAccountLink Link, RiotAccount Account)>
+        {
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-primary", IsPrimary = true, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-primary", GameName = "Primary", TagLine = "NA1", SummonerName = "Primary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            ),
+            (
+                new UserRiotAccountLink { UserId = 1, Puuid = "puuid-secondary", IsPrimary = false, LinkedAt = DateTime.UtcNow },
+                new RiotAccount { Puuid = "puuid-secondary", GameName = "Secondary", TagLine = "NA1", SummonerName = "Secondary", Region = "na1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            )
+        };
+
+        var repository = new FakeUserRiotAccountsRepository(linkedAccounts);
+        var usersRepository = new FakeUsersRepository("weird_tier");
+        var service = new PuuidResolutionService(repository, usersRepository, NullLogger<PuuidResolutionService>.Instance);
+
+        var (errorResult, accounts) = await service.ResolveAllAccountsAsync(1);
+
+        Assert.Null(errorResult);
+        Assert.NotNull(accounts);
+        Assert.Equal(2, accounts!.Count);
+        Assert.Equal("puuid-primary", accounts[0].Account.Puuid);
+        Assert.True(accounts[0].IsPrimary);
+        Assert.Equal("puuid-secondary", accounts[1].Account.Puuid);
+        Assert.False(accounts[1].IsPrimary);
     }
 
     private sealed class FakeUserRiotAccountsRepository : IUserRiotAccountsRepository
@@ -110,5 +191,43 @@ public sealed class PuuidResolutionServiceTests
         public Task<bool> HasAnyLinksAsync(string puuid) => throw new NotImplementedException();
         public Task<int> GetLinkCountAsync(string puuid) => throw new NotImplementedException();
         public Task<int> GetLinkCountForUserAsync(long userId) => throw new NotImplementedException();
+    }
+
+    private sealed class FakeUsersRepository : IUsersRepository
+    {
+        private readonly string _tier;
+
+        public FakeUsersRepository(string tier)
+        {
+            _tier = tier;
+        }
+
+        public Task<User?> GetByIdAsync(long userId)
+        {
+            return Task.FromResult<User?>(new User
+            {
+                UserId = userId,
+                Username = "tester",
+                Email = "tester@example.com",
+                PasswordHash = "hash",
+                SecurityStamp = "stamp",
+                EmailVerified = true,
+                IsActive = true,
+                Tier = _tier,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        public Task<long> UpsertAsync(User user) => throw new NotImplementedException();
+        public Task<User?> GetByEmailAsync(string email) => throw new NotImplementedException();
+        public Task<User?> GetByUsernameAsync(string username) => throw new NotImplementedException();
+        public Task<bool> UsernameExistsAsync(string username) => throw new NotImplementedException();
+        public Task<bool> EmailExistsAsync(string email) => throw new NotImplementedException();
+        public Task<long> GetActiveUserCountAsync() => throw new NotImplementedException();
+        public Task UpdateEmailVerifiedAsync(long userId, bool verified) => throw new NotImplementedException();
+        public Task UpdatePasswordHashAsync(long userId, string passwordHash) => throw new NotImplementedException();
+        public Task<string?> GetSecurityStampAsync(long userId) => throw new NotImplementedException();
+        public Task<bool> DeleteUserAsync(long userId) => throw new NotImplementedException();
     }
 }

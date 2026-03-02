@@ -7,7 +7,26 @@
     @close="handleClose"
     data-testid="modal-overlay"
   >
-    <form @submit.prevent="handleSubmit" class="flex flex-col gap-md">
+    <div v-if="isAtAccountLimit" class="bg-background-surface border border-border rounded-lg p-xl flex flex-col items-start gap-sm" data-testid="account-limit-upgrade-prompt">
+      <div class="flex items-center gap-sm">
+        <LockClosedIcon class="w-5 h-5 text-text-secondary" aria-hidden="true" />
+        <h3 class="text-sm font-semibold text-text">Link Unlimited Accounts</h3>
+      </div>
+      <p class="text-xs text-text-secondary mt-xs">
+        Free tier supports 1 linked account. Upgrade to Pro to link all your accounts and view combined stats across them.
+      </p>
+      <BaseButton
+        to="/#pricing"
+        variant="primary"
+        size="sm"
+        class="mt-md"
+        data-testid="account-limit-upgrade-button"
+      >
+        Upgrade to Pro
+      </BaseButton>
+    </div>
+
+    <form v-else @submit.prevent="handleSubmit" class="flex flex-col gap-md">
       <!-- Error alert -->
       <div
         v-if="errorMessage"
@@ -81,6 +100,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
+import { LockClosedIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/authStore'
 import { BaseModal, BaseInput, BaseButton } from '@/components/base'
 
@@ -128,6 +148,8 @@ const errors = reactive({
 
 const isSubmitting = ref(false)
 const errorMessage = ref('')
+
+const isAtAccountLimit = computed(() => authStore.hasReachedRiotAccountLimit)
 
 // Validation
 const isFormValid = computed(() => {
@@ -181,6 +203,11 @@ function validateForm() {
 }
 
 async function handleSubmit() {
+  if (isAtAccountLimit.value) {
+    errorMessage.value = 'Free tier is limited to 1 linked account. Upgrade to Pro for unlimited accounts.'
+    return
+  }
+
   if (!validateForm()) return
 
   isSubmitting.value = true
@@ -200,6 +227,8 @@ async function handleSubmit() {
       errorMessage.value = 'Riot account not found. Please check your Game Name and Tag Line.'
     } else if (e.code === 'ACCOUNT_ALREADY_LINKED') {
       errorMessage.value = 'This Riot account is already linked to another user.'
+    } else if (e.code === 'ACCOUNT_LIMIT_REACHED') {
+      errorMessage.value = 'Free tier is limited to 1 linked account. Upgrade to Pro for unlimited accounts.'
     } else {
       errorMessage.value = e.message || 'Failed to link account. Please try again.'
     }

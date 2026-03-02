@@ -6,11 +6,15 @@ import LinkRiotAccountModal from '@/components/LinkRiotAccountModal.vue';
 
 // Mock the authStore
 const mockLinkRiotAccount = vi.fn();
+const mockAuthStore = {
+  linkRiotAccount: mockLinkRiotAccount,
+  tier: 'free',
+  riotAccounts: [],
+  hasReachedRiotAccountLimit: false
+};
 
 vi.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({
-    linkRiotAccount: mockLinkRiotAccount
-  })
+  useAuthStore: () => mockAuthStore
 }));
 
 describe('LinkRiotAccountModal.vue', () => {
@@ -19,6 +23,9 @@ describe('LinkRiotAccountModal.vue', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     mockLinkRiotAccount.mockReset();
+    mockAuthStore.tier = 'free';
+    mockAuthStore.riotAccounts = [];
+    mockAuthStore.hasReachedRiotAccountLimit = false;
     // Create a container for the modal to attach to
     attachTo = document.createElement('div');
     document.body.appendChild(attachTo);
@@ -92,6 +99,17 @@ describe('LinkRiotAccountModal.vue', () => {
       const wrapper = createWrapper();
       expect(wrapper.text()).toContain('Cancel');
       expect(wrapper.text()).toContain('Link Account');
+    });
+
+    it('shows upgrade prompt instead of form when free-tier account limit is reached', () => {
+      mockAuthStore.hasReachedRiotAccountLimit = true;
+      mockAuthStore.riotAccounts = [{ puuid: 'primary', isPrimary: true }];
+
+      const wrapper = createWrapper();
+
+      expect(wrapper.find('[data-testid="account-limit-upgrade-prompt"]').exists()).toBe(true);
+      expect(wrapper.find('form').exists()).toBe(false);
+      expect(wrapper.text()).toContain('Link Unlimited Accounts');
     });
 
     it('displays all region options', () => {
@@ -313,6 +331,19 @@ describe('LinkRiotAccountModal.vue', () => {
       await flushPromises();
 
       expect(wrapper.text()).toContain('already linked to another user');
+    });
+
+    it('displays account limit message for ACCOUNT_LIMIT_REACHED', async () => {
+      mockLinkRiotAccount.mockRejectedValue({ code: 'ACCOUNT_LIMIT_REACHED' });
+      const wrapper = createWrapper();
+
+      await wrapper.find('#gameName').setValue('Faker');
+      await wrapper.find('#tagLine').setValue('KR1');
+      await wrapper.find('#region').setValue('kr');
+      await wrapper.find('form').trigger('submit');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Free tier is limited to 1 linked account');
     });
 
     it('displays generic error message for unknown errors', async () => {

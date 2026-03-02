@@ -11,6 +11,7 @@
     <!-- 2️⃣ Force Out‑of‑Process hosting (required on Simply.com) -->
     <AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>
     <UserSecretsId>9615e88f-ea5a-4f8b-9451-d3b71df157ae</UserSecretsId>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

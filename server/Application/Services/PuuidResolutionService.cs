@@ -10,13 +10,16 @@ namespace Mongoose.Api.Application.Services;
 public sealed class PuuidResolutionService
 {
     private readonly IUserRiotAccountsRepository _userRiotAccountsRepo;
+    private readonly IUsersRepository _usersRepository;
     private readonly ILogger<PuuidResolutionService> _logger;
 
     public PuuidResolutionService(
         IUserRiotAccountsRepository userRiotAccountsRepo,
+        IUsersRepository usersRepository,
         ILogger<PuuidResolutionService> logger)
     {
         _userRiotAccountsRepo = userRiotAccountsRepo;
+        _usersRepository = usersRepository;
         _logger = logger;
     }
 
@@ -38,7 +41,7 @@ public sealed class PuuidResolutionService
     /// </returns>
     public async Task<(IResult? ErrorResult, ResolvedAccount? Account)> ResolvePrimaryAccountAsync(long userId)
     {
-        var linkedAccounts = await _userRiotAccountsRepo.GetByUserIdAsync(userId);
+        var linkedAccounts = await GetVisibleLinkedAccountsAsync(userId);
 
         if (linkedAccounts == null || linkedAccounts.Count == 0)
         {
@@ -90,7 +93,7 @@ public sealed class PuuidResolutionService
     /// </returns>
     public async Task<(IResult? ErrorResult, List<ResolvedAccount>? Accounts)> ResolveAllAccountsAsync(long userId)
     {
-        var linkedAccounts = await _userRiotAccountsRepo.GetByUserIdAsync(userId);
+        var linkedAccounts = await GetVisibleLinkedAccountsAsync(userId);
 
         if (linkedAccounts == null || linkedAccounts.Count == 0)
         {
@@ -119,6 +122,45 @@ public sealed class PuuidResolutionService
     /// </returns>
     public async Task<bool> VerifyPuuidOwnershipAsync(long userId, string puuid)
     {
-        return await _userRiotAccountsRepo.IsLinkedAsync(userId, puuid);
+        var visibleAccounts = await GetVisibleLinkedAccountsAsync(userId);
+        return visibleAccounts.Any(linkedAccount =>
+            string.Equals(linkedAccount.Account.Puuid, puuid, StringComparison.Ordinal));
+    }
+
+    private async Task<IList<(UserRiotAccountLink Link, RiotAccount Account)>> GetVisibleLinkedAccountsAsync(long userId)
+    {
+        var linkedAccounts = await _userRiotAccountsRepo.GetByUserIdAsync(userId);
+        if (linkedAccounts == null)
+        {
+            return [];
+        }
+
+        if (linkedAccounts.Count == 0)
+        {
+            return linkedAccounts;
+        }
+
+        var user = await _usersRepository.GetByIdAsync(userId);
+        var normalizedTier = NormalizeTier(user?.Tier);
+        if (normalizedTier != "free")
+        {
+            return linkedAccounts;
+        }
+
+        var primaryOnlyAccounts = linkedAccounts
+            .Where(linkedAccount => linkedAccount.Link?.IsPrimary == true)
+            .ToList();
+
+        if (primaryOnlyAccounts.Count > 0)
+        {
+            return primaryOnlyAccounts;
+        }
+
+        return [linkedAccounts[0]];
+    }
+
+    private static string NormalizeTier(string? tier)
+    {
+        return tier?.Trim().ToLowerInvariant() ?? "free";
     }
 }

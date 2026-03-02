@@ -44,6 +44,7 @@ describe('authStore', () => {
       expect(store.isInitialized).toBe(false);
       expect(store.error).toBeNull();
       expect(store.isLinkingAccount).toBe(false);
+      expect(store.linkAccountLimitInfo).toBeNull();
     });
 
     it('isAuthenticated is false when user is null', () => {
@@ -341,6 +342,59 @@ describe('authStore', () => {
       expect(store.riotAccounts).toEqual(accounts);
     });
 
+    it('hasReachedRiotAccountLimit is true for free tier at one linked account', () => {
+      const store = useAuthStore();
+      store.user = {
+        userId: 1,
+        tier: 'free',
+        riotAccounts: [{ puuid: 'primary', isPrimary: true }]
+      };
+
+      expect(store.hasReachedRiotAccountLimit).toBe(true);
+    });
+
+    it('hasReachedRiotAccountLimit is false for pro tier', () => {
+      const store = useAuthStore();
+      store.user = {
+        userId: 1,
+        tier: 'pro',
+        riotAccounts: [
+          { puuid: 'a', isPrimary: true },
+          { puuid: 'b', isPrimary: false }
+        ]
+      };
+
+      expect(store.hasReachedRiotAccountLimit).toBe(false);
+    });
+
+    it('canUseOverallAccountView is true only for pro tier with at least two visible accounts', () => {
+      const store = useAuthStore();
+      store.user = {
+        userId: 1,
+        tier: 'pro',
+        riotAccounts: [
+          { puuid: 'a', isPrimary: true },
+          { puuid: 'b', isPrimary: false }
+        ]
+      };
+
+      expect(store.canUseOverallAccountView).toBe(true);
+    });
+
+    it('canUseOverallAccountView is false for free tier even with preserved linked accounts', () => {
+      const store = useAuthStore();
+      store.user = {
+        userId: 1,
+        tier: 'free',
+        riotAccounts: [
+          { puuid: 'a', isPrimary: true },
+          { puuid: 'b', isPrimary: false }
+        ]
+      };
+
+      expect(store.canUseOverallAccountView).toBe(false);
+    });
+
     it('hasLinkedAccount is true when accounts exist', () => {
       const store = useAuthStore();
       store.user = { userId: 1, riotAccounts: [{ puuid: 'abc' }] };
@@ -381,6 +435,27 @@ describe('authStore', () => {
       expect(authApi.linkRiotAccount).toHaveBeenCalledWith({ gameName: 'NewPlayer', tagLine: 'EUW', region: 'euw1' });
       expect(result).toEqual({ success: true, account: linkedAccount });
       expect(store.isLinkingAccount).toBe(false);
+    });
+
+    it('surfaces ACCOUNT_LIMIT_REACHED metadata from linkRiotAccount errors', async () => {
+      const store = useAuthStore();
+      store.user = { userId: 1, tier: 'free', riotAccounts: [{ puuid: 'primary', isPrimary: true }] };
+
+      const accountLimitError = new Error('Free tier limit reached');
+      accountLimitError.code = 'ACCOUNT_LIMIT_REACHED';
+      accountLimitError.currentLimit = 1;
+      accountLimitError.tier = 'free';
+      authApi.linkRiotAccount.mockRejectedValue(accountLimitError);
+
+      await expect(store.linkRiotAccount({ gameName: 'Alt', tagLine: 'EUW', region: 'euw1' }))
+        .rejects
+        .toThrow('Free tier limit reached');
+
+      expect(store.linkAccountLimitInfo).toEqual({
+        code: 'ACCOUNT_LIMIT_REACHED',
+        currentLimit: 1,
+        tier: 'free'
+      });
     });
 
     it('unlinkRiotAccount calls API and refreshes user', async () => {

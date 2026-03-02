@@ -91,7 +91,7 @@ public sealed class UsersMeEndpoint : IEndpoint
                     user.Username,
                     user.Email,
                     user.EmailVerified,
-                    user.Tier,
+                    user.Tier ?? "free",
                     user.CreatedAt,
                     riotAccountResponses
                 ));
