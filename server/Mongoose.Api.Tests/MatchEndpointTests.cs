@@ -223,6 +223,48 @@ public class MatchEndpointTests
     }
 
     [Fact]
+    public async Task MatchDetails_returns_forbidden_when_free_tier_uses_non_primary_linked_puuid()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "free");
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-primary", "Main", "NA1", "Main#NA1", 100, 42);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-secondary", "Alt", "NA1", "Alt#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-primary", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-secondary", isPrimary: false);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/details?puuid=test-puuid-secondary");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task MatchDetails_returns_not_found_when_pro_tier_uses_non_primary_linked_puuid()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "pro");
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-primary", "Main", "NA1", "Main#NA1", 100, 42);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-secondary", "Alt", "NA1", "Alt#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-primary", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-secondary", isPrimary: false);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/details?puuid=test-puuid-secondary");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task MatchDetails_returns_not_found_when_match_not_found()
     {
         using var factory = new TestWebApplicationFactory();

@@ -208,7 +208,21 @@ export async function linkRiotAccount({ gameName, tagLine, region }) {
     body: JSON.stringify({ gameName, tagLine, region })
   })
 
-  return parseResponse(response, 'Failed to link Riot account')
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}))
+    const error = new Error(data.error || 'Failed to link Riot account')
+    error.status = response.status
+    error.code = data.code
+    if (typeof data.currentLimit === 'number') {
+      error.currentLimit = data.currentLimit
+    }
+    if (typeof data.tier === 'string') {
+      error.tier = data.tier
+    }
+    throw error
+  }
+
+  return response.json()
 }
 
 /**

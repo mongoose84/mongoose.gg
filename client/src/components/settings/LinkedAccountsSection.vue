@@ -36,10 +36,28 @@
           Link Another Account
         </BaseButton>
 
-        <p v-else class="text-xs text-text-secondary" data-testid="upgrade-prompt">
-          Upgrade to Pro to link more accounts.
-          <a href="/#pricing" class="text-primary no-underline hover:underline">Upgrade to Pro</a>
-        </p>
+        <div
+          v-else
+          class="bg-background-surface border border-border rounded-lg p-xl flex flex-col items-start gap-sm"
+          data-testid="upgrade-prompt"
+        >
+          <div class="flex items-center gap-sm">
+            <LockClosedIcon class="w-5 h-5 text-text-secondary" aria-hidden="true" />
+            <h3 class="text-sm font-semibold text-text">Link Unlimited Accounts</h3>
+          </div>
+          <p class="text-xs text-text-secondary mt-xs">
+            Free tier supports 1 linked account. Upgrade to Pro to link all your accounts and view combined stats across them.
+          </p>
+          <BaseButton
+            to="/#pricing"
+            variant="primary"
+            size="sm"
+            class="mt-md"
+            data-testid="upgrade-to-pro-button"
+          >
+            Upgrade to Pro
+          </BaseButton>
+        </div>
       </div>
     </div>
 
@@ -90,6 +108,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { LockClosedIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/authStore'
 import { BaseButton, BaseModal } from '@/components/base'
 import LinkRiotAccountModal from '@/components/LinkRiotAccountModal.vue'

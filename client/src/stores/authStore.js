@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isInitialized = ref(false)
   const error = ref(null)
   const isLinkingAccount = ref(false)
+  const linkAccountLimitInfo = ref(null)
   let initializePromise = null
 
   // Session expiry state
@@ -26,12 +27,17 @@ export const useAuthStore = defineStore('auth', () => {
   const username = computed(() => user.value?.username ?? '')
   const email = computed(() => user.value?.email ?? '')
   const tier = computed(() => user.value?.tier ?? 'free')
+  const normalizedTier = computed(() => {
+    const rawTier = user.value?.tier
+    if (typeof rawTier !== 'string') return 'free'
+    return rawTier.trim().toLowerCase() || 'free'
+  })
   const userId = computed(() => user.value?.userId ?? null)
 
   // Riot account getters
   const riotAccounts = computed(() => {
     const accounts = user.value?.riotAccounts ?? []
-    const currentTier = (user.value?.tier ?? 'free').toLowerCase()
+    const currentTier = normalizedTier.value
 
     if (currentTier !== 'free') {
       return accounts
@@ -43,6 +49,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     return accounts.length > 0 ? [accounts[0]] : []
+  })
+  const hasReachedRiotAccountLimit = computed(() => {
+    return normalizedTier.value === 'free' && riotAccounts.value.length >= 1
+  })
+  const canUseOverallAccountView = computed(() => {
+    return normalizedTier.value === 'pro' && riotAccounts.value.length >= 2
   })
   const hasLinkedAccount = computed(() => riotAccounts.value.length > 0)
   const primaryRiotAccount = computed(() => riotAccounts.value.find(a => a.isPrimary) ?? riotAccounts.value[0] ?? null)
@@ -227,6 +239,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function linkRiotAccount({ gameName, tagLine, region }) {
     isLinkingAccount.value = true
     error.value = null
+    linkAccountLimitInfo.value = null
 
     try {
       const linkedAccount = await authApi.linkRiotAccount({ gameName, tagLine, region })
@@ -235,6 +248,15 @@ export const useAuthStore = defineStore('auth', () => {
       return { success: true, account: linkedAccount }
     } catch (e) {
       error.value = e.message
+
+      if (e?.code === 'ACCOUNT_LIMIT_REACHED') {
+        linkAccountLimitInfo.value = {
+          code: e.code,
+          currentLimit: typeof e.currentLimit === 'number' ? e.currentLimit : 1,
+          tier: typeof e.tier === 'string' ? e.tier : normalizedTier.value
+        }
+      }
+
       throw e
     } finally {
       isLinkingAccount.value = false
@@ -323,6 +345,7 @@ export const useAuthStore = defineStore('auth', () => {
     isInitialized,
     isLinkingAccount,
     error,
+    linkAccountLimitInfo,
     sessionExpired,
     sessionExpiredMessage,
     // Getters
@@ -331,8 +354,11 @@ export const useAuthStore = defineStore('auth', () => {
     username,
     email,
     tier,
+    normalizedTier,
     userId,
     riotAccounts,
+    hasReachedRiotAccountLimit,
+    canUseOverallAccountView,
     hasLinkedAccount,
     primaryRiotAccount,
     // Actions

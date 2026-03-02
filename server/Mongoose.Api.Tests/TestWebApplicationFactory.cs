@@ -15,6 +15,7 @@ using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
+using System.Text.Json;
 using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 using static Mongoose.Api.Application.DTOs.ChampionSelectDto;

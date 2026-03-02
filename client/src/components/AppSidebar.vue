@@ -109,6 +109,22 @@
       </router-link>
     </nav>
 
+    <div v-if="showCompactUpgradeLink" class="px-sm pb-sm">
+      <BaseButton
+        to="/#pricing"
+        variant="ghost"
+        size="sm"
+        class="w-full justify-start text-xs text-primary"
+        data-testid="sidebar-upgrade-link"
+        :title="isCollapsed ? 'Link unlimited accounts with Pro' : ''"
+      >
+        <template #icon-left>
+          <LockClosedIcon class="w-4 h-4" aria-hidden="true" />
+        </template>
+        <span v-if="!isCollapsed">+ Link</span>
+      </BaseButton>
+    </div>
+
     <!-- Feedback Link - above user section -->
     <div class="border-t border-border py-sm">
       <router-link
@@ -180,10 +196,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { ChatBubbleLeftEllipsisIcon, ChartBarIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
+import { ChatBubbleLeftEllipsisIcon, ChartBarIcon, LockClosedIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';
+import { BaseButton } from '@/components/base';
 import pkg from '../../package.json';
 
 const authStore = useAuthStore();
@@ -237,6 +254,7 @@ function toggleSidebar() {
 
 // User data
 const username = computed(() => authStore.username || 'User');
+const showCompactUpgradeLink = computed(() => authStore.hasReachedRiotAccountLimit);
 
 // Profile icon from first Riot account
 const primaryRiotAccount = computed(() => authStore.primaryRiotAccount);
