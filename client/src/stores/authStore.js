@@ -61,25 +61,58 @@ export const useAuthStore = defineStore('auth', () => {
   })
   const hasLinkedAccount = computed(() => riotAccounts.value.length > 0)
   const primaryRiotAccount = computed(() => riotAccounts.value.find(a => a.isPrimary) ?? riotAccounts.value[0] ?? null)
+
+  function getAccountIdentifier(account) {
+    if (!account) {
+      return null
+    }
+
+    if (typeof account.accountId === 'string' && account.accountId.trim().length > 0) {
+      return account.accountId
+    }
+
+    if (typeof account.puuid === 'string' && account.puuid.trim().length > 0) {
+      return account.puuid
+    }
+
+    return null
+  }
+
+  function findLinkedAccount(identifier) {
+    return riotAccounts.value.find(account => {
+      const accountId = getAccountIdentifier(account)
+      return accountId === identifier || account.puuid === identifier
+    }) ?? null
+  }
+
   const activeAccount = computed(() => {
     if (activeAccountPuuid.value === 'overall') {
       return null
     }
 
-    return riotAccounts.value.find(account => account.puuid === activeAccountPuuid.value) ?? null
+    return findLinkedAccount(activeAccountPuuid.value)
   })
   const isOverallMode = computed(() => activeAccountPuuid.value === 'overall')
 
-  function setActiveAccount(puuid) {
-    if (puuid !== 'overall') {
-      const isLinked = riotAccounts.value.some(account => account.puuid === puuid)
-      if (!isLinked) {
+  function setActiveAccount(accountIdentifier) {
+    if (accountIdentifier !== 'overall') {
+      const linkedAccount = findLinkedAccount(accountIdentifier)
+      if (!linkedAccount) {
         return
       }
+
+      const normalizedAccountIdentifier = getAccountIdentifier(linkedAccount)
+      if (!normalizedAccountIdentifier) {
+        return
+      }
+
+      activeAccountPuuid.value = normalizedAccountIdentifier
+      localStorage.setItem(ACTIVE_ACCOUNT_STORAGE_KEY, normalizedAccountIdentifier)
+      return
     }
 
-    activeAccountPuuid.value = puuid
-    localStorage.setItem(ACTIVE_ACCOUNT_STORAGE_KEY, puuid)
+    activeAccountPuuid.value = accountIdentifier
+    localStorage.setItem(ACTIVE_ACCOUNT_STORAGE_KEY, accountIdentifier)
   }
 
   function getAccountParam() {
@@ -91,9 +124,16 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
 
-    const isLinked = riotAccounts.value.some(account => account.puuid === activeAccountPuuid.value)
-    if (!isLinked) {
+    const linkedAccount = findLinkedAccount(activeAccountPuuid.value)
+    if (!linkedAccount) {
       setActiveAccount('overall')
+      return
+    }
+
+    const normalizedAccountIdentifier = getAccountIdentifier(linkedAccount)
+    if (normalizedAccountIdentifier && normalizedAccountIdentifier !== activeAccountPuuid.value) {
+      activeAccountPuuid.value = normalizedAccountIdentifier
+      localStorage.setItem(ACTIVE_ACCOUNT_STORAGE_KEY, normalizedAccountIdentifier)
     }
   }
 
@@ -292,9 +332,9 @@ export const useAuthStore = defineStore('auth', () => {
       await refreshUser()
 
       if (riotAccounts.value.length === 1) {
-        const firstAccountPuuid = riotAccounts.value[0]?.puuid
-        if (firstAccountPuuid) {
-          setActiveAccount(firstAccountPuuid)
+        const firstAccountIdentifier = getAccountIdentifier(riotAccounts.value[0])
+        if (firstAccountIdentifier) {
+          setActiveAccount(firstAccountIdentifier)
         }
       }
 
@@ -323,7 +363,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const isUnlinkingActiveAccount = activeAccountPuuid.value === puuid
+      const isUnlinkingActiveAccount = activeAccount.value?.puuid === puuid || activeAccountPuuid.value === puuid
       await authApi.unlinkRiotAccount(puuid)
       // Refresh user data to get updated riot accounts list
       await refreshUser()

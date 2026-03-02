@@ -11,11 +11,15 @@ const ACTIVE_ACCOUNT_STORAGE_KEY = 'mongoose_active_account'
 
 export function getAccountParam() {
   const activeAccount = localStorage.getItem(ACTIVE_ACCOUNT_STORAGE_KEY) || 'overall'
-  return activeAccount === 'overall' ? 'all' : activeAccount
+  if (activeAccount === 'overall' || activeAccount === 'all') {
+    return 'all'
+  }
+
+  return activeAccount
 }
 
 function appendAccountParam(params) {
-  params.append('account', getAccountParam())
+  params.append('accountId', getAccountParam())
 }
 
 		/**

@@ -37,7 +37,7 @@ describe('authApi account parameter handling', () => {
     await authApi.getSoloDashboard(42, 'ranked_solo', '1m');
 
     expect(apiRequest).toHaveBeenCalledWith(
-      '/solo/dashboard/42?queueType=ranked_solo&timeRange=1m&account=all',
+      '/solo/dashboard/42?queueType=ranked_solo&timeRange=1m&accountId=all',
       { method: 'GET' }
     );
   });
@@ -48,7 +48,7 @@ describe('authApi account parameter handling', () => {
     await authApi.getOverview(42);
 
     expect(apiRequest).toHaveBeenCalledWith(
-      '/overview/42?account=puuid-xyz',
+      '/overview/42?accountId=puuid-xyz',
       { method: 'GET' }
     );
   });
@@ -59,7 +59,7 @@ describe('authApi account parameter handling', () => {
     await authApi.getMatchList(42, 'aram');
 
     expect(apiRequest).toHaveBeenCalledWith(
-      '/matches/42?queueType=aram&account=puuid-xyz',
+      '/matches/42?queueType=aram&accountId=puuid-xyz',
       { method: 'GET' }
     );
   });
@@ -70,7 +70,7 @@ describe('authApi account parameter handling', () => {
     await authApi.getChampionSelectData(42, 'all', 'current_season');
 
     expect(apiRequest).toHaveBeenCalledWith(
-      '/champion-select/42?timeRange=current_season&account=all',
+      '/champion-select/42?timeRange=current_season&accountId=all',
       { method: 'GET' }
     );
   });

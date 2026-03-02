@@ -100,18 +100,18 @@ describe('authStore', () => {
         userId: 1,
         tier: 'pro',
         riotAccounts: [
-          { puuid: 'puuid-1', isPrimary: true },
-          { puuid: 'puuid-2', isPrimary: false }
+          { puuid: 'puuid-1', accountId: 'acc_1', isPrimary: true },
+          { puuid: 'puuid-2', accountId: 'acc_2', isPrimary: false }
         ]
       };
 
       store.setActiveAccount('puuid-2');
 
-      expect(store.activeAccountPuuid).toBe('puuid-2');
-      expect(localStorage.getItem('mongoose_active_account')).toBe('puuid-2');
-      expect(store.activeAccount).toEqual({ puuid: 'puuid-2', isPrimary: false });
+      expect(store.activeAccountPuuid).toBe('acc_2');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('acc_2');
+      expect(store.activeAccount).toEqual({ puuid: 'puuid-2', accountId: 'acc_2', isPrimary: false });
       expect(store.isOverallMode).toBe(false);
-      expect(store.getAccountParam()).toBe('puuid-2');
+      expect(store.getAccountParam()).toBe('acc_2');
     });
 
     it('setActiveAccount(invalidPuuid) does not update state', () => {
@@ -119,14 +119,14 @@ describe('authStore', () => {
       store.user = {
         userId: 1,
         tier: 'pro',
-        riotAccounts: [{ puuid: 'puuid-1', isPrimary: true }]
+        riotAccounts: [{ puuid: 'puuid-1', accountId: 'acc_1', isPrimary: true }]
       };
 
       store.setActiveAccount('puuid-1');
       store.setActiveAccount('puuid-invalid');
 
-      expect(store.activeAccountPuuid).toBe('puuid-1');
-      expect(localStorage.getItem('mongoose_active_account')).toBe('puuid-1');
+      expect(store.activeAccountPuuid).toBe('acc_1');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('acc_1');
     });
 
     it('validateActiveAccount resets to overall when active account is no longer linked', () => {
@@ -134,14 +134,14 @@ describe('authStore', () => {
       store.user = {
         userId: 1,
         tier: 'pro',
-        riotAccounts: [{ puuid: 'puuid-1', isPrimary: true }]
+        riotAccounts: [{ puuid: 'puuid-1', accountId: 'acc_1', isPrimary: true }]
       };
       store.setActiveAccount('puuid-1');
 
       store.user = {
         userId: 1,
         tier: 'pro',
-        riotAccounts: [{ puuid: 'puuid-2', isPrimary: true }]
+        riotAccounts: [{ puuid: 'puuid-2', accountId: 'acc_2', isPrimary: true }]
       };
       store.validateActiveAccount();
 
@@ -275,22 +275,22 @@ describe('authStore', () => {
     });
 
     it('restores stored active account on login when still linked', async () => {
-      localStorage.setItem('mongoose_active_account', 'puuid-2');
+      localStorage.setItem('mongoose_active_account', 'acc_2');
       authApi.login.mockResolvedValue({ success: true });
       authApi.getCurrentUser.mockResolvedValue({
         userId: 1,
         emailVerified: true,
         tier: 'pro',
         riotAccounts: [
-          { puuid: 'puuid-1', isPrimary: true },
-          { puuid: 'puuid-2', isPrimary: false }
+          { puuid: 'puuid-1', accountId: 'acc_1', isPrimary: true },
+          { puuid: 'puuid-2', accountId: 'acc_2', isPrimary: false }
         ]
       });
 
       const store = useAuthStore();
       await store.login({ username: 'testuser', password: 'password123' });
 
-      expect(store.activeAccountPuuid).toBe('puuid-2');
+      expect(store.activeAccountPuuid).toBe('acc_2');
     });
 
     it('resets to overall on login when stored active account is no longer linked', async () => {
@@ -300,7 +300,7 @@ describe('authStore', () => {
         userId: 1,
         emailVerified: true,
         tier: 'pro',
-        riotAccounts: [{ puuid: 'puuid-1', isPrimary: true }]
+        riotAccounts: [{ puuid: 'puuid-1', accountId: 'acc_1', isPrimary: true }]
       });
 
       const store = useAuthStore();
@@ -597,7 +597,7 @@ describe('authStore', () => {
       store.user = {
         userId: 1,
         tier: 'pro',
-        riotAccounts: [{ puuid: 'abc', isPrimary: true }]
+        riotAccounts: [{ puuid: 'abc', accountId: 'acc_abc', isPrimary: true }]
       };
       store.setActiveAccount('abc');
 
@@ -608,7 +608,7 @@ describe('authStore', () => {
     });
 
     it('linkRiotAccount sets first linked account as active', async () => {
-      const linkedAccount = { puuid: 'new-puuid', gameName: 'NewPlayer', tagLine: 'EUW', isPrimary: true };
+      const linkedAccount = { puuid: 'new-puuid', accountId: 'acc_new', gameName: 'NewPlayer', tagLine: 'EUW', isPrimary: true };
       authApi.linkRiotAccount.mockResolvedValue(linkedAccount);
       authApi.getCurrentUser.mockResolvedValue({
         userId: 1,
@@ -619,8 +619,8 @@ describe('authStore', () => {
       const store = useAuthStore();
       await store.linkRiotAccount({ gameName: 'NewPlayer', tagLine: 'EUW', region: 'euw1' });
 
-      expect(store.activeAccountPuuid).toBe('new-puuid');
-      expect(localStorage.getItem('mongoose_active_account')).toBe('new-puuid');
+      expect(store.activeAccountPuuid).toBe('acc_new');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('acc_new');
     });
 
     it('setPrimary calls API and refreshes user', async () => {

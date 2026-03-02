@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useAsyncData } from '../composables/useAsyncData'
@@ -91,6 +91,35 @@ const matchDetailsBaseline = ref(null)
 const detailsLoading = ref(false)
 const detailsError = ref(null)
 
+function normalizeAccountField(value) {
+  return String(value ?? '').trim().toLowerCase()
+}
+
+function getMatchDetailsPuuid(matchId) {
+  if (!authStore.isOverallMode && authStore.activeAccount?.puuid) {
+    return authStore.activeAccount.puuid
+  }
+
+  const selectedMatch = data.value?.matches?.find(match => match.matchId === matchId)
+  if (selectedMatch) {
+    const selectedGameName = normalizeAccountField(selectedMatch.accountGameName)
+    const selectedTagLine = normalizeAccountField(selectedMatch.accountTagLine)
+    const selectedRegion = normalizeAccountField(selectedMatch.accountRegion)
+
+    const matchedAccount = authStore.riotAccounts.find(account => {
+      return normalizeAccountField(account.gameName) === selectedGameName &&
+        normalizeAccountField(account.tagLine) === selectedTagLine &&
+        normalizeAccountField(account.region) === selectedRegion
+    })
+
+    if (matchedAccount?.puuid) {
+      return matchedAccount.puuid
+    }
+  }
+
+  return authStore.activeAccount?.puuid ?? authStore.primaryRiotAccount?.puuid ?? null
+}
+
 // Fetch match list (lightweight summary data)
 async function fetchMatches() {
   if (!authStore.userId) return
@@ -112,7 +141,7 @@ async function fetchMatches() {
 
 // Fetch full match details on-demand
 async function fetchMatchDetails(matchId) {
-  const puuid = authStore.primaryRiotAccount?.puuid
+  const puuid = getMatchDetailsPuuid(matchId)
   if (!matchId || !puuid) return
 
   detailsLoading.value = true
