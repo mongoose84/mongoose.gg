@@ -31,7 +31,7 @@ public sealed class OverviewEndpoint : IEndpoint
         var endpoint = app.MapGet(Route, async (
             HttpContext httpContext,
             [FromRoute] string userId,
-            [FromQuery] string? account,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IOverviewStatsRepository overviewStatsRepo,
             [FromServices] ISoloPerformanceRepository soloPerformanceRepo,
@@ -46,7 +46,7 @@ public sealed class OverviewEndpoint : IEndpoint
                     return authError;
 
                 // Resolve requested account scope (primary/all/specific)
-                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
@@ -62,7 +62,7 @@ public sealed class OverviewEndpoint : IEndpoint
 
                 var linkedAccountsCount = allAccounts?.Count ?? 1;
 
-                logger.LogInformation("Overview request: userId={UserId}, accountCount={AccountCount}, account={Account}", authorizedUser.UserId, selectedPuuids.Count, LogSanitizer.Sanitize(account) ?? "primary");
+                logger.LogInformation("Overview request: userId={UserId}, accountCount={AccountCount}, account={Account}", authorizedUser.UserId, selectedPuuids.Count, LogSanitizer.Sanitize(accountId) ?? "primary");
 
                 // Build player header
                 var profileIconUrl = BuildProfileIconUrl(primaryAccount.ProfileIconId);
@@ -110,15 +110,15 @@ public sealed class OverviewEndpoint : IEndpoint
 
                 AccountSummary[]? accountSummaries = null;
                 CombinedStats? combinedStats = null;
-                var isAllMode = string.Equals(account, "all", StringComparison.OrdinalIgnoreCase);
+                var isAllMode = string.Equals(accountId, "all", StringComparison.OrdinalIgnoreCase);
                 if (isAllMode && allAccounts != null)
                 {
                     accountSummaries = allAccounts
                         .Select(resolved => new AccountSummary(
+                            AccountId: resolved.AccountId,
                             GameName: resolved.Account.GameName,
                             TagLine: resolved.Account.TagLine,
                             Region: resolved.Account.Region,
-                            Puuid: resolved.Account.Puuid,
                             Rank: BuildRankString(resolved.Account),
                             Lp: BuildLpValue(resolved.Account),
                             GamesToday: 0,

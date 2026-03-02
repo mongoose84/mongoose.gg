@@ -30,7 +30,7 @@ public sealed class MatchListEndpoint : IEndpoint
             HttpContext httpContext,
             [FromRoute] string userId,
             [FromQuery] string? queueType,
-            [FromQuery] string? account,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IMatchesRepository matchesRepo,
             [FromServices] IQueryFilterBuilder filterBuilder,
@@ -45,7 +45,7 @@ public sealed class MatchListEndpoint : IEndpoint
                     return authError;
 
                 // Resolve requested account scope
-                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
@@ -56,7 +56,7 @@ public sealed class MatchListEndpoint : IEndpoint
                 var queueFilter = filterBuilder.BuildQueueFilter(validatedQueueType);
 
                 logger.LogInformation("Match list request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, account={Account}",
-                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(validatedQueueType) ?? "all", LogSanitizer.Sanitize(account) ?? "primary");
+                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(validatedQueueType) ?? "all", LogSanitizer.Sanitize(accountId) ?? "primary");
 
                 // Fetch role baselines first (for trend badge computation)
                 var baselines = await matchesRepo.GetRoleBaselinesAsync(puuids, queueFilter);

@@ -17,10 +17,10 @@ public record OverviewResponse(
 );
 
 public record AccountSummary(
+    [property: JsonPropertyName("accountId")] string AccountId,
     [property: JsonPropertyName("gameName")] string GameName,
     [property: JsonPropertyName("tagLine")] string TagLine,
     [property: JsonPropertyName("region")] string Region,
-    [property: JsonPropertyName("puuid")] string Puuid,
     [property: JsonPropertyName("rank")] string? Rank,
     [property: JsonPropertyName("lp")] int? Lp,
     [property: JsonPropertyName("gamesToday")] int GamesToday,

@@ -101,9 +101,6 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             SELECT
                 m.match_id,
                 p.puuid,
-                ra.game_name,
-                ra.tag_line,
-                ra.region,
                 m.queue_id,
                 p.champion_id,
                 p.champion_name,
@@ -240,20 +237,23 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
-                m.match_id,
-                m.queue_id,
-                p.champion_id,
-                p.champion_name,
+                m.match_id as match_id,
+                ra.game_name as account_game_name,
+                ra.tag_line as account_tag_line,
+                ra.region as account_region,
+                m.queue_id as queue_id,
+                p.champion_id as champion_id,
+                p.champion_name as champion_name,
                 COALESCE(p.role, 'UNKNOWN') as role,
-                p.lane,
-                p.win,
-                p.kills,
-                p.deaths,
-                p.assists,
-                p.creep_score,
-                p.gold_earned,
-                m.game_duration_sec,
-                m.game_start_time
+                p.lane as lane,
+                p.win as win,
+                p.kills as kills,
+                p.deaths as deaths,
+                p.assists as assists,
+                p.creep_score as creep_score,
+                p.gold_earned as gold_earned,
+                m.game_duration_sec as game_duration_sec,
+                m.game_start_time as game_start_time
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN riot_accounts ra ON ra.puuid = p.puuid
@@ -286,7 +286,6 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
 
             items.Add(new MatchListSummaryItem(
                 MatchId: raw.MatchId,
-                AccountPuuid: raw.AccountPuuid,
                 AccountGameName: raw.AccountGameName,
                 AccountTagLine: raw.AccountTagLine,
                 AccountRegion: raw.AccountRegion,
@@ -438,26 +437,46 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         );
     }
 
-    private static MatchListSummaryRawData MapMatchListSummaryRaw(MySqlDataReader r) => new(
-        MatchId: r.GetString(0),
-        AccountPuuid: r.GetString(1),
-        AccountGameName: r.IsDBNull(2) ? null : r.GetString(2),
-        AccountTagLine: r.IsDBNull(3) ? null : r.GetString(3),
-        AccountRegion: r.IsDBNull(4) ? null : r.GetString(4),
-        QueueId: r.GetInt32(5),
-        ChampionId: r.GetInt32(6),
-        ChampionName: r.GetString(7),
-        Role: r.GetString(8),
-        Lane: r.IsDBNull(9) ? null : r.GetString(9),
-        Win: r.GetBoolean(10),
-        Kills: r.GetInt32(11),
-        Deaths: r.GetInt32(12),
-        Assists: r.GetInt32(13),
-        CreepScore: r.GetInt32(14),
-        GoldEarned: r.GetInt32(15),
-        GameDurationSec: r.GetInt32(16),
-        GameStartTime: r.GetInt64(17)
-    );
+    private static MatchListSummaryRawData MapMatchListSummaryRaw(MySqlDataReader r)
+    {
+        var matchIdOrdinal = r.GetOrdinal("match_id");
+        var accountGameNameOrdinal = r.GetOrdinal("account_game_name");
+        var accountTagLineOrdinal = r.GetOrdinal("account_tag_line");
+        var accountRegionOrdinal = r.GetOrdinal("account_region");
+        var queueIdOrdinal = r.GetOrdinal("queue_id");
+        var championIdOrdinal = r.GetOrdinal("champion_id");
+        var championNameOrdinal = r.GetOrdinal("champion_name");
+        var roleOrdinal = r.GetOrdinal("role");
+        var laneOrdinal = r.GetOrdinal("lane");
+        var winOrdinal = r.GetOrdinal("win");
+        var killsOrdinal = r.GetOrdinal("kills");
+        var deathsOrdinal = r.GetOrdinal("deaths");
+        var assistsOrdinal = r.GetOrdinal("assists");
+        var creepScoreOrdinal = r.GetOrdinal("creep_score");
+        var goldEarnedOrdinal = r.GetOrdinal("gold_earned");
+        var gameDurationSecOrdinal = r.GetOrdinal("game_duration_sec");
+        var gameStartTimeOrdinal = r.GetOrdinal("game_start_time");
+
+        return new MatchListSummaryRawData(
+            MatchId: r.GetString(matchIdOrdinal),
+            AccountGameName: r.IsDBNull(accountGameNameOrdinal) ? null : r.GetString(accountGameNameOrdinal),
+            AccountTagLine: r.IsDBNull(accountTagLineOrdinal) ? null : r.GetString(accountTagLineOrdinal),
+            AccountRegion: r.IsDBNull(accountRegionOrdinal) ? null : r.GetString(accountRegionOrdinal),
+            QueueId: r.GetInt32(queueIdOrdinal),
+            ChampionId: r.GetInt32(championIdOrdinal),
+            ChampionName: r.GetString(championNameOrdinal),
+            Role: r.GetString(roleOrdinal),
+            Lane: r.IsDBNull(laneOrdinal) ? null : r.GetString(laneOrdinal),
+            Win: r.GetBoolean(winOrdinal),
+            Kills: r.GetInt32(killsOrdinal),
+            Deaths: r.GetInt32(deathsOrdinal),
+            Assists: r.GetInt32(assistsOrdinal),
+            CreepScore: r.GetInt32(creepScoreOrdinal),
+            GoldEarned: r.GetInt32(goldEarnedOrdinal),
+            GameDurationSec: r.GetInt32(gameDurationSecOrdinal),
+            GameStartTime: r.GetInt64(gameStartTimeOrdinal)
+        );
+    }
 
     private static MatchDetailsRawData MapMatchDetailsRaw(MySqlDataReader r) => new(
         MatchId: r.GetString(0),

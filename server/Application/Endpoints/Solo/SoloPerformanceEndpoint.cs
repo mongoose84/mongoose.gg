@@ -29,7 +29,7 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
-            [FromQuery] string? account,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ISoloPerformanceRepository soloPerformanceRepo,
             [FromServices] ILogger<SoloPerformanceEndpoint> logger
@@ -43,7 +43,7 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
                     return authError;
 
                 // Resolve requested account scope (primary/all/specific)
-                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
@@ -61,7 +61,7 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
                     authorizedUser.UserId, puuids.Count,
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",
-                    LogSanitizer.Sanitize(account) ?? "primary");
+                    LogSanitizer.Sanitize(accountId) ?? "primary");
 
                 var performance = await soloPerformanceRepo.GetSoloPerformanceAsync(puuids, queueType, timeRange);
 

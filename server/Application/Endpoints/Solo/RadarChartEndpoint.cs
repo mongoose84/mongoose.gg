@@ -26,7 +26,7 @@ public sealed class RadarChartEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
-            [FromQuery] string? account,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IRadarChartRepository radarChartRepo,
             [FromServices] ILogger<RadarChartEndpoint> logger
@@ -40,7 +40,7 @@ public sealed class RadarChartEndpoint : IEndpoint
                     return authError;
 
                 // Resolve requested account scope
-                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
@@ -52,7 +52,7 @@ public sealed class RadarChartEndpoint : IEndpoint
                     puuids.Count,
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",
-                    LogSanitizer.Sanitize(account) ?? "primary");
+                    LogSanitizer.Sanitize(accountId) ?? "primary");
 
                 var radarData = await radarChartRepo.GetRadarChartAsync(puuids, queueType, timeRange);
                 if (radarData == null)

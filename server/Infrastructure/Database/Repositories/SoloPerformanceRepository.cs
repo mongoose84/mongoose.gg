@@ -135,7 +135,7 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate} {queueFilter} {timeFilter}";
 
-        _logger.LogDebug("GetOverallStatsAsync SQL: {Sql} | puuid={Puuid}, queueFilter={QueueFilter}, timeFilter={TimeFilter}, seasonCode={SeasonCode}",
+        _logger.LogDebug("GetOverallStatsAsync SQL: {Sql} | accountCount={AccountCount}, queueFilter={QueueFilter}, timeFilter={TimeFilter}, seasonCode={SeasonCode}",
             sql, puuids.Count, queueFilter, timeFilter, timeRangeFilter.SeasonCode);
 
         var result = await ExecuteWithConnectionAsync(async conn =>

@@ -29,7 +29,7 @@ public sealed class DragonParticipationTrendEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
-            [FromQuery] string? account,
+            [FromQuery] string? accountId,
             [FromQuery] int? limit,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ITrendRepository trendRepo,
@@ -43,7 +43,7 @@ public sealed class DragonParticipationTrendEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
@@ -60,7 +60,7 @@ public sealed class DragonParticipationTrendEndpoint : IEndpoint
 
                 // Fetch dragon participation trend data  
                 logger.LogInformation("Dragon participation trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
-                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.Sanitize(account) ?? "primary", validatedLimit?.ToString() ?? "all");
+                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.Sanitize(accountId) ?? "primary", validatedLimit?.ToString() ?? "all");
 
                 var (dataPoints, averageParticipation, overallAverage, trend) = await trendRepo.GetDragonParticipationTrendAsync(puuids, queueType, timeRange, validatedLimit);
 

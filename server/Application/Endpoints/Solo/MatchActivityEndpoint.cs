@@ -25,7 +25,7 @@ public sealed class MatchActivityEndpoint : IEndpoint
         var endpoint = app.MapGet(Route, async (
             HttpContext httpContext,
             [FromRoute] string userId,
-            [FromQuery] string? account,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ITrendRepository trendRepo,
             [FromServices] ILogger<MatchActivityEndpoint> logger
@@ -39,7 +39,7 @@ public sealed class MatchActivityEndpoint : IEndpoint
                     return authError;
 
                 // Resolve requested account scope
-                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 

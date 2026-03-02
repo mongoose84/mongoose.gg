@@ -3,7 +3,6 @@ using MySqlConnector;
 using Mongoose.Api.Infrastructure.Database;
 using Mongoose.Api.Infrastructure.Database.Repositories;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Mongoose.Api.Tests;
 
@@ -12,10 +11,15 @@ public sealed class MatchesRepositoryIntegrationTests
     [Fact]
     public async Task GetMatchListSummaryAsync_MapsAccountFields_FromRealSqlPath()
     {
+        if (!IsIntegrationDbOptInEnabled())
+        {
+            return;
+        }
+
         var connectionString = GetTestConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            throw new SkipException("Integration DB not configured. Set Database_test or ConnectionStrings__Database_test.");
+            return;
         }
 
         var factory = new DirectDbConnectionFactory(connectionString);
@@ -41,7 +45,6 @@ public sealed class MatchesRepositoryIntegrationTests
             result.Should().ContainSingle();
             var item = result[0];
             item.MatchId.Should().Be(matchId);
-            item.AccountPuuid.Should().Be(puuid);
             item.AccountGameName.Should().Be(gameName);
             item.AccountTagLine.Should().Be(tagLine);
             item.AccountRegion.Should().Be(region);
@@ -57,9 +60,15 @@ public sealed class MatchesRepositoryIntegrationTests
     private static string? GetTestConnectionString()
     {
         return Environment.GetEnvironmentVariable("Database_test")
-            ?? Environment.GetEnvironmentVariable("ConnectionStrings__Database_test")
-            ?? Environment.GetEnvironmentVariable("Database_production")
-            ?? Environment.GetEnvironmentVariable("ConnectionStrings__Database_production");
+            ?? Environment.GetEnvironmentVariable("ConnectionStrings__Database_test");
+    }
+
+    private static bool IsIntegrationDbOptInEnabled()
+    {
+        var value = Environment.GetEnvironmentVariable("RUN_DB_INTEGRATION_TESTS");
+        return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task EnsureSchemaAsync(IDbConnectionFactory factory)

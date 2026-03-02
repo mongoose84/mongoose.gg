@@ -28,7 +28,7 @@ public sealed class DeathsTrendEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
-            [FromQuery] string? account,
+            [FromQuery] string? accountId,
             [FromQuery] int? limit,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ITrendRepository trendRepo,
@@ -42,7 +42,7 @@ public sealed class DeathsTrendEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
@@ -59,7 +59,7 @@ public sealed class DeathsTrendEndpoint : IEndpoint
 
                 // Fetch deaths trend data
                 logger.LogInformation("Deaths trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
-                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.Sanitize(account) ?? "primary", validatedLimit?.ToString() ?? "all");
+                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.Sanitize(accountId) ?? "primary", validatedLimit?.ToString() ?? "all");
 
                 var (dataPoints, averageDeaths, overallAverage, trend) = await trendRepo.GetDeathsTrendAsync(puuids, queueType, timeRange, validatedLimit);
 

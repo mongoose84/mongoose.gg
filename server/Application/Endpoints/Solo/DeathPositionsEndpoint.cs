@@ -31,7 +31,7 @@ public sealed class DeathPositionsEndpoint : IEndpoint
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
             [FromQuery] string? side,
-            [FromQuery] string? account,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IDeathPositionsRepository deathPositionsRepo,
             [FromServices] ILogger<DeathPositionsEndpoint> logger
@@ -57,7 +57,7 @@ public sealed class DeathPositionsEndpoint : IEndpoint
                 }
 
                 // Resolve requested account scope
-                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
@@ -70,7 +70,7 @@ public sealed class DeathPositionsEndpoint : IEndpoint
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",
                     LogSanitizer.Sanitize(side) ?? "all",
-                    LogSanitizer.Sanitize(account) ?? "primary");
+                    LogSanitizer.Sanitize(accountId) ?? "primary");
 
                 var deathPositions = await deathPositionsRepo.GetDeathPositionsAsync(
                     puuids, queueType, timeRange, side);

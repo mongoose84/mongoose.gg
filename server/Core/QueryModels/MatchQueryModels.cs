@@ -8,7 +8,6 @@ namespace Mongoose.Api.Core.QueryModels;
 /// </summary>
 public record MatchListSummaryItem(
     [property: JsonPropertyName("matchId")] string MatchId,
-    [property: JsonPropertyName("accountPuuid")] string AccountPuuid,
     [property: JsonPropertyName("accountGameName")] string? AccountGameName,
     [property: JsonPropertyName("accountTagLine")] string? AccountTagLine,
     [property: JsonPropertyName("accountRegion")] string? AccountRegion,
@@ -37,7 +36,6 @@ public record MatchListSummaryItem(
 /// </summary>
 public record MatchListSummaryRawData(
     string MatchId,
-    string AccountPuuid,
     string? AccountGameName,
     string? AccountTagLine,
     string? AccountRegion,

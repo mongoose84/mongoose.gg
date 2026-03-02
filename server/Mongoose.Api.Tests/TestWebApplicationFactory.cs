@@ -1161,7 +1161,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
                     return new MatchListSummaryItem(
                         MatchId: match.MatchId,
-                        AccountPuuid: participant.Puuid,
                         AccountGameName: null,
                         AccountTagLine: null,
                         AccountRegion: null,
@@ -1220,7 +1219,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
                     return new MatchListSummaryItem(
                         MatchId: match.MatchId,
-                        AccountPuuid: participant.Puuid,
                         AccountGameName: null,
                         AccountTagLine: null,
                         AccountRegion: null,
@@ -1521,17 +1519,19 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral"));
         }
 
-            public Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+        public Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            foreach (var puuid in puuids)
             {
-                foreach (var puuid in puuids)
-                {
                 if (_dragonParticipationData.TryGetValue(puuid, out var data))
+                {
                     return Task.FromResult(data);
                 }
-
-                return Task.FromResult<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)>(
-                (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral"));
             }
+
+            return Task.FromResult<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)>(
+                (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral"));
+        }
 
         // Other trend methods return empty data for now since we're only testing dragon participation
         public Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
@@ -1586,17 +1586,19 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral"));
         }
 
-            public Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+        public Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            foreach (var puuid in puuids)
             {
-                foreach (var puuid in puuids)
-                {
                 if (_visionScoreData.TryGetValue(puuid, out var data))
+                {
                     return Task.FromResult(data);
                 }
-
-                return Task.FromResult<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)>(
-                (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral"));
             }
+
+            return Task.FromResult<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)>(
+                (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral"));
+        }
 
         public Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
         {
