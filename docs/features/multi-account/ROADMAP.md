@@ -30,9 +30,9 @@ Features are ordered by **dependency chain** and **incremental value delivery**.
 ## Dependency Graph
 
 ```
-MA-01 (Settings Accounts)
+MA-01 (Settings Accounts) Done
   │
-  ├── MA-05 (Tier Gating)
+  ├── MA-05 (Tier Gating) Done
   │
   └── MA-02 (Backend Multi-PUUID)
         │

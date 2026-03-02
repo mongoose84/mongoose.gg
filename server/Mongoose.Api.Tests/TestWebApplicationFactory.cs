@@ -160,7 +160,9 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
             // Replace OverviewStatsRepository with a fake
             services.RemoveAll<OverviewStatsRepository>();
+            services.RemoveAll<IOverviewStatsRepository>();
             services.AddSingleton<OverviewStatsRepository>(_overviewStatsRepository);
+            services.AddSingleton<IOverviewStatsRepository>(_overviewStatsRepository);
 
             // Replace AnalyticsEventsRepository with a fake
             services.RemoveAll<AnalyticsEventsRepository>();
@@ -817,6 +819,15 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult((_defaultQueueId, _defaultQueueLabel, 0));
         }
 
+        public override Task<(int QueueId, string QueueLabel, int MatchCount)> GetPrimaryQueueAsync(IReadOnlyList<string> puuids)
+        {
+            var matchCount = puuids
+                .Where(puuid => _matchesByPuuid.TryGetValue(puuid, out _))
+                .Sum(puuid => _matchesByPuuid[puuid].Count);
+
+            return Task.FromResult((_defaultQueueId, _defaultQueueLabel, matchCount));
+        }
+
         public override Task<List<MatchResultData>> GetLast20MatchesAsync(string puuid, int queueId)
         {
             if (_matchesByPuuid.TryGetValue(puuid, out var matches))
@@ -826,16 +837,52 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(new List<MatchResultData>());
         }
 
+        public override Task<List<MatchResultData>> GetLast20MatchesAsync(IReadOnlyList<string> puuids, int queueId)
+        {
+            var matches = puuids
+                .Where(puuid => _matchesByPuuid.TryGetValue(puuid, out _))
+                .SelectMany(puuid => _matchesByPuuid[puuid])
+                .OrderByDescending(match => match.GameStartTime)
+                .Take(20)
+                .ToList();
+
+            return Task.FromResult(matches);
+        }
+
         public override Task<LastMatchData?> GetLastMatchAsync(string puuid)
         {
             _lastMatchByPuuid.TryGetValue(puuid, out var lastMatch);
             return Task.FromResult(lastMatch);
         }
 
+        public override Task<LastMatchData?> GetLastMatchAsync(IReadOnlyList<string> puuids)
+        {
+            var match = puuids
+                .Where(puuid => _lastMatchByPuuid.TryGetValue(puuid, out _))
+                .Select(puuid => _lastMatchByPuuid[puuid])
+                .OrderByDescending(lastMatch => lastMatch.GameStartTime)
+                .FirstOrDefault();
+
+            return Task.FromResult(match);
+        }
+
         public override Task<MostPlayedChampionData?> GetMostPlayedChampionAsync(string puuid)
         {
             _mostPlayedChampionByPuuid.TryGetValue(puuid, out var mostPlayedChampion);
             return Task.FromResult(mostPlayedChampion);
+        }
+
+        public override Task<MostPlayedChampionData?> GetMostPlayedChampionAsync(IReadOnlyList<string> puuids)
+        {
+            foreach (var puuid in puuids)
+            {
+                if (_mostPlayedChampionByPuuid.TryGetValue(puuid, out var mostPlayedChampion))
+                {
+                    return Task.FromResult<MostPlayedChampionData?>(mostPlayedChampion);
+                }
+            }
+
+            return Task.FromResult<MostPlayedChampionData?>(null);
         }
 
         public override Task<int?> GetCurrentLpAsync(string puuid, int queueId)
@@ -1114,6 +1161,69 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
                     return new MatchListSummaryItem(
                         MatchId: match.MatchId,
+                        AccountPuuid: participant.Puuid,
+                        AccountGameName: null,
+                        AccountTagLine: null,
+                        AccountRegion: null,
+                        QueueId: match.QueueId,
+                        QueueType: GetQueueType(match.QueueId),
+                        ChampionId: participant.ChampionId,
+                        ChampionName: participant.ChampionName,
+                        ChampionIconUrl: $"https://cdn.example.com/{participant.ChampionName}.png",
+                        Role: participant.Role,
+                        Lane: participant.Lane,
+                        Win: participant.Win,
+                        Kills: participant.Kills,
+                        Deaths: participant.Deaths,
+                        Assists: participant.Assists,
+                        CreepScore: participant.CreepScore,
+                        GoldEarned: participant.GoldEarned,
+                        GameDurationSec: match.GameDurationSec,
+                        GameStartTime: match.GameStartTime,
+                        CsPerMin: csPerMin,
+                        GoldPerMin: goldPerMin,
+                        TrendBadge: null
+                    );
+                })
+                .Where(item => item != null)
+                .Take(limit)
+                .ToList();
+
+            return Task.FromResult<IList<MatchListSummaryItem>>(result!);
+        }
+
+        public Task<IList<MatchListSummaryItem>> GetMatchListSummaryAsync(
+            IReadOnlyList<string> puuids, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null)
+        {
+            if (puuids.Count == 0)
+                return Task.FromResult<IList<MatchListSummaryItem>>(new List<MatchListSummaryItem>());
+
+            var allowed = puuids.ToHashSet(StringComparer.Ordinal);
+            var result = _matches
+                .OrderByDescending(m => m.Value.GameStartTime)
+                .Select(matchKvp =>
+                {
+                    var match = matchKvp.Value;
+                    if (!_participants.TryGetValue(match.MatchId, out var participants))
+                        return null;
+
+                    var participant = participants.FirstOrDefault(p => allowed.Contains(p.Puuid));
+                    if (participant == null)
+                        return null;
+
+                    if (!MatchesQueueFilter(match.QueueId, queueFilter))
+                        return null;
+
+                    var durationMin = match.GameDurationSec / 60.0;
+                    var csPerMin = durationMin > 0 ? Math.Round(participant.CreepScore / durationMin, 1) : 0;
+                    var goldPerMin = durationMin > 0 ? Math.Round(participant.GoldEarned / durationMin, 0) : 0;
+
+                    return new MatchListSummaryItem(
+                        MatchId: match.MatchId,
+                        AccountPuuid: participant.Puuid,
+                        AccountGameName: null,
+                        AccountTagLine: null,
+                        AccountRegion: null,
                         QueueId: match.QueueId,
                         QueueType: GetQueueType(match.QueueId),
                         ChampionId: participant.ChampionId,
@@ -1215,6 +1325,17 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(new Dictionary<string, RoleBaseline>());
         }
 
+        public Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(IReadOnlyList<string> puuids, string queueFilter)
+        {
+            foreach (var puuid in puuids)
+            {
+                if (_baselines.TryGetValue(puuid, out var baselines))
+                    return Task.FromResult(baselines);
+            }
+
+            return Task.FromResult(new Dictionary<string, RoleBaseline>());
+        }
+
         public Task<IList<MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId)
         {
             if (!_participants.TryGetValue(matchId, out var participants))
@@ -1252,6 +1373,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public Task<IList<Match>> GetRecentMatchHeadersAsync(string puuid, int? queueId, int limit)
             => Task.FromResult<IList<Match>>(new List<Match>());
         public Task<IList<MatchListItem>> GetMatchListAsync(string puuid, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null)
+            => Task.FromResult<IList<MatchListItem>>(new List<MatchListItem>());
+        public Task<IList<MatchListItem>> GetMatchListAsync(IReadOnlyList<string> puuids, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null)
             => Task.FromResult<IList<MatchListItem>>(new List<MatchListItem>());
         public Task<int> DeleteOldMatchesAsync(long cutoffTimestamp, int batchSize) => Task.FromResult(0);
 
@@ -1297,6 +1420,15 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             _performanceData.TryGetValue(puuid, out var data);
             return Task.FromResult(data);
+        }
+
+        public Task<SoloPerformanceResponse?> GetSoloPerformanceAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null)
+        {
+            var aggregate = puuids
+                .Select(puuid => _performanceData.TryGetValue(puuid, out var data) ? data : null)
+                .FirstOrDefault(data => data != null);
+
+            return Task.FromResult(aggregate);
         }
     }
 
@@ -1389,8 +1521,25 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral"));
         }
 
+            public Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+            {
+                foreach (var puuid in puuids)
+                {
+                if (_dragonParticipationData.TryGetValue(puuid, out var data))
+                    return Task.FromResult(data);
+                }
+
+                return Task.FromResult<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)>(
+                (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral"));
+            }
+
         // Other trend methods return empty data for now since we're only testing dragon participation
         public Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            return Task.FromResult(Array.Empty<WinrateTrendPoint>());
+        }
+
+        public Task<WinrateTrendPoint[]> GetWinrateTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
         {
             return Task.FromResult(Array.Empty<WinrateTrendPoint>());
         }
@@ -1400,12 +1549,28 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(Array.Empty<GoldAt15TrendPoint>());
         }
 
+        public Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            return Task.FromResult(Array.Empty<GoldAt15TrendPoint>());
+        }
+
         public Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
         {
             return Task.FromResult(Array.Empty<CsPerMinuteTrendPoint>());
         }
 
+        public Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            return Task.FromResult(Array.Empty<CsPerMinuteTrendPoint>());
+        }
+
         public Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            return Task.FromResult<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)>(
+                (Array.Empty<DeathsTrendPoint>(), 0, 0, "neutral"));
+        }
+
+        public Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
         {
             return Task.FromResult<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)>(
                 (Array.Empty<DeathsTrendPoint>(), 0, 0, "neutral"));
@@ -1421,7 +1586,24 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral"));
         }
 
+            public Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+            {
+                foreach (var puuid in puuids)
+                {
+                if (_visionScoreData.TryGetValue(puuid, out var data))
+                    return Task.FromResult(data);
+                }
+
+                return Task.FromResult<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)>(
+                (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral"));
+            }
+
         public Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
+        {
+            return Task.FromResult(new Dictionary<string, int>());
+        }
+
+        public Task<Dictionary<string, int>> GetDailyMatchCountsAsync(IReadOnlyList<string> puuids, int daysBack = 91)
         {
             return Task.FromResult(new Dictionary<string, int>());
         }
@@ -1448,6 +1630,17 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             _radarData.TryGetValue(puuid, out var data);
             return Task.FromResult(data);
+        }
+
+        public Task<RadarChartResponse?> GetRadarChartAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null)
+        {
+            foreach (var puuid in puuids)
+            {
+                if (_radarData.TryGetValue(puuid, out var data))
+                    return Task.FromResult<RadarChartResponse?>(data);
+            }
+
+            return Task.FromResult<RadarChartResponse?>(null);
         }
     }
 
@@ -1476,6 +1669,21 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             _deathPositionsData.TryGetValue(puuid, out var data);
             return Task.FromResult(data);
+        }
+
+        public Task<DeathPositionsResponse?> GetDeathPositionsAsync(
+            IReadOnlyList<string> puuids,
+            string? queueType = null,
+            string? timeRange = null,
+            string? side = null)
+        {
+            foreach (var puuid in puuids)
+            {
+                if (_deathPositionsData.TryGetValue(puuid, out var data))
+                    return Task.FromResult<DeathPositionsResponse?>(data);
+            }
+
+            return Task.FromResult<DeathPositionsResponse?>(null);
         }
     }
 }

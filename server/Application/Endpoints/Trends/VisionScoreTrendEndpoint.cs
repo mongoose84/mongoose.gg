@@ -29,6 +29,7 @@ public sealed class VisionScoreTrendEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
+            [FromQuery] string? account,
             [FromQuery] int? limit,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ITrendRepository trendRepo,
@@ -42,12 +43,11 @@ public sealed class VisionScoreTrendEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                // Resolve primary Riot account
-                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
                 if (accountError != null)
                     return accountError;
 
-                var primaryPuuid = resolvedAccount!.Account.Puuid;
+                var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
 
                 // Validate limit if provided
                 int? validatedLimit = null;
@@ -59,10 +59,10 @@ public sealed class VisionScoreTrendEndpoint : IEndpoint
                 }
 
                 // Fetch vision score trend data
-                logger.LogInformation("Vision score trend request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, limit={Limit}",
-                    authorizedUser.UserId, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", validatedLimit?.ToString() ?? "all");
+                logger.LogInformation("Vision score trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
+                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.Sanitize(account) ?? "primary", validatedLimit?.ToString() ?? "all");
 
-                var (dataPoints, averageVisionPerMinute, overallAverage, roleTarget, trend) = await trendRepo.GetVisionScoreTrendAsync(primaryPuuid, queueType, timeRange, validatedLimit);
+                var (dataPoints, averageVisionPerMinute, overallAverage, roleTarget, trend) = await trendRepo.GetVisionScoreTrendAsync(puuids, queueType, timeRange, validatedLimit);
 
                 return Results.Ok(new VisionScoreTrendResponse(dataPoints, averageVisionPerMinute, overallAverage, roleTarget, trend));
             }

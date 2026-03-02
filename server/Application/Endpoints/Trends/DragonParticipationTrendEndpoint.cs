@@ -29,6 +29,7 @@ public sealed class DragonParticipationTrendEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
+            [FromQuery] string? account,
             [FromQuery] int? limit,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ITrendRepository trendRepo,
@@ -42,12 +43,11 @@ public sealed class DragonParticipationTrendEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                // Resolve primary Riot account
-                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
                 if (accountError != null)
                     return accountError;
 
-                var primaryPuuid = resolvedAccount!.Account.Puuid;
+                var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
 
                 // Validate limit if provided
                 int? validatedLimit = null;
@@ -59,10 +59,10 @@ public sealed class DragonParticipationTrendEndpoint : IEndpoint
                 }
 
                 // Fetch dragon participation trend data  
-                logger.LogInformation("Dragon participation trend request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, limit={Limit}",
-                    authorizedUser.UserId, primaryPuuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", validatedLimit?.ToString() ?? "all");
+                logger.LogInformation("Dragon participation trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
+                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.Sanitize(account) ?? "primary", validatedLimit?.ToString() ?? "all");
 
-                var (dataPoints, averageParticipation, overallAverage, trend) = await trendRepo.GetDragonParticipationTrendAsync(primaryPuuid, queueType, timeRange, validatedLimit);
+                var (dataPoints, averageParticipation, overallAverage, trend) = await trendRepo.GetDragonParticipationTrendAsync(puuids, queueType, timeRange, validatedLimit);
 
                 return Results.Ok(new DragonParticipationTrendResponse(dataPoints, averageParticipation, overallAverage, trend));
             }

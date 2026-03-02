@@ -25,6 +25,7 @@ public sealed class MatchActivityEndpoint : IEndpoint
         var endpoint = app.MapGet(Route, async (
             HttpContext httpContext,
             [FromRoute] string userId,
+            [FromQuery] string? account,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ITrendRepository trendRepo,
             [FromServices] ILogger<MatchActivityEndpoint> logger
@@ -37,16 +38,16 @@ public sealed class MatchActivityEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                // Resolve primary Riot account
-                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                // Resolve requested account scope
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
                 if (accountError != null)
                     return accountError;
 
-                var primaryPuuid = resolvedAccount!.Account.Puuid;
+                var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
 
                 // Fetch daily match counts for past 6 months (182 days)
                 const int daysBack = 182;
-                var dailyCounts = await trendRepo.GetDailyMatchCountsAsync(primaryPuuid, daysBack);
+                var dailyCounts = await trendRepo.GetDailyMatchCountsAsync(puuids, daysBack);
                 
                 var endDate = DateTime.UtcNow.Date;
                 var startDate = endDate.AddDays(-daysBack);
@@ -59,8 +60,8 @@ public sealed class MatchActivityEndpoint : IEndpoint
                     TotalMatches: totalMatches
                 );
 
-                logger.LogInformation("Match activity: userId={UserId}, puuid={Puuid}, totalMatches={Total}", 
-                    authorizedUser.UserId, primaryPuuid, totalMatches);
+                logger.LogInformation("Match activity: userId={UserId}, accountCount={AccountCount}, totalMatches={Total}", 
+                    authorizedUser.UserId, puuids.Count, totalMatches);
 
                 return Results.Ok(response);
             }

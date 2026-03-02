@@ -19,5 +19,15 @@ public interface ISoloPerformanceRepository
     /// <param name="timeRange">Time range filter (current_season, last_season, 1w, 1m, 3m, 6m)</param>
     /// <returns>Performance response or null if no data found</returns>
     Task<SoloPerformanceResponse?> GetSoloPerformanceAsync(string puuid, string? queueType = null, string? timeRange = null);
+
+    /// <summary>
+    /// Get comprehensive solo performance data for one or more players.
+    /// Used for aggregated multi-account views.
+    /// </summary>
+    /// <param name="puuids">Player PUUID list</param>
+    /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, normal, aram, all)</param>
+    /// <param name="timeRange">Time range filter (current_season, last_season, 1w, 1m, 3m, 6m)</param>
+    /// <returns>Performance response or null if no data found</returns>
+    Task<SoloPerformanceResponse?> GetSoloPerformanceAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null);
 }
 

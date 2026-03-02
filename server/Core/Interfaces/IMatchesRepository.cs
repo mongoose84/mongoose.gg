@@ -14,6 +14,7 @@ public interface IMatchesRepository
     /// Only fetches data needed to render match rows (champion, KDA, result, timestamp, trend badge).
     /// </summary>
     Task<IList<MatchListSummaryItem>> GetMatchListSummaryAsync(string puuid, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null);
+    Task<IList<MatchListSummaryItem>> GetMatchListSummaryAsync(IReadOnlyList<string> puuids, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null);
 
     /// <summary>
     /// Get full match details for a single match.
@@ -25,8 +26,10 @@ public interface IMatchesRepository
     /// @deprecated Use GetMatchListSummaryAsync instead.
     /// </summary>
     Task<IList<MatchListItem>> GetMatchListAsync(string puuid, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null);
+    Task<IList<MatchListItem>> GetMatchListAsync(IReadOnlyList<string> puuids, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null);
 
     Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(string puuid, string queueFilter);
+    Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(IReadOnlyList<string> puuids, string queueFilter);
     Task<IList<MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId);
 
     /// <summary>

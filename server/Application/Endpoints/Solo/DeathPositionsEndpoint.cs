@@ -31,6 +31,7 @@ public sealed class DeathPositionsEndpoint : IEndpoint
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
             [FromQuery] string? side,
+            [FromQuery] string? account,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IDeathPositionsRepository deathPositionsRepo,
             [FromServices] ILogger<DeathPositionsEndpoint> logger
@@ -55,29 +56,30 @@ public sealed class DeathPositionsEndpoint : IEndpoint
                     }
                 }
 
-                // Resolve primary Riot account
-                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                // Resolve requested account scope
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
                 if (accountError != null)
                     return accountError;
 
-                var primaryPuuid = resolvedAccount!.Account.Puuid;
+                var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
 
                 // Fetch death positions data
                 logger.LogInformation(
-                    "Death positions request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
-                    authorizedUser.UserId, primaryPuuid, 
+                    "Death positions request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, side={Side}, account={Account}",
+                    authorizedUser.UserId, puuids.Count,
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",
-                    LogSanitizer.Sanitize(side) ?? "all");
+                    LogSanitizer.Sanitize(side) ?? "all",
+                    LogSanitizer.Sanitize(account) ?? "primary");
 
                 var deathPositions = await deathPositionsRepo.GetDeathPositionsAsync(
-                    primaryPuuid, queueType, timeRange, side);
+                    puuids, queueType, timeRange, side);
 
                 if (deathPositions == null)
                 {
                     logger.LogInformation(
                         "Death positions: no data for puuid {Puuid} with filters queueType={Queue}, timeRange={TimeRange}, side={Side}",
-                        primaryPuuid,
+                        string.Join(",", puuids),
                         LogSanitizer.Sanitize(queueType) ?? "all",
                         LogSanitizer.Sanitize(timeRange) ?? "all",
                         LogSanitizer.Sanitize(side) ?? "all");

@@ -25,11 +25,19 @@ public class RadarChartRepository : RepositoryBase, IRadarChartRepository
 
     /// <inheritdoc />
     public async Task<RadarChartResponse?> GetRadarChartAsync(string puuid, string? queueType = null, string? timeRange = null)
+        => await GetRadarChartAsync([puuid], queueType, timeRange);
+
+    /// <inheritdoc />
+    public async Task<RadarChartResponse?> GetRadarChartAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null)
     {
+        if (puuids.Count == 0)
+            return null;
+
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
         var sql = $@"
             SELECT
@@ -53,12 +61,15 @@ public class RadarChartRepository : RepositoryBase, IRadarChartRepository
             LEFT JOIN participant_checkpoints pc ON pc.participant_id = p.id AND pc.minute_mark = 15
             LEFT JOIN participant_objectives po ON po.participant_id = p.id
             LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
-            WHERE p.puuid = @puuid {queueFilter} {timeFilter}";
+            WHERE {puuidPredicate} {queueFilter} {timeFilter}";
 
         return await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -77,8 +88,8 @@ public class RadarChartRepository : RepositoryBase, IRadarChartRepository
             var avgDeaths = GetNullableDouble(reader, 6) ?? 0;
 
             _logger.LogInformation(
-                "Radar chart query success: puuid={Puuid}, games={Games}, queueType={Queue}, timeRange={TimeRange}",
-                puuid,
+                "Radar chart query success: accountCount={AccountCount}, games={Games}, queueType={Queue}, timeRange={TimeRange}",
+                puuids.Count,
                 gamesAnalyzed,
                 LogSanitizer.Sanitize(queueType) ?? "all",
                 LogSanitizer.Sanitize(timeRangeFilter.NormalizedTimeRange) ?? "all");

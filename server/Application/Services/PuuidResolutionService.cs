@@ -1,5 +1,6 @@
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Application.Endpoints.Shared;
 
 namespace Mongoose.Api.Application.Services;
 
@@ -109,6 +110,55 @@ public sealed class PuuidResolutionService
             .ToList();
 
         return (null, accounts);
+    }
+
+    /// <summary>
+    /// Resolves accounts based on an optional account query parameter.
+    /// - null/empty: resolves to the primary account for backwards compatibility.
+    /// - "all": resolves to all linked (visible) accounts.
+    /// - specific puuid: verifies ownership and resolves that single account.
+    /// </summary>
+    /// <param name="userId">The user ID to resolve accounts for</param>
+    /// <param name="accountParam">Optional account query parameter</param>
+    /// <returns>
+    /// A tuple containing either (null, List&lt;ResolvedAccount&gt;) on success or (IResult, null) on failure.
+    /// </returns>
+    public async Task<(IResult? ErrorResult, List<ResolvedAccount>? Accounts)> ResolveRequestedAccountsAsync(long userId, string? accountParam)
+    {
+        if (string.IsNullOrWhiteSpace(accountParam))
+        {
+            var (errorResult, primaryAccount) = await ResolvePrimaryAccountAsync(userId);
+            if (errorResult != null)
+            {
+                return (errorResult, null);
+            }
+
+            return (null, [primaryAccount!]);
+        }
+
+        if (string.Equals(accountParam, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ResolveAllAccountsAsync(userId);
+        }
+
+        var ownsRequestedPuuid = await VerifyPuuidOwnershipAsync(userId, accountParam);
+        if (!ownsRequestedPuuid)
+        {
+            _logger.LogWarning("User {UserId} requested unlinked puuid", userId);
+            return (AuthResults.Forbidden(), null);
+        }
+
+        var linkedAccounts = await GetVisibleLinkedAccountsAsync(userId);
+        var requestedAccount = linkedAccounts
+            .FirstOrDefault(linkedAccount => string.Equals(linkedAccount.Account.Puuid, accountParam, StringComparison.Ordinal));
+
+        if (requestedAccount.Account == null)
+        {
+            _logger.LogWarning("Requested puuid not found in visible accounts for user {UserId}", userId);
+            return (AuthResults.Forbidden(), null);
+        }
+
+        return (null, [new ResolvedAccount(requestedAccount.Account, requestedAccount.Link?.IsPrimary == true)]);
     }
 
     /// <summary>

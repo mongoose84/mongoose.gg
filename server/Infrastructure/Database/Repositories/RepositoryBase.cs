@@ -182,4 +182,31 @@ public abstract class RepositoryBase
 
         return await cmd.ExecuteNonQueryAsync();
     }
+
+    /// <summary>
+    /// Builds a parameterized SQL IN clause and parameter list for string values.
+    /// Returns an always-false predicate when no values are provided.
+    /// </summary>
+    protected static (string Predicate, List<(string name, object? value)> Parameters) BuildStringInClause(
+        string columnName,
+        IReadOnlyList<string> values,
+        string parameterPrefix)
+    {
+        if (values.Count == 0)
+        {
+            return ("1 = 0", new List<(string name, object? value)>());
+        }
+
+        var placeholders = new List<string>(values.Count);
+        var parameters = new List<(string name, object? value)>(values.Count);
+
+        for (var index = 0; index < values.Count; index++)
+        {
+            var parameterName = $"@{parameterPrefix}{index}";
+            placeholders.Add(parameterName);
+            parameters.Add((parameterName, values[index]));
+        }
+
+        return ($"{columnName} IN ({string.Join(", ", placeholders)})", parameters);
+    }
 }

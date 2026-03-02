@@ -31,7 +31,18 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
         string? queueType = null, 
         string? timeRange = null, 
         string? side = null)
+        => await GetDeathPositionsAsync([puuid], queueType, timeRange, side);
+
+    /// <inheritdoc />
+    public async Task<DeathPositionsResponse?> GetDeathPositionsAsync(
+        IReadOnlyList<string> puuids,
+        string? queueType = null,
+        string? timeRange = null,
+        string? side = null)
     {
+        if (puuids.Count == 0)
+            return null;
+
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var effectiveTimeRange = string.IsNullOrWhiteSpace(timeRangeFilter.NormalizedTimeRange) 
@@ -40,7 +51,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
 
         _logger.LogInformation(
             "GetDeathPositionsAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
-            puuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
+            puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
 
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
@@ -50,11 +61,11 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
         {
             // Fetch death positions
             var deathPositions = await GetDeathPositionsInternalAsync(
-                puuid, queueFilter, timeFilter, sideFilter, timeRangeFilter);
+                puuids, queueFilter, timeFilter, sideFilter, timeRangeFilter);
 
             // Fetch summary metrics
             var summary = await GetDeathSummaryAsync(
-                puuid, queueFilter, timeFilter, sideFilter, timeRangeFilter);
+                puuids, queueFilter, timeFilter, sideFilter, timeRangeFilter);
 
             var response = new DeathPositionsResponse(
                 Deaths: deathPositions.ToArray(),
@@ -70,7 +81,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
 
             _logger.LogInformation(
                 "GetDeathPositionsAsync success: puuid={Puuid}, totalDeaths={Deaths}, matches={Matches}",
-                puuid, summary.TotalDeaths, summary.MatchesAnalyzed);
+                puuids.Count, summary.TotalDeaths, summary.MatchesAnalyzed);
 
             return response;
         }
@@ -78,18 +89,19 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
         {
             _logger.LogError(ex, 
                 "GetDeathPositionsAsync error: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
-                puuid, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
+                puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
             throw;
         }
     }
 
     private async Task<List<DeathPosition>> GetDeathPositionsInternalAsync(
-        string puuid,
+        IReadOnlyList<string> puuids,
         string queueFilter,
         string timeFilter,
         string sideFilter,
         TimeRangeFilter timeRangeFilter)
     {
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
                 pde.position_x,
@@ -100,7 +112,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
             FROM participant_death_events pde
             INNER JOIN participants p ON p.id = pde.participant_id
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid
+            WHERE {puuidPredicate}
                 {queueFilter}
                 {timeFilter}
                 {sideFilter}
@@ -108,12 +120,15 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
 
         _logger.LogDebug(
             "GetDeathPositionsInternalAsync SQL: {Sql} | puuid={Puuid}, seasonCode={SeasonCode}",
-            sql, puuid, timeRangeFilter.SeasonCode);
+            sql, puuids.Count, timeRangeFilter.SeasonCode);
 
         return await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
             var results = new List<DeathPosition>();
@@ -143,12 +158,13 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
 
     private async Task<(int TotalDeaths, int MatchesAnalyzed, int EarlyDeaths, int MidDeaths, int LateDeaths, int VeryLateDeaths)> 
         GetDeathSummaryAsync(
-            string puuid,
+            IReadOnlyList<string> puuids,
             string queueFilter,
             string timeFilter,
             string sideFilter,
             TimeRangeFilter timeRangeFilter)
     {
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
                 COUNT(*) AS total_deaths,
@@ -160,19 +176,22 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
             FROM participant_death_events pde
             INNER JOIN participants p ON p.id = pde.participant_id
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid
+            WHERE {puuidPredicate}
                 {queueFilter}
                 {timeFilter}
                 {sideFilter}";
 
         _logger.LogDebug(
             "GetDeathSummaryAsync SQL: {Sql} | puuid={Puuid}, seasonCode={SeasonCode}",
-            sql, puuid, timeRangeFilter.SeasonCode);
+            sql, puuids.Count, timeRangeFilter.SeasonCode);
 
         return await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
             await using var reader = await cmd.ExecuteReaderAsync();

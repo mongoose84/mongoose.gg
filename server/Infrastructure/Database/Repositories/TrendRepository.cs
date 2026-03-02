@@ -25,11 +25,19 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
     /// <inheritdoc />
     public async Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        => await GetWinrateTrendAsync([puuid], queueType, timeRange, limit);
+
+    /// <inheritdoc />
+    public async Task<WinrateTrendPoint[]> GetWinrateTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
     {
+        if (puuids.Count == 0)
+            return Array.Empty<WinrateTrendPoint>();
+
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
         // Fetch all games in chronological order (oldest first)
         var sql = $@"
@@ -38,7 +46,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 m.game_start_time
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+            WHERE {puuidPredicate} {queueFilter} {timeFilter}
             ORDER BY m.game_start_time ASC";
 
         var games = new List<(bool Win, long Timestamp)>();
@@ -46,7 +54,10 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -121,11 +132,19 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
     /// <inheritdoc />
     public async Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        => await GetGoldAt15TrendAsync([puuid], queueType, timeRange, limit);
+
+    /// <inheritdoc />
+    public async Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
     {
+        if (puuids.Count == 0)
+            return Array.Empty<GoldAt15TrendPoint>();
+
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
         // Query to get player's gold at 15 with opponent gold for lane matchup
         var sql = $@"
@@ -144,7 +163,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 AND opp_p.team_id != p.team_id 
                 AND opp_p.role = p.role
             LEFT JOIN participant_checkpoints opp_pc ON opp_pc.participant_id = opp_p.id AND opp_pc.minute_mark = 15
-            WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+            WHERE {puuidPredicate} {queueFilter} {timeFilter}
             ORDER BY m.game_start_time ASC";
 
         var dataPoints = new List<GoldAt15TrendPoint>();
@@ -152,7 +171,10 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -223,11 +245,19 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
     /// <inheritdoc />
     public async Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        => await GetCsPerMinuteTrendAsync([puuid], queueType, timeRange, limit);
+
+    /// <inheritdoc />
+    public async Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
     {
+        if (puuids.Count == 0)
+            return Array.Empty<CsPerMinuteTrendPoint>();
+
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
         // Query to get CS per minute data - filter out games shorter than 15 minutes (900 seconds)
         var sql = $@"
@@ -240,7 +270,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 p.role
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid 
+            WHERE {puuidPredicate}
             AND m.game_duration_sec >= 900 {queueFilter} {timeFilter}
             ORDER BY m.game_start_time ASC";
 
@@ -249,7 +279,10 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -320,11 +353,19 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
     /// <inheritdoc />
     public async Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        => await GetDeathsTrendAsync([puuid], queueType, timeRange, limit);
+
+    /// <inheritdoc />
+    public async Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
     {
+        if (puuids.Count == 0)
+            return (Array.Empty<DeathsTrendPoint>(), 0, 0, "neutral");
+
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
         // Query to get death counts per game with champion and role information
         var sql = $@"
@@ -337,7 +378,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 m.game_duration_sec
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+            WHERE {puuidPredicate} {queueFilter} {timeFilter}
             ORDER BY m.game_start_time ASC";
 
         var dataPoints = new List<(string MatchId, long Timestamp, int Deaths, string ChampionName, string? Role, int GameDurationSec)>();
@@ -345,7 +386,10 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -450,13 +494,21 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
     /// <inheritdoc />
     public async Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        => await GetDragonParticipationTrendAsync([puuid], queueType, timeRange, limit);
+
+    /// <inheritdoc />
+    public async Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
     {
         try
         {
+            if (puuids.Count == 0)
+                return (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral");
+
             queueType = _filterBuilder.ValidateQueueType(queueType);
             var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
             var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
             var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+            var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
             // Query to get dragon participation per game with team dragon counts
             // Use LEFT JOIN to include matches even if objective data is missing
@@ -472,7 +524,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 INNER JOIN matches m ON m.match_id = p.match_id
                 LEFT JOIN participant_objectives po ON po.participant_id = p.id
                 LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
-                WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+                WHERE {puuidPredicate} {queueFilter} {timeFilter}
                 ORDER BY m.game_start_time ASC";
 
             _logger.LogDebug("Dragon participation SQL: {Sql}", sql);
@@ -482,7 +534,10 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             await ExecuteWithConnectionAsync(async conn =>
             {
                 await using var cmd = new MySqlCommand(sql, conn);
-                cmd.Parameters.AddWithValue("@puuid", puuid);
+                foreach (var (name, value) in puuidParams)
+                {
+                    cmd.Parameters.AddWithValue(name, value);
+                }
                 _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
                 await using var reader = await cmd.ExecuteReaderAsync();
@@ -607,21 +662,29 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in GetDragonParticipationTrendAsync for puuid={Puuid}, queueType={QueueType}, timeRange={TimeRange}", 
-                puuid, LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(timeRange));
+            _logger.LogError(ex, "Error in GetDragonParticipationTrendAsync for accountCount={AccountCount}, queueType={QueueType}, timeRange={TimeRange}", 
+                puuids.Count, LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(timeRange));
             throw;
         }
     }
 
     /// <inheritdoc />
     public async Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        => await GetVisionScoreTrendAsync([puuid], queueType, timeRange, limit);
+
+    /// <inheritdoc />
+    public async Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
     {
         try
         {
+            if (puuids.Count == 0)
+                return (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral");
+
             queueType = _filterBuilder.ValidateQueueType(queueType);
             var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
             var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
             var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+            var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
             // Query to get vision score data
             // When limit is provided, fetch limit + windowSize - 1 rows (need extra rows for rolling average)
@@ -643,7 +706,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 FROM participants p
                 INNER JOIN matches m ON m.match_id = p.match_id
                 INNER JOIN participant_metrics pm ON pm.participant_id = p.id
-                WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+                                WHERE {puuidPredicate} {queueFilter} {timeFilter}
                   AND m.game_duration_sec >= 600
                 ORDER BY m.game_start_time {orderDirection}
                 {limitClause}";
@@ -660,7 +723,10 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             await ExecuteWithConnectionAsync(async conn =>
             {
                 await using var cmd = new MySqlCommand(sql, conn);
-                cmd.Parameters.AddWithValue("@puuid", puuid);
+                foreach (var (name, value) in puuidParams)
+                {
+                    cmd.Parameters.AddWithValue(name, value);
+                }
                 _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
                 await using var reader = await cmd.ExecuteReaderAsync();
@@ -791,25 +857,33 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in GetVisionScoreTrendAsync for puuid={Puuid}, queueType={QueueType}, timeRange={TimeRange}", 
-                puuid, LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(timeRange));
+            _logger.LogError(ex, "Error in GetVisionScoreTrendAsync for accountCount={AccountCount}, queueType={QueueType}, timeRange={TimeRange}", 
+                puuids.Count, LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(timeRange));
             throw;
         }
     }
 
     /// <inheritdoc />
     public async Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
+        => await GetDailyMatchCountsAsync([puuid], daysBack);
+
+    /// <inheritdoc />
+    public async Task<Dictionary<string, int>> GetDailyMatchCountsAsync(IReadOnlyList<string> puuids, int daysBack = 91)
     {
+        if (puuids.Count == 0)
+            return new Dictionary<string, int>();
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var startDate = DateTime.UtcNow.Date.AddDays(-daysBack);
         var startTimestamp = new DateTimeOffset(startDate).ToUnixTimeMilliseconds();
 
-        var sql = @"
+        var sql = $@"
             SELECT
                 DATE(FROM_UNIXTIME(m.game_start_time / 1000)) as game_date,
                 COUNT(DISTINCT m.match_id) as match_count
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid
+            WHERE {puuidPredicate}
               AND m.game_start_time >= @start_timestamp
             GROUP BY DATE(FROM_UNIXTIME(m.game_start_time / 1000))
             ORDER BY game_date ASC";
@@ -819,7 +893,10 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             cmd.Parameters.AddWithValue("@start_timestamp", startTimestamp);
 
             await using var reader = await cmd.ExecuteReaderAsync();

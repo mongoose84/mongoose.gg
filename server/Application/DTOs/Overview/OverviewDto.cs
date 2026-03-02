@@ -11,7 +11,26 @@ public record OverviewResponse(
     [property: JsonPropertyName("lastMatch")] LastMatch? LastMatch,
     [property: JsonPropertyName("mostPlayedChampion")] MostPlayedChampion? MostPlayedChampion,
     [property: JsonPropertyName("activeGoals")] GoalPreview[] ActiveGoals,
-    [property: JsonPropertyName("suggestedActions")] SuggestedAction[] SuggestedActions
+    [property: JsonPropertyName("suggestedActions")] SuggestedAction[] SuggestedActions,
+    [property: JsonPropertyName("accountSummaries")] AccountSummary[]? AccountSummaries = null,
+    [property: JsonPropertyName("combinedStats")] CombinedStats? CombinedStats = null
+);
+
+public record AccountSummary(
+    [property: JsonPropertyName("gameName")] string GameName,
+    [property: JsonPropertyName("tagLine")] string TagLine,
+    [property: JsonPropertyName("region")] string Region,
+    [property: JsonPropertyName("puuid")] string Puuid,
+    [property: JsonPropertyName("rank")] string? Rank,
+    [property: JsonPropertyName("lp")] int? Lp,
+    [property: JsonPropertyName("gamesToday")] int GamesToday,
+    [property: JsonPropertyName("gamesThisWeek")] int GamesThisWeek
+);
+
+public record CombinedStats(
+    [property: JsonPropertyName("totalGames")] int TotalGames,
+    [property: JsonPropertyName("winRate")] double WinRate,
+    [property: JsonPropertyName("avgKda")] double AvgKda
 );
 
 /// <summary>

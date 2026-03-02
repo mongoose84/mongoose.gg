@@ -26,6 +26,7 @@ public sealed class RadarChartEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
+            [FromQuery] string? account,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IRadarChartRepository radarChartRepo,
             [FromServices] ILogger<RadarChartEndpoint> logger
@@ -38,21 +39,22 @@ public sealed class RadarChartEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                // Resolve primary Riot account
-                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                // Resolve requested account scope
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, account);
                 if (accountError != null)
                     return accountError;
 
-                var primaryPuuid = resolvedAccount!.Account.Puuid;
+                var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
 
                 logger.LogInformation(
-                    "Radar chart request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
+                    "Radar chart request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}",
                     authorizedUser.UserId,
-                    primaryPuuid,
+                    puuids.Count,
                     LogSanitizer.Sanitize(queueType) ?? "all",
-                    LogSanitizer.Sanitize(timeRange) ?? "all");
+                    LogSanitizer.Sanitize(timeRange) ?? "all",
+                    LogSanitizer.Sanitize(account) ?? "primary");
 
-                var radarData = await radarChartRepo.GetRadarChartAsync(primaryPuuid, queueType, timeRange);
+                var radarData = await radarChartRepo.GetRadarChartAsync(puuids, queueType, timeRange);
                 if (radarData == null)
                 {
                     return Results.Ok(new RadarChartResponse(Array.Empty<RadarAxis>(), 0));
