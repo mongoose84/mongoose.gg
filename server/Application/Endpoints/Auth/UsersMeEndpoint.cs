@@ -41,14 +41,14 @@ public sealed class UsersMeEndpoint : IEndpoint
                 var user = await usersRepo.GetByIdAsync(authenticatedUser!.UserId);
                 if (user == null)
                 {
-                    logger.LogWarning("User not found for ID: {UserId}", authenticatedUser.UserId);
+                    logger.LogWarning("User not found for ID: {UserId}", LogSanitizer.Sanitize(authenticatedUser.UserId.ToString()));
                     return AuthResults.InvalidSession();
                 }
 
                 // Check if user is active
                 if (!user.IsActive)
                 {
-                    logger.LogWarning("Inactive user attempted to access /users/me: {UserId}", authenticatedUser.UserId);
+                    logger.LogWarning("Inactive user attempted to access /users/me: {UserId}", LogSanitizer.Sanitize(authenticatedUser.UserId.ToString()));
                     return AuthResults.AccountDeactivated();
                 }
 

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using System.Reflection;
+using Mongoose.Api.Application.Endpoints.Shared;
 
 namespace Mongoose.Api.Infrastructure.Email;
 
@@ -26,9 +27,9 @@ public class SmtpEmailService : IEmailService
         {
             _logger.LogWarning("========================================");
             _logger.LogWarning("DEV MODE: Email sending disabled");
-            _logger.LogWarning("To: {Email}", toEmail);
-            _logger.LogWarning("Username: {Username}", username);
-            _logger.LogWarning("Verification Code: {Code}", verificationCode);
+            _logger.LogWarning("To: {Email}", LogSanitizer.Sanitize(toEmail));
+            _logger.LogWarning("Username: {Username}", LogSanitizer.Sanitize(username));
+            _logger.LogWarning("Verification Code: {Code}", LogSanitizer.Sanitize(verificationCode));
             _logger.LogWarning("========================================");
             await Task.CompletedTask;
             return;
@@ -83,7 +84,7 @@ public class SmtpEmailService : IEmailService
 
         if (string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(smtpUsername) || string.IsNullOrWhiteSpace(smtpPassword))
         {
-            _logger.LogError("SMTP configuration is incomplete. Email not sent to {Email}", toEmail);
+            _logger.LogError("SMTP configuration is incomplete. Email not sent to {Email}", LogSanitizer.Sanitize(toEmail));
             throw new InvalidOperationException("SMTP configuration is incomplete. Please configure Email:SmtpHost, Email:SmtpUsername, and Email:SmtpPassword.");
         }
 
@@ -140,9 +141,9 @@ public class SmtpEmailService : IEmailService
         {
             _logger.LogWarning("========================================");
             _logger.LogWarning("DEV MODE: Email sending disabled");
-            _logger.LogWarning("To: {Email}", toEmail);
-            _logger.LogWarning("Username: {Username}", username);
-            _logger.LogWarning("Password Reset Code: {Code}", resetCode);
+            _logger.LogWarning("To: {Email}", LogSanitizer.Sanitize(toEmail));
+            _logger.LogWarning("Username: {Username}", LogSanitizer.Sanitize(username));
+            _logger.LogWarning("Password Reset Code: {Code}", LogSanitizer.Sanitize(resetCode));
             _logger.LogWarning("========================================");
             await Task.CompletedTask;
             return;
@@ -162,7 +163,7 @@ public class SmtpEmailService : IEmailService
 
         if (string.IsNullOrWhiteSpace(smtpUsername) || string.IsNullOrWhiteSpace(smtpPassword) || string.IsNullOrWhiteSpace(fromEmail))
         {
-            _logger.LogError("SMTP configuration is incomplete. Password reset email not sent to {Email}", toEmail);
+            _logger.LogError("SMTP configuration is incomplete. Password reset email not sent to {Email}", LogSanitizer.Sanitize(toEmail));
             throw new InvalidOperationException("SMTP configuration is incomplete.");
         }
 

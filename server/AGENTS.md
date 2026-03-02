@@ -177,7 +177,8 @@ Sanitization removes newlines (`\r\n`) and control characters that could be used
 - Request body fields (email, feedback text, etc.)
 - External data (Riot API responses, IP addresses, etc.)
 
-PUIDs and internal IDs resolved from the database don't need sanitization.
+For consistency, sanitize all dynamic log values that can originate from user/session/external sources. Use `LogSanitizer.Sanitize(value.ToString())` when needed.
+PUUIDs and internal IDs resolved from the database are lower risk, but sanitizing before logging is still preferred.
 
 ### Background Jobs
 

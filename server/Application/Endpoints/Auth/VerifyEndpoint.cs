@@ -56,7 +56,7 @@ public sealed class VerifyEndpoint : IEndpoint
                 var user = await usersRepo.GetByIdAsync(userId);
                 if (user == null)
                 {
-                    logger.LogWarning("Verify attempt for non-existent user ID: {UserId}", userId);
+                    logger.LogWarning("Verify attempt for non-existent user ID: {UserId}", LogSanitizer.Sanitize(userId.ToString()));
                     return AuthResults.InvalidSession();
                 }
 
@@ -70,7 +70,7 @@ public sealed class VerifyEndpoint : IEndpoint
                 var token = await tokensRepo.GetActiveTokenAsync(userId, TokenTypes.EmailVerification);
                 if (token == null)
                 {
-                    logger.LogWarning("User {UserId} has no active verification token", userId);
+                    logger.LogWarning("User {UserId} has no active verification token", LogSanitizer.Sanitize(userId.ToString()));
                     return Results.BadRequest(new { error = "No verification code found. Please request a new code.", code = "NO_CODE_STORED" });
                 }
 
@@ -80,7 +80,7 @@ public sealed class VerifyEndpoint : IEndpoint
                 {
                     // Invalidate the token to prevent further attempts
                     await tokensRepo.MarkTokenAsUsedAsync(token.Id);
-                    logger.LogWarning("User {UserId} exceeded max verification attempts ({MaxAttempts}). Token invalidated.", userId, maxAttempts);
+                    logger.LogWarning("User {UserId} exceeded max verification attempts ({MaxAttempts}). Token invalidated.", LogSanitizer.Sanitize(userId.ToString()), maxAttempts);
                     return Results.BadRequest(new {
                         error = "Too many failed attempts. Please request a new verification code.",
                         code = "MAX_ATTEMPTS_EXCEEDED"
@@ -92,11 +92,11 @@ public sealed class VerifyEndpoint : IEndpoint
                 {
                     // Increment attempt counter
                     await tokensRepo.IncrementAttemptsAsync(token.Id);
-                    logger.LogWarning("User {UserId} submitted incorrect verification code (attempt {Attempts}/{MaxAttempts})", userId, token.Attempts + 1, maxAttempts);
+                    logger.LogWarning("User {UserId} submitted incorrect verification code (attempt {Attempts}/{MaxAttempts})", LogSanitizer.Sanitize(userId.ToString()), token.Attempts + 1, maxAttempts);
                     return Results.BadRequest(new { error = "Invalid verification code. Please try again.", code = "INVALID_CODE" });
                 }
 
-                logger.LogDebug("User {UserId} submitted correct verification code", userId);
+                logger.LogDebug("User {UserId} submitted correct verification code", LogSanitizer.Sanitize(userId.ToString()));
 
                 // Update user as verified first, then mark token as used
                 // Order matters: if user update fails, token remains valid for retry
@@ -130,7 +130,7 @@ public sealed class VerifyEndpoint : IEndpoint
                 );
 
                 logger.LogInformation("User {Username} (ID: {UserId}) email verified successfully",
-                    LogSanitizer.Sanitize(user.Username), userId);
+                    LogSanitizer.Sanitize(user.Username), LogSanitizer.Sanitize(userId.ToString()));
 
                 return Results.Ok(new VerifyResponse(true, "Email verified successfully"));
             }

@@ -93,11 +93,11 @@ public sealed class ForgotPasswordEndpoint : IEndpoint
                     try
                     {
                         await emailService.SendPasswordResetEmailAsync(user.Email, user.Username, resetCode);
-                        logger.LogInformation("Password reset email sent for user {UserId}", user.UserId);
+                        logger.LogInformation("Password reset email sent for user {UserId}", LogSanitizer.Sanitize(user.UserId.ToString()));
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Failed to send password reset email for user {UserId}", user.UserId);
+                        logger.LogError(ex, "Failed to send password reset email for user {UserId}", LogSanitizer.Sanitize(user.UserId.ToString()));
                     }
                 }
                 else

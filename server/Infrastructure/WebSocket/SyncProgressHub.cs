@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure.Database.Repositories;
 
@@ -40,7 +41,7 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
         var connection = new ClientConnection(connectionId, webSocket, userId);
 
         _connections[connectionId] = connection;
-        _logger.LogDebug("WebSocket connected: {ConnectionId} for user {UserId}", connectionId, userId);
+        _logger.LogDebug("WebSocket connected: {ConnectionId} for user {UserId}", LogSanitizer.Sanitize(connectionId), LogSanitizer.Sanitize(userId.ToString()));
 
         try
         {
@@ -55,7 +56,7 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
             }
             _connections.TryRemove(connectionId, out _);
             connection.Dispose();
-            _logger.LogDebug("WebSocket disconnected: {ConnectionId}", connectionId);
+            _logger.LogDebug("WebSocket disconnected: {ConnectionId}", LogSanitizer.Sanitize(connectionId));
         }
     }
 
@@ -90,7 +91,7 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
                     // Guard against excessively large messages
                     if (messageBuffer.Length > MaxMessageSize)
                     {
-                        _logger.LogWarning("WebSocket message too large from {ConnectionId}, closing connection", connection.ConnectionId);
+                        _logger.LogWarning("WebSocket message too large from {ConnectionId}, closing connection", LogSanitizer.Sanitize(connection.ConnectionId));
                         await connection.WebSocket.CloseAsync(
                             WebSocketCloseStatus.MessageTooBig,
                             "Message exceeds maximum size",
@@ -148,13 +149,13 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
                     break;
 
                 default:
-                    _logger.LogWarning("Unknown WebSocket message type: {Type}", type);
+                    _logger.LogWarning("Unknown WebSocket message type: {Type}", LogSanitizer.Sanitize(type));
                     break;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to parse WebSocket message: {Message}", messageJson);
+            _logger.LogWarning(ex, "Failed to parse WebSocket message: {Message}", LogSanitizer.Sanitize(messageJson));
         }
     }
 
@@ -170,13 +171,13 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
         var isLinked = await repo.IsLinkedAsync(userId, puuid);
         if (!isLinked)
         {
-            _logger.LogWarning("User {UserId} attempted to subscribe to unlinked account {Puuid}", userId, puuid);
+            _logger.LogWarning("User {UserId} attempted to subscribe to unlinked account {Puuid}", LogSanitizer.Sanitize(userId.ToString()), LogSanitizer.Sanitize(puuid));
             return false;
         }
 
         var subscribers = _subscriptions.GetOrAdd(puuid, _ => new ConcurrentDictionary<string, byte>());
         subscribers[connectionId] = 0;
-        _logger.LogDebug("Connection {ConnectionId} subscribed to account {Puuid}", connectionId, puuid);
+        _logger.LogDebug("Connection {ConnectionId} subscribed to account {Puuid}", LogSanitizer.Sanitize(connectionId), LogSanitizer.Sanitize(puuid));
         return true;
     }
 
@@ -185,7 +186,7 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
         if (_subscriptions.TryGetValue(puuid, out var subscribers))
         {
             subscribers.TryRemove(connectionId, out _);
-            _logger.LogDebug("Connection {ConnectionId} unsubscribed from account {Puuid}", connectionId, puuid);
+            _logger.LogDebug("Connection {ConnectionId} unsubscribed from account {Puuid}", LogSanitizer.Sanitize(connectionId), LogSanitizer.Sanitize(puuid));
         }
     }
 
@@ -272,7 +273,7 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to send WebSocket message to {ConnectionId}", connection!.ConnectionId);
+                _logger.LogWarning(ex, "Failed to send WebSocket message to {ConnectionId}", LogSanitizer.Sanitize(connection!.ConnectionId));
             }
         }
     }

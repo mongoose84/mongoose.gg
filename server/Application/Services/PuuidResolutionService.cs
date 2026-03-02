@@ -49,7 +49,7 @@ public sealed class PuuidResolutionService
 
         if (linkedAccounts == null || linkedAccounts.Count == 0)
         {
-            _logger.LogWarning("No riot accounts found for userId {UserId}", userId);
+            _logger.LogWarning("No riot accounts found for userId {UserId}", LogSanitizer.Sanitize(userId.ToString()));
             return (
                 Results.NotFound(new { error = "No riot accounts found for this user", code = "RIOT_ACCOUNT_NOT_FOUND" }),
                 null
@@ -101,7 +101,7 @@ public sealed class PuuidResolutionService
 
         if (linkedAccounts == null || linkedAccounts.Count == 0)
         {
-            _logger.LogWarning("No riot accounts found for userId {UserId}", userId);
+            _logger.LogWarning("No riot accounts found for userId {UserId}", LogSanitizer.Sanitize(userId.ToString()));
             return (
                 Results.NotFound(new { error = "No riot accounts found for this user", code = "RIOT_ACCOUNT_NOT_FOUND" }),
                 null
@@ -153,7 +153,7 @@ public sealed class PuuidResolutionService
 
         if (requestedAccount.Account == null)
         {
-            _logger.LogWarning("User {UserId} requested unlinked accountId {AccountId}", userId, LogSanitizer.Sanitize(accountIdParam));
+            _logger.LogWarning("User {UserId} requested unlinked accountId {AccountId}", LogSanitizer.Sanitize(userId.ToString()), LogSanitizer.Sanitize(accountIdParam));
             return (AuthResults.Forbidden(), null);
         }
 

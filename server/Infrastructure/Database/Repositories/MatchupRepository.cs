@@ -1,4 +1,5 @@
 using MySqlConnector;
+using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 
@@ -28,7 +29,7 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var effectiveTimeRangeForLog = string.IsNullOrWhiteSpace(timeRangeFilter.NormalizedTimeRange) ? "all" : timeRangeFilter.NormalizedTimeRange;
-        _logger.LogInformation("GetChampionMatchupsAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", puuid, queueType, effectiveTimeRangeForLog);
+        _logger.LogInformation("GetChampionMatchupsAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", LogSanitizer.Sanitize(puuid), LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(effectiveTimeRangeForLog));
 
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
@@ -52,12 +53,12 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
                 ));
             }
 
-            _logger.LogInformation("GetChampionMatchupsAsync success: puuid={Puuid}, champions={Count}", puuid, matchups.Count);
+            _logger.LogInformation("GetChampionMatchupsAsync success: puuid={Puuid}, champions={Count}", LogSanitizer.Sanitize(puuid), matchups.Count);
             return new ChampionMatchupsResponse(matchups.ToArray(), queueType, effectiveTimeRangeForLog);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetChampionMatchupsAsync error: puuid={Puuid}, queueType={Queue}", puuid, queueType);
+            _logger.LogError(ex, "GetChampionMatchupsAsync error: puuid={Puuid}, queueType={Queue}", LogSanitizer.Sanitize(puuid), LogSanitizer.Sanitize(queueType));
             throw;
         }
     }

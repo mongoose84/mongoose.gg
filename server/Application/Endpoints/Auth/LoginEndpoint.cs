@@ -157,7 +157,7 @@ public sealed class LoginEndpoint : IEndpoint
                     authProperties
                 );
 
-                logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", LogSanitizer.Sanitize(user.Username), user.UserId);
+                logger.LogInformation("User {Username} (ID: {UserId}) logged in successfully", LogSanitizer.Sanitize(user.Username), LogSanitizer.Sanitize(user.UserId.ToString()));
 
                 // Check linked Riot accounts for new matches and update profile data
                 // Run in background (fire-and-forget) to avoid slowing down login response
@@ -169,7 +169,7 @@ public sealed class LoginEndpoint : IEndpoint
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Background sync check failed for user {UserId}", user.UserId);
+                        logger.LogError(ex, "Background sync check failed for user {UserId}", LogSanitizer.Sanitize(user.UserId.ToString()));
                     }
                 });
 

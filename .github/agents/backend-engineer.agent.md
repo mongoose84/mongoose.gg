@@ -27,5 +27,7 @@ Review [backend documentation](../../docs/backend) and [API specifications](../.
 ## Approach
 - Follow security-first development principles
 - Implement proper error handling and logging
+- Sanitize every dynamic value passed to logger templates with `Mongoose.Api.Application.Endpoints.Shared.LogSanitizer.Sanitize(...)`
+- Treat all route/query/body/claim/external string values as untrusted and sanitize before logging
 - Write comprehensive unit and integration tests
 - Optimize database queries and API performance

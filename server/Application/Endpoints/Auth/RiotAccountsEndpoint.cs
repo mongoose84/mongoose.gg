@@ -358,7 +358,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     await userRiotAccountsRepo.SetPrimaryAsync(userId.Value, nextPrimaryPuuid);
                 }
 
-                logger.LogInformation("Unlinked Riot account {Puuid} from user {UserId}", LogSanitizer.Sanitize(puuid), userId);
+                logger.LogInformation("Unlinked Riot account {Puuid} from user {UserId}", LogSanitizer.Sanitize(puuid), LogSanitizer.Sanitize(userId.ToString()));
 
                 // Optionally: If no users are linked to this Riot account anymore, we could delete it
                 // For now, keep it for historical match data
@@ -396,7 +396,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 }
 
                 await userRiotAccountsRepo.SetPrimaryAsync(userId.Value, puuid);
-                logger.LogInformation("Set Riot account {Puuid} as primary for user {UserId}", LogSanitizer.Sanitize(puuid), userId);
+                logger.LogInformation("Set Riot account {Puuid} as primary for user {UserId}", LogSanitizer.Sanitize(puuid), LogSanitizer.Sanitize(userId.ToString()));
 
                 return Results.Ok(new { success = true });
             }
@@ -449,7 +449,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                 // status='pending' and perform the actual match synchronization,
                 // updating status to 'syncing' -> 'completed'/'failed'.
                 await riotAccountsRepo.UpdateSyncStatusAsync(puuid, "pending");
-                logger.LogInformation("Queued sync for Riot account {Puuid}, user {UserId}", LogSanitizer.Sanitize(puuid), userId);
+                logger.LogInformation("Queued sync for Riot account {Puuid}, user {UserId}", LogSanitizer.Sanitize(puuid), LogSanitizer.Sanitize(userId.ToString()));
 
                 return Results.Accepted($"{Route}/{puuid}/sync-status", new SyncResponse(puuid, "pending", "Sync queued"));
             }

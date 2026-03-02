@@ -59,14 +59,14 @@ public sealed class ChangePasswordEndpoint : IEndpoint
                 var user = await usersRepo.GetByIdAsync(userId);
                 if (user == null)
                 {
-                    logger.LogWarning("Change-password attempt for non-existent user ID: {UserId}", userId);
+                    logger.LogWarning("Change-password attempt for non-existent user ID: {UserId}", LogSanitizer.Sanitize(userId.ToString()));
                     return AuthResults.InvalidSession();
                 }
 
                 // Verify current password
                 if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
                 {
-                    logger.LogWarning("Change-password: incorrect current password for user {UserId}", userId);
+                    logger.LogWarning("Change-password: incorrect current password for user {UserId}", LogSanitizer.Sanitize(userId.ToString()));
                     return Results.Json(
                         new { error = "Current password is incorrect.", code = "INVALID_PASSWORD" },
                         statusCode: 401);
@@ -89,7 +89,7 @@ public sealed class ChangePasswordEndpoint : IEndpoint
                 // next request to be rejected by the stamp check.
                 await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-                logger.LogInformation("Password changed successfully for user {UserId}", userId);
+                logger.LogInformation("Password changed successfully for user {UserId}", LogSanitizer.Sanitize(userId.ToString()));
 
                 return Results.Ok(new ChangePasswordResponse(true, "Password changed. Please log in again."));
             }

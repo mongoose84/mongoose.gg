@@ -51,7 +51,7 @@ public sealed class AuthorizationHelper
         if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userIdInt.ToString())
         {
             logger.LogWarning("User {AuthUserId} attempted to access data for user {UserId}",
-                authenticatedUserId ?? "unknown", userIdInt);
+                LogSanitizer.Sanitize(authenticatedUserId) ?? "unknown", LogSanitizer.Sanitize(userIdInt.ToString()));
             return AuthResults.Forbidden();
         }
 

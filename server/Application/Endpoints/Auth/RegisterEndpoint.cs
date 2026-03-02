@@ -174,13 +174,13 @@ public sealed class RegisterEndpoint : IEndpoint
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, "Failed to send verification email for user {UserId}", userId);
+                            logger.LogError(ex, "Failed to send verification email for user {UserId}", LogSanitizer.Sanitize(userId.ToString()));
                         }
                     });
                 }
                 else
                 {
-                    logger.LogInformation("Auto-verified email for user {UserId} (Auth:AutoVerifyEmail enabled)", userId);
+                    logger.LogInformation("Auto-verified email for user {UserId} (Auth:AutoVerifyEmail enabled)", LogSanitizer.Sanitize(userId.ToString()));
                 }
 
                 // Create claims identity for cookie auth
@@ -209,7 +209,7 @@ public sealed class RegisterEndpoint : IEndpoint
                     authProperties
                 );
 
-                logger.LogInformation("User {Username} (ID: {UserId}) registered successfully", LogSanitizer.Sanitize(newUser.Username), userId);
+                logger.LogInformation("User {Username} (ID: {UserId}) registered successfully", LogSanitizer.Sanitize(newUser.Username), LogSanitizer.Sanitize(userId.ToString()));
 
                 return Results.Ok(new RegisterResponse(
                     userId,

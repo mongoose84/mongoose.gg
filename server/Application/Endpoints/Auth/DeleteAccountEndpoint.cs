@@ -49,14 +49,14 @@ public sealed class DeleteAccountEndpoint : IEndpoint
                 var user = await usersRepo.GetByIdAsync(authenticatedUser!.UserId);
                 if (user == null)
                 {
-                    logger.LogWarning("Delete account requested for non-existent user ID: {UserId}", authenticatedUser.UserId);
+                    logger.LogWarning("Delete account requested for non-existent user ID: {UserId}", LogSanitizer.Sanitize(authenticatedUser.UserId.ToString()));
                     return AuthResults.InvalidSession();
                 }
 
                 // Verify password using BCrypt
                 if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
-                    logger.LogWarning("Delete account attempt with invalid password for user: {UserId}", authenticatedUser.UserId);
+                    logger.LogWarning("Delete account attempt with invalid password for user: {UserId}", LogSanitizer.Sanitize(authenticatedUser.UserId.ToString()));
                     return Results.Json(new { error = "Invalid password", code = "INVALID_PASSWORD" }, statusCode: 401);
                 }
 
@@ -65,12 +65,12 @@ public sealed class DeleteAccountEndpoint : IEndpoint
                 
                 if (!deleted)
                 {
-                    logger.LogError("Failed to delete user {UserId} - user not found during deletion", authenticatedUser.UserId);
+                    logger.LogError("Failed to delete user {UserId} - user not found during deletion", LogSanitizer.Sanitize(authenticatedUser.UserId.ToString()));
                     return Results.Json(new { error = "Account deletion failed" }, statusCode: 500);
                 }
 
                 logger.LogInformation("User {UserId} ({Username}) account deleted successfully",
-                    authenticatedUser.UserId, LogSanitizer.Sanitize(user.Username));
+                    LogSanitizer.Sanitize(authenticatedUser.UserId.ToString()), LogSanitizer.Sanitize(user.Username));
 
                 // Sign out the user (clear the auth cookie)
                 await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
