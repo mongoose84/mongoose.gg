@@ -15,6 +15,15 @@ export function getAccountParam() {
     return 'all'
   }
 
+  // Only allow the server-issued opaque accountId format (acc_...).
+  // Any other value (e.g. a raw PUUID from a pre-fix session) is stale and
+  // would cause a 403. Reset to overall and let validateActiveAccount
+  // re-set the correct identifier on next initialization.
+  if (!activeAccount.startsWith('acc_')) {
+    localStorage.removeItem(ACTIVE_ACCOUNT_STORAGE_KEY)
+    return 'all'
+  }
+
   return activeAccount
 }
 

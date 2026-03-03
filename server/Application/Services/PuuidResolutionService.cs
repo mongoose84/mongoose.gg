@@ -216,7 +216,12 @@ public sealed class PuuidResolutionService
         return tier?.Trim().ToLowerInvariant() ?? "free";
     }
 
-    private static string BuildAccountId(long userId, string puuid)
+    /// <summary>
+    /// Builds an opaque, stable account identifier for a given user+puuid pair.
+    /// Used by endpoints to return a client-safe identifier that the client can
+    /// round-trip back as the <c>accountId</c> query parameter.
+    /// </summary>
+    public static string BuildAccountId(long userId, string puuid)
     {
         var bytes = Encoding.UTF8.GetBytes($"{userId}:{puuid}");
         var hash = SHA256.HashData(bytes);

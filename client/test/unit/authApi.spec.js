@@ -25,10 +25,17 @@ describe('authApi account parameter handling', () => {
     expect(authApi.getAccountParam()).toBe('all');
   });
 
-  it('getAccountParam returns stored puuid as-is', () => {
+  it('getAccountParam resets stale raw PUUID to all and clears localStorage', () => {
     localStorage.setItem('mongoose_active_account', 'puuid-123');
 
-    expect(authApi.getAccountParam()).toBe('puuid-123');
+    expect(authApi.getAccountParam()).toBe('all');
+    expect(localStorage.getItem('mongoose_active_account')).toBeNull();
+  });
+
+  it('getAccountParam passes through valid acc_ token', () => {
+    localStorage.setItem('mongoose_active_account', 'acc_abcdef1234567890');
+
+    expect(authApi.getAccountParam()).toBe('acc_abcdef1234567890');
   });
 
   it('getSoloDashboard includes account query parameter', async () => {
@@ -42,24 +49,24 @@ describe('authApi account parameter handling', () => {
     );
   });
 
-  it('getOverview includes account query parameter from active puuid', async () => {
-    localStorage.setItem('mongoose_active_account', 'puuid-xyz');
+  it('getOverview includes account query parameter from active acc_ token', async () => {
+    localStorage.setItem('mongoose_active_account', 'acc_xyz123');
 
     await authApi.getOverview(42);
 
     expect(apiRequest).toHaveBeenCalledWith(
-      '/overview/42?accountId=puuid-xyz',
+      '/overview/42?accountId=acc_xyz123',
       { method: 'GET' }
     );
   });
 
   it('getMatchList includes queue and account query parameters', async () => {
-    localStorage.setItem('mongoose_active_account', 'puuid-xyz');
+    localStorage.setItem('mongoose_active_account', 'acc_xyz123');
 
     await authApi.getMatchList(42, 'aram');
 
     expect(apiRequest).toHaveBeenCalledWith(
-      '/matches/42?queueType=aram&accountId=puuid-xyz',
+      '/matches/42?queueType=aram&accountId=acc_xyz123',
       { method: 'GET' }
     );
   });
