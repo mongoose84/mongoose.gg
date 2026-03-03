@@ -61,8 +61,10 @@
       <Transition name="dropdown">
         <div
           v-if="isOpen"
+          ref="listboxRef"
           role="listbox"
           aria-label="Switch account"
+          tabindex="0"
           data-testid="account-switcher-dropdown"
           class="absolute bottom-full left-0 right-0 mb-1 z-50 rounded-lg border border-border shadow-lg overflow-y-auto"
           style="background: var(--color-surface); max-height: 280px;"
@@ -89,6 +91,7 @@
         aria-haspopup="listbox"
         data-testid="account-switcher-trigger-collapsed"
         :title="isOverall ? 'Overall' : (activeAccount ? `${activeAccount.gameName}#${activeAccount.tagLine}` : 'Switch account')"
+        :aria-label="isOverall ? 'Overall' : (activeAccount ? `${activeAccount.gameName}#${activeAccount.tagLine}` : 'Switch account')"
         @click="toggle"
         @keydown="handleTriggerKeydown"
       >
@@ -112,8 +115,10 @@
       <Transition name="dropdown">
         <div
           v-if="isOpen"
+          ref="listboxRef"
           role="listbox"
           aria-label="Switch account"
+          tabindex="0"
           data-testid="account-switcher-popover"
           class="fixed z-50 rounded-lg border border-border shadow-lg overflow-y-auto"
           style="min-width: 220px; max-height: 280px; background: var(--color-surface);"
@@ -138,6 +143,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import AccountDropdownList from './AccountDropdownList.vue'
+import { formatRegion } from '@/utils/leagueAssets'
 
 // ── Props ──
 const props = defineProps({
@@ -168,18 +174,15 @@ const emit = defineEmits(['select', 'link'])
 
 // ── Constants ──
 const ddVersion = '16.1.1'
-const regionLabels = {
-  euw1: 'EUW', eun1: 'EUNE', na1: 'NA', kr: 'KR', jp1: 'JP',
-  br1: 'BR', la1: 'LAN', la2: 'LAS', oc1: 'OCE', tr1: 'TR',
-  ru: 'RU', ph2: 'PH', sg2: 'SG', th2: 'TH', tw2: 'TW', vn2: 'VN'
-}
+const POPOVER_HORIZONTAL_OFFSET = 8
 
 // ── State ──
 const isOpen = ref(false)
 const switcherRef = ref(null)
+const listboxRef = ref(null)
 const focusedIndex = ref(-1)
 const activeIconError = ref(false)
-const popoverStyle = ref({ top: '0px', left: '72px' })
+const popoverStyle = ref({ top: '-9999px', left: '-9999px' })
 
 // ── Computed ──
 const isOverall = computed(() => props.activeAccountPuuid === 'overall')
@@ -202,20 +205,16 @@ const activeIconUrl = computed(() => {
 const totalOptions = computed(() => props.accounts.length + (props.showOverall ? 1 : 0))
 
 // ── Helpers ──
-function formatRegion(region) {
-  if (!region) return ''
-  return regionLabels[region] || region.toUpperCase()
-}
-
 function handleActiveIconError() {
   activeIconError.value = true
 }
 
 // ── Dropdown control ──
-function open() {
+function open(focusListbox = false) {
   isOpen.value = true
   focusedIndex.value = -1
   if (props.collapsed) nextTick(updatePopoverPosition)
+  if (focusListbox) nextTick(() => listboxRef.value?.focus())
 }
 
 function close() {
@@ -233,7 +232,7 @@ function updatePopoverPosition() {
   const rect = switcherRef.value.getBoundingClientRect()
   popoverStyle.value = {
     top: `${rect.top}px`,
-    left: '72px'
+    left: `${rect.right + POPOVER_HORIZONTAL_OFFSET}px`
   }
 }
 
@@ -250,12 +249,10 @@ function handleLink() {
 
 // ── Keyboard navigation ──
 function handleTriggerKeydown(event) {
-  if (event.key === 'Enter' || event.key === ' ') {
+  if (event.key === 'ArrowDown') {
     event.preventDefault()
-    toggle()
-  } else if (event.key === 'ArrowDown') {
-    event.preventDefault()
-    if (!isOpen.value) open()
+    if (!isOpen.value) open(true)
+    else nextTick(() => listboxRef.value?.focus())
     focusedIndex.value = 0
   } else if (event.key === 'Escape') {
     event.preventDefault()
@@ -297,6 +294,9 @@ function handleClickOutside(event) {
 
 // ── Watch collapsed changes ──
 watch(() => props.collapsed, () => { close() })
+
+// Reset icon error when active account changes so a previous error doesn't hide future icons
+watch(() => props.activeAccountPuuid, () => { activeIconError.value = false })
 
 // ── Lifecycle ──
 onMounted(() => { document.addEventListener('mousedown', handleClickOutside) })
