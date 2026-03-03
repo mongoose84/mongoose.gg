@@ -178,10 +178,10 @@ export function formatGoldDiff(gold, { useLocale = false } = {}) {
   if (gold === null || gold === undefined) return 'N/A'
   const sign = gold >= 0 ? '+' : ''
   if (useLocale) {
-    return `${sign}${gold.toLocaleString()}`
+    return `${sign}${gold.toLocaleString('en-US')}`
   }
   if (Math.abs(gold) >= 1000) return sign + (gold / 1000).toFixed(1) + 'k'
-  return sign + gold.toLocaleString()
+  return sign + gold.toLocaleString('en-US')
 }
 
 /**

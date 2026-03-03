@@ -14,8 +14,17 @@
 
     <!-- Header: Player Header (full width) -->
     <template #header>
+      <!-- Overall Mode: Show account cards -->
+      <OverviewAccountCards
+        v-if="authStore.isOverallMode && overviewData?.accountSummaries"
+        :accounts="overviewData.accountSummaries"
+        :active-account-puuid="authStore.activeAccountPuuid"
+        @select="handleAccountSelect"
+      />
+      
+      <!-- Individual Mode: Show player header -->
       <OverviewPlayerHeader
-        v-if="overviewData?.playerHeader"
+        v-else-if="overviewData?.playerHeader"
         :summoner-name="overviewData.playerHeader.summonerName"
         :level="overviewData.playerHeader.level"
         :region="overviewData.playerHeader.region"
@@ -28,7 +37,7 @@
     <template #glance-left>
       <RankSnapshot
         v-if="overviewData?.rankSnapshot"
-        :primary-queue-label="overviewData.rankSnapshot.primaryQueueLabel"
+        :primary-queue-label="rankSnapshotLabel"
         :rank="overviewData.rankSnapshot.rank"
         :lp="overviewData.rankSnapshot.lp"
         :last20-wins="overviewData.rankSnapshot.last20Wins"
@@ -80,6 +89,7 @@
         :kda="overviewData.lastMatch.kda"
         :timestamp="overviewData.lastMatch.timestamp"
         :queue-type="overviewData.lastMatch.queueType"
+        :account-name="lastMatchAccountName"
       />
     </template>
   </OverviewLayout>
@@ -100,6 +110,7 @@ import { useAsyncData } from '../composables/useAsyncData'
 import { getOverview, getMatchActivity, getSoloDashboard } from '../services/authApi'
 import { getChampionSplashUrl } from '../utils/leagueAssets'
 import OverviewLayout from '../components/overview/OverviewLayout.vue'
+import OverviewAccountCards from '../components/overview/OverviewAccountCards.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
 import MatchActivityHeatmap from '../components/overview/MatchActivityHeatmap.vue'
 import RankSnapshot from '../components/overview/RankSnapshot.vue'
@@ -148,6 +159,23 @@ const championSelectMuralUrl = computed(() => {
   return mostPlayedChampionName.value
     ? getChampionSplashUrl(mostPlayedChampionName.value)
     : ''
+})
+
+const rankSnapshotLabel = computed(() => {
+  if (authStore.isOverallMode) {
+    return 'Highest Rank'
+  }
+  return overviewData.value?.rankSnapshot?.primaryQueueLabel || ''
+})
+
+const lastMatchAccountName = computed(() => {
+  // In Overall mode, show the account name for the last match
+  // For now, we'll show the primary account name since the backend doesn't return which account
+  // TODO: Backend should include account reference in lastMatch when in Overall mode
+  if (authStore.isOverallMode && overviewData.value?.playerHeader?.summonerName) {
+    return overviewData.value.playerHeader.summonerName
+  }
+  return null
 })
 
 const soloCtaSubtitle = computed(() => {
@@ -241,6 +269,12 @@ async function handleLinkSuccess() {
   await authStore.refreshUser()
   // Refresh overview data
   fetchData()
+}
+
+function handleAccountSelect(accountId) {
+  // Switch to the selected account
+  authStore.setActiveAccount(accountId)
+  // Data will refresh automatically via watcher
 }
 
 onMounted(() => {
