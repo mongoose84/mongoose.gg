@@ -66,6 +66,7 @@ public sealed class UsersMeEndpoint : IEndpoint
 
                 var riotAccountResponses = visibleLinkedAccounts.Select(la => new RiotAccountResponse(
                     la.Account.Puuid,
+                    PuuidResolutionService.BuildAccountId(authenticatedUser.UserId, la.Account.Puuid),
                     la.Account.GameName,
                     la.Account.TagLine,
                     la.Account.SummonerName,
@@ -120,6 +121,7 @@ public sealed class UsersMeEndpoint : IEndpoint
     /// </summary>
     public record RiotAccountResponse(
         [property: JsonPropertyName("puuid")] string Puuid,
+        [property: JsonPropertyName("accountId")] string AccountId,
         [property: JsonPropertyName("gameName")] string GameName,
         [property: JsonPropertyName("tagLine")] string TagLine,
         [property: JsonPropertyName("summonerName")] string SummonerName,

@@ -125,6 +125,19 @@
       </BaseButton>
     </div>
 
+    <!-- Account Switcher - above feedback -->
+    <div class="border-t border-border py-sm px-sm">
+      <AccountSwitcher
+        :collapsed="isCollapsed"
+        :accounts="riotAccounts"
+        :active-account-puuid="activeAccountPuuid"
+        :show-overall="canUseOverallAccountView"
+        data-testid="account-switcher-wrapper"
+        @select="authStore.setActiveAccount"
+        @link="showLinkModal = true"
+      />
+    </div>
+
     <!-- Feedback Link - above user section -->
     <div class="border-t border-border py-sm">
       <router-link
@@ -192,6 +205,12 @@
       </Transition>
     </div>
   </aside>
+
+  <!-- Link Riot Account Modal (triggered from AccountSwitcher) -->
+  <LinkRiotAccountModal
+    :is-open="showLinkModal"
+    @close="showLinkModal = false"
+  />
 </template>
 
 <script setup>
@@ -201,7 +220,10 @@ import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';
 import { BaseButton } from '@/components/base';
+import AccountSwitcher from '@/components/sidebar/AccountSwitcher.vue';
+import LinkRiotAccountModal from '@/components/LinkRiotAccountModal.vue';
 import pkg from '../../package.json';
+import { formatRegion } from '@/utils/leagueAssets';
 
 const authStore = useAuthStore();
 const uiStore = useUiStore();
@@ -210,32 +232,13 @@ const version = pkg.version || '0.0.0';
 
 // Local state
 const linkedIconError = ref(false);
+const showLinkModal = ref(false);
 
 // Sidebar state from store
 const isCollapsed = computed(() => uiStore.isSidebarCollapsed);
 
 // Data Dragon version for profile icons
 const ddVersion = '16.1.1';
-
-// Region labels for display
-const regionLabels = {
-  euw1: 'EUW',
-  eun1: 'EUNE',
-  na1: 'NA',
-  kr: 'KR',
-  jp1: 'JP',
-  br1: 'BR',
-  la1: 'LAN',
-  la2: 'LAS',
-  oc1: 'OCE',
-  tr1: 'TR',
-  ru: 'RU',
-  ph2: 'PH',
-  sg2: 'SG',
-  th2: 'TH',
-  tw2: 'TW',
-  vn2: 'VN'
-};
 
 // Initialize sidebar state
 onMounted(() => {
@@ -256,6 +259,11 @@ function toggleSidebar() {
 const username = computed(() => authStore.username || 'User');
 const showCompactUpgradeLink = computed(() => authStore.hasReachedRiotAccountLimit);
 
+// Account switcher data
+const riotAccounts = computed(() => authStore.riotAccounts);
+const activeAccountPuuid = computed(() => authStore.activeAccountPuuid);
+const canUseOverallAccountView = computed(() => authStore.canUseOverallAccountView);
+
 // Profile icon from first Riot account
 const primaryRiotAccount = computed(() => authStore.primaryRiotAccount);
 
@@ -270,10 +278,7 @@ const riotAccountName = computed(() => {
 
 const summonerLevel = computed(() => primaryRiotAccount.value?.summonerLevel);
 
-const regionLabel = computed(() => {
-  const region = primaryRiotAccount.value?.region;
-  return region ? (regionLabels[region] || region.toUpperCase()) : '';
-});
+const regionLabel = computed(() => formatRegion(primaryRiotAccount.value?.region));
 
 const linkedAccountIconUrl = computed(() => {
   const profileIconId = primaryRiotAccount.value?.profileIconId;
