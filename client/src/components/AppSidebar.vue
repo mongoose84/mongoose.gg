@@ -223,6 +223,7 @@ import { BaseButton } from '@/components/base';
 import AccountSwitcher from '@/components/sidebar/AccountSwitcher.vue';
 import LinkRiotAccountModal from '@/components/LinkRiotAccountModal.vue';
 import pkg from '../../package.json';
+import { formatRegion } from '@/utils/leagueAssets';
 
 const authStore = useAuthStore();
 const uiStore = useUiStore();
@@ -238,26 +239,6 @@ const isCollapsed = computed(() => uiStore.isSidebarCollapsed);
 
 // Data Dragon version for profile icons
 const ddVersion = '16.1.1';
-
-// Region labels for display
-const regionLabels = {
-  euw1: 'EUW',
-  eun1: 'EUNE',
-  na1: 'NA',
-  kr: 'KR',
-  jp1: 'JP',
-  br1: 'BR',
-  la1: 'LAN',
-  la2: 'LAS',
-  oc1: 'OCE',
-  tr1: 'TR',
-  ru: 'RU',
-  ph2: 'PH',
-  sg2: 'SG',
-  th2: 'TH',
-  tw2: 'TW',
-  vn2: 'VN'
-};
 
 // Initialize sidebar state
 onMounted(() => {
@@ -297,10 +278,7 @@ const riotAccountName = computed(() => {
 
 const summonerLevel = computed(() => primaryRiotAccount.value?.summonerLevel);
 
-const regionLabel = computed(() => {
-  const region = primaryRiotAccount.value?.region;
-  return region ? (regionLabels[region] || region.toUpperCase()) : '';
-});
+const regionLabel = computed(() => formatRegion(primaryRiotAccount.value?.region));
 
 const linkedAccountIconUrl = computed(() => {
   const profileIconId = primaryRiotAccount.value?.profileIconId;

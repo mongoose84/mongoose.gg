@@ -98,3 +98,22 @@ export function getSummonerSpellIconUrl(spellName) {
   return `${DATA_DRAGON_CDN}/${DATA_DRAGON_VERSION}/img/spell/Summoner${spellName}.png`
 }
 
+/**
+ * Mapping of Riot region codes to short display labels.
+ */
+export const REGION_LABELS = {
+  euw1: 'EUW', eun1: 'EUNE', na1: 'NA', kr: 'KR', jp1: 'JP',
+  br1: 'BR', la1: 'LAN', la2: 'LAS', oc1: 'OCE', tr1: 'TR',
+  ru: 'RU', ph2: 'PH', sg2: 'SG', th2: 'TH', tw2: 'TW', vn2: 'VN'
+}
+
+/**
+ * Converts a Riot region code to a short display label.
+ * @param {string} region - The region code (e.g., 'euw1', 'na1')
+ * @returns {string} The display label (e.g., 'EUW', 'NA')
+ */
+export function formatRegion(region) {
+  if (!region) return ''
+  return REGION_LABELS[region.toLowerCase()] || region.toUpperCase()
+}
+

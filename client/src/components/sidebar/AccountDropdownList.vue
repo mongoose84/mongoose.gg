@@ -10,9 +10,12 @@
       :aria-selected="activeAccountPuuid === 'overall'"
       :data-focused="focusedIndex === 0"
       class="flex items-center gap-sm px-md py-xs cursor-pointer transition-colors duration-150 rounded-md"
-      :class="activeAccountPuuid === 'overall'
-        ? 'text-text font-medium'
-        : 'text-text-secondary hover:bg-background-elevated hover:text-text'"
+      :class="[
+        activeAccountPuuid === 'overall'
+          ? 'text-text font-medium'
+          : 'text-text-secondary hover:bg-background-elevated hover:text-text',
+        focusedIndex === 0 ? 'bg-background-elevated text-text' : ''
+      ]"
       data-testid="account-option-overall"
       aria-label="View all accounts combined"
       tabindex="-1"
@@ -41,9 +44,12 @@
       :aria-selected="isAccountActive(account)"
       :data-focused="focusedIndex === accountOptionIndex(index)"
       class="flex items-center gap-sm px-md py-xs cursor-pointer transition-colors duration-150 rounded-md"
-      :class="isAccountActive(account)
-        ? 'text-text font-medium'
-        : 'text-text-secondary hover:bg-background-elevated hover:text-text'"
+      :class="[
+        isAccountActive(account)
+          ? 'text-text font-medium'
+          : 'text-text-secondary hover:bg-background-elevated hover:text-text',
+        focusedIndex === accountOptionIndex(index) ? 'bg-background-elevated text-text' : ''
+      ]"
       :data-testid="`account-option-${account.gameName || index}`"
       tabindex="-1"
       @click="$emit('select', account.accountId || account.puuid)"
@@ -82,10 +88,10 @@
 
     <!-- Divider + Link Account -->
     <div class="border-t border-border my-xs" />
-    <div
-      class="flex items-center gap-sm px-md py-xs text-xs text-primary hover:text-primary cursor-pointer hover:bg-background-elevated rounded-md transition-colors duration-150"
+    <button
+      type="button"
+      class="flex items-center gap-sm px-md py-xs text-xs text-primary hover:text-primary cursor-pointer hover:bg-background-elevated rounded-md transition-colors duration-150 w-full text-left"
       data-testid="account-switcher-link-button"
-      role="button"
       tabindex="-1"
       @click="$emit('link')"
     >
@@ -93,11 +99,13 @@
         <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
       </svg>
       Link Account
-    </div>
+    </button>
   </div>
 </template>
 
 <script setup>
+import { formatRegion } from '@/utils/leagueAssets'
+
 const props = defineProps({
   accounts: {
     type: Array,
@@ -122,17 +130,6 @@ const props = defineProps({
 })
 
 defineEmits(['select', 'link'])
-
-const regionLabels = {
-  euw1: 'EUW', eun1: 'EUNE', na1: 'NA', kr: 'KR', jp1: 'JP',
-  br1: 'BR', la1: 'LAN', la2: 'LAS', oc1: 'OCE', tr1: 'TR',
-  ru: 'RU', ph2: 'PH', sg2: 'SG', th2: 'TH', tw2: 'TW', vn2: 'VN'
-}
-
-function formatRegion(region) {
-  if (!region) return ''
-  return regionLabels[region] || region.toUpperCase()
-}
 
 function isAccountActive(account) {
   const id = props.activeAccountPuuid

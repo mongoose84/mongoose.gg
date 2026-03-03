@@ -38,6 +38,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { formatRegion } from '@/utils/leagueAssets'
 
 const props = defineProps({
   summonerName: {
@@ -64,30 +65,7 @@ const props = defineProps({
 
 const iconError = ref(false)
 
-// Region labels for display (convert API codes to friendly names)
-const regionLabels = {
-  euw1: 'EUW',
-  eun1: 'EUNE',
-  na1: 'NA',
-  kr: 'KR',
-  jp1: 'JP',
-  br1: 'BR',
-  la1: 'LAN',
-  la2: 'LAS',
-  oc1: 'OCE',
-  tr1: 'TR',
-  ru: 'RU',
-  ph2: 'PH',
-  sg2: 'SG',
-  th2: 'TH',
-  tw2: 'TW',
-  vn2: 'VN'
-}
-
-const regionDisplay = computed(() => {
-  const region = props.region?.toLowerCase()
-  return regionLabels[region] || props.region?.toUpperCase() || ''
-})
+const regionDisplay = computed(() => formatRegion(props.region))
 
 const visibleContexts = computed(() => {
   return (props.activeContexts || []).filter(context => context?.toLowerCase() !== 'duo')
