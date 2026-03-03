@@ -125,6 +125,19 @@
       </BaseButton>
     </div>
 
+    <!-- Account Switcher - above feedback -->
+    <div class="border-t border-border py-sm px-sm">
+      <AccountSwitcher
+        :collapsed="isCollapsed"
+        :accounts="riotAccounts"
+        :active-account-puuid="activeAccountPuuid"
+        :show-overall="canUseOverallAccountView"
+        data-testid="account-switcher-wrapper"
+        @select="authStore.setActiveAccount"
+        @link="showLinkModal = true"
+      />
+    </div>
+
     <!-- Feedback Link - above user section -->
     <div class="border-t border-border py-sm">
       <router-link
@@ -192,6 +205,12 @@
       </Transition>
     </div>
   </aside>
+
+  <!-- Link Riot Account Modal (triggered from AccountSwitcher) -->
+  <LinkRiotAccountModal
+    :is-open="showLinkModal"
+    @close="showLinkModal = false"
+  />
 </template>
 
 <script setup>
@@ -201,6 +220,8 @@ import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';
 import { BaseButton } from '@/components/base';
+import AccountSwitcher from '@/components/sidebar/AccountSwitcher.vue';
+import LinkRiotAccountModal from '@/components/LinkRiotAccountModal.vue';
 import pkg from '../../package.json';
 
 const authStore = useAuthStore();
@@ -210,6 +231,7 @@ const version = pkg.version || '0.0.0';
 
 // Local state
 const linkedIconError = ref(false);
+const showLinkModal = ref(false);
 
 // Sidebar state from store
 const isCollapsed = computed(() => uiStore.isSidebarCollapsed);
@@ -255,6 +277,11 @@ function toggleSidebar() {
 // User data
 const username = computed(() => authStore.username || 'User');
 const showCompactUpgradeLink = computed(() => authStore.hasReachedRiotAccountLimit);
+
+// Account switcher data
+const riotAccounts = computed(() => authStore.riotAccounts);
+const activeAccountPuuid = computed(() => authStore.activeAccountPuuid);
+const canUseOverallAccountView = computed(() => authStore.canUseOverallAccountView);
 
 // Profile icon from first Riot account
 const primaryRiotAccount = computed(() => authStore.primaryRiotAccount);
