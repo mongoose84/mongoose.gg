@@ -50,11 +50,18 @@
               <span v-if="account.tagLine" class="tag-line">#{{ account.tagLine }}</span>
             </div>
 
-            <!-- Rank -->
-            <div class="account-region-rank">
-              <span v-if="account.rank" class="rank">{{ account.rank }}</span>
-              <span v-if="account.rank && account.lp !== null && account.lp !== undefined" class="separator">·</span>
-              <span v-if="account.lp !== null && account.lp !== undefined" class="lp-value">{{ account.lp }} LP</span>
+            <!-- Flex Rank -->
+            <div class="rank-line">
+              <span class="rank-label">Flex</span>
+              <span class="rank-separator">-</span>
+              <span class="rank-value">{{ account.flexRankDisplay }}</span>
+            </div>
+
+            <!-- Solo Rank -->
+            <div class="rank-line">
+              <span class="rank-label">Solo</span>
+              <span class="rank-separator">-</span>
+              <span class="rank-value">{{ account.soloRankDisplay }}</span>
             </div>
           </div>
         </div>
@@ -124,6 +131,16 @@ function getLinkedAccountMatch(account) {
   }) || null
 }
 
+function formatRankDisplay(tier, rank, lp) {
+  if (!tier || !rank) {
+    return 'Unranked'
+  }
+  
+  const formattedTier = tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase()
+  const lpDisplay = (lp !== null && lp !== undefined) ? ` - ${lp} LP` : ''
+  return `${formattedTier} ${rank}${lpDisplay}`
+}
+
 const normalizedAccounts = computed(() => {
   return (props.accounts || []).map((account, index) => {
     const accountId = account.accountId || account.puuid || account.id || `account-${index}`
@@ -134,6 +151,17 @@ const normalizedAccounts = computed(() => {
     const resolvedProfileIconId = account.profileIconId ?? linkedAccount?.profileIconId ?? null
     const profileIconUrl = account.profileIconUrl || (resolvedProfileIconId ? getProfileIconUrl(resolvedProfileIconId) : null)
     const summonerLevel = account.summonerLevel ?? linkedAccount?.summonerLevel ?? null
+    
+    // Resolve rank data from linked account
+    const flexTier = account.flexTier ?? linkedAccount?.flexTier ?? null
+    const flexRank = account.flexRank ?? linkedAccount?.flexRank ?? null
+    const flexLp = account.flexLp ?? linkedAccount?.flexLp ?? null
+    const soloTier = account.soloTier ?? linkedAccount?.soloTier ?? null
+    const soloRank = account.soloRank ?? linkedAccount?.soloRank ?? null
+    const soloLp = account.soloLp ?? linkedAccount?.soloLp ?? null
+    
+    const flexRankDisplay = formatRankDisplay(flexTier, flexRank, flexLp)
+    const soloRankDisplay = formatRankDisplay(soloTier, soloRank, soloLp)
 
     return {
       ...account,
@@ -142,7 +170,9 @@ const normalizedAccounts = computed(() => {
       tagLine,
       isActive,
       profileIconUrl,
-      summonerLevel
+      summonerLevel,
+      flexRankDisplay,
+      soloRankDisplay
     }
   })
 })
@@ -162,10 +192,12 @@ const normalizedAccounts = computed(() => {
 }
 
 .section-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
   margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .account-cards-container {
@@ -268,8 +300,8 @@ const normalizedAccounts = computed(() => {
 
 .account-avatar {
   position: relative;
-  width: 52px;
-  height: 52px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   overflow: visible;
   background: var(--color-surface);
@@ -288,8 +320,8 @@ const normalizedAccounts = computed(() => {
 }
 
 .account-avatar-fallback {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   color: var(--color-text-secondary);
   z-index: 1;
 }.level-badge {
@@ -299,18 +331,18 @@ const normalizedAccounts = computed(() => {
   background: var(--color-primary);
   color: white;
   font-weight: var(--font-weight-bold);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
-  padding: 3px 6px;
-  min-width: 24px;
+  padding: 4px 7px;
+  min-width: 28px;
   text-align: center;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .account-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -336,24 +368,25 @@ const normalizedAccounts = computed(() => {
   color: var(--color-text-secondary);
 }
 
-.account-region-rank {
+.rank-line {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
   font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
+  line-height: 1.4;
 }
 
-.separator {
-  color: var(--color-text-secondary);
-}
-
-.rank {
+.rank-label {
   font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
 }
 
-.rank-muted {
+.rank-separator {
   color: var(--color-text-secondary);
+}
+
+.rank-value {
+  color: var(--color-text);
 }
 
 /* Mobile responsive */
@@ -373,8 +406,8 @@ const normalizedAccounts = computed(() => {
   }
 
   .account-avatar {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
   }
 
   .game-name {

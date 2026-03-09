@@ -16,8 +16,8 @@
     <template #header>
       <!-- Overall Mode: Show account cards -->
       <OverviewAccountCards
-        v-if="authStore.isOverallMode && overviewData?.accountSummaries"
-        :accounts="overviewData.accountSummaries"
+        v-if="authStore.isOverallMode && displayedAccounts.length > 0"
+        :accounts="displayedAccounts"
         :linked-accounts="authStore.riotAccounts"
         :active-account-puuid="authStore.activeAccountPuuid"
         @select="handleAccountSelect"
@@ -162,9 +162,26 @@ const championSelectMuralUrl = computed(() => {
     : ''
 })
 
+const displayedAccounts = computed(() => {
+  const accounts = overviewData.value?.accountSummaries || []
+  return accounts.slice(0, 3)
+})
+
 const rankSnapshotLabel = computed(() => {
   if (authStore.isOverallMode) {
-    return 'Highest Rank'
+    const originalLabel = overviewData.value?.rankSnapshot?.primaryQueueLabel || ''
+    // Extract queue type from label (e.g., "Ranked Solo/Duo" -> "Solo", "Ranked Flex" -> "Flex")
+    let queueType = ''
+    if (originalLabel.includes('Solo')) {
+      queueType = ' (Solo)'
+    } else if (originalLabel.includes('Flex')) {
+      queueType = ' (Flex)'
+    } else if (originalLabel.includes('ARAM')) {
+      queueType = ' (ARAM)'
+    } else if (originalLabel.includes('Normal')) {
+      queueType = ' (Normal)'
+    }
+    return `Highest Rank${queueType}`
   }
   return overviewData.value?.rankSnapshot?.primaryQueueLabel || ''
 })
