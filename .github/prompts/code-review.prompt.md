@@ -1,63 +1,87 @@
 ---
 agent: agent
-model: Claude Sonnet 4.5 (copilot)
-tools: ['file-search', 'semantic-search', 'changes', 'problems']
-description: 'Structured code review workflow with validation gates'
+model: Claude Sonnet 4.6
+tools: ['changes', 'codebase', 'editFiles', 'runCommands', 'search', 'problems', 'testFailure', 'terminalLastCommand']
+description: 'Code review current branch against origin/main with test validation'
 ---
-# Code Review Workflow
+# Branch Code Review
 
-## Context Loading Phase
-1. Review [project guidelines](../../docs/standards/)
-2. Check [changed files](changes) in current PR
-3. Analyze [existing issues](problems) and warnings
-4. Verify adherence to: Follow standard formatting
-5. Check security requirements: Authentication
+Review all changes on the current branch against `origin/main`, run relevant tests, and produce a structured assessment.
 
-## Review Checklist
+## Step 1: Discover Changes
+
+Run these commands to understand the scope:
+```
+git log --oneline origin/main..HEAD
+git diff origin/main...HEAD --stat
+git diff origin/main...HEAD
+```
+
+Note the branch name, number of commits, files changed, and lines added/removed.
+
+## Step 2: Run Affected Tests
+
+- For frontend changes: `cd client && npm run test:unit -- <changed-spec-files>`
+- For backend changes: `cd server && dotnet test`
+- Always run tests before reporting — failing tests are a critical finding.
+
+## Step 3: Review Against Project Standards
+
+Use `copilot-instructions.md` and the instruction files in `.github/instructions/` as the standard. Check:
+
+### Security (OWASP / Project Rules)
+- [ ] No PII exposure — PUUIDs never returned to client
+- [ ] Log injection prevention — `LogSanitizer.Sanitize()` on all user inputs
+- [ ] Parameterized SQL only — no string concatenation in queries
+- [ ] Auth checks: `ClaimTypes.NameIdentifier` matches route `userId`
+- [ ] No hardcoded secrets or API keys
+
+### Frontend (Vue / Vitest)
+- [ ] Props use correct types with validation; `required` and `default` not both set
+- [ ] `data-testid` attributes on all testable elements
+- [ ] Interactive elements use `<button>` (not `<div>`) for keyboard accessibility
+- [ ] `aria-label` on icon-only buttons
+- [ ] CSS class names in component match class names in tests
+- [ ] `emit()` calls are wired to actual DOM event handlers
+- [ ] `toLocaleString('en-US')` for consistent locale formatting
+
+### Backend (C# / xUnit)
+- [ ] All endpoints have integration tests
+- [ ] `DateTime` values use `DateTime.UtcNow` / `DateTimeKind.Utc`
+- [ ] Repository methods use named parameters (no raw string interpolation in SQL)
+- [ ] Scoped vs singleton DI registrations are correct
+- [ ] Error responses follow `{ error, code }` format
+
+### Testing Quality
+- [ ] Tests actually exercise real component behavior (not just stubs)
+- [ ] Component implementation and spec file are in sync
+- [ ] Edge cases (null, empty, error states) are covered
+- [ ] No tests that trivially pass regardless of implementation
+
 ### Code Quality
-- [ ] Code follows project style guidelines
-- [ ] Functions/methods have clear, single responsibilities
-- [ ] Variable and function names are descriptive
-- [ ] No unnecessary complexity or over-engineering
-- [ ] Code is DRY (Don't Repeat Yourself)
+- [ ] No over-engineering beyond the current task
+- [ ] TODO comments are documented and intentional
+- [ ] No magic numbers — hardcoded limits (like `.slice(0, 3)`) are noted
 
-### Security
-- [ ] No hard-coded credentials or secrets
-- [ ] Input validation is present
-- [ ] No SQL injection vulnerabilities
-- [ ] Authentication/authorization checks in place
-- [ ] Sensitive data is properly handled
+## Step 4: Output Format
 
-### Testing
-- [ ] Unit tests cover new/modified code
-- [ ] Edge cases are tested
-- [ ] Tests are meaningful and not just for coverage
-- [ ] Integration tests updated if needed
+### Branch
+`branch-name` — N commits, N files changed (+N/-N lines)
 
-### Documentation
-- [ ] Public APIs are documented
-- [ ] Complex logic has explanatory comments
-- [ ] README updated if needed
-- [ ] CHANGELOG updated for user-facing changes
+### Test Results
+`N passed / N failed` — list any failing test names
 
-### Performance
-- [ ] No obvious performance bottlenecks
-- [ ] Database queries are optimized
-- [ ] No N+1 query problems
-- [ ] Resource cleanup (connections, files) is handled
+### Critical Issues 🔴
+Issues that must be fixed before merging (bugs, broken tests, security issues).
 
-## Deterministic Execution
-Use semantic search to find similar patterns: `semantic-search "<pattern>"`
-Use file search to locate related files: `file-search "**/*.test.*"`
+### Warnings ⚠️
+Issues worth fixing but not blocking (fragile logic, tech debt, missing documentation).
 
-## Structured Output Requirements
-Provide review feedback in the following format:
+### Positives ✅
+Notable things done well.
 
-### Summary
-[High-level assessment of the changes]
-
-### Critical Issues
-[Issues that must be fixed before merging]
+### Verdict
+`APPROVE` / `REQUEST CHANGES` / `NEEDS DISCUSSION`
 
 ### Suggestions
 [Recommended improvements]
