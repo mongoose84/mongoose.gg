@@ -37,6 +37,10 @@
                 clip-rule="evenodd"
               />
             </svg>
+            <span
+              v-if="account.summonerLevel"
+              class="level-badge"
+            >{{ account.summonerLevel }}</span>
           </div>
 
           <div class="account-meta">
@@ -129,6 +133,7 @@ const normalizedAccounts = computed(() => {
     const linkedAccount = getLinkedAccountMatch(account)
     const resolvedProfileIconId = account.profileIconId ?? linkedAccount?.profileIconId ?? null
     const profileIconUrl = account.profileIconUrl || (resolvedProfileIconId ? getProfileIconUrl(resolvedProfileIconId) : null)
+    const summonerLevel = account.summonerLevel ?? linkedAccount?.summonerLevel ?? null
 
     return {
       ...account,
@@ -136,7 +141,8 @@ const normalizedAccounts = computed(() => {
       gameName,
       tagLine,
       isActive,
-      profileIconUrl
+      profileIconUrl,
+      summonerLevel
     }
   })
 })
@@ -266,16 +272,17 @@ const normalizedAccounts = computed(() => {
   height: 52px;
   border-radius: 50%;
   overflow: visible;
-  background: var(--color-elevated);
+  background: var(--color-surface);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: 2px solid var(--color-primary);
 }
 
 .account-avatar-image {
-  width: 88%;
-  height: 88%;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -285,6 +292,19 @@ const normalizedAccounts = computed(() => {
   height: 24px;
   color: var(--color-text-secondary);
   z-index: 1;
+}.level-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: var(--color-primary);
+  color: white;
+  font-weight: var(--font-weight-bold);
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 6px;
+  min-width: 24px;
+  text-align: center;
+  border-radius: 10px;
 }
 
 .account-meta {
