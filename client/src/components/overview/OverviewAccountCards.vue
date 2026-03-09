@@ -317,7 +317,9 @@ const normalizedAccounts = computed(() => {
   height: 32px;
   color: var(--color-text-secondary);
   z-index: 1;
-}.level-badge {
+}
+
+.level-badge {
   position: absolute;
   bottom: -2px;
   right: -2px;
