@@ -164,6 +164,7 @@ const championSelectMuralUrl = computed(() => {
 
 const displayedAccounts = computed(() => {
   const accounts = overviewData.value?.accountSummaries || []
+  // Limit to 3 accounts for aesthetic reasons - maintains clean visual layout in header
   return accounts.slice(0, 3)
 })
 
