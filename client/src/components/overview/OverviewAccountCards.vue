@@ -205,6 +205,7 @@ const normalizedAccounts = computed(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: var(--spacing-sm);
   min-height: 132px;
   padding: var(--spacing-lg);
@@ -261,6 +262,10 @@ const normalizedAccounts = computed(() => {
 }
 
 .card-top-meta {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: flex-end;
