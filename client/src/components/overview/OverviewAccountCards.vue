@@ -105,15 +105,9 @@ function handleIconError(accountId) {
   }
 }
 
-function normalizeText(value) {
-  return typeof value === 'string' ? value.trim().toLowerCase() : ''
-}
-
 function getLinkedAccountMatch(account) {
   const accountId = account?.accountId
   const puuid = account?.puuid
-  const gameName = normalizeText(account?.gameName || account?.summonerName || account?.name)
-  const tagLine = normalizeText(account?.tagLine || account?.tag)
 
   return (props.linkedAccounts || []).find((linked) => {
     if (accountId && linked?.accountId && linked.accountId === accountId) {
@@ -124,9 +118,7 @@ function getLinkedAccountMatch(account) {
       return true
     }
 
-    const linkedGameName = normalizeText(linked?.gameName || linked?.summonerName || linked?.name)
-    const linkedTagLine = normalizeText(linked?.tagLine || linked?.tag)
-    return gameName && tagLine && linkedGameName === gameName && linkedTagLine === tagLine
+    return false
   }) || null
 }
 
