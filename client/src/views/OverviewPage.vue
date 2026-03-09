@@ -18,6 +18,7 @@
       <OverviewAccountCards
         v-if="authStore.isOverallMode && overviewData?.accountSummaries"
         :accounts="overviewData.accountSummaries"
+        :linked-accounts="authStore.riotAccounts"
         :active-account-puuid="authStore.activeAccountPuuid"
         @select="handleAccountSelect"
       />

@@ -2,51 +2,76 @@
   <section class="overview-account-cards" data-testid="overview-account-cards">
     <div class="header-row">
       <h2 class="section-title">Your Accounts</h2>
-      <p class="section-subtitle">Rank tier colors · Activity indicator</p>
     </div>
     <div class="account-cards-container">
       <div
         v-for="account in normalizedAccounts"
         :key="account.accountId"
         :data-testid="`account-card-${account.accountId}`"
-        class="account-card"
-        :style="{ borderLeftColor: getTierColor(account.rank) }"
+        :class="['account-card', { 'account-card--active': account.isActive }]"
       >
-        <!-- Game Name + Tag -->
-        <div class="account-name">
-          <span class="game-name">{{ account.gameName }}</span>
-          <span v-if="account.tagLine" class="tag-line">#{{ account.tagLine }}</span>
+        <div class="card-top-meta">
+          <span v-if="account.isActive" class="primary-chip">Primary</span>
         </div>
 
-        <!-- Region + Rank -->
-        <div class="account-region-rank">
-          <span class="region">{{ account.region }}</span>
-          <span v-if="account.rank" class="separator">·</span>
-          <span v-if="account.rank" class="rank">{{ account.rank }}</span>
+        <div class="account-main-row">
+          <div class="account-avatar">
+            <img
+              v-if="account.profileIconUrl && !hasIconError(account.accountId)"
+              :src="account.profileIconUrl"
+              :alt="`${account.gameName} profile icon`"
+              class="account-avatar-image"
+              @error="handleIconError(account.accountId)"
+            />
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              class="account-avatar-fallback"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+
+          <div class="account-meta">
+            <!-- Game Name + Tag -->
+            <div class="account-name">
+              <span class="game-name">{{ account.gameName }}</span>
+              <span v-if="account.tagLine" class="tag-line">#{{ account.tagLine }}</span>
+            </div>
+
+            <!-- Rank -->
+            <div class="account-region-rank">
+              <span v-if="account.rank" class="rank">{{ account.rank }}</span>
+              <span v-if="account.rank && account.lp !== null && account.lp !== undefined" class="separator">·</span>
+              <span v-if="account.lp !== null && account.lp !== undefined" class="lp-value">{{ account.lp }} LP</span>
+            </div>
+          </div>
         </div>
 
-        <!-- LP -->
-        <div v-if="account.lp !== null && account.lp !== undefined" class="account-lp">
-          <span class="lp-value">{{ account.lp }} LP</span>
-        </div>
-
-        <!-- Games Today -->
-        <div class="games-today" :class="{ 'has-games': account.gamesToday > 0 }">
-          <span v-if="account.gamesToday > 0" class="activity-dot"></span>
-          <span class="games-count">{{ account.gamesToday }} {{ account.gamesToday === 1 ? 'game' : 'games' }} today</span>
-        </div>
       </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { getProfileIconUrl } from '@/utils/leagueAssets'
 
 const props = defineProps({
   accounts: {
     type: Array,
     required: true,
+    default: () => []
+  },
+  linkedAccounts: {
+    type: Array,
     default: () => []
   },
   activeAccountPuuid: {
@@ -57,22 +82,42 @@ const props = defineProps({
 
 const emit = defineEmits(['select'])
 
-const tierColorMap = {
-  iron: '#6b7280',      // Gray
-  bronze: '#d97706',    // Orange
-  silver: '#9ca3af',    // Light gray
-  gold: '#f59e0b',      // Yellow
-  platinum: '#06b6d4',  // Cyan
-  diamond: '#a855f7',   // Purple
-  master: '#fbbf24',    // Gold
-  grandmaster: '#fbbf24', // Gold
-  challenger: '#fbbf24' // Gold
+const iconErrorsByAccount = ref({})
+
+function hasIconError(accountId) {
+  return Boolean(iconErrorsByAccount.value[accountId])
 }
 
-function getTierColor(rankString) {
-  if (!rankString) return 'var(--color-border)'
-  const tier = rankString.toLowerCase().split(' ')[0]
-  return tierColorMap[tier] || 'var(--color-border)'
+function handleIconError(accountId) {
+  iconErrorsByAccount.value = {
+    ...iconErrorsByAccount.value,
+    [accountId]: true
+  }
+}
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : ''
+}
+
+function getLinkedAccountMatch(account) {
+  const accountId = account?.accountId
+  const puuid = account?.puuid
+  const gameName = normalizeText(account?.gameName || account?.summonerName || account?.name)
+  const tagLine = normalizeText(account?.tagLine || account?.tag)
+
+  return (props.linkedAccounts || []).find((linked) => {
+    if (accountId && linked?.accountId && linked.accountId === accountId) {
+      return true
+    }
+
+    if (puuid && linked?.puuid && linked.puuid === puuid) {
+      return true
+    }
+
+    const linkedGameName = normalizeText(linked?.gameName || linked?.summonerName || linked?.name)
+    const linkedTagLine = normalizeText(linked?.tagLine || linked?.tag)
+    return gameName && tagLine && linkedGameName === gameName && linkedTagLine === tagLine
+  }) || null
 }
 
 const normalizedAccounts = computed(() => {
@@ -80,16 +125,18 @@ const normalizedAccounts = computed(() => {
     const accountId = account.accountId || account.puuid || account.id || `account-${index}`
     const gameName = account.gameName || account.summonerName || account.name || 'Unknown Account'
     const tagLine = account.tagLine || account.tag || ''
-    const region = (account.region || account.server || 'Unknown').toUpperCase()
-    const gamesToday = Number.isFinite(account.gamesToday) ? account.gamesToday : 0
+    const isActive = Boolean(props.activeAccountPuuid && account.puuid === props.activeAccountPuuid)
+    const linkedAccount = getLinkedAccountMatch(account)
+    const resolvedProfileIconId = account.profileIconId ?? linkedAccount?.profileIconId ?? null
+    const profileIconUrl = account.profileIconUrl || (resolvedProfileIconId ? getProfileIconUrl(resolvedProfileIconId) : null)
 
     return {
       ...account,
       accountId,
       gameName,
       tagLine,
-      region,
-      gamesToday
+      isActive,
+      profileIconUrl
     }
   })
 })
@@ -115,38 +162,136 @@ const normalizedAccounts = computed(() => {
   margin: 0;
 }
 
-.section-subtitle {
-  margin: 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
 .account-cards-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--spacing-md);
-  overflow-x: auto;
-  padding-bottom: var(--spacing-xs);
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
+  width: 100%;
 }
 
 .account-card {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
-  min-width: 160px;
   min-height: 132px;
   padding: var(--spacing-lg);
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.05) 0%,
-    var(--color-surface) 100%);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-left: 4px solid;
   border-radius: var(--radius-lg);
   text-align: left;
-  flex-shrink: 0;
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.account-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.account-card:hover {
+  transform: translateY(-2px);
+}
+
+.account-card {
+  background: linear-gradient(160deg,
+    rgba(255, 255, 255, 0.045) 0%,
+    var(--color-surface) 65%);
+}
+
+.account-card::before {
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0) 45%);
+}
+
+.account-card:hover {
+  border-color: rgba(109, 40, 217, 0.28);
+}
+
+.account-card.account-card--active {
+  border-color: rgba(109, 40, 217, 0.45);
+  box-shadow: var(--shadow-md);
+}
+
+.account-card.account-card--active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-primary-light);
+}
+
+.card-top-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+}
+
+.primary-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+.primary-chip {
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  background: rgba(168, 85, 247, 0.14);
+}
+
+.account-main-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.account-avatar {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: visible;
+  background: var(--color-elevated);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.account-avatar-image {
+  width: 88%;
+  height: 88%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.account-avatar-fallback {
+  width: 24px;
+  height: 24px;
+  color: var(--color-text-secondary);
+  z-index: 1;
+}
+
+.account-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .account-name {
@@ -179,13 +324,8 @@ const normalizedAccounts = computed(() => {
   color: var(--color-text-secondary);
 }
 
-.region {
-  text-transform: uppercase;
-  font-weight: var(--font-weight-medium);
-}
-
 .separator {
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .rank {
@@ -194,60 +334,6 @@ const normalizedAccounts = computed(() => {
 
 .rank-muted {
   color: var(--color-text-secondary);
-}
-
-.account-lp {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
-}
-
-.games-today {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
-.games-today.has-games {
-  color: var(--color-success);
-  font-weight: 500;
-}
-
-.activity-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--color-success);
-  margin-right: var(--spacing-xs);
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-/* Scrollbar styling */
-.account-cards-container::-webkit-scrollbar {
-  height: 6px;
-}
-
-.account-cards-container::-webkit-scrollbar-track {
-  background: var(--color-background);
-  border-radius: 3px;
-}
-
-.account-cards-container::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
-}
-
-.account-cards-container::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-tertiary);
 }
 
 /* Mobile responsive */
@@ -259,8 +345,16 @@ const normalizedAccounts = computed(() => {
   }
 
   .account-card {
-    min-width: 140px;
     padding: var(--spacing-md);
+  }
+
+  .account-card:hover {
+    transform: none;
+  }
+
+  .account-avatar {
+    width: 48px;
+    height: 48px;
   }
 
   .game-name {
