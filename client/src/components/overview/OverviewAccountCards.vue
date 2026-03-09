@@ -11,7 +11,7 @@
         :class="['account-card', { 'account-card--active': account.isActive }]"
       >
         <div class="card-top-meta">
-          <span v-if="account.isActive" class="primary-chip">Primary</span>
+          <span v-if="account.isPrimary" class="primary-chip">Primary</span>
         </div>
 
         <div class="account-main-row">
@@ -78,8 +78,7 @@ import { getProfileIconUrl } from '@/utils/leagueAssets'
 const props = defineProps({
   accounts: {
     type: Array,
-    required: true,
-    default: () => []
+    required: true
   },
   linkedAccounts: {
     type: Array,
@@ -148,6 +147,7 @@ const normalizedAccounts = computed(() => {
     const tagLine = account.tagLine || account.tag || ''
     const isActive = Boolean(props.activeAccountPuuid && account.puuid === props.activeAccountPuuid)
     const linkedAccount = getLinkedAccountMatch(account)
+    const isPrimary = Boolean(account.isPrimary ?? linkedAccount?.isPrimary)
     const resolvedProfileIconId = account.profileIconId ?? linkedAccount?.profileIconId ?? null
     const profileIconUrl = account.profileIconUrl || (resolvedProfileIconId ? getProfileIconUrl(resolvedProfileIconId) : null)
     const summonerLevel = account.summonerLevel ?? linkedAccount?.summonerLevel ?? null
@@ -169,6 +169,7 @@ const normalizedAccounts = computed(() => {
       gameName,
       tagLine,
       isActive,
+      isPrimary,
       profileIconUrl,
       summonerLevel,
       flexRankDisplay,

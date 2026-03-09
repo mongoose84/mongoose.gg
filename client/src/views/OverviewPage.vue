@@ -187,11 +187,10 @@ const rankSnapshotLabel = computed(() => {
 })
 
 const lastMatchAccountName = computed(() => {
-  // In Overall mode, show the account name for the last match
-  // For now, we'll show the primary account name since the backend doesn't return which account
-  // TODO: Backend should include account reference in lastMatch when in Overall mode
-  if (authStore.isOverallMode && overviewData.value?.playerHeader?.summonerName) {
-    return overviewData.value.playerHeader.summonerName
+  // Backend does not yet include which account played the last match in Overall mode.
+  // Return null to avoid showing a potentially incorrect account tag.
+  if (authStore.isOverallMode) {
+    return null
   }
   return null
 })
