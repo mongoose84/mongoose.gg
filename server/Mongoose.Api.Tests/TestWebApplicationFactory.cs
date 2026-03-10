@@ -74,7 +74,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _overviewStatsRepository = new FakeOverviewStatsRepository();
         _analyticsEventsRepository = new FakeAnalyticsEventsRepository();
         _gitHubService = new FakeGitHubService();
-        _matchesRepository = new FakeMatchesRepository();
+        _matchesRepository = new FakeMatchesRepository(_riotAccountsRepository);
         _soloPerformanceRepository = new FakeSoloPerformanceRepository();
         _matchupRepository = new FakeMatchupRepository();
         _championSelectRepository = new FakeChampionSelectRepository();
@@ -1099,6 +1099,12 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         private readonly ConcurrentDictionary<string, FakeMatchData> _matches = new();
         private readonly ConcurrentDictionary<string, List<FakeParticipantData>> _participants = new();
         private readonly ConcurrentDictionary<string, Dictionary<string, RoleBaseline>> _baselines = new();
+        private readonly FakeRiotAccountsRepository _riotAccountsRepo;
+
+        public FakeMatchesRepository(FakeRiotAccountsRepository riotAccountsRepo)
+        {
+            _riotAccountsRepo = riotAccountsRepo;
+        }
 
         /// <summary>
         /// Helper to add a match for testing.
@@ -1217,11 +1223,17 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                     var csPerMin = durationMin > 0 ? Math.Round(participant.CreepScore / durationMin, 1) : 0;
                     var goldPerMin = durationMin > 0 ? Math.Round(participant.GoldEarned / durationMin, 0) : 0;
 
+                    // Look up account info — only populate when multiple accounts are in scope
+                    var account = _riotAccountsRepo.GetByPuuidAsync(participant.Puuid).GetAwaiter().GetResult();
+                    var accountGameName = allowed.Count > 1 ? account?.GameName : null;
+                    var accountTagLine = allowed.Count > 1 ? account?.TagLine : null;
+                    var accountRegion = allowed.Count > 1 ? account?.Region : null;
+
                     return new MatchListSummaryItem(
                         MatchId: match.MatchId,
-                        AccountGameName: null,
-                        AccountTagLine: null,
-                        AccountRegion: null,
+                        AccountGameName: accountGameName,
+                        AccountTagLine: accountTagLine,
+                        AccountRegion: accountRegion,
                         QueueId: match.QueueId,
                         QueueType: GetQueueType(match.QueueId),
                         ChampionId: participant.ChampionId,

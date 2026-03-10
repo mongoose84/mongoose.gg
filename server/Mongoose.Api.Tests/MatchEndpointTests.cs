@@ -539,9 +539,191 @@ public class MatchEndpointTests
         body!.IsAram.Should().BeTrue();
     }
 
+    // ============================================================================
+    // MA-07: Overall Mode — Interleaved Match History Tests
+    // ============================================================================
+
+    [Fact]
+    public async Task MatchList_with_account_all_returns_matches_from_multiple_accounts()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "pro");
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-main", "MainAcc", "NA1", "MainAcc#NA1", 100, 1);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-alt", "AltAcc", "EUW", "AltAcc#EUW", 50, 2);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-main", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-alt", isPrimary: false);
+
+        factory.MatchesRepository.AddMatch("NA1_001", queueId: 420);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_001", Puuid: "puuid-main", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true,
+            Kills: 5, Deaths: 2, Assists: 3, CreepScore: 150, GoldEarned: 10000, TeamId: 100));
+
+        factory.MatchesRepository.AddMatch("EUW_002", queueId: 420);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "EUW_002", Puuid: "puuid-alt", ChampionId: 99, ChampionName: "Lux",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: false,
+            Kills: 3, Deaths: 5, Assists: 7, CreepScore: 130, GoldEarned: 9000, TeamId: 100));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/1?accountId=all");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<MatchListResponse>();
+        body.Should().NotBeNull();
+        body!.Matches.Should().HaveCount(2);
+        body.Matches.Should().Contain(m => m.MatchId == "NA1_001");
+        body.Matches.Should().Contain(m => m.MatchId == "EUW_002");
+    }
+
+    [Fact]
+    public async Task MatchList_with_account_all_is_sorted_by_game_start_time_descending()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "pro");
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-main", "MainAcc", "NA1", "MainAcc#NA1", 100, 1);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-alt", "AltAcc", "EUW", "AltAcc#EUW", 50, 2);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-main", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-alt", isPrimary: false);
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        factory.MatchesRepository.AddMatch("EUW_OLDER", queueId: 420, gameStartTime: now - 3_600_000); // 1h ago
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "EUW_OLDER", Puuid: "puuid-alt", ChampionId: 99, ChampionName: "Lux",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: false,
+            Kills: 2, Deaths: 4, Assists: 6, CreepScore: 110, GoldEarned: 8000, TeamId: 200));
+
+        factory.MatchesRepository.AddMatch("NA1_NEWER", queueId: 420, gameStartTime: now - 1_800_000); // 30min ago
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_NEWER", Puuid: "puuid-main", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true,
+            Kills: 8, Deaths: 1, Assists: 4, CreepScore: 160, GoldEarned: 11000, TeamId: 100));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/1?accountId=all");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<MatchListResponse>();
+        body.Should().NotBeNull();
+        body!.Matches.Should().HaveCount(2);
+        body.Matches[0].MatchId.Should().Be("NA1_NEWER");
+        body.Matches[1].MatchId.Should().Be("EUW_OLDER");
+    }
+
+    [Fact]
+    public async Task MatchList_with_account_all_includes_account_info_on_each_match()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "pro");
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-main", "FakerMain", "EUW", "FakerMain#EUW", 200, 1);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-alt", "SmurfAcc", "NA1", "SmurfAcc#NA1", 80, 2);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-main", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-alt", isPrimary: false);
+
+        factory.MatchesRepository.AddMatch("EUW_001", queueId: 420);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "EUW_001", Puuid: "puuid-main", ChampionId: 238, ChampionName: "Zed",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true,
+            Kills: 12, Deaths: 2, Assists: 4, CreepScore: 220, GoldEarned: 14000, TeamId: 100));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/1?accountId=all");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<MatchListResponse>();
+        body.Should().NotBeNull();
+        body!.Matches.Should().HaveCount(1);
+        var match = body.Matches[0];
+        match.AccountGameName.Should().Be("FakerMain");
+        match.AccountRegion.Should().Be("EUW");
+    }
+
+    [Fact]
+    public async Task MatchList_single_account_does_not_include_account_tag()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-main", "MainAcc", "NA1", "MainAcc#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-main", isPrimary: true);
+
+        factory.MatchesRepository.AddMatch("NA1_001", queueId: 420);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_001", Puuid: "puuid-main", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true,
+            Kills: 5, Deaths: 2, Assists: 3, CreepScore: 150, GoldEarned: 10000, TeamId: 100));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<MatchListResponse>();
+        body.Should().NotBeNull();
+        body!.Matches.Should().HaveCount(1);
+        body.Matches[0].AccountGameName.Should().BeNull();
+        body.Matches[0].AccountRegion.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MatchList_with_account_all_queue_filter_applies_across_all_accounts()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "pro");
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-main", "MainAcc", "NA1", "MainAcc#NA1", 100, 1);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-alt", "AltAcc", "EUW", "AltAcc#EUW", 50, 2);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-main", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-alt", isPrimary: false);
+
+        // Ranked solo match on main
+        factory.MatchesRepository.AddMatch("NA1_RANKED", queueId: 420); // ranked solo
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_RANKED", Puuid: "puuid-main", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true,
+            Kills: 5, Deaths: 2, Assists: 3, CreepScore: 150, GoldEarned: 10000, TeamId: 100));
+
+        // ARAM match on alt — should be excluded by ranked_solo filter
+        factory.MatchesRepository.AddMatch("EUW_ARAM", queueId: 450); // ARAM
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "EUW_ARAM", Puuid: "puuid-alt", ChampionId: 99, ChampionName: "Lux",
+            Role: "UTILITY", Lane: "NONE", Win: false,
+            Kills: 4, Deaths: 6, Assists: 9, CreepScore: 20, GoldEarned: 7500, TeamId: 200));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/1?accountId=all&queueType=ranked_solo");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<MatchListResponse>();
+        body.Should().NotBeNull();
+        body!.Matches.Should().HaveCount(1);
+        body.Matches[0].MatchId.Should().Be("NA1_RANKED");
+    }
+
     // Response DTOs for deserialization
     private record MatchListResponse(MatchListSummaryItem[] Matches, Dictionary<string, RoleBaseline> BaselinesByRole, string QueueType, int TotalMatches);
-    private record MatchListSummaryItem(string MatchId, int QueueId, string QueueType, int ChampionId, string ChampionName, string Role, bool Win, int Kills, int Deaths, int Assists);
+    private record MatchListSummaryItem(string MatchId, int QueueId, string QueueType, int ChampionId, string ChampionName, string Role, bool Win, int Kills, int Deaths, int Assists, string? AccountGameName = null, string? AccountTagLine = null, string? AccountRegion = null);
     private record RoleBaseline(string Role, int GamesCount, double AvgKills, double AvgDeaths, double AvgAssists);
     private record MatchDetailsResponse(MatchDetailsItem Match, RoleBaseline? Baseline);
     private record MatchDetailsItem(string MatchId, int QueueId, string QueueType, int ChampionId, string ChampionName, string Role, bool Win, int Kills, int Deaths, int Assists, int DamageDealt, int VisionScore);
