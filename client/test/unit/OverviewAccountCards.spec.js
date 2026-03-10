@@ -86,52 +86,69 @@ describe('OverviewAccountCards.vue', () => {
       expect(firstCard.find('.tag-line').text()).toBe('#EUW')
     })
 
-    it('displays region and rank', () => {
+    it('displays flex and solo rank lines', () => {
       const wrapper = createWrapper()
       const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
-      expect(firstCard.find('.region').text()).toBe('EUW')
-      expect(firstCard.find('.rank').text()).toBe('Diamond II')
+      expect(firstCard.findAll('.rank-line')).toHaveLength(2)
+      expect(firstCard.text()).toContain('Flex')
+      expect(firstCard.text()).toContain('Solo')
     })
 
-    it('displays LP value', () => {
-      const wrapper = createWrapper()
-      const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
-      expect(firstCard.find('.lp-value').text()).toBe('67 LP')
-    })
-
-    it('displays games today count', () => {
-      const wrapper = createWrapper()
-      const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
-      expect(firstCard.find('.games-count').text()).toBe('5 games today')
-    })
-
-    it('displays "game" singular when 1 game today', () => {
+    it('displays LP in rank value when rank data includes lp', () => {
       const accounts = [
         {
           accountId: 'acc_1',
           gameName: 'Test',
           tagLine: 'EUW',
-          region: 'EUW',
-          rank: 'Gold I',
-          lp: 50,
-          gamesToday: 1,
-          gamesThisWeek: 1
+          soloTier: 'DIAMOND',
+          soloRank: 'II',
+          soloLp: 67
         }
       ]
       const wrapper = createWrapper({ accounts })
-      expect(wrapper.find('.games-count').text()).toBe('1 game today')
+      const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
+      expect(firstCard.text()).toContain('Diamond II - 67 LP')
     })
 
-    it('adds has-games class when games today > 0', () => {
+    it('shows unranked values when rank data is missing', () => {
       const wrapper = createWrapper()
       const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
-      expect(firstCard.find('.games-today').classes()).toContain('has-games')
+      const rankValues = firstCard.findAll('.rank-value')
+      expect(rankValues).toHaveLength(2)
+      expect(rankValues[0].text()).toBe('Unranked')
+      expect(rankValues[1].text()).toBe('Unranked')
     })
 
-    it('does not add has-games class when games today = 0', () => {
+    it('renders primary chip when account is primary', () => {
+      const accounts = [
+        {
+          accountId: 'acc_1',
+          gameName: 'Test',
+          tagLine: 'EUW',
+          isPrimary: true
+        }
+      ]
+      const wrapper = createWrapper({ accounts })
+      expect(wrapper.find('.primary-chip').text()).toBe('Primary')
+    })
+
+    it('renders avatar fallback when no profile icon url is provided', () => {
       const wrapper = createWrapper()
-      const thirdCard = wrapper.find('[data-testid="account-card-acc_3"]')
-      expect(thirdCard.find('.games-today').classes()).not.toContain('has-games')
+      const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
+      expect(firstCard.find('.account-avatar-fallback').exists()).toBe(true)
+    })
+
+    it('renders summoner level badge when summonerLevel is provided', () => {
+      const accounts = [
+        {
+          accountId: 'acc_1',
+          gameName: 'Test',
+          tagLine: 'EUW',
+          summonerLevel: 120
+        }
+      ]
+      const wrapper = createWrapper({ accounts })
+      expect(wrapper.find('.level-badge').text()).toBe('120')
     })
 
     it('does not display LP when lp is null', () => {
@@ -170,74 +187,79 @@ describe('OverviewAccountCards.vue', () => {
   })
 
   describe('Interactions', () => {
-    it('emits select event when card is clicked', async () => {
+    it('does not emit select event when card is clicked', async () => {
       const wrapper = createWrapper()
       const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
       
       await firstCard.trigger('click')
       
-      expect(wrapper.emitted('select')).toBeTruthy()
-      expect(wrapper.emitted('select')[0]).toEqual(['acc_1'])
+      expect(wrapper.emitted('select')).toBeFalsy()
     })
 
-    it('emits select event with correct accountId', async () => {
+    it('does not emit select event when any card is clicked', async () => {
       const wrapper = createWrapper()
       const secondCard = wrapper.find('[data-testid="account-card-acc_2"]')
       
       await secondCard.trigger('click')
       
-      expect(wrapper.emitted('select')[0]).toEqual(['acc_2'])
+      expect(wrapper.emitted('select')).toBeFalsy()
     })
 
-    it('emits select event on Enter keydown', async () => {
+    it('does not emit select event on Enter keydown', async () => {
       const wrapper = createWrapper()
       const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
       
       await firstCard.trigger('keydown.enter')
       
-      expect(wrapper.emitted('select')).toBeTruthy()
-      expect(wrapper.emitted('select')[0]).toEqual(['acc_1'])
+      expect(wrapper.emitted('select')).toBeFalsy()
     })
 
-    it('emits select event on Space keydown', async () => {
+    it('does not emit select event on Space keydown', async () => {
       const wrapper = createWrapper()
       const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
       
       await firstCard.trigger('keydown.space')
       
-      expect(wrapper.emitted('select')).toBeTruthy()
-      expect(wrapper.emitted('select')[0]).toEqual(['acc_1'])
+      expect(wrapper.emitted('select')).toBeFalsy()
     })
   })
 
   describe('Active Account', () => {
-    it('adds is-active class when activeAccountPuuid matches', () => {
-      const wrapper = createWrapper({ activeAccountPuuid: 'acc_1' })
+    it('adds account-card--active class when activeAccountPuuid matches account puuid', () => {
+      const accounts = [
+        { ...mockAccounts[0], puuid: 'puuid_1' },
+        { ...mockAccounts[1], puuid: 'puuid_2' }
+      ]
+      const wrapper = createWrapper({ accounts, activeAccountPuuid: 'puuid_1' })
       const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
-      expect(firstCard.classes()).toContain('is-active')
+      expect(firstCard.classes()).toContain('account-card--active')
     })
 
-    it('does not add is-active class when activeAccountPuuid does not match', () => {
-      const wrapper = createWrapper({ activeAccountPuuid: 'acc_1' })
+    it('does not add account-card--active class when activeAccountPuuid does not match', () => {
+      const accounts = [
+        { ...mockAccounts[0], puuid: 'puuid_1' },
+        { ...mockAccounts[1], puuid: 'puuid_2' }
+      ]
+      const wrapper = createWrapper({ accounts, activeAccountPuuid: 'puuid_1' })
       const secondCard = wrapper.find('[data-testid="account-card-acc_2"]')
-      expect(secondCard.classes()).not.toContain('is-active')
+      expect(secondCard.classes()).not.toContain('account-card--active')
     })
 
     it('no card is active when activeAccountPuuid is null', () => {
       const wrapper = createWrapper({ activeAccountPuuid: null })
       const cards = wrapper.findAll('.account-card')
       cards.forEach(card => {
-        expect(card.classes()).not.toContain('is-active')
+        expect(card.classes()).not.toContain('account-card--active')
       })
     })
   })
 
   describe('Accessibility', () => {
-    it('account cards are keyboard navigable (button elements)', () => {
+    it('account cards render as div elements', () => {
       const wrapper = createWrapper()
       const cards = wrapper.findAll('.account-card')
       cards.forEach(card => {
-        expect(card.element.tagName).toBe('BUTTON')
+        expect(card.element.tagName).toBe('DIV')
       })
     })
 

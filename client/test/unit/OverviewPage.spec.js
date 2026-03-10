@@ -219,7 +219,7 @@ describe('OverviewPage', () => {
       expect(wrapper.find('overview-account-cards-stub').exists()).toBe(false)
     })
 
-    it('shows "Highest Rank" label in RankSnapshot when in Overall mode', async () => {
+    it('shows "Highest Rank (Solo)" label in RankSnapshot when in Overall mode', async () => {
       mockIsOverallMode.value = true
       mockGetOverview.mockResolvedValue({
         rankSnapshot: {
@@ -252,7 +252,7 @@ describe('OverviewPage', () => {
       })
       await flushPromises()
 
-      expect(wrapper.find('[data-testid="rank-snapshot-stub"]').text()).toBe('Highest Rank')
+      expect(wrapper.find('[data-testid="rank-snapshot-stub"]').text()).toBe('Highest Rank (Solo)')
     })
 
     it('shows primary queue label in RankSnapshot when in individual mode', async () => {
