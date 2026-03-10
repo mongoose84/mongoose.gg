@@ -46,18 +46,33 @@ test.describe('Overview Dashboard - Content', () => {
   });
 
   test('should display player header with summoner info', async ({ page }) => {
-    // Player header should be visible with summoner name
+    // Header is either the individual player header or account cards in overall mode
     const playerHeader = page.locator('.overview-player-header');
-    await expect(playerHeader).toBeVisible({ timeout: 10_000 });
-    
-    // Summoner name should be displayed
-    const summonerName = playerHeader.locator('.summoner-name');
-    await expect(summonerName).toBeVisible();
-    await expect(summonerName).not.toBeEmpty();
-    
-    // Region tag should be visible
-    const regionTag = playerHeader.locator('.region-tag');
-    await expect(regionTag).toBeVisible();
+    const accountCards = page.locator('[data-testid="overview-account-cards"]');
+
+    const isIndividualMode = await playerHeader.isVisible();
+    const isOverallMode = await accountCards.isVisible();
+
+    if (!isIndividualMode && !isOverallMode) {
+      // Wait for either to appear
+      await expect(page.locator('.overview-player-header, [data-testid="overview-account-cards"]'))
+        .toBeVisible({ timeout: 10_000 });
+    }
+
+    if (isIndividualMode) {
+      // Individual mode: check summoner name and region tag
+      const summonerName = playerHeader.locator('.summoner-name');
+      await expect(summonerName).toBeVisible();
+      await expect(summonerName).not.toBeEmpty();
+
+      const regionTag = playerHeader.locator('.region-tag');
+      await expect(regionTag).toBeVisible();
+    } else {
+      // Overall mode: account cards show .game-name (no region tag)
+      const gameName = accountCards.locator('.game-name').first();
+      await expect(gameName).toBeVisible();
+      await expect(gameName).not.toBeEmpty();
+    }
   });
 
   test('should display rank snapshot section', async ({ page }) => {
@@ -179,23 +194,28 @@ test.describe('Overview Dashboard - Content', () => {
   });
 
   test('should display profile icon or fallback', async ({ page }) => {
-    const playerHeader = page.locator('.overview-player-header');
-    await expect(playerHeader).toBeVisible({ timeout: 10_000 });
+    // Header is either the individual player header or account cards in overall mode
+    const header = page.locator('.overview-player-header, [data-testid="overview-account-cards"]');
+    await expect(header).toBeVisible({ timeout: 10_000 });
 
-    // Either profile icon image or fallback SVG should be visible
-    const profileIcon = playerHeader.locator('.profile-icon');
-    const fallbackIcon = playerHeader.locator('.profile-icon-fallback');
+    // Either profile icon image or fallback SVG should be visible.
+    // OverviewPlayerHeader uses .profile-icon / .profile-icon-fallback;
+    // OverviewAccountCards uses .account-avatar-image / .account-avatar-fallback.
+    const profileIcon = page.locator('.profile-icon, .account-avatar-image').first();
+    const fallbackIcon = page.locator('.profile-icon-fallback, .account-avatar-fallback').first();
 
     const hasIcon = await profileIcon.isVisible() || await fallbackIcon.isVisible();
     expect(hasIcon).toBe(true);
   });
 
   test('should display level badge on profile icon', async ({ page }) => {
-    const playerHeader = page.locator('.overview-player-header');
-    await expect(playerHeader).toBeVisible({ timeout: 10_000 });
+    // Header is either the individual player header or account cards in overall mode.
+    // Both components render a .level-badge element.
+    const header = page.locator('.overview-player-header, [data-testid="overview-account-cards"]');
+    await expect(header).toBeVisible({ timeout: 10_000 });
 
     // Level badge should be visible
-    const levelBadge = playerHeader.locator('.level-badge');
+    const levelBadge = page.locator('.level-badge').first();
     const hasLevel = await levelBadge.isVisible();
 
     if (hasLevel) {
@@ -243,9 +263,10 @@ test.describe('Overview Dashboard - Responsive', () => {
     await page.goto('/app/overview');
     await page.waitForLoadState('networkidle');
 
-    // Player header should still be visible
-    const playerHeader = page.locator('.overview-player-header');
-    await expect(playerHeader).toBeVisible({ timeout: 10_000 });
+    // Header section should be visible — either the individual player header
+    // or the account cards header when the user is in overall mode
+    const header = page.locator('.overview-player-header, [data-testid="overview-account-cards"]');
+    await expect(header).toBeVisible({ timeout: 10_000 });
 
     // Rank snapshot should still be visible
     const rankSnapshot = page.locator('.rank-snapshot');
@@ -258,8 +279,9 @@ test.describe('Overview Dashboard - Responsive', () => {
     await page.goto('/app/overview');
     await page.waitForLoadState('networkidle');
 
-    // All sections should be visible
-    await expect(page.locator('.overview-player-header')).toBeVisible({ timeout: 10_000 });
+    // All sections should be visible — header is either the individual player header
+    // or the account cards header when the user is in overall mode
+    await expect(page.locator('.overview-player-header, [data-testid="overview-account-cards"]')).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('.rank-snapshot')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('heading', { name: /today at a glance/i })).toBeVisible();
   });

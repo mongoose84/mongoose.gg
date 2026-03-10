@@ -90,8 +90,6 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['select'])
-
 const iconErrorsByAccount = ref({})
 
 function hasIconError(accountId) {
@@ -137,7 +135,10 @@ const normalizedAccounts = computed(() => {
     const accountId = account.accountId || account.puuid || account.id || `account-${index}`
     const gameName = account.gameName || account.summonerName || account.name || 'Unknown Account'
     const tagLine = account.tagLine || account.tag || ''
-    const isActive = Boolean(props.activeAccountPuuid && account.puuid === props.activeAccountPuuid)
+    const isActive = Boolean(
+      props.activeAccountPuuid &&
+      (accountId === props.activeAccountPuuid || account.puuid === props.activeAccountPuuid)
+    )
     const linkedAccount = getLinkedAccountMatch(account)
     const isPrimary = Boolean(account.isPrimary ?? linkedAccount?.isPrimary)
     const resolvedProfileIconId = account.profileIconId ?? linkedAccount?.profileIconId ?? null
