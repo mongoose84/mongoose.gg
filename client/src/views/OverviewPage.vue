@@ -14,8 +14,18 @@
 
     <!-- Header: Player Header (full width) -->
     <template #header>
+      <!-- Overall Mode: Show account cards -->
+      <OverviewAccountCards
+        v-if="authStore.isOverallMode && displayedAccounts.length > 0"
+        :accounts="displayedAccounts"
+        :linked-accounts="authStore.riotAccounts"
+        :active-account-puuid="authStore.activeAccountPuuid"
+        @select="handleAccountSelect"
+      />
+      
+      <!-- Individual Mode: Show player header -->
       <OverviewPlayerHeader
-        v-if="overviewData?.playerHeader"
+        v-else-if="overviewData?.playerHeader"
         :summoner-name="overviewData.playerHeader.summonerName"
         :level="overviewData.playerHeader.level"
         :region="overviewData.playerHeader.region"
@@ -28,7 +38,7 @@
     <template #glance-left>
       <RankSnapshot
         v-if="overviewData?.rankSnapshot"
-        :primary-queue-label="overviewData.rankSnapshot.primaryQueueLabel"
+        :primary-queue-label="rankSnapshotLabel"
         :rank="overviewData.rankSnapshot.rank"
         :lp="overviewData.rankSnapshot.lp"
         :last20-wins="overviewData.rankSnapshot.last20Wins"
@@ -80,6 +90,7 @@
         :kda="overviewData.lastMatch.kda"
         :timestamp="overviewData.lastMatch.timestamp"
         :queue-type="overviewData.lastMatch.queueType"
+        :account-name="lastMatchAccountName"
       />
     </template>
   </OverviewLayout>
@@ -100,6 +111,7 @@ import { useAsyncData } from '../composables/useAsyncData'
 import { getOverview, getMatchActivity, getSoloDashboard } from '../services/authApi'
 import { getChampionSplashUrl } from '../utils/leagueAssets'
 import OverviewLayout from '../components/overview/OverviewLayout.vue'
+import OverviewAccountCards from '../components/overview/OverviewAccountCards.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
 import MatchActivityHeatmap from '../components/overview/MatchActivityHeatmap.vue'
 import RankSnapshot from '../components/overview/RankSnapshot.vue'
@@ -148,6 +160,40 @@ const championSelectMuralUrl = computed(() => {
   return mostPlayedChampionName.value
     ? getChampionSplashUrl(mostPlayedChampionName.value)
     : ''
+})
+
+const displayedAccounts = computed(() => {
+  const accounts = overviewData.value?.accountSummaries || []
+  // Limit to 3 accounts for aesthetic reasons - maintains clean visual layout in header
+  return accounts.slice(0, 3)
+})
+
+const rankSnapshotLabel = computed(() => {
+  if (authStore.isOverallMode) {
+    const originalLabel = overviewData.value?.rankSnapshot?.primaryQueueLabel || ''
+    // Extract queue type from label (e.g., "Ranked Solo/Duo" -> "Solo", "Ranked Flex" -> "Flex")
+    let queueType = ''
+    if (originalLabel.includes('Solo')) {
+      queueType = ' (Solo)'
+    } else if (originalLabel.includes('Flex')) {
+      queueType = ' (Flex)'
+    } else if (originalLabel.includes('ARAM')) {
+      queueType = ' (ARAM)'
+    } else if (originalLabel.includes('Normal')) {
+      queueType = ' (Normal)'
+    }
+    return `Highest Rank${queueType}`
+  }
+  return overviewData.value?.rankSnapshot?.primaryQueueLabel || ''
+})
+
+const lastMatchAccountName = computed(() => {
+  // Backend does not yet include which account played the last match in Overall mode.
+  // Return null to avoid showing a potentially incorrect account tag.
+  if (authStore.isOverallMode) {
+    return null
+  }
+  return null
 })
 
 const soloCtaSubtitle = computed(() => {
@@ -241,6 +287,12 @@ async function handleLinkSuccess() {
   await authStore.refreshUser()
   // Refresh overview data
   fetchData()
+}
+
+function handleAccountSelect(accountId) {
+  // Switch to the selected account
+  authStore.setActiveAccount(accountId)
+  // Data will refresh automatically via watcher
 }
 
 onMounted(() => {

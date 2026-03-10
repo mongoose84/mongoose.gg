@@ -216,5 +216,32 @@ describe('LastMatchCard.vue', () => {
       expect(wrapper.find('.kda').text()).toBe('10/2/8');
     });
   });
+
+  describe('Account Tag (Overall Mode)', () => {
+    it('displays account tag when accountName prop is provided', () => {
+      const wrapper = createWrapper({ accountName: 'FakerMain' });
+      const accountTag = wrapper.find('[data-testid="account-tag"]');
+      expect(accountTag.exists()).toBe(true);
+      expect(accountTag.text()).toBe('FakerMain');
+    });
+
+    it('does not display account tag when accountName is null', () => {
+      const wrapper = createWrapper({ accountName: null });
+      const accountTag = wrapper.find('[data-testid="account-tag"]');
+      expect(accountTag.exists()).toBe(false);
+    });
+
+    it('does not display account tag when accountName is not provided', () => {
+      const wrapper = createWrapper();
+      const accountTag = wrapper.find('[data-testid="account-tag"]');
+      expect(accountTag.exists()).toBe(false);
+    });
+
+    it('account tag has correct styling class', () => {
+      const wrapper = createWrapper({ accountName: 'TestAccount' });
+      const accountTag = wrapper.find('[data-testid="account-tag"]');
+      expect(accountTag.classes()).toContain('account-tag');
+    });
+  });
 });
 

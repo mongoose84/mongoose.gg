@@ -3,6 +3,7 @@
 > Vue 3 SPA frontend for Mongoose.gg — League of Legends match analytics dashboard.
 > For the complete design system, component inventory, UX contracts, and page responsibilities see [ui-ux.spec.md](../.github/specs/ui-ux.spec.md).
 > For backend API endpoints and DTOs see [architecture.spec.md](../.github/specs/architecture.spec.md).
+> For frontend agent-specific behavior and workflow, see [frontend-engineer.agent.md](../.github/agents/frontend-engineer.agent.md).
 
 ## Build & Run
 

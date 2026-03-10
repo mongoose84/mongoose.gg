@@ -26,6 +26,7 @@
       <div class="match-header">
         <span class="champion-name">{{ championName }}</span>
         <span class="result-badge" :class="resultClass">{{ result }}</span>
+        <span v-if="accountName" class="account-tag" data-testid="account-tag">{{ accountName }}</span>
       </div>
       <div class="match-details">
         <span class="kda">{{ kda }}</span>
@@ -66,7 +67,8 @@ const props = defineProps({
   result: { type: String, default: null },
   kda: { type: String, default: null },
   timestamp: { type: Number, default: null },
-  queueType: { type: String, default: null }
+  queueType: { type: String, default: null },
+  accountName: { type: String, default: null }
 })
 
 const iconError = ref(false)
@@ -199,6 +201,18 @@ const relativeTime = computed(() => {
 .result-badge.loss {
   background: var(--color-error-soft);
   color: var(--color-error);
+}
+
+.account-tag {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  padding: 2px var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  background: var(--color-elevated);
+  color: var(--color-text-secondary);
+  text-transform: none;
+  letter-spacing: normal;
+  margin-left: var(--spacing-sm);
 }
 
 .match-details {
