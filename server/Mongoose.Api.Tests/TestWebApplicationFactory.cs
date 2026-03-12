@@ -611,6 +611,16 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(account);
         }
 
+        /// <summary>
+        /// Synchronous in-memory lookup. Use this inside other fake repositories
+        /// to avoid the sync-over-async anti-pattern.
+        /// </summary>
+        public RiotAccount? GetByPuuid(string puuid)
+        {
+            _accountsByPuuid.TryGetValue(puuid, out var account);
+            return account;
+        }
+
         public override Task<bool> ExistsByPuuidAsync(string puuid)
         {
             return Task.FromResult(_accountsByPuuid.ContainsKey(puuid));
@@ -1224,7 +1234,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                     var goldPerMin = durationMin > 0 ? Math.Round(participant.GoldEarned / durationMin, 0) : 0;
 
                     // Look up account info — only populate when multiple accounts are in scope
-                    var account = _riotAccountsRepo.GetByPuuidAsync(participant.Puuid).GetAwaiter().GetResult();
+                    var account = _riotAccountsRepo.GetByPuuid(participant.Puuid);
                     var accountGameName = allowed.Count > 1 ? account?.GameName : null;
                     var accountTagLine = allowed.Count > 1 ? account?.TagLine : null;
                     var accountRegion = allowed.Count > 1 ? account?.Region : null;

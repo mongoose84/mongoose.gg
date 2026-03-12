@@ -78,6 +78,7 @@
 import { ref, computed } from 'vue'
 import TrendBadge from './TrendBadge.vue'
 import { formatRole, formatKda, formatDuration, formatRelativeTime } from '@/utils/formatters'
+import { getProfileIconUrl } from '@/utils/leagueAssets'
 import { useAuthStore } from '@/stores/authStore'
 
 const props = defineProps({
@@ -111,7 +112,7 @@ const accountIconUrl = computed(() => {
     a.region?.toLowerCase() === props.match.accountRegion?.toLowerCase()
   )
   if (!account?.profileIconId) return null
-  return `https://ddragon.leagueoflegends.com/cdn/16.1.1/img/profileicon/${account.profileIconId}.png`
+  return getProfileIconUrl(account.profileIconId)
 })
 </script>
 

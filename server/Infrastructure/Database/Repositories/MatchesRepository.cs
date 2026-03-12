@@ -284,11 +284,15 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 trendBadge = ComputeTrendBadgeSummary(raw, baseline);
             }
 
+            // Only populate account fields when multiple accounts are in scope.
+            // With a single PUUID the JOIN still runs, but the tag must be suppressed
+            // so MatchRow doesn't display an account badge in single-account mode.
+            var multiAccount = puuids.Count > 1;
             items.Add(new MatchListSummaryItem(
                 MatchId: raw.MatchId,
-                AccountGameName: raw.AccountGameName,
-                AccountTagLine: raw.AccountTagLine,
-                AccountRegion: raw.AccountRegion,
+                AccountGameName: multiAccount ? raw.AccountGameName : null,
+                AccountTagLine: multiAccount ? raw.AccountTagLine : null,
+                AccountRegion: multiAccount ? raw.AccountRegion : null,
                 QueueId: raw.QueueId,
                 QueueType: LeagueDataHelper.GetQueueLabelShort(raw.QueueId),
                 ChampionId: raw.ChampionId,
