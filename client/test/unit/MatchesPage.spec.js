@@ -65,9 +65,15 @@ const BaseQueueToggleStub = {
   template: '<div data-testid="queue-toggle-stub"></div>'
 }
 
+const MatchDetailsStub = {
+  name: 'MatchDetails',
+  props: ['match', 'baseline', 'loading', 'error'],
+  template: '<div data-testid="match-details-stub"></div>'
+}
+
 const pageStubs = {
   MatchList: MatchListStub,
-  MatchDetails: { template: '<div data-testid="match-details-stub"></div>' },
+  MatchDetails: MatchDetailsStub,
   BaseQueueToggle: BaseQueueToggleStub
 }
 
@@ -139,7 +145,11 @@ describe('MatchesPage.vue — MA-07 Overall Mode', () => {
       mockActiveAccountPuuid.value = 'acc_alt'
       await flushPromises()
 
-      // Match details component should now receive no match (loading reset triggers null)
+      // selectedMatchId is cleared — MatchList receives null
+      expect(wrapper.findComponent(MatchListStub).props('selectedMatchId')).toBeNull()
+      // matchDetails is cleared — MatchDetails receives null
+      expect(wrapper.findComponent(MatchDetailsStub).props('match')).toBeNull()
+      // match list was re-fetched for the new account
       expect(mockGetMatchList).toHaveBeenCalledOnce()
     })
   })

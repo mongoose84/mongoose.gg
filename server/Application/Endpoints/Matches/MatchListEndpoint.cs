@@ -62,7 +62,14 @@ public sealed class MatchListEndpoint : IEndpoint
                 var baselines = await matchesRepo.GetRoleBaselinesAsync(puuids, queueFilter);
 
                 // Fetch lightweight match summaries (no expensive team stat queries)
-                var matches = await matchesRepo.GetMatchListSummaryAsync(puuids, queueFilter, 20, baselines);
+                var rawMatches = await matchesRepo.GetMatchListSummaryAsync(puuids, queueFilter, 20, baselines);
+
+                // Suppress per-account badge fields when only one account is in scope so the
+                // client doesn't display an account tag on every row in single-account mode.
+                var multiAccount = puuids.Count > 1;
+                var matches = multiAccount
+                    ? rawMatches
+                    : rawMatches.Select(m => m with { AccountGameName = null, AccountTagLine = null, AccountRegion = null }).ToList();
 
                 if (matches.Count == 0)
                 {

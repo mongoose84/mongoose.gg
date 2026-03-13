@@ -54,19 +54,20 @@
     <div
       v-if="match.accountGameName"
       class="account-icon-wrapper"
-      :title="`${match.accountGameName}${match.accountRegion ? ' · ' + match.accountRegion.toUpperCase() : ''}`"
+      :title="accountBadgeTitle"
+      :aria-label="accountBadgeLabel"
+      role="img"
       data-testid="account-tag"
-      aria-hidden="true"
     >
       <img
         v-if="accountIconUrl && !accountIconError"
         :src="accountIconUrl"
-        :alt="match.accountGameName"
+        alt=""
         class="account-icon"
         @error="accountIconError = true"
       />
       <div v-else class="account-icon-fallback">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd" />
         </svg>
       </div>
@@ -109,10 +110,23 @@ const accountIconUrl = computed(() => {
   if (!props.match.accountGameName) return null
   const account = authStore.riotAccounts.find(a =>
     a.gameName?.toLowerCase() === props.match.accountGameName?.toLowerCase() &&
+    a.tagLine?.toLowerCase() === props.match.accountTagLine?.toLowerCase() &&
     a.region?.toLowerCase() === props.match.accountRegion?.toLowerCase()
   )
   if (!account?.profileIconId) return null
   return getProfileIconUrl(account.profileIconId)
+})
+
+const accountBadgeTitle = computed(() => {
+  const name = props.match.accountGameName
+  const region = props.match.accountRegion ? ' · ' + props.match.accountRegion.toUpperCase() : ''
+  return `${name}${region}`
+})
+
+const accountBadgeLabel = computed(() => {
+  const name = props.match.accountGameName
+  const region = props.match.accountRegion ? ' · ' + props.match.accountRegion.toUpperCase() : ''
+  return `Account: ${name}${region}`
 })
 </script>
 
