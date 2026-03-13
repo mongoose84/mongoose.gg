@@ -49,6 +49,29 @@
     <div class="trend-badge-wrapper">
       <TrendBadge :badge="match.trendBadge" />
     </div>
+
+    <!-- Account Icon (Overall mode only — outermost right) -->
+    <div
+      v-if="match.accountGameName"
+      class="account-icon-wrapper"
+      :title="accountBadgeTitle"
+      :aria-label="accountBadgeLabel"
+      role="img"
+      data-testid="account-tag"
+    >
+      <img
+        v-if="accountIconUrl && !accountIconError"
+        :src="accountIconUrl"
+        alt=""
+        class="account-icon"
+        @error="accountIconError = true"
+      />
+      <div v-else class="account-icon-fallback">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd" />
+        </svg>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -56,6 +79,8 @@
 import { ref, computed } from 'vue'
 import TrendBadge from './TrendBadge.vue'
 import { formatRole, formatKda, formatDuration, formatRelativeTime } from '@/utils/formatters'
+import { getProfileIconUrl } from '@/utils/leagueAssets'
+import { useAuthStore } from '@/stores/authStore'
 
 const props = defineProps({
   match: {
@@ -70,13 +95,39 @@ const props = defineProps({
 
 defineEmits(['select'])
 
+const authStore = useAuthStore()
+
 const iconError = ref(false)
+const accountIconError = ref(false)
 
 function handleIconError() {
   iconError.value = true
 }
 
 const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime, { short: true }))
+
+const accountIconUrl = computed(() => {
+  if (!props.match.accountGameName) return null
+  const account = authStore.riotAccounts.find(a =>
+    a.gameName?.toLowerCase() === props.match.accountGameName?.toLowerCase() &&
+    a.tagLine?.toLowerCase() === props.match.accountTagLine?.toLowerCase() &&
+    a.region?.toLowerCase() === props.match.accountRegion?.toLowerCase()
+  )
+  if (!account?.profileIconId) return null
+  return getProfileIconUrl(account.profileIconId)
+})
+
+const accountBadgeTitle = computed(() => {
+  const name = props.match.accountGameName
+  const region = props.match.accountRegion ? ' · ' + props.match.accountRegion.toUpperCase() : ''
+  return `${name}${region}`
+})
+
+const accountBadgeLabel = computed(() => {
+  const name = props.match.accountGameName
+  const region = props.match.accountRegion ? ' · ' + props.match.accountRegion.toUpperCase() : ''
+  return `Account: ${name}${region}`
+})
 </script>
 
 <style scoped>
@@ -216,6 +267,38 @@ const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime
   color: var(--color-text-secondary);
 }
 
+/* Account Icon */
+.account-icon-wrapper {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border);
+}
+
+.account-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.account-icon-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-icon-fallback svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-secondary);
+}
+
 /* Trend Badge */
 .trend-badge-wrapper {
   flex-shrink: 0;
@@ -234,6 +317,10 @@ const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime
   .champion-icon-wrapper {
     width: 36px;
     height: 36px;
+  }
+
+  .account-icon-wrapper {
+    display: none;
   }
 
   .trend-badge-wrapper {
