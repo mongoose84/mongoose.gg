@@ -138,19 +138,6 @@
       />
     </div>
 
-    <!-- Feedback Link - above user section -->
-    <div class="border-t border-border py-sm">
-      <router-link
-        to="/app/feedback"
-        data-testid="nav-feedback"
-        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :title="isCollapsed ? 'Feedback' : ''"
-      >
-        <ChatBubbleLeftEllipsisIcon class="nav-icon w-5 h-5 shrink-0" />
-        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Feedback</span>
-      </router-link>
-    </div>
-
     <!-- User Section at Bottom -->
     <div class="border-t border-border py-md">
       <router-link
@@ -203,6 +190,19 @@
           v{{ version }}
         </div>
       </Transition>
+    </div>
+
+    <!-- Feedback Link - below user section -->
+    <div class="border-t border-border py-sm">
+      <router-link
+        to="/app/feedback"
+        data-testid="nav-feedback"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
+        :title="isCollapsed ? 'Feedback' : ''"
+      >
+        <ChatBubbleLeftEllipsisIcon class="nav-icon w-5 h-5 shrink-0" />
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Feedback</span>
+      </router-link>
     </div>
   </aside>
 
