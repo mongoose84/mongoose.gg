@@ -235,7 +235,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     var trustAllForwardedHeaders = builder.Configuration.GetValue<bool>("Networking:TrustAllForwardedHeaders", false);
     if (trustAllForwardedHeaders)
     {
-        options.KnownNetworks.Clear();
+        options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
     }
     else
@@ -262,7 +262,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
                     IPAddress.TryParse(parts[0], out var networkIp) &&
                     int.TryParse(parts[1], out var prefixLength))
                 {
-                    options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(networkIp, prefixLength));
+                    options.KnownIPNetworks.Add(new System.Net.IPNetwork(networkIp, prefixLength));
                 }
             }
         }
