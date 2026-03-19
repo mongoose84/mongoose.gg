@@ -134,7 +134,6 @@
         :show-overall="canUseOverallAccountView"
         data-testid="account-switcher-wrapper"
         @select="authStore.setActiveAccount"
-        @link="showLinkModal = true"
       />
     </div>
 
@@ -200,11 +199,7 @@
     </div>
   </aside>
 
-  <!-- Link Riot Account Modal (triggered from AccountSwitcher) -->
-  <LinkRiotAccountModal
-    :is-open="showLinkModal"
-    @close="showLinkModal = false"
-  />
+
 </template>
 
 <script setup>
@@ -215,7 +210,6 @@ import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';
 import { BaseButton } from '@/components/base';
 import AccountSwitcher from '@/components/sidebar/AccountSwitcher.vue';
-import LinkRiotAccountModal from '@/components/LinkRiotAccountModal.vue';
 import pkg from '../../package.json';
 import { formatRegion } from '@/utils/leagueAssets';
 
@@ -226,7 +220,6 @@ const version = pkg.version || '0.0.0';
 
 // Local state
 const linkedIconError = ref(false);
-const showLinkModal = ref(false);
 
 // Sidebar state from store
 const isCollapsed = computed(() => uiStore.isSidebarCollapsed);
