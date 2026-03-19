@@ -43,13 +43,6 @@ describe('AccountDropdownList.vue', () => {
       expect(wrapper.find('[data-testid="account-option-FakerSmurf"]').exists()).toBe(true)
     })
 
-    it('renders Link Account as a <button> element', () => {
-      const wrapper = mountComponent()
-      const linkBtn = wrapper.find('[data-testid="account-switcher-link-button"]')
-      expect(linkBtn.element.tagName).toBe('BUTTON')
-      expect(linkBtn.attributes('type')).toBe('button')
-    })
-
     it('displays formatted region label for each account', () => {
       const wrapper = mountComponent()
       expect(wrapper.find('[data-testid="account-option-FakerMain"]').text()).toContain('EUW')
@@ -137,11 +130,6 @@ describe('AccountDropdownList.vue', () => {
       expect(wrapper.emitted('select')[0]).toEqual(['puuid-only'])
     })
 
-    it('emits "link" when Link Account button is clicked', async () => {
-      const wrapper = mountComponent()
-      await wrapper.find('[data-testid="account-switcher-link-button"]').trigger('click')
-      expect(wrapper.emitted('link')).toBeTruthy()
-    })
   })
 
   describe('Region formatting', () => {

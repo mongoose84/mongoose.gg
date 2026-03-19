@@ -182,7 +182,6 @@
           </div>
         </Transition>
       </router-link>
-
     </div>
 
     <!-- Feedback Link - below user section -->
@@ -199,7 +198,6 @@
     </div>
   </aside>
 
-
 </template>
 
 <script setup>
@@ -210,13 +208,11 @@ import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';
 import { BaseButton } from '@/components/base';
 import AccountSwitcher from '@/components/sidebar/AccountSwitcher.vue';
-import pkg from '../../package.json';
 import { formatRegion } from '@/utils/leagueAssets';
 
 const authStore = useAuthStore();
 const uiStore = useUiStore();
 const { isRunning: isAnalysisRunning } = useAnalysisStatus();
-const version = pkg.version || '0.0.0';
 
 // Local state
 const linkedIconError = ref(false);
