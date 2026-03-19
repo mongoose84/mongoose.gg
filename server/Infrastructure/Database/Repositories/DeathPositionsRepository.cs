@@ -50,7 +50,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
             : timeRangeFilter.NormalizedTimeRange;
 
         _logger.LogInformation(
-            "GetDeathPositionsAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
+            "GetDeathPositionsAsync start: accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
             puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
 
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
@@ -78,7 +78,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
             );
 
             _logger.LogInformation(
-                "GetDeathPositionsAsync success: puuid={Puuid}, totalDeaths={Deaths}, matches={Matches}",
+                "GetDeathPositionsAsync success: accountCount={AccountCount}, totalDeaths={Deaths}, matches={Matches}",
                 puuids.Count, deathPositions.Count, deathPositions.Select(d => d.MatchId).Distinct().Count());
 
             return response;
@@ -86,7 +86,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
         catch (Exception ex)
         {
             _logger.LogError(ex, 
-                "GetDeathPositionsAsync error: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
+                "GetDeathPositionsAsync error: accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
                 puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
             throw;
         }
@@ -119,7 +119,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
             LIMIT 100";
 
         _logger.LogDebug(
-            "GetDeathPositionsInternalAsync SQL: {Sql} | puuid={Puuid}, seasonCode={SeasonCode}",
+            "GetDeathPositionsInternalAsync SQL: {Sql} | accountCount={AccountCount}, seasonCode={SeasonCode}",
             sql, puuids.Count, timeRangeFilter.SeasonCode);
 
         return await ExecuteWithConnectionAsync(async conn =>

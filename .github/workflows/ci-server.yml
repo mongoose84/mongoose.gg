@@ -48,7 +48,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.x'          # matches TargetFramework net9.0
+          dotnet-version: '10.x'         # matches TargetFramework net10.0
 
       # -------------------------------------------------
       # Restore NuGet packages (optional but clearer logs)
