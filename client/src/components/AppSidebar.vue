@@ -184,12 +184,6 @@
         </Transition>
       </router-link>
 
-      <!-- Version Badge -->
-      <Transition name="fade">
-        <div v-if="!isCollapsed" class="py-sm px-md text-center text-xs text-[#6b7280] border-t border-border mt-sm">
-          v{{ version }}
-        </div>
-      </Transition>
     </div>
 
     <!-- Feedback Link - below user section -->
