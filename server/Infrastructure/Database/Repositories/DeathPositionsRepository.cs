@@ -116,7 +116,8 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
                 {queueFilter}
                 {timeFilter}
                 {sideFilter}
-            ORDER BY m.game_start_time DESC, pde.minute_mark ASC";
+            ORDER BY m.game_start_time DESC, pde.minute_mark ASC
+            LIMIT 100";
 
         _logger.LogDebug(
             "GetDeathPositionsInternalAsync SQL: {Sql} | puuid={Puuid}, seasonCode={SeasonCode}",
@@ -168,18 +169,23 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
         var sql = $@"
             SELECT
                 COUNT(*) AS total_deaths,
-                COUNT(DISTINCT p.match_id) AS matches_analyzed,
-                SUM(CASE WHEN pde.minute_mark < 10 THEN 1 ELSE 0 END) AS early_deaths,
-                SUM(CASE WHEN pde.minute_mark BETWEEN 10 AND 19 THEN 1 ELSE 0 END) AS mid_deaths,
-                SUM(CASE WHEN pde.minute_mark BETWEEN 20 AND 29 THEN 1 ELSE 0 END) AS late_deaths,
-                SUM(CASE WHEN pde.minute_mark >= 30 THEN 1 ELSE 0 END) AS very_late_deaths
-            FROM participant_death_events pde
-            INNER JOIN participants p ON p.id = pde.participant_id
-            INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate}
-                {queueFilter}
-                {timeFilter}
-                {sideFilter}";
+                COUNT(DISTINCT d.match_id) AS matches_analyzed,
+                SUM(CASE WHEN d.minute_mark < 10 THEN 1 ELSE 0 END) AS early_deaths,
+                SUM(CASE WHEN d.minute_mark BETWEEN 10 AND 19 THEN 1 ELSE 0 END) AS mid_deaths,
+                SUM(CASE WHEN d.minute_mark BETWEEN 20 AND 29 THEN 1 ELSE 0 END) AS late_deaths,
+                SUM(CASE WHEN d.minute_mark >= 30 THEN 1 ELSE 0 END) AS very_late_deaths
+            FROM (
+                SELECT pde.minute_mark, p.match_id
+                FROM participant_death_events pde
+                INNER JOIN participants p ON p.id = pde.participant_id
+                INNER JOIN matches m ON m.match_id = p.match_id
+                WHERE {puuidPredicate}
+                    {queueFilter}
+                    {timeFilter}
+                    {sideFilter}
+                ORDER BY m.game_start_time DESC, pde.minute_mark ASC
+                LIMIT 100
+            ) AS d";
 
         _logger.LogDebug(
             "GetDeathSummaryAsync SQL: {Sql} | puuid={Puuid}, seasonCode={SeasonCode}",
