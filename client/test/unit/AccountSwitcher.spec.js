@@ -7,7 +7,7 @@ vi.mock('@/components/sidebar/AccountDropdownList.vue', () => ({
   default: {
     name: 'AccountDropdownList',
     props: ['accounts', 'activeAccountPuuid', 'showOverall', 'focusedIndex', 'ddVersion'],
-    emits: ['select', 'link'],
+    emits: ['select'],
     template: `
       <div data-testid="account-dropdown-list">
         <div
@@ -22,7 +22,6 @@ vi.mock('@/components/sidebar/AccountDropdownList.vue', () => ({
           :data-active="(account.accountId && account.accountId === activeAccountPuuid) || (account.puuid && account.puuid === activeAccountPuuid)"
           @click="$emit('select', account.accountId || account.puuid)"
         >{{ account.gameName }}</div>
-        <div data-testid="link-button" @click="$emit('link')">Link Account</div>
       </div>
     `
   }
@@ -163,20 +162,6 @@ describe('AccountSwitcher.vue', () => {
       await wrapper.find('[data-testid="account-switcher-trigger"]').trigger('click')
       await wrapper.find('[data-testid="overall-option"]').trigger('click')
       expect(wrapper.emitted('select')[0]).toEqual(['overall'])
-    })
-
-    it('emits link event when "Link Account" is clicked', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('[data-testid="account-switcher-trigger"]').trigger('click')
-      await wrapper.find('[data-testid="link-button"]').trigger('click')
-      expect(wrapper.emitted('link')).toBeTruthy()
-    })
-
-    it('closes dropdown when "Link Account" is clicked', async () => {
-      const wrapper = createWrapper()
-      await wrapper.find('[data-testid="account-switcher-trigger"]').trigger('click')
-      await wrapper.find('[data-testid="link-button"]').trigger('click')
-      expect(wrapper.find('[data-testid="account-switcher-dropdown"]').exists()).toBe(false)
     })
 
     it('closes dropdown on Escape key', async () => {

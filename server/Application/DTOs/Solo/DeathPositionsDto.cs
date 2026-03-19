@@ -10,7 +10,8 @@ public static class DeathPositionsDto
         [property: JsonPropertyName("minuteMark")] int MinuteMark,
         [property: JsonPropertyName("phase")] string Phase,
         [property: JsonPropertyName("killerChampionId")] int? KillerChampionId,
-        [property: JsonPropertyName("assistCount")] int AssistCount
+        [property: JsonPropertyName("assistCount")] int AssistCount,
+        [property: JsonIgnore] string MatchId = ""
     );
 
     public record PhaseSummary(

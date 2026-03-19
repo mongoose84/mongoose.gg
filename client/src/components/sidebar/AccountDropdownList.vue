@@ -86,20 +86,6 @@
       </span>
     </div>
 
-    <!-- Divider + Link Account -->
-    <div class="border-t border-border my-xs" />
-    <button
-      type="button"
-      class="flex items-center gap-sm px-md py-xs text-xs text-primary hover:text-primary cursor-pointer hover:bg-background-elevated rounded-md transition-colors duration-150 w-full text-left"
-      data-testid="account-switcher-link-button"
-      tabindex="-1"
-      @click="$emit('link')"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 shrink-0" aria-hidden="true">
-        <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-      </svg>
-      Link Account
-    </button>
   </div>
 </template>
 
@@ -129,7 +115,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['select', 'link'])
+defineEmits(['select'])
 
 function isAccountActive(account) {
   const id = props.activeAccountPuuid

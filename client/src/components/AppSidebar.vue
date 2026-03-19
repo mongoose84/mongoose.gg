@@ -134,21 +134,7 @@
         :show-overall="canUseOverallAccountView"
         data-testid="account-switcher-wrapper"
         @select="authStore.setActiveAccount"
-        @link="showLinkModal = true"
       />
-    </div>
-
-    <!-- Feedback Link - above user section -->
-    <div class="border-t border-border py-sm">
-      <router-link
-        to="/app/feedback"
-        data-testid="nav-feedback"
-        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :title="isCollapsed ? 'Feedback' : ''"
-      >
-        <ChatBubbleLeftEllipsisIcon class="nav-icon w-5 h-5 shrink-0" />
-        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Feedback</span>
-      </router-link>
     </div>
 
     <!-- User Section at Bottom -->
@@ -196,21 +182,22 @@
           </div>
         </Transition>
       </router-link>
+    </div>
 
-      <!-- Version Badge -->
-      <Transition name="fade">
-        <div v-if="!isCollapsed" class="py-sm px-md text-center text-xs text-[#6b7280] border-t border-border mt-sm">
-          v{{ version }}
-        </div>
-      </Transition>
+    <!-- Feedback Link - below user section -->
+    <div class="border-t border-border py-sm">
+      <router-link
+        to="/app/feedback"
+        data-testid="nav-feedback"
+        class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
+        :title="isCollapsed ? 'Feedback' : ''"
+      >
+        <ChatBubbleLeftEllipsisIcon class="nav-icon w-5 h-5 shrink-0" />
+        <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Feedback</span>
+      </router-link>
     </div>
   </aside>
 
-  <!-- Link Riot Account Modal (triggered from AccountSwitcher) -->
-  <LinkRiotAccountModal
-    :is-open="showLinkModal"
-    @close="showLinkModal = false"
-  />
 </template>
 
 <script setup>
@@ -221,18 +208,14 @@ import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';
 import { BaseButton } from '@/components/base';
 import AccountSwitcher from '@/components/sidebar/AccountSwitcher.vue';
-import LinkRiotAccountModal from '@/components/LinkRiotAccountModal.vue';
-import pkg from '../../package.json';
 import { formatRegion } from '@/utils/leagueAssets';
 
 const authStore = useAuthStore();
 const uiStore = useUiStore();
 const { isRunning: isAnalysisRunning } = useAnalysisStatus();
-const version = pkg.version || '0.0.0';
 
 // Local state
 const linkedIconError = ref(false);
-const showLinkModal = ref(false);
 
 // Sidebar state from store
 const isCollapsed = computed(() => uiStore.isSidebarCollapsed);

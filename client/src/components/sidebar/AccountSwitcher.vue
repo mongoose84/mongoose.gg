@@ -77,7 +77,6 @@
             :focused-index="focusedIndex"
             :dd-version="ddVersion"
             @select="handleSelect"
-            @link="handleLink"
           />
         </div>
       </Transition>
@@ -132,7 +131,6 @@
             :focused-index="focusedIndex"
             :dd-version="ddVersion"
             @select="handleSelect"
-            @link="handleLink"
           />
         </div>
       </Transition>
@@ -170,7 +168,7 @@ const props = defineProps({
 })
 
 // ── Emits ──
-const emit = defineEmits(['select', 'link'])
+const emit = defineEmits(['select'])
 
 // ── Constants ──
 const ddVersion = '16.1.1'
@@ -239,11 +237,6 @@ function updatePopoverPosition() {
 // ── Selection handlers ──
 function handleSelect(identifier) {
   emit('select', identifier)
-  close()
-}
-
-function handleLink() {
-  emit('link')
   close()
 }
 

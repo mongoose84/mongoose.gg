@@ -235,7 +235,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     var trustAllForwardedHeaders = builder.Configuration.GetValue<bool>("Networking:TrustAllForwardedHeaders", false);
     if (trustAllForwardedHeaders)
     {
-        options.KnownNetworks.Clear();
+        options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
     }
     else
@@ -258,12 +258,23 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
             foreach (var network in trustedNetworks)
             {
                 var parts = network.Split('/', 2, StringSplitOptions.TrimEntries);
-                if (parts.Length == 2 &&
-                    IPAddress.TryParse(parts[0], out var networkIp) &&
-                    int.TryParse(parts[1], out var prefixLength))
+                if (parts.Length != 2 ||
+                    !IPAddress.TryParse(parts[0], out var networkIp) ||
+                    !int.TryParse(parts[1], out var prefixLength))
                 {
-                    options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(networkIp, prefixLength));
+                    Console.Error.WriteLine($"[WARNING] Skipping malformed trusted network entry '{network}'.");
+                    continue;
                 }
+
+                // IPv4 addresses are 4 bytes; IPv6 are 16 bytes.
+                var maxPrefix = networkIp.GetAddressBytes().Length == 16 ? 128 : 32;
+                if (prefixLength < 0 || prefixLength > maxPrefix)
+                {
+                    Console.Error.WriteLine($"[WARNING] Skipping trusted network '{network}': prefix length {prefixLength} is out of range (valid: 0–{maxPrefix}).");
+                    continue;
+                }
+
+                options.KnownIPNetworks.Add(new System.Net.IPNetwork(networkIp, prefixLength));
             }
         }
     }

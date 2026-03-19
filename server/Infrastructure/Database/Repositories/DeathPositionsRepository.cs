@@ -50,7 +50,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
             : timeRangeFilter.NormalizedTimeRange;
 
         _logger.LogInformation(
-            "GetDeathPositionsAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
+            "GetDeathPositionsAsync start: accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
             puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
 
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
@@ -59,36 +59,34 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
 
         try
         {
-            // Fetch death positions
+            // Fetch death positions (includes MatchId for in-memory summary aggregation)
             var deathPositions = await GetDeathPositionsInternalAsync(
                 puuids, queueFilter, timeFilter, sideFilter, timeRangeFilter);
 
-            // Fetch summary metrics
-            var summary = await GetDeathSummaryAsync(
-                puuids, queueFilter, timeFilter, sideFilter, timeRangeFilter);
-
+            // Compute summary in-memory from fetched deaths — guarantees phase counts
+            // and totalDeaths exactly match what is returned in the Deaths array.
             var response = new DeathPositionsResponse(
                 Deaths: deathPositions.ToArray(),
-                TotalDeaths: summary.TotalDeaths,
-                MatchesAnalyzed: summary.MatchesAnalyzed,
+                TotalDeaths: deathPositions.Count,
+                MatchesAnalyzed: deathPositions.Select(d => d.MatchId).Distinct().Count(),
                 PhaseSummary: new PhaseSummary(
-                    summary.EarlyDeaths,
-                    summary.MidDeaths,
-                    summary.LateDeaths,
-                    summary.VeryLateDeaths
+                    Early: deathPositions.Count(d => d.Phase == "early"),
+                    Mid: deathPositions.Count(d => d.Phase == "mid"),
+                    Late: deathPositions.Count(d => d.Phase == "late"),
+                    VeryLate: deathPositions.Count(d => d.Phase == "veryLate")
                 )
             );
 
             _logger.LogInformation(
-                "GetDeathPositionsAsync success: puuid={Puuid}, totalDeaths={Deaths}, matches={Matches}",
-                puuids.Count, summary.TotalDeaths, summary.MatchesAnalyzed);
+                "GetDeathPositionsAsync success: accountCount={AccountCount}, totalDeaths={Deaths}, matches={Matches}",
+                puuids.Count, deathPositions.Count, deathPositions.Select(d => d.MatchId).Distinct().Count());
 
             return response;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, 
-                "GetDeathPositionsAsync error: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
+                "GetDeathPositionsAsync error: accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, side={Side}",
                 puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(effectiveTimeRange) ?? "all", LogSanitizer.Sanitize(side) ?? "all");
             throw;
         }
@@ -108,7 +106,8 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
                 pde.position_y,
                 pde.minute_mark,
                 pde.killer_champion_id,
-                pde.assist_count
+                pde.assist_count,
+                p.match_id
             FROM participant_death_events pde
             INNER JOIN participants p ON p.id = pde.participant_id
             INNER JOIN matches m ON m.match_id = p.match_id
@@ -116,10 +115,11 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
                 {queueFilter}
                 {timeFilter}
                 {sideFilter}
-            ORDER BY m.game_start_time DESC, pde.minute_mark ASC";
+            ORDER BY m.game_start_time DESC, pde.minute_mark ASC
+            LIMIT 100";
 
         _logger.LogDebug(
-            "GetDeathPositionsInternalAsync SQL: {Sql} | puuid={Puuid}, seasonCode={SeasonCode}",
+            "GetDeathPositionsInternalAsync SQL: {Sql} | accountCount={AccountCount}, seasonCode={SeasonCode}",
             sql, puuids.Count, timeRangeFilter.SeasonCode);
 
         return await ExecuteWithConnectionAsync(async conn =>
@@ -140,6 +140,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
                 var minuteMark = reader.GetInt32(2);
                 var killerChampionId = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3);
                 var assistCount = reader.GetInt32(4);
+                var matchId = reader.GetString(5);
                 var phase = ClassifyPhase(minuteMark);
 
                 results.Add(new DeathPosition(
@@ -148,63 +149,12 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
                     MinuteMark: minuteMark,
                     Phase: phase,
                     KillerChampionId: killerChampionId,
-                    AssistCount: assistCount
+                    AssistCount: assistCount,
+                    MatchId: matchId
                 ));
             }
 
             return results;
-        });
-    }
-
-    private async Task<(int TotalDeaths, int MatchesAnalyzed, int EarlyDeaths, int MidDeaths, int LateDeaths, int VeryLateDeaths)> 
-        GetDeathSummaryAsync(
-            IReadOnlyList<string> puuids,
-            string queueFilter,
-            string timeFilter,
-            string sideFilter,
-            TimeRangeFilter timeRangeFilter)
-    {
-        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
-        var sql = $@"
-            SELECT
-                COUNT(*) AS total_deaths,
-                COUNT(DISTINCT p.match_id) AS matches_analyzed,
-                SUM(CASE WHEN pde.minute_mark < 10 THEN 1 ELSE 0 END) AS early_deaths,
-                SUM(CASE WHEN pde.minute_mark BETWEEN 10 AND 19 THEN 1 ELSE 0 END) AS mid_deaths,
-                SUM(CASE WHEN pde.minute_mark BETWEEN 20 AND 29 THEN 1 ELSE 0 END) AS late_deaths,
-                SUM(CASE WHEN pde.minute_mark >= 30 THEN 1 ELSE 0 END) AS very_late_deaths
-            FROM participant_death_events pde
-            INNER JOIN participants p ON p.id = pde.participant_id
-            INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate}
-                {queueFilter}
-                {timeFilter}
-                {sideFilter}";
-
-        _logger.LogDebug(
-            "GetDeathSummaryAsync SQL: {Sql} | puuid={Puuid}, seasonCode={SeasonCode}",
-            sql, puuids.Count, timeRangeFilter.SeasonCode);
-
-        return await ExecuteWithConnectionAsync(async conn =>
-        {
-            await using var cmd = new MySqlCommand(sql, conn);
-            foreach (var (name, value) in puuidParams)
-            {
-                cmd.Parameters.AddWithValue(name, value);
-            }
-            _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
-
-            await using var reader = await cmd.ExecuteReaderAsync();
-            await reader.ReadAsync(); // Aggregate queries always return exactly one row
-            
-            var totalDeaths = reader.GetInt32(0);
-            var matchesAnalyzed = reader.GetInt32(1);
-            var earlyDeaths = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
-            var midDeaths = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
-            var lateDeaths = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
-            var veryLateDeaths = reader.IsDBNull(5) ? 0 : reader.GetInt32(5);
-
-            return (totalDeaths, matchesAnalyzed, earlyDeaths, midDeaths, lateDeaths, veryLateDeaths);
         });
     }
 
