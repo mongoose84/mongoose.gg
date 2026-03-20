@@ -10,6 +10,9 @@ describe('useChartDisplayMode', () => {
 
   afterEach(() => {
     localStorage.clear()
+    // Reset the module-level singleton so tests don't bleed into each other
+    const { setChartMode } = useChartDisplayMode()
+    setChartMode('merged')
   })
 
   describe('chartMode default', () => {
@@ -20,7 +23,7 @@ describe('useChartDisplayMode', () => {
 
     it('reads initial value from localStorage', () => {
       localStorage.setItem(STORAGE_KEY, 'per-account')
-      // Re-import or test reactivity — composable is module-level so we verify via setChartMode
+      // Re-import or test reactivity ï¿½ composable is module-level so we verify via setChartMode
       const { setChartMode, chartMode } = useChartDisplayMode()
       setChartMode('per-account')
       expect(chartMode.value).toBe('per-account')

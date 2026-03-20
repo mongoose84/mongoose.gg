@@ -16,10 +16,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Line } from 'vue-chartjs'
-
-// Color palette and dash patterns for per-account mode
-const ACCOUNT_COLORS = ['#7c3aed', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#ec4899']
-const ACCOUNT_DASH_PATTERNS = [[], [5, 5], [2, 3], [8, 3], [4, 2, 1, 2], [10, 5]]
+import { ACCOUNT_COLORS, ACCOUNT_DASH_PATTERNS } from '../../utils/chartConfigs.js'
 
 const props = defineProps({
   /** Array of data points to plot */

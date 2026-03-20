@@ -30,7 +30,7 @@
         :queue-filter="queueFilter"
         :loading="isLoading"
         :account-count="summaryAccountCount"
-        :ranks="dashboardData?.rankInfoPerAccount ?? null"
+        :ranks="dashboardData?.allAccountRanks ?? null"
       />
     </template>
 
@@ -44,7 +44,7 @@
         test-id="winrate-trend-card"
         @toggle-expand="handleWinrateExpand"
       >
-        <template #default="{ dataLimit }">
+        <template #default>
           <WinrateChart
             :data="winrateTrendData"
             :overall-win-rate="dashboardData?.overallWinRate ?? null"
@@ -62,7 +62,7 @@
         test-id="deaths-trend-card"
         @toggle-expand="handleDeathsExpand"
       >
-        <template #default="{ dataLimit }">
+        <template #default>
           <DeathsChart
             :data="deathsTrendData"
             :overall-average="deathsSummary.overallAverage"
@@ -81,7 +81,7 @@
         test-id="dragon-participation-trend-card"
         @toggle-expand="handleDragonParticipationExpand"
       >
-        <template #default="{ dataLimit }">
+        <template #default>
           <DragonParticipationChart
             :data="dragonParticipationTrendData"
             :overall-average="dragonParticipationSummary.overallAverage"
@@ -100,7 +100,7 @@
         test-id="vision-score-trend-card"
         @toggle-expand="handleVisionScoreExpand"
       >
-        <template #default="{ dataLimit }">
+        <template #default>
           <VisionChart
             :data="visionScoreTrendData"
             :overall-average="visionScoreSummary.overallAverage"
@@ -120,7 +120,7 @@
         test-id="gold-at-15-trend-card"
         @toggle-expand="handleGoldAt15Expand"
       >
-        <template #default="{ dataLimit }">
+        <template #default>
           <GoldAt15Chart
             :data="goldAt15TrendData"
             :chart-mode="chartMode"
@@ -137,7 +137,7 @@
         test-id="cs-per-minute-trend-card"
         @toggle-expand="handleCsPerMinuteExpand"
       >
-        <template #default="{ dataLimit }">
+        <template #default>
           <CsPerMinuteChart
             :data="csPerMinuteTrendData"
             :chart-mode="chartMode"
@@ -190,6 +190,7 @@ import { useAsyncData } from '../composables/useAsyncData'
 import { useChartDisplayMode } from '../composables/useChartDisplayMode'
 import { trackFilterChange } from '../services/analyticsApi'
 import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend, getDeathsTrend, getDragonParticipationTrend, getVisionScoreTrend, getDeathPositions, getRadarChart } from '../services/authApi'
+import { ACCOUNT_COLORS } from '../utils/chartConfigs.js'
 import { BaseQueueToggle, BaseTimeRangeSelect, BaseCard } from '../components/base'
 import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
 import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
@@ -207,9 +208,6 @@ const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
 const { chartMode } = useChartDisplayMode()
 
-// Color palette for per-account chart lines
-const ACCOUNT_COLORS = ['#7c3aed', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#ec4899']
-
 // Derived account list for per-account chart mode
 const chartAccounts = computed(() =>
   authStore.riotAccounts.map((account, index) => ({
@@ -218,10 +216,9 @@ const chartAccounts = computed(() =>
   }))
 )
 
-// Account count for SummaryStatsCard label
-const summaryAccountCount = computed(() =>
-  authStore.isOverallMode ? authStore.riotAccounts.length : 1
-)
+// Account count for SummaryStatsCard label — sourced from the API response so it
+// stays in sync with the server's visibility/tier logic, not the client-side store filter.
+const summaryAccountCount = computed(() => dashboardData.value?.accountCount ?? 1)
 
 // Dashboard data from API
 const {
