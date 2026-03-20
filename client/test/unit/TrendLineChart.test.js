@@ -383,4 +383,136 @@ describe('TrendLineChart', () => {
       expect(wrapper.exists()).toBe(true)
     })
   })
+
+  describe('Per-account mode', () => {
+    const multiAccountData = [
+      { timestamp: '2024-01-01T00:00:00Z', value: 10, gameIndex: 1, accountGameName: 'FakerMain' },
+      { timestamp: '2024-01-02T00:00:00Z', value: 20, gameIndex: 2, accountGameName: 'FakerSmurf' },
+      { timestamp: '2024-01-03T00:00:00Z', value: 15, gameIndex: 3, accountGameName: 'FakerMain' },
+      { timestamp: '2024-01-04T00:00:00Z', value: 25, gameIndex: 4, accountGameName: 'FakerSmurf' }
+    ]
+
+    const accounts = [
+      { gameName: 'FakerMain', color: '#7c3aed' },
+      { gameName: 'FakerSmurf', color: '#3b82f6' }
+    ]
+
+    it('renders chart in merged mode by default', () => {
+      const wrapper = mountComponent({
+        data: multiAccountData,
+        config: baseConfig,
+        chartMode: 'merged'
+      })
+
+      const lineComponent = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineComponent.props('data')
+
+      // Merged mode produces a single dataset
+      expect(chartData.datasets).toHaveLength(1)
+    })
+
+    it('renders per-account datasets when chartMode is per-account and data has accountGameName', () => {
+      const wrapper = mountComponent({
+        data: multiAccountData,
+        config: baseConfig,
+        chartMode: 'per-account',
+        accounts
+      })
+
+      const lineComponent = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineComponent.props('data')
+
+      // Two accounts → two datasets
+      expect(chartData.datasets).toHaveLength(2)
+      expect(chartData.datasets[0].label).toBe('FakerMain')
+      expect(chartData.datasets[1].label).toBe('FakerSmurf')
+    })
+
+    it('uses account colors for per-account datasets', () => {
+      const wrapper = mountComponent({
+        data: multiAccountData,
+        config: baseConfig,
+        chartMode: 'per-account',
+        accounts
+      })
+
+      const lineComponent = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineComponent.props('data')
+
+      expect(chartData.datasets[0].borderColor).toBe('#7c3aed')
+      expect(chartData.datasets[1].borderColor).toBe('#3b82f6')
+    })
+
+    it('falls back to merged mode when accounts list is empty', () => {
+      const wrapper = mountComponent({
+        data: multiAccountData,
+        config: baseConfig,
+        chartMode: 'per-account',
+        accounts: [] // No accounts provided — isPerAccountMode guard requires accounts.length > 0
+      })
+
+      const lineComponent = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineComponent.props('data')
+
+      // No accounts list → per-account mode is disabled → single merged dataset
+      expect(chartData.datasets).toHaveLength(1)
+    })
+
+    it('shows legend in per-account mode', () => {
+      const wrapper = mountComponent({
+        data: multiAccountData,
+        config: baseConfig,
+        chartMode: 'per-account',
+        accounts
+      })
+
+      const lineComponent = wrapper.findComponent({ name: 'Line' })
+      const options = lineComponent.props('options')
+
+      expect(options.plugins.legend.display).toBe(true)
+    })
+
+    it('hides legend in merged mode', () => {
+      const wrapper = mountComponent({
+        data: multiAccountData,
+        config: { ...baseConfig, showLegend: false },
+        chartMode: 'merged'
+      })
+
+      const lineComponent = wrapper.findComponent({ name: 'Line' })
+      const options = lineComponent.props('options')
+
+      expect(options.plugins.legend.display).toBe(false)
+    })
+
+    it('falls back to merged mode when data has no accountGameName fields', () => {
+      const wrapper = mountComponent({
+        data: mockData, // no accountGameName
+        config: baseConfig,
+        chartMode: 'per-account',
+        accounts
+      })
+
+      const lineComponent = wrapper.findComponent({ name: 'Line' })
+      const chartData = lineComponent.props('data')
+
+      // Falls back to single dataset
+      expect(chartData.datasets).toHaveLength(1)
+    })
+
+    it('shows account name in merged mode tooltip footer when accountGameName is present', () => {
+      const wrapper = mountComponent({
+        data: multiAccountData,
+        config: baseConfig,
+        chartMode: 'merged'
+      })
+
+      const lineComponent = wrapper.findComponent({ name: 'Line' })
+      const options = lineComponent.props('options')
+
+      const footer = options.plugins.tooltip.callbacks.footer([{ dataIndex: 0 }])
+      expect(footer).toBeDefined()
+      expect(footer.some(line => line.includes('FakerMain'))).toBe(true)
+    })
+  })
 })

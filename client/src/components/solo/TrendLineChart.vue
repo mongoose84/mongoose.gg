@@ -17,6 +17,10 @@
 import { computed } from 'vue'
 import { Line } from 'vue-chartjs'
 
+// Color palette and dash patterns for per-account mode
+const ACCOUNT_COLORS = ['#7c3aed', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#ec4899']
+const ACCOUNT_DASH_PATTERNS = [[], [5, 5], [2, 3], [8, 3], [4, 2, 1, 2], [10, 5]]
+
 const props = defineProps({
   /** Array of data points to plot */
   data: {
@@ -45,10 +49,79 @@ const props = defineProps({
   testId: {
     type: String,
     default: 'trend-line-chart'
+  },
+  /** Chart display mode: 'merged' (single line) or 'per-account' (N colored lines) */
+  chartMode: {
+    type: String,
+    default: 'merged',
+    validator: (v) => ['merged', 'per-account'].includes(v)
+  },
+  /** Account definitions for per-account mode: [{ gameName, color }] */
+  accounts: {
+    type: Array,
+    default: () => []
   }
 })
 
 const hasData = computed(() => props.data && props.data.length > 0)
+
+/**
+ * True when per-account mode is active and data has accountGameName fields
+ */
+const isPerAccountMode = computed(() => {
+  if (props.chartMode !== 'per-account') return false
+  if (!props.accounts || props.accounts.length === 0) return false
+  if (!hasData.value) return false
+  return props.data.some(point => point.accountGameName != null)
+})
+
+/**
+ * Groups data by accountGameName and builds N datasets for per-account mode
+ */
+const perAccountChartData = computed(() => {
+  if (!isPerAccountMode.value) return null
+
+  const groups = new Map()
+  for (const point of props.data) {
+    const key = point.accountGameName || 'Unknown'
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(point)
+  }
+
+  const maxLen = Math.max(...[...groups.values()].map(g => g.length))
+  const labels = Array.from({ length: maxLen }, (_, i) => String(i + 1))
+
+  const datasets = []
+  let i = 0
+  for (const [gameName, groupData] of groups.entries()) {
+    const account = props.accounts.find(a => a.gameName === gameName)
+    const color = account?.color || ACCOUNT_COLORS[i % ACCOUNT_COLORS.length]
+    const dashPattern = i >= 3 ? ACCOUNT_DASH_PATTERNS[i % ACCOUNT_DASH_PATTERNS.length] : []
+
+    const values = Array.from({ length: maxLen }, (_, j) =>
+      j < groupData.length ? (groupData[j]?.[props.config.dataKey] ?? null) : null
+    )
+
+    datasets.push({
+      label: gameName,
+      data: values,
+      borderColor: color,
+      backgroundColor: `${color}1A`,
+      borderWidth: 2,
+      borderDash: dashPattern,
+      fill: false,
+      tension: props.config.tension ?? 0.3,
+      pointRadius: 0,
+      pointHoverRadius: 6,
+      pointHoverBackgroundColor: color,
+      pointHoverBorderColor: '#ffffff',
+      pointHoverBorderWidth: 2
+    })
+    i++
+  }
+
+  return { labels, datasets }
+})
 
 /**
  * Default label formatter - converts timestamp to short date
@@ -114,6 +187,11 @@ function validateDataKey(key, data) {
  */
 const chartData = computed(() => {
   if (!hasData.value) return { labels: [], datasets: [] }
+
+  // Per-account mode: return grouped multi-dataset chart data
+  if (isPerAccountMode.value && perAccountChartData.value) {
+    return perAccountChartData.value
+  }
   
   validateDataKey(props.config.dataKey, props.data)
   
@@ -210,7 +288,7 @@ const chartOptions = computed(() => {
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: {
-        display: props.config.showLegend || false,
+        display: isPerAccountMode.value || props.config.showLegend || false,
         position: 'top',
         align: 'end',
         labels: {
@@ -234,6 +312,7 @@ const chartOptions = computed(() => {
         displayColors: false,
         callbacks: {
           title: (items) => {
+            if (isPerAccountMode.value) return null
             if (tooltipConfig.title) {
               return tooltipConfig.title(props.data[items[0].dataIndex], items[0].dataIndex)
             }
@@ -241,15 +320,33 @@ const chartOptions = computed(() => {
             return `Game ${point.gameIndex || items[0].dataIndex + 1}`
           },
           label: (context) => {
+            if (isPerAccountMode.value) {
+              const value = context.parsed.y
+              if (value === null || value === undefined) return null
+              const yAxisConfig = props.config.yAxis || {}
+              const formatted = yAxisConfig.formatter ? yAxisConfig.formatter(value) : value.toFixed(2)
+              return `${context.dataset.label}: ${formatted}`
+            }
             if (tooltipConfig.label) {
               return tooltipConfig.label(props.data[context.dataIndex], context)
             }
             const value = context.parsed.y
             return `${props.config.label || 'Value'}: ${value.toFixed(2)}`
           },
-          footer: tooltipConfig.footer 
-            ? (items) => tooltipConfig.footer(props.data[items[0].dataIndex], items[0].dataIndex)
-            : undefined
+          footer: (items) => {
+            const lines = []
+            if (!isPerAccountMode.value && tooltipConfig.footer) {
+              const result = tooltipConfig.footer(props.data[items[0].dataIndex], items[0].dataIndex)
+              if (Array.isArray(result)) lines.push(...result)
+              else if (result) lines.push(result)
+            }
+            // In merged mode, show which account the data point comes from
+            if (!isPerAccountMode.value) {
+              const point = props.data[items[0].dataIndex]
+              if (point?.accountGameName) lines.push(`Account: ${point.accountGameName}`)
+            }
+            return lines.length > 0 ? lines : undefined
+          }
         }
       }
     },

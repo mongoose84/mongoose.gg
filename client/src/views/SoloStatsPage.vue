@@ -29,6 +29,8 @@
         :flex-rank="dashboardData?.rankInfo?.flexRank ?? null"
         :queue-filter="queueFilter"
         :loading="isLoading"
+        :account-count="summaryAccountCount"
+        :ranks="dashboardData?.rankInfoPerAccount ?? null"
       />
     </template>
 
@@ -43,7 +45,12 @@
         @toggle-expand="handleWinrateExpand"
       >
         <template #default="{ dataLimit }">
-          <WinrateChart :data="winrateTrendData" :overall-win-rate="dashboardData?.overallWinRate ?? null" />
+          <WinrateChart
+            :data="winrateTrendData"
+            :overall-win-rate="dashboardData?.overallWinRate ?? null"
+            :chart-mode="chartMode"
+            :accounts="chartAccounts"
+          />
         </template>
       </TrendChartCard>
 
@@ -60,6 +67,8 @@
             :data="deathsTrendData"
             :overall-average="deathsSummary.overallAverage"
             :trend="deathsSummary.trend"
+            :chart-mode="chartMode"
+            :accounts="chartAccounts"
           />
         </template>
       </TrendChartCard>
@@ -77,6 +86,8 @@
             :data="dragonParticipationTrendData"
             :overall-average="dragonParticipationSummary.overallAverage"
             :trend="dragonParticipationSummary.trend"
+            :chart-mode="chartMode"
+            :accounts="chartAccounts"
           />
         </template>
       </TrendChartCard>
@@ -95,6 +106,8 @@
             :overall-average="visionScoreSummary.overallAverage"
             :role-target="visionScoreSummary.roleTarget"
             :trend="visionScoreSummary.trend"
+            :chart-mode="chartMode"
+            :accounts="chartAccounts"
           />
         </template>
       </TrendChartCard>
@@ -108,7 +121,11 @@
         @toggle-expand="handleGoldAt15Expand"
       >
         <template #default="{ dataLimit }">
-          <GoldAt15Chart :data="goldAt15TrendData" />
+          <GoldAt15Chart
+            :data="goldAt15TrendData"
+            :chart-mode="chartMode"
+            :accounts="chartAccounts"
+          />
         </template>
       </TrendChartCard>
 
@@ -121,7 +138,11 @@
         @toggle-expand="handleCsPerMinuteExpand"
       >
         <template #default="{ dataLimit }">
-          <CsPerMinuteChart :data="csPerMinuteTrendData" />
+          <CsPerMinuteChart
+            :data="csPerMinuteTrendData"
+            :chart-mode="chartMode"
+            :accounts="chartAccounts"
+          />
         </template>
       </TrendChartCard>
     </template>
@@ -162,10 +183,11 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { useAsyncData } from '../composables/useAsyncData'
+import { useChartDisplayMode } from '../composables/useChartDisplayMode'
 import { trackFilterChange } from '../services/analyticsApi'
 import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend, getDeathsTrend, getDragonParticipationTrend, getVisionScoreTrend, getDeathPositions, getRadarChart } from '../services/authApi'
 import { BaseQueueToggle, BaseTimeRangeSelect, BaseCard } from '../components/base'
@@ -183,6 +205,23 @@ import RadarChart from '../components/solo/RadarChart.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
+const { chartMode } = useChartDisplayMode()
+
+// Color palette for per-account chart lines
+const ACCOUNT_COLORS = ['#7c3aed', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#ec4899']
+
+// Derived account list for per-account chart mode
+const chartAccounts = computed(() =>
+  authStore.riotAccounts.map((account, index) => ({
+    gameName: account.gameName,
+    color: ACCOUNT_COLORS[index % ACCOUNT_COLORS.length]
+  }))
+)
+
+// Account count for SummaryStatsCard label
+const summaryAccountCount = computed(() =>
+  authStore.isOverallMode ? authStore.riotAccounts.length : 1
+)
 
 // Dashboard data from API
 const {
