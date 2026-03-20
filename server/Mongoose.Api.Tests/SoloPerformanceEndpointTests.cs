@@ -351,6 +351,9 @@ public class SoloPerformanceEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-main", isPrimary: true);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-smurf", isPrimary: false);
 
+        // Upgrade user to pro so multi-account visibility is enabled
+        factory.UsersRepository.SetTier("tester", "pro");
+
         // Seed performance data for primary account (fake repo returns first match)
         factory.SoloPerformanceRepository.SetPerformanceData("puuid-main", new SoloPerformanceResponse(
             GamesPlayed: 100, Wins: 58, WinRate: 58.0, AvgKda: 4.1, AvgGameDurationMinutes: 26.5,
