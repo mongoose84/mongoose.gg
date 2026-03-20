@@ -27,6 +27,15 @@ public static class RankInfoDto
     );
 
     /// <summary>
+    /// Rank info for a single account, used when displaying all accounts' ranks in Overall mode.
+    /// </summary>
+    public record AccountRankInfo(
+        [property: JsonPropertyName("gameName")] string GameName,
+        [property: JsonPropertyName("soloDuoRank")] QueueRankInfo SoloDuoRank,
+        [property: JsonPropertyName("flexRank")] QueueRankInfo FlexRank
+    );
+
+    /// <summary>
     /// Enhanced solo performance response that includes rank information.
     /// Wraps the base SoloPerformanceResponse to avoid field-by-field duplication.
     /// </summary>
@@ -105,11 +114,25 @@ public static class RankInfoDto
         public RankInfo RankInfo { get; init; } = null!;
 
         /// <summary>
+        /// Number of accounts included in this response. Greater than 1 when account=all.
+        /// </summary>
+        [JsonPropertyName("accountCount")]
+        public int AccountCount { get; init; } = 1;
+
+        /// <summary>
+        /// Rank info for each linked account. Populated when AccountCount > 1 (Overall mode).
+        /// </summary>
+        [JsonPropertyName("allAccountRanks")]
+        public AccountRankInfo[] AllAccountRanks { get; init; } = Array.Empty<AccountRankInfo>();
+
+        /// <summary>
         /// Creates an enhanced response from a base performance response and rank info.
         /// </summary>
         public static SoloPerformanceWithRankResponse FromPerformanceAndRank(
             SoloPerformanceResponse performance,
-            RankInfo rankInfo)
+            RankInfo rankInfo,
+            int accountCount = 1,
+            AccountRankInfo[]? allAccountRanks = null)
         {
             return new SoloPerformanceWithRankResponse
             {
@@ -136,7 +159,9 @@ public static class RankInfoDto
                 RoleBreakdown = performance.RoleBreakdown,
                 DeathEfficiency = performance.DeathEfficiency,
                 QueueType = performance.QueueType,
-                RankInfo = rankInfo
+                RankInfo = rankInfo,
+                AccountCount = accountCount,
+                AllAccountRanks = allAccountRanks ?? Array.Empty<AccountRankInfo>()
             };
         }
     }

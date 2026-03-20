@@ -48,6 +48,7 @@ public sealed class VisionScoreTrendEndpoint : IEndpoint
                     return accountError;
 
                 var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
+                var puuidToGameName = resolvedAccounts!.ToDictionary(a => a.Account.Puuid, a => a.Account.GameName);
 
                 // Validate limit if provided
                 int? validatedLimit = null;
@@ -62,7 +63,7 @@ public sealed class VisionScoreTrendEndpoint : IEndpoint
                 logger.LogInformation("Vision score trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
                     authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
 
-                var (dataPoints, averageVisionPerMinute, overallAverage, roleTarget, trend) = await trendRepo.GetVisionScoreTrendAsync(puuids, queueType, timeRange, validatedLimit);
+                var (dataPoints, averageVisionPerMinute, overallAverage, roleTarget, trend) = await trendRepo.GetVisionScoreTrendAsync(puuids, queueType, timeRange, validatedLimit, puuidToGameName);
 
                 return Results.Ok(new VisionScoreTrendResponse(dataPoints, averageVisionPerMinute, overallAverage, roleTarget, trend));
             }

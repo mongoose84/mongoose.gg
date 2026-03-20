@@ -28,7 +28,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         => await GetWinrateTrendAsync([puuid], queueType, timeRange, limit);
 
     /// <inheritdoc />
-    public async Task<WinrateTrendPoint[]> GetWinrateTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+    public async Task<WinrateTrendPoint[]> GetWinrateTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
     {
         if (puuids.Count == 0)
             return Array.Empty<WinrateTrendPoint>();
@@ -43,13 +43,14 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         var sql = $@"
             SELECT
                 p.win,
-                m.game_start_time
+                m.game_start_time,
+                p.puuid
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate} {queueFilter} {timeFilter}
             ORDER BY m.game_start_time ASC";
 
-        var games = new List<(bool Win, long Timestamp)>();
+        var games = new List<(bool Win, long Timestamp, string Puuid)>();
 
         await ExecuteWithConnectionAsync(async conn =>
         {
@@ -65,7 +66,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             {
                 var win = reader.GetInt32(0) == 1;
                 var timestamp = reader.GetInt64(1);
-                games.Add((win, timestamp));
+                var puuid = reader.GetString(2);
+                games.Add((win, timestamp, puuid));
             }
             return 0;
         });
@@ -87,11 +89,13 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             var winRate = total > 0 ? Math.Round((double)wins / total * 100, 1) : 0;
 
             var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(games[i].Timestamp).UtcDateTime;
+            var accountGameName = puuidToGameName != null && puuidToGameName.TryGetValue(games[i].Puuid, out var gn) ? gn : null;
 
             trendPoints.Add(new WinrateTrendPoint(
                 GameIndex: i + 1,
                 WinRate: winRate,
-                Timestamp: timestamp
+                Timestamp: timestamp,
+                AccountGameName: accountGameName
             ));
         }
 
@@ -135,7 +139,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         => await GetGoldAt15TrendAsync([puuid], queueType, timeRange, limit);
 
     /// <inheritdoc />
-    public async Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+    public async Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
     {
         if (puuids.Count == 0)
             return Array.Empty<GoldAt15TrendPoint>();
@@ -155,7 +159,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 p.champion_name,
                 p.role,
                 opp_pc.gold as opponent_gold,
-                opp_p.champion_name as opponent_champion
+                opp_p.champion_name as opponent_champion,
+                p.puuid
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             INNER JOIN participant_checkpoints pc ON pc.participant_id = p.id AND pc.minute_mark = 15
@@ -188,7 +193,9 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var role = reader.IsDBNull(4) ? null : reader.GetString(4);
                 var opponentGold = reader.IsDBNull(5) ? (int?)null : reader.GetInt32(5);
                 var opponentChampion = reader.IsDBNull(6) ? null : reader.GetString(6);
+                var rowPuuid = reader.GetString(7);
                 var goldDifferential = opponentGold.HasValue ? playerGold - opponentGold.Value : (int?)null;
+                var accountGameName = puuidToGameName != null && puuidToGameName.TryGetValue(rowPuuid, out var gn) ? gn : null;
 
                 dataPoints.Add(new GoldAt15TrendPoint(
                     MatchId: matchId,
@@ -199,7 +206,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     GoldDifferential: goldDifferential,
                     ChampionName: championName,
                     Role: role,
-                    OpponentChampion: opponentChampion
+                    OpponentChampion: opponentChampion,
+                    AccountGameName: accountGameName
                 ));
             }
             return 0;
@@ -248,7 +256,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         => await GetCsPerMinuteTrendAsync([puuid], queueType, timeRange, limit);
 
     /// <inheritdoc />
-    public async Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+    public async Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
     {
         if (puuids.Count == 0)
             return Array.Empty<CsPerMinuteTrendPoint>();
@@ -267,7 +275,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 p.creep_score,
                 m.game_duration_sec,
                 p.champion_name,
-                p.role
+                p.role,
+                p.puuid
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
@@ -295,9 +304,11 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var gameDurationSec = reader.GetInt32(3);
                 var championName = reader.GetString(4);
                 var role = reader.IsDBNull(5) ? null : reader.GetString(5);
+                var rowPuuid = reader.GetString(6);
 
                 var gameDurationMinutes = gameDurationSec / 60.0;
                 var csPerMinute = Math.Round(totalCs / gameDurationMinutes, 1);
+                var accountGameName = puuidToGameName != null && puuidToGameName.TryGetValue(rowPuuid, out var gn) ? gn : null;
 
                 dataPoints.Add(new CsPerMinuteTrendPoint(
                     MatchId: matchId,
@@ -307,7 +318,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     CsPerMinute: csPerMinute,
                     GameDurationMinutes: Math.Round(gameDurationMinutes, 1),
                     ChampionName: championName,
-                    Role: role
+                    Role: role,
+                    AccountGameName: accountGameName
                 ));
             }
             return 0;
@@ -356,7 +368,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         => await GetDeathsTrendAsync([puuid], queueType, timeRange, limit);
 
     /// <inheritdoc />
-    public async Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+    public async Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
     {
         if (puuids.Count == 0)
             return (Array.Empty<DeathsTrendPoint>(), 0, 0, "neutral");
@@ -375,13 +387,14 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 p.deaths,
                 p.champion_name,
                 p.role,
-                m.game_duration_sec
+                m.game_duration_sec,
+                p.puuid
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate} {queueFilter} {timeFilter}
             ORDER BY m.game_start_time ASC";
 
-        var dataPoints = new List<(string MatchId, long Timestamp, int Deaths, string ChampionName, string? Role, int GameDurationSec)>();
+        var dataPoints = new List<(string MatchId, long Timestamp, int Deaths, string ChampionName, string? Role, int GameDurationSec, string Puuid)>();
 
         await ExecuteWithConnectionAsync(async conn =>
         {
@@ -401,8 +414,9 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var championName = reader.GetString(3);
                 var role = reader.IsDBNull(4) ? null : reader.GetString(4);
                 var gameDurationSec = reader.GetInt32(5);
+                var rowPuuid = reader.GetString(6);
 
-                dataPoints.Add((matchId, timestamp, deaths, championName, role, gameDurationSec));
+                dataPoints.Add((matchId, timestamp, deaths, championName, role, gameDurationSec, rowPuuid));
             }
             return 0;
         });
@@ -425,6 +439,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             var point = dataPoints[i];
             var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(point.Timestamp).UtcDateTime;
             var gameDurationMinutes = Math.Round(point.GameDurationSec / 60.0, 1);
+            var accountGameName = puuidToGameName != null && puuidToGameName.TryGetValue(point.Puuid, out var gn) ? gn : null;
 
             trendPoints.Add(new DeathsTrendPoint(
                 MatchId: point.MatchId,
@@ -434,7 +449,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 RollingAverage: rollingAverage,
                 ChampionName: point.ChampionName,
                 Role: point.Role,
-                GameDurationMinutes: gameDurationMinutes
+                GameDurationMinutes: gameDurationMinutes,
+                AccountGameName: accountGameName
             ));
         }
 
@@ -497,7 +513,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         => await GetDragonParticipationTrendAsync([puuid], queueType, timeRange, limit);
 
     /// <inheritdoc />
-    public async Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+    public async Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
     {
         try
         {
@@ -519,7 +535,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     p.champion_name,
                     p.role,
                     COALESCE(po.dragons_participated, 0) as dragons_participated,
-                    COALESCE(tobj.dragons_taken, 0) as dragons_taken
+                    COALESCE(tobj.dragons_taken, 0) as dragons_taken,
+                    p.puuid
                 FROM participants p
                 INNER JOIN matches m ON m.match_id = p.match_id
                 LEFT JOIN participant_objectives po ON po.participant_id = p.id
@@ -529,7 +546,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
             _logger.LogDebug("Dragon participation SQL: {Sql}", sql);
 
-            var dataPoints = new List<(string MatchId, long Timestamp, string ChampionName, string? Role, int TeamDragons, int DragonsParticipated)>();
+            var dataPoints = new List<(string MatchId, long Timestamp, string ChampionName, string? Role, int TeamDragons, int DragonsParticipated, string Puuid)>();
 
             await ExecuteWithConnectionAsync(async conn =>
             {
@@ -549,8 +566,9 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     var role = reader.IsDBNull(3) ? null : reader.GetString(3);
                     var dragonsParticipated = reader.GetInt32(4);
                     var dragonsTaken = reader.GetInt32(5);
+                    var rowPuuid = reader.GetString(6);
 
-                    dataPoints.Add((matchId, timestamp, championName, role, dragonsTaken, dragonsParticipated));
+                    dataPoints.Add((matchId, timestamp, championName, role, dragonsTaken, dragonsParticipated, rowPuuid));
                 }
                 return 0;
             });
@@ -583,6 +601,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var participationRate = point.TeamDragons > 0
                     ? Math.Round((double)point.DragonsParticipated / point.TeamDragons * 100, 1)
                     : 0;
+                var accountGameName = puuidToGameName != null && puuidToGameName.TryGetValue(point.Puuid, out var gn) ? gn : null;
 
                 trendPoints.Add(new DragonParticipationTrendPoint(
                     MatchId: point.MatchId,
@@ -593,7 +612,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     ParticipationRate: participationRate,
                     RollingAverage: rollingAverage,
                     ChampionName: point.ChampionName,
-                    Role: point.Role
+                    Role: point.Role,
+                    AccountGameName: accountGameName
                 ));
             }
 
@@ -673,7 +693,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         => await GetVisionScoreTrendAsync([puuid], queueType, timeRange, limit);
 
     /// <inheritdoc />
-    public async Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null)
+    public async Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
     {
         try
         {
@@ -702,7 +722,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     pm.vision_score,
                     m.game_duration_sec,
                     p.champion_name,
-                    p.role
+                    p.role,
+                    p.puuid
                 FROM participants p
                 INNER JOIN matches m ON m.match_id = p.match_id
                 INNER JOIN participant_metrics pm ON pm.participant_id = p.id
@@ -717,7 +738,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 int VisionScore,
                 int GameDuration,
                 string ChampionName,
-                string? Role
+                string? Role,
+                string Puuid
             )>();
 
             await ExecuteWithConnectionAsync(async conn =>
@@ -738,8 +760,9 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     var gameDuration = reader.GetInt32(3);
                     var championName = reader.GetString(4);
                     var role = reader.IsDBNull(5) ? null : reader.GetString(5);
+                    var rowPuuid = reader.GetString(6);
 
-                    dataPoints.Add((matchId, timestamp, visionScore, gameDuration, championName, role));
+                    dataPoints.Add((matchId, timestamp, visionScore, gameDuration, championName, role, rowPuuid));
                 }
                 return 0;
             });
@@ -782,6 +805,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(point.Timestamp).UtcDateTime;
                 var visionScorePerMinute = Math.Round((double)point.VisionScore / (point.GameDuration / 60.0), 2);
                 var gameDurationMinutes = Math.Round(point.GameDuration / 60.0, 1);
+                var accountGameName = puuidToGameName != null && puuidToGameName.TryGetValue(point.Puuid, out var gn) ? gn : null;
 
                 trendPoints.Add(new VisionScoreTrendPoint(
                     MatchId: point.MatchId,
@@ -792,7 +816,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                     RollingAverage: rollingAverage,
                     GameDurationMinutes: gameDurationMinutes,
                     ChampionName: point.ChampionName,
-                    Role: point.Role
+                    Role: point.Role,
+                    AccountGameName: accountGameName
                 ));
             }
 

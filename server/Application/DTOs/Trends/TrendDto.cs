@@ -11,11 +11,13 @@ public static class TrendDto
     /// <summary>
     /// A single data point for the winrate trend chart.
     /// Represents the rolling average winrate at a specific game in the timeline.
+    /// accountGameName is populated for multi-account queries so the frontend can group by account.
     /// </summary>
     public record WinrateTrendPoint(
         [property: JsonPropertyName("gameIndex")] int GameIndex,
         [property: JsonPropertyName("winRate")] double WinRate,
-        [property: JsonPropertyName("timestamp")] DateTime Timestamp
+        [property: JsonPropertyName("timestamp")] DateTime Timestamp,
+        [property: JsonPropertyName("accountGameName")] string? AccountGameName = null
     );
 
     /// <summary>
@@ -28,6 +30,7 @@ public static class TrendDto
     /// <summary>
     /// A single data point for the gold at 15 trend chart.
     /// Represents player's gold at 15 minutes with opponent comparison.
+    /// accountGameName is populated for multi-account queries so the frontend can group by account.
     /// </summary>
     public record GoldAt15TrendPoint(
         [property: JsonPropertyName("matchId")] string MatchId,
@@ -38,7 +41,8 @@ public static class TrendDto
         [property: JsonPropertyName("goldDifferential")] int? GoldDifferential,
         [property: JsonPropertyName("championName")] string ChampionName,
         [property: JsonPropertyName("role")] string? Role,
-        [property: JsonPropertyName("opponentChampion")] string? OpponentChampion
+        [property: JsonPropertyName("opponentChampion")] string? OpponentChampion,
+        [property: JsonPropertyName("accountGameName")] string? AccountGameName = null
     );
 
     /// <summary>
@@ -51,6 +55,7 @@ public static class TrendDto
     /// <summary>
     /// A single data point for the CS per minute trend chart.
     /// Represents player's farming efficiency over time.
+    /// accountGameName is populated for multi-account queries so the frontend can group by account.
     /// </summary>
     public record CsPerMinuteTrendPoint(
         [property: JsonPropertyName("matchId")] string MatchId,
@@ -60,7 +65,8 @@ public static class TrendDto
         [property: JsonPropertyName("csPerMinute")] double CsPerMinute,
         [property: JsonPropertyName("gameDurationMinutes")] double GameDurationMinutes,
         [property: JsonPropertyName("championName")] string ChampionName,
-        [property: JsonPropertyName("role")] string? Role
+        [property: JsonPropertyName("role")] string? Role,
+        [property: JsonPropertyName("accountGameName")] string? AccountGameName = null
     );
 
     /// <summary>
@@ -73,6 +79,7 @@ public static class TrendDto
     /// <summary>
     /// A single data point for the deaths over time trend chart.
     /// Represents player's death count per game with rolling average for trend analysis.
+    /// accountGameName is populated for multi-account queries so the frontend can group by account.
     /// </summary>
     public record DeathsTrendPoint(
         [property: JsonPropertyName("matchId")] string MatchId,
@@ -82,7 +89,8 @@ public static class TrendDto
         [property: JsonPropertyName("rollingAverage")] double RollingAverage,
         [property: JsonPropertyName("championName")] string ChampionName,
         [property: JsonPropertyName("role")] string? Role,
-        [property: JsonPropertyName("gameDurationMinutes")] double GameDurationMinutes
+        [property: JsonPropertyName("gameDurationMinutes")] double GameDurationMinutes,
+        [property: JsonPropertyName("accountGameName")] string? AccountGameName = null
     );
 
     /// <summary>
@@ -98,6 +106,7 @@ public static class TrendDto
     /// <summary>
     /// A single data point for the dragon participation trend chart.
     /// Represents player's dragon participation rate for a specific game.
+    /// accountGameName is populated for multi-account queries so the frontend can group by account.
     /// </summary>
     public record DragonParticipationTrendPoint(
         [property: JsonPropertyName("matchId")] string MatchId,
@@ -108,7 +117,8 @@ public static class TrendDto
         [property: JsonPropertyName("participationRate")] double ParticipationRate,
         [property: JsonPropertyName("rollingAverage")] double RollingAverage,
         [property: JsonPropertyName("championName")] string ChampionName,
-        [property: JsonPropertyName("role")] string? Role
+        [property: JsonPropertyName("role")] string? Role,
+        [property: JsonPropertyName("accountGameName")] string? AccountGameName = null
     );
 
     /// <summary>
@@ -124,6 +134,7 @@ public static class TrendDto
     /// <summary>
     /// A single data point for the vision score trend chart.
     /// Represents player's vision score per minute for a specific game.
+    /// accountGameName is populated for multi-account queries so the frontend can group by account.
     /// </summary>
     public record VisionScoreTrendPoint(
         [property: JsonPropertyName("matchId")] string MatchId,
@@ -134,7 +145,8 @@ public static class TrendDto
         [property: JsonPropertyName("rollingAverage")] double RollingAverage,
         [property: JsonPropertyName("gameDurationMinutes")] double GameDurationMinutes,
         [property: JsonPropertyName("championName")] string ChampionName,
-        [property: JsonPropertyName("role")] string? Role
+        [property: JsonPropertyName("role")] string? Role,
+        [property: JsonPropertyName("accountGameName")] string? AccountGameName = null
     );
 
     /// <summary>

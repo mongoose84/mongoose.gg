@@ -48,6 +48,7 @@ public sealed class WinrateTrendEndpoint : IEndpoint
                     return accountError;
 
                 var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
+                var puuidToGameName = resolvedAccounts!.ToDictionary(a => a.Account.Puuid, a => a.Account.GameName);
 
                 // Validate limit if provided
                 int? validatedLimit = null;
@@ -62,7 +63,7 @@ public sealed class WinrateTrendEndpoint : IEndpoint
                 logger.LogInformation("Winrate trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
                     authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
 
-                var winrateTrend = await trendRepo.GetWinrateTrendAsync(puuids, queueType, timeRange, validatedLimit);
+                var winrateTrend = await trendRepo.GetWinrateTrendAsync(puuids, queueType, timeRange, validatedLimit, puuidToGameName);
 
                 return Results.Ok(new WinrateTrendResponse(winrateTrend));
             }
