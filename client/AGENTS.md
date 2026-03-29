@@ -3,7 +3,7 @@
 > Vue 3 SPA frontend for Mongoose.gg — League of Legends match analytics dashboard.
 > For the complete design system, component inventory, UX contracts, and page responsibilities see [ui-ux.spec.md](../.github/specs/ui-ux.spec.md).
 > For backend API endpoints and DTOs see [architecture.spec.md](../.github/specs/architecture.spec.md).
-> For frontend agent-specific behavior and workflow, see [frontend-engineer.agent.md](../.github/agents/frontend-engineer.agent.md).
+> For coding patterns (components, stores, API, styling, testing) see [frontend.instructions.md](../.github/instructions/frontend.instructions.md).
 
 ## Build & Run
 
@@ -96,20 +96,7 @@ client/
 
 ## Key Patterns
 
-### Component Structure
-
-All components use Vue 3 Composition API with `<script setup>`:
-
-```vue
-<template>
-  <!-- Tailwind for layout, CSS variables for visual properties -->
-</template>
-
-<script setup>
-import { ref, computed } from 'vue'
-// Props, emits, composables, logic
-</script>
-```
+> Component structure, store patterns, API service patterns, styling rules, and testing patterns are in [frontend.instructions.md](../.github/instructions/frontend.instructions.md). This section covers client-specific runtime details only.
 
 ### Page → Layout → Component Hierarchy
 
@@ -125,12 +112,6 @@ import { ref, computed } from 'vue'
 - Global 401 session expiry detection → triggers `SessionExpiredBanner`
 - All API functions in `services/authApi.js` (dashboards, matches, trends, auth, sync)
 
-```javascript
-// Pattern: import specific API functions
-import { getSoloDashboard } from '../services/authApi'
-const data = await getSoloDashboard(userId, queueType, timeRange)
-```
-
 API base: dev `http://localhost:5164/api/v2`, prod `https://api.mongoose.gg/api/v2`.
 
 ### State Management
@@ -144,19 +125,6 @@ Two Pinia stores:
 - **`useSyncWebSocket()`** — WebSocket connection to `/ws/sync` for real-time match sync progress. Provides `syncProgress`, `subscribe()`, `resetProgress()`.
 - **`useWinRateColor()`** — returns CSS class (`winrate-terrible` through `winrate-great`) based on win rate threshold
 - **`useAnalysisStatus()`** — tracks sync/analysis state for `AnalysisStatusCard`
-
-### Design System
-
-All visual properties use CSS variables from `src/style.css`. Never hardcode colors, sizes, or shadows.
-
-```
---color-primary (#6d28d9)       --color-surface (rgba(255,255,255,0.03))
---color-text (#ffffff)           --color-text-secondary (#888888)
---color-border (rgba(109,40,217,0.15))
---color-success / error / warning / info (with -soft and -border variants)
-```
-
-Tailwind consumes these via `tailwind.config.js`. Use Tailwind for layout (flex, grid, gap), CSS variables for visual properties (colors, shadows, radii).
 
 ### Testing Patterns
 

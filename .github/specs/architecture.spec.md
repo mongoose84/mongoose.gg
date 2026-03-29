@@ -2,8 +2,8 @@
 
 > **Purpose**: Single-source-of-truth for AI agents and developers working on the Mongoose.gg codebase. Contains architecture decisions, every implemented endpoint, all DTOs, entity models, repository interfaces, and the patterns required to extend or debug the system.
 
-**Stack**: C# (.NET 8+ Minimal APIs) · MySQL (InnoDB, utf8mb4) · Vue 3 + Tailwind (frontend) · Cookie-based session auth · SignalR WebSocket  
-**Last verified**: February 15, 2026
+**Stack**: C# (.NET 10 Minimal APIs) · MySQL (InnoDB, utf8mb4) · Vue 3 + Tailwind (frontend) · Cookie-based session auth · Raw WebSocket  
+**Last verified**: March 30, 2026
 
 ---
 
@@ -140,7 +140,7 @@ server/
 │   │   ├── MatchHistorySyncJob.cs     # Background: syncs match history
 │   │   └── MatchCleanupJob.cs         # Background: deletes old matches
 │   ├── WebSocket/
-│   │   ├── SyncProgressHub.cs         # SignalR hub for real-time sync updates
+│   │   ├── SyncProgressHub.cs         # Raw WebSocket hub for real-time sync updates
 │   │   └── ISyncProgressBroadcaster.cs
 │   ├── Security/Secrets.cs
 │   ├── Middleware/JsonExceptionMiddleware.cs
@@ -285,7 +285,7 @@ Credentials: allowed. Methods & Headers: any.
 | `POST` | `/api/v2/feedback` | No | 5/hr/IP | `Feedback/FeedbackEndpoint.cs` | `FeedbackResponse` |
 | `GET` | `/api/v2/public/stats` | No | 60/min/IP | `Shared/PublicStatsEndpoint.cs` | dynamic JSON |
 | `GET` | `/` | No | No | `Shared/HomeEndpoint.cs` | sitemap JSON |
-| `WS` | `/ws/sync` | Yes (cookie) | No | `Program.cs` inline | SignalR messages |
+| `WS` | `/ws/sync` | Yes (cookie) | No | `Program.cs` inline | WebSocket JSON messages |
 
 ### Planned Endpoints (Not Implemented)
 See [Section 14](#14-planned-endpoints-not-yet-implemented).
@@ -1085,7 +1085,7 @@ All error responses follow consistent shapes defined in `AuthResults.cs` and ind
 
 **Endpoint**: `WS /ws/sync`  
 **Auth**: Session cookie (rejects unauthenticated with close code 1008)  
-**Implementation**: `SyncProgressHub` (SignalR-style, in `Infrastructure/WebSocket/`)
+**Implementation**: `SyncProgressHub` (raw WebSocket, in `Infrastructure/WebSocket/`)
 
 ### Client → Server Messages
 ```json

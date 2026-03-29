@@ -1,14 +1,14 @@
 ---
 agent: agent
-model: Claude Sonnet 4.5 (copilot)
+model: Claude Sonnet 4.6
 tools: ['file-search', 'semantic-search', 'codebase', 'problems', 'testFailure', 'editFiles', 'runTests']
 description: 'Systematic bug investigation and fix workflow'
 ---
 # Bug Fix Workflow
 
 ## Context Loading Phase
-1. Review [bug report](${issueLink})
-2. Check [related code](semantic-search "${component}")
+1. Review the bug report provided by the user
+2. Search the codebase for the affected component
 3. Review [test failures](testFailure)
 4. Check [recent changes](changes) to affected code
 

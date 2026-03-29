@@ -5,7 +5,7 @@
 **Stack**: Vue 3 (Composition API, `<script setup>`) · Tailwind CSS · Headless UI · Heroicons · Chart.js + vue-chartjs · TanStack Vue Query · Pinia  
 **Theme**: Vercel Developer aesthetic adapted for gaming — dark, technical, premium  
 **Platform**: Desktop-first (future Windows native app)  
-**Last verified**: February 15, 2026
+**Last verified**: March 30, 2026
 
 ---
 

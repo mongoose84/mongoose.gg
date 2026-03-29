@@ -1,8 +1,9 @@
 # Server — Agent Instructions
 
-> C# .NET 9 Minimal API backend for Mongoose.gg.
+> C# .NET 10 Minimal API backend for Mongoose.gg.
 > For architecture details, endpoint specs, DTOs, and entity models see [architecture.spec.md](../.github/specs/architecture.spec.md).
 > For database schema see [database-schema.spec.md](../.github/specs/database-schema.spec.md).
+> For coding patterns (endpoints, repositories, logging, DTOs) see [backend.instructions.md](../.github/instructions/backend.instructions.md).
 
 ## Build & Run
 
@@ -71,70 +72,7 @@ server/
 
 ## Key Patterns
 
-### Endpoint Pattern
-
-Every endpoint implements `IEndpoint` with `Route` property and `Configure(WebApplication app)` method. Endpoints are registered in `MongooseApiApplication.cs`. Each endpoint is a sealed class in its own file.
-
-```csharp
-public sealed class MyEndpoint : IEndpoint
-{
-    public string Route { get; }
-
-    public MyEndpoint(string basePath)
-    {
-        Route = basePath + "/my-resource/{userId}";
-    }
-
-    public void Configure(WebApplication app)
-    {
-        app.MapGet(Route, async (
-            HttpContext httpContext,
-            [FromRoute] string userId,
-            [FromQuery] string? filter,
-            [FromServices] IMyRepository repo,
-            [FromServices] ILogger<MyEndpoint> logger
-        ) =>
-        {
-            // 1. Auth check
-            if (httpContext.User?.Identity?.IsAuthenticated != true)
-                return AuthResults.NotAuthenticated();
-
-            // 2. Parse + validate route params
-            if (!int.TryParse(userId, out var userIdInt))
-                return Results.BadRequest(new { error = "Invalid userId format" });
-
-            // 3. Authorization — user can only access own data
-            var authenticatedUserId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (authenticatedUserId != userIdInt.ToString())
-                return Results.Forbid();
-
-            // 4. Resolve PUUID from user → riot account link
-            var linkedAccounts = await userRiotAccountsRepo.GetByUserIdAsync(userIdInt);
-            var primaryPuuid = linkedAccounts.FirstOrDefault(la => la.Link.IsPrimary)?.Account?.Puuid;
-
-            // 5. Query + return
-            var result = await repo.GetDataAsync(primaryPuuid, filter);
-            return Results.Ok(result);
-        }).RequireAuthorization();
-    }
-}
-```
-
-**Critical**: All data endpoints follow the User → PUUID resolution pattern. Users don't query by PUUID directly — the endpoint resolves it from `IUserRiotAccountsRepository`.
-
-### Repository Pattern
-
-All repositories extend `RepositoryBase` which provides:
-- `ExecuteScalarAsync<T>` — single value
-- `ExecuteSingleAsync<T>` — single row with mapper
-- `ExecuteListAsync<T>` — multiple rows with mapper
-- `ExecuteNonQueryAsync` — INSERT/UPDATE/DELETE
-- `ExecuteWithConnectionAsync<T>` — raw connection access
-- `ExecuteTransactionAsync` — transactional operations
-
-Repositories use raw SQL with `MySqlConnector` (no ORM). Parameters use named tuples: `("@param", value)`.
-
-**PII handling**: `UsersRepository` encrypts email/username via `IEncryptor` before storage. Always use `_encryptor.Encrypt()` / `_encryptor.Decrypt()` for PII fields.
+> Full endpoint, repository, logging, and DTO patterns are in [backend.instructions.md](../.github/instructions/backend.instructions.md). This section covers server-specific runtime details only.
 
 ### DI Registration
 
@@ -149,36 +87,6 @@ Scoped (per-request): All repositories, `LoginSyncService`, `IQueryFilterBuilder
 - `BuildQueueFilter(string)` → SQL WHERE clause fragment
 - `ResolveTimeRangeAsync(string?)` → `TimeRangeFilter` record
 - `BuildTimeRangeFilter(TimeRangeFilter)` → SQL WHERE clause fragment
-
-### Error Responses
-
-All errors return JSON: `{ "error": "message", "code": "ERROR_CODE" }`. Use `AuthResults` helper for auth errors. Common codes: `NOT_AUTHENTICATED`, `SESSION_EXPIRED`, `FORBIDDEN`, `INVALID_PASSWORD`, `RIOT_ACCOUNT_NOT_FOUND`, `ACCOUNT_ALREADY_LINKED`.
-
-### Logging
-
-**Critical**: All user input must be sanitized before logging to prevent log injection/forgery attacks. Use the `LogSanitizer.Sanitize()` helper function for any untrusted input:
-
-All logging should use `LogSanitizer` from `Mongoose.Api.Application.Endpoints.Shared`.
-
-```csharp
-// ✅ CORRECT — sanitize user input
-logger.LogWarning("Invalid userId format {UserId}", LogSanitizer.Sanitize(userId));
-logger.LogInformation("Request: queueType={Queue}, timeRange={TimeRange}",
-    LogSanitizer.Sanitize(queueType) ?? "all", 
-    LogSanitizer.Sanitize(timeRange) ?? "all");
-
-// ❌ INCORRECT — raw user input can inject newlines to forge log entries
-logger.LogWarning("Invalid userId format {UserId}", userId);
-```
-
-Sanitization removes newlines (`\r\n`) and control characters that could be used to corrupt log files or forge entries. Always sanitize:
-- Route parameters from users (userId, usernames, etc.)
-- Query parameters (queueType, timeRange, filters, etc.)
-- Request body fields (email, feedback text, etc.)
-- External data (Riot API responses, IP addresses, etc.)
-
-For consistency, sanitize all dynamic log values that can originate from user/session/external sources. Use `LogSanitizer.Sanitize(value.ToString())` when needed.
-PUUIDs and internal IDs resolved from the database are lower risk, but sanitizing before logging is still preferred.
 
 ### Background Jobs
 
@@ -199,11 +107,8 @@ Key settings:
 
 ## Conventions
 
+See [backend.instructions.md](../.github/instructions/backend.instructions.md) for all coding conventions. Key reminders:
 - **Namespaces** mirror folder structure: `Mongoose.Api.{Layer}.{Subdomain}`
-- **One class per file**, filename matches class name
-- **Records for DTOs** — immutable response types
-- **Interfaces in Core**, implementations in Infrastructure
-- **No ORM** — raw SQL via MySqlConnector for performance and control
-- **UTC everywhere** — all `DateTime` values are UTC (`DateTime.SpecifyKind(..., DateTimeKind.Utc)`)
-- **Nullable enabled** — `<Nullable>enable</Nullable>` project-wide
+- **No ORM** — raw SQL via MySqlConnector
+- **UTC everywhere** — all `DateTime` values are UTC
 - **API versioning** — all endpoints under `/api/v2/`

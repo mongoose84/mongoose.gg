@@ -3,7 +3,7 @@
 > **Purpose**: Single-source-of-truth for AI agents and developers writing, running, and maintaining tests across backend, frontend, and E2E layers. Contains infrastructure details, file maps, patterns, helpers, and checklists.
 
 **Layers**: Backend (xUnit + .NET 9) · Frontend Unit (Vitest + Vue Test Utils) · E2E (Playwright)  
-**Last verified**: February 15, 2026
+**Last verified**: March 30, 2026
 
 ---
 

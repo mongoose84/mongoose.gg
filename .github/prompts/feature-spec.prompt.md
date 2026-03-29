@@ -1,63 +1,33 @@
 ---
 agent: agent
-model: Claude Sonnet 4.5 (copilot)
-tools: ['file-search', 'semantic-search', 'codebase']
-description: 'Feature implementation workflow with specification-first approach'
+model: Claude Sonnet 4.6
+tools: ['read', 'search']
+description: 'Generate a feature specification from a description. Use for planning features, writing specs, or creating implementation plans.'
 ---
-# Feature Implementation from Specification
+# Feature Specification Generator
 
-## Context Loading Phase
-1. Review [project specification](${specFile})
-2. Analyze [existing codebase patterns](../../src/)
-3. Check [API documentation](../../docs/api/)
-4. Review [architecture guidelines](../../docs/architecture/)
+Generate a complete feature specification for the described feature.
 
-## Planning Phase
-### Requirements Analysis
-- [ ] Understand problem statement
-- [ ] Identify affected components
-- [ ] List dependencies and integrations
-- [ ] Identify breaking changes
+## Context Loading
+1. Review the [feature template](../specs/feature-template.spec.md) for the required structure
+2. Review the [architecture spec](../specs/architecture.spec.md) for existing endpoints and patterns
+3. Review the [database schema](../specs/database-schema.spec.md) for available tables
+4. Review the [UI/UX spec](../specs/ui-ux.spec.md) for design system and component inventory
+5. Search the codebase for similar existing implementations
 
-### Technical Design
-- [ ] Define data models and types
-- [ ] Design API contracts
-- [ ] Plan database changes
-- [ ] Consider error handling
-- [ ] Plan for testing
+## Output
+Produce a complete spec following the feature template structure, covering:
+- Problem statement and user stories
+- Backend changes (endpoints, DTOs, repositories, SQL)
+- Frontend changes (components, stores, API services)
+- API contracts (request/response JSON shapes)
+- UI/UX requirements with layout descriptions
+- Testing strategy
+- Risks and dependencies
 
-## Deterministic Execution
-Use semantic search to find similar implementations:
-`semantic-search "similar feature implementation"`
+Save the spec to `.github/specs/features/{feature-name}.spec.md`.
 
-Use file search to locate test patterns:
-`file-search "**/*.test.{js,ts,go,py}"`
-
-## Implementation Checklist
-### Backend Implementation
-- [ ] Create/update data models
-- [ ] Implement business logic
-- [ ] Add API endpoints
-- [ ] Handle errors properly
-- [ ] Add validation
-
-### Frontend Implementation
-- [ ] Create/update components
-- [ ] Implement state management
-- [ ] Add API integration
-- [ ] Handle loading and error states
-- [ ] Ensure accessibility
-
-### Testing
-- [ ] Write unit tests (>90% coverage target)
-- [ ] Add integration tests
-- [ ] Test error scenarios
-- [ ] Verify edge cases
-
-### Documentation
-- [ ] Update API documentation
-- [ ] Add inline code comments
-- [ ] Update README if needed
+**Tip**: For full end-to-end implementation (spec → code → review → test), use the `@feature-implementation` agent instead.
 - [ ] Add usage examples
 
 ## Structured Output Requirements
