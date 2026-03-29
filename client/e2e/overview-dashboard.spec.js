@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
 
+async function gotoOverviewPage(page) {
+  await page.goto('/app/overview', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/\/app\/overview/);
+  // Avoid networkidle: Firefox can keep background requests open.
+  await expect(page.locator('[data-testid="app-sidebar"]')).toBeVisible({ timeout: 15_000 });
+}
+
 /**
  * Overview Dashboard E2E Tests
  *
@@ -41,8 +48,7 @@ test.describe('Overview Dashboard - Authentication', () => {
 test.describe('Overview Dashboard - Content', () => {
   test.beforeEach(async ({ page }) => {
     // Auth state is automatically loaded from global setup
-    await page.goto('/app/overview');
-    await page.waitForLoadState('networkidle');
+    await gotoOverviewPage(page);
   });
 
   test('should display player header with summoner info', async ({ page }) => {
@@ -160,18 +166,12 @@ test.describe('Overview Dashboard - Content', () => {
   });
 
   test('should display Champion Select CTA', async ({ page }) => {
-    // Wait for the section to load
-    await page.waitForLoadState('networkidle');
-
     // The CTA should be in the "Today at a glance" section
     const glanceSection = page.locator('.section-col--secondary').first();
     await expect(glanceSection).toBeVisible({ timeout: 10_000 });
   });
 
   test('should display Analysis Status Card in recent matches section', async ({ page }) => {
-    // Wait for the section to load
-    await page.waitForLoadState('networkidle');
-
     // The Analysis Status Card should be in the "Recent matches" section
     const recentSection = page.locator('.section-col--secondary').nth(1);
     await expect(recentSection).toBeVisible({ timeout: 10_000 });
@@ -228,8 +228,7 @@ test.describe('Overview Dashboard - Content', () => {
 test.describe('Overview Dashboard - Navigation', () => {
   test.beforeEach(async ({ page }) => {
     // Auth state is automatically loaded from global setup
-    await page.goto('/app/overview');
-    await page.waitForLoadState('networkidle');
+    await gotoOverviewPage(page);
   });
 
   test('should have sidebar navigation visible', async ({ page }) => {
@@ -260,8 +259,7 @@ test.describe('Overview Dashboard - Responsive', () => {
   test('should display correctly on mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     // Auth state is automatically loaded from global setup
-    await page.goto('/app/overview');
-    await page.waitForLoadState('networkidle');
+    await gotoOverviewPage(page);
 
     // Header section should be visible — either the individual player header
     // or the account cards header when the user is in overall mode
@@ -276,8 +274,7 @@ test.describe('Overview Dashboard - Responsive', () => {
   test('should display correctly on tablet viewport', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     // Auth state is automatically loaded from setup project
-    await page.goto('/app/overview');
-    await page.waitForLoadState('networkidle');
+    await gotoOverviewPage(page);
 
     // All sections should be visible — header is either the individual player header
     // or the account cards header when the user is in overall mode
