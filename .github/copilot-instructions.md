@@ -121,4 +121,9 @@ Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
 <file>.github/agents/feature-implementation.agent.md</file>
 <applyTo>**/*</applyTo>
 </instruction>
+<instruction>
+<description>Test writing specialist for backend (xUnit) and frontend (Vitest)</description>
+<file>.github/agents/test-writer.agent.md</file>
+<applyTo>**/*.{spec.js,spec.cs,Tests.cs}</applyTo>
+</instruction>
 </instructions>
