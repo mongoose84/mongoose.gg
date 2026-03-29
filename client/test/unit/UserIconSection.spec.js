@@ -91,4 +91,28 @@ describe('UserIconSection.vue', () => {
     const selectedButton = wrapper.find('[data-testid="user-icon-option-29"]')
     expect(selectedButton.classes()).toContain('border-primary')
   })
+
+  it('hides icon button when image fails to load', async () => {
+    const wrapper = createWrapper()
+    const button = wrapper.find('[data-testid="user-icon-option-29"]')
+    expect(button.element.style.display).not.toBe('none')
+
+    await button.find('img').trigger('error')
+    await wrapper.vm.$nextTick()
+
+    expect(button.element.style.display).toBe('none')
+  })
+
+  it('clears selected icon when preview image fails to load', async () => {
+    mockSelectedIconId.value = 29
+    mockUserIconUrl.value = 'https://ddragon.leagueoflegends.com/cdn/16.1.1/img/profileicon/29.png'
+
+    const wrapper = createWrapper()
+    const preview = wrapper.find('[data-testid="user-icon-preview"]')
+    expect(preview.find('img').exists()).toBe(true)
+
+    await preview.find('img').trigger('error')
+
+    expect(mockSetUserIcon).toHaveBeenCalledWith(null)
+  })
 })

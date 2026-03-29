@@ -18,9 +18,9 @@
         >
           <option value="overall">Overall</option>
           <option
-            v-for="account in riotAccounts"
-            :key="account.puuid"
-            :value="getAccountIdentifier(account)"
+            v-for="account in selectableAccounts"
+            :key="account.accountId"
+            :value="account.accountId"
           >
             {{ account.gameName }}#{{ account.tagLine }}
           </option>
@@ -60,13 +60,10 @@ const { defaultView, setDefaultView } = useDefaultView()
 const { chartMode, setChartMode } = useChartDisplayMode()
 
 const riotAccounts = computed(() => authStore.riotAccounts)
+const selectableAccounts = computed(() =>
+  riotAccounts.value.filter(a => a.accountId && a.accountId.trim().length > 0)
+)
 const showSection = computed(() => riotAccounts.value.length >= 2)
-
-function getAccountIdentifier(account) {
-  if (account.accountId && account.accountId.trim().length > 0) return account.accountId
-  if (account.puuid && account.puuid.trim().length > 0) return account.puuid
-  return null
-}
 
 function handleDefaultViewChange(event) {
   setDefaultView(event.target.value)

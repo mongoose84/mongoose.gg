@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { ref } from 'vue'
 import DisplayPreferencesSection from '@/components/settings/DisplayPreferencesSection.vue'
 
 const mockAuthStore = {
@@ -11,13 +12,13 @@ vi.mock('@/stores/authStore', () => ({
 }))
 
 const mockSetDefaultView = vi.fn()
-const mockDefaultView = { value: 'overall' }
+const mockDefaultView = ref('overall')
 vi.mock('@/composables/useDefaultView', () => ({
   useDefaultView: () => ({ defaultView: mockDefaultView, setDefaultView: mockSetDefaultView })
 }))
 
 const mockSetChartMode = vi.fn()
-const mockChartMode = { value: 'merged' }
+const mockChartMode = ref('merged')
 vi.mock('@/composables/useChartDisplayMode', () => ({
   useChartDisplayMode: () => ({ chartMode: mockChartMode, setChartMode: mockSetChartMode })
 }))
@@ -107,5 +108,19 @@ describe('DisplayPreferencesSection.vue', () => {
     await select.setValue('per-account')
 
     expect(mockSetChartMode).toHaveBeenCalledWith('per-account')
+  })
+
+  it('omits accounts without accountId from default view dropdown', () => {
+    mockAuthStore.riotAccounts = [
+      { puuid: 'p-1', accountId: 'aid-1', gameName: 'Main', tagLine: 'EUW', isPrimary: true },
+      { puuid: 'p-2', accountId: '', gameName: 'NoId', tagLine: 'NA', isPrimary: false }
+    ]
+
+    const wrapper = createWrapper()
+    const options = wrapper.find('[data-testid="default-view-select"]').findAll('option')
+
+    expect(options.length).toBe(2)
+    expect(options[0].text()).toBe('Overall')
+    expect(options[1].text()).toBe('Main#EUW')
   })
 })

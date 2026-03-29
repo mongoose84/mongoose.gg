@@ -139,8 +139,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function applyDefaultViewIfNeeded() {
-    // Only apply default view if the user hasn't explicitly selected an account
-    if (localStorage.getItem(ACTIVE_ACCOUNT_STORAGE_KEY) !== null) {
+    // Only apply default view if the user hasn't explicitly selected a specific account.
+    // Treat 'overall' (or absent) as "no explicit selection" so the saved default can apply
+    // even after logout/implicit resets that write 'overall' to localStorage.
+    const stored = localStorage.getItem(ACTIVE_ACCOUNT_STORAGE_KEY)
+    if (stored !== null && stored !== 'overall') {
       return
     }
 
@@ -187,6 +190,7 @@ export const useAuthStore = defineStore('auth', () => {
         if (canApplyFetchedUser) {
           user.value = userData
           validateActiveAccount()
+          validateDefaultView()
           applyDefaultViewIfNeeded()
         }
 
