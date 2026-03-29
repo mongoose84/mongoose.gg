@@ -180,6 +180,80 @@ public class DragonParticipationTrendEndpointTests
     }
 
     [Fact]
+    public async Task DragonParticipationTrend_returns_multi_account_data_with_account_game_name_in_overall_mode()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        var user = await factory.UsersRepository.GetByIdAsync(1);
+        user.Should().NotBeNull();
+        user!.Tier = "pro";
+        await factory.UsersRepository.UpsertAsync(user);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-primary", "MainPlayer", "NA1", "MainPlayer#NA1", 100, 42);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-alt", "AltPlayer", "NA1", "AltPlayer#NA1", 101, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-primary", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-alt", isPrimary: false);
+
+        factory.TrendRepository.SetDragonParticipationData("test-puuid-primary", new[]
+        {
+            new DragonParticipationTrendPoint(
+                MatchId: "NA1_30001",
+                GameIndex: 1,
+                Timestamp: DateTime.UtcNow.AddDays(-3),
+                TeamDragons: 3,
+                DragonsParticipated: 2,
+                ParticipationRate: 66.7,
+                RollingAverage: 66.7,
+                ChampionName: "Jinx",
+                Role: "BOTTOM"
+            )
+        }, 66.7, 66.7, "neutral");
+
+        factory.TrendRepository.SetDragonParticipationData("test-puuid-alt", new[]
+        {
+            new DragonParticipationTrendPoint(
+                MatchId: "NA1_30002",
+                GameIndex: 2,
+                Timestamp: DateTime.UtcNow.AddDays(-2),
+                TeamDragons: 4,
+                DragonsParticipated: 3,
+                ParticipationRate: 75.0,
+                RollingAverage: 70.8,
+                ChampionName: "Caitlyn",
+                Role: "BOTTOM"
+            )
+        }, 75.0, 70.8, "improving");
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/trends/dragon-participation/1?accountId=all");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        root.TryGetProperty("dragonParticipationTrend", out var trendArray).Should().BeTrue();
+        trendArray.GetArrayLength().Should().Be(2);
+
+        var accountNames = trendArray
+            .EnumerateArray()
+            .Select(point =>
+            {
+                point.TryGetProperty("accountGameName", out var accountGameName).Should().BeTrue();
+                return accountGameName.GetString();
+            })
+            .ToArray();
+
+        accountNames.Should().OnlyContain(name => !string.IsNullOrWhiteSpace(name));
+        accountNames.Should().Contain("MainPlayer");
+        accountNames.Should().Contain("AltPlayer");
+    }
+
+    [Fact]
     public async Task DragonParticipationTrend_respects_queue_type_filter()
     {
         using var factory = new TestWebApplicationFactory();

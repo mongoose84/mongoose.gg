@@ -120,7 +120,8 @@ public static class RankInfoDto
         public int AccountCount { get; init; } = 1;
 
         /// <summary>
-        /// Rank info for each linked account. Populated when AccountCount > 1 (Overall mode).
+        /// Rank info for each linked account. Always populated — contains one entry per resolved account,
+        /// regardless of whether Overall mode was requested.
         /// </summary>
         [JsonPropertyName("allAccountRanks")]
         public AccountRankInfo[] AllAccountRanks { get; init; } = Array.Empty<AccountRankInfo>();

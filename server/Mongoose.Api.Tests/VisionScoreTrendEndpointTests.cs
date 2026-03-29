@@ -182,6 +182,80 @@ public class VisionScoreTrendEndpointTests
     }
 
     [Fact]
+    public async Task VisionScoreTrend_returns_multi_account_data_with_account_game_name_in_overall_mode()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        var user = await factory.UsersRepository.GetByIdAsync(1);
+        user.Should().NotBeNull();
+        user!.Tier = "pro";
+        await factory.UsersRepository.UpsertAsync(user);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-primary", "MainPlayer", "NA1", "MainPlayer#NA1", 100, 42);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-alt", "AltPlayer", "NA1", "AltPlayer#NA1", 101, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-primary", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-alt", isPrimary: false);
+
+        factory.TrendRepository.SetVisionScoreData("test-puuid-primary", new[]
+        {
+            new VisionScoreTrendPoint(
+                MatchId: "NA1_20001",
+                GameIndex: 1,
+                Timestamp: DateTime.UtcNow.AddDays(-3),
+                VisionScore: 47,
+                VisionScorePerMinute: 1.25,
+                RollingAverage: 1.25,
+                GameDurationMinutes: 37.5,
+                ChampionName: "Jinx",
+                Role: "BOTTOM"
+            )
+        }, 1.25, 1.25, 1.0, "neutral");
+
+        factory.TrendRepository.SetVisionScoreData("test-puuid-alt", new[]
+        {
+            new VisionScoreTrendPoint(
+                MatchId: "NA1_20002",
+                GameIndex: 2,
+                Timestamp: DateTime.UtcNow.AddDays(-2),
+                VisionScore: 55,
+                VisionScorePerMinute: 1.5,
+                RollingAverage: 1.38,
+                GameDurationMinutes: 36.7,
+                ChampionName: "Caitlyn",
+                Role: "BOTTOM"
+            )
+        }, 1.5, 1.4, 1.0, "improving");
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/trends/vision-score/1?accountId=all");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        root.TryGetProperty("visionScoreTrend", out var trendArray).Should().BeTrue();
+        trendArray.GetArrayLength().Should().Be(2);
+
+        var accountNames = trendArray
+            .EnumerateArray()
+            .Select(point =>
+            {
+                point.TryGetProperty("accountGameName", out var accountGameName).Should().BeTrue();
+                return accountGameName.GetString();
+            })
+            .ToArray();
+
+        accountNames.Should().OnlyContain(name => !string.IsNullOrWhiteSpace(name));
+        accountNames.Should().Contain("MainPlayer");
+        accountNames.Should().Contain("AltPlayer");
+    }
+
+    [Fact]
     public async Task VisionScoreTrend_returns_support_role_target_when_playing_support()
     {
         using var factory = new TestWebApplicationFactory();

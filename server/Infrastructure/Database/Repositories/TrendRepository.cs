@@ -77,16 +77,23 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
         // Calculate rolling 20-game average for each game
         const int windowSize = 20;
-        var trendPoints = new List<WinrateTrendPoint>();
+        var trendPoints = new List<WinrateTrendPoint>(games.Count);
+        var winsInWindow = 0;
 
         for (int i = 0; i < games.Count; i++)
         {
-            var windowStart = Math.Max(0, i - windowSize + 1);
-            var windowGames = games.Skip(windowStart).Take(i - windowStart + 1).ToList();
+            if (games[i].Win)
+            {
+                winsInWindow++;
+            }
 
-            var wins = windowGames.Count(g => g.Win);
-            var total = windowGames.Count;
-            var winRate = total > 0 ? Math.Round((double)wins / total * 100, 1) : 0;
+            if (i >= windowSize && games[i - windowSize].Win)
+            {
+                winsInWindow--;
+            }
+
+            var total = Math.Min(i + 1, windowSize);
+            var winRate = total > 0 ? Math.Round((double)winsInWindow / total * 100, 1) : 0;
 
             var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(games[i].Timestamp).UtcDateTime;
             var accountGameName = puuidToGameName != null && puuidToGameName.TryGetValue(games[i].Puuid, out var gn) ? gn : null;
@@ -426,15 +433,19 @@ public class TrendRepository : RepositoryBase, ITrendRepository
 
         // Calculate rolling 10-game average for each game
         const int windowSize = 10;
-        var trendPoints = new List<DeathsTrendPoint>();
+        var trendPoints = new List<DeathsTrendPoint>(dataPoints.Count);
+        var deathsInWindow = 0;
 
         for (int i = 0; i < dataPoints.Count; i++)
         {
-            var windowStart = Math.Max(0, i - windowSize + 1);
-            var windowGames = dataPoints.Skip(windowStart).Take(i - windowStart + 1).ToList();
+            deathsInWindow += dataPoints[i].Deaths;
+            if (i >= windowSize)
+            {
+                deathsInWindow -= dataPoints[i - windowSize].Deaths;
+            }
 
-            var totalDeaths = windowGames.Sum(g => g.Deaths);
-            var rollingAverage = Math.Round((double)totalDeaths / windowGames.Count, 1);
+            var totalGamesInWindow = Math.Min(i + 1, windowSize);
+            var rollingAverage = Math.Round((double)deathsInWindow / totalGamesInWindow, 1);
 
             var point = dataPoints[i];
             var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(point.Timestamp).UtcDateTime;
@@ -581,18 +592,23 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             // Calculate rolling 20-game average for each game
             // Include games with 0 team dragons to show poor objective control
             const int windowSize = 20;
-            var trendPoints = new List<DragonParticipationTrendPoint>();
+            var trendPoints = new List<DragonParticipationTrendPoint>(dataPoints.Count);
+            var teamDragonsInWindow = 0;
+            var participatedInWindow = 0;
 
             for (int i = 0; i < dataPoints.Count; i++)
             {
-                var windowStart = Math.Max(0, i - windowSize + 1);
-                var windowGames = dataPoints.Skip(windowStart).Take(i - windowStart + 1).ToList();
+                teamDragonsInWindow += dataPoints[i].TeamDragons;
+                participatedInWindow += dataPoints[i].DragonsParticipated;
+                if (i >= windowSize)
+                {
+                    teamDragonsInWindow -= dataPoints[i - windowSize].TeamDragons;
+                    participatedInWindow -= dataPoints[i - windowSize].DragonsParticipated;
+                }
 
                 // Calculate rolling average participation rate
-                var totalTeamDragons = windowGames.Sum(g => g.TeamDragons);
-                var totalParticipated = windowGames.Sum(g => g.DragonsParticipated);
-                var rollingAverage = totalTeamDragons > 0 
-                    ? Math.Round((double)totalParticipated / totalTeamDragons * 100, 1)
+                var rollingAverage = teamDragonsInWindow > 0
+                    ? Math.Round((double)participatedInWindow / teamDragonsInWindow * 100, 1)
                     : 0;
 
                 var point = dataPoints[i];
@@ -790,20 +806,26 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             var roleTarget = (mostCommonRole?.Equals("UTILITY", StringComparison.OrdinalIgnoreCase) == true) ? 2.0 : 1.0;
 
             // Calculate rolling 20-game average for each game
-            var trendPoints = new List<VisionScoreTrendPoint>();
+            var trendPoints = new List<VisionScoreTrendPoint>(dataPoints.Count);
+            var visionPerMinuteInWindow = 0.0;
 
             for (int i = 0; i < dataPoints.Count; i++)
             {
-                var windowStart = Math.Max(0, i - windowSize + 1);
-                var windowGames = dataPoints.Skip(windowStart).Take(i - windowStart + 1).ToList();
+                var currentVisionPerMinute = (double)dataPoints[i].VisionScore / (dataPoints[i].GameDuration / 60.0);
+                visionPerMinuteInWindow += currentVisionPerMinute;
+                if (i >= windowSize)
+                {
+                    var expiredVisionPerMinute = (double)dataPoints[i - windowSize].VisionScore / (dataPoints[i - windowSize].GameDuration / 60.0);
+                    visionPerMinuteInWindow -= expiredVisionPerMinute;
+                }
 
                 // Calculate rolling average vision score per minute
-                var totalVisionPerMin = windowGames.Sum(g => (double)g.VisionScore / (g.GameDuration / 60.0));
-                var rollingAverage = Math.Round(totalVisionPerMin / windowGames.Count, 2);
+                var totalGamesInWindow = Math.Min(i + 1, windowSize);
+                var rollingAverage = Math.Round(visionPerMinuteInWindow / totalGamesInWindow, 2);
 
                 var point = dataPoints[i];
                 var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(point.Timestamp).UtcDateTime;
-                var visionScorePerMinute = Math.Round((double)point.VisionScore / (point.GameDuration / 60.0), 2);
+                var visionScorePerMinute = Math.Round(currentVisionPerMinute, 2);
                 var gameDurationMinutes = Math.Round(point.GameDuration / 60.0, 1);
                 var accountGameName = puuidToGameName != null && puuidToGameName.TryGetValue(point.Puuid, out var gn) ? gn : null;
 
