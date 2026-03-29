@@ -35,7 +35,7 @@
     >
       <ComboboxOptions
         v-if="isSearching"
-        class="absolute top-full left-0 mt-1 w-full max-h-80 overflow-y-auto bg-background-surface border border-border rounded-md shadow-lg z-50 focus:outline-none"
+        class="absolute top-full left-0 mt-1 w-full max-h-80 overflow-y-auto bg-background-overlay border border-border rounded-md shadow-lg z-50 focus:outline-none"
       >
         <div v-if="searchResults.length > 0" class="py-1">
           <ComboboxOption

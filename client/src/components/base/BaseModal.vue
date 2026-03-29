@@ -141,7 +141,7 @@ function handleClose() {
 
 .modal-panel {
   width: 100%;
-  background: var(--color-surface);
+  background: var(--color-surface-overlay);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   backdrop-filter: blur(10px);
