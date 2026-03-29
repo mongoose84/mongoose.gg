@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { ref } from 'vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 
 const mockAuthStore = {
@@ -16,6 +17,8 @@ const mockUiStore = {
   toggleSidebar: vi.fn()
 }
 
+const mockUserIconUrl = ref(null)
+
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => mockAuthStore
 }))
@@ -26,6 +29,10 @@ vi.mock('@/stores/uiStore', () => ({
 
 vi.mock('@/composables/useAnalysisStatus', () => ({
   useAnalysisStatus: () => ({ isRunning: false })
+}))
+
+vi.mock('@/composables/useUserIcon', () => ({
+  useUserIcon: () => ({ userIconUrl: mockUserIconUrl })
 }))
 
 describe('AppSidebar.vue', () => {
@@ -43,6 +50,10 @@ describe('AppSidebar.vue', () => {
 
   beforeEach(() => {
     mockAuthStore.hasReachedRiotAccountLimit = false
+    mockAuthStore.hasLinkedAccount = false
+    mockAuthStore.primaryRiotAccount = null
+    mockAuthStore.username = 'TestUser'
+    mockUserIconUrl.value = null
     mockUiStore.isSidebarCollapsed = false
     mockUiStore.initializeSidebar.mockReset()
     mockUiStore.handleResize.mockReset()
@@ -62,5 +73,20 @@ describe('AppSidebar.vue', () => {
     const wrapper = createWrapper()
 
     expect(wrapper.find('[data-testid="sidebar-upgrade-link"]').exists()).toBe(false)
+  })
+
+  it('shows SVG fallback when user icon image fails to load', async () => {
+    mockUserIconUrl.value = 'https://ddragon.leagueoflegends.com/cdn/16.1.1/img/profileicon/9999.png'
+
+    const wrapper = createWrapper()
+    const userSection = wrapper.find('.user-item')
+    expect(userSection.find('img').exists()).toBe(true)
+    expect(userSection.find('svg').exists()).toBe(false)
+
+    await userSection.find('img').trigger('error')
+    await wrapper.vm.$nextTick()
+
+    expect(userSection.find('img').exists()).toBe(false)
+    expect(userSection.find('svg').exists()).toBe(true)
   })
 })

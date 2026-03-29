@@ -4,6 +4,7 @@ import * as authApi from '../services/authApi'
 import { setSessionExpiredCallback } from '../services/apiClient'
 
 const ACTIVE_ACCOUNT_STORAGE_KEY = 'mongoose_active_account'
+const DEFAULT_VIEW_KEY = 'mongoose_default_view'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -137,6 +138,33 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function applyDefaultViewIfNeeded() {
+    // Only apply default view if the user hasn't explicitly selected a specific account.
+    // Treat 'overall' (or absent) as "no explicit selection" so the saved default can apply
+    // even after logout/implicit resets that write 'overall' to localStorage.
+    const stored = localStorage.getItem(ACTIVE_ACCOUNT_STORAGE_KEY)
+    if (stored !== null && stored !== 'overall') {
+      return
+    }
+
+    const savedDefault = localStorage.getItem(DEFAULT_VIEW_KEY)
+    if (savedDefault && savedDefault !== 'overall') {
+      setActiveAccount(savedDefault)
+    }
+  }
+
+  function validateDefaultView() {
+    const savedDefault = localStorage.getItem(DEFAULT_VIEW_KEY)
+    if (!savedDefault || savedDefault === 'overall') {
+      return
+    }
+
+    const linkedAccount = findLinkedAccount(savedDefault)
+    if (!linkedAccount) {
+      localStorage.setItem(DEFAULT_VIEW_KEY, 'overall')
+    }
+  }
+
   // Actions
   async function initialize() {
     if (isInitialized.value) return
@@ -162,6 +190,8 @@ export const useAuthStore = defineStore('auth', () => {
         if (canApplyFetchedUser) {
           user.value = userData
           validateActiveAccount()
+          validateDefaultView()
+          applyDefaultViewIfNeeded()
         }
 
         // Mark that user was authenticated if we found a valid session
@@ -371,6 +401,9 @@ export const useAuthStore = defineStore('auth', () => {
       if (isUnlinkingActiveAccount) {
         setActiveAccount('overall')
       }
+
+      // Reset default view if it was set to the unlinked account
+      validateDefaultView()
 
       return { success: true }
     } catch (e) {

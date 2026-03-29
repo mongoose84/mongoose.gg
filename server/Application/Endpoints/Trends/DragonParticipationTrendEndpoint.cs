@@ -48,7 +48,7 @@ public sealed class DragonParticipationTrendEndpoint : IEndpoint
                     return accountError;
 
                 var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
-                var puuidToGameName = resolvedAccounts!.ToDictionary(a => a.Account.Puuid, a => a.Account.GameName);
+                var puuidToGameName = resolvedAccounts!.ToDictionary(a => a.Account.Puuid, a => $"{a.Account.GameName}#{a.Account.TagLine}");
 
                 // Validate limit if provided
                 int? validatedLimit = null;
