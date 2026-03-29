@@ -211,7 +211,7 @@ const { chartMode } = useChartDisplayMode()
 // Derived account list for per-account chart mode
 const chartAccounts = computed(() =>
   authStore.riotAccounts.map((account, index) => ({
-    gameName: account.gameName,
+    gameName: `${account.gameName} (${(account.region || '').toUpperCase()})`,
     color: ACCOUNT_COLORS[index % ACCOUNT_COLORS.length]
   }))
 )

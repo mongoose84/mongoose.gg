@@ -4,6 +4,7 @@ import * as authApi from '../services/authApi'
 import { setSessionExpiredCallback } from '../services/apiClient'
 
 const ACTIVE_ACCOUNT_STORAGE_KEY = 'mongoose_active_account'
+const DEFAULT_VIEW_STORAGE_KEY = 'mongoose_default_view'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -137,6 +138,23 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function applyDefaultView() {
+    const savedDefault = localStorage.getItem(DEFAULT_VIEW_STORAGE_KEY)
+    if (!savedDefault || savedDefault === 'overall') {
+      setActiveAccount('overall')
+      return
+    }
+
+    const linkedAccount = findLinkedAccount(savedDefault)
+    if (linkedAccount) {
+      setActiveAccount(savedDefault)
+    } else {
+      // Default view points to an unlinked account — reset both
+      localStorage.setItem(DEFAULT_VIEW_STORAGE_KEY, 'overall')
+      setActiveAccount('overall')
+    }
+  }
+
   // Actions
   async function initialize() {
     if (isInitialized.value) return
@@ -162,6 +180,7 @@ export const useAuthStore = defineStore('auth', () => {
         if (canApplyFetchedUser) {
           user.value = userData
           validateActiveAccount()
+          applyDefaultView()
         }
 
         // Mark that user was authenticated if we found a valid session
