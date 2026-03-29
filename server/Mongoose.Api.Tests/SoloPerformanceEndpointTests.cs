@@ -249,5 +249,154 @@ public class SoloPerformanceEndpointTests
         root.GetProperty("gamesPlayed").GetInt32().Should().Be(12);
         root.GetProperty("winRate").GetDouble().Should().Be(58.3);
     }
+
+    [Fact]
+    public async Task Solo_performance_single_account_returns_accountCount_1_and_allAccountRanks()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccountWithRank(
+            userId: 1,
+            puuid: "puuid-main",
+            gameName: "MainPlayer",
+            region: "EUW1",
+            summonerName: "MainPlayer#EUW",
+            summonerLevel: 200,
+            profileIconId: 1,
+            soloTier: "DIAMOND",
+            soloRank: "IV",
+            soloLp: 10,
+            flexTier: null,
+            flexRank: null,
+            flexLp: null
+        );
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-main", isPrimary: true);
+
+        factory.SoloPerformanceRepository.SetPerformanceData("puuid-main", new SoloPerformanceResponse(
+            GamesPlayed: 20, Wins: 12, WinRate: 60.0, AvgKda: 3.0, AvgGameDurationMinutes: 27.0,
+            AvgKills: 5.0, AvgDeaths: 3.0, AvgAssists: 7.0,
+            OverallWinRate: 55.0, OverallAvgKills: 4.8, OverallAvgDeaths: 3.2, OverallAvgAssists: 6.5,
+            OverallAvgKda: 2.8,
+            SideStats: new SideWinDistribution(6, 6, 10, 10, 20, 60.0, 60.0),
+            UniqueChampsPlayedCount: 5, MainChampion: null,
+            MainChampions: Array.Empty<MainChampionRoleGroup>(),
+            Last10Games: null, Last20Games: null,
+            PerformanceByPhase: Array.Empty<PerformancePhase>(),
+            RoleBreakdown: Array.Empty<RolePerformance>(),
+            DeathEfficiency: new DeathEfficiency(2, 5, 3, 0, 6.0, 4.0),
+            QueueType: "all"
+        ));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/dashboard/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        // Single account → accountCount = 1
+        root.GetProperty("accountCount").GetInt32().Should().Be(1);
+
+        // allAccountRanks contains exactly 1 entry
+        var allRanks = root.GetProperty("allAccountRanks");
+        allRanks.GetArrayLength().Should().Be(1);
+        allRanks[0].GetProperty("gameName").GetString().Should().Be("MainPlayer");
+        allRanks[0].GetProperty("soloDuoRank").GetProperty("tier").GetString().Should().Be("DIAMOND");
+        allRanks[0].GetProperty("soloDuoRank").GetProperty("hasRank").GetBoolean().Should().BeTrue();
+        allRanks[0].GetProperty("flexRank").GetProperty("hasRank").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Solo_performance_overall_mode_returns_accountCount_and_all_ranks_for_each_account()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        // Set up two linked Riot accounts
+        factory.RiotAccountsRepository.AddRiotAccountWithRank(
+            userId: 1,
+            puuid: "puuid-main",
+            gameName: "FakerMain",
+            region: "KR",
+            summonerName: "FakerMain#KR1",
+            summonerLevel: 500,
+            profileIconId: 1,
+            soloTier: "DIAMOND",
+            soloRank: "II",
+            soloLp: 75,
+            flexTier: null,
+            flexRank: null,
+            flexLp: null
+        );
+        factory.RiotAccountsRepository.AddRiotAccountWithRank(
+            userId: 1,
+            puuid: "puuid-smurf",
+            gameName: "FakerSmurf",
+            region: "KR",
+            summonerName: "FakerSmurf#KR2",
+            summonerLevel: 80,
+            profileIconId: 2,
+            soloTier: "PLATINUM",
+            soloRank: "I",
+            soloLp: 30,
+            flexTier: null,
+            flexRank: null,
+            flexLp: null
+        );
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-main", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-smurf", isPrimary: false);
+
+        // Upgrade user to pro so multi-account visibility is enabled
+        factory.UsersRepository.SetTier("tester", "pro");
+
+        // Seed performance data for primary account (fake repo returns first match)
+        factory.SoloPerformanceRepository.SetPerformanceData("puuid-main", new SoloPerformanceResponse(
+            GamesPlayed: 100, Wins: 58, WinRate: 58.0, AvgKda: 4.1, AvgGameDurationMinutes: 26.5,
+            AvgKills: 7.0, AvgDeaths: 3.0, AvgAssists: 9.0,
+            OverallWinRate: 54.0, OverallAvgKills: 6.5, OverallAvgDeaths: 3.2, OverallAvgAssists: 8.5,
+            OverallAvgKda: 3.8,
+            SideStats: new SideWinDistribution(30, 28, 50, 50, 100, 60.0, 56.0),
+            UniqueChampsPlayedCount: 12, MainChampion: null,
+            MainChampions: Array.Empty<MainChampionRoleGroup>(),
+            Last10Games: null, Last20Games: null,
+            PerformanceByPhase: Array.Empty<PerformancePhase>(),
+            RoleBreakdown: Array.Empty<RolePerformance>(),
+            DeathEfficiency: new DeathEfficiency(8, 20, 15, 5, 4.5, 2.0),
+            QueueType: "all"
+        ));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/dashboard/1?accountId=all");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        // Overall mode → accountCount = 2
+        root.GetProperty("accountCount").GetInt32().Should().Be(2);
+
+        // allAccountRanks carries rank info for all accounts
+        var allRanks = root.GetProperty("allAccountRanks");
+        allRanks.GetArrayLength().Should().Be(2);
+
+        var mainRank = allRanks.EnumerateArray().First(e => e.GetProperty("gameName").GetString() == "FakerMain");
+        mainRank.GetProperty("soloDuoRank").GetProperty("tier").GetString().Should().Be("DIAMOND");
+        mainRank.GetProperty("soloDuoRank").GetProperty("division").GetString().Should().Be("II");
+        mainRank.GetProperty("soloDuoRank").GetProperty("lp").GetInt32().Should().Be(75);
+
+        var smurfRank = allRanks.EnumerateArray().First(e => e.GetProperty("gameName").GetString() == "FakerSmurf");
+        smurfRank.GetProperty("soloDuoRank").GetProperty("tier").GetString().Should().Be("PLATINUM");
+        smurfRank.GetProperty("soloDuoRank").GetProperty("division").GetString().Should().Be("I");
+        smurfRank.GetProperty("soloDuoRank").GetProperty("lp").GetInt32().Should().Be(30);
+    }
 }
 

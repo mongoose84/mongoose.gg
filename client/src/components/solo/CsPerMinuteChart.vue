@@ -2,6 +2,8 @@
   <TrendLineChart
     :data="data"
     :config="chartConfig"
+    :chart-mode="chartMode"
+    :accounts="accounts"
     empty-text="No CS per minute data available"
     empty-subtext="Play some games to see your farming efficiency trend"
     test-id="cs-per-minute-chart"
@@ -23,6 +25,16 @@ const props = defineProps({
   roleTarget: {
     type: Number,
     default: null
+  },
+  /** Chart display mode: 'merged' | 'per-account' */
+  chartMode: {
+    type: String,
+    default: 'merged'
+  },
+  /** Accounts for per-account mode: [{ gameName, color }] */
+  accounts: {
+    type: Array,
+    default: () => []
   }
 })
 

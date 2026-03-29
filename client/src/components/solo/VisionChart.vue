@@ -2,6 +2,8 @@
   <TrendLineChart
     :data="data"
     :config="chartConfig"
+    :chart-mode="chartMode"
+    :accounts="accounts"
     empty-text="No vision score data available"
     empty-subtext="Play some games to see your vision score trends"
     test-id="vision-chart"
@@ -33,6 +35,16 @@ const props = defineProps({
   trend: {
     type: String,
     default: 'neutral'
+  },
+  /** Chart display mode: 'merged' | 'per-account' */
+  chartMode: {
+    type: String,
+    default: 'merged'
+  },
+  /** Accounts for per-account mode: [{ gameName, color }] */
+  accounts: {
+    type: Array,
+    default: () => []
   }
 })
 

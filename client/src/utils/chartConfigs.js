@@ -5,6 +5,12 @@
  * Use these with <TrendLineChart :config="chartConfigs.winrate(props)" :data="data" />
  */
 
+/** Shared color palette for per-account chart lines */
+export const ACCOUNT_COLORS = ['#7c3aed', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#ec4899']
+
+/** Dash patterns applied to lines when there are more than 3 accounts (colorblind friendliness) */
+export const ACCOUNT_DASH_PATTERNS = [[], [5, 5], [2, 3], [8, 3], [4, 2, 1, 2], [10, 5]]
+
 /**
  * Winrate Chart Configuration
  * @param {Object} options - { overallWinRate: number }

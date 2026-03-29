@@ -74,7 +74,7 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
                     return Results.NotFound(new { error = "No match data found for this player" });
                 }
 
-                // Build rank info from the account data (no additional DB calls needed)
+                // Build rank info for primary account (used as the canonical single-account rank display)
                 var soloDuoRank = new QueueRankInfo(
                     riotAccount.SoloTier,
                     riotAccount.SoloRank,
@@ -91,8 +91,28 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
 
                 var rankInfo = new RankInfo(soloDuoRank, flexRank);
 
-                // Return enhanced response with performance data and rank info
-                var response = SoloPerformanceWithRankResponse.FromPerformanceAndRank(performance, rankInfo);
+                // Build per-account rank info for Overall mode (accountCount > 1)
+                var allAccountRanks = resolvedAccounts.Select(resolved =>
+                {
+                    var account = resolved.Account;
+                    var accountSoloDuo = new QueueRankInfo(
+                        account.SoloTier,
+                        account.SoloRank,
+                        account.SoloLp,
+                        !string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank)
+                    );
+                    var accountFlex = new QueueRankInfo(
+                        account.FlexTier,
+                        account.FlexRank,
+                        account.FlexLp,
+                        !string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank)
+                    );
+                    return new AccountRankInfo(account.GameName, accountSoloDuo, accountFlex);
+                }).ToArray();
+
+                // Return enhanced response with performance data, rank info, and account metadata
+                var response = SoloPerformanceWithRankResponse.FromPerformanceAndRank(
+                    performance, rankInfo, resolvedAccounts.Count, allAccountRanks);
                 return Results.Ok(response);
             }
             catch (ArgumentException ex)

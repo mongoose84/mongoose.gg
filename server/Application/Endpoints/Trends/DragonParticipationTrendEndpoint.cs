@@ -48,6 +48,7 @@ public sealed class DragonParticipationTrendEndpoint : IEndpoint
                     return accountError;
 
                 var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
+                var puuidToGameName = resolvedAccounts!.ToDictionary(a => a.Account.Puuid, a => a.Account.GameName);
 
                 // Validate limit if provided
                 int? validatedLimit = null;
@@ -62,7 +63,7 @@ public sealed class DragonParticipationTrendEndpoint : IEndpoint
                 logger.LogInformation("Dragon participation trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
                     authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
 
-                var (dataPoints, averageParticipation, overallAverage, trend) = await trendRepo.GetDragonParticipationTrendAsync(puuids, queueType, timeRange, validatedLimit);
+                var (dataPoints, averageParticipation, overallAverage, trend) = await trendRepo.GetDragonParticipationTrendAsync(puuids, queueType, timeRange, validatedLimit, puuidToGameName);
 
                 return Results.Ok(new DragonParticipationTrendResponse(dataPoints, averageParticipation, overallAverage, trend));
             }

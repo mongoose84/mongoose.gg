@@ -49,6 +49,7 @@ public sealed class CsPerMinuteTrendEndpoint : IEndpoint
                     return accountError;
 
                 var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
+                var puuidToGameName = resolvedAccounts!.ToDictionary(a => a.Account.Puuid, a => a.Account.GameName);
 
                 // Validate limit if provided
                 int? validatedLimit = null;
@@ -63,7 +64,7 @@ public sealed class CsPerMinuteTrendEndpoint : IEndpoint
                 logger.LogInformation("CS per minute trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
                     authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
 
-                var csPerMinuteTrend = await trendRepo.GetCsPerMinuteTrendAsync(puuids, queueType, timeRange, validatedLimit);
+                var csPerMinuteTrend = await trendRepo.GetCsPerMinuteTrendAsync(puuids, queueType, timeRange, validatedLimit, puuidToGameName);
 
                 return Results.Ok(new CsPerMinuteTrendResponse(csPerMinuteTrend));
             }

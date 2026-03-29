@@ -420,6 +420,91 @@ describe('SummaryStatsCard', () => {
     })
   })
 
+  describe('Overall mode — accountCount label', () => {
+    it('shows "Across N accounts" sublabel when accountCount > 1', () => {
+      const wrapper = mountComponent({ accountCount: 3 })
+      const sublabel = wrapper.find('[data-testid="stat-games-sublabel"]')
+      expect(sublabel.exists()).toBe(true)
+      expect(sublabel.text()).toBe('Across 3 accounts')
+    })
+
+    it('hides "Across N accounts" sublabel when accountCount is 1', () => {
+      const wrapper = mountComponent({ accountCount: 1 })
+      expect(wrapper.find('[data-testid="stat-games-sublabel"]').exists()).toBe(false)
+    })
+
+    it('hides sublabel when accountCount is not provided (defaults to 1)', () => {
+      const wrapper = mountComponent({})
+      expect(wrapper.find('[data-testid="stat-games-sublabel"]').exists()).toBe(false)
+    })
+  })
+
+  describe('Overall mode — stacked ranks', () => {
+    const ranks = [
+      { gameName: 'FakerMain', soloDuoRank: { tier: 'DIAMOND', division: 'II', lp: 50, hasRank: true }, flexRank: null },
+      { gameName: 'FakerSmurf', soloDuoRank: { tier: 'PLATINUM', division: 'I', lp: 75, hasRank: true }, flexRank: null },
+      { gameName: 'FakerAlt', soloDuoRank: { tier: null, division: null, lp: null, hasRank: false }, flexRank: null }
+    ]
+
+    it('renders stat-ranks section when ranks prop is provided', () => {
+      const wrapper = mountComponent({ ranks })
+      expect(wrapper.find('[data-testid="stat-ranks"]').exists()).toBe(true)
+    })
+
+    it('renders one rank-pill per account entry', () => {
+      const wrapper = mountComponent({ ranks })
+      const pills = wrapper.findAll('[data-testid^="rank-pill-"]')
+      expect(pills).toHaveLength(3)
+    })
+
+    it('highlights first rank pill (highest rank)', () => {
+      const wrapper = mountComponent({ ranks })
+      const firstPill = wrapper.find('[data-testid="rank-pill-0"]')
+      expect(firstPill.classes()).toContain('rank-pill--highlight')
+    })
+
+    it('does not highlight subsequent rank pills', () => {
+      const wrapper = mountComponent({ ranks })
+      const secondPill = wrapper.find('[data-testid="rank-pill-1"]')
+      expect(secondPill.classes()).not.toContain('rank-pill--highlight')
+    })
+
+    it('shows account gameName in rank pill text', () => {
+      const wrapper = mountComponent({ ranks })
+      expect(wrapper.find('[data-testid="rank-pill-0"]').text()).toContain('FakerMain')
+    })
+
+    it('shows rank tier for ranked accounts', () => {
+      const wrapper = mountComponent({ ranks })
+      expect(wrapper.find('[data-testid="rank-pill-0"]').text()).toContain('Diamond')
+    })
+
+    it('shows "Unranked" for unranked accounts', () => {
+      const wrapper = mountComponent({ ranks })
+      expect(wrapper.find('[data-testid="rank-pill-2"]').text()).toContain('Unranked')
+    })
+
+    it('hides per-account solo/duo rank when ranks prop is present', () => {
+      const wrapper = mountComponent({ ranks, queueFilter: 'all' })
+      expect(wrapper.find('[data-testid="solo-duo-rank-wrapper"]').exists()).toBe(false)
+    })
+
+    it('hides per-account flex rank when ranks prop is present', () => {
+      const wrapper = mountComponent({ ranks, queueFilter: 'ranked_flex' })
+      expect(wrapper.find('[data-testid="flex-rank-wrapper"]').exists()).toBe(false)
+    })
+
+    it('does not render stat-ranks section when ranks prop is null', () => {
+      const wrapper = mountComponent({ ranks: null })
+      expect(wrapper.find('[data-testid="stat-ranks"]').exists()).toBe(false)
+    })
+
+    it('does not render stat-ranks section when ranks is empty array', () => {
+      const wrapper = mountComponent({ ranks: [] })
+      expect(wrapper.find('[data-testid="stat-ranks"]').exists()).toBe(false)
+    })
+  })
+
   describe('Rank display', () => {
     const soloDuoRank = { tier: 'GOLD', division: 'II', lp: 78, hasRank: true }
     const flexRank = { tier: 'SILVER', division: 'I', lp: 45, hasRank: true }

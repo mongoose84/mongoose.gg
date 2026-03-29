@@ -48,6 +48,7 @@ public sealed class GoldAt15TrendEndpoint : IEndpoint
                     return accountError;
 
                 var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
+                var puuidToGameName = resolvedAccounts!.ToDictionary(a => a.Account.Puuid, a => a.Account.GameName);
 
                 // Validate limit if provided  
                 int? validatedLimit = null;
@@ -62,7 +63,7 @@ public sealed class GoldAt15TrendEndpoint : IEndpoint
                 logger.LogInformation("Gold at 15 trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
                     authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
 
-                var goldAt15Trend = await trendRepo.GetGoldAt15TrendAsync(puuids, queueType, timeRange, validatedLimit);
+                var goldAt15Trend = await trendRepo.GetGoldAt15TrendAsync(puuids, queueType, timeRange, validatedLimit, puuidToGameName);
 
                 return Results.Ok(new GoldAt15TrendResponse(goldAt15Trend));
             }

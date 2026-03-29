@@ -47,6 +47,7 @@ public sealed class DeathsTrendEndpoint : IEndpoint
                     return accountError;
 
                 var puuids = resolvedAccounts!.Select(a => a.Account.Puuid).ToList();
+                var puuidToGameName = resolvedAccounts!.ToDictionary(a => a.Account.Puuid, a => a.Account.GameName);
 
                 // Validate limit if provided
                 int? validatedLimit = null;
@@ -61,7 +62,7 @@ public sealed class DeathsTrendEndpoint : IEndpoint
                 logger.LogInformation("Deaths trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
                     authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
 
-                var (dataPoints, averageDeaths, overallAverage, trend) = await trendRepo.GetDeathsTrendAsync(puuids, queueType, timeRange, validatedLimit);
+                var (dataPoints, averageDeaths, overallAverage, trend) = await trendRepo.GetDeathsTrendAsync(puuids, queueType, timeRange, validatedLimit, puuidToGameName);
 
                 return Results.Ok(new DeathsTrendResponse(dataPoints, averageDeaths, overallAverage, trend));
             }

@@ -2,6 +2,8 @@
   <TrendLineChart
     :data="data"
     :config="chartConfig"
+    :chart-mode="chartMode"
+    :accounts="accounts"
     empty-text="No winrate data available"
     empty-subtext="Play some games to see your winrate trend"
     test-id="winrate-chart"
@@ -28,6 +30,16 @@ const props = defineProps({
   overallWinRate: {
     type: Number,
     default: null
+  },
+  /** Chart display mode: 'merged' | 'per-account' */
+  chartMode: {
+    type: String,
+    default: 'merged'
+  },
+  /** Accounts for per-account mode: [{ gameName, color }] */
+  accounts: {
+    type: Array,
+    default: () => []
   }
 })
 

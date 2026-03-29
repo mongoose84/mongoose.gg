@@ -16,7 +16,22 @@
 
       <!-- Stats display -->
       <div v-else class="stats-grid" data-testid="stats-display">
-        <!-- Solo/Duo Rank (All Queues or Solo filter) -->
+        <!-- Overall Mode: Stacked Per-Account Ranks -->
+        <div v-if="ranks && ranks.length" class="stat-item stat-ranks" data-testid="stat-ranks">
+          <span class="stat-label">Ranks</span>
+          <div class="ranks-stacked">
+            <span
+              v-for="(rankEntry, idx) in formattedRanks"
+              :key="rankEntry.gameName"
+              class="rank-pill"
+              :class="{ 'rank-pill--highlight': idx === 0 }"
+              :title="rankEntry.fullText"
+              :data-testid="'rank-pill-' + idx"
+            >{{ rankEntry.shortText }}</span>
+          </div>
+        </div>
+
+        <!-- Solo/Duo Rank (All Queues or Solo filter, single-account mode) -->
         <div v-if="showSoloDuoRank" class="stat-item" data-testid="solo-duo-rank-wrapper">
           <span class="stat-label">Solo/Duo</span>
           <div class="stat-value-rank">
@@ -30,7 +45,7 @@
           </div>
         </div>
 
-        <!-- Flex Rank (All Queues or Flex filter) -->
+        <!-- Flex Rank (All Queues or Flex filter, single-account mode) -->
         <div v-if="showFlexRank" class="stat-item" data-testid="flex-rank-wrapper">
           <span class="stat-label">Flex</span>
           <div class="stat-value-rank">
@@ -48,6 +63,7 @@
         <div class="stat-item" data-testid="stat-games">
           <span class="stat-label">Games</span>
           <span class="stat-value" data-testid="stat-games-value">{{ gamesPlayed }}</span>
+          <span v-if="accountCount > 1" class="stat-sublabel" data-testid="stat-games-sublabel">Across {{ accountCount }} accounts</span>
         </div>
 
         <!-- Winrate -->
@@ -165,6 +181,16 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  /** Number of accounts contributing to the stats (> 1 shows 'Across N accounts' label) */
+  accountCount: {
+    type: Number,
+    default: 1
+  },
+  /** Per-account ranks for Overall mode: [{ gameName, soloDuoRank, flexRank }] */
+  ranks: {
+    type: Array,
+    default: null
+  },
   /** Solo/Duo rank info object { tier, division, lp, hasRank } */
   soloDuoRank: {
     type: Object,
@@ -184,12 +210,32 @@ const props = defineProps({
 
 // Computed: Show Solo/Duo rank (All Queues or Solo filter)
 const showSoloDuoRank = computed(() => {
+  if (props.ranks && props.ranks.length) return false
   return props.queueFilter === 'all' || props.queueFilter === 'ranked_solo'
 })
 
 // Computed: Show Flex rank (All Queues or Flex filter)
 const showFlexRank = computed(() => {
+  if (props.ranks && props.ranks.length) return false
   return props.queueFilter === 'all' || props.queueFilter === 'ranked_flex'
+})
+
+// Computed: Format per-account ranks for stacked display
+const formattedRanks = computed(() => {
+  if (!props.ranks || !props.ranks.length) return []
+  return props.ranks.map(account => {
+    const solo = account.soloDuoRank
+    const flex = account.flexRank
+    const soloText = solo?.hasRank
+      ? `${solo.tier.charAt(0).toUpperCase() + solo.tier.slice(1).toLowerCase()} ${solo.division}`
+      : 'Unranked'
+    const flexText = flex?.hasRank
+      ? `${flex.tier.charAt(0).toUpperCase() + flex.tier.slice(1).toLowerCase()} ${flex.division}`
+      : null
+    const shortText = soloText
+    const fullText = flexText ? `${soloText} (Flex: ${flexText}) — ${account.gameName}` : `${soloText} — ${account.gameName}`
+    return { gameName: account.gameName, shortText: `${shortText} (${account.gameName})`, fullText }
+  })
 })
 
 // Computed: Check if data is empty
@@ -437,6 +483,40 @@ const assistsTrendClass = computed(() => {
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* Across N accounts sub-label */
+.stat-sublabel {
+  font-size: var(--font-size-3xs, 0.625rem);
+  color: var(--color-text-secondary);
+  margin-top: calc(var(--spacing-xs, 4px) * -1);
+}
+
+/* Per-account stacked ranks */
+.stat-ranks {
+  align-items: flex-start;
+}
+
+.ranks-stacked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs, 4px);
+  margin-top: -4px;
+}
+
+.rank-pill {
+  font-size: var(--font-size-xs);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-background-elevated, rgba(255, 255, 255, 0.05));
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  cursor: default;
+}
+
+.rank-pill--highlight {
+  border-color: var(--color-primary-soft, rgba(109, 40, 217, 0.4));
+  color: var(--color-text);
 }
 
 /* Responsive: stack on mobile */
