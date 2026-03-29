@@ -19,6 +19,7 @@ export default {
           DEFAULT: 'var(--color-bg)',
           surface: 'var(--color-surface)',
           elevated: 'var(--color-elevated)',
+          overlay: 'var(--color-surface-overlay)',
         },
         text: {
           DEFAULT: 'var(--color-text)',

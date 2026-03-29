@@ -66,8 +66,8 @@
           aria-label="Switch account"
           tabindex="0"
           data-testid="account-switcher-dropdown"
-          class="absolute bottom-full left-0 right-0 mb-1 z-50 rounded-lg border border-border shadow-lg overflow-y-auto"
-          style="background: var(--color-surface); max-height: 280px;"
+          class="absolute bottom-full left-0 right-0 mb-1 z-50 rounded-lg border border-border shadow-lg overflow-y-auto bg-background-overlay"
+          style="max-height: 280px;"
           @keydown="handleListKeydown"
         >
           <AccountDropdownList
@@ -119,8 +119,8 @@
           aria-label="Switch account"
           tabindex="0"
           data-testid="account-switcher-popover"
-          class="fixed z-50 rounded-lg border border-border shadow-lg overflow-y-auto"
-          style="min-width: 220px; max-height: 280px; background: var(--color-surface);"
+          class="fixed z-50 rounded-lg border border-border shadow-lg overflow-y-auto bg-background-overlay"
+          style="min-width: 220px; max-height: 280px;"
           :style="popoverStyle"
           @keydown="handleListKeydown"
         >
