@@ -151,20 +151,14 @@
           :class="isCollapsed ? 'w-9 h-9' : 'w-[52px] h-[52px]'"
         >
           <img
-            v-if="linkedAccountIconUrl"
-            :src="linkedAccountIconUrl"
+            v-if="userIconUrl"
+            :src="userIconUrl"
             :alt="`${hasLinkedAccount ? riotAccountName : username} profile icon`"
             class="w-full h-full object-cover rounded-full"
-            @error="handleLinkedIconError"
           />
           <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-text-secondary">
             <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd" />
           </svg>
-          <span
-            v-if="summonerLevel"
-            class="absolute -bottom-0.5 -right-0.5 bg-primary text-white font-bold rounded-[10px] text-center leading-none"
-            :class="isCollapsed ? 'text-[10px] py-0.5 px-[5px] min-w-[20px]' : 'text-[11px] py-[3px] px-1.5 min-w-[24px]'"
-          >{{ summonerLevel }}</span>
         </div>
 
         <!-- User Info (expanded only) -->
@@ -201,7 +195,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import { ChatBubbleLeftEllipsisIcon, ChartBarIcon, LockClosedIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
@@ -209,19 +203,15 @@ import { useAnalysisStatus } from '../composables/useAnalysisStatus';
 import { BaseButton } from '@/components/base';
 import AccountSwitcher from '@/components/sidebar/AccountSwitcher.vue';
 import { formatRegion } from '@/utils/leagueAssets';
+import { useUserIcon } from '@/composables/useUserIcon';
 
 const authStore = useAuthStore();
 const uiStore = useUiStore();
 const { isRunning: isAnalysisRunning } = useAnalysisStatus();
-
-// Local state
-const linkedIconError = ref(false);
+const { userIconUrl } = useUserIcon();
 
 // Sidebar state from store
 const isCollapsed = computed(() => uiStore.isSidebarCollapsed);
-
-// Data Dragon version for profile icons
-const ddVersion = '16.1.1';
 
 // Initialize sidebar state
 onMounted(() => {
@@ -259,19 +249,7 @@ const riotAccountName = computed(() => {
   return `${account.gameName}#${account.tagLine}`;
 });
 
-const summonerLevel = computed(() => primaryRiotAccount.value?.summonerLevel);
-
 const regionLabel = computed(() => formatRegion(primaryRiotAccount.value?.region));
-
-const linkedAccountIconUrl = computed(() => {
-  const profileIconId = primaryRiotAccount.value?.profileIconId;
-  if (!profileIconId || linkedIconError.value) return null;
-  return `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/profileicon/${profileIconId}.png`;
-});
-
-function handleLinkedIconError() {
-  linkedIconError.value = true;
-}
 </script>
 
 
