@@ -88,7 +88,12 @@ npm run test:unit
 
 Playwright tests:
 ```
-npx playwright test
+$env:Auth__AutoVerifyEmail = "true"
+$env:RateLimiting__Enabled = "false"
+$env:Email__DevMode = "true"
+dotnet run (server)
+
+npx playwright test (client)
 ```
 
 Note: E2E tests automatically create and delete a test user via global setup/teardown.
