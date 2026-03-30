@@ -27,7 +27,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
         var endpoint = app.MapGet(Route, async (
             HttpContext httpContext,
             [FromRoute] string matchId,
-            [FromQuery] string? puuid,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IMatchesRepository matchesRepo,
             [FromServices] ILogger<MatchNarrativeEndpoint> logger
@@ -40,27 +40,27 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                     return Results.BadRequest(new { error = "matchId is required" });
                 }
 
-                if (string.IsNullOrWhiteSpace(puuid))
-                {
-                    return Results.BadRequest(new { error = "puuid query parameter is required" });
-                }
-
                 // Validate authentication and extract user ID
                 var (authError, authenticatedUser) = AuthorizationHelper.GetAuthenticatedUser(httpContext, logger);
                 if (authError != null)
                     return authError;
 
-                // Verify the puuid belongs to the authenticated user
-                var isLinked = await puuidResolutionService.VerifyPuuidOwnershipAsync(authenticatedUser!.UserId, puuid);
-                if (!isLinked)
+                // Resolve selected account from server-side linked accounts.
+                // accountId can be null (defaults to primary), a specific opaque accountId, or "all".
+                // This endpoint requires a single account context.
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authenticatedUser!.UserId, accountId);
+                if (accountError != null)
+                    return accountError;
+
+                if (resolvedAccounts == null || resolvedAccounts.Count != 1)
                 {
-                    logger.LogWarning("Match narrative: user {UserId} attempted to access data for unowned puuid {Puuid}",
-                        authenticatedUser.UserId, LogSanitizer.HashForLog(puuid));
-                    return Results.Forbid();
+                    return Results.BadRequest(new { error = "accountId must resolve to a single account" });
                 }
 
-                logger.LogInformation("Match narrative request: matchId={MatchId}, puuid={Puuid}",
-                    LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(puuid));
+                var selectedPuuid = resolvedAccounts[0].Account.Puuid;
+
+                logger.LogInformation("Match narrative request: matchId={MatchId}, account={Account}",
+                    LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(accountId, "primary"));
 
                 // Fetch all participants for this match
                 var participants = await matchesRepo.GetMatchParticipantsAsync(matchId);
@@ -72,11 +72,11 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                 }
 
                 // Find the user's team
-                var userParticipant = participants.FirstOrDefault(p => p.Puuid == puuid);
+                var userParticipant = participants.FirstOrDefault(p => p.Puuid == selectedPuuid);
                 if (userParticipant == null)
                 {
-                    logger.LogWarning("Match narrative: user puuid {Puuid} not found in match {MatchId}",
-                        LogSanitizer.HashForLog(puuid), LogSanitizer.Sanitize(matchId));
+                    logger.LogWarning("Match narrative: selected account {Account} not found in match {MatchId}",
+                        LogSanitizer.HashForLog(accountId, "primary"), LogSanitizer.Sanitize(matchId));
                     return Results.NotFound(new { error = "User not found in this match" });
                 }
 

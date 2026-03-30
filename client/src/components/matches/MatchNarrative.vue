@@ -117,6 +117,10 @@ const props = defineProps({
   matchId: {
     type: String,
     default: null
+  },
+  accountId: {
+    type: String,
+    default: null
   }
 })
 
@@ -128,18 +132,23 @@ const error = ref(null)
 const narrativeData = ref(null)
 const expandedRole = ref(null)
 
-// Watch both matchId and puuid - puuid may be populated asynchronously after mount
-const puuid = computed(() => authStore.primaryRiotAccount?.puuid)
+const selectedPuuid = computed(() => {
+  const accountId = props.accountId
+  if (!accountId) return null
+
+  const account = authStore.riotAccounts.find(a => a.accountId === accountId)
+  return account?.puuid ?? null
+})
 
 watch(
-  [() => props.matchId, puuid],
-  async ([newMatchId, newPuuid]) => {
+  [() => props.matchId, () => props.accountId, selectedPuuid],
+  async ([newMatchId, newAccountId, newPuuid]) => {
     if (!newMatchId) {
       narrativeData.value = null
       return
     }
 
-    if (!newPuuid) {
+    if (!newAccountId || !newPuuid) {
       error.value = 'No linked Riot account'
       return
     }
@@ -148,7 +157,7 @@ watch(
     error.value = null
 
     try {
-      narrativeData.value = await getMatchNarrative(newMatchId, newPuuid)
+      narrativeData.value = await getMatchNarrative(newMatchId, newAccountId)
     } catch (err) {
       console.error('Failed to fetch match narrative:', err)
       error.value = err.message || 'Failed to load lane matchups'
@@ -180,7 +189,7 @@ function isUserRole(role) {
 
 // Check if the participant is the user (for ARAM where roles are all UNKNOWN)
 function isUserChampion(participant) {
-  return participant?.puuid === puuid.value
+  return participant?.puuid === selectedPuuid.value
 }
 
 // ARAM participants grouped by team, sorted by damage share

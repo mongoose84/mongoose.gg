@@ -32,7 +32,7 @@
           <ImpactStats :match="match" />
           <MatchActions />
         </div>
-        <MatchNarrative :matchId="match?.matchId" />
+        <MatchNarrative :matchId="match?.matchId" :account-id="accountId" />
         <StatSnapshot :match="match" :baseline="baseline" />
       </div>
     </div>
@@ -58,6 +58,10 @@ const props = defineProps({
     type: Object,
     default: null
     // Expected: RoleBaseline for the selected match's role
+  },
+  accountId: {
+    type: String,
+    default: null
   },
   loading: {
     type: Boolean,

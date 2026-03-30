@@ -12,6 +12,9 @@ namespace Mongoose.Api.Tests;
 /// </summary>
 public class MatchEndpointTests
 {
+    private static string BuildAccountId(long userId, string puuid) =>
+        Mongoose.Api.Application.Services.PuuidResolutionService.BuildAccountId(userId, puuid);
+
     private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
     {
         using var loginClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -183,13 +186,13 @@ public class MatchEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await client.GetAsync("/api/v2/matches/NA1_12345/details?puuid=test-puuid");
+        var response = await client.GetAsync("/api/v2/matches/NA1_12345/details");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task MatchDetails_returns_bad_request_when_puuid_missing()
+    public async Task MatchDetails_returns_not_found_when_no_riot_accounts()
     {
         using var factory = new TestWebApplicationFactory();
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
@@ -200,11 +203,11 @@ public class MatchEndpointTests
 
         var response = await client.SendAsync(req);
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task MatchDetails_returns_forbidden_when_puuid_not_owned()
+    public async Task MatchDetails_returns_forbidden_when_account_not_owned()
     {
         using var factory = new TestWebApplicationFactory();
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
@@ -213,8 +216,8 @@ public class MatchEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        // Trying to access with an unowned puuid
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/details?puuid=unowned-puuid");
+    // Trying to access with an unowned accountId
+    using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/details?accountId=acc_unowned");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -233,9 +236,10 @@ public class MatchEndpointTests
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-secondary", "Alt", "NA1", "Alt#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-primary", isPrimary: true);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-secondary", isPrimary: false);
+        var secondaryAccountId = BuildAccountId(1, "test-puuid-secondary");
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/details?puuid=test-puuid-secondary");
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_12345/details?accountId={secondaryAccountId}");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -254,6 +258,7 @@ public class MatchEndpointTests
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-secondary", "Alt", "NA1", "Alt#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-primary", isPrimary: true);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-secondary", isPrimary: false);
+        var secondaryAccountId = BuildAccountId(1, "test-puuid-secondary");
 
         factory.MatchesRepository.AddMatch("NA1_12345", queueId: 420);
         factory.MatchesRepository.AddParticipant(new FakeParticipantData(
@@ -276,7 +281,7 @@ public class MatchEndpointTests
         ));
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/details?puuid=test-puuid-secondary");
+    using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_12345/details?accountId={secondaryAccountId}");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -297,9 +302,10 @@ public class MatchEndpointTests
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        var accountId = BuildAccountId(1, "test-puuid-123");
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NONEXISTENT/details?puuid=test-puuid-123");
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NONEXISTENT/details?accountId={accountId}");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -315,6 +321,7 @@ public class MatchEndpointTests
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        var accountId = BuildAccountId(1, "test-puuid-123");
 
         factory.MatchesRepository.AddMatch("NA1_12345", queueId: 420);
         factory.MatchesRepository.AddParticipant(new FakeParticipantData(
@@ -337,7 +344,7 @@ public class MatchEndpointTests
         ));
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/details?puuid=test-puuid-123");
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_12345/details?accountId={accountId}");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -362,13 +369,13 @@ public class MatchEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await client.GetAsync("/api/v2/matches/NA1_12345/narrative?puuid=test-puuid");
+        var response = await client.GetAsync("/api/v2/matches/NA1_12345/narrative");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task MatchNarrative_returns_bad_request_when_puuid_missing()
+    public async Task MatchNarrative_returns_not_found_when_no_riot_accounts()
     {
         using var factory = new TestWebApplicationFactory();
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
@@ -379,11 +386,11 @@ public class MatchEndpointTests
 
         var response = await client.SendAsync(req);
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task MatchNarrative_returns_forbidden_when_puuid_not_owned()
+    public async Task MatchNarrative_returns_forbidden_when_account_not_owned()
     {
         using var factory = new TestWebApplicationFactory();
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
@@ -392,7 +399,7 @@ public class MatchEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/narrative?puuid=unowned-puuid");
+    using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/narrative?accountId=acc_unowned");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -408,9 +415,10 @@ public class MatchEndpointTests
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        var accountId = BuildAccountId(1, "test-puuid-123");
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NONEXISTENT/narrative?puuid=test-puuid-123");
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NONEXISTENT/narrative?accountId={accountId}");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -426,6 +434,7 @@ public class MatchEndpointTests
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        var accountId = BuildAccountId(1, "test-puuid-123");
 
         // Add match but without the user's puuid
         factory.MatchesRepository.AddMatch("NA1_12345", queueId: 420);
@@ -446,7 +455,7 @@ public class MatchEndpointTests
         ));
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/narrative?puuid=test-puuid-123");
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_12345/narrative?accountId={accountId}");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -462,6 +471,7 @@ public class MatchEndpointTests
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        var accountId = BuildAccountId(1, "test-puuid-123");
 
         factory.MatchesRepository.AddMatch("NA1_12345", queueId: 420);
 
@@ -490,7 +500,7 @@ public class MatchEndpointTests
         ));
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/narrative?puuid=test-puuid-123");
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_12345/narrative?accountId={accountId}");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);
@@ -512,6 +522,7 @@ public class MatchEndpointTests
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        var accountId = BuildAccountId(1, "test-puuid-123");
 
         factory.MatchesRepository.AddMatch("NA1_ARAM123", queueId: 450);
 
@@ -528,7 +539,7 @@ public class MatchEndpointTests
         ));
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_ARAM123/narrative?puuid=test-puuid-123");
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_ARAM123/narrative?accountId={accountId}");
         req.Headers.Add("Cookie", authCookie);
 
         var response = await client.SendAsync(req);

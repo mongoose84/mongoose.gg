@@ -736,11 +736,14 @@ export async function getMatchList(userId, queueType = 'all') {
  * Get full match details for a single match (on-demand)
  * Called when user selects a match from the list
  * @param {string} matchId - The match ID
- * @param {string} puuid - The user's PUUID
+ * @param {string} [accountId] - Opaque account identifier (acc_...). Defaults to active account context.
  * @returns {Promise<{ match: Object, baseline: Object | null } | null>}
  */
-export async function getMatchDetails(matchId, puuid) {
-  const params = new URLSearchParams({ puuid })
+export async function getMatchDetails(matchId, accountId = getAccountParam()) {
+  const params = new URLSearchParams()
+  if (accountId) {
+    params.append('accountId', accountId)
+  }
   const endpoint = `/matches/${matchId}/details?${params.toString()}`
   const response = await apiRequest(endpoint, { method: 'GET' })
 
@@ -825,11 +828,14 @@ export async function changePassword({ currentPassword, newPassword }) {
 /**
  * Get match narrative (lane matchups) for a specific match
  * @param {string} matchId - The match ID
- * @param {string} puuid - The user's PUUID
+ * @param {string} [accountId] - Opaque account identifier (acc_...). Defaults to active account context.
  * @returns {Promise<{ matchId: string, laneMatchups: Array } | null>}
  */
-export async function getMatchNarrative(matchId, puuid) {
-  const params = new URLSearchParams({ puuid })
+export async function getMatchNarrative(matchId, accountId = getAccountParam()) {
+  const params = new URLSearchParams()
+  if (accountId) {
+    params.append('accountId', accountId)
+  }
   const endpoint = `/matches/${matchId}/narrative?${params.toString()}`
   const response = await apiRequest(endpoint, { method: 'GET' })
 
