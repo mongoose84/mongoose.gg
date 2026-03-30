@@ -86,7 +86,7 @@ public class DeathsTrendEndpointTests
             .ToArray();
 
         accountNames.Should().OnlyContain(name => !string.IsNullOrWhiteSpace(name));
-        accountNames.Should().Contain("MainPlayer");
-        accountNames.Should().Contain("AltPlayer");
+        accountNames.Should().Contain("MainPlayer#NA1");
+        accountNames.Should().Contain("AltPlayer#NA1");
     }
 }
