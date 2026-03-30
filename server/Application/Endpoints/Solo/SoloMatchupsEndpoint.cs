@@ -48,7 +48,7 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
 
                 // Fetch matchups data
                 logger.LogInformation("Solo matchups request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    authorizedUser.UserId, LogSanitizer.HashForLog(primaryPuuid), LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), LogSanitizer.HashForLog(primaryPuuid), LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
                 var matchups = await matchupRepo.GetChampionMatchupsAsync(primaryPuuid, queueType, timeRange);
 
                 return Results.Ok(matchups);

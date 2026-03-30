@@ -61,7 +61,7 @@ public sealed class MatchActivityEndpoint : IEndpoint
                 );
 
                 logger.LogInformation("Match activity: userId={UserId}, accountCount={AccountCount}, totalMatches={Total}", 
-                    authorizedUser.UserId, puuids.Count, totalMatches);
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), puuids.Count, totalMatches);
 
                 return Results.Ok(response);
             }

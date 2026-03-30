@@ -66,7 +66,7 @@ public sealed class DeathPositionsEndpoint : IEndpoint
                 // Fetch death positions data
                 logger.LogInformation(
                     "Death positions request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, side={Side}, account={Account}",
-                    authorizedUser.UserId, puuids.Count,
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), puuids.Count,
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",
                     LogSanitizer.Sanitize(side) ?? "all",

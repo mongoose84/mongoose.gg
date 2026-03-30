@@ -60,7 +60,7 @@ public sealed class DeathsTrendEndpoint : IEndpoint
 
                 // Fetch deaths trend data
                 logger.LogInformation("Deaths trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
-                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
 
                 var (dataPoints, averageDeaths, overallAverage, trend) = await trendRepo.GetDeathsTrendAsync(puuids, queueType, timeRange, validatedLimit, puuidToGameName);
 
