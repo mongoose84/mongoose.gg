@@ -32,8 +32,10 @@ namespace Mongoose.Api.Application.Endpoints.Diagnostics
                 var smtpHostFromConfig = config["Email:SmtpHost"];
                 var isSmtpConfigured = !string.IsNullOrWhiteSpace(smtpHostFromEnv) || !string.IsNullOrWhiteSpace(smtpHostFromConfig);
 
-                // Get configuration source details (without exposing actual values)
-                var configSources = GetConfigurationSources(config);
+                // Only expose detailed configuration-source diagnostics in Development.
+                var configSources = IsDevelopmentEnvironment()
+                    ? GetConfigurationSources(config)
+                    : new { redacted = true };
 
                 var diagnostics = new
                 {
@@ -82,14 +84,6 @@ namespace Mongoose.Api.Application.Endpoints.Diagnostics
             // Mask sensitive values - only show if they exist, not the actual values
             string MaskValue(string? value) => string.IsNullOrWhiteSpace(value) ? "NOT_SET" : $"SET ({value.Length} chars)";
 
-            // Show first few chars to help debug (safe for connection strings that start with "Server=")
-            string MaskValueWithPrefix(string? value)
-            {
-                if (string.IsNullOrWhiteSpace(value)) return "NOT_SET";
-                var prefix = value.Length > 10 ? value.Substring(0, 10) : value;
-                return $"SET ({value.Length} chars, starts with '{prefix}...')";
-            }
-
             var dbKey = isProduction ? "Database_production" : "Database_test";
             var dbFromConfig = config.GetConnectionString(dbKey);
             var dbDirect = config["ConnectionStrings:" + dbKey];
@@ -99,10 +93,10 @@ namespace Mongoose.Api.Application.Endpoints.Diagnostics
                 database = new
                 {
                     expectedKey = dbKey,
-                    connectionStringFromConfig = MaskValueWithPrefix(dbFromConfig),
-                    connectionStringDirect = MaskValueWithPrefix(dbDirect),
+                    connectionStringFromConfig = MaskValue(dbFromConfig),
+                    connectionStringDirect = MaskValue(dbDirect),
                     fromEnvironmentVariable = MaskValue(Environment.GetEnvironmentVariable(dbKey)),
-                    secretsValue = MaskValueWithPrefix(Secrets.DatabaseConnectionString),
+                    secretsValue = MaskValue(Secrets.DatabaseConnectionString),
                     // Debug: Show what Secrets.Initialize would have seen
                     debugInfo = new
                     {
@@ -141,5 +135,8 @@ namespace Mongoose.Api.Application.Endpoints.Diagnostics
             var aspnetEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             return !string.IsNullOrWhiteSpace(aspnetEnv) ? aspnetEnv : "Production";
         }
+
+        private static bool IsDevelopmentEnvironment() =>
+            string.Equals(GetEnvironment(), "Development", StringComparison.OrdinalIgnoreCase);
     }
 }

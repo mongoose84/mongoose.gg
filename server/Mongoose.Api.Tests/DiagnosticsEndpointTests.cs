@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
@@ -114,6 +115,28 @@ public class DiagnosticsEndpointTests
         var m2 = p2!.metrics.metricHits;
 
         m2.Should().Be(m1 + 1);
+    }
+
+    [Fact]
+    public async Task Diagnostics_redacts_configuration_sources_outside_development()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        payload.RootElement
+            .GetProperty("configurationSources")
+            .GetProperty("redacted")
+            .GetBoolean()
+            .Should()
+            .BeTrue();
     }
 
     public record DiagnosticsResponse(string environment, DateTime timestamp, string build, Configuration configuration, Metrics metrics, string[] notes);
