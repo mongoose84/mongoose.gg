@@ -506,6 +506,10 @@ public class MatchEndpointTests
         var response = await client.SendAsync(req);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var rawJson = await response.Content.ReadAsStringAsync();
+        rawJson.Should().NotContain("\"puuid\"");
+        rawJson.Should().Contain("\"isUserParticipant\"");
+
         var body = await response.Content.ReadFromJsonAsync<MatchNarrativeResponse>();
         body.Should().NotBeNull();
         body!.MatchId.Should().Be("NA1_12345");

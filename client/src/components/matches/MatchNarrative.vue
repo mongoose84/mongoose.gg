@@ -23,8 +23,8 @@
         <!-- Your Team -->
         <div class="team-header ally">Your Team</div>
         <div
-          v-for="participant in allyParticipants"
-          :key="participant.puuid"
+          v-for="(participant, index) in allyParticipants"
+          :key="`ally-${index}-${participant.championId}`"
           class="aram-player-row"
           :class="{ 'user-row': isUserChampion(participant) }"
         >
@@ -40,8 +40,8 @@
         <!-- Enemy Team -->
         <div class="team-header enemy">Enemy Team</div>
         <div
-          v-for="participant in enemyParticipants"
-          :key="participant.puuid"
+          v-for="(participant, index) in enemyParticipants"
+          :key="`enemy-${index}-${participant.championId}`"
           class="aram-player-row enemy"
         >
           <img :src="participant.championIconUrl" :alt="participant.championName" class="champion-icon" />
@@ -106,7 +106,6 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { useAuthStore } from '../../stores/authStore'
 import { getMatchNarrative } from '../../services/authApi'
 import { trackLaneExpand } from '../../services/analyticsApi'
 import { formatRole, formatKdaFromParticipant as formatKda, formatPercent } from '@/utils/formatters'
@@ -124,31 +123,21 @@ const props = defineProps({
   }
 })
 
-const authStore = useAuthStore()
-
 // State
 const loading = ref(false)
 const error = ref(null)
 const narrativeData = ref(null)
 const expandedRole = ref(null)
 
-const selectedPuuid = computed(() => {
-  const accountId = props.accountId
-  if (!accountId) return null
-
-  const account = authStore.riotAccounts.find(a => a.accountId === accountId)
-  return account?.puuid ?? null
-})
-
 watch(
-  [() => props.matchId, () => props.accountId, selectedPuuid],
-  async ([newMatchId, newAccountId, newPuuid]) => {
+  [() => props.matchId, () => props.accountId],
+  async ([newMatchId, newAccountId]) => {
     if (!newMatchId) {
       narrativeData.value = null
       return
     }
 
-    if (!newAccountId || !newPuuid) {
+    if (!newAccountId) {
       error.value = 'No linked Riot account'
       return
     }
@@ -189,7 +178,7 @@ function isUserRole(role) {
 
 // Check if the participant is the user (for ARAM where roles are all UNKNOWN)
 function isUserChampion(participant) {
-  return participant?.puuid === selectedPuuid.value
+  return participant?.isUserParticipant === true
 }
 
 // ARAM participants grouped by team, sorted by damage share

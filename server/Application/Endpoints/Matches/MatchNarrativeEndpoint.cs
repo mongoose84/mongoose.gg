@@ -90,11 +90,11 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
                 LaneMatchup[] matchups;
                 if (isAram)
                 {
-                    matchups = CreateAramMatchups(participants, userTeamId);
+                    matchups = CreateAramMatchups(participants, userTeamId, selectedPuuid);
                 }
                 else
                 {
-                    matchups = CreateLaneMatchups(participants, userTeamId);
+                    matchups = CreateLaneMatchups(participants, userTeamId, selectedPuuid);
                 }
 
                 var response = new MatchNarrativeResponse(matchId, userRole, matchups, isAram);
@@ -110,7 +110,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
         endpoint.RequireAuthorization();
     }
 
-    private LaneMatchup[] CreateLaneMatchups(IList<MatchupParticipantRaw> participants, int userTeamId)
+    private LaneMatchup[] CreateLaneMatchups(IList<MatchupParticipantRaw> participants, int userTeamId, string selectedPuuid)
     {
         var roles = new[] { "TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY" };
         var matchups = new List<LaneMatchup>();
@@ -127,8 +127,8 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
 
             matchups.Add(new LaneMatchup(
                 Role: role,
-                AllyParticipant: ToMatchupParticipant(ally),
-                EnemyParticipant: ToMatchupParticipant(enemy),
+                AllyParticipant: ToMatchupParticipant(ally, selectedPuuid),
+                EnemyParticipant: ToMatchupParticipant(enemy, selectedPuuid),
                 LaneWinner: laneWinner
             ));
         }
@@ -140,7 +140,7 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
     /// Creates 5v5 matchups for ARAM games by pairing participants by damage share rank.
     /// Highest damage dealer on ally team faces highest on enemy team, etc.
     /// </summary>
-    private LaneMatchup[] CreateAramMatchups(IList<MatchupParticipantRaw> participants, int userTeamId)
+    private LaneMatchup[] CreateAramMatchups(IList<MatchupParticipantRaw> participants, int userTeamId, string selectedPuuid)
     {
         // Sort each team by damage share (highest first)
         var allies = participants
@@ -166,8 +166,8 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
 
             matchups.Add(new LaneMatchup(
                 Role: $"ARAM_{i + 1}",  // ARAM_1, ARAM_2, etc.
-                AllyParticipant: ToMatchupParticipant(ally),
-                EnemyParticipant: ToMatchupParticipant(enemy),
+                AllyParticipant: ToMatchupParticipant(ally, selectedPuuid),
+                EnemyParticipant: ToMatchupParticipant(enemy, selectedPuuid),
                 LaneWinner: laneWinner
             ));
         }
@@ -223,8 +223,8 @@ public sealed class MatchNarrativeEndpoint : IEndpoint
         return "even";
     }
 
-    private MatchupParticipant ToMatchupParticipant(MatchupParticipantRaw raw) => new(
-        Puuid: raw.Puuid,
+    private MatchupParticipant ToMatchupParticipant(MatchupParticipantRaw raw, string selectedPuuid) => new(
+        IsUserParticipant: raw.Puuid == selectedPuuid,
         SummonerName: "", // Not available in current data - could be added later
         ChampionId: raw.ChampionId,
         ChampionName: raw.ChampionName,
