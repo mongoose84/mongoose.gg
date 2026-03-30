@@ -29,7 +29,7 @@ Stores application user accounts and authentication credentials.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `user_id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique user identifier |
+| `user_id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique user identifier |
 | `email` | VARCHAR(255) | UNIQUE NOT NULL | User email address (login) |
 | `username` | VARCHAR(50) | UNIQUE NOT NULL | Display username |
 | `password_hash` | VARCHAR(255) | NOT NULL | Bcrypt/Argon2 hashed password |
@@ -137,8 +137,8 @@ Tracks user subscription status, tier, and billing information.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `subscription_id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique subscription record ID |
-| `user_id` | BIGINT | NOT NULL | Foreign key to users |
+| `subscription_id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique subscription record ID |
+| `user_id` | BIGINT UNSIGNED | NOT NULL | Foreign key to users |
 | `tier` | ENUM('free', 'pro') | NOT NULL | Subscription tier |
 | `status` | ENUM('active', 'trialing', 'past_due', 'canceled', 'paused') | NOT NULL | Current subscription status |
 | `mollie_subscription_id` | VARCHAR(255) | NULL | Mollie subscription identifier |
@@ -186,8 +186,8 @@ Audit log of subscription lifecycle events.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `event_id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique event record ID |
-| `subscription_id` | BIGINT | NOT NULL | Foreign key to subscriptions |
+| `event_id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique event record ID |
+| `subscription_id` | BIGINT UNSIGNED | NOT NULL | Foreign key to subscriptions |
 | `event_type` | VARCHAR(50) | NOT NULL | Event type (created, updated, canceled, etc.) |
 | `old_tier` | ENUM('free', 'pro') | NULL | Previous tier (for upgrades/downgrades) |
 | `new_tier` | ENUM('free', 'pro') | NULL | New tier |
@@ -290,7 +290,7 @@ Per-player, per-match base statistics.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique participant record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique participant record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
 | `puuid` | VARCHAR(78) | NOT NULL | Foreign key to riot_accounts |
 | `team_id` | INT | NOT NULL | Team identifier (100 or 200) |
@@ -339,8 +339,8 @@ Gold, CS, and XP snapshots at key minute marks for tracking leads and deficits.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique checkpoint record ID |
-| `participant_id` | BIGINT | NOT NULL | Foreign key to participants |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique checkpoint record ID |
+| `participant_id` | BIGINT UNSIGNED | NOT NULL | Foreign key to participants |
 | `minute_mark` | INT | NOT NULL | Minute of the game (10, 15, 20, 25, etc.) |
 | `gold` | INT | NOT NULL | Total gold at this minute |
 | `cs` | INT | NOT NULL | Total CS at this minute |
@@ -375,8 +375,8 @@ Advanced calculated metrics for damage, vision, and death timing analysis.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique metrics record ID |
-| `participant_id` | BIGINT | NOT NULL UNIQUE | Foreign key to participants (1:1) |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique metrics record ID |
+| `participant_id` | BIGINT UNSIGNED | NOT NULL UNIQUE | Foreign key to participants (1:1) |
 | `kill_participation_pct` | DECIMAL(5,2) | NOT NULL | (kills + assists) / team kills * 100 |
 | `damage_share_pct` | DECIMAL(5,2) | NOT NULL | damage dealt / team damage * 100 |
 | `damage_taken` | INT | NOT NULL | Total damage taken |
@@ -415,7 +415,7 @@ Team-level objective counts per match.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique team objectives record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique team objectives record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
 | `team_id` | INT | NOT NULL | Team identifier (100 or 200) |
 | `dragons_taken` | INT | NOT NULL | Total dragons killed |
@@ -444,8 +444,8 @@ Individual player participation in objectives.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique participant objectives record ID |
-| `participant_id` | BIGINT | NOT NULL UNIQUE | Foreign key to participants (1:1) |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique participant objectives record ID |
+| `participant_id` | BIGINT UNSIGNED | NOT NULL UNIQUE | Foreign key to participants (1:1) |
 | `dragons_participated` | INT | NOT NULL | Dragons killed or assisted |
 | `heralds_participated` | INT | NOT NULL | Heralds killed or assisted |
 | `barons_participated` | INT | NOT NULL | Barons killed or assisted |
@@ -474,10 +474,10 @@ Synergy and performance metrics for two-player pairs.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique duo metrics record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique duo metrics record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
-| `participant_id_1` | BIGINT | NOT NULL | Foreign key to participants |
-| `participant_id_2` | BIGINT | NOT NULL | Foreign key to participants |
+| `participant_id_1` | BIGINT UNSIGNED | NOT NULL | Foreign key to participants |
+| `participant_id_2` | BIGINT UNSIGNED | NOT NULL | Foreign key to participants |
 | `early_gold_delta_10` | INT | NULL | Combined gold lead at 10 min |
 | `early_gold_delta_15` | INT | NULL | Combined gold lead at 15 min |
 | `assist_synergy_pct` | DECIMAL(5,2) | NULL | % of kills where both participated |
@@ -512,7 +512,7 @@ Per-match, per-team aggregated metrics for 5-player team analysis.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique team match metrics record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique team match metrics record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
 | `team_id` | INT | NOT NULL | Team identifier (100 or 200) |
 | `gold_lead_at_15` | INT | NULL | Team gold lead at 15 minutes |
@@ -541,7 +541,7 @@ Role-specific contributions within a team for a match.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique team role record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique team role record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
 | `team_id` | INT | NOT NULL | Team identifier (100 or 200) |
 | `role` | VARCHAR(20) | NOT NULL | Role (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY) |
@@ -573,7 +573,7 @@ Pre-aggregated statistical summaries for AI goal recommendation inputs.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique AI snapshot record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique AI snapshot record ID |
 | `puuid` | VARCHAR(78) | NOT NULL | Foreign key to riot_accounts (solo) |
 | `context_type` | ENUM('solo', 'duo', 'team') | NOT NULL | Analysis context |
 | `context_puuids` | JSON | NULL | Array of puuids for duo/team context |

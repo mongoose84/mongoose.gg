@@ -90,7 +90,7 @@ public sealed class MyEndpoint : IEndpoint
 }
 ```
 
-**CRITICAL**: Never expose PUUIDs to clients. Always resolve from User ID.
+**CRITICAL**: Data endpoints must never accept PUUID as client input — always resolve PUUID server-side from User ID via `IUserRiotAccountsRepository`. Own-account management sub-routes may use PUUID as a URL sub-resource key when scoped to the authenticated user.
 
 ## DTOs and Records
 
@@ -302,7 +302,7 @@ Before submitting code:
 - [ ] Endpoint implements `IEndpoint` and registered in `MongooseApiApplication.cs`
 - [ ] DTOs use records with `[JsonPropertyName]`
 - [ ] User input sanitized in all log statements
-- [ ] PUUID resolved from User ID (never exposed to client)
+- [ ] Data endpoints resolve PUUID from User ID (never accept PUUID as client input on data queries)
 - [ ] Error responses use standard format with error codes
 - [ ] PII encrypted via `IEncryptor`
 - [ ] Query filtering uses `IQueryFilterBuilder`

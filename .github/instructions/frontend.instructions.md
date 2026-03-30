@@ -27,7 +27,7 @@ Every component must use `<script setup>` and handle all 4 states: loading, erro
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
   data: { type: Array, default: () => [] },
@@ -36,7 +36,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update', 'close', 'error'])
 
-const isLoading = ref(false)
+const isLoading = computed(() => props.loading)
 const error = ref(null)
 const hasData = computed(() => props.data?.length > 0)
 </script>

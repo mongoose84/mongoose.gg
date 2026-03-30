@@ -32,7 +32,7 @@ Mongoose.gg is a League of Legends performance analytics platform helping solo p
 ## Universal Rules
 
 ### Security (Non-Negotiable)
-- **PUUIDs are server-internal only** — all data endpoints resolve PUUID from User ID via `IUserRiotAccountsRepository`. Never expose PUUIDs to clients.
+- **PUUID exposure is bounded** — analytics/data endpoints must never accept PUUID as client input; always resolve PUUID server-side via `IUserRiotAccountsRepository`. Own-account management sub-routes (`/users/me/riot-accounts/{puuid}/sync`, `/primary`, etc.) may use PUUID as a sub-resource key because they are scoped to the authenticated user. The opaque `accountId` (built by `PuuidResolutionService`) is the preferred identifier for multi-account selection on analytics endpoints.
 - **Log sanitization** — all user/external input must be sanitized via `LogSanitizer.Sanitize()` before logging. No exceptions.
 - **PII encrypted at rest** — email and username use `IEncryptor` (AES-256). Riot API keys and DB credentials in env vars only.
 - **Auth on every data endpoint** — verify `ClaimTypes.NameIdentifier` matches route `userId`. Use `AuthResults` helper for 401/403.
