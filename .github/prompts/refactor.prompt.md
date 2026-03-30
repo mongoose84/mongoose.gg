@@ -1,16 +1,16 @@
 ---
 agent: agent
-model: Claude Sonnet 4.5 (copilot)
+model: Claude Sonnet 4.6
 tools: ['file-search', 'semantic-search', 'codebase', 'editFiles', 'runTests']
 description: 'Code refactoring workflow with safety checks'
 ---
 # Code Refactoring Workflow
 
 ## Context Loading Phase
-1. Review [target code](${targetFile})
-2. Identify all [usages](semantic-search "function_name")
-3. Check [test coverage](${testFiles})
-4. Review [related documentation](../../docs/)
+1. Review the target code provided by the user
+2. Search the codebase for all usages of the target code
+3. Find and review related test files
+4. Review [architecture spec](../specs/architecture.spec.md) for relevant conventions
 
 ## Refactoring Planning
 ### Analysis

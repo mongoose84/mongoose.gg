@@ -29,7 +29,7 @@ Stores application user accounts and authentication credentials.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `user_id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique user identifier |
+| `user_id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique user identifier |
 | `email` | VARCHAR(255) | UNIQUE NOT NULL | User email address (login) |
 | `username` | VARCHAR(50) | UNIQUE NOT NULL | Display username |
 | `password_hash` | VARCHAR(255) | NOT NULL | Bcrypt/Argon2 hashed password |
@@ -62,46 +62,72 @@ Stores application user accounts and authentication credentials.
 
 ### `riot_accounts`
 
-Stores Riot account identity information linked to user accounts.
+Stores Riot account identity information. Linked to users via the `user_riot_accounts` junction table (M:M).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `puuid` | VARCHAR(78) | PRIMARY KEY | Riot Player Universally Unique Identifier |
-| `user_id` | BIGINT | NOT NULL | Foreign key to users |
 | `game_name` | VARCHAR(100) | NOT NULL | Riot account game name (e.g., "Faker") |
 | `tag_line` | VARCHAR(10) | NOT NULL | Riot account tag line (e.g., "KR1") |
 | `summoner_name` | VARCHAR(100) | NOT NULL | Display name (game_name#tag_line) |
 | `region` | VARCHAR(10) | NOT NULL | Region code (e.g., 'na1', 'euw1') |
-| `is_primary` | BOOLEAN | DEFAULT FALSE | Whether this is the user's primary account |
+| `summoner_id` | VARCHAR(100) | NULL | Riot summoner ID |
 | `sync_status` | ENUM('pending', 'syncing', 'completed', 'failed') | DEFAULT 'pending' | Match sync status |
 | `sync_progress` | INT | NOT NULL DEFAULT 0 | Number of matches synced in current operation |
 | `sync_total` | INT | NOT NULL DEFAULT 0 | Total number of matches to sync in current operation |
+| `profile_icon_id` | INT | NULL | Summoner profile icon ID |
+| `summoner_level` | INT | NULL | Summoner level |
+| `solo_tier` | VARCHAR(20) | NULL | Solo queue tier |
+| `solo_rank` | VARCHAR(10) | NULL | Solo queue rank |
+| `solo_lp` | INT | NULL | Solo queue LP |
+| `flex_tier` | VARCHAR(20) | NULL | Flex queue tier |
+| `flex_rank` | VARCHAR(10) | NULL | Flex queue rank |
+| `flex_lp` | INT | NULL | Flex queue LP |
 | `last_sync_at` | TIMESTAMP | NULL | Last successful match sync time |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update time |
 
 **Indexes:**
 - PRIMARY KEY: `puuid`
-- INDEX: `idx_user_id` ON (`user_id`)
 - INDEX: `idx_game_name_tag` ON (`game_name`, `tag_line`)
 - INDEX: `idx_summoner_name` ON (`summoner_name`)
 - INDEX: `idx_region` ON (`region`)
-- INDEX: `idx_user_primary_created` ON (`user_id`, `is_primary`, `created_at`) -- covers ORDER BY is_primary DESC, created_at ASC
-- INDEX: `idx_sync_status` ON (`sync_status`)
 - INDEX: `idx_sync_status_updated` ON (`sync_status`, `updated_at`)
+
+**Notes:**
+- Riot accounts are linked to users via the `user_riot_accounts` junction table (M:M)
+- Multiple users can link the same Riot account
+- `sync_status` tracks match history synchronization state
+- `sync_progress` and `sync_total` track the progress of match history sync jobs
+- `game_name` and `tag_line` reflect Riot ID format (gameName#tagLine)
+
+**Source:** Riot summoner-v4 / account-v1 API
+
+---
+
+### `user_riot_accounts`
+
+Junction table for M:M relationship between users and riot accounts.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `user_id` | BIGINT UNSIGNED | NOT NULL, PK | Foreign key to users |
+| `puuid` | VARCHAR(78) | NOT NULL, PK | Foreign key to riot_accounts |
+| `is_primary` | BOOLEAN | DEFAULT FALSE | Whether this is the user's primary account |
+| `linked_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | When the account was linked |
+
+**Indexes:**
+- PRIMARY KEY: (`user_id`, `puuid`)
+- INDEX: `idx_puuid` ON (`puuid`)
+- INDEX: `idx_user_primary` ON (`user_id`, `is_primary`)
 
 **Foreign Keys:**
 - `user_id` → `users(user_id)` ON DELETE CASCADE
+- `puuid` → `riot_accounts(puuid)` ON DELETE CASCADE
 
 **Notes:**
-- One user can link multiple Riot accounts
-- One Riot account (puuid) belongs to one user
-- `is_primary` flag identifies the main account for the user
-- `sync_status` tracks match history synchronization state
-- `sync_progress` and `sync_total` track the progress of match history sync jobs
-- `game_name` and `tag_line` reflect new Riot ID format (gameName#tagLine)
-
-**Source:** Riot summoner-v4 / account-v1 API
+- Composite primary key enforces unique user-account pairings
+- `is_primary` flag identifies the main account for each user
 
 ---
 
@@ -111,8 +137,8 @@ Tracks user subscription status, tier, and billing information.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `subscription_id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique subscription record ID |
-| `user_id` | BIGINT | NOT NULL | Foreign key to users |
+| `subscription_id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique subscription record ID |
+| `user_id` | BIGINT UNSIGNED | NOT NULL | Foreign key to users |
 | `tier` | ENUM('free', 'pro') | NOT NULL | Subscription tier |
 | `status` | ENUM('active', 'trialing', 'past_due', 'canceled', 'paused') | NOT NULL | Current subscription status |
 | `mollie_subscription_id` | VARCHAR(255) | NULL | Mollie subscription identifier |
@@ -160,8 +186,8 @@ Audit log of subscription lifecycle events.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `event_id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique event record ID |
-| `subscription_id` | BIGINT | NOT NULL | Foreign key to subscriptions |
+| `event_id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique event record ID |
+| `subscription_id` | BIGINT UNSIGNED | NOT NULL | Foreign key to subscriptions |
 | `event_type` | VARCHAR(50) | NOT NULL | Event type (created, updated, canceled, etc.) |
 | `old_tier` | ENUM('free', 'pro') | NULL | Previous tier (for upgrades/downgrades) |
 | `new_tier` | ENUM('free', 'pro') | NULL | New tier |
@@ -264,7 +290,7 @@ Per-player, per-match base statistics.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique participant record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique participant record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
 | `puuid` | VARCHAR(78) | NOT NULL | Foreign key to riot_accounts |
 | `team_id` | INT | NOT NULL | Team identifier (100 or 200) |
@@ -313,8 +339,8 @@ Gold, CS, and XP snapshots at key minute marks for tracking leads and deficits.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique checkpoint record ID |
-| `participant_id` | BIGINT | NOT NULL | Foreign key to participants |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique checkpoint record ID |
+| `participant_id` | BIGINT UNSIGNED | NOT NULL | Foreign key to participants |
 | `minute_mark` | INT | NOT NULL | Minute of the game (10, 15, 20, 25, etc.) |
 | `gold` | INT | NOT NULL | Total gold at this minute |
 | `cs` | INT | NOT NULL | Total CS at this minute |
@@ -349,8 +375,8 @@ Advanced calculated metrics for damage, vision, and death timing analysis.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique metrics record ID |
-| `participant_id` | BIGINT | NOT NULL UNIQUE | Foreign key to participants (1:1) |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique metrics record ID |
+| `participant_id` | BIGINT UNSIGNED | NOT NULL UNIQUE | Foreign key to participants (1:1) |
 | `kill_participation_pct` | DECIMAL(5,2) | NOT NULL | (kills + assists) / team kills * 100 |
 | `damage_share_pct` | DECIMAL(5,2) | NOT NULL | damage dealt / team damage * 100 |
 | `damage_taken` | INT | NOT NULL | Total damage taken |
@@ -389,7 +415,7 @@ Team-level objective counts per match.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique team objectives record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique team objectives record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
 | `team_id` | INT | NOT NULL | Team identifier (100 or 200) |
 | `dragons_taken` | INT | NOT NULL | Total dragons killed |
@@ -418,8 +444,8 @@ Individual player participation in objectives.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique participant objectives record ID |
-| `participant_id` | BIGINT | NOT NULL UNIQUE | Foreign key to participants (1:1) |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique participant objectives record ID |
+| `participant_id` | BIGINT UNSIGNED | NOT NULL UNIQUE | Foreign key to participants (1:1) |
 | `dragons_participated` | INT | NOT NULL | Dragons killed or assisted |
 | `heralds_participated` | INT | NOT NULL | Heralds killed or assisted |
 | `barons_participated` | INT | NOT NULL | Barons killed or assisted |
@@ -448,10 +474,10 @@ Synergy and performance metrics for two-player pairs.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique duo metrics record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique duo metrics record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
-| `participant_id_1` | BIGINT | NOT NULL | Foreign key to participants |
-| `participant_id_2` | BIGINT | NOT NULL | Foreign key to participants |
+| `participant_id_1` | BIGINT UNSIGNED | NOT NULL | Foreign key to participants |
+| `participant_id_2` | BIGINT UNSIGNED | NOT NULL | Foreign key to participants |
 | `early_gold_delta_10` | INT | NULL | Combined gold lead at 10 min |
 | `early_gold_delta_15` | INT | NULL | Combined gold lead at 15 min |
 | `assist_synergy_pct` | DECIMAL(5,2) | NULL | % of kills where both participated |
@@ -486,7 +512,7 @@ Per-match, per-team aggregated metrics for 5-player team analysis.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique team match metrics record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique team match metrics record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
 | `team_id` | INT | NOT NULL | Team identifier (100 or 200) |
 | `gold_lead_at_15` | INT | NULL | Team gold lead at 15 minutes |
@@ -515,7 +541,7 @@ Role-specific contributions within a team for a match.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique team role record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique team role record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
 | `team_id` | INT | NOT NULL | Team identifier (100 or 200) |
 | `role` | VARCHAR(20) | NOT NULL | Role (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY) |
@@ -547,7 +573,7 @@ Pre-aggregated statistical summaries for AI goal recommendation inputs.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | BIGINT | PRIMARY KEY AUTO_INCREMENT | Unique AI snapshot record ID |
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique AI snapshot record ID |
 | `puuid` | VARCHAR(78) | NOT NULL | Foreign key to riot_accounts (solo) |
 | `context_type` | ENUM('solo', 'duo', 'team') | NOT NULL | Analysis context |
 | `context_puuids` | JSON | NULL | Array of puuids for duo/team context |
@@ -586,15 +612,15 @@ Pre-aggregated statistical summaries for AI goal recommendation inputs.
     │  - tier          │
     └────┬─────────┬───┘
          │         │
-         │ 1:1     │ 1:M
+         │ 1:1     │ M:M (via user_riot_accounts)
          │         ▼
          │    ┌─────────────────┐         ┌──────────┐
          │    │ riot_accounts   │         │ seasons  │
          │    │  - puuid (PK)   │         │  - code  │
-         │    │  - user_id (FK) │         └────┬─────┘
-         │    └────────┬────────┘              │
-         │             │                       │ 1:M
-         │             │ 1:M                   │
+         │    └────────┬────────┘         └────┬─────┘
+         │             │                       │
+         │             │ 1:M                   │ 1:M
+         │             │                       │
          ▼             ▼                       ▼
     ┌──────────────────────┐
     │ subscriptions        │
@@ -901,7 +927,7 @@ The current schema is the production schema. Historical migration from earlier v
 ## Acceptance Criteria Summary
 
 ✅ **Consolidated ERD / schema documented in docs/database_schema.md**
-✅ **Tables defined for:** users, subscriptions, subscription_events, riot_accounts, matches, participants, participant_checkpoints, participant_metrics, team_objectives, participant_objectives, duo_metrics, team_match_metrics, team_role_responsibility, ai_snapshots
+✅ **Tables defined for:** users, subscriptions, subscription_events, riot_accounts, user_riot_accounts, matches, participants, participant_checkpoints, participant_metrics, team_objectives, participant_objectives, duo_metrics, team_match_metrics, team_role_responsibility, ai_snapshots
 ✅ **User authentication:** users table with secure password storage (bcrypt/Argon2 hashed)
 ✅ **Subscription management:** subscriptions table with tier tracking, trial support (30 days), Mollie integration, and founding member flags
 ✅ **matches.queue_id present** (numeric Riot queue id) and used for queue filtering across dashboards
