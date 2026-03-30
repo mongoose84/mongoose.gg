@@ -151,7 +151,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
                     var existingIsPrimary = existingLink.Link != null && existingLink.Link.IsPrimary;
                     logger.LogInformation("Account {GameName}#{TagLine} already linked to user {UserId}",
                         LogSanitizer.Sanitize(request.GameName),
-                        LogSanitizer.Sanitize(request.TagLine), userId);
+                        LogSanitizer.Sanitize(request.TagLine), LogSanitizer.Sanitize(userId.Value.ToString()));
 
                     return Results.Ok(new LinkRiotAccountResponse(
                         puuid,
@@ -256,7 +256,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
 
                     logger.LogInformation("Linked existing Riot account {GameName}#{TagLine} (PUUID: {Puuid}) to user {UserId}",
                         LogSanitizer.Sanitize(existingRiotAccount.GameName),
-                        LogSanitizer.Sanitize(existingRiotAccount.TagLine), LogSanitizer.HashForLog(puuid), userId);
+                        LogSanitizer.Sanitize(existingRiotAccount.TagLine), LogSanitizer.HashForLog(puuid), LogSanitizer.Sanitize(userId.Value.ToString()));
 
                     return Results.Created($"{Route}/{puuid}", new LinkRiotAccountResponse(
                         puuid,
@@ -297,7 +297,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
 
                 logger.LogInformation("Created and linked new Riot account {GameName}#{TagLine} (PUUID: {Puuid}) to user {UserId}",
                     LogSanitizer.Sanitize(request.GameName),
-                    LogSanitizer.Sanitize(request.TagLine), LogSanitizer.HashForLog(puuid), userId);
+                    LogSanitizer.Sanitize(request.TagLine), LogSanitizer.HashForLog(puuid), LogSanitizer.Sanitize(userId.Value.ToString()));
 
                 return Results.Created($"{Route}/{puuid}", new LinkRiotAccountResponse(
                     puuid,

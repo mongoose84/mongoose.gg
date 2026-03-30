@@ -28,7 +28,7 @@ public record LaneMatchup(
 /// Participant data for a lane matchup (API response DTO).
 /// </summary>
 public record MatchupParticipant(
-    [property: JsonPropertyName("puuid")] string Puuid,
+    [property: JsonPropertyName("isUserParticipant")] bool IsUserParticipant,
     [property: JsonPropertyName("summonerName")] string SummonerName,
     [property: JsonPropertyName("championId")] int ChampionId,
     [property: JsonPropertyName("championName")] string ChampionName,

@@ -47,6 +47,7 @@
               ref="matchDetailsRef"
               :match="matchDetails"
               :baseline="matchDetailsBaseline"
+              :account-id="matchDetailsAccountId"
               :loading="detailsLoading"
               :error="detailsError"
             />
@@ -88,6 +89,7 @@ const {
 // Match details state (fetched on-demand)
 const matchDetails = ref(null)
 const matchDetailsBaseline = ref(null)
+const matchDetailsAccountId = ref(null)
 const detailsLoading = ref(false)
 const detailsError = ref(null)
 
@@ -95,9 +97,14 @@ function normalizeAccountField(value) {
   return String(value ?? '').trim().toLowerCase()
 }
 
-function getMatchDetailsPuuid(matchId) {
-  if (!authStore.isOverallMode && authStore.activeAccount?.puuid) {
-    return authStore.activeAccount.puuid
+function getSafeAccountId(account) {
+  const id = account?.accountId
+  return typeof id === 'string' && id.startsWith('acc_') ? id : null
+}
+
+function getMatchDetailsAccountId(matchId) {
+  if (!authStore.isOverallMode) {
+    return getSafeAccountId(authStore.activeAccount)
   }
 
   const selectedMatch = data.value?.matches?.find(match => match.matchId === matchId)
@@ -112,12 +119,12 @@ function getMatchDetailsPuuid(matchId) {
         normalizeAccountField(account.region) === selectedRegion
     })
 
-    if (matchedAccount?.puuid) {
-      return matchedAccount.puuid
+    if (matchedAccount) {
+      return getSafeAccountId(matchedAccount)
     }
   }
 
-  return authStore.activeAccount?.puuid ?? authStore.primaryRiotAccount?.puuid ?? null
+  return getSafeAccountId(authStore.activeAccount) ?? getSafeAccountId(authStore.primaryRiotAccount)
 }
 
 // Fetch match list (lightweight summary data)
@@ -141,14 +148,22 @@ async function fetchMatches() {
 
 // Fetch full match details on-demand
 async function fetchMatchDetails(matchId) {
-  const puuid = getMatchDetailsPuuid(matchId)
-  if (!matchId || !puuid) return
+  const accountId = getMatchDetailsAccountId(matchId)
+  if (!matchId || !accountId) {
+    detailsError.value = 'No linked Riot account'
+    matchDetails.value = null
+    matchDetailsBaseline.value = null
+    matchDetailsAccountId.value = null
+    return
+  }
+
+  matchDetailsAccountId.value = accountId
 
   detailsLoading.value = true
   detailsError.value = null
 
   try {
-    const result = await getMatchDetails(matchId, puuid)
+    const result = await getMatchDetails(matchId, accountId)
 
     // Guard against race condition: only update if this is still the selected match
     if (selectedMatchId.value !== matchId) {
@@ -160,6 +175,7 @@ async function fetchMatchDetails(matchId) {
       detailsError.value = 'Match not found'
       matchDetails.value = null
       matchDetailsBaseline.value = null
+      matchDetailsAccountId.value = null
       return
     }
 
@@ -175,6 +191,7 @@ async function fetchMatchDetails(matchId) {
     detailsError.value = err.message || 'Failed to load match details'
     matchDetails.value = null
     matchDetailsBaseline.value = null
+    matchDetailsAccountId.value = null
   } finally {
     // Only clear loading if this is still the selected match
     if (selectedMatchId.value === matchId) {
@@ -204,6 +221,7 @@ watch(selectedMatchId, (newMatchId) => {
   } else {
     matchDetails.value = null
     matchDetailsBaseline.value = null
+    matchDetailsAccountId.value = null
     detailsError.value = null
   }
 })
@@ -213,6 +231,7 @@ watch(queueFilter, (newValue) => {
   selectedMatchId.value = null
   matchDetails.value = null
   matchDetailsBaseline.value = null
+  matchDetailsAccountId.value = null
   detailsError.value = null
   trackFilterChange('queue', newValue)
   fetchMatches()
@@ -222,6 +241,7 @@ watch(() => authStore.activeAccountPuuid, () => {
   selectedMatchId.value = null
   matchDetails.value = null
   matchDetailsBaseline.value = null
+  matchDetailsAccountId.value = null
   detailsError.value = null
   fetchMatches()
 })

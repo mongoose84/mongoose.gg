@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
@@ -16,6 +17,17 @@ public class DiagnosticsEndpointTests
         var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         return AuthCookieTestHelper.GetAuthCookie(response);
+    }
+
+    [Fact]
+    public async Task Diagnostics_returns_unauthorized_when_not_authenticated()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.GetAsync("/api/v2/diagnostics");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -103,6 +115,28 @@ public class DiagnosticsEndpointTests
         var m2 = p2!.metrics.metricHits;
 
         m2.Should().Be(m1 + 1);
+    }
+
+    [Fact]
+    public async Task Diagnostics_redacts_configuration_sources_outside_development()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        payload.RootElement
+            .GetProperty("configurationSources")
+            .GetProperty("redacted")
+            .GetBoolean()
+            .Should()
+            .BeTrue();
     }
 
     public record DiagnosticsResponse(string environment, DateTime timestamp, string build, Configuration configuration, Metrics metrics, string[] notes);

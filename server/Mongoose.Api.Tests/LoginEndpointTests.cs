@@ -55,7 +55,7 @@ public class LoginEndpointTests
         var cookie = cookies!.Single(c => c.Contains("mongoose-auth-test"));
         cookie.Should().ContainEquivalentOf("httponly", "cookie must be httpOnly");
         cookie.Should().ContainEquivalentOf("secure", "cookie must require TLS");
-        cookie.Should().ContainEquivalentOf("samesite=lax", "cookie should default to SameSite Lax");
+        cookie.Should().ContainEquivalentOf("samesite=strict", "cookie should default to SameSite Strict");
 
         var expiresPart = cookie
             .Split(';', StringSplitOptions.RemoveEmptyEntries)

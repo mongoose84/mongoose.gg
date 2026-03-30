@@ -50,7 +50,7 @@ public sealed class ChampionSelectEndpoint : IEndpoint
 
                 // Fetch champion select data (only main champions, games played, win rate)
                 logger.LogInformation("Champion select request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    authorizedUser.UserId, LogSanitizer.HashForLog(primaryPuuid), LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), LogSanitizer.HashForLog(primaryPuuid), LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
                 var championSelectData = await championSelectRepo.GetChampionSelectDataAsync(primaryPuuid, queueType, timeRange);
 
                 if (championSelectData == null)

@@ -61,7 +61,7 @@ public sealed class WinrateTrendEndpoint : IEndpoint
 
                 // Fetch winrate trend data
                 logger.LogInformation("Winrate trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
-                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
 
                 var winrateTrend = await trendRepo.GetWinrateTrendAsync(puuids, queueType, timeRange, validatedLimit, puuidToGameName);
 

@@ -61,7 +61,7 @@ public sealed class DragonParticipationTrendEndpoint : IEndpoint
 
                 // Fetch dragon participation trend data  
                 logger.LogInformation("Dragon participation trend request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}, limit={Limit}",
-                    authorizedUser.UserId, puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), puuids.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all", LogSanitizer.HashForLog(accountId, "primary"), validatedLimit?.ToString() ?? "all");
 
                 var (dataPoints, averageParticipation, overallAverage, trend) = await trendRepo.GetDragonParticipationTrendAsync(puuids, queueType, timeRange, validatedLimit, puuidToGameName);
 

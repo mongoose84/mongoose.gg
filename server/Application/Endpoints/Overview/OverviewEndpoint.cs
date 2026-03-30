@@ -62,7 +62,8 @@ public sealed class OverviewEndpoint : IEndpoint
 
                 var linkedAccountsCount = allAccounts?.Count ?? 1;
 
-                logger.LogInformation("Overview request: userId={UserId}, accountCount={AccountCount}, account={Account}", authorizedUser.UserId, selectedPuuids.Count, LogSanitizer.HashForLog(accountId, "primary"));
+                logger.LogInformation("Overview request: userId={UserId}, accountCount={AccountCount}, account={Account}",
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), selectedPuuids.Count, LogSanitizer.HashForLog(accountId, "primary"));
 
                 // Build player header
                 var profileIconUrl = BuildProfileIconUrl(primaryAccount.ProfileIconId);

@@ -82,6 +82,37 @@ describe('authApi account parameter handling', () => {
     );
   });
 
+  it('getMatchDetails includes explicit accountId query parameter', async () => {
+    await authApi.getMatchDetails('NA1_12345', 'acc_xyz123');
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/matches/NA1_12345/details?accountId=acc_xyz123',
+      { method: 'GET' }
+    );
+  });
+
+  it('getMatchDetails omits accountId when overall mode, letting backend default to primary', async () => {
+    localStorage.setItem('mongoose_active_account', 'overall');
+
+    await authApi.getMatchDetails('NA1_12345');
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/matches/NA1_12345/details',
+      { method: 'GET' }
+    );
+  });
+
+  it('getMatchNarrative omits accountId when overall mode, letting backend default to primary', async () => {
+    localStorage.setItem('mongoose_active_account', 'overall');
+
+    await authApi.getMatchNarrative('NA1_12345');
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/matches/NA1_12345/narrative',
+      { method: 'GET' }
+    );
+  });
+
   it('returns null on 404 responses for data endpoints', async () => {
     localStorage.setItem('mongoose_active_account', 'overall');
     apiRequest.mockResolvedValueOnce({ status: 404, ok: false });

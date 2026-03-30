@@ -48,7 +48,7 @@ public sealed class RadarChartEndpoint : IEndpoint
 
                 logger.LogInformation(
                     "Radar chart request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}",
-                    authorizedUser.UserId,
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()),
                     puuids.Count,
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",

@@ -736,12 +736,16 @@ export async function getMatchList(userId, queueType = 'all') {
  * Get full match details for a single match (on-demand)
  * Called when user selects a match from the list
  * @param {string} matchId - The match ID
- * @param {string} puuid - The user's PUUID
+ * @param {string} [accountId] - Opaque account identifier (acc_...). Defaults to active account context.
+ *   When 'all' (overall mode), omits the parameter so backend defaults to primary account.
  * @returns {Promise<{ match: Object, baseline: Object | null } | null>}
  */
-export async function getMatchDetails(matchId, puuid) {
-  const params = new URLSearchParams({ puuid })
-  const endpoint = `/matches/${matchId}/details?${params.toString()}`
+export async function getMatchDetails(matchId, accountId = getAccountParam()) {
+  const params = new URLSearchParams()
+  if (accountId && accountId !== 'all') {
+    params.append('accountId', accountId)
+  }
+  const endpoint = `/matches/${matchId}/details${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
 
   if (response.status === 404) {
@@ -825,12 +829,16 @@ export async function changePassword({ currentPassword, newPassword }) {
 /**
  * Get match narrative (lane matchups) for a specific match
  * @param {string} matchId - The match ID
- * @param {string} puuid - The user's PUUID
+ * @param {string} [accountId] - Opaque account identifier (acc_...). Defaults to active account context.
+ *   When 'all' (overall mode), omits the parameter so backend defaults to primary account.
  * @returns {Promise<{ matchId: string, laneMatchups: Array } | null>}
  */
-export async function getMatchNarrative(matchId, puuid) {
-  const params = new URLSearchParams({ puuid })
-  const endpoint = `/matches/${matchId}/narrative?${params.toString()}`
+export async function getMatchNarrative(matchId, accountId = getAccountParam()) {
+  const params = new URLSearchParams()
+  if (accountId && accountId !== 'all') {
+    params.append('accountId', accountId)
+  }
+  const endpoint = `/matches/${matchId}/narrative${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
 
   return parseResponse(response, 'Failed to get match narrative')

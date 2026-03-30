@@ -58,7 +58,7 @@ public sealed class SoloPerformanceEndpoint : IEndpoint
 
                 // Fetch performance data
                 logger.LogInformation("Solo performance request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}, account={Account}",
-                    authorizedUser.UserId, puuids.Count,
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), puuids.Count,
                     LogSanitizer.Sanitize(queueType) ?? "all",
                     LogSanitizer.Sanitize(timeRange) ?? "all",
                         LogSanitizer.HashForLog(accountId, "primary"));

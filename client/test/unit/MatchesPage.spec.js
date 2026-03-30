@@ -26,9 +26,9 @@ vi.mock('vue-router', () => ({
 // ── Auth store mock — reactive so watchers fire correctly ──────────────────────
 const mockIsOverallMode = ref(false)
 const mockActiveAccountPuuid = ref('acc_primary')
-const mockActiveAccount = ref({ puuid: 'puuid-primary' })
+const mockActiveAccount = ref({ accountId: 'acc_primary', puuid: 'puuid-primary' })
 const mockRiotAccounts = ref([])
-const mockPrimaryRiotAccount = ref({ puuid: 'puuid-primary' })
+const mockPrimaryRiotAccount = ref({ accountId: 'acc_primary', puuid: 'puuid-primary' })
 
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({
@@ -95,9 +95,9 @@ describe('MatchesPage.vue — MA-07 Overall Mode', () => {
     vi.clearAllMocks()
     mockIsOverallMode.value = false
     mockActiveAccountPuuid.value = 'acc_primary'
-    mockActiveAccount.value = { puuid: 'puuid-primary' }
+    mockActiveAccount.value = { accountId: 'acc_primary', puuid: 'puuid-primary' }
     mockRiotAccounts.value = []
-    mockPrimaryRiotAccount.value = { puuid: 'puuid-primary' }
+    mockPrimaryRiotAccount.value = { accountId: 'acc_primary', puuid: 'puuid-primary' }
     mockGetMatchDetails.mockResolvedValue({ match: { matchId: 'MATCH_1' }, baseline: null })
   })
 
@@ -154,11 +154,11 @@ describe('MatchesPage.vue — MA-07 Overall Mode', () => {
     })
   })
 
-  // ── PUUID resolution for match details ────────────────────────────────────
-  describe('PUUID resolution in getMatchDetailsPuuid', () => {
-    it('uses activeAccount.puuid directly in single-account mode', async () => {
+  // ── Account resolution for match details ───────────────────────────────────
+  describe('account resolution in getMatchDetailsAccountId', () => {
+    it('uses activeAccount.accountId directly in single-account mode', async () => {
       mockIsOverallMode.value = false
-      mockActiveAccount.value = { puuid: 'puuid-single' }
+      mockActiveAccount.value = { accountId: 'acc_single', puuid: 'puuid-single' }
       const match = { matchId: 'MATCH_A', accountGameName: null, accountTagLine: null, accountRegion: null }
       mockGetMatchList.mockResolvedValue(makeMatchListResponse([match]))
       const wrapper = mountPage()
@@ -167,13 +167,13 @@ describe('MatchesPage.vue — MA-07 Overall Mode', () => {
       await wrapper.find('[data-testid="select-MATCH_A"]').trigger('click')
       await flushPromises()
 
-      expect(mockGetMatchDetails).toHaveBeenCalledWith('MATCH_A', 'puuid-single')
+      expect(mockGetMatchDetails).toHaveBeenCalledWith('MATCH_A', 'acc_single')
     })
 
-    it('resolves PUUID from accountGameName/tagLine/region in overall mode', async () => {
+    it('resolves accountId from accountGameName/tagLine/region in overall mode', async () => {
       mockIsOverallMode.value = true
       mockRiotAccounts.value = [
-        { gameName: 'FakerMain', tagLine: 'EUW', region: 'euw1', puuid: 'puuid-faker' }
+        { gameName: 'FakerMain', tagLine: 'EUW', region: 'euw1', accountId: 'acc_faker', puuid: 'puuid-faker' }
       ]
       const match = {
         matchId: 'EUW_001',
@@ -188,13 +188,13 @@ describe('MatchesPage.vue — MA-07 Overall Mode', () => {
       await wrapper.find('[data-testid="select-EUW_001"]').trigger('click')
       await flushPromises()
 
-      expect(mockGetMatchDetails).toHaveBeenCalledWith('EUW_001', 'puuid-faker')
+      expect(mockGetMatchDetails).toHaveBeenCalledWith('EUW_001', 'acc_faker')
     })
 
     it('account field lookup is case-insensitive', async () => {
       mockIsOverallMode.value = true
       mockRiotAccounts.value = [
-        { gameName: 'FakerMain', tagLine: 'EUW', region: 'EUW1', puuid: 'puuid-faker' }
+        { gameName: 'FakerMain', tagLine: 'EUW', region: 'EUW1', accountId: 'acc_faker', puuid: 'puuid-faker' }
       ]
       const match = {
         matchId: 'EUW_002',
@@ -209,14 +209,14 @@ describe('MatchesPage.vue — MA-07 Overall Mode', () => {
       await wrapper.find('[data-testid="select-EUW_002"]').trigger('click')
       await flushPromises()
 
-      expect(mockGetMatchDetails).toHaveBeenCalledWith('EUW_002', 'puuid-faker')
+      expect(mockGetMatchDetails).toHaveBeenCalledWith('EUW_002', 'acc_faker')
     })
 
-    it('falls back to primaryRiotAccount.puuid when no store account matches in overall mode', async () => {
+    it('falls back to primaryRiotAccount.accountId when no store account matches in overall mode', async () => {
       mockIsOverallMode.value = true
       mockActiveAccount.value = null
       mockRiotAccounts.value = [] // no accounts in store to match
-      mockPrimaryRiotAccount.value = { puuid: 'puuid-fallback' }
+      mockPrimaryRiotAccount.value = { accountId: 'acc_fallback', puuid: 'puuid-fallback' }
       const match = {
         matchId: 'MATCH_B',
         accountGameName: 'UnknownSmurf',
@@ -230,7 +230,7 @@ describe('MatchesPage.vue — MA-07 Overall Mode', () => {
       await wrapper.find('[data-testid="select-MATCH_B"]').trigger('click')
       await flushPromises()
 
-      expect(mockGetMatchDetails).toHaveBeenCalledWith('MATCH_B', 'puuid-fallback')
+      expect(mockGetMatchDetails).toHaveBeenCalledWith('MATCH_B', 'acc_fallback')
     })
   })
 

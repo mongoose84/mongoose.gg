@@ -23,8 +23,8 @@
         <!-- Your Team -->
         <div class="team-header ally">Your Team</div>
         <div
-          v-for="participant in allyParticipants"
-          :key="participant.puuid"
+          v-for="(participant, index) in allyParticipants"
+          :key="`ally-${index}-${participant.championId}`"
           class="aram-player-row"
           :class="{ 'user-row': isUserChampion(participant) }"
         >
@@ -40,8 +40,8 @@
         <!-- Enemy Team -->
         <div class="team-header enemy">Enemy Team</div>
         <div
-          v-for="participant in enemyParticipants"
-          :key="participant.puuid"
+          v-for="(participant, index) in enemyParticipants"
+          :key="`enemy-${index}-${participant.championId}`"
           class="aram-player-row enemy"
         >
           <img :src="participant.championIconUrl" :alt="participant.championName" class="champion-icon" />
@@ -106,7 +106,6 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { useAuthStore } from '../../stores/authStore'
 import { getMatchNarrative } from '../../services/authApi'
 import { trackLaneExpand } from '../../services/analyticsApi'
 import { formatRole, formatKdaFromParticipant as formatKda, formatPercent } from '@/utils/formatters'
@@ -117,10 +116,12 @@ const props = defineProps({
   matchId: {
     type: String,
     default: null
+  },
+  accountId: {
+    type: String,
+    default: null
   }
 })
-
-const authStore = useAuthStore()
 
 // State
 const loading = ref(false)
@@ -128,18 +129,15 @@ const error = ref(null)
 const narrativeData = ref(null)
 const expandedRole = ref(null)
 
-// Watch both matchId and puuid - puuid may be populated asynchronously after mount
-const puuid = computed(() => authStore.primaryRiotAccount?.puuid)
-
 watch(
-  [() => props.matchId, puuid],
-  async ([newMatchId, newPuuid]) => {
+  [() => props.matchId, () => props.accountId],
+  async ([newMatchId, newAccountId]) => {
     if (!newMatchId) {
       narrativeData.value = null
       return
     }
 
-    if (!newPuuid) {
+    if (!newAccountId) {
       error.value = 'No linked Riot account'
       return
     }
@@ -148,7 +146,7 @@ watch(
     error.value = null
 
     try {
-      narrativeData.value = await getMatchNarrative(newMatchId, newPuuid)
+      narrativeData.value = await getMatchNarrative(newMatchId, newAccountId)
     } catch (err) {
       console.error('Failed to fetch match narrative:', err)
       error.value = err.message || 'Failed to load lane matchups'
@@ -180,7 +178,7 @@ function isUserRole(role) {
 
 // Check if the participant is the user (for ARAM where roles are all UNKNOWN)
 function isUserChampion(participant) {
-  return participant?.puuid === puuid.value
+  return participant?.isUserParticipant === true
 }
 
 // ARAM participants grouped by team, sorted by damage share

@@ -27,7 +27,7 @@ public sealed class MatchDetailsEndpoint : IEndpoint
         var endpoint = app.MapGet(Route, async (
             HttpContext httpContext,
             [FromRoute] string matchId,
-            [FromQuery] string? puuid,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IMatchesRepository matchesRepo,
             [FromServices] IQueryFilterBuilder filterBuilder,
@@ -41,41 +41,41 @@ public sealed class MatchDetailsEndpoint : IEndpoint
                     return Results.BadRequest(new { error = "matchId is required" });
                 }
 
-                if (string.IsNullOrWhiteSpace(puuid))
-                {
-                    return Results.BadRequest(new { error = "puuid query parameter is required" });
-                }
-
                 // Validate authentication and extract user ID
                 var (authError, authenticatedUser) = AuthorizationHelper.GetAuthenticatedUser(httpContext, logger);
                 if (authError != null)
                     return authError;
 
-                // Verify the puuid belongs to the authenticated user
-                var isLinked = await puuidResolutionService.VerifyPuuidOwnershipAsync(authenticatedUser!.UserId, puuid);
-                if (!isLinked)
+                // Resolve selected account from server-side linked accounts.
+                // accountId can be null (defaults to primary), a specific opaque accountId, or "all".
+                // This endpoint requires a single account context.
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authenticatedUser!.UserId, accountId);
+                if (accountError != null)
+                    return accountError;
+
+                if (resolvedAccounts == null || resolvedAccounts.Count != 1)
                 {
-                    logger.LogWarning("Match details: user {UserId} attempted to access data for unowned puuid {Puuid}",
-                        authenticatedUser.UserId, LogSanitizer.HashForLog(puuid));
-                    return Results.Forbid();
+                    return Results.BadRequest(new { error = "accountId must resolve to a single account" });
                 }
 
-                logger.LogInformation("Match details request: matchId={MatchId}, puuid={Puuid}",
-                    LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(puuid));
+                var selectedPuuid = resolvedAccounts[0].Account.Puuid;
+
+                logger.LogInformation("Match details request: matchId={MatchId}, account={Account}",
+                    LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(accountId, "primary"));
 
                 // Fetch match details using optimized query (CTEs instead of correlated subqueries)
-                var matchDetails = await matchesRepo.GetMatchDetailsAsync(matchId, puuid);
+                var matchDetails = await matchesRepo.GetMatchDetailsAsync(matchId, selectedPuuid);
 
                 if (matchDetails == null)
                 {
-                    logger.LogWarning("Match details: match not found for matchId={MatchId}, puuid={Puuid}",
-                        LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(puuid));
+                    logger.LogWarning("Match details: match not found for matchId={MatchId}, account={Account}",
+                        LogSanitizer.Sanitize(matchId), LogSanitizer.HashForLog(accountId, "primary"));
                     return Results.NotFound(new { error = "Match not found" });
                 }
 
                 // Fetch role baseline for this match's role
                 var queueFilter = filterBuilder.BuildQueueFilter("all");
-                var baselines = await matchesRepo.GetRoleBaselinesAsync(puuid, queueFilter);
+                var baselines = await matchesRepo.GetRoleBaselinesAsync(selectedPuuid, queueFilter);
                 baselines.TryGetValue(matchDetails.Role, out var baseline);
 
                 var response = new MatchDetailsResponse(
