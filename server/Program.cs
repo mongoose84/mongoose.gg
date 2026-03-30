@@ -135,7 +135,7 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(sessionTimeoutMinutes);
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = cookieSecurePolicy;
-    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
 // Add authentication (cookie-based)
@@ -147,7 +147,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/access-denied";
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = cookieSecurePolicy;
-        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SameSite = SameSiteMode.Strict;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(sessionTimeoutMinutes);
         options.SlidingExpiration = true;
         var cookieName = builder.Configuration.GetValue<string>("Auth:CookieName");
