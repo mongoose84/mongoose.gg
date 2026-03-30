@@ -130,7 +130,7 @@ public class DiagnosticsEndpointTests
         var response = await client.SendAsync(req);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         payload.RootElement
             .GetProperty("configurationSources")
             .GetProperty("redacted")

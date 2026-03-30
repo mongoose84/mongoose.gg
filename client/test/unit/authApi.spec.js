@@ -91,13 +91,24 @@ describe('authApi account parameter handling', () => {
     );
   });
 
-  it('getMatchNarrative uses active account context when accountId is omitted', async () => {
+  it('getMatchDetails omits accountId when overall mode, letting backend default to primary', async () => {
+    localStorage.setItem('mongoose_active_account', 'overall');
+
+    await authApi.getMatchDetails('NA1_12345');
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/matches/NA1_12345/details',
+      { method: 'GET' }
+    );
+  });
+
+  it('getMatchNarrative omits accountId when overall mode, letting backend default to primary', async () => {
     localStorage.setItem('mongoose_active_account', 'overall');
 
     await authApi.getMatchNarrative('NA1_12345');
 
     expect(apiRequest).toHaveBeenCalledWith(
-      '/matches/NA1_12345/narrative?accountId=all',
+      '/matches/NA1_12345/narrative',
       { method: 'GET' }
     );
   });
