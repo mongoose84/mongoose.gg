@@ -70,7 +70,8 @@ namespace Mongoose.Api.Application.Endpoints.Diagnostics
                 };
 
                 return Results.Ok(diagnostics);
-            });
+            })
+            .RequireAuthorization();
         }
 
         private static object GetConfigurationSources(IConfiguration config)
