@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Mongoose.Api.Application.DTOs.Solo;
 using Mongoose.Api.Application.Endpoints.Shared;
-using Mongoose.Api.Application.Interfaces;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 
@@ -93,7 +93,26 @@ public sealed class DeathPositionsEndpoint : IEndpoint
                     });
                 }
 
-                return Results.Ok(deathPositions);
+                var response = new DeathPositionsDto.DeathPositionsResponse(
+                    Deaths: deathPositions.Deaths
+                        .Select(d => new DeathPositionsDto.DeathPosition(
+                            X: d.X,
+                            Y: d.Y,
+                            MinuteMark: d.MinuteMark,
+                            Phase: d.Phase,
+                            KillerChampionId: d.KillerChampionId,
+                            AssistCount: d.AssistCount))
+                        .ToArray(),
+                    TotalDeaths: deathPositions.TotalDeaths,
+                    MatchesAnalyzed: deathPositions.MatchesAnalyzed,
+                    PhaseSummary: new DeathPositionsDto.PhaseSummary(
+                        Early: deathPositions.PhaseSummary.Early,
+                        Mid: deathPositions.PhaseSummary.Mid,
+                        Late: deathPositions.PhaseSummary.Late,
+                        VeryLate: deathPositions.PhaseSummary.VeryLate)
+                );
+
+                return Results.Ok(response);
             }
             catch (ArgumentException ex)
             {

@@ -12,7 +12,6 @@ using Mongoose.Api.Infrastructure.Email;
 using Mongoose.Api.Infrastructure.Jobs;
 using Mongoose.Api.Infrastructure.Riot;
 using Mongoose.Api.Application.DTOs;
-using Mongoose.Api.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -21,7 +20,6 @@ using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
 using static Mongoose.Api.Application.DTOs.TrendDto;
 using static Mongoose.Api.Application.DTOs.Solo.RadarChartDto;
-using static Mongoose.Api.Application.DTOs.Solo.DeathPositionsDto;
 
 namespace Mongoose.Api.Tests;
 
@@ -1855,9 +1853,9 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     /// </summary>
     internal sealed class FakeDeathPositionsRepository : IDeathPositionsRepository
     {
-        private readonly ConcurrentDictionary<string, DeathPositionsResponse> _deathPositionsData = new();
+        private readonly ConcurrentDictionary<string, Core.QueryModels.DeathPositionsResult> _deathPositionsData = new();
 
-        public void SetDeathPositionsData(string puuid, DeathPositionsResponse data)
+        public void SetDeathPositionsData(string puuid, Core.QueryModels.DeathPositionsResult data)
         {
             _deathPositionsData[puuid] = data;
         }
@@ -1867,7 +1865,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _deathPositionsData.Clear();
         }
 
-        public Task<DeathPositionsResponse?> GetDeathPositionsAsync(
+        public Task<Core.QueryModels.DeathPositionsResult?> GetDeathPositionsAsync(
             string puuid, 
             string? queueType = null, 
             string? timeRange = null, 
@@ -1877,7 +1875,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(data);
         }
 
-        public Task<DeathPositionsResponse?> GetDeathPositionsAsync(
+        public Task<Core.QueryModels.DeathPositionsResult?> GetDeathPositionsAsync(
             IReadOnlyList<string> puuids,
             string? queueType = null,
             string? timeRange = null,
@@ -1886,10 +1884,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             foreach (var puuid in puuids)
             {
                 if (_deathPositionsData.TryGetValue(puuid, out var data))
-                    return Task.FromResult<DeathPositionsResponse?>(data);
+                    return Task.FromResult<Core.QueryModels.DeathPositionsResult?>(data);
             }
 
-            return Task.FromResult<DeathPositionsResponse?>(null);
+            return Task.FromResult<Core.QueryModels.DeathPositionsResult?>(null);
         }
     }
 }

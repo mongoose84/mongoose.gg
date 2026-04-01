@@ -1,9 +1,8 @@
 using MySqlConnector;
-using Mongoose.Api.Application.Interfaces;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
-using static Mongoose.Api.Application.DTOs.Solo.DeathPositionsDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
@@ -26,7 +25,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
     }
 
     /// <inheritdoc />
-    public async Task<DeathPositionsResponse?> GetDeathPositionsAsync(
+    public async Task<DeathPositionsResult?> GetDeathPositionsAsync(
         string puuid, 
         string? queueType = null, 
         string? timeRange = null, 
@@ -34,7 +33,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
         => await GetDeathPositionsAsync([puuid], queueType, timeRange, side);
 
     /// <inheritdoc />
-    public async Task<DeathPositionsResponse?> GetDeathPositionsAsync(
+    public async Task<DeathPositionsResult?> GetDeathPositionsAsync(
         IReadOnlyList<string> puuids,
         string? queueType = null,
         string? timeRange = null,
@@ -65,11 +64,11 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
 
             // Compute summary in-memory from fetched deaths — guarantees phase counts
             // and totalDeaths exactly match what is returned in the Deaths array.
-            var response = new DeathPositionsResponse(
+            var response = new DeathPositionsResult(
                 Deaths: deathPositions.ToArray(),
                 TotalDeaths: deathPositions.Count,
                 MatchesAnalyzed: deathPositions.Select(d => d.MatchId).Distinct().Count(),
-                PhaseSummary: new PhaseSummary(
+                PhaseSummary: new DeathPositionPhaseSummary(
                     Early: deathPositions.Count(d => d.Phase == "early"),
                     Mid: deathPositions.Count(d => d.Phase == "mid"),
                     Late: deathPositions.Count(d => d.Phase == "late"),
@@ -92,7 +91,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
         }
     }
 
-    private async Task<List<DeathPosition>> GetDeathPositionsInternalAsync(
+    private async Task<List<DeathPositionData>> GetDeathPositionsInternalAsync(
         IReadOnlyList<string> puuids,
         string queueFilter,
         string timeFilter,
@@ -131,7 +130,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
             }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
-            var results = new List<DeathPosition>();
+            var results = new List<DeathPositionData>();
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
@@ -143,7 +142,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
                 var matchId = reader.GetString(5);
                 var phase = ClassifyPhase(minuteMark);
 
-                results.Add(new DeathPosition(
+                results.Add(new DeathPositionData(
                     X: x,
                     Y: y,
                     MinuteMark: minuteMark,

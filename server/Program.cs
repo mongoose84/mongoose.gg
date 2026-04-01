@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Mongoose.Api.Application;
-using Mongoose.Api.Application.Interfaces;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure;
