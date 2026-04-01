@@ -518,9 +518,9 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly ConcurrentDictionary<string, string> _puuidByRiotId = new(StringComparer.OrdinalIgnoreCase);
 
-        public event EventHandler<Mongoose.Api.Infrastructure.Riot.LimitHandler.RateLimitWaitEventArgs>? RateLimitWaitStarted;
+        public event EventHandler<RateLimitWaitEventArgs>? RateLimitWaitStarted;
 
-        private void NotifyRateLimitWaitStarted(Mongoose.Api.Infrastructure.Riot.LimitHandler.RateLimitWaitEventArgs args)
+        private void NotifyRateLimitWaitStarted(RateLimitWaitEventArgs args)
         {
             RateLimitWaitStarted?.Invoke(this, args);
         }

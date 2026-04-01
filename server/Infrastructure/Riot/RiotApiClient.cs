@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Web;
+using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure.Riot.LimitHandler;
 using Mongoose.Api.Infrastructure.Telemetry;
 

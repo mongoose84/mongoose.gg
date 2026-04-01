@@ -1,4 +1,4 @@
-namespace Mongoose.Api.Infrastructure.Riot.LimitHandler;
+namespace Mongoose.Api.Core.Interfaces;
 
 /// <summary>
 /// TEMPORARY: Event arguments for rate limit wait events.
@@ -13,4 +13,3 @@ public class RateLimitWaitEventArgs(string? Puuid = null) : EventArgs
     /// </summary>
     public string? Puuid { get; } = Puuid;
 }
-

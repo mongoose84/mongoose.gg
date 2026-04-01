@@ -1,3 +1,5 @@
+using Mongoose.Api.Core.Interfaces;
+
 namespace Mongoose.Api.Infrastructure.Riot.LimitHandler;
 
 public class RiotLimitHandler : IRiotLimitHandler
