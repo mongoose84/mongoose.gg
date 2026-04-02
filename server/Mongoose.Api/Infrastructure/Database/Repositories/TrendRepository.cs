@@ -33,10 +33,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         if (puuids.Count == 0)
             return Array.Empty<WinrateTrendPoint>();
 
-        queueType = _filterBuilder.ValidateQueueType(queueType);
-        var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
-        var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
-        var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        var (_, queueFilter, timeFilter, timeRangeFilter) = await BuildQueryFiltersAsync(queueType, timeRange);
         var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
         // Fetch all games in chronological order (oldest first)
@@ -106,39 +103,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             ));
         }
 
-        // If limit is specified, return the most recent N games at full resolution
-        if (limit.HasValue && limit.Value > 0)
-        {
-            var limitValue = Math.Min(limit.Value, trendPoints.Count);
-            return trendPoints.TakeLast(limitValue).ToArray();
-        }
-
-        // Downsample if more than 100 data points (only when no limit specified)
-        const int maxDataPoints = 100;
-        if (trendPoints.Count > maxDataPoints)
-        {
-            var step = (double)trendPoints.Count / maxDataPoints;
-            var downsampled = new List<WinrateTrendPoint>();
-
-            for (int i = 0; i < maxDataPoints; i++)
-            {
-                var index = (int)(i * step);
-                if (index < trendPoints.Count)
-                {
-                    downsampled.Add(trendPoints[index]);
-                }
-            }
-
-            // Always include the last data point
-            if (downsampled.Count > 0 && downsampled[^1].GameIndex != trendPoints[^1].GameIndex)
-            {
-                downsampled[^1] = trendPoints[^1];
-            }
-
-            return downsampled.ToArray();
-        }
-
-        return trendPoints.ToArray();
+        return DownsampleTrendData(trendPoints, limit, p => p.GameIndex);
     }
 
     /// <inheritdoc />
@@ -151,10 +116,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         if (puuids.Count == 0)
             return Array.Empty<GoldAt15TrendPoint>();
 
-        queueType = _filterBuilder.ValidateQueueType(queueType);
-        var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
-        var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
-        var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        var (_, queueFilter, timeFilter, timeRangeFilter) = await BuildQueryFiltersAsync(queueType, timeRange);
         var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
         // Query to get player's gold at 15 with opponent gold for lane matchup
@@ -223,39 +185,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         if (dataPoints.Count == 0)
             return Array.Empty<GoldAt15TrendPoint>();
 
-        // If limit is specified, return the most recent N games at full resolution
-        if (limit.HasValue && limit.Value > 0)
-        {
-            var limitValue = Math.Min(limit.Value, dataPoints.Count);
-            return dataPoints.TakeLast(limitValue).ToArray();
-        }
-
-        // Downsample if more than 100 data points (only when no limit specified)
-        const int maxDataPoints = 100;
-        if (dataPoints.Count > maxDataPoints)
-        {
-            var step = (double)dataPoints.Count / maxDataPoints;
-            var downsampled = new List<GoldAt15TrendPoint>();
-
-            for (int i = 0; i < maxDataPoints; i++)
-            {
-                var index = (int)(i * step);
-                if (index < dataPoints.Count)
-                {
-                    downsampled.Add(dataPoints[index]);
-                }
-            }
-
-            // Always include the last data point
-            if (downsampled.Count > 0 && downsampled[^1].GameIndex != dataPoints[^1].GameIndex)
-            {
-                downsampled[^1] = dataPoints[^1];
-            }
-
-            return downsampled.ToArray();
-        }
-
-        return dataPoints.ToArray();
+        return DownsampleTrendData(dataPoints, limit, p => p.GameIndex);
     }
 
     /// <inheritdoc />
@@ -268,10 +198,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         if (puuids.Count == 0)
             return Array.Empty<CsPerMinuteTrendPoint>();
 
-        queueType = _filterBuilder.ValidateQueueType(queueType);
-        var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
-        var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
-        var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        var (_, queueFilter, timeFilter, timeRangeFilter) = await BuildQueryFiltersAsync(queueType, timeRange);
         var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
         // Query to get CS per minute data - filter out games shorter than 15 minutes (900 seconds)
@@ -335,39 +262,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         if (dataPoints.Count == 0)
             return Array.Empty<CsPerMinuteTrendPoint>();
 
-        // If limit is specified, return the most recent N games at full resolution
-        if (limit.HasValue && limit.Value > 0)
-        {
-            var limitValue = Math.Min(limit.Value, dataPoints.Count);
-            return dataPoints.TakeLast(limitValue).ToArray();
-        }
-
-        // Downsample if more than 100 data points (only when no limit specified)
-        const int maxDataPoints = 100;
-        if (dataPoints.Count > maxDataPoints)
-        {
-            var step = (double)dataPoints.Count / maxDataPoints;
-            var downsampled = new List<CsPerMinuteTrendPoint>();
-
-            for (int i = 0; i < maxDataPoints; i++)
-            {
-                var index = (int)(i * step);
-                if (index < dataPoints.Count)
-                {
-                    downsampled.Add(dataPoints[index]);
-                }
-            }
-
-            // Always include the last data point
-            if (downsampled.Count > 0 && downsampled[^1].GameIndex != dataPoints[^1].GameIndex)
-            {
-                downsampled[^1] = dataPoints[^1];
-            }
-
-            return downsampled.ToArray();
-        }
-
-        return dataPoints.ToArray();
+        return DownsampleTrendData(dataPoints, limit, p => p.GameIndex);
     }
 
     /// <inheritdoc />
@@ -380,10 +275,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         if (puuids.Count == 0)
             return (Array.Empty<DeathsTrendPoint>(), 0, 0, "neutral");
 
-        queueType = _filterBuilder.ValidateQueueType(queueType);
-        var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
-        var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
-        var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        var (_, queueFilter, timeFilter, timeRangeFilter) = await BuildQueryFiltersAsync(queueType, timeRange);
         var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
         // Query to get death counts per game with champion and role information
@@ -477,44 +369,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         else if (recentAverage > overallAverage + 0.5)
             trend = "worsening";
 
-        // If limit is specified, return the most recent N games at full resolution
-        DeathsTrendPoint[] resultPoints;
-        if (limit.HasValue && limit.Value > 0)
-        {
-            var limitValue = Math.Min(limit.Value, trendPoints.Count);
-            resultPoints = trendPoints.TakeLast(limitValue).ToArray();
-        }
-        else
-        {
-            // Downsample if more than 100 data points (only when no limit specified)
-            const int maxDataPoints = 100;
-            if (trendPoints.Count > maxDataPoints)
-            {
-                var step = (double)trendPoints.Count / maxDataPoints;
-                var downsampled = new List<DeathsTrendPoint>();
-
-                for (int i = 0; i < maxDataPoints; i++)
-                {
-                    var index = (int)(i * step);
-                    if (index < trendPoints.Count)
-                    {
-                        downsampled.Add(trendPoints[index]);
-                    }
-                }
-
-                // Always include the last data point
-                if (downsampled.Count > 0 && downsampled[^1].GameIndex != trendPoints[^1].GameIndex)
-                {
-                    downsampled[^1] = trendPoints[^1];
-                }
-
-                resultPoints = downsampled.ToArray();
-            }
-            else
-            {
-                resultPoints = trendPoints.ToArray();
-            }
-        }
+        var resultPoints = DownsampleTrendData(trendPoints, limit, p => p.GameIndex);
 
         return (resultPoints, recentAverage, overallAverage, trend);
     }
@@ -531,10 +386,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             if (puuids.Count == 0)
                 return (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral");
 
-            queueType = _filterBuilder.ValidateQueueType(queueType);
-            var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
-            var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
-            var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+            var (_, queueFilter, timeFilter, timeRangeFilter) = await BuildQueryFiltersAsync(queueType, timeRange);
             var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
             // Query to get dragon participation per game with team dragon counts
@@ -655,44 +507,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             else if (recentAverage < overallAverage - 5)
                 trend = "worsening";
 
-            // If limit is specified, return the most recent N games at full resolution
-            DragonParticipationTrendPoint[] resultPoints;
-            if (limit.HasValue && limit.Value > 0)
-            {
-                var limitValue = Math.Min(limit.Value, trendPoints.Count);
-                resultPoints = trendPoints.TakeLast(limitValue).ToArray();
-            }
-            else
-            {
-                // Downsample if more than 100 data points (only when no limit specified)
-                const int maxDataPoints = 100;
-                if (trendPoints.Count > maxDataPoints)
-                {
-                    var step = (double)trendPoints.Count / maxDataPoints;
-                    var downsampled = new List<DragonParticipationTrendPoint>();
-
-                    for (int i = 0; i < maxDataPoints; i++)
-                    {
-                        var index = (int)(i * step);
-                        if (index < trendPoints.Count)
-                        {
-                            downsampled.Add(trendPoints[index]);
-                        }
-                    }
-
-                    // Always include the last data point
-                    if (downsampled.Count > 0 && downsampled[^1].GameIndex != trendPoints[^1].GameIndex)
-                    {
-                        downsampled[^1] = trendPoints[^1];
-                    }
-
-                    resultPoints = downsampled.ToArray();
-                }
-                else
-                {
-                    resultPoints = trendPoints.ToArray();
-                }
-            }
+            var resultPoints = DownsampleTrendData(trendPoints, limit, p => p.GameIndex);
 
             return (resultPoints, recentAverage, overallAverage, trend);
         }
@@ -716,10 +531,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             if (puuids.Count == 0)
                 return (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral");
 
-            queueType = _filterBuilder.ValidateQueueType(queueType);
-            var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
-            var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
-            var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+            var (_, queueFilter, timeFilter, timeRangeFilter) = await BuildQueryFiltersAsync(queueType, timeRange);
             var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
 
             // Query to get vision score data
@@ -859,46 +671,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             else if (recentAverage < overallAverage - 0.1)
                 trend = "worsening";
 
-            // Apply final result limiting and downsampling
-            VisionScoreTrendPoint[] resultPoints;
-            if (limit.HasValue && limit.Value > 0)
-            {
-                // When limit was provided, we already fetched limited data from DB
-                // Just take the last N points (may be less than limit if not enough history)
-                var limitValue = Math.Min(limit.Value, trendPoints.Count);
-                resultPoints = trendPoints.TakeLast(limitValue).ToArray();
-            }
-            else
-            {
-                // Downsample if more than 100 data points (only when no limit specified)
-                const int maxDataPoints = 100;
-                if (trendPoints.Count > maxDataPoints)
-                {
-                    var step = (double)trendPoints.Count / maxDataPoints;
-                    var downsampled = new List<VisionScoreTrendPoint>();
-
-                    for (int i = 0; i < maxDataPoints; i++)
-                    {
-                        var index = (int)(i * step);
-                        if (index < trendPoints.Count)
-                        {
-                            downsampled.Add(trendPoints[index]);
-                        }
-                    }
-
-                    // Always include the last data point
-                    if (downsampled.Count > 0 && downsampled[^1].GameIndex != trendPoints[^1].GameIndex)
-                    {
-                        downsampled[^1] = trendPoints[^1];
-                    }
-
-                    resultPoints = downsampled.ToArray();
-                }
-                else
-                {
-                    resultPoints = trendPoints.ToArray();
-                }
-            }
+            var resultPoints = DownsampleTrendData(trendPoints, limit, p => p.GameIndex);
 
             return (resultPoints, recentAverage, overallAverage, roleTarget, trend);
         }
@@ -957,6 +730,51 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         });
 
         return result;
+    }
+
+    private async Task<(string ValidatedQueueType, string QueueFilter, string TimeFilter, TimeRangeFilter TimeRangeFilter)> BuildQueryFiltersAsync(
+        string? queueType, string? timeRange)
+    {
+        var validatedQueueType = _filterBuilder.ValidateQueueType(queueType);
+        var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
+        var queueFilter = _filterBuilder.BuildQueueFilter(validatedQueueType);
+        var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
+        return (validatedQueueType, queueFilter, timeFilter, timeRangeFilter);
+    }
+
+    private static T[] DownsampleTrendData<T>(List<T> trendPoints, int? limit, Func<T, int> getGameIndex)
+    {
+        if (limit.HasValue && limit.Value > 0)
+        {
+            var limitValue = Math.Min(limit.Value, trendPoints.Count);
+            return trendPoints.TakeLast(limitValue).ToArray();
+        }
+
+        const int maxDataPoints = 100;
+        if (trendPoints.Count > maxDataPoints)
+        {
+            var step = (double)trendPoints.Count / maxDataPoints;
+            var downsampled = new List<T>();
+
+            for (int i = 0; i < maxDataPoints; i++)
+            {
+                var index = (int)(i * step);
+                if (index < trendPoints.Count)
+                {
+                    downsampled.Add(trendPoints[index]);
+                }
+            }
+
+            // Always include the last data point
+            if (downsampled.Count > 0 && getGameIndex(downsampled[^1]) != getGameIndex(trendPoints[^1]))
+            {
+                downsampled[^1] = trendPoints[^1];
+            }
+
+            return downsampled.ToArray();
+        }
+
+        return trendPoints.ToArray();
     }
 }
 
