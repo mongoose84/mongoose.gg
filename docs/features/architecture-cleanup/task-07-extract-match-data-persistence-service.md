@@ -13,11 +13,11 @@ Medium
 `MatchHistorySyncJob.cs` combines job orchestration with a large `PersistMatchDataAsync` method that handles entity mapping, participant insertion, metrics enrichment, and season management.
 
 ## Changes
-- [ ] Extract `PersistMatchDataAsync` into a new `MatchDataPersistenceService` in `Application/Services/` or `Infrastructure/Services/`
-- [ ] Inject the new service into `MatchHistorySyncJob`
-- [ ] Ensure the new service is independently testable
+- [x] Extract `PersistMatchDataAsync` into a new `MatchDataPersistenceService` in `Application/Services/` or `Infrastructure/Services/`
+- [x] Inject the new service into `MatchHistorySyncJob`
+- [x] Ensure the new service is independently testable
 
 ## Validation
-- [ ] `MatchHistorySyncJobTests` pass
-- [ ] `MatchesRepositoryIntegrationTests` pass
-- [ ] No behavior changes
+- [x] `MatchHistorySyncJobTests` pass
+- [x] `MatchesRepositoryIntegrationTests` pass
+- [x] No behavior changes
