@@ -1,5 +1,6 @@
 using MySqlConnector;
 using Mongoose.Api.Application.QueryModels;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
@@ -60,19 +61,8 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             parameters.Add(("@queue_id", queueId.Value));
         }
 
-        return ExecuteListAsync(sql, Map, parameters.ToArray());
+        return ExecuteListAsync(sql, MatchDataMapper.MapMatch, parameters.ToArray());
     }
-
-    private static Match Map(MySqlDataReader r) => new()
-    {
-        MatchId = r.GetString(0),
-        QueueId = r.GetInt32(1),
-        GameDurationSec = r.GetInt32(2),
-        GameStartTime = r.GetInt64(3),
-        PatchVersion = r.GetString(4),
-        SeasonCode = r.IsDBNull(5) ? null : r.GetString(5),
-        CreatedAt = r.GetDateTimeUtc(6)
-    };
 
     /// <summary>
     /// Gets the last 20 matches with full participant stats for the match list view.
@@ -151,7 +141,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             ("@limit", limit)
         };
 
-        var rawData = await ExecuteListAsync(sql, MapMatchListRaw, parameters.ToArray());
+        var rawData = await ExecuteListAsync(sql, MatchDataMapper.MapMatchListRaw, parameters.ToArray());
 
         // Transform to MatchListItem with computed fields
         var items = new List<MatchListItem>();
@@ -165,7 +155,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             TrendBadge? trendBadge = null;
             if (baselines != null && baselines.TryGetValue(raw.Role, out var baseline))
             {
-                trendBadge = ComputeTrendBadge(raw, baseline);
+                trendBadge = TrendBadgeCalculator.ComputeTrendBadge(raw, baseline);
             }
 
             items.Add(new MatchListItem(
@@ -267,7 +257,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             ("@limit", limit)
         };
 
-        var rawData = await ExecuteListAsync(sql, MapMatchListSummaryRaw, parameters.ToArray());
+        var rawData = await ExecuteListAsync(sql, MatchDataMapper.MapMatchListSummaryRaw, parameters.ToArray());
 
         // Transform to MatchListSummaryItem with computed fields
         var items = new List<MatchListSummaryItem>();
@@ -281,7 +271,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             TrendBadge? trendBadge = null;
             if (baselines != null && baselines.TryGetValue(raw.Role, out var baseline))
             {
-                trendBadge = ComputeTrendBadgeSummary(raw, baseline);
+                trendBadge = TrendBadgeCalculator.ComputeTrendBadgeSummary(raw, baseline);
             }
 
             items.Add(new MatchListSummaryItem(
@@ -387,7 +377,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             WHERE p.match_id = @matchId AND p.puuid = @puuid
             LIMIT 1";
 
-        var rawData = await ExecuteSingleAsync(sql, MapMatchDetailsRaw,
+        var rawData = await ExecuteSingleAsync(sql, MatchDataMapper.MapMatchDetailsRaw,
             ("@matchId", matchId),
             ("@puuid", puuid));
 
@@ -435,128 +425,6 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             TeamTowers: rawData.TeamTowers,
             EnemyTeamTowers: rawData.EnemyTeamTowers
         );
-    }
-
-    private static MatchListSummaryRawData MapMatchListSummaryRaw(MySqlDataReader r)
-    {
-        var matchIdOrdinal = r.GetOrdinal("match_id");
-        var accountGameNameOrdinal = r.GetOrdinal("account_game_name");
-        var accountTagLineOrdinal = r.GetOrdinal("account_tag_line");
-        var accountRegionOrdinal = r.GetOrdinal("account_region");
-        var queueIdOrdinal = r.GetOrdinal("queue_id");
-        var championIdOrdinal = r.GetOrdinal("champion_id");
-        var championNameOrdinal = r.GetOrdinal("champion_name");
-        var roleOrdinal = r.GetOrdinal("role");
-        var laneOrdinal = r.GetOrdinal("lane");
-        var winOrdinal = r.GetOrdinal("win");
-        var killsOrdinal = r.GetOrdinal("kills");
-        var deathsOrdinal = r.GetOrdinal("deaths");
-        var assistsOrdinal = r.GetOrdinal("assists");
-        var creepScoreOrdinal = r.GetOrdinal("creep_score");
-        var goldEarnedOrdinal = r.GetOrdinal("gold_earned");
-        var gameDurationSecOrdinal = r.GetOrdinal("game_duration_sec");
-        var gameStartTimeOrdinal = r.GetOrdinal("game_start_time");
-
-        return new MatchListSummaryRawData(
-            MatchId: r.GetString(matchIdOrdinal),
-            AccountGameName: r.IsDBNull(accountGameNameOrdinal) ? null : r.GetString(accountGameNameOrdinal),
-            AccountTagLine: r.IsDBNull(accountTagLineOrdinal) ? null : r.GetString(accountTagLineOrdinal),
-            AccountRegion: r.IsDBNull(accountRegionOrdinal) ? null : r.GetString(accountRegionOrdinal),
-            QueueId: r.GetInt32(queueIdOrdinal),
-            ChampionId: r.GetInt32(championIdOrdinal),
-            ChampionName: r.GetString(championNameOrdinal),
-            Role: r.GetString(roleOrdinal),
-            Lane: r.IsDBNull(laneOrdinal) ? null : r.GetString(laneOrdinal),
-            Win: r.GetBoolean(winOrdinal),
-            Kills: r.GetInt32(killsOrdinal),
-            Deaths: r.GetInt32(deathsOrdinal),
-            Assists: r.GetInt32(assistsOrdinal),
-            CreepScore: r.GetInt32(creepScoreOrdinal),
-            GoldEarned: r.GetInt32(goldEarnedOrdinal),
-            GameDurationSec: r.GetInt32(gameDurationSecOrdinal),
-            GameStartTime: r.GetInt64(gameStartTimeOrdinal)
-        );
-    }
-
-    private static MatchDetailsRawData MapMatchDetailsRaw(MySqlDataReader r) => new(
-        MatchId: r.GetString(0),
-        QueueId: r.GetInt32(1),
-        ChampionId: r.GetInt32(2),
-        ChampionName: r.GetString(3),
-        Role: r.GetString(4),
-        Lane: r.IsDBNull(5) ? null : r.GetString(5),
-        Win: r.GetBoolean(6),
-        Kills: r.GetInt32(7),
-        Deaths: r.GetInt32(8),
-        Assists: r.GetInt32(9),
-        CreepScore: r.GetInt32(10),
-        GoldEarned: r.GetInt32(11),
-        GameDurationSec: r.GetInt32(12),
-        GameStartTime: r.GetInt64(13),
-        DamageDealt: r.GetInt32(14),
-        DamageTaken: r.GetInt32(15),
-        VisionScore: r.GetInt32(16),
-        KillParticipation: r.GetDecimal(17),
-        DamageShare: r.GetDecimal(18),
-        DeathsPre10: r.GetInt32(19),
-        TeamId: r.GetInt32(20),
-        GoldDiffAt15: r.IsDBNull(21) ? null : r.GetInt32(21),
-        TeamKills: r.GetInt32(22),
-        EnemyTeamKills: r.GetInt32(23),
-        TeamTotalDamage: r.GetInt32(24),
-        EnemyTeamTotalDamage: r.GetInt32(25),
-        TeamGoldLeadAt15: r.IsDBNull(26) ? null : r.GetInt32(26),
-        TeamDragons: r.GetInt32(27),
-        EnemyTeamDragons: r.GetInt32(28),
-        TeamBarons: r.GetInt32(29),
-        EnemyTeamBarons: r.GetInt32(30),
-        TeamTowers: r.GetInt32(31),
-        EnemyTeamTowers: r.GetInt32(32)
-    );
-
-    /// <summary>
-    /// Computes trend badge for summary list (uses limited data available).
-    /// </summary>
-    private static TrendBadge? ComputeTrendBadgeSummary(MatchListSummaryRawData match, RoleBaseline baseline)
-    {
-        if (baseline.GamesCount < 3) return null;
-
-        var durationMin = match.GameDurationSec / 60.0;
-        var csPerMin = durationMin > 0 ? match.CreepScore / durationMin : 0;
-
-        var insights = new List<(string text, string type, string stat, double deviation)>();
-
-        // Deaths comparison (lower is better)
-        if (baseline.AvgDeaths > 0)
-        {
-            var deathDeviation = (match.Deaths - baseline.AvgDeaths) / baseline.AvgDeaths;
-            if (deathDeviation > 0.3)
-                insights.Add(("Higher deaths vs trend", "neutral", "deaths", deathDeviation));
-            else if (deathDeviation < -0.3 && match.Deaths <= 3)
-                insights.Add(("Clean game", "positive", "deaths", Math.Abs(deathDeviation)));
-        }
-
-        // CS comparison (for laners)
-        if (baseline.AvgCsPerMin > 4 && csPerMin > 0)
-        {
-            var csDeviation = (csPerMin - baseline.AvgCsPerMin) / baseline.AvgCsPerMin;
-            if (csDeviation > 0.15)
-                insights.Add(("High CS efficiency", "positive", "csPerMin", csDeviation));
-        }
-
-        // KDA comparison
-        var kda = match.Deaths == 0 ? match.Kills + match.Assists : (match.Kills + match.Assists) / (double)match.Deaths;
-        if (baseline.AvgKda > 0)
-        {
-            var kdaDeviation = (kda - baseline.AvgKda) / baseline.AvgKda;
-            if (kdaDeviation > 0.25)
-                insights.Add(("Strong KDA", "positive", "kda", kdaDeviation));
-        }
-
-        if (insights.Count == 0) return null;
-
-        var best = insights.OrderByDescending(i => i.deviation).First();
-        return new TrendBadge(best.text, best.type, best.stat);
     }
 
     /// <summary>
@@ -657,114 +525,6 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
     }
 
     /// <summary>
-    /// Computes the most notable trend badge for a match compared to role baseline.
-    /// </summary>
-    private static TrendBadge? ComputeTrendBadge(MatchListRawData match, RoleBaseline baseline)
-    {
-        if (baseline.GamesCount < 3) return null; // Not enough data for meaningful comparison
-
-        var durationMin = match.GameDurationSec / 60.0;
-        var csPerMin = durationMin > 0 ? match.CreepScore / durationMin : 0;
-
-        // Calculate deviations from baseline (as percentage difference)
-        var insights = new List<(string text, string type, string stat, double deviation)>();
-
-        // Damage dealt comparison
-        if (baseline.AvgDamageDealt > 0)
-        {
-            var damageDeviation = (match.DamageDealt - baseline.AvgDamageDealt) / baseline.AvgDamageDealt;
-            if (damageDeviation > 0.2)
-                insights.Add(("Above avg damage", "positive", "damageDealt", damageDeviation));
-            else if (damageDeviation < -0.2)
-                insights.Add(("Below avg damage", "neutral", "damageDealt", Math.Abs(damageDeviation)));
-        }
-
-        // Damage taken comparison (higher can be good for tanks)
-        if (baseline.AvgDamageTaken > 0)
-        {
-            var takenDeviation = (match.DamageTaken - baseline.AvgDamageTaken) / baseline.AvgDamageTaken;
-            if (takenDeviation > 0.25)
-                insights.Add(("Tankier than usual", "positive", "damageTaken", takenDeviation));
-        }
-
-        // Deaths comparison (lower is better)
-        if (baseline.AvgDeaths > 0)
-        {
-            var deathDeviation = (match.Deaths - baseline.AvgDeaths) / baseline.AvgDeaths;
-            if (deathDeviation > 0.3)
-                insights.Add(("Higher deaths vs trend", "neutral", "deaths", deathDeviation));
-            else if (deathDeviation < -0.3 && match.Deaths <= 3)
-                insights.Add(("Clean game", "positive", "deaths", Math.Abs(deathDeviation)));
-        }
-
-        // Vision score comparison (for support/jungle)
-        if (baseline.AvgVisionScore > 10 && match.VisionScore > 0)
-        {
-            var visionDeviation = (match.VisionScore - baseline.AvgVisionScore) / baseline.AvgVisionScore;
-            if (visionDeviation > 0.25)
-                insights.Add(("Strong vision control", "positive", "visionScore", visionDeviation));
-        }
-
-        // CS comparison (for laners)
-        if (baseline.AvgCsPerMin > 4 && csPerMin > 0)
-        {
-            var csDeviation = (csPerMin - baseline.AvgCsPerMin) / baseline.AvgCsPerMin;
-            if (csDeviation > 0.15)
-                insights.Add(("High CS efficiency", "positive", "csPerMin", csDeviation));
-        }
-
-        // Kill participation
-        if (baseline.AvgKillParticipation > 0)
-        {
-            var kpDeviation = ((double)match.KillParticipation - baseline.AvgKillParticipation) / baseline.AvgKillParticipation;
-            if (kpDeviation > 0.2)
-                insights.Add(("High kill participation", "positive", "killParticipation", kpDeviation));
-        }
-
-        // Return the most significant insight (highest deviation)
-        if (insights.Count == 0) return null;
-
-        var best = insights.OrderByDescending(i => i.deviation).First();
-        return new TrendBadge(best.text, best.type, best.stat);
-    }
-
-    private static MatchListRawData MapMatchListRaw(MySqlDataReader r) => new(
-        MatchId: r.GetString(0),
-        QueueId: r.GetInt32(1),
-        ChampionId: r.GetInt32(2),
-        ChampionName: r.GetString(3),
-        Role: r.GetString(4),
-        Lane: r.IsDBNull(5) ? null : r.GetString(5),
-        Win: r.GetBoolean(6),
-        Kills: r.GetInt32(7),
-        Deaths: r.GetInt32(8),
-        Assists: r.GetInt32(9),
-        CreepScore: r.GetInt32(10),
-        GoldEarned: r.GetInt32(11),
-        GameDurationSec: r.GetInt32(12),
-        GameStartTime: r.GetInt64(13),
-        DamageDealt: r.GetInt32(14),
-        DamageTaken: r.GetInt32(15),
-        VisionScore: r.GetInt32(16),
-        KillParticipation: r.GetDecimal(17),
-        DamageShare: r.GetDecimal(18),
-        DeathsPre10: r.GetInt32(19),
-        TeamId: r.GetInt32(20),
-        TeamKills: r.GetInt32(21),
-        EnemyTeamKills: r.GetInt32(22),
-        GoldDiffAt15: r.IsDBNull(23) ? null : r.GetInt32(23),
-        TeamTotalDamage: r.GetInt32(24),
-        EnemyTeamTotalDamage: r.GetInt32(25),
-        TeamGoldLeadAt15: r.IsDBNull(26) ? null : r.GetInt32(26),
-        TeamDragons: r.GetInt32(27),
-        EnemyTeamDragons: r.GetInt32(28),
-        TeamBarons: r.GetInt32(29),
-        EnemyTeamBarons: r.GetInt32(30),
-        TeamTowers: r.GetInt32(31),
-        EnemyTeamTowers: r.GetInt32(32)
-    );
-
-    /// <summary>
     /// Gets all 10 participants for a match with their metrics and 10-minute checkpoints.
     /// Used for the Match Narrative feature to show lane matchups.
     /// </summary>
@@ -806,31 +566,8 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                     ELSE 6
                 END";
 
-        return await ExecuteListAsync(sql, MapMatchupParticipantRaw, ("@match_id", matchId));
+        return await ExecuteListAsync(sql, MatchDataMapper.MapMatchupParticipantRaw, ("@match_id", matchId));
     }
-
-    private static MatchupParticipantRaw MapMatchupParticipantRaw(MySqlDataReader r) => new(
-        ParticipantId: r.GetInt64(0),
-        Puuid: r.GetString(1),
-        ChampionId: r.GetInt32(2),
-        ChampionName: r.GetString(3),
-        TeamId: r.GetInt32(4),
-        Role: r.GetString(5),
-        Win: r.GetBoolean(6),
-        Kills: r.GetInt32(7),
-        Deaths: r.GetInt32(8),
-        Assists: r.GetInt32(9),
-        CreepScore: r.GetInt32(10),
-        GoldEarned: r.GetInt32(11),
-        KillParticipation: r.GetDecimal(12),
-        DamageShare: r.GetDecimal(13),
-        VisionScore: r.GetInt32(14),
-        DeathsPre10: r.GetInt32(15),
-        GoldAt10: r.IsDBNull(16) ? null : r.GetInt32(16),
-        CsAt10: r.IsDBNull(17) ? null : r.GetInt32(17),
-        GoldDiffAt10: r.IsDBNull(18) ? null : r.GetInt32(18),
-        CsDiffAt10: r.IsDBNull(19) ? null : r.GetInt32(19)
-    );
 
     /// <summary>
     /// Deletes matches older than the specified cutoff date in batches.
