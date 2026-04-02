@@ -3,7 +3,6 @@ using Mongoose.Api.Application.DTOs.Auth;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Email;
 
 namespace Mongoose.Api.Application.Endpoints.Auth;
@@ -31,8 +30,8 @@ public sealed class ForgotPasswordEndpoint : IEndpoint
         app.MapPost(Route, async (
             [FromBody] ForgotPasswordRequest request,
             HttpContext httpContext,
-            [FromServices] UsersRepository usersRepo,
-            [FromServices] VerificationTokensRepository tokensRepo,
+            [FromServices] IUsersRepository usersRepo,
+            [FromServices] IVerificationTokensRepository tokensRepo,
             [FromServices] IEmailService emailService,
             [FromServices] IRateLimiter rateLimiter,
             [FromServices] ILogger<ForgotPasswordEndpoint> logger

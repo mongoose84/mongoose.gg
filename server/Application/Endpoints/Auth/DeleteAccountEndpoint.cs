@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
-using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.DeleteAccountDto;
 
 namespace Mongoose.Api.Application.Endpoints.Auth;
@@ -28,7 +28,7 @@ public sealed class DeleteAccountEndpoint : IEndpoint
         app.MapDelete(Route, [Authorize] async (
             [FromBody] DeleteAccountRequest request,
             HttpContext httpContext,
-            [FromServices] UsersRepository usersRepo,
+            [FromServices] IUsersRepository usersRepo,
             [FromServices] ILogger<DeleteAccountEndpoint> logger
         ) =>
         {

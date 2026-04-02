@@ -48,32 +48,29 @@ builder.Services.AddSingleton<IEncryptor>(sp =>
 });
 
 // repositories
-builder.Services.AddScoped<UsersRepository>();
-builder.Services.AddScoped<IUsersRepository>(sp => sp.GetRequiredService<UsersRepository>());
-builder.Services.AddScoped<RiotAccountsRepository>();
+builder.Services.AddScoped<IUsersRepository, UsersRepository>();
+builder.Services.AddScoped<IRiotAccountsRepository, RiotAccountsRepository>();
 builder.Services.AddScoped<IUserRiotAccountsRepository, UserRiotAccountsRepository>();
-builder.Services.AddScoped<MatchesRepository>();
-builder.Services.AddScoped<IMatchesRepository>(sp => sp.GetRequiredService<MatchesRepository>());
-builder.Services.AddScoped<ParticipantsRepository>();
-builder.Services.AddScoped<ParticipantCheckpointsRepository>();
-builder.Services.AddScoped<ParticipantMetricsRepository>();
-builder.Services.AddScoped<TeamObjectivesRepository>();
-builder.Services.AddScoped<ParticipantObjectivesRepository>();
+builder.Services.AddScoped<IMatchesRepository, MatchesRepository>();
+builder.Services.AddScoped<IParticipantsRepository, ParticipantsRepository>();
+builder.Services.AddScoped<IParticipantCheckpointsRepository, ParticipantCheckpointsRepository>();
+builder.Services.AddScoped<IParticipantMetricsRepository, ParticipantMetricsRepository>();
+builder.Services.AddScoped<ITeamObjectivesRepository, TeamObjectivesRepository>();
+builder.Services.AddScoped<IParticipantObjectivesRepository, ParticipantObjectivesRepository>();
 builder.Services.AddScoped<IParticipantDeathEventsRepository, ParticipantDeathEventsRepository>();
 builder.Services.AddScoped<IDeathPositionsRepository, DeathPositionsRepository>();
-builder.Services.AddScoped<TeamMatchMetricsRepository>();
-builder.Services.AddScoped<TeamRoleResponsibilitiesRepository>();
-builder.Services.AddScoped<DuoMetricsRepository>();
+builder.Services.AddScoped<ITeamMatchMetricsRepository, TeamMatchMetricsRepository>();
+builder.Services.AddScoped<ITeamRoleResponsibilitiesRepository, TeamRoleResponsibilitiesRepository>();
+builder.Services.AddScoped<IDuoMetricsRepository, DuoMetricsRepository>();
 builder.Services.AddScoped<ISoloPerformanceRepository, SoloPerformanceRepository>();
 builder.Services.AddScoped<IChampionSelectRepository, ChampionSelectRepository>();
 builder.Services.AddScoped<ITrendRepository, TrendRepository>();
 builder.Services.AddScoped<IRadarChartRepository, RadarChartRepository>();
 builder.Services.AddScoped<IMatchupRepository, MatchupRepository>();
-builder.Services.AddScoped<OverviewStatsRepository>();
-builder.Services.AddScoped<IOverviewStatsRepository>(sp => sp.GetRequiredService<OverviewStatsRepository>());
-builder.Services.AddScoped<SeasonsRepository>();
-builder.Services.AddScoped<AnalyticsEventsRepository>();
-builder.Services.AddScoped<VerificationTokensRepository>();
+builder.Services.AddScoped<IOverviewStatsRepository, OverviewStatsRepository>();
+builder.Services.AddScoped<ISeasonsRepository, SeasonsRepository>();
+builder.Services.AddScoped<IAnalyticsEventsRepository, AnalyticsEventsRepository>();
+builder.Services.AddScoped<IVerificationTokensRepository, VerificationTokensRepository>();
 
 // Application services
 builder.Services.AddScoped<LoginSyncService>();

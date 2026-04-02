@@ -1,5 +1,5 @@
 using Mongoose.Api.Core.Entities;
-using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Core.Interfaces;
 
 namespace Mongoose.Api.Infrastructure.Riot;
 
@@ -48,7 +48,7 @@ public static class SeasonHelper
     /// Ensures the season exists in the database. Creates it if it doesn't exist.
     /// </summary>
     public static async Task<string?> EnsureSeasonExistsAsync(
-        SeasonsRepository seasonsRepo,
+        ISeasonsRepository seasonsRepo,
         string? patchVersion,
         long gameStartTimestamp)
     {

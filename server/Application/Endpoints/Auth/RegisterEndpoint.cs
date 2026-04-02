@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Email;
 using static Mongoose.Api.Application.DTOs.RegisterDto;
 
@@ -37,8 +36,8 @@ public sealed class RegisterEndpoint : IEndpoint
         app.MapPost(Route, async (
             [FromBody] RegisterRequest request,
             HttpContext httpContext,
-            [FromServices] UsersRepository usersRepo,
-            [FromServices] VerificationTokensRepository tokensRepo,
+            [FromServices] IUsersRepository usersRepo,
+            [FromServices] IVerificationTokensRepository tokensRepo,
             [FromServices] IEmailService emailService,
             [FromServices] IRateLimiter rateLimiter,
             [FromServices] ILogger<RegisterEndpoint> logger,

@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Core.Interfaces;
 
 namespace Mongoose.Api.Infrastructure.Jobs;
 
@@ -121,7 +121,7 @@ public class MatchCleanupJob : BackgroundService
         try
         {
             using var scope = _serviceProvider.CreateScope();
-            var matchesRepo = scope.ServiceProvider.GetRequiredService<MatchesRepository>();
+            var matchesRepo = scope.ServiceProvider.GetRequiredService<IMatchesRepository>();
 
             // Process in batches until no more old matches exist
             while (!ct.IsCancellationRequested)

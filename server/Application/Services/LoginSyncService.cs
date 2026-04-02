@@ -2,7 +2,6 @@ using System.Text.Json;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Riot;
 using Mongoose.Api.Infrastructure.WebSocket;
 
@@ -14,7 +13,7 @@ namespace Mongoose.Api.Application.Services;
 /// </summary>
 public class LoginSyncService
 {
-    private readonly RiotAccountsRepository _riotAccountsRepo;
+    private readonly IRiotAccountsRepository _riotAccountsRepo;
     private readonly IUserRiotAccountsRepository _userRiotAccountsRepo;
     private readonly IRiotApiClient _riotApiClient;
     private readonly ISyncProgressBroadcaster _syncBroadcaster;
@@ -26,7 +25,7 @@ public class LoginSyncService
     private static readonly TimeSpan SyncCooldown = TimeSpan.FromMinutes(5);
 
     public LoginSyncService(
-        RiotAccountsRepository riotAccountsRepo,
+        IRiotAccountsRepository riotAccountsRepo,
         IUserRiotAccountsRepository userRiotAccountsRepo,
         IRiotApiClient riotApiClient,
         ISyncProgressBroadcaster syncBroadcaster,

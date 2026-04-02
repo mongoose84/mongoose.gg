@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Database.Repositories;
 
 namespace Mongoose.Api.Application.Endpoints.Auth;
 
@@ -25,7 +24,7 @@ public sealed class UsersMeEndpoint : IEndpoint
     {
         app.MapGet(Route, [Authorize] async (
             HttpContext httpContext,
-            [FromServices] UsersRepository usersRepo,
+            [FromServices] IUsersRepository usersRepo,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ILogger<UsersMeEndpoint> logger
         ) =>

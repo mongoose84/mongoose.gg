@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Riot;
 using Mongoose.Api.Infrastructure.Riot.LimitHandler;
 using Mongoose.Api.Infrastructure.Riot.Mappers;
@@ -75,7 +74,7 @@ public class MatchHistorySyncJob : BackgroundService
         try
         {
             using var scope = _serviceProvider.CreateScope();
-            var repo = scope.ServiceProvider.GetRequiredService<RiotAccountsRepository>();
+            var repo = scope.ServiceProvider.GetRequiredService<IRiotAccountsRepository>();
 
             await repo.ResetStuckSyncingAccountsAsync(_stuckJobThreshold);
             _logger.LogInformation("Recovered stuck syncing jobs older than {Threshold}", _stuckJobThreshold);
@@ -89,7 +88,7 @@ public class MatchHistorySyncJob : BackgroundService
     private async Task<bool> TryProcessNextPendingAccountAsync(CancellationToken ct)
     {
         using var scope = _serviceProvider.CreateScope();
-        var riotAccountsRepo = scope.ServiceProvider.GetRequiredService<RiotAccountsRepository>();
+        var riotAccountsRepo = scope.ServiceProvider.GetRequiredService<IRiotAccountsRepository>();
 
         // Atomically claim a pending account (returns null if none available or race lost)
         var account = await riotAccountsRepo.ClaimNextPendingForSyncAsync();
@@ -145,18 +144,18 @@ public class MatchHistorySyncJob : BackgroundService
         CancellationToken ct)
     {
         var riotApiClient = services.GetRequiredService<IRiotApiClient>();
-        var riotAccountsRepo = services.GetRequiredService<RiotAccountsRepository>();
-        var matchesRepo = services.GetRequiredService<MatchesRepository>();
-        var participantsRepo = services.GetRequiredService<ParticipantsRepository>();
-        var checkpointsRepo = services.GetRequiredService<ParticipantCheckpointsRepository>();
-        var partMetricsRepo = services.GetRequiredService<ParticipantMetricsRepository>();
-        var teamObjectivesRepo = services.GetRequiredService<TeamObjectivesRepository>();
-        var partObjectivesRepo = services.GetRequiredService<ParticipantObjectivesRepository>();
+        var riotAccountsRepo = services.GetRequiredService<IRiotAccountsRepository>();
+        var matchesRepo = services.GetRequiredService<IMatchesRepository>();
+        var participantsRepo = services.GetRequiredService<IParticipantsRepository>();
+        var checkpointsRepo = services.GetRequiredService<IParticipantCheckpointsRepository>();
+        var partMetricsRepo = services.GetRequiredService<IParticipantMetricsRepository>();
+        var teamObjectivesRepo = services.GetRequiredService<ITeamObjectivesRepository>();
+        var partObjectivesRepo = services.GetRequiredService<IParticipantObjectivesRepository>();
         var deathEventsRepo = services.GetRequiredService<IParticipantDeathEventsRepository>();
-        var teamMetricsRepo = services.GetRequiredService<TeamMatchMetricsRepository>();
-        var duoMetricsRepo = services.GetRequiredService<DuoMetricsRepository>();
-        var teamRoleRepo = services.GetRequiredService<TeamRoleResponsibilitiesRepository>();
-        var seasonsRepo = services.GetRequiredService<SeasonsRepository>();
+        var teamMetricsRepo = services.GetRequiredService<ITeamMatchMetricsRepository>();
+        var duoMetricsRepo = services.GetRequiredService<IDuoMetricsRepository>();
+        var teamRoleRepo = services.GetRequiredService<ITeamRoleResponsibilitiesRepository>();
+        var seasonsRepo = services.GetRequiredService<ISeasonsRepository>();
         var broadcaster = services.GetService<ISyncProgressBroadcaster>();
 
         // TEMPORARY: Subscribe to rate limit events to notify UI when waiting on Riot API
@@ -201,18 +200,18 @@ public class MatchHistorySyncJob : BackgroundService
     /// </summary>
     private async Task<int> SyncAccountMatchesInternalAsync(
         IRiotApiClient riotApiClient,
-        RiotAccountsRepository riotAccountsRepo,
-        MatchesRepository matchesRepo,
-        ParticipantsRepository participantsRepo,
-        ParticipantCheckpointsRepository checkpointsRepo,
-        ParticipantMetricsRepository partMetricsRepo,
-        TeamObjectivesRepository teamObjectivesRepo,
-        ParticipantObjectivesRepository partObjectivesRepo,
+        IRiotAccountsRepository riotAccountsRepo,
+        IMatchesRepository matchesRepo,
+        IParticipantsRepository participantsRepo,
+        IParticipantCheckpointsRepository checkpointsRepo,
+        IParticipantMetricsRepository partMetricsRepo,
+        ITeamObjectivesRepository teamObjectivesRepo,
+        IParticipantObjectivesRepository partObjectivesRepo,
         IParticipantDeathEventsRepository deathEventsRepo,
-        TeamMatchMetricsRepository teamMetricsRepo,
-        DuoMetricsRepository duoMetricsRepo,
-        TeamRoleResponsibilitiesRepository teamRoleRepo,
-        SeasonsRepository seasonsRepo,
+        ITeamMatchMetricsRepository teamMetricsRepo,
+        IDuoMetricsRepository duoMetricsRepo,
+        ITeamRoleResponsibilitiesRepository teamRoleRepo,
+        ISeasonsRepository seasonsRepo,
         ISyncProgressBroadcaster? broadcaster,
         RiotAccount account,
         CancellationToken ct)
@@ -361,8 +360,8 @@ public class MatchHistorySyncJob : BackgroundService
     /// </summary>
     private async Task UpdateLpForMostRecentRankedMatchAsync(
         IRiotApiClient riotApiClient,
-        ParticipantsRepository participantsRepo,
-        MatchesRepository matchesRepo,
+        IParticipantsRepository participantsRepo,
+        IMatchesRepository matchesRepo,
         RiotAccount account,
         CancellationToken ct)
     {
@@ -520,16 +519,16 @@ public class MatchHistorySyncJob : BackgroundService
     private async Task PersistMatchDataAsync(
         JsonElement matchRoot,
         JsonElement? timelineRoot,
-        MatchesRepository matchesRepo,
-        ParticipantsRepository participantsRepo,
-        TeamObjectivesRepository teamObjectivesRepo,
-        ParticipantMetricsRepository partMetricsRepo,
-        ParticipantCheckpointsRepository checkpointsRepo,
-        ParticipantObjectivesRepository partObjectivesRepo,
+        IMatchesRepository matchesRepo,
+        IParticipantsRepository participantsRepo,
+        ITeamObjectivesRepository teamObjectivesRepo,
+        IParticipantMetricsRepository partMetricsRepo,
+        IParticipantCheckpointsRepository checkpointsRepo,
+        IParticipantObjectivesRepository partObjectivesRepo,
         IParticipantDeathEventsRepository deathEventsRepo,
-        TeamMatchMetricsRepository teamMetricsRepo,
-        TeamRoleResponsibilitiesRepository teamRoleRepo,
-        SeasonsRepository seasonsRepo)
+        ITeamMatchMetricsRepository teamMetricsRepo,
+        ITeamRoleResponsibilitiesRepository teamRoleRepo,
+        ISeasonsRepository seasonsRepo)
     {
         // 1. Map and persist match
         var match = RiotMatchMapper.MapMatch(matchRoot);

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
-using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Core.Interfaces;
 
 namespace Mongoose.Api.Application.Endpoints.Auth;
 
@@ -31,8 +31,8 @@ public sealed class VerifyEndpoint : IEndpoint
         app.MapPost(Route, [Authorize] async (
             [FromBody] VerifyRequest request,
             HttpContext httpContext,
-            [FromServices] UsersRepository usersRepo,
-            [FromServices] VerificationTokensRepository tokensRepo,
+            [FromServices] IUsersRepository usersRepo,
+            [FromServices] IVerificationTokensRepository tokensRepo,
             [FromServices] ILogger<VerifyEndpoint> logger,
             [FromServices] IConfiguration config
         ) =>

@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Database.Repositories;
 using static Mongoose.Api.Application.DTOs.LoginDto;
 
 namespace Mongoose.Api.Application.Endpoints.Auth;
@@ -34,7 +33,7 @@ public sealed class LoginEndpoint : IEndpoint
         app.MapPost(Route, async (
             [FromBody] LoginRequest request,
             HttpContext httpContext,
-            [FromServices] UsersRepository usersRepo,
+            [FromServices] IUsersRepository usersRepo,
             [FromServices] LoginSyncService loginSyncService,
             [FromServices] IRateLimiter rateLimiter,
             [FromServices] ILogger<LoginEndpoint> logger,

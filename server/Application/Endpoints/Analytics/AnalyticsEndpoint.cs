@@ -3,7 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
-using Mongoose.Api.Infrastructure.Database.Repositories;
+using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.AnalyticsDto;
 
 namespace Mongoose.Api.Application.Endpoints.Analytics;
@@ -34,8 +34,8 @@ public sealed class AnalyticsEndpoint : IEndpoint
         app.MapPost(Route, async (
             [FromBody] TrackEventRequest request,
             HttpContext httpContext,
-            [FromServices] AnalyticsEventsRepository analyticsRepo,
-            [FromServices] UsersRepository usersRepo,
+            [FromServices] IAnalyticsEventsRepository analyticsRepo,
+            [FromServices] IUsersRepository usersRepo,
             [FromServices] ILogger<AnalyticsEndpoint> logger
         ) =>
         {
@@ -116,8 +116,8 @@ public sealed class AnalyticsEndpoint : IEndpoint
         app.MapPost(Route + "/batch", async (
             [FromBody] TrackBatchRequest request,
             HttpContext httpContext,
-            [FromServices] AnalyticsEventsRepository analyticsRepo,
-            [FromServices] UsersRepository usersRepo,
+            [FromServices] IAnalyticsEventsRepository analyticsRepo,
+            [FromServices] IUsersRepository usersRepo,
             [FromServices] ILogger<AnalyticsEndpoint> logger
         ) =>
         {

@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Riot;
 
 namespace Mongoose.Api.Application.Endpoints.Auth;
@@ -53,8 +52,8 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         _ = app.MapPost(Route, [Authorize] async (
             HttpContext httpContext,
             [FromBody] LinkRiotAccountRequest request,
-            [FromServices] UsersRepository usersRepo,
-            [FromServices] RiotAccountsRepository riotAccountsRepo,
+            [FromServices] IUsersRepository usersRepo,
+            [FromServices] IRiotAccountsRepository riotAccountsRepo,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] IRiotApiClient riotApiClient,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
@@ -321,7 +320,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         app.MapDelete(Route + "/{puuid}", [Authorize] async (
             string puuid,
             HttpContext httpContext,
-            [FromServices] RiotAccountsRepository riotAccountsRepo,
+            [FromServices] IRiotAccountsRepository riotAccountsRepo,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
         ) =>
@@ -413,7 +412,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         app.MapPost(Route + "/{puuid}/sync", [Authorize] async (
             string puuid,
             HttpContext httpContext,
-            [FromServices] RiotAccountsRepository riotAccountsRepo,
+            [FromServices] IRiotAccountsRepository riotAccountsRepo,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] IRiotApiClient riotApiClient,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
@@ -466,7 +465,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         app.MapGet(Route + "/{puuid}/sync-status", [Authorize] async (
             string puuid,
             HttpContext httpContext,
-            [FromServices] RiotAccountsRepository riotAccountsRepo,
+            [FromServices] IRiotAccountsRepository riotAccountsRepo,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] ILogger<RiotAccountsEndpoint> logger
         ) =>

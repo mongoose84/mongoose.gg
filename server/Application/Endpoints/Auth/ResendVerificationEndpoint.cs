@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Email;
 
 namespace Mongoose.Api.Application.Endpoints.Auth;
@@ -32,8 +31,8 @@ public sealed class ResendVerificationEndpoint : IEndpoint
     {
         app.MapPost(Route, [Authorize] async (
             HttpContext httpContext,
-            [FromServices] UsersRepository usersRepo,
-            [FromServices] VerificationTokensRepository tokensRepo,
+            [FromServices] IUsersRepository usersRepo,
+            [FromServices] IVerificationTokensRepository tokensRepo,
             [FromServices] IEmailService emailService,
             [FromServices] IRateLimiter rateLimiter,
             [FromServices] ILogger<ResendVerificationEndpoint> logger
