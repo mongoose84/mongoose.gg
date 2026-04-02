@@ -210,7 +210,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 return;
             }
 
-            var usersRepo = context.HttpContext.RequestServices.GetRequiredService<UsersRepository>();
+            var usersRepo = context.HttpContext.RequestServices.GetRequiredService<IUsersRepository>();
             var currentStamp = await usersRepo.GetSecurityStampAsync(userId);
 
             if (currentStamp == null || !string.Equals(stampClaim, currentStamp, StringComparison.Ordinal))

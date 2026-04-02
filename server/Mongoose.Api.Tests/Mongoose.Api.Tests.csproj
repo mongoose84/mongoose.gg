@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../server/Mongoose.Api.csproj" />
+    <ProjectReference Include="../Mongoose.Api/Mongoose.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>
