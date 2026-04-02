@@ -10,7 +10,7 @@ Starts the backend with E2E configuration, runs Playwright tests, and reports re
 
 ## Prerequisites
 
-- Backend must compile: `dotnet build` in `server/`
+- Backend must compile: `dotnet build` in `server/Mongoose.Api/`
 - Frontend dependencies installed: `npm install` in `client/`
 - Playwright browsers installed: `npx playwright install` in `client/`
 - MySQL database accessible with test data
@@ -22,7 +22,7 @@ Starts the backend with E2E configuration, runs Playwright tests, and reports re
 Start the .NET backend with E2E environment flags in a **background terminal**:
 
 ```powershell
-# From server/ directory
+# From server/Mongoose.Api/ directory
 $env:Auth__AutoVerifyEmail="true"; $env:RateLimiting__Enabled="false"; $env:Email__DevMode="true"; dotnet run
 ```
 

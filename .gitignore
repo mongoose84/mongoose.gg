@@ -34,17 +34,12 @@ client/playwright/.cache
 # Docs 
 docs/.~lock.gui_playground.odp#
 
-# Server build outputs and secrets (after structure change)
-server/bin
-server/obj
-server/publish
-
-# If secrets or build outputs are now directly under server/ (not in a subfolder)
-/server/bin/
-/server/obj/
-/server/publish/
+# Server build outputs
+server/Mongoose.Api/bin
+server/Mongoose.Api/obj
+server/Mongoose.Api/publish
 
 # published files
 publish/**/*
-tests/Mongoose.Api.Tests/bin
-tests/Mongoose.Api.Tests/obj
+server/Mongoose.Api.Tests/bin
+server/Mongoose.Api.Tests/obj

@@ -1,14 +1,14 @@
 # Server — Agent Instructions
 
 > C# .NET 10 Minimal API backend for Mongoose.gg.
-> For architecture details, endpoint specs, DTOs, and entity models see [architecture.spec.md](../.github/specs/architecture.spec.md).
-> For database schema see [database-schema.spec.md](../.github/specs/database-schema.spec.md).
-> For coding patterns (endpoints, repositories, logging, DTOs) see [backend.instructions.md](../.github/instructions/backend.instructions.md).
+> For architecture details, endpoint specs, DTOs, and entity models see [architecture.spec.md](../../.github/specs/architecture.spec.md).
+> For database schema see [database-schema.spec.md](../../.github/specs/database-schema.spec.md).
+> For coding patterns (endpoints, repositories, logging, DTOs) see [backend.instructions.md](../../.github/instructions/backend.instructions.md).
 
 ## Build & Run
 
 ```bash
-# From server/ directory
+# From server/Mongoose.Api/ directory
 dotnet build
 dotnet run                          # Starts on http://localhost:5164
 dotnet watch run                    # Hot reload
@@ -20,18 +20,18 @@ Requires a MySQL database. Connection string is resolved from `ConnectionStrings
 
 ```bash
 # From server/ directory
-dotnet test ../tests/Mongoose.Api.Tests/     # Run all tests
-dotnet test ../tests/Mongoose.Api.Tests/ --filter "FullyQualifiedName~LoginEndpoint"  # Single test class
+dotnet test Mongoose.Api.Tests/     # Run all tests
+dotnet test Mongoose.Api.Tests/ --filter "FullyQualifiedName~LoginEndpoint"  # Single test class
 ```
 
-Test project: `tests/Mongoose.Api.Tests/Mongoose.Api.Tests.csproj` (xUnit). Uses `TestWebApplicationFactory` for integration tests with in-process server. Tests use `EnvironmentVariableScope` for isolated env var manipulation.
+Test project: `server/Mongoose.Api.Tests/Mongoose.Api.Tests.csproj` (xUnit). Uses `TestWebApplicationFactory` for integration tests with in-process server. Tests use `EnvironmentVariableScope` for isolated env var manipulation.
 
 ## Architecture
 
 Clean Architecture with three layers. Dependencies point inward: Infrastructure → Application → Core.
 
 ```
-server/
+server/Mongoose.Api/
 ├── Core/                    # Domain: entities, interfaces, enums, value objects
 │   ├── Entities/            # POCOs: User, Match, Participant, RiotAccount, etc.
 │   ├── Interfaces/          # Repository + service contracts (29 interfaces)
@@ -72,7 +72,7 @@ server/
 
 ## Key Patterns
 
-> Full endpoint, repository, logging, and DTO patterns are in [backend.instructions.md](../.github/instructions/backend.instructions.md). This section covers server-specific runtime details only.
+> Full endpoint, repository, logging, and DTO patterns are in [backend.instructions.md](../../.github/instructions/backend.instructions.md). This section covers server-specific runtime details only.
 
 ### DI Registration
 

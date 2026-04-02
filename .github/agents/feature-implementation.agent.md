@@ -67,7 +67,7 @@ Apply any fixes the reviewer identifies before proceeding.
 Follow the [run-e2e-tests skill](../skills/run-e2e-tests/SKILL.md):
 1. Start the backend in E2E mode (background terminal with `Auth__AutoVerifyEmail=true`, `RateLimiting__Enabled=false`, `Email__DevMode=true`)
 2. Run `dotnet build` to verify backend compiles
-3. Run `dotnet test tests/Mongoose.Api.Tests/` to verify all backend tests pass
+3. Run `dotnet test Mongoose.Api.Tests/` from `server/` to verify all backend tests pass
 4. Run `npm run test:unit` from `client/` to verify all frontend tests pass
 5. If E2E test files were created for this feature, run them with Playwright
 6. Report results

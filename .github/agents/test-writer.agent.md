@@ -21,7 +21,7 @@ Before writing any test, read:
 
 ## Backend Tests (xUnit)
 
-**Location**: `tests/Mongoose.Api.Tests/`
+**Location**: `server/Mongoose.Api.Tests/`
 
 ### Endpoint Integration Tests (MANDATORY for every endpoint)
 Every endpoint needs these four test cases at minimum:

@@ -17,7 +17,7 @@ Read these before auditing:
 ## Step 2: Backend Audit
 
 ### Endpoint Coverage
-List every endpoint registered in `server/Application/MongooseApiApplication.cs`. For each, check if a matching `*Tests.cs` file exists in `tests/Mongoose.Api.Tests/`.
+List every endpoint registered in `server/Mongoose.Api/Application/MongooseApiApplication.cs`. For each, check if a matching `*Tests.cs` file exists in `server/Mongoose.Api.Tests/`.
 
 For existing test files, verify the mandatory four cases:
 - [ ] Happy path (200 OK with authenticated user)

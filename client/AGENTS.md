@@ -34,7 +34,7 @@ npm run test:e2e:report             # Open last HTML report
 
 **E2E prerequisite**: Backend must run with E2E flags:
 ```bash
-Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run --project server
+Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run --project server/Mongoose.Api
 ```
 
 Unit tests: `test/unit/*.spec.js`. E2E tests: `e2e/*.spec.js`.

@@ -9,7 +9,7 @@ Review these BEFORE writing tests:
 - [Test Strategy Spec](../specs/test-strategy.spec.md) — Testing pyramid, patterns, infrastructure
 - [Architecture Spec](../specs/architecture.spec.md) — API endpoints and expected responses
 - [UI/UX Spec](../specs/ui-ux.spec.md) — Component behavior and interactions
-- Existing tests in `tests/Mongoose.Api.Tests/` and `client/test/unit/`
+- Existing tests in `server/Mongoose.Api.Tests/` and `client/test/unit/`
 
 ## Testing Pyramid
 

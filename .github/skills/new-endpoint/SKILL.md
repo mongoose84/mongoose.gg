@@ -150,7 +150,7 @@ builder.Services.AddScoped<I{Name}Repository, {Name}Repository>();
 
 ### Step 7 — Create Integration Test
 
-File: `tests/Mongoose.Api.Tests/{Name}EndpointTests.cs`
+File: `server/Mongoose.Api.Tests/{Name}EndpointTests.cs`
 
 Must include these test cases:
 1. **Happy path** — authenticated user gets expected data
@@ -196,4 +196,4 @@ Use `TestWebApplicationFactory`, `EnvironmentVariableScope`, and `AuthCookieTest
 - [ ] DI registration added in `Program.cs`
 - [ ] Integration tests cover: auth, forbidden, not-found, happy path
 - [ ] Build passes: `dotnet build` from `server/`
-- [ ] Tests pass: `dotnet test tests/Mongoose.Api.Tests/` from `server/`
+- [ ] Tests pass: `dotnet test Mongoose.Api.Tests/` from `server/`
