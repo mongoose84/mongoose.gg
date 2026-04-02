@@ -26,7 +26,7 @@ jobs:
       Database_production: ${{ secrets.DB_CONNECTIONSTRING }}
       
     defaults:
-      # Every `run:` step will start in the project folder
+      # Every `run:` step will start in the server solution folder
       run:
         working-directory: server
 
@@ -202,11 +202,11 @@ jobs:
           </configuration>
           "@
 
-          Set-Content -Path "web.config" -Value $webConfig -Encoding UTF8
+          Set-Content -Path "Mongoose.Api/web.config" -Value $webConfig -Encoding UTF8
 
           # Validate the generated XML is well-formed
           try {
-            [xml]$xmlDoc = Get-Content -Path "web.config" -Raw
+            [xml]$xmlDoc = Get-Content -Path "Mongoose.Api/web.config" -Raw
             Write-Host "✅ web.config generated and validated as well-formed XML"
           } catch {
             Write-Error "❌ Generated web.config is not valid XML: $_"
@@ -219,14 +219,14 @@ jobs:
       # Run server unit tests (including auth hardening)
       # -------------------------------------------------
       - name: Run tests
-        run: dotnet test ../mongoose.sln --configuration Release --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test mongoose.sln --configuration Release --logger "trx;LogFileName=test-results.trx"
 
       # -------------------------------------------------
       # Publish a **self‑contained** Windows‑x86 binary
       # -------------------------------------------------
       - name: Publish (self-contained)
         run: |
-          dotnet publish -c Release -r win-x86 --self-contained=true  -o ./${{ env.PUBLISH_DIR }}
+          dotnet publish ./Mongoose.Api/Mongoose.Api.csproj -c Release -r win-x86 --self-contained=true -o ./${{ env.PUBLISH_DIR }}
 
       # -------------------------------------------------
       # Copy web.config to publish output (overwrite the default one)
@@ -235,7 +235,7 @@ jobs:
       - name: Copy web.config to publish output
         shell: pwsh
         run: |
-          $sourceFile = "./web.config"
+          $sourceFile = "./Mongoose.Api/web.config"
           $targetFile = "./${{ env.PUBLISH_DIR }}/web.config"
 
           if (-not (Test-Path $sourceFile)) {
@@ -303,7 +303,7 @@ jobs:
           $maxAttempts = 3
           $remoteBase = "ftp://${{ secrets.FTP_HOSTNAME }}/${{ secrets.FTP_API_PATH }}"
           $remoteOffline = "$remoteBase/app_offline.htm"
-          $localOffline = "./CI-Support/app_offline.htm"
+          $localOffline = "./Mongoose.Api/CI-Support/app_offline.htm"
 
           # If the site is already offline, do not fail—just skip the upload
           $alreadyOffline = $false

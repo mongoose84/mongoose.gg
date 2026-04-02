@@ -102,7 +102,7 @@ The test user is linked to a hardcoded Riot account configured in `client/e2e/gl
 #### Server part
 from root
 ```
-cd server
+cd server/Mongoose.Api
 ```
 
 ##### Riot API Key
@@ -161,6 +161,6 @@ dotnet user-secrets set "Email:FromEmail" "noreply@yourdomain.com"
 
 ##### Run server tests
 ```
-cd root
-dotnet test mongoose.sln
+cd server
+dotnet test
 ```

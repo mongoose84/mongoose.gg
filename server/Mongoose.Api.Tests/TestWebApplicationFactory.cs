@@ -12,7 +12,6 @@ using Mongoose.Api.Infrastructure.Email;
 using Mongoose.Api.Infrastructure.Jobs;
 using Mongoose.Api.Infrastructure.Riot;
 using Mongoose.Api.Application.DTOs;
-using Mongoose.Api.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -21,7 +20,6 @@ using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
 using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
 using static Mongoose.Api.Application.DTOs.TrendDto;
 using static Mongoose.Api.Application.DTOs.Solo.RadarChartDto;
-using static Mongoose.Api.Application.DTOs.Solo.DeathPositionsDto;
 
 namespace Mongoose.Api.Tests;
 
@@ -95,7 +93,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             // Test encryption key (32 bytes base64-encoded) - only for testing
             // "test-encryption-key-32bytes!!!!!" (32 chars) -> base64
-            const string testEmailEncryptionKey = "dGVzdC1lbmNyeXB0aW9uLWtleS0zMmJ5dGVzISEhISE=";
+            const string testEncryptionSecret = "dGVzdC1lbmNyeXB0aW9uLWtleS0zMmJ5dGVzISEhISE=";
 
             var defaults = new Dictionary<string, string?>
             {
@@ -106,7 +104,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jobs:EnableMatchCleanup"] = "false",
                 ["RIOT_API_KEY"] = "test-key",
                 ["Database_test"] = "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;",
-                ["Security:EmailEncryptionKey"] = testEmailEncryptionKey
+                ["Security:EncryptionSecret"] = testEncryptionSecret
             };
 
             config.AddInMemoryCollection(defaults);
@@ -135,12 +133,12 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             }
 
             // Replace UsersRepository with a fake to avoid real DB connections
-            services.RemoveAll<UsersRepository>();
-            services.AddSingleton<UsersRepository>(_usersRepository);
+            services.RemoveAll<IUsersRepository>();
+            services.AddSingleton<IUsersRepository>(_usersRepository);
 
             // Replace VerificationTokensRepository with a fake
-            services.RemoveAll<VerificationTokensRepository>();
-            services.AddSingleton<VerificationTokensRepository>(_tokensRepository);
+            services.RemoveAll<IVerificationTokensRepository>();
+            services.AddSingleton<IVerificationTokensRepository>(_tokensRepository);
 
             // Replace IEmailService with a fake
             services.RemoveAll<IEmailService>();
@@ -151,22 +149,20 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<IRiotApiClient>(_riotApiClient);
 
             // Replace RiotAccountsRepository with a fake
-            services.RemoveAll<RiotAccountsRepository>();
-            services.AddSingleton<RiotAccountsRepository>(_riotAccountsRepository);
+            services.RemoveAll<IRiotAccountsRepository>();
+            services.AddSingleton<IRiotAccountsRepository>(_riotAccountsRepository);
 
             // Replace UserRiotAccountsRepository with a fake
             services.RemoveAll<IUserRiotAccountsRepository>();
             services.AddSingleton<IUserRiotAccountsRepository>(_userRiotAccountsRepository);
 
             // Replace OverviewStatsRepository with a fake
-            services.RemoveAll<OverviewStatsRepository>();
             services.RemoveAll<IOverviewStatsRepository>();
-            services.AddSingleton<OverviewStatsRepository>(_overviewStatsRepository);
             services.AddSingleton<IOverviewStatsRepository>(_overviewStatsRepository);
 
             // Replace AnalyticsEventsRepository with a fake
-            services.RemoveAll<AnalyticsEventsRepository>();
-            services.AddSingleton<AnalyticsEventsRepository>(_analyticsEventsRepository);
+            services.RemoveAll<IAnalyticsEventsRepository>();
+            services.AddSingleton<IAnalyticsEventsRepository>(_analyticsEventsRepository);
 
             // Replace IGitHubService with a fake
             services.RemoveAll<IGitHubService>();
@@ -520,9 +516,9 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly ConcurrentDictionary<string, string> _puuidByRiotId = new(StringComparer.OrdinalIgnoreCase);
 
-        public event EventHandler<Mongoose.Api.Infrastructure.Riot.LimitHandler.RateLimitWaitEventArgs>? RateLimitWaitStarted;
+        public event EventHandler<RateLimitWaitEventArgs>? RateLimitWaitStarted;
 
-        private void NotifyRateLimitWaitStarted(Mongoose.Api.Infrastructure.Riot.LimitHandler.RateLimitWaitEventArgs args)
+        private void NotifyRateLimitWaitStarted(RateLimitWaitEventArgs args)
         {
             RateLimitWaitStarted?.Invoke(this, args);
         }
@@ -1855,9 +1851,9 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     /// </summary>
     internal sealed class FakeDeathPositionsRepository : IDeathPositionsRepository
     {
-        private readonly ConcurrentDictionary<string, DeathPositionsResponse> _deathPositionsData = new();
+        private readonly ConcurrentDictionary<string, Core.QueryModels.DeathPositionsResult> _deathPositionsData = new();
 
-        public void SetDeathPositionsData(string puuid, DeathPositionsResponse data)
+        public void SetDeathPositionsData(string puuid, Core.QueryModels.DeathPositionsResult data)
         {
             _deathPositionsData[puuid] = data;
         }
@@ -1867,7 +1863,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _deathPositionsData.Clear();
         }
 
-        public Task<DeathPositionsResponse?> GetDeathPositionsAsync(
+        public Task<Core.QueryModels.DeathPositionsResult?> GetDeathPositionsAsync(
             string puuid, 
             string? queueType = null, 
             string? timeRange = null, 
@@ -1877,7 +1873,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(data);
         }
 
-        public Task<DeathPositionsResponse?> GetDeathPositionsAsync(
+        public Task<Core.QueryModels.DeathPositionsResult?> GetDeathPositionsAsync(
             IReadOnlyList<string> puuids,
             string? queueType = null,
             string? timeRange = null,
@@ -1886,10 +1882,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             foreach (var puuid in puuids)
             {
                 if (_deathPositionsData.TryGetValue(puuid, out var data))
-                    return Task.FromResult<DeathPositionsResponse?>(data);
+                    return Task.FromResult<Core.QueryModels.DeathPositionsResult?>(data);
             }
 
-            return Task.FromResult<DeathPositionsResponse?>(null);
+            return Task.FromResult<Core.QueryModels.DeathPositionsResult?>(null);
         }
     }
 }

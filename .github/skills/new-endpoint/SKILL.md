@@ -30,7 +30,7 @@ Gather from the user:
 
 ### Step 1 — Determine Domain Folder
 
-Map the endpoint to an existing domain folder under `server/Application/Endpoints/`:
+Map the endpoint to an existing domain folder under `server/Mongoose.Api/Application/Endpoints/`:
 - Auth routes → `Auth/`
 - Solo dashboard data → `Solo/`
 - Match data → `Matches/`
@@ -40,7 +40,7 @@ Map the endpoint to an existing domain folder under `server/Application/Endpoint
 
 ### Step 2 — Create the Endpoint Class
 
-File: `server/Application/Endpoints/{Domain}/{Name}Endpoint.cs`
+File: `server/Mongoose.Api/Application/Endpoints/{Domain}/{Name}Endpoint.cs`
 
 ```csharp
 using System.Security.Claims;
@@ -105,7 +105,7 @@ Adapt: add `[FromQuery]` parameters, use `IQueryFilterBuilder` for queue/time fi
 
 ### Step 3 — Create the DTO Record
 
-File: `server/Application/DTOs/{Domain}/{Name}Response.cs`
+File: `server/Mongoose.Api/Application/DTOs/{Domain}/{Name}Response.cs`
 
 ```csharp
 using System.Text.Json.Serialization;
@@ -121,7 +121,7 @@ All properties must use `[JsonPropertyName("camelCase")]`.
 
 ### Step 4 — Create the Repository Interface
 
-File: `server/Core/Interfaces/I{Name}Repository.cs`
+File: `server/Mongoose.Api/Core/Interfaces/I{Name}Repository.cs`
 
 ```csharp
 namespace Mongoose.Api.Core.Interfaces;
@@ -134,7 +134,7 @@ public interface I{Name}Repository
 
 ### Step 5 — Create the Repository Implementation
 
-File: `server/Infrastructure/Database/Repositories/{Name}Repository.cs`
+File: `server/Mongoose.Api/Infrastructure/Database/Repositories/{Name}Repository.cs`
 
 - Extend `RepositoryBase`
 - Use `ExecuteSingleAsync<T>` / `ExecuteListAsync<T>` with raw SQL
@@ -142,7 +142,7 @@ File: `server/Infrastructure/Database/Repositories/{Name}Repository.cs`
 
 ### Step 6 — Register in DI
 
-Add to `server/Program.cs` in the DI section:
+Add to `server/Mongoose.Api/Program.cs` in the DI section:
 
 ```csharp
 builder.Services.AddScoped<I{Name}Repository, {Name}Repository>();
@@ -195,5 +195,5 @@ Use `TestWebApplicationFactory`, `EnvironmentVariableScope`, and `AuthCookieTest
 - [ ] Repository interface in `Core/Interfaces/`, implementation in `Infrastructure/Database/Repositories/`
 - [ ] DI registration added in `Program.cs`
 - [ ] Integration tests cover: auth, forbidden, not-found, happy path
-- [ ] Build passes: `dotnet build` from `server/`
+- [ ] Build passes: `dotnet build` from `server/Mongoose.Api/`
 - [ ] Tests pass: `dotnet test Mongoose.Api.Tests/` from `server/`

@@ -493,7 +493,7 @@ cd client && npm run test:e2e:ui         # Playwright UI
 **E2E Local Setup:**
 ```bash
 # Terminal 1: Start server with E2E flags
-Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run --project server
+Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run --project server/Mongoose.Api
 
 # Terminal 2: Run E2E tests
 cd client && npm run test:e2e

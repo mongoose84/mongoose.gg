@@ -19,7 +19,7 @@ Mongoose.gg is a League of Legends performance analytics platform helping solo p
 - **C# files** → [backend.instructions.md](instructions/backend.instructions.md) — endpoint pattern, repos, DTOs, logging, DI
 - **Vue/JS/CSS files** → [frontend.instructions.md](instructions/frontend.instructions.md) — components, stores, API layer, styling
 - **Test files** → [testing.instructions.md](instructions/testing.instructions.md) — xUnit, Vitest, Playwright patterns
-- **Build & run** → [server/AGENTS.md](../server/AGENTS.md), [client/AGENTS.md](../client/AGENTS.md)
+- **Build & run** → [server/Mongoose.Api/AGENTS.md](../server/Mongoose.Api/AGENTS.md), [client/AGENTS.md](../client/AGENTS.md)
 
 ## Reference Specs
 

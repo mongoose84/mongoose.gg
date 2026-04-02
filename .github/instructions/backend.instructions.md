@@ -9,7 +9,7 @@ Review these BEFORE starting:
 - [Architecture Spec](../specs/architecture.spec.md) — Endpoint patterns, DTOs, repositories
 - [Database Schema](../specs/database-schema.spec.md) — Table structure and relationships
 - [Test Strategy](../specs/test-strategy.spec.md) — xUnit patterns and TestWebApplicationFactory usage
-- [Server AGENTS.md](../../server/AGENTS.md) — Build/run instructions and key patterns
+- [Server AGENTS.md](../../server/Mongoose.Api/AGENTS.md) — Build/run instructions and key patterns
 
 ## Critical Architecture Rules
 

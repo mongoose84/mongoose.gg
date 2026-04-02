@@ -17,7 +17,7 @@ Read these before auditing:
 ## Step 2: Backend Audit
 
 ### Endpoint Coverage
-List every endpoint registered in `server/Application/MongooseApiApplication.cs`. For each, check if a matching `*Tests.cs` file exists in `server/Mongoose.Api.Tests/`.
+List every endpoint registered in `server/Mongoose.Api/Application/MongooseApiApplication.cs`. For each, check if a matching `*Tests.cs` file exists in `server/Mongoose.Api.Tests/`.
 
 For existing test files, verify the mandatory four cases:
 - [ ] Happy path (200 OK with authenticated user)
@@ -26,7 +26,7 @@ For existing test files, verify the mandatory four cases:
 - [ ] 404 Not Found (no linked Riot account)
 
 ### Service/Mapper Coverage
-Check `server/Infrastructure/` and `server/Application/Services/` for classes with logic that lack corresponding test files. Priority targets from the test strategy:
+Check `server/Mongoose.Api/Infrastructure/` and `server/Mongoose.Api/Application/Services/` for classes with logic that lack corresponding test files. Priority targets from the test strategy:
 - LoginSyncService
 - RiotTimelineMapper
 - SeasonHelper

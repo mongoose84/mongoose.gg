@@ -36,17 +36,17 @@
 └──────────────────┬───────────────────────────────────────────────┘
                    │ HTTP + WS (cookie auth)
 ┌──────────────────▼───────────────────────────────────────────────┐
-│  API Layer — server/Application/Endpoints/                        │
+│  API Layer — server/Mongoose.Api/Application/Endpoints/            │
 │  Minimal API endpoints implementing IEndpoint                     │
 │  Registered via MongooseApiApplication.ConfigureEndpoints()       │
 ├──────────────────────────────────────────────────────────────────┤
-│  Application Services — server/Application/Services/              │
+│  Application Services — server/Mongoose.Api/Application/Services/  │
 │  LoginSyncService, MainChampionRecommender                         │
 ├──────────────────────────────────────────────────────────────────┤
-│  Core Layer — server/Core/                                        │
+│  Core Layer — server/Mongoose.Api/Core/                            │
 │  Entities (POCOs) · Interfaces (repos, services) · Enums          │
 ├──────────────────────────────────────────────────────────────────┤
-│  Infrastructure — server/Infrastructure/                          │
+│  Infrastructure — server/Mongoose.Api/Infrastructure/              │
 │  Database/Repositories · Riot API client · Email · Jobs · WebSocket│
 ├──────────────────────────────────────────────────────────────────┤
 │  MySQL Database (schema.sql)                                      │
@@ -57,9 +57,9 @@
 
 **Clean Architecture layers** (dependency flows inward):
 
-- **Core** (`server/Core/`) — Entities, Interfaces, Enums, ValueObjects. Zero external dependencies.
-- **Application** (`server/Application/`) — Endpoints, DTOs, Services. Depends only on Core.
-- **Infrastructure** (`server/Infrastructure/`) — Repository implementations, Riot API, email, jobs. Implements Core interfaces.
+- **Core** (`server/Mongoose.Api/Core/`) — Entities, Interfaces, Enums, ValueObjects. Zero external dependencies.
+- **Application** (`server/Mongoose.Api/Application/`) — Endpoints, DTOs, Services. Depends only on Core.
+- **Infrastructure** (`server/Mongoose.Api/Infrastructure/`) — Repository implementations, Riot API, email, jobs. Implements Core interfaces.
 
 **Key patterns**:
 - Endpoints implement `IEndpoint` interface (Route + Configure method)
@@ -73,79 +73,82 @@
 
 ```
 server/
-├── Program.cs                          # DI registration, middleware, endpoint wiring
-├── schema.sql                          # Complete MySQL schema (19 tables)
-├── appsettings.json                    # Production config
-├── appsettings.Development.json        # Dev config
-├── Application/
-│   ├── MongooseApiApplication.cs       # Endpoint registration orchestrator
-│   ├── DTOs/
-│   │   ├── Analytics/AnalyticsDto.cs
-│   │   ├── Auth/LoginDto.cs
-│   │   ├── Auth/RegisterDto.cs
-│   │   ├── Auth/LogoutDto.cs
-│   │   ├── Auth/DeleteAccountDto.cs
-│   │   ├── ChampionSelect/ChampionSelectDto.cs
-│   │   ├── Feedback/FeedbackDto.cs
-│   │   ├── Matches/MatchListDto.cs
-│   │   ├── Matches/MatchNarrativeDto.cs
-│   │   ├── Overview/OverviewDto.cs
-│   │   ├── Solo/SoloPerformanceDto.cs
-│   │   ├── Solo/SoloMatchupsDto.cs
-│   │   ├── Solo/MainChampionDto.cs
-│   │   ├── Solo/MatchActivityDto.cs
-│   │   └── Trends/TrendDto.cs
-│   ├── Endpoints/
-│   │   ├── Shared/IEndpoint.cs         # Interface: Route + Configure(WebApplication)
-│   │   ├── Shared/AuthResults.cs       # Standard 401/403 JSON helpers
-│   │   ├── Shared/HomeEndpoint.cs      # GET / — sitemap
-│   │   ├── Shared/PublicStatsEndpoint.cs  # GET /api/v2/public/stats
-│   │   ├── Shared/LogSanitizer.cs
-│   │   ├── Analytics/AnalyticsEndpoint.cs
-│   │   ├── Auth/LoginEndpoint.cs
-│   │   ├── Auth/RegisterEndpoint.cs
-│   │   ├── Auth/LogoutEndpoint.cs
-│   │   ├── Auth/DeleteAccountEndpoint.cs
-│   │   ├── Auth/VerifyEndpoint.cs
-│   │   ├── Auth/ResendVerificationEndpoint.cs
-│   │   ├── Auth/RiotAccountsEndpoint.cs
-│   │   ├── Auth/UsersMeEndpoint.cs
-│   │   ├── ChampionSelect/ChampionSelectEndpoint.cs
-│   │   ├── Diagnostics/DiagnosticsEndpoint.cs
-│   │   ├── Feedback/FeedbackEndpoint.cs
-│   │   ├── Matches/MatchListEndpoint.cs
-│   │   ├── Matches/MatchDetailsEndpoint.cs
-│   │   ├── Matches/MatchNarrativeEndpoint.cs
-│   │   ├── Overview/OverviewEndpoint.cs
-│   │   ├── Solo/SoloPerformanceEndpoint.cs
-│   │   ├── Solo/SoloMatchupsEndpoint.cs
-│   │   ├── Solo/MatchActivityEndpoint.cs
-│   │   └── Trends/WinrateTrendEndpoint.cs
-│   └── Services/
-│       ├── LoginSyncService.cs         # Post-login Riot data refresh
-│       └── MainChampionRecommender.cs  # Champion scoring algorithm (MScore)
-├── Core/
-│   ├── Entities/                       # POCOs: User, RiotAccount, Match, Participant, etc.
-│   ├── Interfaces/                     # Repository + service contracts
-│   ├── Enums/
-│   ├── QueryModels/                    # MatchListSummaryItem, RoleBaseline, etc.
-│   └── ValueObjects/
-├── Infrastructure/
-│   ├── Database/
-│   │   ├── DbConnectionFactory.cs
-│   │   └── Repositories/              # MySQL implementations of all Core interfaces
-│   ├── Riot/RiotApiClient.cs          # Riot Games API integration
-│   ├── Email/SmtpEmailService.cs
-│   ├── Jobs/
-│   │   ├── MatchHistorySyncJob.cs     # Background: syncs match history
-│   │   └── MatchCleanupJob.cs         # Background: deletes old matches
-│   ├── WebSocket/
-│   │   ├── SyncProgressHub.cs         # Raw WebSocket hub for real-time sync updates
-│   │   └── ISyncProgressBroadcaster.cs
-│   ├── Security/Secrets.cs
-│   ├── Middleware/JsonExceptionMiddleware.cs
-│   └── RateLimiting/EndpointRateLimiter.cs
-└── Mongoose.Api.Tests/                 # xUnit test project
+├── mongoose.sln
+├── NuGet.config
+├── Mongoose.Api/
+│   ├── Program.cs                          # DI registration, middleware, endpoint wiring
+│   ├── schema.sql                          # Complete MySQL schema (19 tables)
+│   ├── appsettings.json                    # Production config
+│   ├── appsettings.Development.json        # Dev config
+│   ├── Application/
+│   │   ├── MongooseApiApplication.cs       # Endpoint registration orchestrator
+│   │   ├── DTOs/
+│   │   │   ├── Analytics/AnalyticsDto.cs
+│   │   │   ├── Auth/LoginDto.cs
+│   │   │   ├── Auth/RegisterDto.cs
+│   │   │   ├── Auth/LogoutDto.cs
+│   │   │   ├── Auth/DeleteAccountDto.cs
+│   │   │   ├── ChampionSelect/ChampionSelectDto.cs
+│   │   │   ├── Feedback/FeedbackDto.cs
+│   │   │   ├── Matches/MatchListDto.cs
+│   │   │   ├── Matches/MatchNarrativeDto.cs
+│   │   │   ├── Overview/OverviewDto.cs
+│   │   │   ├── Solo/SoloPerformanceDto.cs
+│   │   │   ├── Solo/SoloMatchupsDto.cs
+│   │   │   ├── Solo/MainChampionDto.cs
+│   │   │   ├── Solo/MatchActivityDto.cs
+│   │   │   └── Trends/TrendDto.cs
+│   │   ├── Endpoints/
+│   │   │   ├── Shared/IEndpoint.cs         # Interface: Route + Configure(WebApplication)
+│   │   │   ├── Shared/AuthResults.cs       # Standard 401/403 JSON helpers
+│   │   │   ├── Shared/HomeEndpoint.cs      # GET / — sitemap
+│   │   │   ├── Shared/PublicStatsEndpoint.cs  # GET /api/v2/public/stats
+│   │   │   ├── Shared/LogSanitizer.cs
+│   │   │   ├── Analytics/AnalyticsEndpoint.cs
+│   │   │   ├── Auth/LoginEndpoint.cs
+│   │   │   ├── Auth/RegisterEndpoint.cs
+│   │   │   ├── Auth/LogoutEndpoint.cs
+│   │   │   ├── Auth/DeleteAccountEndpoint.cs
+│   │   │   ├── Auth/VerifyEndpoint.cs
+│   │   │   ├── Auth/ResendVerificationEndpoint.cs
+│   │   │   ├── Auth/RiotAccountsEndpoint.cs
+│   │   │   ├── Auth/UsersMeEndpoint.cs
+│   │   │   ├── ChampionSelect/ChampionSelectEndpoint.cs
+│   │   │   ├── Diagnostics/DiagnosticsEndpoint.cs
+│   │   │   ├── Feedback/FeedbackEndpoint.cs
+│   │   │   ├── Matches/MatchListEndpoint.cs
+│   │   │   ├── Matches/MatchDetailsEndpoint.cs
+│   │   │   ├── Matches/MatchNarrativeEndpoint.cs
+│   │   │   ├── Overview/OverviewEndpoint.cs
+│   │   │   ├── Solo/SoloPerformanceEndpoint.cs
+│   │   │   ├── Solo/SoloMatchupsEndpoint.cs
+│   │   │   ├── Solo/MatchActivityEndpoint.cs
+│   │   │   └── Trends/WinrateTrendEndpoint.cs
+│   │   └── Services/
+│   │       ├── LoginSyncService.cs         # Post-login Riot data refresh
+│   │       └── MainChampionRecommender.cs  # Champion scoring algorithm (MScore)
+│   ├── Core/
+│   │   ├── Entities/                       # POCOs: User, RiotAccount, Match, Participant, etc.
+│   │   ├── Interfaces/                     # Repository + service contracts
+│   │   ├── Enums/
+│   │   ├── QueryModels/                    # MatchListSummaryItem, RoleBaseline, etc.
+│   │   └── ValueObjects/
+│   └── Infrastructure/
+│       ├── Database/
+│       │   ├── DbConnectionFactory.cs
+│       │   └── Repositories/               # MySQL implementations of all Core interfaces
+│       ├── Riot/RiotApiClient.cs           # Riot Games API integration
+│       ├── Email/SmtpEmailService.cs
+│       ├── Jobs/
+│       │   ├── MatchHistorySyncJob.cs      # Background: syncs match history
+│       │   └── MatchCleanupJob.cs          # Background: deletes old matches
+│       ├── WebSocket/
+│       │   ├── SyncProgressHub.cs          # Raw WebSocket hub for real-time sync updates
+│       │   └── ISyncProgressBroadcaster.cs
+│       ├── Security/Secrets.cs
+│       ├── Middleware/JsonExceptionMiddleware.cs
+│       └── RateLimiting/EndpointRateLimiter.cs
+└── Mongoose.Api.Tests/                     # xUnit test project
 ```
 
 ---
@@ -633,7 +636,7 @@ All entities extend `EntityBase` (provides `ToJson()` and `ToString()`).
 
 ### User
 ```csharp
-// server/Core/Entities/User.cs
+// server/Mongoose.Api/Core/Entities/User.cs
 public class User : EntityBase
 {
     public long UserId { get; set; }
@@ -652,7 +655,7 @@ public class User : EntityBase
 
 ### RiotAccount
 ```csharp
-// server/Core/Entities/RiotAccount.cs
+// server/Mongoose.Api/Core/Entities/RiotAccount.cs
 public class RiotAccount : EntityBase
 {
     public string Puuid { get; set; }             // PK — Riot PUUID (78 chars)
@@ -985,7 +988,7 @@ public interface IRateLimiter
 ## 10. Application Services
 
 ### LoginSyncService
-**File**: `server/Application/Services/LoginSyncService.cs`  
+**File**: `server/Mongoose.Api/Application/Services/LoginSyncService.cs`  
 **Purpose**: Refreshes Riot account data on login (fire-and-forget from LoginEndpoint)  
 **Dependencies**: `RiotAccountsRepository`, `IUserRiotAccountsRepository`, `IRiotApiClient`, `ISyncProgressBroadcaster`
 
@@ -998,7 +1001,7 @@ public interface IRateLimiter
 **Sync cooldown**: 5 minutes between syncs for the same account.
 
 ### MainChampionRecommender
-**File**: `server/Application/Services/MainChampionRecommender.cs`  
+**File**: `server/Mongoose.Api/Application/Services/MainChampionRecommender.cs`  
 **Purpose**: Scores and ranks champions per role using the MScore algorithm  
 **Max champions per role**: 3
 
@@ -1152,27 +1155,27 @@ When adding a new endpoint, follow this checklist:
 
 ### Files to Create/Modify
 
-1. **DTO** — `server/Application/DTOs/{Feature}/{Feature}Dto.cs`
+1. **DTO** — `server/Mongoose.Api/Application/DTOs/{Feature}/{Feature}Dto.cs`
    - Use `record` types with `[JsonPropertyName]` attributes
    - Static class wrapper (e.g., `public static class MyFeatureDto { ... }`)
 
-2. **Endpoint** — `server/Application/Endpoints/{Feature}/{Feature}Endpoint.cs`
+2. **Endpoint** — `server/Mongoose.Api/Application/Endpoints/{Feature}/{Feature}Endpoint.cs`
    - Implement `IEndpoint` (Route property + Configure method)
    - Accept `basePath` in constructor
    - Use `.RequireAuthorization()` for protected routes
    - Follow the User→PUUID resolution pattern (see Section 3)
 
-3. **Repository interface** — `server/Core/Interfaces/I{Feature}Repository.cs`
+3. **Repository interface** — `server/Mongoose.Api/Core/Interfaces/I{Feature}Repository.cs`
    - Return DTOs or query models, not entities
 
-4. **Repository implementation** — `server/Infrastructure/Database/Repositories/{Feature}Repository.cs`
+4. **Repository implementation** — `server/Mongoose.Api/Infrastructure/Database/Repositories/{Feature}Repository.cs`
    - Use `IDbConnectionFactory`, `MySqlCommand`, parameterized queries
    - Register as Scoped in `Program.cs`
 
-5. **Register in DI** — `server/Program.cs`
+5. **Register in DI** — `server/Mongoose.Api/Program.cs`
    - `builder.Services.AddScoped<I{Feature}Repository, {Feature}Repository>();`
 
-6. **Register endpoint** — `server/Application/MongooseApiApplication.cs`
+6. **Register endpoint** — `server/Mongoose.Api/Application/MongooseApiApplication.cs`
    - Add to endpoint list in `ConfigureEndpoints()`
 
 7. **Tests** — `server/Mongoose.Api.Tests/{Feature}EndpointTests.cs`

@@ -3,8 +3,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Mongoose.Api.Core.QueryModels;
 using Xunit;
-using static Mongoose.Api.Application.DTOs.Solo.DeathPositionsDto;
 
 namespace Mongoose.Api.Tests;
 
@@ -84,16 +84,16 @@ public class DeathPositionsEndpointTests
         // Add mock death positions data
         var testDeaths = new[]
         {
-            new DeathPosition(7234, 8456, 8, "early", 238, 1),
-            new DeathPosition(4561, 6789, 22, "late", 412, 3),
-            new DeathPosition(9100, 5200, 15, "mid", 64, 2)
+            new DeathPositionData(7234, 8456, 8, "early", 238, 1, "match-1"),
+            new DeathPositionData(4561, 6789, 22, "late", 412, 3, "match-1"),
+            new DeathPositionData(9100, 5200, 15, "mid", 64, 2, "match-2")
         };
 
-        var testData = new DeathPositionsResponse(
+        var testData = new DeathPositionsResult(
             Deaths: testDeaths,
             TotalDeaths: 143,
             MatchesAnalyzed: 32,
-            PhaseSummary: new PhaseSummary(28, 45, 42, 28)
+            PhaseSummary: new DeathPositionPhaseSummary(28, 45, 42, 28)
         );
 
         factory.DeathPositionsRepository.SetDeathPositionsData("test-puuid-123", testData);
@@ -195,11 +195,11 @@ public class DeathPositionsEndpointTests
         );
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
 
-        var testData = new DeathPositionsResponse(
-            Deaths: new[] { new DeathPosition(7234, 8456, 8, "early", 238, 1) },
+        var testData = new DeathPositionsResult(
+            Deaths: new[] { new DeathPositionData(7234, 8456, 8, "early", 238, 1, "match-1") },
             TotalDeaths: 50,
             MatchesAnalyzed: 15,
-            PhaseSummary: new PhaseSummary(10, 15, 15, 10)
+            PhaseSummary: new DeathPositionPhaseSummary(10, 15, 15, 10)
         );
 
         factory.DeathPositionsRepository.SetDeathPositionsData("test-puuid-123", testData);
@@ -231,11 +231,11 @@ public class DeathPositionsEndpointTests
         );
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
 
-        var testData = new DeathPositionsResponse(
-            Deaths: new[] { new DeathPosition(7234, 8456, 8, "early", 238, 1) },
+        var testData = new DeathPositionsResult(
+            Deaths: new[] { new DeathPositionData(7234, 8456, 8, "early", 238, 1, "match-1") },
             TotalDeaths: 30,
             MatchesAnalyzed: 10,
-            PhaseSummary: new PhaseSummary(8, 10, 8, 4)
+            PhaseSummary: new DeathPositionPhaseSummary(8, 10, 8, 4)
         );
 
         factory.DeathPositionsRepository.SetDeathPositionsData("test-puuid-123", testData);
@@ -267,11 +267,11 @@ public class DeathPositionsEndpointTests
         );
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
 
-        var testData = new DeathPositionsResponse(
-            Deaths: new[] { new DeathPosition(7234, 8456, 8, "early", 238, 1) },
+        var testData = new DeathPositionsResult(
+            Deaths: new[] { new DeathPositionData(7234, 8456, 8, "early", 238, 1, "match-1") },
             TotalDeaths: 70,
             MatchesAnalyzed: 16,
-            PhaseSummary: new PhaseSummary(15, 20, 20, 15)
+            PhaseSummary: new DeathPositionPhaseSummary(15, 20, 20, 15)
         );
 
         factory.DeathPositionsRepository.SetDeathPositionsData("test-puuid-123", testData);
