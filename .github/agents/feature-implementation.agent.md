@@ -24,6 +24,7 @@ Invoke the `architect` agent with a prompt containing:
   - Database changes: new tables, columns, indexes (if any)
   - API contracts: request/response shapes for each endpoint
   - Testing strategy: what integration tests and component tests to write
+  - DDD alignment: bounded contexts, ubiquitous language, domain model placement
   - Risks or open questions
 
 The architect is read-only — it will return the plan as text. You must then **create the spec file** yourself at `.github/specs/features/{feature-name}.spec.md` using the architect's output, structured per the [feature template](../specs/feature-template.spec.md).
@@ -40,6 +41,7 @@ After the spec is written, invoke **both** agents. Pass each one:
 - Instruction to follow the [new-endpoint skill](../skills/new-endpoint/SKILL.md) pattern for any new endpoints
 - Instruction to create integration tests for every new endpoint
 - Reminder: `LogSanitizer.Sanitize()` on all user input in logs, parameterized SQL only, PUUID resolved from user ID
+- Reminder: preserve DDD boundaries (domain rules in Core, orchestration in Application, integration in Infrastructure)
 
 **frontend-engineer prompt must include:**
 - The frontend changes section from the spec

@@ -62,6 +62,7 @@ Use `copilot-instructions.md` and the instruction files in `.github/instructions
 - [ ] No over-engineering beyond the current task
 - [ ] TODO comments are documented and intentional
 - [ ] No magic numbers — hardcoded limits (like `.slice(0, 3)`) are noted
+- [ ] DDD alignment preserved (bounded contexts, ubiquitous language, domain logic placement)
 
 ## Step 4: Output Format
 

@@ -13,7 +13,7 @@ Review these BEFORE starting:
 
 ## Critical Architecture Rules
 
-### Clean Architecture Layers
+### Clean Architecture + DDD Layers
 ```
 Core/               # Entities, interfaces, enums (NO dependencies)
 Application/        # Endpoints, DTOs, services (depends on Core only)
@@ -21,6 +21,10 @@ Infrastructure/     # Repos, Riot API, email, jobs (implements Core interfaces)
 ```
 
 **Dependency Rule**: Dependencies point inward. Infrastructure → Application → Core.
+
+**DDD Rule**: Core is the domain model source of truth and DDD is the primary design approach for backend work. Prefer rich domain entities/value objects, consistent ubiquitous language, and bounded-context separation over anemic models.
+
+**SOLID Rule**: Apply SOLID inside those DDD boundaries and Clean Architecture layers to improve class design, cohesion, testability, and dependency inversion. Do not extract interfaces or abstractions primarily for speculative reuse if doing so makes the domain model harder to understand.
 
 ### Endpoint Pattern (MANDATORY)
 
