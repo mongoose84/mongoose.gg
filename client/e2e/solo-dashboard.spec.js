@@ -19,9 +19,10 @@ import { test, expect } from '@playwright/test';
 test.describe('Solo Dashboard Flow', () => {
   test('should complete Overview → Solo Dashboard navigation flow', async ({ page }) => {
     // Auth is handled by global-setup.js - go directly to overview
-    await page.goto('/app/overview');
+    // Avoid networkidle: Firefox can keep background requests/WebSocket connections open.
+    await page.goto('/app/overview', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL('/app/overview');
-    await page.waitForLoadState('networkidle');
+    await expect(page.locator('[data-testid="app-sidebar"]')).toBeVisible({ timeout: 15_000 });
 
     // Navigate to Solo Dashboard via the sidebar navigation
     const soloLink = page.locator('[data-testid="nav-solo"]');
@@ -87,8 +88,9 @@ test.describe('Solo Dashboard Flow', () => {
 test.describe('Solo Dashboard Content', () => {
   test.beforeEach(async ({ page }) => {
     // Auth state is automatically loaded from global setup
-    await page.goto('/app/solo');
-    await page.waitForLoadState('networkidle');
+    // Avoid networkidle: Firefox can keep background requests/WebSocket connections open.
+    await page.goto('/app/solo', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('[data-testid="app-sidebar"]')).toBeVisible({ timeout: 15_000 });
   });
 
   test('should display solo dashboard with stats', async ({ page }) => {

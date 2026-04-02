@@ -26,7 +26,7 @@ For existing test files, verify the mandatory four cases:
 - [ ] 404 Not Found (no linked Riot account)
 
 ### Service/Mapper Coverage
-Check `server/Infrastructure/` and `server/Application/Services/` for classes with logic that lack corresponding test files. Priority targets from the test strategy:
+Check `server/Mongoose.Api/Infrastructure/` and `server/Mongoose.Api/Application/Services/` for classes with logic that lack corresponding test files. Priority targets from the test strategy:
 - LoginSyncService
 - RiotTimelineMapper
 - SeasonHelper
