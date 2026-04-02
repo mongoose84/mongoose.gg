@@ -145,7 +145,8 @@ server/
 │   ├── Security/Secrets.cs
 │   ├── Middleware/JsonExceptionMiddleware.cs
 │   └── RateLimiting/EndpointRateLimiter.cs
-└── Mongoose.Api.Tests/                 # xUnit test project
+└── tests/
+    └── Mongoose.Api.Tests/                 # xUnit test project
 ```
 
 ---
@@ -1175,7 +1176,7 @@ When adding a new endpoint, follow this checklist:
 6. **Register endpoint** — `server/Application/MongooseApiApplication.cs`
    - Add to endpoint list in `ConfigureEndpoints()`
 
-7. **Tests** — `server/Mongoose.Api.Tests/{Feature}EndpointTests.cs`
+7. **Tests** — `tests/Mongoose.Api.Tests/{Feature}EndpointTests.cs`
    - Test auth, validation, happy path, error cases
 
 ### Security Checklist

@@ -20,11 +20,11 @@ Requires a MySQL database. Connection string is resolved from `ConnectionStrings
 
 ```bash
 # From server/ directory
-dotnet test Mongoose.Api.Tests/     # Run all tests
-dotnet test Mongoose.Api.Tests/ --filter "FullyQualifiedName~LoginEndpoint"  # Single test class
+dotnet test ../tests/Mongoose.Api.Tests/     # Run all tests
+dotnet test ../tests/Mongoose.Api.Tests/ --filter "FullyQualifiedName~LoginEndpoint"  # Single test class
 ```
 
-Test project: `Mongoose.Api.Tests/Mongoose.Api.Tests.csproj` (xUnit). Uses `TestWebApplicationFactory` for integration tests with in-process server. Tests use `EnvironmentVariableScope` for isolated env var manipulation.
+Test project: `tests/Mongoose.Api.Tests/Mongoose.Api.Tests.csproj` (xUnit). Uses `TestWebApplicationFactory` for integration tests with in-process server. Tests use `EnvironmentVariableScope` for isolated env var manipulation.
 
 ## Architecture
 

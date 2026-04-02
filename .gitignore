@@ -46,5 +46,5 @@ server/publish
 
 # published files
 publish/**/*
-server/Mongoose.Api.Tests/bin
-server/Mongoose.Api.Tests/obj
+tests/Mongoose.Api.Tests/bin
+tests/Mongoose.Api.Tests/obj

@@ -93,7 +93,7 @@
 ### 3.2 Test File Map
 
 ```
-server/Mongoose.Api.Tests/
+tests/Mongoose.Api.Tests/
 ├── Endpoints/
 │   ├── AnalyticsEndpointTests.cs           # ✅ Exists
 │   ├── Auth/ (Login, Verify, Resend, etc.) # ✅ Exists
@@ -503,9 +503,9 @@ cd client && npm run test:e2e
 
 | Purpose | Path |
 |---------|------|
-| Backend test factory | `server/Mongoose.Api.Tests/TestWebApplicationFactory.cs` |
-| Riot Match Mapper tests | `server/Mongoose.Api.Tests/RiotMatchMapperTests.cs` |
-| Match Endpoint tests | `server/Mongoose.Api.Tests/MatchEndpointTests.cs` |
+| Backend test factory | `tests/Mongoose.Api.Tests/TestWebApplicationFactory.cs` |
+| Riot Match Mapper tests | `tests/Mongoose.Api.Tests/RiotMatchMapperTests.cs` |
+| Match Endpoint tests | `tests/Mongoose.Api.Tests/MatchEndpointTests.cs` |
 | Auth Store tests | `client/test/unit/authStore.spec.js` |
 | API Client tests | `client/test/unit/apiClient.spec.js` |
 | Formatters tests | `client/test/unit/formatters.spec.js` |
@@ -522,7 +522,7 @@ cd client && npm run test:e2e
 ### 7.3 Adding New Tests
 
 **Backend Test:**
-1. Create test class in `server/Mongoose.Api.Tests/`
+1. Create test class in `tests/Mongoose.Api.Tests/`
 2. Inherit or use `TestWebApplicationFactory` for integration tests
 3. Use FluentAssertions for readable assertions
 4. Run `dotnet test` to verify
