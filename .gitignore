@@ -40,6 +40,8 @@ server/Mongoose.Api/obj
 server/Mongoose.Api/publish
 
 # published files
-publish/**/*
+server/publish/**/*
+server/publish-output/
 server/Mongoose.Api.Tests/bin
 server/Mongoose.Api.Tests/obj
+server/Mongoose.Api.Tests/TestResults

@@ -72,7 +72,7 @@ jobs:
       # Create backend appsettings for E2E
       # -------------------------------------------------
       - name: Generate appsettings.Production.json
-        working-directory: server
+        working-directory: server/Mongoose.Api
         env:
           DB_CONN: ${{ secrets.DB_CONNECTIONSTRING_TEST }}
           RIOT_KEY: ${{ secrets.RIOT_API_KEY }}
@@ -117,11 +117,11 @@ jobs:
       # Build and start backend
       # -------------------------------------------------
       - name: Build backend
-        working-directory: server
+        working-directory: server/Mongoose.Api
         run: dotnet build -c Release
 
       - name: Start backend server
-        working-directory: server
+        working-directory: server/Mongoose.Api
         env:
           ASPNETCORE_ENVIRONMENT: Production
           ASPNETCORE_URLS: http://localhost:5164
