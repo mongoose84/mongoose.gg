@@ -17,6 +17,7 @@ const mockTrackFilterChange = vi.fn()
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({
     userId: 1,
+    riotAccounts: [],
     refreshUser: vi.fn()
   })
 }))
