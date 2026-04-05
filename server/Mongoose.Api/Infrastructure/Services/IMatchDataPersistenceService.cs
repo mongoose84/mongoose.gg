@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Mongoose.Api.Core.Interfaces;
+namespace Mongoose.Api.Infrastructure.Services;
 
 public interface IMatchDataPersistenceService
 {

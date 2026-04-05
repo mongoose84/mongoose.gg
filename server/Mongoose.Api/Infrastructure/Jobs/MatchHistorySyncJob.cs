@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Services;
 using Mongoose.Api.Infrastructure.Riot.LimitHandler;
 using Mongoose.Api.Infrastructure.WebSocket;
 using System.Text.Json;
