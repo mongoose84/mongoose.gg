@@ -13,6 +13,7 @@ using Mongoose.Api.Infrastructure.Riot;
 using Mongoose.Api.Infrastructure.Security;
 using Mongoose.Api.Infrastructure.Serialization;
 using Mongoose.Api.Infrastructure.RateLimiting;
+using Mongoose.Api.Infrastructure.Services;
 using Mongoose.Api.Infrastructure.WebSocket;
 using System.Security.Claims;
 using System.Net;
@@ -75,6 +76,7 @@ builder.Services.AddScoped<IVerificationTokensRepository, VerificationTokensRepo
 // Application services
 builder.Services.AddScoped<LoginSyncService>();
 builder.Services.AddScoped<PuuidResolutionService>();
+builder.Services.AddScoped<IMatchDataPersistenceService, MatchDataPersistenceService>();
 
 // Query filter builder for centralized SQL filter generation
 builder.Services.AddScoped<IQueryFilterBuilder, QueryFilterBuilder>();

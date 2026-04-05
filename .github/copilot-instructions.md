@@ -7,7 +7,7 @@ Mongoose.gg is a League of Legends performance analytics platform helping solo p
 
 ## Technology Stack
 
-- **Backend**: .NET 10 (C#), Minimal API, Clean Architecture (Core → Application → Infrastructure)
+- **Backend**: .NET 10 (C#), Minimal API, Domain-Driven Design (DDD) aligned Clean Architecture (Core → Application → Infrastructure)
 - **Database**: MySQL 8.0+ with MySqlConnector — raw SQL, no ORM, parameterized queries only
 - **Frontend**: Vue 3 (Composition API) + Vite + Pinia + Tailwind CSS + Chart.js
 - **Auth**: Cookie-based sessions (HttpOnly, Secure, SameSite=Strict)
@@ -40,6 +40,8 @@ Mongoose.gg is a League of Legends performance analytics platform helping solo p
 
 ### Architecture
 - **Clean Architecture** — dependencies point inward: Infrastructure → Application → Core. Core has zero external dependencies.
+- **Domain-Driven Design (DDD)** — the primary design approach for backend modeling. Model business logic in domain entities/value objects, keep ubiquitous language consistent across Core/Application, and respect bounded contexts when introducing new features.
+- **SOLID** — apply as a secondary implementation heuristic inside the chosen DDD boundaries and Clean Architecture layers. Use it to improve cohesion, testability, and dependency direction, but do not introduce abstractions that weaken the domain model or optimize for reuse ahead of domain clarity.
 - **Endpoint pattern** — every endpoint is a sealed class implementing `IEndpoint`, registered in `MongooseApiApplication.cs`.
 - **UTC everywhere** — all `DateTime` values must be UTC. Use `DateTime.UtcNow` and `DateTimeKind.Utc`.
 - **Records for DTOs** — all DTOs are C# records with `[JsonPropertyName("camelCase")]`.

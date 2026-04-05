@@ -18,12 +18,14 @@ description: 'Code refactoring workflow with safety checks'
 - [ ] Map dependencies and impacts
 - [ ] Verify test coverage exists
 - [ ] List breaking changes
+- [ ] Identify DDD impacts (bounded contexts, aggregate boundaries, ubiquitous language)
 
 ### Refactoring Strategy
 - [ ] Define refactoring objectives
 - [ ] Plan incremental steps
 - [ ] Identify safe transformation patterns
 - [ ] Plan for backward compatibility if needed
+- [ ] Preserve or improve domain model clarity (avoid moving domain rules out of Core)
 
 ## Safe Refactoring Principles
 1. **Small Steps**: Make small, incremental changes

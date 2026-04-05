@@ -55,15 +55,26 @@
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-**Clean Architecture layers** (dependency flows inward):
+**Clean Architecture + DDD layers** (dependency flows inward):
 
 - **Core** (`server/Mongoose.Api/Core/`) — Entities, Interfaces, Enums, ValueObjects. Zero external dependencies.
 - **Application** (`server/Mongoose.Api/Application/`) — Endpoints, DTOs, Services. Depends only on Core.
 - **Infrastructure** (`server/Mongoose.Api/Infrastructure/`) — Repository implementations, Riot API, email, jobs. Implements Core interfaces.
 
+**DDD conventions**:
+- Keep business invariants in domain entities/value objects inside Core.
+- Maintain ubiquitous language consistency across endpoint names, DTOs, services, and repositories.
+- Respect bounded contexts when adding features to avoid cross-domain leakage.
+
+**SOLID usage**:
+- Treat SOLID as a tactical design aid within the DDD model and Clean Architecture layers, not as a competing architecture style.
+- Prefer abstractions that protect domain clarity, testability, and dependency direction.
+- Avoid introducing interfaces or indirection mainly for reuse when the result obscures business concepts.
+
 **Key patterns**:
 - Endpoints implement `IEndpoint` interface (Route + Configure method)
 - Repositories are registered as Scoped services via DI
+- Domain logic lives in Core first; Application orchestrates, Infrastructure integrates
 - M:M relationship between Users and RiotAccounts via `user_riot_accounts` junction table
 - All JSON uses camelCase via `[JsonPropertyName]` attributes on record types
 
