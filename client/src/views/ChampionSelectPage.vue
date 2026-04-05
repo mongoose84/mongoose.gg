@@ -50,7 +50,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useAsyncData } from '../composables/useAsyncData'
-import { getChampionSelectData, getChampionMatchups } from '../services/authApi'
+import { getChampionSelectData, getChampionMatchups } from '../services/soloApi'
 import MainChampionCard from '../components/MainChampionCard.vue'
 import OpponentSearchBar from '../components/OpponentSearchBar.vue'
 import { BaseQueueToggle, BaseTimeRangeSelect } from '../components/base'

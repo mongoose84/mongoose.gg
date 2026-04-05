@@ -9,7 +9,7 @@ const mockGetMatchDetails = vi.fn()
 const mockTrackFilterChange = vi.fn()
 const mockTrackMatchSelect = vi.fn()
 
-vi.mock('@/services/authApi', () => ({
+vi.mock('@/services/matchesApi', () => ({
   getMatchList: (...args) => mockGetMatchList(...args),
   getMatchDetails: (...args) => mockGetMatchDetails(...args)
 }))

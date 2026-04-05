@@ -187,7 +187,7 @@
   import { ref, computed, onMounted } from 'vue';
 	import NavBar from '../components/NavBar.vue';
   import { useAsyncData } from '../composables/useAsyncData';
-	import { getPublicStats } from '../services/authApi';
+	import { getPublicStats } from '../services/publicApi';
 
 	const freeUsersLeft = ref(493);
 	const currentYear = computed(() => new Date().getFullYear());

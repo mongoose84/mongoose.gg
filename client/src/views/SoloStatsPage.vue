@@ -189,7 +189,15 @@ import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { useAsyncData } from '../composables/useAsyncData'
 import { useChartDisplayMode } from '../composables/useChartDisplayMode'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard, getWinrateTrend, getGoldAt15Trend, getCsPerMinuteTrend, getDeathsTrend, getDragonParticipationTrend, getVisionScoreTrend, getDeathPositions, getRadarChart } from '../services/authApi'
+import { getSoloDashboard, getDeathPositions, getRadarChart } from '../services/soloApi'
+import {
+  getWinrateTrend,
+  getGoldAt15Trend,
+  getCsPerMinuteTrend,
+  getDeathsTrend,
+  getDragonParticipationTrend,
+  getVisionScoreTrend
+} from '../services/trendsApi'
 import { ACCOUNT_COLORS } from '../utils/chartConfigs.js'
 import { BaseQueueToggle, BaseTimeRangeSelect, BaseCard } from '../components/base'
 import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
