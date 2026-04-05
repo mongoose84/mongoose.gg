@@ -74,6 +74,9 @@ public class MatchDataPersistenceService : IMatchDataPersistenceService
 
         var info = matchRoot.GetProperty("info");
         var gameDurationSec = info.GetProperty("gameDuration").GetInt32();
+        var deathTimings = timelineRoot.HasValue
+            ? RiotTimelineMapper.ExtractDeathTimings(timelineRoot.Value)
+            : null;
 
         // Calculate team totals for metrics
         var teamKills = new Dictionary<int, int> { { 100, 0 }, { 200, 0 } };
@@ -107,9 +110,8 @@ public class MatchDataPersistenceService : IMatchDataPersistenceService
             metric.ParticipantId = dbId;
 
             // If we have timeline, enrich with death timings
-            if (timelineRoot.HasValue)
+            if (deathTimings != null)
             {
-                var deathTimings = RiotTimelineMapper.ExtractDeathTimings(timelineRoot.Value);
                 if (deathTimings.TryGetValue(riotParticipantId, out var deathData))
                 {
                     metric.DeathsPre10 = deathData.DeathsPre10;
