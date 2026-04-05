@@ -183,21 +183,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
-import { useSyncWebSocket } from '../composables/useSyncWebSocket'
-import { useAsyncData } from '../composables/useAsyncData'
+import { useSoloDashboardData } from '../composables/useSoloDashboardData'
 import { useChartDisplayMode } from '../composables/useChartDisplayMode'
-import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard, getDeathPositions, getRadarChart } from '../services/soloApi'
-import {
-  getWinrateTrend,
-  getGoldAt15Trend,
-  getCsPerMinuteTrend,
-  getDeathsTrend,
-  getDragonParticipationTrend,
-  getVisionScoreTrend
-} from '../services/trendsApi'
 import { ACCOUNT_COLORS } from '../utils/chartConfigs.js'
 import { BaseQueueToggle, BaseTimeRangeSelect, BaseCard } from '../components/base'
 import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
@@ -213,8 +202,43 @@ import DangerZonesMap from '../components/solo/DangerZonesMap.vue'
 import RadarChart from '../components/solo/RadarChart.vue'
 
 const authStore = useAuthStore()
-const { syncProgress, resetProgress } = useSyncWebSocket()
 const { chartMode } = useChartDisplayMode()
+
+const {
+  queueFilter,
+  timeRange,
+  dashboardData,
+  isLoading,
+  error,
+  winrateTrendData,
+  winrateLoading,
+  goldAt15TrendData,
+  goldAt15Loading,
+  csPerMinuteTrendData,
+  csPerMinuteLoading,
+  deathsTrendData,
+  deathsLoading,
+  deathsSummary,
+  dragonParticipationTrendData,
+  dragonParticipationLoading,
+  dragonParticipationSummary,
+  visionScoreTrendData,
+  visionScoreLoading,
+  visionScoreSummary,
+  radarChartData,
+  radarChartLoading,
+  deathPositionsData,
+  deathPositionsLoading,
+  deathPositionsError,
+  handleWinrateExpand,
+  handleGoldAt15Expand,
+  handleCsPerMinuteExpand,
+  handleDeathsExpand,
+  handleDragonParticipationExpand,
+  handleVisionScoreExpand,
+  onSideFilterChange,
+  fetchAllData
+} = useSoloDashboardData()
 
 // Derived account list for per-account chart mode
 const chartAccounts = computed(() =>
@@ -228,340 +252,8 @@ const chartAccounts = computed(() =>
 // stays in sync with the server's visibility/tier logic, not the client-side store filter.
 const summaryAccountCount = computed(() => dashboardData.value?.accountCount ?? 1)
 
-// Dashboard data from API
-const {
-  data: dashboardData,
-  isLoading,
-  error,
-  execute: executeDashboardFetch
-} = useAsyncData(async () => {
-  return await getSoloDashboard(
-    authStore.userId,
-    queueFilter.value,
-    timeRange.value
-  )
-}, { immediate: false, errorMessage: 'Failed to load solo dashboard' })
+onMounted(() => { fetchAllData() })
 
-// Trend chart data
-const winrateTrendData = ref([])
-const {
-  isLoading: winrateLoading,
-  execute: executeWinrateTrendFetch
-} = useAsyncData(async (limit) => {
-  return await getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
-}, { immediate: false, errorMessage: 'Failed to load winrate trend' })
-
-const goldAt15TrendData = ref([])
-const {
-  isLoading: goldAt15Loading,
-  execute: executeGoldAt15TrendFetch
-} = useAsyncData(async (limit) => {
-  return await getGoldAt15Trend(authStore.userId, queueFilter.value, timeRange.value, limit)
-}, { immediate: false, errorMessage: 'Failed to load gold at 15 trend' })
-
-const csPerMinuteTrendData = ref([])
-const {
-  isLoading: csPerMinuteLoading,
-  execute: executeCsPerMinuteTrendFetch
-} = useAsyncData(async (limit) => {
-  return await getCsPerMinuteTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
-}, { immediate: false, errorMessage: 'Failed to load CS per minute trend' })
-
-const deathsTrendData = ref([])
-const {
-  isLoading: deathsLoading,
-  execute: executeDeathsTrendFetch
-} = useAsyncData(async (limit) => {
-  return await getDeathsTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
-}, { immediate: false, errorMessage: 'Failed to load deaths trend' })
-
-const deathsSummary = ref({ averageDeaths: 0, overallAverage: 0, trend: 'neutral' })
-const dragonParticipationTrendData = ref([])
-const {
-  isLoading: dragonParticipationLoading,
-  execute: executeDragonParticipationTrendFetch
-} = useAsyncData(async (limit) => {
-  return await getDragonParticipationTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
-}, { immediate: false, errorMessage: 'Failed to load dragon participation trend' })
-
-const dragonParticipationSummary = ref({ averageParticipation: 0, overallAverage: 0, trend: 'neutral' })
-const visionScoreTrendData = ref([])
-const {
-  isLoading: visionScoreLoading,
-  execute: executeVisionScoreTrendFetch
-} = useAsyncData(async (limit) => {
-  return await getVisionScoreTrend(authStore.userId, queueFilter.value, timeRange.value, limit)
-}, { immediate: false, errorMessage: 'Failed to load vision score trend' })
-
-const visionScoreSummary = ref({ averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' })
-
-// Radar chart data
-const {
-  data: radarChartData,
-  isLoading: radarChartLoading,
-  execute: executeRadarChartFetch
-} = useAsyncData(async () => {
-  return await getRadarChart(authStore.userId, queueFilter.value, timeRange.value)
-}, { immediate: false, errorMessage: 'Failed to load radar chart' })
-
-// Death positions data for danger zones
-const {
-  data: deathPositionsData,
-  isLoading: deathPositionsLoading,
-  error: deathPositionsError,
-  execute: executeDeathPositionsFetch
-} = useAsyncData(async () => {
-  return await getDeathPositions(
-    authStore.userId,
-    queueFilter.value,
-    timeRange.value,
-    sideFilter.value
-  )
-}, { immediate: false, errorMessage: 'Failed to load death positions' })
-
-const sideFilter = ref('all')
-
-// Expand state for charts (default: collapsed = last 20 games)
-const winrateExpanded = ref(false)
-const goldAt15Expanded = ref(false)
-const csPerMinuteExpanded = ref(false)
-const deathsExpanded = ref(false)
-const dragonParticipationExpanded = ref(false)
-const visionScoreExpanded = ref(false)
-
-// UI state for filters
-const queueFilter = ref('all')
-const timeRange = ref('current_season')
-
-// Fetch dashboard data (summary stats)
-async function fetchData() {
-  if (!authStore.userId) return
-
-  try {
-    await executeDashboardFetch()
-  } catch {
-    dashboardData.value = null
-  }
-}
-
-// Fetch winrate trend data
-async function fetchWinrateTrend() {
-  if (!authStore.userId) return
-
-  try {
-    // Use limit parameter to get exact number of games at full resolution
-    const limit = winrateExpanded.value ? null : 20
-    const result = await executeWinrateTrendFetch(limit)
-    winrateTrendData.value = result?.winrateTrend ?? []
-  } catch {
-    winrateTrendData.value = []
-  }
-}
-
-// Fetch gold at 15 trend data
-async function fetchGoldAt15Trend() {
-  if (!authStore.userId) return
-
-  try {
-    // Use limit parameter to get exact number of games at full resolution
-    const limit = goldAt15Expanded.value ? null : 20
-    const result = await executeGoldAt15TrendFetch(limit)
-    goldAt15TrendData.value = result?.goldAt15Trend ?? []
-  } catch {
-    goldAt15TrendData.value = []
-  }
-}
-
-// Fetch CS per minute trend data
-async function fetchCsPerMinuteTrend() {
-  if (!authStore.userId) return
-
-  try {
-    // Use limit parameter to get exact number of games at full resolution
-    const limit = csPerMinuteExpanded.value ? null : 20
-    const result = await executeCsPerMinuteTrendFetch(limit)
-    csPerMinuteTrendData.value = result?.csPerMinuteTrend ?? []
-  } catch {
-    csPerMinuteTrendData.value = []
-  }
-}
-
-// Fetch deaths trend data
-async function fetchDeathsTrend() {
-  if (!authStore.userId) return
-
-  try {
-    // Use limit parameter to get exact number of games at full resolution
-    const limit = deathsExpanded.value ? null : 20
-    const result = await executeDeathsTrendFetch(limit)
-    deathsTrendData.value = result?.deathsTrend ?? []
-    deathsSummary.value = {
-      averageDeaths: result?.averageDeaths ?? 0,
-      overallAverage: result?.overallAverage ?? 0,
-      trend: result?.trend ?? 'neutral'
-    }
-  } catch {
-    deathsTrendData.value = []
-    deathsSummary.value = { averageDeaths: 0, overallAverage: 0, trend: 'neutral' }
-  }
-}
-
-// Fetch dragon participation trend data
-async function fetchDragonParticipationTrend() {
-  if (!authStore.userId) return
-
-  try {
-    // Use limit parameter to get exact number of games at full resolution
-    const limit = dragonParticipationExpanded.value ? null : 20
-    const result = await executeDragonParticipationTrendFetch(limit)
-    dragonParticipationTrendData.value = result?.dragonParticipationTrend ?? []
-    dragonParticipationSummary.value = {
-      averageParticipation: result?.averageParticipation ?? 0,
-      overallAverage: result?.overallAverage ?? 0,
-      trend: result?.trend ?? 'neutral'
-    }
-  } catch {
-    dragonParticipationTrendData.value = []
-    dragonParticipationSummary.value = { averageParticipation: 0, overallAverage: 0, trend: 'neutral' }
-  }
-}
-
-// Fetch vision score trend data
-async function fetchVisionScoreTrend() {
-  if (!authStore.userId) return
-
-  try {
-    // Use limit parameter to get exact number of games at full resolution
-    const limit = visionScoreExpanded.value ? null : 20
-    const result = await executeVisionScoreTrendFetch(limit)
-    visionScoreTrendData.value = result?.visionScoreTrend ?? []
-    visionScoreSummary.value = {
-      averageVisionPerMinute: result?.averageVisionPerMinute ?? 0,
-      overallAverage: result?.overallAverage ?? 0,
-      roleTarget: result?.roleTarget ?? 1.0,
-      trend: result?.trend ?? 'neutral'
-    }
-  } catch {
-    visionScoreTrendData.value = []
-    visionScoreSummary.value = { averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' }
-  }
-}
-
-// Fetch radar chart profile data
-async function fetchRadarChart() {
-  if (!authStore.userId) return
-
-  try {
-    await executeRadarChartFetch()
-  } catch {
-    radarChartData.value = null
-  }
-}
-
-// Fetch death positions data for danger zones
-async function fetchDeathPositions() {
-  if (!authStore.userId) return
-
-  try {
-    await executeDeathPositionsFetch()
-  } catch {
-    deathPositionsData.value = null
-  }
-}
-
-// Handle side filter change (server-side re-fetch)
-function onSideFilterChange(newSide) {
-  sideFilter.value = newSide
-  fetchDeathPositions()
-}
-
-// Handle expand toggle for winrate chart
-function handleWinrateExpand(expanded) {
-  winrateExpanded.value = expanded
-  fetchWinrateTrend()
-}
-
-// Handle expand toggle for gold at 15 chart
-function handleGoldAt15Expand(expanded) {
-  goldAt15Expanded.value = expanded
-  fetchGoldAt15Trend()
-}
-
-// Handle expand toggle for CS per minute chart
-function handleCsPerMinuteExpand(expanded) {
-  csPerMinuteExpanded.value = expanded
-  fetchCsPerMinuteTrend()
-}
-
-// Handle expand toggle for deaths chart
-function handleDeathsExpand(expanded) {
-  deathsExpanded.value = expanded
-  fetchDeathsTrend()
-}
-
-// Handle expand toggle for dragon participation chart
-function handleDragonParticipationExpand(expanded) {
-  dragonParticipationExpanded.value = expanded
-  fetchDragonParticipationTrend()
-}
-
-// Handle expand toggle for vision score chart
-function handleVisionScoreExpand(expanded) {
-  visionScoreExpanded.value = expanded
-  fetchVisionScoreTrend()
-}
-
-// Fetch all data
-async function fetchAllData() {
-  await Promise.all([
-    fetchData(),
-    fetchWinrateTrend(),
-    fetchGoldAt15Trend(),
-    fetchCsPerMinuteTrend(),
-    fetchDeathsTrend(),
-    fetchDragonParticipationTrend(),
-    fetchVisionScoreTrend(),
-    fetchRadarChart(),
-    fetchDeathPositions()
-  ])
-}
-
-// Fetch data on mount
-onMounted(() => {
-  fetchAllData()
-})
-
-// Re-fetch when filters change
-watch([queueFilter, timeRange], () => {
-  fetchAllData()
-})
-
-watch(() => authStore.activeAccountPuuid, () => {
-  fetchAllData()
-})
-
-// Track filter changes for analytics
-watch(queueFilter, (newValue) => {
-  trackFilterChange('queue', newValue)
-})
-watch(timeRange, (newValue) => {
-  trackFilterChange('time', newValue)
-})
-
-// Watch for sync completion to refresh data
-watch(syncProgress, (progress) => {
-  for (const [puuid, data] of progress.entries()) {
-    if (data.status === 'completed') {
-      // Refresh user data to get updated profile icon/level
-      authStore.refreshUser()
-      // Refresh all dashboard data including charts
-      fetchAllData()
-      // Reset the status after refresh
-      resetProgress(puuid)
-      break
-    }
-  }
-}, { deep: true })
 </script>
 
 <style scoped>
