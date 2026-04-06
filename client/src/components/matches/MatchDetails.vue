@@ -27,9 +27,9 @@
       <MatchHeader :match="match" />
 
       <div class="details-sections">
-        <ImpactStats :match="match" :baseline="baseline" />
+        <WinPredictionStats :match="match" :baseline="baseline" />
         <TeamComparison :match="match" />
-        <MatchActions />
+        <MatchActions :match="match" />
         <MatchNarrative :matchId="match?.matchId" :account-id="accountId" />
         <StatSnapshot :match="match" :baseline="baseline" />
       </div>
@@ -41,7 +41,7 @@
 import { watch } from 'vue'
 import MatchHeader from './MatchHeader.vue'
 import TeamComparison from './TeamComparison.vue'
-import ImpactStats from './KeyPerformanceIndicators.vue'
+import WinPredictionStats from './WinPredictionStats.vue'
 import StatSnapshot from './StatSnapshot.vue'
 import MatchNarrative from './MatchNarrative.vue'
 import MatchActions from './MatchActions.vue'

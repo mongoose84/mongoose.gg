@@ -105,7 +105,7 @@ const deathsSentiment = computed(() => {
 const deathsComparison = computed(() => {
   if (!props.baseline) return null
   const diff = props.match.deaths - props.baseline.avgDeaths
-  return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} vs avg`
+  return `${diff >= 0 ? '+' : ''}${diff} vs avg`
 })
 
 // Gold @15
@@ -156,7 +156,7 @@ const dragonValue = computed(() => {
 
 const dragonDescription = computed(() => {
   const { teamDragons } = props.match
-  if (!teamDragons) return 'No dragons'
+  if (!teamDragons) return null
   if (dragonParticipationRate.value >= 2 / 3) return 'High involvement'
   if (dragonParticipationRate.value === 0) return 'Low involvement'
   return null

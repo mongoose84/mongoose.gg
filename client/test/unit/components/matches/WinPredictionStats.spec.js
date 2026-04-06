@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import ImpactStats from '@/components/matches/KeyPerformanceIndicators.vue'
+import WinPredictionStats from '@/components/matches/WinPredictionStats.vue'
 
-describe('ImpactStats.vue', () => {
+describe('WinPredictionStats.vue', () => {
   const baseMatch = {
     role: 'MIDDLE',
     kills: 5,
@@ -41,7 +41,7 @@ describe('ImpactStats.vue', () => {
   }
 
   const createWrapper = (matchOverrides = {}, baseline = null) =>
-    mount(ImpactStats, {
+    mount(WinPredictionStats, {
       props: { match: { ...baseMatch, ...matchOverrides }, baseline }
     })
 
@@ -173,6 +173,13 @@ describe('ImpactStats.vue', () => {
     it('shows neutral sentiment when teamDragons is 0', () => {
       const wrapper = createWrapper({ teamDragons: 0, dragonsParticipated: 0 })
       expect(wrapper.find('[data-testid="kpi-tile-dragon"]').classes()).toContain('neutral')
+    })
+
+    it('shows "No dragons" only once when teamDragons is 0', () => {
+      const wrapper = createWrapper({ teamDragons: 0, dragonsParticipated: 0 })
+      const tileText = wrapper.find('[data-testid="kpi-tile-dragon"]').text()
+      const occurrences = tileText.split('No dragons').length - 1
+      expect(occurrences).toBe(1)
     })
 
     it('shows positive sentiment when participation >= 67%', () => {

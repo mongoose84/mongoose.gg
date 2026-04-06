@@ -18,6 +18,13 @@
 <script setup>
 import { useRouter } from 'vue-router'
 
+defineProps({
+  match: {
+    type: Object,
+    default: null
+  }
+})
+
 const router = useRouter()
 
 function viewAnalysis() {

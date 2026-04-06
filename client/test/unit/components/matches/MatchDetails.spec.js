@@ -18,7 +18,7 @@ vi.mock('@/components/matches/TeamComparison.vue', () => ({
   }
 }))
 
-vi.mock('@/components/matches/KeyPerformanceIndicators.vue', () => ({
+vi.mock('@/components/matches/WinPredictionStats.vue', () => ({
   default: {
     name: 'WinPredictionStats',
     props: ['match', 'baseline'],
@@ -45,6 +45,7 @@ vi.mock('@/components/matches/MatchNarrative.vue', () => ({
 vi.mock('@/components/matches/MatchActions.vue', () => ({
   default: {
     name: 'MatchActions',
+    props: ['match'],
     template: '<div data-testid="match-actions" />'
   }
 }))
@@ -149,7 +150,7 @@ describe('MatchDetails.vue', () => {
       expect(wrapper.find('[data-testid="team-comparison"]').exists()).toBe(true)
     })
 
-    it('does not render ImpactStats', () => {
+    it('does not render legacy impact-stats marker', () => {
       const wrapper = createWrapper({ match: baseMatch })
       expect(wrapper.find('[data-testid="impact-stats"]').exists()).toBe(false)
     })
