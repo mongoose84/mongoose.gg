@@ -89,4 +89,45 @@ public class CsPerMinuteTrendEndpointTests
         accountNames.Should().Contain("MainPlayer#NA1");
         accountNames.Should().Contain("AltPlayer#NA1");
     }
+
+    [Fact]
+    public async Task CsPerMinuteTrend_returns_401_when_not_authenticated()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.GetAsync("/api/v2/trends/cs-per-minute/1");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task CsPerMinuteTrend_returns_403_when_accessing_another_users_data()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/trends/cs-per-minute/2");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task CsPerMinuteTrend_returns_404_when_no_riot_account_linked()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/trends/cs-per-minute/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

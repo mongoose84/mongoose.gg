@@ -531,6 +531,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     internal sealed class FakeRiotApiClient : IRiotApiClient
     {
         private readonly ConcurrentDictionary<string, string> _puuidByRiotId = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _notFoundRiotIds = new(StringComparer.OrdinalIgnoreCase);
 
         public event EventHandler<RateLimitWaitEventArgs>? RateLimitWaitStarted;
 
@@ -547,6 +548,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public Task<string> GetPuuIdAsync(string gameName, string tagLine, CancellationToken ct = default)
         {
             var key = BuildRiotIdKey(gameName, tagLine);
+            if (_notFoundRiotIds.Contains(key))
+            {
+                throw new HttpRequestException("Not Found", null, System.Net.HttpStatusCode.NotFound);
+            }
+
             if (_puuidByRiotId.TryGetValue(key, out var mappedPuuid))
             {
                 return Task.FromResult(mappedPuuid);
@@ -600,6 +606,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public void MapRiotIdToPuuid(string gameName, string tagLine, string puuid)
         {
             _puuidByRiotId[BuildRiotIdKey(gameName, tagLine)] = puuid;
+        }
+
+        public void SimulateRiotNotFound(string gameName, string tagLine)
+        {
+            _notFoundRiotIds.Add(BuildRiotIdKey(gameName, tagLine));
         }
 
         private static string BuildRiotIdKey(string gameName, string tagLine)
@@ -694,6 +705,18 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 UpdatedAt = DateTime.UtcNow
             };
             UpsertAsync(account).Wait();
+        }
+
+        public override Task UpdateSyncStatusAsync(string puuid, string syncStatus, DateTime? lastSyncAt = null)
+        {
+            if (_accountsByPuuid.TryGetValue(puuid, out var account))
+            {
+                account.SyncStatus = syncStatus;
+                if (lastSyncAt.HasValue)
+                    account.LastSyncAt = lastSyncAt;
+                account.UpdatedAt = DateTime.UtcNow;
+            }
+            return Task.CompletedTask;
         }
     }
 

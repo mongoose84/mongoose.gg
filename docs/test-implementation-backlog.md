@@ -140,32 +140,32 @@ Create specs for:
 
 #### `OverviewEndpointTests.cs`
 Add:
-- [ ] `403 Forbidden` for authenticated user requesting another user’s overview
+- [x] `403 Forbidden` for authenticated user requesting another user's overview
 
 #### `SoloPerformanceEndpointTests.cs`
 Add:
-- [ ] `403 Forbidden`
-- [ ] `404 Not Found` when no Riot account is linked
+- [x] `403 Forbidden`
+- [x] `404 Not Found` when no Riot account is linked
 
 #### Trend endpoint suites
 Current trend coverage is uneven. Expand:
-- [ ] `WinrateTrendEndpointTests.cs`
-- [ ] `CsPerMinuteTrendEndpointTests.cs`
-- [ ] `GoldAt15TrendEndpointTests.cs`
-- [ ] `DeathsTrendEndpointTests.cs`
+- [x] `WinrateTrendEndpointTests.cs`
+- [x] `CsPerMinuteTrendEndpointTests.cs`
+- [x] `GoldAt15TrendEndpointTests.cs`
+- [x] `DeathsTrendEndpointTests.cs`
 
 **Add:**
-- [ ] 401 unauthenticated
-- [ ] 403 forbidden
-- [ ] 404 missing Riot account
+- [x] 401 unauthenticated
+- [x] 403 forbidden
+- [x] 404 missing Riot account
 - [ ] validation / filter edge cases where appropriate
 
 #### `RiotAccountsEndpointTests.cs`
 Add explicit coverage for:
-- [ ] `/users/me/riot-accounts/{puuid}/sync`
-- [ ] `/users/me/riot-accounts/{puuid}/sync-status`
-- [ ] wrong-user / non-owned account cases
-- [ ] already-linked / invalid-region / Riot lookup failure paths
+- [x] `/users/me/riot-accounts/{puuid}/sync`
+- [x] `/users/me/riot-accounts/{puuid}/sync-status`
+- [x] wrong-user / non-owned account cases
+- [x] already-linked / invalid-region / Riot lookup failure paths
 
 #### Background jobs
 Expand:

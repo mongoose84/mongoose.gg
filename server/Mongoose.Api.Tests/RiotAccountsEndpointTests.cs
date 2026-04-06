@@ -195,4 +195,167 @@ public class RiotAccountsEndpointTests
         var riotAccounts = json.RootElement.GetProperty("riotAccounts");
         riotAccounts.GetArrayLength().Should().Be(2);
     }
+
+    [Fact]
+    public async Task Sync_Returns202_WhenAccountIsLinkedAndNotSyncing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-linked", "Main", "na1", "Main#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-linked", isPrimary: true);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/puuid-linked/sync");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("status").GetString().Should().Be("pending");
+
+        var updatedAccount = await factory.RiotAccountsRepository.GetByPuuidAsync("puuid-linked");
+        updatedAccount!.SyncStatus.Should().Be("pending");
+    }
+
+    [Fact]
+    public async Task Sync_Returns409_WhenAccountIsAlreadySyncing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-syncing", "Main", "na1", "Main#NA1", 100, 1);
+        await factory.RiotAccountsRepository.UpdateSyncStatusAsync("puuid-syncing", "syncing");
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-syncing", isPrimary: true);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/puuid-syncing/sync");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("SYNC_IN_PROGRESS");
+    }
+
+    [Fact]
+    public async Task Sync_Returns401_WhenUnauthenticated()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsync("/api/v2/users/me/riot-accounts/any-puuid/sync", content: null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Sync_Returns404_WhenAccountNotLinked()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/not-linked/sync");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("ACCOUNT_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task SyncStatus_Returns200_WithCurrentStatus()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-status", "Main", "na1", "Main#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-status", isPrimary: true);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/users/me/riot-accounts/puuid-status/sync-status");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("puuid").GetString().Should().Be("puuid-status");
+        json.RootElement.GetProperty("syncStatus").GetString().Should().Be("synced");
+    }
+
+    [Fact]
+    public async Task SyncStatus_Returns401_WhenUnauthenticated()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.GetAsync("/api/v2/users/me/riot-accounts/any-puuid/sync-status");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task SyncStatus_Returns404_WhenAccountNotLinked()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/users/me/riot-accounts/not-linked/sync-status");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("ACCOUNT_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task LinkAccount_Returns400_WhenRegionIsInvalid()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts")
+        {
+            Content = JsonContent.Create(new { gameName = "Player", tagLine = "NA1", region = "invalid-region" })
+        };
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("INVALID_REGION");
+    }
+
+    [Fact]
+    public async Task LinkAccount_Returns404_WhenRiotLookupFails()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.RiotApiClient.SimulateRiotNotFound("Unknown", "NA1");
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts")
+        {
+            Content = JsonContent.Create(new { gameName = "Unknown", tagLine = "NA1", region = "na1" })
+        };
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("RIOT_ACCOUNT_NOT_FOUND");
+    }
 }
