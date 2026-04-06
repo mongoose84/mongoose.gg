@@ -103,16 +103,16 @@ For all protected data endpoints, follow the standard endpoint pattern:
 **Why**: important user-facing flow with many currently untested components.
 
 Create specs for:
-- [ ] `MatchList.vue`
-- [ ] `MatchDetails.vue`
-- [ ] `MatchNarrative.vue`
-- [ ] `MatchHeader.vue`
-- [ ] `MatchActions.vue`
-- [ ] `ImpactStats.vue`
-- [ ] `LaneMatchupDetails.vue`
-- [ ] `StatSnapshot.vue`
-- [ ] `TeamComparison.vue`
-- [ ] `TrendBadge.vue`
+- [x] `MatchList.vue`
+- [x] `MatchDetails.vue`
+- [x] `MatchNarrative.vue`
+- [x] `MatchHeader.vue`
+- [x] `MatchActions.vue`
+- [x] `ImpactStats.vue`
+- [x] `LaneMatchupDetails.vue`
+- [x] `StatSnapshot.vue`
+- [x] `TeamComparison.vue`
+- [x] `TrendBadge.vue`
 
 **Each spec should cover:**
 - [ ] render with data
