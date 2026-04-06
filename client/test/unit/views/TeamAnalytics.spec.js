@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setupPinia } from '@test/helpers/testUtils'
 import TeamAnalytics from '@/views/TeamAnalytics.vue'
@@ -14,7 +14,7 @@ describe('TeamAnalytics', () => {
 
   it('renders the page heading', () => {
     const wrapper = mountPage()
-    expect(wrapper.find('h1').text()).toBe('Team Analytics')
+    expect(wrapper.find('[data-testid="page-heading"]').text()).toBe('Team Analytics')
   })
 
   it('shows the coming soon message', () => {

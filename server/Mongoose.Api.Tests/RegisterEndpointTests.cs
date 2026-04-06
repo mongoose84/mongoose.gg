@@ -68,8 +68,8 @@ public class RegisterEndpointTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Give the fire-and-forget task a moment to complete
-        await Task.Delay(100);
+        // Wait deterministically for the fire-and-forget email task to complete
+        await factory.EmailService.WaitForVerificationEmailAsync();
 
         factory.EmailService.SentEmails.Should().HaveCount(1);
         factory.EmailService.SentEmails[0].ToEmail.Should().Be("emailuser@example.com");
@@ -267,25 +267,29 @@ public class RegisterEndpointTests
     [Fact]
     public async Task Register_returns_429_when_rate_limit_is_exceeded()
     {
-        // Rate limiting enabled for this specific test
+        // Rate limiting enabled for this specific test.
+        // TestServer always presents the same loopback RemoteIpAddress (::1), so the
+        // rate-limit key is deterministic for the lifetime of this factory instance.
         using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
         {
             ["RateLimiting:Enabled"] = "true"
         });
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        // Exhaust the 3-per-hour limit (the first calls may or may not succeed, depending on IP key)
+        // Exhaust the 3-per-hour limit — every request must be allowed to confirm
+        // the limiter isn't already saturated and the counter increments correctly.
         for (var i = 0; i < 3; i++)
         {
-            await client.PostAsJsonAsync("/api/v2/auth/register", new
+            var allowed = await client.PostAsJsonAsync("/api/v2/auth/register", new
             {
                 username = $"ratelimituser{i}",
                 email = $"ratelimit{i}@example.com",
                 password = "12345678"
             });
+            allowed.StatusCode.Should().Be(HttpStatusCode.OK, $"request {i + 1} of 3 should be within the rate limit");
         }
 
-        // The 4th request should be rate limited
+        // The 4th request must be rejected
         var response = await client.PostAsJsonAsync("/api/v2/auth/register", new
         {
             username = "blocked",
@@ -295,5 +299,6 @@ public class RegisterEndpointTests
 
         response.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
         response.Headers.Contains("X-RateLimit-Remaining").Should().BeTrue();
+        response.Headers.GetValues("X-RateLimit-Remaining").First().Should().Be("0");
     }
 }

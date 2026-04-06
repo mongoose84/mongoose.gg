@@ -498,6 +498,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly List<SentEmail> _sentEmails = new();
         private readonly List<SentPasswordResetEmail> _sentPasswordResetEmails = new();
+        private readonly SemaphoreSlim _verificationEmailSignal = new(0);
 
         public IReadOnlyList<SentEmail> SentEmails => _sentEmails;
         public IReadOnlyList<SentPasswordResetEmail> SentPasswordResetEmails => _sentPasswordResetEmails;
@@ -505,6 +506,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public Task SendVerificationEmailAsync(string toEmail, string username, string verificationCode)
         {
             _sentEmails.Add(new SentEmail(toEmail, username, verificationCode));
+            _verificationEmailSignal.Release();
             return Task.CompletedTask;
         }
 
@@ -513,6 +515,13 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _sentPasswordResetEmails.Add(new SentPasswordResetEmail(toEmail, username, resetCode));
             return Task.CompletedTask;
         }
+
+        /// <summary>
+        /// Waits until a verification email has been recorded. Use this instead of Task.Delay
+        /// to create a deterministic sync point for fire-and-forget email sends.
+        /// </summary>
+        public Task WaitForVerificationEmailAsync(TimeSpan? timeout = null) =>
+            _verificationEmailSignal.WaitAsync(timeout ?? TimeSpan.FromSeconds(5));
 
         public void Clear()
         {
@@ -530,7 +539,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     internal sealed class FakeRiotApiClient : IRiotApiClient
     {
         private readonly ConcurrentDictionary<string, string> _puuidByRiotId = new(StringComparer.OrdinalIgnoreCase);
-        private readonly HashSet<string> _notFoundRiotIds = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, byte> _notFoundRiotIds = new(StringComparer.OrdinalIgnoreCase);
 
         public event EventHandler<RateLimitWaitEventArgs>? RateLimitWaitStarted;
 
@@ -547,7 +556,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public Task<string> GetPuuIdAsync(string gameName, string tagLine, CancellationToken ct = default)
         {
             var key = BuildRiotIdKey(gameName, tagLine);
-            if (_notFoundRiotIds.Contains(key))
+            if (_notFoundRiotIds.ContainsKey(key))
             {
                 throw new HttpRequestException("Not Found", null, System.Net.HttpStatusCode.NotFound);
             }
@@ -609,7 +618,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         public void SimulateRiotNotFound(string gameName, string tagLine)
         {
-            _notFoundRiotIds.Add(BuildRiotIdKey(gameName, tagLine));
+            _notFoundRiotIds[BuildRiotIdKey(gameName, tagLine)] = 0;
         }
 
         private static string BuildRiotIdKey(string gameName, string tagLine)
