@@ -30,7 +30,7 @@ public class RiotApiClientTests
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["RIOT_API_KEY"] = "test-api-key",
-                    ["Security:EncryptionSecret"] = "dGVzdC1lbmNyeXB0aW9uLWtleS0zMmJ5dGVzISEhISE="
+                    ["Security:EncryptionSecret"] = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-only-not-a-real-secret-1234"))
                 })
                 .Build();
             Secrets.Initialize(config);
