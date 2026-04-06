@@ -25,8 +25,10 @@ npm run test:unit                   # Run all unit tests
 npm run test:unit:watch             # Watch mode
 npm run test:unit:coverage          # With V8 coverage
 
-# E2E tests (Playwright — Chromium + Firefox)
-npm run test:e2e                    # Run E2E (auto-starts dev server)
+# E2E tests (Playwright)
+npm run test:e2e:smoke              # Fast PR smoke suite (Chromium only)
+npm run test:e2e:full               # Comprehensive post-merge regression suite (Chromium + Firefox)
+npm run test:e2e                    # Run all Playwright suites locally
 npm run test:e2e:headed             # Headed mode for debugging
 npm run test:e2e:ui                 # Playwright UI mode
 npm run test:e2e:report             # Open last HTML report

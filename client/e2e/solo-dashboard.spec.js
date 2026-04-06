@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test'
+import { gotoAppPage, expectProtectedRouteRedirectsToAuth } from './helpers/app-shell.js'
 
 /**
  * Solo Dashboard Flow E2E Tests
@@ -19,10 +20,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Solo Dashboard Flow', () => {
   test('should complete Overview → Solo Dashboard navigation flow', async ({ page }) => {
     // Auth is handled by global-setup.js - go directly to overview
-    // Avoid networkidle: Firefox can keep background requests/WebSocket connections open.
-    await page.goto('/app/overview', { waitUntil: 'domcontentloaded' });
-    await expect(page).toHaveURL('/app/overview');
-    await expect(page.locator('[data-testid="app-sidebar"]')).toBeVisible({ timeout: 15_000 });
+    await gotoAppPage(page, '/app/overview')
 
     // Navigate to Solo Dashboard via the sidebar navigation
     const soloLink = page.locator('[data-testid="nav-solo"]');
@@ -40,26 +38,12 @@ test.describe('Solo Dashboard Flow', () => {
   });
 
   test('should redirect unauthenticated users to login', async ({ browser }) => {
-    // Create a fresh context WITHOUT storage state (override project default)
-    const context = await browser.newContext({ storageState: undefined });
-    const page = await context.newPage();
-
-    await page.goto('/app/overview');
-    await expect(page).toHaveURL(/\/auth/);
-
-    await context.close();
-  });
+    await expectProtectedRouteRedirectsToAuth(browser, '/app/overview')
+  })
 
   test('should redirect unauthenticated users from solo dashboard to login', async ({ browser }) => {
-    // Create a fresh context WITHOUT storage state (override project default)
-    const context = await browser.newContext({ storageState: undefined });
-    const page = await context.newPage();
-
-    await page.goto('/app/solo');
-    await expect(page).toHaveURL(/\/auth/);
-
-    await context.close();
-  });
+    await expectProtectedRouteRedirectsToAuth(browser, '/app/solo')
+  })
 
   test('should show error for invalid credentials', async ({ browser }) => {
     // Create a fresh context WITHOUT storage state (override project default)
@@ -88,9 +72,7 @@ test.describe('Solo Dashboard Flow', () => {
 test.describe('Solo Dashboard Content', () => {
   test.beforeEach(async ({ page }) => {
     // Auth state is automatically loaded from global setup
-    // Avoid networkidle: Firefox can keep background requests/WebSocket connections open.
-    await page.goto('/app/solo', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('[data-testid="app-sidebar"]')).toBeVisible({ timeout: 15_000 });
+    await gotoAppPage(page, '/app/solo')
   });
 
   test('should display solo dashboard with stats', async ({ page }) => {

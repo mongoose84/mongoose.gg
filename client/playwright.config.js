@@ -10,6 +10,7 @@ dotenv.config({ path: resolve(__dirname, '.env') });
 
 // Path to store authentication state (shared across browsers)
 const authFile = 'e2e/.auth/user.json';
+const smokeTestPattern = /.*smoke\.spec\.js/;
 
 /**
  * Playwright configuration for mongoose.gg E2E tests
@@ -64,19 +65,29 @@ export default defineConfig({
     timeout: 10_000,
   },
 
-  // Configure projects for Chromium and Firefox
-  // Authentication is handled by global setup/teardown
+  // Split E2E into a quick PR smoke suite and a more comprehensive post-merge regression suite.
+  // Authentication is handled by global setup/teardown.
   // @see https://playwright.dev/docs/test-global-setup-teardown
   projects: [
     {
-      name: 'chromium',
+      name: 'smoke-chromium',
+      testMatch: smokeTestPattern,
       use: {
         ...devices['Desktop Chrome'],
         storageState: authFile,
       },
     },
     {
-      name: 'firefox',
+      name: 'full-chromium',
+      testIgnore: smokeTestPattern,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: authFile,
+      },
+    },
+    {
+      name: 'full-firefox',
+      testIgnore: smokeTestPattern,
       use: {
         ...devices['Desktop Firefox'],
         storageState: authFile,
