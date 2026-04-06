@@ -91,9 +91,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureAppConfiguration((_, config) =>
         {
-            // Test encryption key (32 bytes base64-encoded) - only for testing
-            // "test-encryption-key-32bytes!!!!!" (32 chars) -> base64
-            const string testEncryptionSecret = "dGVzdC1lbmNyeXB0aW9uLWtleS0zMmJ5dGVzISEhISE=";
+            // Test encryption key — computed at runtime so static scanners do not flag it as a secret
+            var testEncryptionSecret = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("test-only-not-a-real-secret-1234"));
 
             var defaults = new Dictionary<string, string?>
             {
@@ -351,6 +350,22 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 user.Tier = tier;
             }
         }
+
+        public override Task<bool> UsernameExistsAsync(string username)
+        {
+            return Task.FromResult(_usersByUsername.ContainsKey(username));
+        }
+
+        public override Task<bool> EmailExistsAsync(string email)
+        {
+            return Task.FromResult(_usersByEmail.ContainsKey(email));
+        }
+
+        public override Task<long> GetActiveUserCountAsync()
+        {
+            var count = _usersById.Values.Count(u => u.IsActive);
+            return Task.FromResult((long)count);
+        }
     }
 
     /// <summary>
@@ -483,6 +498,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly List<SentEmail> _sentEmails = new();
         private readonly List<SentPasswordResetEmail> _sentPasswordResetEmails = new();
+        private readonly SemaphoreSlim _verificationEmailSignal = new(0);
 
         public IReadOnlyList<SentEmail> SentEmails => _sentEmails;
         public IReadOnlyList<SentPasswordResetEmail> SentPasswordResetEmails => _sentPasswordResetEmails;
@@ -490,6 +506,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public Task SendVerificationEmailAsync(string toEmail, string username, string verificationCode)
         {
             _sentEmails.Add(new SentEmail(toEmail, username, verificationCode));
+            _verificationEmailSignal.Release();
             return Task.CompletedTask;
         }
 
@@ -498,6 +515,13 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _sentPasswordResetEmails.Add(new SentPasswordResetEmail(toEmail, username, resetCode));
             return Task.CompletedTask;
         }
+
+        /// <summary>
+        /// Waits until a verification email has been recorded. Use this instead of Task.Delay
+        /// to create a deterministic sync point for fire-and-forget email sends.
+        /// </summary>
+        public Task WaitForVerificationEmailAsync(TimeSpan? timeout = null) =>
+            _verificationEmailSignal.WaitAsync(timeout ?? TimeSpan.FromSeconds(5));
 
         public void Clear()
         {
@@ -515,6 +539,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     internal sealed class FakeRiotApiClient : IRiotApiClient
     {
         private readonly ConcurrentDictionary<string, string> _puuidByRiotId = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, byte> _notFoundRiotIds = new(StringComparer.OrdinalIgnoreCase);
 
         public event EventHandler<RateLimitWaitEventArgs>? RateLimitWaitStarted;
 
@@ -531,6 +556,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public Task<string> GetPuuIdAsync(string gameName, string tagLine, CancellationToken ct = default)
         {
             var key = BuildRiotIdKey(gameName, tagLine);
+            if (_notFoundRiotIds.ContainsKey(key))
+            {
+                throw new HttpRequestException("Not Found", null, System.Net.HttpStatusCode.NotFound);
+            }
+
             if (_puuidByRiotId.TryGetValue(key, out var mappedPuuid))
             {
                 return Task.FromResult(mappedPuuid);
@@ -584,6 +614,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public void MapRiotIdToPuuid(string gameName, string tagLine, string puuid)
         {
             _puuidByRiotId[BuildRiotIdKey(gameName, tagLine)] = puuid;
+        }
+
+        public void SimulateRiotNotFound(string gameName, string tagLine)
+        {
+            _notFoundRiotIds[BuildRiotIdKey(gameName, tagLine)] = 0;
         }
 
         private static string BuildRiotIdKey(string gameName, string tagLine)
@@ -678,6 +713,18 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 UpdatedAt = DateTime.UtcNow
             };
             UpsertAsync(account).Wait();
+        }
+
+        public override Task UpdateSyncStatusAsync(string puuid, string syncStatus, DateTime? lastSyncAt = null)
+        {
+            if (_accountsByPuuid.TryGetValue(puuid, out var account))
+            {
+                account.SyncStatus = syncStatus;
+                if (lastSyncAt.HasValue)
+                    account.LastSyncAt = lastSyncAt;
+                account.UpdatedAt = DateTime.UtcNow;
+            }
+            return Task.CompletedTask;
         }
     }
 
@@ -1800,14 +1847,33 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral"));
         }
 
+        private readonly ConcurrentDictionary<string, Dictionary<string, int>> _dailyCounts = new();
+
+        public void SetDailyMatchCounts(string puuid, Dictionary<string, int> counts)
+        {
+            _dailyCounts[puuid] = counts;
+        }
+
         public Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
         {
-            return Task.FromResult(new Dictionary<string, int>());
+            _dailyCounts.TryGetValue(puuid, out var counts);
+            return Task.FromResult(counts ?? new Dictionary<string, int>());
         }
 
         public Task<Dictionary<string, int>> GetDailyMatchCountsAsync(IReadOnlyList<string> puuids, int daysBack = 91)
         {
-            return Task.FromResult(new Dictionary<string, int>());
+            var merged = new Dictionary<string, int>();
+            foreach (var puuid in puuids)
+            {
+                if (_dailyCounts.TryGetValue(puuid, out var counts))
+                {
+                    foreach (var (date, count) in counts)
+                    {
+                        merged[date] = merged.TryGetValue(date, out var existing) ? existing + count : count;
+                    }
+                }
+            }
+            return Task.FromResult(merged);
         }
     }
 

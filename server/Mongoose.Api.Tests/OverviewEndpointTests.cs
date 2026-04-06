@@ -43,6 +43,21 @@ public class OverviewEndpointTests
     }
 
     [Fact]
+    public async Task Overview_returns_403_when_accessing_another_users_data()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/2");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
     public async Task Overview_returns_bad_request_for_invalid_userId()
     {
         using var factory = new TestWebApplicationFactory();
