@@ -14,6 +14,8 @@ Read these before auditing:
 - [Testing Instructions](../instructions/testing.instructions.md) — mandatory patterns
 - [Architecture Spec](../specs/architecture.spec.md) — all endpoints that need tests
 
+Use the current workspace as the source of truth. If the spec is stale or out of sync with the repo, call that out explicitly instead of repeating outdated counts.
+
 ## Step 2: Backend Audit
 
 ### Endpoint Coverage
@@ -25,11 +27,13 @@ For existing test files, verify the mandatory four cases:
 - [ ] 403 Forbidden (accessing another user's data)
 - [ ] 404 Not Found (no linked Riot account)
 
-### Service/Mapper Coverage
-Check `server/Mongoose.Api/Infrastructure/` and `server/Mongoose.Api/Application/Services/` for classes with logic that lack corresponding test files. Priority targets from the test strategy:
+### Service/Mapper/Job/External Integration Coverage
+Check `server/Mongoose.Api/Infrastructure/`, `server/Mongoose.Api/Application/Services/`, and any background job / Riot integration code for classes with logic that lack corresponding test files or have only shallow coverage. Priority targets from the test strategy:
 - LoginSyncService
 - RiotTimelineMapper
 - SeasonHelper
+- MatchHistorySyncJob / MatchCleanupJob depth
+- RiotApiClient mocking / integration coverage
 
 ### Test Quality
 - [ ] All tests use `FluentAssertions` (not raw `Assert`)
@@ -40,7 +44,7 @@ Check `server/Mongoose.Api/Infrastructure/` and `server/Mongoose.Api/Application
 ## Step 3: Frontend Audit
 
 ### Component Coverage
-List all `.vue` files in `client/src/components/` and `client/src/views/`. For each component with logic (props, emits, computed, methods), check if a matching `.spec.js` file exists in `client/test/unit/`.
+List all `.vue` files in `client/src/components/`, `client/src/layouts/`, `client/src/views/`, and the root `client/src/App.vue`. For each component/view/layout with logic (props, emits, computed, methods, watchers, or async lifecycle hooks), check if a matching `.spec.js` or `.test.js` file exists in the appropriate folder under `client/test/unit/`.
 
 For existing test files, verify state coverage:
 - [ ] Renders with data
@@ -49,11 +53,14 @@ For existing test files, verify state coverage:
 - [ ] Error state
 - [ ] Key user interactions (clicks, inputs)
 
-### Composable/Store/Utility Coverage
+### Composable/Store/Utility/Service/Router/Bootstrap Coverage
 Check for missing test files:
-- `client/src/composables/` → `client/test/unit/`
-- `client/src/stores/` → `client/test/unit/`
-- `client/src/utils/` → `client/test/unit/`
+- `client/src/composables/` → `client/test/unit/composables/`
+- `client/src/stores/` → `client/test/unit/stores/`
+- `client/src/utils/` → `client/test/unit/utils/`
+- `client/src/services/` → `client/test/unit/services/`
+- `client/src/router/` → `client/test/unit/router/`
+- `client/src/plugins/` and `client/src/main.js` → relevant unit/bootstrap coverage in `client/test/unit/`
 
 ### Test Quality
 - [ ] Uses `data-testid` selectors (not CSS classes or tag names)
@@ -63,11 +70,14 @@ Check for missing test files:
 
 ## Step 4: E2E Audit
 
-List critical user flows from the test strategy. Check which have Playwright specs in `client/e2e/`:
-- [ ] Login → Overview dashboard
+List critical user flows from the test strategy. Check which have Playwright specs in `client/e2e/` and note missing negative-path coverage:
+- [ ] Login / registration / verification flow
+- [ ] Overview dashboard access
 - [ ] Solo dashboard navigation and filtering
-- [ ] Match history browsing
+- [ ] Match history browsing and details
 - [ ] Riot account linking
+- [ ] Unauthenticated redirect / session-expiry handling
+- [ ] Error-state / negative-path coverage
 
 ## Output Format
 
@@ -76,8 +86,10 @@ List critical user flows from the test strategy. Check which have Playwright spe
 
 **Date**: [date]
 **Backend endpoints**: [covered/total]
-**Frontend components**: [covered/total]
+**Frontend views/components/layouts**: [covered/total]
+**Frontend unit modules** (composables + stores + utils + services + router): [covered/total]
 **E2E flows**: [covered/total]
+**Spec drift noted**: [yes/no — short note if outdated]
 
 ### Missing Tests (by priority)
 
