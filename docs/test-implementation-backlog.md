@@ -85,10 +85,10 @@ For all protected data endpoints, follow the standard endpoint pattern:
 - [ ] **404 Not Found** no linked Riot account
 
 #### Create these suites:
-- [ ] `RegisterEndpointTests.cs`
-- [ ] `LogoutEndpointTests.cs`
-- [ ] `PublicStatsEndpointTests.cs`
-- [ ] `MatchActivityEndpointTests.cs`
+- [x] `RegisterEndpointTests.cs`
+- [x] `LogoutEndpointTests.cs`
+- [x] `PublicStatsEndpointTests.cs`
+- [x] `MatchActivityEndpointTests.cs`
 
 **Extra checks to include where relevant:**
 - [ ] Bad request validation for malformed input

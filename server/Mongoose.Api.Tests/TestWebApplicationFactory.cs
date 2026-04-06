@@ -351,6 +351,22 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 user.Tier = tier;
             }
         }
+
+        public override Task<bool> UsernameExistsAsync(string username)
+        {
+            return Task.FromResult(_usersByUsername.ContainsKey(username));
+        }
+
+        public override Task<bool> EmailExistsAsync(string email)
+        {
+            return Task.FromResult(_usersByEmail.ContainsKey(email));
+        }
+
+        public override Task<long> GetActiveUserCountAsync()
+        {
+            var count = _usersById.Values.Count(u => u.IsActive);
+            return Task.FromResult((long)count);
+        }
     }
 
     /// <summary>
@@ -1800,14 +1816,33 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral"));
         }
 
+        private readonly ConcurrentDictionary<string, Dictionary<string, int>> _dailyCounts = new();
+
+        public void SetDailyMatchCounts(string puuid, Dictionary<string, int> counts)
+        {
+            _dailyCounts[puuid] = counts;
+        }
+
         public Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91)
         {
-            return Task.FromResult(new Dictionary<string, int>());
+            _dailyCounts.TryGetValue(puuid, out var counts);
+            return Task.FromResult(counts ?? new Dictionary<string, int>());
         }
 
         public Task<Dictionary<string, int>> GetDailyMatchCountsAsync(IReadOnlyList<string> puuids, int daysBack = 91)
         {
-            return Task.FromResult(new Dictionary<string, int>());
+            var merged = new Dictionary<string, int>();
+            foreach (var puuid in puuids)
+            {
+                if (_dailyCounts.TryGetValue(puuid, out var counts))
+                {
+                    foreach (var (date, count) in counts)
+                    {
+                        merged[date] = merged.TryGetValue(date, out var existing) ? existing + count : count;
+                    }
+                }
+            }
+            return Task.FromResult(merged);
         }
     }
 

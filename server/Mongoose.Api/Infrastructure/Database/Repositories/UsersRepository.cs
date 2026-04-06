@@ -122,7 +122,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
         return ExecuteSingleAsync(sql, MapWithDecryption, ("@username", encryptedUsername));
     }
 
-    public async Task<bool> UsernameExistsAsync(string username)
+    public virtual async Task<bool> UsernameExistsAsync(string username)
     {
         // Use case-preserving encryption for lookup (IV derived from normalized value)
         var encryptedUsername = _encryptor.EncryptPreserveCase(username);
@@ -136,7 +136,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
         });
     }
 
-    public async Task<bool> EmailExistsAsync(string email)
+    public virtual async Task<bool> EmailExistsAsync(string email)
     {
         // Encrypt the search email to match stored encrypted value
         var encryptedEmail = _encryptor.Encrypt(email);
@@ -154,7 +154,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
 	    /// Returns the number of active users (players) in the system.
 	    /// Used for public landing-page stats.
 	    /// </summary>
-	    public async Task<long> GetActiveUserCountAsync()
+	    public virtual async Task<long> GetActiveUserCountAsync()
 	    {
 	        const string sql = "SELECT COUNT(*) FROM users WHERE is_active = TRUE";
 	        var result = await ExecuteScalarAsync<long>(sql);
