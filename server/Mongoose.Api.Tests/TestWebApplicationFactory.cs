@@ -1374,7 +1374,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 TeamBarons: 0,
                 EnemyTeamBarons: 0,
                 TeamTowers: 0,
-                EnemyTeamTowers: 0
+                EnemyTeamTowers: 0,
+                DragonsParticipated: 0
             );
 
             return Task.FromResult<MatchDetailsItem?>(result);

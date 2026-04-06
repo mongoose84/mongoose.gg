@@ -94,7 +94,8 @@ public record MatchDetailsItem(
     [property: JsonPropertyName("teamBarons")] int TeamBarons,
     [property: JsonPropertyName("enemyTeamBarons")] int EnemyTeamBarons,
     [property: JsonPropertyName("teamTowers")] int TeamTowers,
-    [property: JsonPropertyName("enemyTeamTowers")] int EnemyTeamTowers
+    [property: JsonPropertyName("enemyTeamTowers")] int EnemyTeamTowers,
+    [property: JsonPropertyName("dragonsParticipated")] int DragonsParticipated
 );
 
 /// <summary>
@@ -133,7 +134,8 @@ public record MatchDetailsRawData(
     int TeamBarons,
     int EnemyTeamBarons,
     int TeamTowers,
-    int EnemyTeamTowers
+    int EnemyTeamTowers,
+    int DragonsParticipated
 );
 
 /// <summary>
