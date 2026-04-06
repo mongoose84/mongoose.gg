@@ -27,11 +27,9 @@
       <MatchHeader :match="match" />
 
       <div class="details-sections">
+        <ImpactStats :match="match" :baseline="baseline" />
         <TeamComparison :match="match" />
-        <div class="impact-card">
-          <ImpactStats :match="match" :baseline="baseline" />
-          <MatchActions />
-        </div>
+        <MatchActions />
         <MatchNarrative :matchId="match?.matchId" :account-id="accountId" />
         <StatSnapshot :match="match" :baseline="baseline" />
       </div>

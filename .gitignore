@@ -45,3 +45,4 @@ server/publish-output/
 server/Mongoose.Api.Tests/bin
 server/Mongoose.Api.Tests/obj
 server/Mongoose.Api.Tests/TestResults
+server/TestResultsStep1/*
