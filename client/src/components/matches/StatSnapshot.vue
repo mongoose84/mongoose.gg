@@ -107,6 +107,31 @@ const stats = computed(() => {
   const kda = getKda()
   const isSupport = m.role === 'UTILITY' || m.role === 'SUPPORT'
 
+  const dmgGoldRatio = m.goldEarned > 0 ? m.damageDealt / m.goldEarned : 0
+  const dmgGoldTrend = isSupport ? null : (dmgGoldRatio >= 1.5 ? 'up' : dmgGoldRatio < 0.8 ? 'down' : null)
+  const dmgGoldComparison = isSupport ? null : (dmgGoldRatio >= 1.5 ? 'Efficient carry' : dmgGoldRatio < 0.8 ? 'Low output' : 'Average output')
+
+  const slot10 = isSupport
+    ? (() => {
+        const gameMins = m.gameDurationSec / 60
+        const visionPerMin = gameMins > 0 ? m.visionScore / gameMins : 0
+        return {
+          label: 'Vision/min',
+          value: visionPerMin.toFixed(1),
+          trend: visionPerMin >= 2.5 ? 'up' : visionPerMin < 1.5 ? 'down' : null,
+          comparison: visionPerMin >= 2.5 ? 'Great vision' : visionPerMin < 1.5 ? 'Low vision' : 'Average vision'
+        }
+      })()
+    : (() => {
+        const dmgPerDeath = m.damageDealt / Math.max(1, m.deaths)
+        return {
+          label: 'Dmg/Death',
+          value: formatNumber(Math.round(dmgPerDeath)),
+          trend: dmgPerDeath >= 8000 ? 'up' : dmgPerDeath < 3000 ? 'down' : null,
+          comparison: null
+        }
+      })()
+
   return [
     {
       label: 'KDA Ratio',
@@ -119,6 +144,12 @@ const stats = computed(() => {
       value: `${m.killParticipation.toFixed(0)}%`,
       trend: b ? getTrend(m.killParticipation, b.avgKillParticipation, 0.1) : null,
       comparison: b ? getComparison(m.killParticipation, b.avgKillParticipation, 5, 'int') : null
+    },
+    {
+      label: 'Dmg/Gold',
+      value: dmgGoldRatio.toFixed(2),
+      trend: dmgGoldTrend,
+      comparison: dmgGoldComparison
     },
     {
       label: 'Damage Dealt',
@@ -145,12 +176,6 @@ const stats = computed(() => {
       comparison: isSupport ? null : (b ? getComparisonDurationAdjusted(m.creepScore, b.avgCreepScore, 10, 'int') : null)
     },
     {
-      label: 'CS/min',
-      value: m.csPerMin.toFixed(1),
-      trend: isSupport ? null : (b ? getTrend(m.csPerMin, b.avgCsPerMin, 0.1) : null),
-      comparison: isSupport ? null : (b ? getComparison(m.csPerMin, b.avgCsPerMin, 0.3, 'diff') : null)
-    },
-    {
       label: 'Gold',
       value: formatNumber(m.goldEarned),
       trend: b ? getTrendDurationAdjusted(m.goldEarned, b.avgGoldEarned, 0.1) : null,
@@ -162,12 +187,7 @@ const stats = computed(() => {
       trend: b ? getTrend(m.goldPerMin, b.avgGoldPerMin, 0.1) : null,
       comparison: b ? getComparison(m.goldPerMin, b.avgGoldPerMin, 15, 'int') : null
     },
-    {
-      label: 'Vision Score',
-      value: m.visionScore.toString(),
-      trend: b ? getTrendDurationAdjusted(m.visionScore, b.avgVisionScore, 0.15) : null,
-      comparison: b ? getComparisonDurationAdjusted(m.visionScore, b.avgVisionScore, 3, 'int') : null
-    }
+    slot10
   ]
 })
 

@@ -29,7 +29,7 @@
       <div class="details-sections">
         <TeamComparison :match="match" />
         <div class="impact-card">
-          <ImpactStats :match="match" />
+          <ImpactStats :match="match" :baseline="baseline" />
           <MatchActions />
         </div>
         <MatchNarrative :matchId="match?.matchId" :account-id="accountId" />
@@ -43,7 +43,7 @@
 import { watch } from 'vue'
 import MatchHeader from './MatchHeader.vue'
 import TeamComparison from './TeamComparison.vue'
-import ImpactStats from './ImpactStats.vue'
+import ImpactStats from './KeyPerformanceIndicators.vue'
 import StatSnapshot from './StatSnapshot.vue'
 import MatchNarrative from './MatchNarrative.vue'
 import MatchActions from './MatchActions.vue'

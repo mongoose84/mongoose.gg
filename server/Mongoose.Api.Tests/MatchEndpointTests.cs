@@ -357,6 +357,86 @@ public class MatchEndpointTests
         body.Match.ChampionName.Should().Be("Annie");
         body.Match.DamageDealt.Should().Be(25000);
         body.Match.VisionScore.Should().Be(25);
+        body.Match.DragonsParticipated.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task MatchDetails_returns_dragonsParticipated_field_in_response()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        var accountId = BuildAccountId(1, "test-puuid-123");
+
+        factory.MatchesRepository.AddMatch("NA1_12345", queueId: 420);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_12345",
+            Puuid: "test-puuid-123",
+            ChampionId: 1,
+            ChampionName: "Annie",
+            Role: "MIDDLE",
+            Lane: "MIDDLE",
+            Win: true,
+            Kills: 5,
+            Deaths: 2,
+            Assists: 3,
+            CreepScore: 150,
+            GoldEarned: 10000,
+            TeamId: 100
+        ));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_12345/details?accountId={accountId}");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<MatchDetailsResponse>();
+        body.Should().NotBeNull();
+        body!.Match.Should().NotBeNull();
+        body.Match.DragonsParticipated.Should().BeGreaterThanOrEqualTo(0);
+    }
+
+    [Fact]
+    public async Task MatchDetails_returns_dragonsParticipated_as_zero_when_no_participant_objectives()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        var accountId = BuildAccountId(1, "test-puuid-123");
+
+        factory.MatchesRepository.AddMatch("NA1_12345", queueId: 420);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_12345",
+            Puuid: "test-puuid-123",
+            ChampionId: 1,
+            ChampionName: "Annie",
+            Role: "MIDDLE",
+            Lane: "MIDDLE",
+            Win: true,
+            Kills: 5,
+            Deaths: 2,
+            Assists: 3,
+            CreepScore: 150,
+            GoldEarned: 10000,
+            TeamId: 100
+        ));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_12345/details?accountId={accountId}");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<MatchDetailsResponse>();
+        body.Should().NotBeNull();
+        body!.Match.DragonsParticipated.Should().Be(0);
     }
 
     // ============================================================================
@@ -741,7 +821,7 @@ public class MatchEndpointTests
     private record MatchListSummaryItem(string MatchId, int QueueId, string QueueType, int ChampionId, string ChampionName, string Role, bool Win, int Kills, int Deaths, int Assists, string? AccountGameName = null, string? AccountTagLine = null, string? AccountRegion = null);
     private record RoleBaseline(string Role, int GamesCount, double AvgKills, double AvgDeaths, double AvgAssists);
     private record MatchDetailsResponse(MatchDetailsItem Match, RoleBaseline? Baseline);
-    private record MatchDetailsItem(string MatchId, int QueueId, string QueueType, int ChampionId, string ChampionName, string Role, bool Win, int Kills, int Deaths, int Assists, int DamageDealt, int VisionScore);
+    private record MatchDetailsItem(string MatchId, int QueueId, string QueueType, int ChampionId, string ChampionName, string Role, bool Win, int Kills, int Deaths, int Assists, int DamageDealt, int VisionScore, int DragonsParticipated);
     private record MatchNarrativeResponse(string MatchId, string UserRole, LaneMatchup[] LaneMatchups, bool IsAram);
     private record LaneMatchup(string Role, MatchupParticipant AllyParticipant, MatchupParticipant EnemyParticipant, string LaneWinner);
     private record MatchupParticipant(string Puuid, string ChampionName, int Kills, int Deaths, int Assists);
