@@ -65,5 +65,9 @@ export async function getMatchNarrative(matchId, accountId = getAccountParam()) 
   const endpoint = `/matches/${matchId}/narrative${params.toString() ? '?' + params.toString() : ''}`
   const response = await apiRequest(endpoint, { method: 'GET' })
 
+  if (response.status === 404) {
+    return null
+  }
+
   return parseResponse(response, 'Failed to get match narrative')
 }
