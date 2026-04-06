@@ -16,7 +16,7 @@ on:
 # -------------------------------------------------
 jobs:
   e2e-tests:
-    name: E2E Tests (Chromium + Firefox)
+    name: E2E Tests (PR smoke / main full)
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -66,7 +66,12 @@ jobs:
       # -------------------------------------------------
       - name: Install Playwright browsers
         working-directory: client
-        run: npx playwright install --with-deps chromium firefox
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            npx playwright install --with-deps chromium
+          else
+            npx playwright install --with-deps chromium firefox
+          fi
 
       # -------------------------------------------------
       # Create backend appsettings for E2E
@@ -152,9 +157,20 @@ jobs:
       # -------------------------------------------------
       # Run E2E tests
       # -------------------------------------------------
-      - name: Run Playwright tests
+      - name: Select Playwright suite
+        id: playwright-suite
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "suite=smoke" >> "$GITHUB_OUTPUT"
+            echo "command=npx playwright test --project=smoke-chromium" >> "$GITHUB_OUTPUT"
+          else
+            echo "suite=full" >> "$GITHUB_OUTPUT"
+            echo "command=npx playwright test --project=full-chromium --project=full-firefox" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Playwright ${{ steps.playwright-suite.outputs.suite }} tests
         working-directory: client
-        run: npx playwright test
+        run: ${{ steps.playwright-suite.outputs.command }}
         env:
           E2E_BASE_URL: http://localhost:5174
 

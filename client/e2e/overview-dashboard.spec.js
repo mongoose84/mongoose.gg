@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { gotoAppPage, expectProtectedRouteRedirectsToAuth } from './helpers/app-shell.js';
 
 async function gotoOverviewPage(page) {
-  await page.goto('/app/overview', { waitUntil: 'domcontentloaded' });
-  await expect(page).toHaveURL(/\/app\/overview/);
-  // Avoid networkidle: Firefox can keep background requests open.
-  await expect(page.locator('[data-testid="app-sidebar"]')).toBeVisible({ timeout: 15_000 });
+  await gotoAppPage(page, '/app/overview');
 }
 
 /**
@@ -28,14 +26,7 @@ async function gotoOverviewPage(page) {
 
 test.describe('Overview Dashboard - Authentication', () => {
   test('should redirect unauthenticated users to login page', async ({ browser }) => {
-    // Create a fresh context WITHOUT storage state (override project default)
-    const context = await browser.newContext({ storageState: undefined });
-    const page = await context.newPage();
-
-    await page.goto('/app/overview');
-    await expect(page).toHaveURL(/\/auth/);
-
-    await context.close();
+    await expectProtectedRouteRedirectsToAuth(browser, '/app/overview');
   });
 
   test('should be authenticated via global setup', async ({ page }) => {
