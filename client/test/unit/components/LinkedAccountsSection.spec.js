@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import LinkedAccountsSection from '@/components/settings/LinkedAccountsSection.vue'
-import { headlessUIStubs } from '../helpers/testUtils'
+import { headlessUIStubs } from '../../helpers/testUtils'
 
 const mockAuthStore = {
   riotAccounts: [],

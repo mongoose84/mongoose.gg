@@ -106,7 +106,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { getMatchNarrative } from '../../services/authApi'
+import { getMatchNarrative } from '../../services/matchesApi'
 import { trackLaneExpand } from '../../services/analyticsApi'
 import { formatRole, formatKdaFromParticipant as formatKda, formatPercent } from '@/utils/formatters'
 import { getRoleIconUrl } from '@/utils/leagueAssets'

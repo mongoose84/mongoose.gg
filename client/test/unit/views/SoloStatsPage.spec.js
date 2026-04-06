@@ -17,6 +17,7 @@ const mockTrackFilterChange = vi.fn()
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({
     userId: 1,
+    riotAccounts: [],
     refreshUser: vi.fn()
   })
 }))
@@ -32,16 +33,19 @@ vi.mock('@/services/analyticsApi', () => ({
   trackFilterChange: (...args) => mockTrackFilterChange(...args)
 }))
 
-vi.mock('@/services/authApi', () => ({
+vi.mock('@/services/soloApi', () => ({
   getSoloDashboard: (...args) => mockGetSoloDashboard(...args),
+  getDeathPositions: (...args) => mockGetDeathPositions(...args),
+  getRadarChart: (...args) => mockGetRadarChart(...args)
+}))
+
+vi.mock('@/services/trendsApi', () => ({
   getWinrateTrend: (...args) => mockGetWinrateTrend(...args),
   getGoldAt15Trend: (...args) => mockGetGoldAt15Trend(...args),
   getCsPerMinuteTrend: (...args) => mockGetCsPerMinuteTrend(...args),
   getDeathsTrend: (...args) => mockGetDeathsTrend(...args),
   getDragonParticipationTrend: (...args) => mockGetDragonParticipationTrend(...args),
-  getVisionScoreTrend: (...args) => mockGetVisionScoreTrend(...args),
-  getDeathPositions: (...args) => mockGetDeathPositions(...args),
-  getRadarChart: (...args) => mockGetRadarChart(...args)
+  getVisionScoreTrend: (...args) => mockGetVisionScoreTrend(...args)
 }))
 
 describe('SoloPage', () => {

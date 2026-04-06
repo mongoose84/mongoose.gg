@@ -227,7 +227,7 @@
 import { computed, ref, watch } from 'vue'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { getWinRateColorClass } from '../composables/useWinRateColor'
-import { getChampionMatchups } from '../services/authApi'
+import { getChampionMatchups } from '../services/soloApi'
 import { formatRoleWithAdc as roleLabel, formatWinRate } from '@/utils/formatters'
 import { getChampionIconUrl } from '@/utils/leagueAssets'
 

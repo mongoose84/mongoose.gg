@@ -34,7 +34,7 @@ vi.mock('@/composables/useSyncWebSocket', () => ({
   })
 }))
 
-vi.mock('@/services/authApi', () => ({
+vi.mock('@/services/soloApi', () => ({
   getOverview: (...args) => mockGetOverview(...args),
   getMatchActivity: (...args) => mockGetMatchActivity(...args),
   getSoloDashboard: (...args) => mockGetSoloDashboard(...args)
