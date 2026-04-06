@@ -34,45 +34,45 @@ Add the missing tests with the highest product and regression risk first:
 **Why**: `LoginSyncService` runs on login and coordinates Riot profile refresh + sync triggering.
 
 **Add tests for:**
-- [ ] No linked Riot accounts → exits without error
-- [ ] Profile icon / summoner level changes → repository update is called
-- [ ] Rank data changes → rank update is persisted correctly
-- [ ] Recent `LastSyncAt` within cooldown → match sync is skipped
-- [ ] Account already `pending` or `syncing` → no duplicate sync trigger
-- [ ] New matches found from Riot API → account moves to `pending` and progress broadcast starts
-- [ ] Riot API/profile update failure → service logs warning and does not break login
-- [ ] One account fails but remaining linked accounts still continue processing
+- [x] No linked Riot accounts → exits without error
+- [x] Profile icon / summoner level changes → repository update is called
+- [x] Rank data changes → rank update is persisted correctly
+- [x] Recent `LastSyncAt` within cooldown → match sync is skipped
+- [x] Account already `pending` or `syncing` → no duplicate sync trigger
+- [x] New matches found from Riot API → account moves to `pending` and progress broadcast starts
+- [x] Riot API/profile update failure → service logs warning and does not break login
+- [x] One account fails but remaining linked accounts still continue processing
 
 #### `server/Mongoose.Api.Tests/RiotTimelineMapperTests.cs`
 **Why**: timeline-derived analytics feed multiple solo dashboard features.
 
 **Add tests for:**
-- [ ] Checkpoint mapping from timeline frames
-- [ ] Death timing extraction
-- [ ] Objective participation extraction
-- [ ] Death position extraction
-- [ ] Team gold metric extraction
-- [ ] Partial / malformed Riot timeline payloads handled safely
-- [ ] Empty frames/events return stable defaults instead of exceptions
+- [x] Checkpoint mapping from timeline frames
+- [x] Death timing extraction
+- [x] Objective participation extraction
+- [x] Death position extraction
+- [x] Team gold metric extraction
+- [x] Partial / malformed Riot timeline payloads handled safely
+- [x] Empty frames/events return stable defaults instead of exceptions
 
 #### `server/Mongoose.Api.Tests/RiotApiClientTests.cs`
 **Why**: external dependency behavior is currently under-tested.
 
 **Add tests for:**
-- [ ] Correct URL composition per Riot endpoint
-- [ ] Non-200 responses are surfaced or handled correctly
+- [x] Correct URL composition per Riot endpoint
+- [x] Non-200 responses are surfaced or handled correctly
 - [ ] Rate-limit / retry behavior
-- [ ] Timeout / cancellation handling
-- [ ] JSON parsing for expected response shapes
+- [x] Timeout / cancellation handling
+- [x] JSON parsing for expected response shapes
 
 #### `server/Mongoose.Api.Tests/SeasonHelperTests.cs`
 **Why**: season resolution affects ingestion and persistence correctness.
 
 **Add tests for:**
-- [ ] Reuses an existing season when present
-- [ ] Inserts a new season when missing
-- [ ] Handles current season boundaries correctly
-- [ ] Works with UTC date assumptions
+- [x] Reuses an existing season when present
+- [x] Inserts a new season when missing
+- [x] Handles current season boundaries correctly
+- [x] Works with UTC date assumptions
 
 ---
 
