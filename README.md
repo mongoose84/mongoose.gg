@@ -56,11 +56,11 @@ The file structure contains a server and a client part.
 
 ## .NET SDK
 ##### Windows:
-Download .NET 9.0 SDK installer
+Download .NET 10.0 SDK installer
 
 ##### Linux Fedora:
 ```
-sudo dnf install dotnet-sdk-9.0
+sudo dnf install dotnet-sdk-10.0
 ```
 
 #### Client (standalone app)
