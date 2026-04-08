@@ -184,10 +184,10 @@ export function trackTeamComparisonView(metric) {
 }
 
 /**
- * Track Impact Stats section view
+ * Track Win Prediction Stats section view
  * @param {string} role - User's role (affects which metrics are shown)
  */
-export function trackImpactStatsView(role) {
-  track('match:impact_stats_view', { role })
+export function trackWinPredictionStatsView(role) {
+  track('match:win_prediction_stats_view', { role })
 }
 

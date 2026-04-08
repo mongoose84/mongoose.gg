@@ -130,7 +130,8 @@ internal static class MatchDataMapper
         TeamBarons: r.GetInt32(29),
         EnemyTeamBarons: r.GetInt32(30),
         TeamTowers: r.GetInt32(31),
-        EnemyTeamTowers: r.GetInt32(32)
+        EnemyTeamTowers: r.GetInt32(32),
+        DragonsParticipated: r.GetInt32(33)
     );
 
     internal static MatchupParticipantRaw MapMatchupParticipantRaw(MySqlDataReader r) => new(

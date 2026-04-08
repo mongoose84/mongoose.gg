@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import StatSnapshot from '@/components/matches/StatSnapshot.vue'
 
 vi.mock('@/utils/formatters', () => ({
-  formatNumber: (n) => (n != null ? n.toLocaleString() : '0')
+  formatNumber: (n) => (n != null ? n.toLocaleString('en-US') : '0')
 }))
 
 describe('StatSnapshot.vue', () => {
@@ -39,10 +39,9 @@ describe('StatSnapshot.vue', () => {
     expect(wrapper.find('.stats-grid').exists()).toBe(true)
   })
 
-  it('shows a non-zero stat count in the section header', () => {
+  it('shows exactly 10 metrics', () => {
     const wrapper = createWrapper()
-    const count = parseInt(wrapper.find('.stat-count').text())
-    expect(count).toBeGreaterThan(0)
+    expect(wrapper.find('.stat-count').text()).toBe('10 metrics')
   })
 
   it('renders KDA Ratio stat', () => {
@@ -63,10 +62,104 @@ describe('StatSnapshot.vue', () => {
     expect(labels).toContain('Damage Dealt')
   })
 
-  it('renders CS/min stat', () => {
+  it('does not render CS/min stat', () => {
     const wrapper = createWrapper()
     const labels = wrapper.findAll('.stat-label').map(l => l.text())
-    expect(labels).toContain('CS/min')
+    expect(labels).not.toContain('CS/min')
+  })
+
+  it('does not render Vision Score stat', () => {
+    const wrapper = createWrapper()
+    const labels = wrapper.findAll('.stat-label').map(l => l.text())
+    expect(labels).not.toContain('Vision Score')
+  })
+
+  it('renders Dmg/Gold stat at position 3', () => {
+    const wrapper = createWrapper()
+    const items = wrapper.findAll('.stat-item')
+    expect(items[2].find('.stat-label').text()).toBe('Dmg/Gold')
+  })
+
+  it('renders Dmg/Gold value as ratio with 2 decimals', () => {
+    // damageDealt=20000, goldEarned=12000 → 1.67
+    const wrapper = createWrapper()
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Dmg/Gold')
+    expect(item.find('.stat-value').text()).toBe('1.67')
+  })
+
+  it('applies up trend on Dmg/Gold when ratio >= 1.5', () => {
+    // damageDealt=20000, goldEarned=12000 → 1.67 >= 1.5
+    const wrapper = createWrapper()
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Dmg/Gold')
+    expect(item.classes()).toContain('up')
+  })
+
+  it('applies down trend on Dmg/Gold when ratio < 0.8', () => {
+    const wrapper = createWrapper({ damageDealt: 5000, goldEarned: 12000 })
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Dmg/Gold')
+    expect(item.classes()).toContain('down')
+  })
+
+  it('shows no Dmg/Gold trend for support', () => {
+    const wrapper = createWrapper({ role: 'UTILITY', damageDealt: 30000, goldEarned: 12000 })
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Dmg/Gold')
+    expect(item.classes()).not.toContain('up')
+  })
+
+  it('renders Dmg/Death at position 10 for non-support', () => {
+    const wrapper = createWrapper()
+    const items = wrapper.findAll('.stat-item')
+    expect(items[9].find('.stat-label').text()).toBe('Dmg/Death')
+  })
+
+  it('renders Dmg/Death value correctly', () => {
+    // damageDealt=20000, deaths=2 → 10000
+    const wrapper = createWrapper()
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Dmg/Death')
+    expect(item.find('.stat-value').text()).toContain('10,000')
+  })
+
+  it('applies up trend on Dmg/Death when >= 8000', () => {
+    const wrapper = createWrapper({ damageDealt: 20000, deaths: 2 })
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Dmg/Death')
+    expect(item.classes()).toContain('up')
+  })
+
+  it('applies down trend on Dmg/Death when < 3000', () => {
+    const wrapper = createWrapper({ damageDealt: 4000, deaths: 2 })
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Dmg/Death')
+    expect(item.classes()).toContain('down')
+  })
+
+  it('uses deaths=1 floor for Dmg/Death when deaths is 0', () => {
+    const wrapper = createWrapper({ damageDealt: 20000, deaths: 0 })
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Dmg/Death')
+    expect(item.find('.stat-value').text()).toContain('20,000')
+  })
+
+  it('renders Vision/min at position 10 for support', () => {
+    const wrapper = createWrapper({ role: 'UTILITY' })
+    const items = wrapper.findAll('.stat-item')
+    expect(items[9].find('.stat-label').text()).toBe('Vision/min')
+  })
+
+  it('renders Vision/min value correctly for support', () => {
+    // visionScore=25, gameDurationSec=1800 → 25/30 = 0.8
+    const wrapper = createWrapper({ role: 'UTILITY', visionScore: 75, gameDurationSec: 1800 })
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Vision/min')
+    expect(item.find('.stat-value').text()).toBe('2.5')
+  })
+
+  it('applies up trend on Vision/min when >= 2.5', () => {
+    const wrapper = createWrapper({ role: 'SUPPORT', visionScore: 80, gameDurationSec: 1800 })
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Vision/min')
+    expect(item.classes()).toContain('up')
+  })
+
+  it('applies down trend on Vision/min when < 1.5', () => {
+    const wrapper = createWrapper({ role: 'UTILITY', visionScore: 20, gameDurationSec: 1800 })
+    const item = wrapper.findAll('.stat-item').find(i => i.find('.stat-label').text() === 'Vision/min')
+    expect(item.classes()).toContain('down')
   })
 
   it('calculates KDA as sum of kills+assists when deaths is 0', () => {

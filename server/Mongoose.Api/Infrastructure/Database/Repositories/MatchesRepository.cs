@@ -362,7 +362,8 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 COALESCE(tobj.barons_taken, 0) as team_barons,
                 COALESCE(tobj_enemy.barons_taken, 0) as enemy_team_barons,
                 COALESCE(tobj.towers_taken, 0) as team_towers,
-                COALESCE(tobj_enemy.towers_taken, 0) as enemy_team_towers
+                COALESCE(tobj_enemy.towers_taken, 0) as enemy_team_towers,
+                COALESCE(po.dragons_participated, 0) as dragons_participated
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
@@ -370,6 +371,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             LEFT JOIN team_match_metrics tmm ON tmm.match_id = p.match_id AND tmm.team_id = p.team_id
             LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
             LEFT JOIN team_objectives tobj_enemy ON tobj_enemy.match_id = p.match_id AND tobj_enemy.team_id != p.team_id
+            LEFT JOIN participant_objectives po ON po.participant_id = p.id
             LEFT JOIN TeamKills tk ON tk.match_id = p.match_id AND tk.team_id = p.team_id
             LEFT JOIN TeamKills tk_enemy ON tk_enemy.match_id = p.match_id AND tk_enemy.team_id != p.team_id
             LEFT JOIN TeamDamage td ON td.match_id = p.match_id AND td.team_id = p.team_id
@@ -423,7 +425,8 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             TeamBarons: rawData.TeamBarons,
             EnemyTeamBarons: rawData.EnemyTeamBarons,
             TeamTowers: rawData.TeamTowers,
-            EnemyTeamTowers: rawData.EnemyTeamTowers
+            EnemyTeamTowers: rawData.EnemyTeamTowers,
+            DragonsParticipated: rawData.DragonsParticipated
         );
     }
 

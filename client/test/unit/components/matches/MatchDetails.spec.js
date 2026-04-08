@@ -18,11 +18,11 @@ vi.mock('@/components/matches/TeamComparison.vue', () => ({
   }
 }))
 
-vi.mock('@/components/matches/ImpactStats.vue', () => ({
+vi.mock('@/components/matches/WinPredictionStats.vue', () => ({
   default: {
-    name: 'ImpactStats',
-    props: ['match'],
-    template: '<div data-testid="impact-stats" />'
+    name: 'WinPredictionStats',
+    props: ['match', 'baseline'],
+    template: '<div data-testid="win-prediction-stats" />'
   }
 }))
 
@@ -45,6 +45,7 @@ vi.mock('@/components/matches/MatchNarrative.vue', () => ({
 vi.mock('@/components/matches/MatchActions.vue', () => ({
   default: {
     name: 'MatchActions',
+    props: ['match'],
     template: '<div data-testid="match-actions" />'
   }
 }))
@@ -149,9 +150,37 @@ describe('MatchDetails.vue', () => {
       expect(wrapper.find('[data-testid="team-comparison"]').exists()).toBe(true)
     })
 
-    it('renders ImpactStats', () => {
+    it('does not render legacy impact-stats marker', () => {
       const wrapper = createWrapper({ match: baseMatch })
-      expect(wrapper.find('[data-testid="impact-stats"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="impact-stats"]').exists()).toBe(false)
+    })
+
+    it('renders WinPredictionStats', () => {
+      const wrapper = createWrapper({ match: baseMatch })
+      expect(wrapper.find('[data-testid="win-prediction-stats"]').exists()).toBe(true)
+    })
+
+    it('WinPredictionStats appears before TeamComparison in DOM', () => {
+      const wrapper = createWrapper({ match: baseMatch })
+      const testIds = wrapper.findAll('[data-testid]').map(el => el.attributes('data-testid'))
+      const wpIndex = testIds.indexOf('win-prediction-stats')
+      const tcIndex = testIds.indexOf('team-comparison')
+      expect(wpIndex).toBeGreaterThanOrEqual(0)
+      expect(tcIndex).toBeGreaterThanOrEqual(0)
+      expect(wpIndex).toBeLessThan(tcIndex)
+    })
+
+    it('passes match to WinPredictionStats', () => {
+      const wrapper = createWrapper({ match: baseMatch })
+      const winPred = wrapper.findComponent({ name: 'WinPredictionStats' })
+      expect(winPred.props('match')).toEqual(baseMatch)
+    })
+
+    it('passes baseline to WinPredictionStats', () => {
+      const baseline = { gamesCount: 10, avgKda: 3.0 }
+      const wrapper = createWrapper({ match: baseMatch, baseline })
+      const winPred = wrapper.findComponent({ name: 'WinPredictionStats' })
+      expect(winPred.props('baseline')).toEqual(baseline)
     })
 
     it('renders StatSnapshot', () => {

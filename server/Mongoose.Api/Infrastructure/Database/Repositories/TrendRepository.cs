@@ -407,8 +407,6 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 WHERE {puuidPredicate} {queueFilter} {timeFilter}
                 ORDER BY m.game_start_time ASC";
 
-            _logger.LogDebug("Dragon participation SQL: {Sql}", sql);
-
             var dataPoints = new List<(string MatchId, long Timestamp, string ChampionName, string? Role, int TeamDragons, int DragonsParticipated, string Puuid)>();
 
             await ExecuteWithConnectionAsync(async conn =>
