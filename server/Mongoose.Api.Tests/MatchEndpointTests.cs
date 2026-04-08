@@ -397,7 +397,7 @@ public class MatchEndpointTests
         var body = await response.Content.ReadFromJsonAsync<MatchDetailsResponse>();
         body.Should().NotBeNull();
         body!.Match.Should().NotBeNull();
-        body.Match.DragonsParticipated.Should().BeGreaterThanOrEqualTo(0);
+        body.Match.DragonsParticipated.Should().NotBeNull();
     }
 
     [Fact]
@@ -821,7 +821,7 @@ public class MatchEndpointTests
     private record MatchListSummaryItem(string MatchId, int QueueId, string QueueType, int ChampionId, string ChampionName, string Role, bool Win, int Kills, int Deaths, int Assists, string? AccountGameName = null, string? AccountTagLine = null, string? AccountRegion = null);
     private record RoleBaseline(string Role, int GamesCount, double AvgKills, double AvgDeaths, double AvgAssists);
     private record MatchDetailsResponse(MatchDetailsItem Match, RoleBaseline? Baseline);
-    private record MatchDetailsItem(string MatchId, int QueueId, string QueueType, int ChampionId, string ChampionName, string Role, bool Win, int Kills, int Deaths, int Assists, int DamageDealt, int VisionScore, int DragonsParticipated);
+    private record MatchDetailsItem(string MatchId, int QueueId, string QueueType, int ChampionId, string ChampionName, string Role, bool Win, int Kills, int Deaths, int Assists, int DamageDealt, int VisionScore, int? DragonsParticipated);
     private record MatchNarrativeResponse(string MatchId, string UserRole, LaneMatchup[] LaneMatchups, bool IsAram);
     private record LaneMatchup(string Role, MatchupParticipant AllyParticipant, MatchupParticipant EnemyParticipant, string LaneWinner);
     private record MatchupParticipant(string Puuid, string ChampionName, int Kills, int Deaths, int Assists);

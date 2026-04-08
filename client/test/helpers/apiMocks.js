@@ -141,7 +141,7 @@ export function createAnalyticsApiMock() {
     trackSectionToggle: vi.fn(),
     trackLaneExpand: vi.fn(),
     trackTeamComparisonView: vi.fn(),
-    trackImpactStatsView: vi.fn(),
+    trackWinPredictionStatsView: vi.fn(),
     getSessionId: vi.fn().mockReturnValue('mock-session-id')
   };
 }
