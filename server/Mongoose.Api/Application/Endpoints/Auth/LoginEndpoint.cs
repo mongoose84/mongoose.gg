@@ -11,8 +11,8 @@ namespace Mongoose.Api.Application.Endpoints.Auth;
 
 /// <summary>
 /// Login Endpoint
-/// Validates username/password and sets an httpOnly session cookie for subsequent requests.
-/// Supports rememberMe for 7-day sessions.
+/// Validates username/password and sets an httpOnly auth cookie for subsequent requests.
+/// Supports configurable session timeout by default and 30-day remember-me sessions.
 /// Rate limited to 10 requests per 15 minutes per IP to prevent brute force attacks.
 /// </summary>
 public sealed class LoginEndpoint : IEndpoint
@@ -155,8 +155,8 @@ public sealed class LoginEndpoint : IEndpoint
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                // rememberMe: persistent 30-day cookie, refreshed via sliding expiration on activity.
-                // not rememberMe: session cookie (browser-close clears it), idle timeout from config.
+                // Always emit an explicit cookie expiry so the browser stops sending expired auth
+                // cookies at the configured session boundary. rememberMe extends that boundary to 30 days.
                 AuthenticationProperties authProperties;
                 if (request.RememberMe)
                 {
@@ -171,7 +171,7 @@ public sealed class LoginEndpoint : IEndpoint
                     var sessionTimeoutMinutes = config.GetValue<int>("Auth:SessionTimeout", 30);
                     authProperties = new AuthenticationProperties
                     {
-                        IsPersistent = false,
+                        IsPersistent = true,
                         ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
                     };
                 }
