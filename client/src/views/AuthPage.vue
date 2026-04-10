@@ -61,6 +61,19 @@
             {{ errorMessage }}
           </div>
 
+          <!-- Cookie consent rejection info banner -->
+          <div v-if="consentRejected" class="p-md bg-warning-soft border border-warning-border rounded-md text-warning text-sm mb-md" role="alert">
+            <p class="m-0 mb-xs">You've rejected cookies. Login requires an authentication cookie.</p>
+            <BaseButton
+              variant="ghost"
+              size="sm"
+              class="text-warning hover:opacity-80 p-0 h-auto mt-xs"
+              @click="updateCookiePreferences"
+            >
+              Update cookie preferences
+            </BaseButton>
+          </div>
+
           <form @submit.prevent="handleSubmit" class="flex flex-col gap-lg" data-testid="auth-form">
             <!-- Username field for both login and signup -->
             <BaseInput
@@ -152,12 +165,17 @@ import { useRoute, useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import { BaseInput, BaseButton } from '@/components/base';
 import { useAuthStore } from '../stores/authStore';
+import { useCookieConsent } from '../composables/useCookieConsent';
 import { trackAuth } from '../services/analyticsApi';
 import { forgotPassword } from '../services/authApi';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const cookieConsent = useCookieConsent();
+
+// ── Cookie consent state ──
+const consentRejected = cookieConsent.isRejected;
 
 // ── Login / Register state ──
 const isLogin = ref(true);
@@ -243,6 +261,10 @@ const showLogin = () => {
   isLogin.value = true;
   forgotErrorMessage.value = '';
   router.replace({ path: '/auth', query: { mode: 'login' } });
+};
+
+const updateCookiePreferences = () => {
+  cookieConsent.resetConsent();
 };
 
 const toggleMode = () => {

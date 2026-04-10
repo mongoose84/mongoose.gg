@@ -44,6 +44,35 @@
 
         <DisplayPreferencesSection />
 
+        <!-- Cookie Preferences Section -->
+        <div class="flex flex-col gap-md">
+          <h2 class="text-lg font-semibold text-text tracking-tight">Privacy</h2>
+          <div class="bg-background-surface border border-border rounded-lg p-xl">
+            <div class="flex flex-col gap-md sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 class="text-sm font-semibold text-text">Cookie Preferences</h3>
+                <p class="text-xs text-text-secondary mt-xs">
+                  Manage your cookie consent settings and learn about how we use cookies.
+                </p>
+              </div>
+              <div class="flex gap-md flex-wrap sm:flex-nowrap">
+                <router-link
+                  to="/cookies"
+                  class="flex-shrink-0 py-md px-lg bg-background-secondary border border-border rounded-md text-text-secondary text-sm font-semibold cursor-pointer transition-all duration-200 hover:text-text hover:border-border no-underline text-center"
+                >
+                  Learn More
+                </router-link>
+                <button
+                  @click="resetCookiePreferences"
+                  class="flex-shrink-0 py-md px-lg bg-primary rounded-md text-white text-sm font-semibold cursor-pointer transition-all duration-200 hover:opacity-90"
+                >
+                  Update Preferences
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Security Section -->
         <div class="flex flex-col gap-md">
           <h2 class="text-lg font-semibold text-text tracking-tight">Security</h2>
@@ -148,6 +177,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore';
+import { useCookieConsent } from '../composables/useCookieConsent';
 import { trackAuth } from '../services/analyticsApi';
 import DeleteAccountModal from '../components/DeleteAccountModal.vue';
 import LinkedAccountsSection from '../components/settings/LinkedAccountsSection.vue';
@@ -224,11 +254,17 @@ async function handleLogout() {
 
 async function handleAccountDeleted() {
   // Clear auth state (user is already signed out on the server)
-  authStore.user = null;
+  authStore.user = null
   // Track the event
-  trackAuth('account_deleted', true);
+  trackAuth('account_deleted', true)
   // Redirect to home page
-  router.push('/');
+  router.push('/')
+}
+
+const cookieConsent = useCookieConsent()
+
+function resetCookiePreferences() {
+  cookieConsent.resetConsent()
 }
 </script>
 

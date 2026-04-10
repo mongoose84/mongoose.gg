@@ -2,7 +2,8 @@
   <div class="app-container">
     <RouterView />
     <VersionBadge v-if="!isInApp" />
-    <!-- Global session expired banner -->
+    <!-- Global banners (z-index hierarchy: CookieConsent 500 > SessionExpired 400) -->
+    <CookieConsentBanner />
     <SessionExpiredBanner />
   </div>
 </template>
@@ -11,6 +12,7 @@
 import { computed, onMounted } from 'vue';
 import { RouterView, useRoute } from 'vue-router';
 import VersionBadge from './components/VersionBadge.vue';
+import CookieConsentBanner from './components/CookieConsentBanner.vue';
 import SessionExpiredBanner from './components/SessionExpiredBanner.vue';
 import { useAuthStore } from './stores/authStore';
 

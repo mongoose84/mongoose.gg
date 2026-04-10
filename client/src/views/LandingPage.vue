@@ -163,6 +163,7 @@
             <div class="flex flex-col gap-sm">
               <h4 class="text-sm font-semibold tracking-tight text-text mb-xs">Legal</h4>
               <a href="/privacy" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Privacy Policy</a>
+              <a href="/cookies" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Cookie Policy</a>
               <a href="/terms" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Terms of Service</a>
             </div>
 

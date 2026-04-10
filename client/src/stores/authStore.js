@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as authApi from '../services/authApi'
 import { setSessionExpiredCallback } from '../services/apiClient'
+import { useCookieConsent } from '../composables/useCookieConsent'
 
 const ACTIVE_ACCOUNT_STORAGE_KEY = 'mongoose_active_account'
 const DEFAULT_VIEW_KEY = 'mongoose_default_view'
@@ -178,6 +179,19 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
 
       try {
+        // Check cookie consent before attempting to restore session
+        const cookieConsent = useCookieConsent()
+        const consent = cookieConsent.getConsent()
+
+        // If consent is rejected, don't try to restore session
+        if (consent === 'rejected') {
+          user.value = null
+          isLoading.value = false
+          isInitialized.value = true
+          initializePromise = null
+          return
+        }
+
         // Skip session check during initialization - user wasn't previously authenticated
         // in this browser session, so we don't want to show session expired banner
         const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
@@ -217,8 +231,12 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      // Call login API first
-      await authApi.login({ username: uname, password, rememberMe })
+      // Get current consent level
+      const cookieConsent = useCookieConsent()
+      const consentLevel = cookieConsent.getConsent() || 'accepted'
+
+      // Call login API with consent level
+      await authApi.login({ username: uname, password, rememberMe, consentLevel })
       // After login, fetch full user data (session is fresh, skip session check)
       const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData

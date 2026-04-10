@@ -92,6 +92,9 @@ builder.Services.AddHttpClient<IGitHubService, Mongoose.Api.Infrastructure.GitHu
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
+// Distributed memory cache — required by EndpointRateLimiter
+builder.Services.AddDistributedMemoryCache();
+
 // Rate limiter for endpoint protection (uses distributed cache)
 builder.Services.AddSingleton<IRateLimiter, EndpointRateLimiter>();
 

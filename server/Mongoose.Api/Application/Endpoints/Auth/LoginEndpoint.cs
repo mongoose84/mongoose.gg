@@ -82,6 +82,17 @@ public sealed class LoginEndpoint : IEndpoint
                     return Results.Json(new { error = "Login is currently disabled" }, statusCode: 503);
                 }
 
+                // Validate cookie consent: user must have accepted cookies to log in
+                // null or missing consentLevel is treated as accepted (backward compatibility)
+                var consentLevel = request.ConsentLevel?.ToLowerInvariant().Trim() ?? "accepted";
+                if (consentLevel == "rejected")
+                {
+                    logger.LogWarning("Login attempt rejected: user did not consent to cookies");
+                    return Results.Json(
+                        new { error = "Cookie consent is required for login.", code = "COOKIE_CONSENT_REQUIRED" },
+                        statusCode: 400);
+                }
+
                 // Validate input
                 if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
                     return Results.BadRequest(new { error = "Username and password are required" });
