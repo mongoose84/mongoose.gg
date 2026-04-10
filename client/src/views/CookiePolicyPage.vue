@@ -5,7 +5,7 @@
     <div class="max-w-[800px] mx-auto py-2xl px-xl">
       <div class="bg-background-surface border border-border rounded-lg p-2xl backdrop-blur-[10px]" data-testid="cookie-policy-content">
         <h1 class="text-2xl font-bold tracking-tight mb-sm text-text">Cookie Policy</h1>
-        <p class="text-sm text-text-secondary mb-2xl">Last updated: {{ currentDate }}</p>
+        <p class="text-sm text-text-secondary mb-2xl">Last updated: April 10, 2026</p>
 
         <section class="mb-xl">
           <h2 class="text-xl font-bold tracking-tight mb-md text-text">Overview</h2>
@@ -44,7 +44,7 @@
                   <td><code>mongoose-auth</code></td>
                   <td>Authentication — maintains your logged-in session</td>
                   <td>First-party, Strictly Necessary</td>
-                  <td>Session or 30 days (based on "Remember Me" preference)</td>
+                  <td>Configured session timeout (30 minutes by default) or 30 days (based on "Remember Me" preference)</td>
                 </tr>
               </tbody>
             </table>
@@ -82,15 +82,16 @@
           <h2 class="text-xl font-bold tracking-tight mb-md text-text">Cookie Duration</h2>
           <div class="cookie-duration-container">
             <div class="duration-item">
-              <h3 class="text-base font-semibold text-text mb-xs">Session Cookie</h3>
+              <h3 class="text-base font-semibold text-text mb-xs">Short-Lived Auth Cookie</h3>
               <p class="text-sm text-text-secondary mb-0">
-                Cleared when you close your browser or after 30 minutes of inactivity. Set when "Remember Me" is unchecked.
+                Expires at the configured session timeout (30 minutes by default) when "Remember Me" is unchecked.
+                This is an auth cookie with an explicit expiry, not a browser-session-only cookie.
               </p>
             </div>
             <div class="duration-item">
-              <h3 class="text-base font-semibold text-text mb-xs">Persistent Cookie (30 days)</h3>
+              <h3 class="text-base font-semibold text-text mb-xs">Remember Me Cookie (30 days)</h3>
               <p class="text-sm text-text-secondary mb-0">
-                Remains on your device for 30 days, allowing you to stay logged in across multiple browser sessions.
+                Remains on your device for up to 30 days, allowing you to stay logged in across multiple browser sessions.
                 Set when "Remember Me" is checked at login.
               </p>
             </div>

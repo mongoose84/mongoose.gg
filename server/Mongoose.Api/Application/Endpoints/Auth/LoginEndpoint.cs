@@ -156,13 +156,15 @@ public sealed class LoginEndpoint : IEndpoint
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
                 // Always emit an explicit cookie expiry so the browser stops sending expired auth
-                // cookies at the configured session boundary. rememberMe extends that boundary to 30 days.
+                // cookies at the configured session boundary. Only remember-me sessions can slide;
+                // short sessions keep their original per-login expiry even when SlidingExpiration is enabled.
                 AuthenticationProperties authProperties;
                 if (request.RememberMe)
                 {
                     authProperties = new AuthenticationProperties
                     {
                         IsPersistent = true,
+                        AllowRefresh = true,
                         ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
                     };
                 }
@@ -172,6 +174,7 @@ public sealed class LoginEndpoint : IEndpoint
                     authProperties = new AuthenticationProperties
                     {
                         IsPersistent = true,
+                        AllowRefresh = false,
                         ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
                     };
                 }

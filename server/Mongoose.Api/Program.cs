@@ -127,9 +127,10 @@ builder.Services.AddSingleton<SyncProgressHub>();
 builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
 
 // Add authentication (cookie-based)
-// ExpireTimeSpan is set to the maximum session lifetime (30 days for rememberMe).
-// Per-login duration is controlled via AuthenticationProperties.ExpiresUtc in LoginEndpoint.
-// SlidingExpiration=true refreshes the cookie on activity, capped at ExpireTimeSpan from now.
+// ExpireTimeSpan defines the maximum sliding window used for long-lived remember-me cookies.
+// Per-login duration is controlled via AuthenticationProperties.ExpiresUtc at sign-in time.
+// Short sessions set AuthenticationProperties.AllowRefresh = false so activity cannot extend them;
+// remember-me sessions opt into sliding refresh within the 30-day window.
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {

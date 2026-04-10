@@ -69,6 +69,7 @@ const cookieConsent = useCookieConsent()
 const uniqueId = ref(`cookie-banner-${Math.random().toString(36).substring(2, 11)}`)
 
 const shouldShowBanner = computed(() => cookieConsent.shouldShowBanner())
+let cleanupCrossTabSync = null
 
 function handleAccept() {
   cookieConsent.setConsent('accepted')
@@ -80,11 +81,12 @@ function handleReject() {
 
 onMounted(() => {
   // Setup cross-tab synchronization
-  const cleanup = cookieConsent.setupCrossTabSync()
+  cleanupCrossTabSync = cookieConsent.setupCrossTabSync()
+})
 
-  onBeforeUnmount(() => {
-    cleanup()
-  })
+onBeforeUnmount(() => {
+  cleanupCrossTabSync?.()
+  cleanupCrossTabSync = null
 })
 </script>
 

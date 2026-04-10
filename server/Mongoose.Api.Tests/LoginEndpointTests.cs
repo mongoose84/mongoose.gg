@@ -71,6 +71,57 @@ public class LoginEndpointTests
     }
 
     [Fact]
+    public async Task Login_sets_allow_refresh_false_for_non_remember_me_sessions()
+    {
+        using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
+        {
+            ["Auth:SessionTimeout"] = "45"
+        });
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new
+        {
+            username = "tester",
+            password = "test-password",
+            rememberMe = false
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var ticket = AuthCookieTestHelper.GetAuthenticationTicket(factory, response);
+        ticket.Properties.AllowRefresh.Should().BeFalse("short sessions must not slide beyond their configured timeout");
+        ticket.Properties.ExpiresUtc.Should().NotBeNull();
+
+        var remaining = ticket.Properties.ExpiresUtc!.Value - DateTimeOffset.UtcNow;
+        remaining.Should().BeGreaterThan(TimeSpan.FromMinutes(40));
+        remaining.Should().BeLessThan(TimeSpan.FromMinutes(50));
+    }
+
+    [Fact]
+    public async Task Login_sets_allow_refresh_true_for_remember_me_sessions()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new
+        {
+            username = "tester",
+            password = "test-password",
+            rememberMe = true
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var ticket = AuthCookieTestHelper.GetAuthenticationTicket(factory, response);
+        ticket.Properties.AllowRefresh.Should().BeTrue("remember-me sessions may use sliding expiration");
+        ticket.Properties.ExpiresUtc.Should().NotBeNull();
+
+        var remaining = ticket.Properties.ExpiresUtc!.Value - DateTimeOffset.UtcNow;
+        remaining.Should().BeGreaterThan(TimeSpan.FromDays(29));
+        remaining.Should().BeLessThan(TimeSpan.FromDays(31));
+    }
+
+    [Fact]
     public async Task Login_backfills_missing_security_stamp_for_legacy_user()
     {
         using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>

@@ -1,5 +1,9 @@
 using System.Net.Http;
 using FluentAssertions;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Mongoose.Api.Tests;
 
@@ -16,5 +20,21 @@ internal static class AuthCookieTestHelper
         authCookie.Should().NotBeNullOrEmpty($"Expected auth cookie '{cookieName}' in Set-Cookie headers.");
 
         return authCookie!.Split(';', 2)[0];
+    }
+
+    public static AuthenticationTicket GetAuthenticationTicket(
+        TestWebApplicationFactory factory,
+        HttpResponseMessage response,
+        string cookieName = DefaultCookieName)
+    {
+        var cookiePair = GetAuthCookie(response, cookieName);
+        var cookieValue = Uri.UnescapeDataString(cookiePair.Split('=', 2)[1]);
+
+        var optionsMonitor = factory.Services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>();
+        var options = optionsMonitor.Get(CookieAuthenticationDefaults.AuthenticationScheme);
+        var ticket = options.TicketDataFormat.Unprotect(cookieValue);
+
+        ticket.Should().NotBeNull("auth cookie should contain a valid authentication ticket");
+        return ticket!;
     }
 }

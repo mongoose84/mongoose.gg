@@ -29,11 +29,13 @@ export function useCookieConsent() {
 
     try {
       const date = new Date(consentDate.value)
+      if (Number.isNaN(date.getTime())) return true
+
       const now = new Date()
       const daysDiff = (now - date) / (1000 * 60 * 60 * 24)
       return daysDiff > CONSENT_EXPIRY_DAYS
     } catch {
-      return false
+      return true
     }
   }
 

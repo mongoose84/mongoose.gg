@@ -151,6 +151,21 @@ describe('useCookieConsent', () => {
 
       expect(result).toBe(true)
     })
+
+    it('returns true when the stored consent date is invalid', () => {
+      const { setupCrossTabSync, isConsentExpired } = useCookieConsent()
+      const cleanup = setupCrossTabSync()
+
+      localStorage.setItem(CONSENT_DATE_KEY, 'not-a-real-date')
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: CONSENT_DATE_KEY,
+        newValue: 'not-a-real-date'
+      }))
+
+      expect(isConsentExpired()).toBe(true)
+
+      cleanup()
+    })
   })
 
   describe('shouldShowBanner', () => {
