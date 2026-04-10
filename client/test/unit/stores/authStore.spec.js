@@ -230,7 +230,7 @@ describe('authStore', () => {
       const store = useAuthStore();
       const result = await store.login({ username: 'testuser', password: 'password123' });
 
-      expect(authApi.login).toHaveBeenCalledWith({ username: 'testuser', password: 'password123', rememberMe: false });
+      expect(authApi.login).toHaveBeenCalledWith({ username: 'testuser', password: 'password123', rememberMe: false, consentLevel: 'accepted' });
       expect(authApi.getCurrentUser).toHaveBeenCalled();
       expect(store.user).toEqual(mockUser);
       expect(store.isAuthenticated).toBe(true);
@@ -244,7 +244,7 @@ describe('authStore', () => {
       const store = useAuthStore();
       await store.login({ username: 'testuser', password: 'password123', rememberMe: true });
 
-      expect(authApi.login).toHaveBeenCalledWith({ username: 'testuser', password: 'password123', rememberMe: true });
+      expect(authApi.login).toHaveBeenCalledWith({ username: 'testuser', password: 'password123', rememberMe: true, consentLevel: 'accepted' });
     });
 
     it('sets error on login failure', async () => {

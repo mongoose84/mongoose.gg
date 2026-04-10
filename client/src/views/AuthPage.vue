@@ -135,6 +135,7 @@
               variant="primary"
               size="lg"
               :loading="isSubmitting"
+              :disabled="isSubmitting || consentRejected"
               class="mt-md"
             >
               {{ isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account') }}
@@ -300,6 +301,7 @@ const handleForgotSubmit = async () => {
 const handleSubmit = async () => {
   if (isSubmitting.value) return;
   if (usernameError.value) return;
+  if (consentRejected.value) return;
 
   isSubmitting.value = true;
   errorMessage.value = '';

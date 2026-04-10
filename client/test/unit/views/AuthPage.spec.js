@@ -1,17 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+import { ref } from 'vue';
 import AuthPage from '@/views/AuthPage.vue';
 import { createRouter, createMemoryHistory } from 'vue-router';
 
 // Mock the authStore
+const mockLogin = vi.fn().mockResolvedValue({ emailVerified: true });
+const mockRegister = vi.fn().mockResolvedValue(undefined);
+const mockInitialize = vi.fn().mockResolvedValue(undefined);
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({
     isAuthenticated: false,
     isVerified: false,
-    initialize: vi.fn().mockResolvedValue(undefined),
-    login: vi.fn().mockResolvedValue({ emailVerified: true }),
-    register: vi.fn().mockResolvedValue(undefined),
+    initialize: mockInitialize,
+    login: mockLogin,
+    register: mockRegister,
     error: null
   })
 }));
@@ -27,10 +31,28 @@ vi.mock('@/services/authApi', () => ({
   forgotPassword: (...args) => mockForgotPassword(...args)
 }));
 
+// Mock useCookieConsent
+const mockIsRejected = ref(false);
+const mockResetConsent = vi.fn();
+vi.mock('@/composables/useCookieConsent', () => ({
+  useCookieConsent: () => ({
+    isRejected: mockIsRejected,
+    getConsent: vi.fn().mockReturnValue('accepted'),
+    resetConsent: mockResetConsent,
+    shouldShowBanner: vi.fn().mockReturnValue(false),
+    setupCrossTabSync: vi.fn().mockReturnValue(() => {})
+  })
+}));
+
 describe('AuthPage.vue', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     mockForgotPassword.mockReset().mockResolvedValue({ message: 'ok' });
+    mockLogin.mockReset().mockResolvedValue({ emailVerified: true });
+    mockRegister.mockReset().mockResolvedValue(undefined);
+    mockInitialize.mockReset().mockResolvedValue(undefined);
+    mockIsRejected.value = false;
+    mockResetConsent.mockReset();
   });
 
   const createWrapper = (query = {}) => {
@@ -348,6 +370,52 @@ describe('AuthPage.vue', () => {
 
       const logo = wrapper.find('[data-testid="auth-logo"]');
       expect(logo.exists()).toBe(true);
+    });
+  });
+
+  // ── Cookie Consent ──
+
+  describe('Cookie consent rejection', () => {
+    it('shows the warning banner when consent is rejected', async () => {
+      mockIsRejected.value = true;
+      const wrapper = createWrapper();
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain("You've rejected cookies");
+    });
+
+    it('submit button is disabled when consent is rejected', async () => {
+      mockIsRejected.value = true;
+      const wrapper = createWrapper();
+      await wrapper.vm.$nextTick();
+
+      const submitBtn = wrapper.find('[data-testid="auth-form"] button[type="submit"]');
+      expect(submitBtn.element.disabled).toBe(true);
+    });
+
+    it('does not call login when form is submitted with rejected consent', async () => {
+      mockIsRejected.value = true;
+      const wrapper = createWrapper();
+      await wrapper.vm.$nextTick();
+
+      // Trigger form submit directly — bypasses button disabled state
+      const form = wrapper.find('[data-testid="auth-form"]');
+      await form.trigger('submit');
+      await wrapper.vm.$nextTick();
+
+      expect(mockLogin).not.toHaveBeenCalled();
+    });
+
+    it('calls resetConsent when "Update cookie preferences" is clicked', async () => {
+      mockIsRejected.value = true;
+      const wrapper = createWrapper();
+      await wrapper.vm.$nextTick();
+
+      const updateBtn = wrapper.findAll('button').find(b => b.text().includes('Update cookie preferences'));
+      expect(updateBtn).toBeTruthy();
+      await updateBtn.trigger('click');
+
+      expect(mockResetConsent).toHaveBeenCalledOnce();
     });
   });
 });

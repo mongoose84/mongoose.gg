@@ -7,8 +7,8 @@
       aria-label="Cookie consent"
       :aria-describedby="`${uniqueId}-description`"
     >
-      <!-- Semi-transparent backdrop -->
-      <div class="cookie-consent-backdrop" @click.self="handleReject"></div>
+      <!-- Semi-transparent backdrop (inert — accidental clicks must not record a consent decision) -->
+      <div class="cookie-consent-backdrop"></div>
 
       <!-- Banner container -->
       <div class="cookie-consent-container">
@@ -66,7 +66,7 @@ import BaseButton from './base/BaseButton.vue'
 const cookieConsent = useCookieConsent()
 
 // Generate unique ID for this component instance for aria-describedby
-const uniqueId = ref(`cookie-banner-${Math.random().toString(36).substr(2, 9)}`)
+const uniqueId = ref(`cookie-banner-${Math.random().toString(36).substring(2, 11)}`)
 
 const shouldShowBanner = computed(() => cookieConsent.shouldShowBanner())
 

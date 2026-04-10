@@ -82,12 +82,18 @@ public sealed class LoginEndpoint : IEndpoint
                     return Results.Json(new { error = "Login is currently disabled" }, statusCode: 503);
                 }
 
-                // Validate cookie consent: user must have accepted cookies to log in
-                // null or missing consentLevel is treated as accepted (backward compatibility)
+                // Best-effort UI consent mirror: reflects the consent state the frontend recorded in
+                // localStorage before calling this endpoint. This is NOT a GDPR compliance mechanism —
+                // the server cannot verify that the consent banner was genuinely presented, and any
+                // non-browser client can omit or forge this field. Real consent enforcement must live
+                // in the frontend (banner UI, localStorage tracking, feature gating).
+                //
+                // null or missing consentLevel is treated as accepted (backward compatibility with
+                // clients that predate this field).
                 var consentLevel = request.ConsentLevel?.ToLowerInvariant().Trim() ?? "accepted";
                 if (consentLevel == "rejected")
                 {
-                    logger.LogWarning("Login attempt rejected: user did not consent to cookies");
+                    logger.LogWarning("Login attempt with rejected consent (client-reported)");
                     return Results.Json(
                         new { error = "Cookie consent is required for login.", code = "COOKIE_CONSENT_REQUIRED" },
                         statusCode: 400);

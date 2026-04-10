@@ -213,6 +213,7 @@ export const useAuthStore = defineStore('auth', () => {
           wasAuthenticated.value = true
         }
       } catch (e) {
+        console.error('Failed to initialize auth session:', e)
         if (!user.value) {
           user.value = null
         }

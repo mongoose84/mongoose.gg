@@ -170,6 +170,45 @@ public class LoginEndpointTests
         json.RootElement.GetProperty("error").GetString().Should().Contain("session has expired");
     }
 
+    [Fact]
+    public async Task Login_returns_400_with_COOKIE_CONSENT_REQUIRED_when_consent_is_rejected()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new
+        {
+            username = "tester",
+            password = "test-password",
+            consentLevel = "rejected"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.Headers.TryGetValues("Set-Cookie", out _).Should().BeFalse("no session cookie should be set when consent is rejected");
+
+        var content = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(content);
+        json.RootElement.GetProperty("code").GetString().Should().Be("COOKIE_CONSENT_REQUIRED");
+        json.RootElement.GetProperty("error").GetString().Should().Contain("Cookie consent is required");
+    }
+
+    [Fact]
+    public async Task Login_succeeds_when_consent_level_is_omitted()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        // consentLevel is intentionally absent — backward-compat path treats null as accepted
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new
+        {
+            username = "tester",
+            password = "test-password"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.TryGetValues("Set-Cookie", out _).Should().BeTrue("session cookie must be set on successful login");
+    }
+
     // Note: FORBIDDEN (403) test is not included because the codebase doesn't currently
     // have role-based authorization policies. When such functionality is added,
     // a test should be created to verify that OnRedirectToAccessDenied returns
