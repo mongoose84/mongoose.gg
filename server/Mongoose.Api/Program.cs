@@ -123,20 +123,10 @@ if (enableMatchCleanup)
 builder.Services.AddSingleton<SyncProgressHub>();
 builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
 
-// Add distributed cache for session storage (in-memory for dev, Redis for prod)
-builder.Services.AddDistributedMemoryCache();
-
-// Add session support
-var sessionTimeoutMinutes = builder.Configuration.GetValue<int>("Auth:SessionTimeout", 30);
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(sessionTimeoutMinutes);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = cookieSecurePolicy;
-    options.Cookie.SameSite = SameSiteMode.Strict;
-});
-
 // Add authentication (cookie-based)
+// ExpireTimeSpan is set to the maximum session lifetime (30 days for rememberMe).
+// Per-login duration is controlled via AuthenticationProperties.ExpiresUtc in LoginEndpoint.
+// SlidingExpiration=true refreshes the cookie on activity, capped at ExpireTimeSpan from now.
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -146,7 +136,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = cookieSecurePolicy;
         options.Cookie.SameSite = SameSiteMode.Strict;
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(sessionTimeoutMinutes);
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
         var cookieName = builder.Configuration.GetValue<string>("Auth:CookieName");
         if (!string.IsNullOrWhiteSpace(cookieName))
@@ -340,9 +330,6 @@ app.UseWebSockets(new WebSocketOptions
 {
     KeepAliveInterval = TimeSpan.FromMinutes(2)
 });
-
-// Session middleware (must come before routing)
-app.UseSession();
 
 // AuthN/Z middleware
 app.UseAuthentication();

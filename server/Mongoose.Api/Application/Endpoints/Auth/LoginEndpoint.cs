@@ -138,16 +138,26 @@ public sealed class LoginEndpoint : IEndpoint
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                // Use 30 days for rememberMe, otherwise use configured session timeout
-                var sessionTimeoutMinutes = request.RememberMe
-                    ? 60 * 24 * 30 // 30 days in minutes
-                    : config.GetValue<int>("Auth:SessionTimeout", 30);
-
-                var authProperties = new AuthenticationProperties
+                // rememberMe: persistent 30-day cookie, refreshed via sliding expiration on activity.
+                // not rememberMe: session cookie (browser-close clears it), idle timeout from config.
+                AuthenticationProperties authProperties;
+                if (request.RememberMe)
                 {
-                    IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
-                };
+                    authProperties = new AuthenticationProperties
+                    {
+                        IsPersistent = true,
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
+                    };
+                }
+                else
+                {
+                    var sessionTimeoutMinutes = config.GetValue<int>("Auth:SessionTimeout", 30);
+                    authProperties = new AuthenticationProperties
+                    {
+                        IsPersistent = false,
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
+                    };
+                }
 
                 // Sign in user with cookie
                 await httpContext.SignInAsync(
