@@ -114,13 +114,19 @@ export default async function globalSetup() {
     // to multiple users. This is expected behavior and not an error.
 
     // Step 3: Save authentication state
-    // We need to navigate to the app to ensure cookies are properly set for the domain
+    // Seed accepted cookie consent so auth flows aren't blocked by the banner in E2E.
+    await context.addInitScript(() => {
+      localStorage.setItem('mongoose_cookie_consent', 'accepted');
+      localStorage.setItem('mongoose_cookie_consent_date', new Date().toISOString());
+    });
+
+    // We need to navigate to the app to ensure cookies and localStorage are captured for the app origin.
     const page = await context.newPage();
-    await page.goto(process.env.E2E_BASE_URL || 'http://localhost:5174');
-    
+    await page.goto(process.env.E2E_BASE_URL || 'http://localhost:5174', { waitUntil: 'domcontentloaded' });
+
     // Wait briefly for any cookie syncing
     await page.waitForTimeout(500);
-    
+
     // Save the storage state (cookies, localStorage, etc.)
     await context.storageState({ path: AUTH_FILE });
     

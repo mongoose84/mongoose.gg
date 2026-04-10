@@ -92,6 +92,9 @@ builder.Services.AddHttpClient<IGitHubService, Mongoose.Api.Infrastructure.GitHu
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
+// Distributed memory cache — required by EndpointRateLimiter
+builder.Services.AddDistributedMemoryCache();
+
 // Rate limiter for endpoint protection (uses distributed cache)
 builder.Services.AddSingleton<IRateLimiter, EndpointRateLimiter>();
 
@@ -123,20 +126,11 @@ if (enableMatchCleanup)
 builder.Services.AddSingleton<SyncProgressHub>();
 builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
 
-// Add distributed cache for session storage (in-memory for dev, Redis for prod)
-builder.Services.AddDistributedMemoryCache();
-
-// Add session support
-var sessionTimeoutMinutes = builder.Configuration.GetValue<int>("Auth:SessionTimeout", 30);
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(sessionTimeoutMinutes);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = cookieSecurePolicy;
-    options.Cookie.SameSite = SameSiteMode.Strict;
-});
-
 // Add authentication (cookie-based)
+// ExpireTimeSpan defines the maximum sliding window used for long-lived remember-me cookies.
+// Per-login duration is controlled via AuthenticationProperties.ExpiresUtc at sign-in time.
+// Short sessions set AuthenticationProperties.AllowRefresh = false so activity cannot extend them;
+// remember-me sessions opt into sliding refresh within the 30-day window.
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -146,7 +140,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = cookieSecurePolicy;
         options.Cookie.SameSite = SameSiteMode.Strict;
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(sessionTimeoutMinutes);
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
         var cookieName = builder.Configuration.GetValue<string>("Auth:CookieName");
         if (!string.IsNullOrWhiteSpace(cookieName))
@@ -340,9 +334,6 @@ app.UseWebSockets(new WebSocketOptions
 {
     KeepAliveInterval = TimeSpan.FromMinutes(2)
 });
-
-// Session middleware (must come before routing)
-app.UseSession();
 
 // AuthN/Z middleware
 app.UseAuthentication();

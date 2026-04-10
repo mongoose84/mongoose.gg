@@ -11,8 +11,8 @@ namespace Mongoose.Api.Application.Endpoints.Auth;
 
 /// <summary>
 /// Login Endpoint
-/// Validates username/password and sets an httpOnly session cookie for subsequent requests.
-/// Supports rememberMe for 7-day sessions.
+/// Validates username/password and sets an httpOnly auth cookie for subsequent requests.
+/// Supports configurable session timeout by default and 30-day remember-me sessions.
 /// Rate limited to 10 requests per 15 minutes per IP to prevent brute force attacks.
 /// </summary>
 public sealed class LoginEndpoint : IEndpoint
@@ -82,6 +82,23 @@ public sealed class LoginEndpoint : IEndpoint
                     return Results.Json(new { error = "Login is currently disabled" }, statusCode: 503);
                 }
 
+                // Best-effort UI consent mirror: reflects the consent state the frontend recorded in
+                // localStorage before calling this endpoint. This is NOT a GDPR compliance mechanism —
+                // the server cannot verify that the consent banner was genuinely presented, and any
+                // non-browser client can omit or forge this field. Real consent enforcement must live
+                // in the frontend (banner UI, localStorage tracking, feature gating).
+                //
+                // null or missing consentLevel is treated as accepted (backward compatibility with
+                // clients that predate this field).
+                var consentLevel = request.ConsentLevel?.ToLowerInvariant().Trim() ?? "accepted";
+                if (consentLevel == "rejected")
+                {
+                    logger.LogWarning("Login attempt with rejected consent (client-reported)");
+                    return Results.Json(
+                        new { error = "Cookie consent is required for login.", code = "COOKIE_CONSENT_REQUIRED" },
+                        statusCode: 400);
+                }
+
                 // Validate input
                 if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
                     return Results.BadRequest(new { error = "Username and password are required" });
@@ -138,16 +155,29 @@ public sealed class LoginEndpoint : IEndpoint
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                // Use 30 days for rememberMe, otherwise use configured session timeout
-                var sessionTimeoutMinutes = request.RememberMe
-                    ? 60 * 24 * 30 // 30 days in minutes
-                    : config.GetValue<int>("Auth:SessionTimeout", 30);
-
-                var authProperties = new AuthenticationProperties
+                // Always emit an explicit cookie expiry so the browser stops sending expired auth
+                // cookies at the configured session boundary. Only remember-me sessions can slide;
+                // short sessions keep their original per-login expiry even when SlidingExpiration is enabled.
+                AuthenticationProperties authProperties;
+                if (request.RememberMe)
                 {
-                    IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
-                };
+                    authProperties = new AuthenticationProperties
+                    {
+                        IsPersistent = true,
+                        AllowRefresh = true,
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
+                    };
+                }
+                else
+                {
+                    var sessionTimeoutMinutes = config.GetValue<int>("Auth:SessionTimeout", 30);
+                    authProperties = new AuthenticationProperties
+                    {
+                        IsPersistent = true,
+                        AllowRefresh = false,
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
+                    };
+                }
 
                 // Sign in user with cookie
                 await httpContext.SignInAsync(

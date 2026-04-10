@@ -71,6 +71,57 @@ public class LoginEndpointTests
     }
 
     [Fact]
+    public async Task Login_sets_allow_refresh_false_for_non_remember_me_sessions()
+    {
+        using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
+        {
+            ["Auth:SessionTimeout"] = "45"
+        });
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new
+        {
+            username = "tester",
+            password = "test-password",
+            rememberMe = false
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var ticket = AuthCookieTestHelper.GetAuthenticationTicket(factory, response);
+        ticket.Properties.AllowRefresh.Should().BeFalse("short sessions must not slide beyond their configured timeout");
+        ticket.Properties.ExpiresUtc.Should().NotBeNull();
+
+        var remaining = ticket.Properties.ExpiresUtc!.Value - DateTimeOffset.UtcNow;
+        remaining.Should().BeGreaterThan(TimeSpan.FromMinutes(40));
+        remaining.Should().BeLessThan(TimeSpan.FromMinutes(50));
+    }
+
+    [Fact]
+    public async Task Login_sets_allow_refresh_true_for_remember_me_sessions()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new
+        {
+            username = "tester",
+            password = "test-password",
+            rememberMe = true
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var ticket = AuthCookieTestHelper.GetAuthenticationTicket(factory, response);
+        ticket.Properties.AllowRefresh.Should().BeTrue("remember-me sessions may use sliding expiration");
+        ticket.Properties.ExpiresUtc.Should().NotBeNull();
+
+        var remaining = ticket.Properties.ExpiresUtc!.Value - DateTimeOffset.UtcNow;
+        remaining.Should().BeGreaterThan(TimeSpan.FromDays(29));
+        remaining.Should().BeLessThan(TimeSpan.FromDays(31));
+    }
+
+    [Fact]
     public async Task Login_backfills_missing_security_stamp_for_legacy_user()
     {
         using var factory = new TestWebApplicationFactory(new Dictionary<string, string?>
@@ -168,6 +219,45 @@ public class LoginEndpointTests
         var json = JsonDocument.Parse(content);
         json.RootElement.GetProperty("code").GetString().Should().Be("SESSION_EXPIRED");
         json.RootElement.GetProperty("error").GetString().Should().Contain("session has expired");
+    }
+
+    [Fact]
+    public async Task Login_returns_400_with_COOKIE_CONSENT_REQUIRED_when_consent_is_rejected()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new
+        {
+            username = "tester",
+            password = "test-password",
+            consentLevel = "rejected"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.Headers.TryGetValues("Set-Cookie", out _).Should().BeFalse("no session cookie should be set when consent is rejected");
+
+        var content = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(content);
+        json.RootElement.GetProperty("code").GetString().Should().Be("COOKIE_CONSENT_REQUIRED");
+        json.RootElement.GetProperty("error").GetString().Should().Contain("Cookie consent is required");
+    }
+
+    [Fact]
+    public async Task Login_succeeds_when_consent_level_is_omitted()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        // consentLevel is intentionally absent — backward-compat path treats null as accepted
+        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new
+        {
+            username = "tester",
+            password = "test-password"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.TryGetValues("Set-Cookie", out _).Should().BeTrue("session cookie must be set on successful login");
     }
 
     // Note: FORBIDDEN (403) test is not included because the codebase doesn't currently

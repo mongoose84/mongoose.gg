@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { gotoAppPage, expectProtectedRouteRedirectsToAuth } from './helpers/app-shell.js'
+import { gotoAppPage, expectProtectedRouteRedirectsToAuth, seedAcceptedCookieConsent } from './helpers/app-shell.js'
 
 /**
  * Solo Dashboard Flow E2E Tests
@@ -50,6 +50,7 @@ test.describe('Solo Dashboard Flow', () => {
     const context = await browser.newContext({ storageState: undefined });
     const page = await context.newPage();
 
+    await seedAcceptedCookieConsent(page);
     await page.goto('/auth');
 
     // Fill in invalid credentials

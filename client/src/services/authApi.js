@@ -44,14 +44,15 @@ export async function register({ username, email, password }) {
  * @param {string} params.username - Username or email
  * @param {string} params.password - User password
  * @param {boolean} params.rememberMe - Keep session for 30 days
+ * @param {string} params.consentLevel - Cookie consent level ('accepted' or 'rejected')
  * @returns {Promise<Object>} User data on success
  */
-export async function login({ username, password, rememberMe = false }) {
+export async function login({ username, password, rememberMe = false, consentLevel = 'accepted' }) {
   const response = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ username, password, rememberMe })
+    body: JSON.stringify({ username, password, rememberMe, consentLevel })
   })
 
   const data = await response.json()

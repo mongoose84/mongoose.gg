@@ -198,6 +198,7 @@ public sealed class RegisterEndpoint : IEndpoint
                 var authProperties = new AuthenticationProperties
                 {
                     IsPersistent = true,
+                    AllowRefresh = false,
                     ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
                 };
 
