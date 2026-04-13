@@ -34,7 +34,7 @@ As a multi-account player, I want to see how my current day/session is going acr
 1. **Today's Session card** replaces `RankSnapshot` in the `#glance-left` slot when in Overall mode
 2. **Survival Check card** replaces `ChampionSelectCTA` in the `#glance-right` slot when in Overall mode
 3. `ChampionSelectCTA` moves to the `#recent-left` slot (was occupied by `MatchActivityHeatmap`)
-4. `MatchActivityHeatmap` is removed from Overview and added to the Solo page in Zone 4 (`#deep-analysis`), placed below the Performance Profile / Danger Zones grid as a full-width card
+4. `MatchActivityHeatmap` is removed from Overview and added to the Solo page in Zone 4 (`#deep-analysis`), placed in the left column below Performance Profile, adjacent to Danger Zones on the right
 5. Section heading "Recent matches" is renamed to **"Quick actions"**
 6. **Fallback chain for Today's Session**: if no games today → "This week: X games, Y% WR"; if no games this week → "This season: X games, Y% WR" using `CombinedStats`
 7. Survival Check always uses last 20 games across all accounts (never empty if the user has played at all)
@@ -116,11 +116,11 @@ The existing `AccountSummary` DTO has `gamesToday` and `gamesThisWeek` [currentl
 
 **Modified components**:
 - `client/src/views/OverviewPage.vue` — conditional slot rendering for Overall vs Individual mode; remove `MatchActivityHeatmap` and its `getMatchActivity()` data fetch
-- `client/src/views/SoloStatsPage.vue` — add `MatchActivityHeatmap` to `#deep-analysis` slot, below the existing `deep-analysis-grid`; add `getMatchActivity()` data fetch
+- `client/src/views/SoloStatsPage.vue` — add `MatchActivityHeatmap` to `#deep-analysis` slot, in the left column below Performance Profile; refactor `deep-analysis-grid` to a 2-column layout with stacked left column; add `getMatchActivity()` data fetch
 - `client/src/components/overview/OverviewLayout.vue` — rename "Recent matches" heading to "Quick actions"
 
 **Moved components**:
-- `MatchActivityHeatmap` — removed from `OverviewPage.vue` `#recent-left` slot, added to `SoloStatsPage.vue` `#deep-analysis` slot as a full-width card below the Performance Profile / Danger Zones grid
+- `MatchActivityHeatmap` — removed from `OverviewPage.vue` `#recent-left` slot, added to `SoloStatsPage.vue` `#deep-analysis` left column, below Performance Profile and beside Danger Zones
 
 ### Database Changes
 No schema changes. All data is derived from existing tables:
@@ -286,38 +286,74 @@ No changes. The existing `RankSnapshot` + `ChampionSelectCTA` layout remains in 
 
 ### Solo Page — MatchActivityHeatmap Placement
 
-**Location**: `SoloStatsPage.vue`, inside the `#deep-analysis` slot, below the existing `deep-analysis-grid` (which contains Performance Profile and Danger Zones).
+**Location**: `SoloStatsPage.vue`, inside the `#deep-analysis` slot. The heatmap sits in the left column below Performance Profile, beside the Danger Zones card on the right. The bottom of the heatmap aligns with the bottom of Danger Zones, filling the vertical gap that currently exists below the shorter RadarChart.
 
 **Current Zone 4 structure**:
 ```
 ┌─ ZONE 4: DEEP ANALYSIS ─────────────────────────────────────────┐
 │  ┌─────────────────────────┐  ┌────────────────────────────────┐ │
-│  │  Performance Profile    │  │  Danger Zones                  │ │
-│  │  (RadarChart)           │  │  (DangerZonesMap)              │ │
-│  └─────────────────────────┘  └────────────────────────────────┘ │
+│  │  Performance Profile    │  │                                │ │
+│  │  (RadarChart)           │  │  Danger Zones                  │ │
+│  │  ~400px tall            │  │  (DangerZonesMap)              │ │
+│  └─────────────────────────┘  │  ~700px+ tall                  │ │
+│                               │  (512px map + controls +       │ │
+│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐  │   phase bar + header)          │ │
+│  │   GAP (unused space)    │  │                                │ │
+│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘  └────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-**After (heatmap added below)**:
+**After (heatmap fills the gap)**:
 ```
 ┌─ ZONE 4: DEEP ANALYSIS ─────────────────────────────────────────┐
 │  ┌─────────────────────────┐  ┌────────────────────────────────┐ │
-│  │  Performance Profile    │  │  Danger Zones                  │ │
-│  │  (RadarChart)           │  │  (DangerZonesMap)              │ │
+│  │  Performance Profile    │  │                                │ │
+│  │  (RadarChart)           │  │  Danger Zones                  │ │
+│  │                         │  │  (DangerZonesMap)              │ │
+│  ├─────────────────────────┤  │                                │ │
+│  │  Match Activity         │  │                                │ │
+│  │  (MatchActivityHeatmap) │  │                                │ │
+│  │                         │  │                                │ │
 │  └─────────────────────────┘  └────────────────────────────────┘ │
-│                                                                   │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │  Match Activity                         (full width)       │  │
-│  │  MatchActivityHeatmap — daily match counts grid            │  │
-│  └────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-**Implementation in `SoloStatsPage.vue`**: Add `MatchActivityHeatmap` after the closing `</div>` of `deep-analysis-grid`, still inside the `#deep-analysis` slot. Wrap in a `BaseCard` with title "Match Activity" for visual consistency with the cards above.
+**CSS implementation**: Refactor `deep-analysis-grid` from `grid-template-columns: repeat(2, 1fr)` to a 2-column layout with a stacked left column:
+
+```css
+.deep-analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  gap: var(--spacing-lg);
+}
+
+/* Performance Profile: top-left */
+.deep-analysis-grid > :nth-child(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+/* Danger Zones: spans full right column */
+.deep-analysis-grid > :nth-child(2) {
+  grid-column: 2;
+  grid-row: 1 / -1;
+}
+
+/* Match Activity: bottom-left, fills remaining height */
+.deep-analysis-grid > :nth-child(3) {
+  grid-column: 1;
+  grid-row: 2;
+}
+```
+
+On mobile (`max-width: 768px`), collapse to single column: all three cards stack vertically in order (Performance Profile → Match Activity → Danger Zones).
+
+**Implementation in `SoloStatsPage.vue`**: Add the `MatchActivityHeatmap` (wrapped in a `BaseCard` with title "Match Activity") as the third child inside `deep-analysis-grid`, after the Danger Zones card.
 
 **Data source**: Call `getMatchActivity()` from `SoloStatsPage.vue` (moved from `OverviewPage.vue`). The heatmap respects the active queue filter and time range from Zone 1 (pass through props).
 
-**Rationale**: The heatmap shows play frequency patterns over time — this is analytical data that belongs alongside trend charts and performance profiles, not on a 5-second glance page. Placing it below Performance Profile creates a natural reading order: "How am I performing?" (radar) → "Where am I dying?" (danger zones) → "When am I playing?" (heatmap).
+**Rationale**: The Danger Zones card (512px map + controls) is significantly taller than the Performance Profile (~400px), leaving a visible gap in the left column. The heatmap fills this gap naturally, creating a tightly packed layout where both columns bottom-align. The reading order flows: "How am I performing?" (radar, top-left) → "When am I playing?" (heatmap, bottom-left) → "Where am I dying?" (danger zones, right).
 
 ## Testing Strategy
 
@@ -359,7 +395,7 @@ Feature is considered complete when:
 - [ ] Today's Session card renders with correct fallback chain (today → week → season)
 - [ ] Survival Check card renders with death/WR correlation from last 20 games
 - [ ] `RankSnapshot` no longer appears in Overall mode glance section
-- [ ] `MatchActivityHeatmap` is removed from Overview and renders on Solo page in Zone 4, below Performance Profile
+- [ ] `MatchActivityHeatmap` is removed from Overview and renders on Solo page in Zone 4, left column below Performance Profile, aligned with Danger Zones
 - [ ] `ChampionSelectCTA` is in the Quick Actions section (recent-left)
 - [ ] Section heading reads "Quick actions" (both modes)
 - [ ] Individual mode layout is unchanged (except section rename)
