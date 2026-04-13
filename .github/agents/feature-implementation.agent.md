@@ -1,7 +1,7 @@
 ---
 description: 'Orchestrate full feature implementation: architect designs, backend + frontend implement in parallel, code review, E2E validation. Use when implementing a new feature end-to-end, building a complete feature, or running the full feature workflow.'
 tools: ['read', 'edit', 'search', 'execute', 'agent', 'todo']
-agents: [architect, backend-engineer, frontend-engineer, code-reviewer]
+agents: [architect, backend-developer, frontend-developer, code-reviewer]
 model: ['Claude Opus 4.6', 'Claude Sonnet 4.6']
 argument-hint: 'Describe the feature to implement (e.g., "champion win rate history chart on solo dashboard")'
 ---
@@ -29,13 +29,13 @@ Invoke the `architect` agent with a prompt containing:
 
 The architect is read-only — it will return the plan as text. You must then **create the spec file** yourself at `.github/specs/features/{feature-name}.spec.md` using the architect's output, structured per the [feature template](../specs/feature-template.spec.md).
 
-### Stage 2 — Implementation (backend-engineer + frontend-engineer subagents)
+### Stage 2 — Implementation (backend-developer + frontend-developer subagents)
 
 After the spec is written, invoke **both** agents. Pass each one:
 - The full spec content (copy the relevant sections — subagents are stateless)
 - Their specific implementation scope from the spec
 
-**backend-engineer prompt must include:**
+**backend-developer prompt must include:**
 - The backend changes section from the spec
 - API contracts and database changes
 - Instruction to follow the [new-endpoint skill](../skills/new-endpoint/SKILL.md) pattern for any new endpoints
@@ -43,7 +43,7 @@ After the spec is written, invoke **both** agents. Pass each one:
 - Reminder: `LogSanitizer.Sanitize()` on all user input in logs, parameterized SQL only, PUUID resolved from user ID
 - Reminder: preserve DDD boundaries (domain rules in Core, orchestration in Application, integration in Infrastructure)
 
-**frontend-engineer prompt must include:**
+**frontend-developer prompt must include:**
 - The frontend changes section from the spec
 - API contracts (response shapes to consume)
 - Instruction to follow [frontend.instructions.md](../instructions/frontend.instructions.md) patterns
@@ -85,7 +85,7 @@ After all stages complete, provide a summary:
 ## Constraints
 
 - DO NOT skip stages or reorder them
-- DO NOT implement code yourself — delegate to backend-engineer and frontend-engineer
+- DO NOT implement code yourself — delegate to backend-developer and frontend-developer
 - DO NOT let subagents make changes outside their domain (backend agent must not touch client/, frontend agent must not touch server/)
 - ALWAYS pass full context to subagents — they have no memory of previous stages
 - ALWAYS apply code reviewer fixes before E2E validation

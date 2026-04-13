@@ -90,12 +90,12 @@ Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
 <instructions>
 <instruction>
 <description>Backend development specialist with security focus</description>
-<file>.github/agents/backend-engineer.agent.md</file>
+<file>.github/agents/backend-developer.agent.md</file>
 <applyTo>**/*.cs</applyTo>
 </instruction>
 <instruction>
 <description>Frontend development specialist with UI/UX focus</description>
-<file>.github/agents/frontend-engineer.agent.md</file>
+<file>.github/agents/frontend-developer.agent.md</file>
 <applyTo>**/*.{vue,js,ts}</applyTo>
 </instruction>
 <instruction>
