@@ -106,7 +106,7 @@ Task<SurvivalStatsData> GetSurvivalStatsAsync(IReadOnlyList<string> puuids, int 
 **Survival stats query** — last 20 games across all PUUIDs, join `participant_metrics` for `deaths_pre_10`. Bucket games by death count (≤3 vs 5+), compute win rate per bucket.
 
 #### Populate existing `gamesToday` / `gamesThisWeek` fields
-The existing `AccountSummary` DTO has `gamesToday` and `gamesThisWeek` [currently hardcoded to 0](../server/Mongoose.Api/Application/Endpoints/Overview/OverviewEndpoint.cs). Populate from the same session query.
+The existing `AccountSummary` DTO has `gamesToday` and `gamesThisWeek` [currently hardcoded to 0](../../server/Mongoose.Api/Application/Endpoints/Overview/OverviewEndpoint.cs). Populate from the same session query.
 
 ### Frontend Changes
 
