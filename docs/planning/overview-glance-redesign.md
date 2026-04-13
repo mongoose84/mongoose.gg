@@ -16,7 +16,7 @@ Replace the redundant `RankSnapshot` in Overall mode with two new insight cards:
 1. **Today's Session** — session W/L, WR, KDA, best champion today
 2. **Survival Check** — deaths-per-game with win rate correlation
 
-Move `MatchActivityHeatmap` to the Solo page. Relocate `ChampionSelectCTA` from glance-right to recent-left. Rename the "Recent matches" section to **"Quick actions"**.
+Move `MatchActivityHeatmap` to the Solo page (Zone 4, below Performance Profile). Relocate `ChampionSelectCTA` from glance-right to recent-left. Rename the "Recent matches" section to **"Quick actions"**.
 
 ## User Stories
 
@@ -34,7 +34,7 @@ As a multi-account player, I want to see how my current day/session is going acr
 1. **Today's Session card** replaces `RankSnapshot` in the `#glance-left` slot when in Overall mode
 2. **Survival Check card** replaces `ChampionSelectCTA` in the `#glance-right` slot when in Overall mode
 3. `ChampionSelectCTA` moves to the `#recent-left` slot (was occupied by `MatchActivityHeatmap`)
-4. `MatchActivityHeatmap` is removed from Overview and added to the Solo page
+4. `MatchActivityHeatmap` is removed from Overview and added to the Solo page in Zone 4 (`#deep-analysis`), placed below the Performance Profile / Danger Zones grid as a full-width card
 5. Section heading "Recent matches" is renamed to **"Quick actions"**
 6. **Fallback chain for Today's Session**: if no games today → "This week: X games, Y% WR"; if no games this week → "This season: X games, Y% WR" using `CombinedStats`
 7. Survival Check always uses last 20 games across all accounts (never empty if the user has played at all)
@@ -115,11 +115,12 @@ The existing `AccountSummary` DTO has `gamesToday` and `gamesThisWeek` [currentl
 - `client/src/components/overview/SurvivalCheckCard.vue` — Survival Check display
 
 **Modified components**:
-- `client/src/views/OverviewPage.vue` — conditional slot rendering for Overall vs Individual mode
+- `client/src/views/OverviewPage.vue` — conditional slot rendering for Overall vs Individual mode; remove `MatchActivityHeatmap` and its `getMatchActivity()` data fetch
+- `client/src/views/SoloStatsPage.vue` — add `MatchActivityHeatmap` to `#deep-analysis` slot, below the existing `deep-analysis-grid`; add `getMatchActivity()` data fetch
 - `client/src/components/overview/OverviewLayout.vue` — rename "Recent matches" heading to "Quick actions"
 
 **Moved components**:
-- `MatchActivityHeatmap` — remove from OverviewPage, add to SoloStatsPage (new zone or existing layout extension)
+- `MatchActivityHeatmap` — removed from `OverviewPage.vue` `#recent-left` slot, added to `SoloStatsPage.vue` `#deep-analysis` slot as a full-width card below the Performance Profile / Danger Zones grid
 
 ### Database Changes
 No schema changes. All data is derived from existing tables:
@@ -283,14 +284,50 @@ Change in `OverviewLayout.vue`:
 
 No changes. The existing `RankSnapshot` + `ChampionSelectCTA` layout remains in the glance slots. The "Quick actions" rename applies to both modes.
 
+### Solo Page — MatchActivityHeatmap Placement
+
+**Location**: `SoloStatsPage.vue`, inside the `#deep-analysis` slot, below the existing `deep-analysis-grid` (which contains Performance Profile and Danger Zones).
+
+**Current Zone 4 structure**:
+```
+┌─ ZONE 4: DEEP ANALYSIS ─────────────────────────────────────────┐
+│  ┌─────────────────────────┐  ┌────────────────────────────────┐ │
+│  │  Performance Profile    │  │  Danger Zones                  │ │
+│  │  (RadarChart)           │  │  (DangerZonesMap)              │ │
+│  └─────────────────────────┘  └────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**After (heatmap added below)**:
+```
+┌─ ZONE 4: DEEP ANALYSIS ─────────────────────────────────────────┐
+│  ┌─────────────────────────┐  ┌────────────────────────────────┐ │
+│  │  Performance Profile    │  │  Danger Zones                  │ │
+│  │  (RadarChart)           │  │  (DangerZonesMap)              │ │
+│  └─────────────────────────┘  └────────────────────────────────┘ │
+│                                                                   │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  Match Activity                         (full width)       │  │
+│  │  MatchActivityHeatmap — daily match counts grid            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation in `SoloStatsPage.vue`**: Add `MatchActivityHeatmap` after the closing `</div>` of `deep-analysis-grid`, still inside the `#deep-analysis` slot. Wrap in a `BaseCard` with title "Match Activity" for visual consistency with the cards above.
+
+**Data source**: Call `getMatchActivity()` from `SoloStatsPage.vue` (moved from `OverviewPage.vue`). The heatmap respects the active queue filter and time range from Zone 1 (pass through props).
+
+**Rationale**: The heatmap shows play frequency patterns over time — this is analytical data that belongs alongside trend charts and performance profiles, not on a 5-second glance page. Placing it below Performance Profile creates a natural reading order: "How am I performing?" (radar) → "Where am I dying?" (danger zones) → "When am I playing?" (heatmap).
+
 ## Testing Strategy
 
 ### Unit Tests (Vitest)
 
 - [ ] `TodaySessionCard.spec.js` — renders today's stats, fallback to week, fallback to season, loading state, empty state
 - [ ] `SurvivalCheckCard.spec.js` — renders death stats, win rate correlation rows, progress bar, limited data tooltip, loading state
-- [ ] `OverviewPage.spec.js` — update existing tests: Overall mode renders new cards instead of `RankSnapshot`; Individual mode still renders `RankSnapshot`
+- [ ] `OverviewPage.spec.js` — update existing tests: Overall mode renders new cards instead of `RankSnapshot`; Individual mode still renders `RankSnapshot`; `MatchActivityHeatmap` no longer rendered
 - [ ] `OverviewLayout.spec.js` — section heading reads "Quick actions"
+- [ ] `SoloStatsPage.spec.js` — update existing tests: `MatchActivityHeatmap` renders in Zone 4 below the deep analysis grid
 
 ### Integration Tests (xUnit)
 
@@ -304,6 +341,8 @@ No changes. The existing `RankSnapshot` + `ChampionSelectCTA` layout remains in 
 - [ ] `overview-dashboard.spec.js` — Overall mode shows "Today's Session" and "Survival Check" cards
 - [ ] `overview-dashboard.spec.js` — section heading reads "Quick actions"
 - [ ] `overview-dashboard.spec.js` — ChampionSelectCTA is visible in the quick actions section
+- [ ] `overview-dashboard.spec.js` — `MatchActivityHeatmap` is NOT present on the overview page
+- [ ] `solo-dashboard.spec.js` — `MatchActivityHeatmap` is visible in Zone 4 below Performance Profile
 
 ### Manual Testing Scenarios
 1. Pro user with 2+ accounts, games played today → verify session card shows today's data
@@ -311,6 +350,8 @@ No changes. The existing `RankSnapshot` + `ChampionSelectCTA` layout remains in 
 3. Pro user with 2+ accounts, new account with < 5 games → verify survival card shows limited data state
 4. Free user (single account) → verify layout is unchanged (RankSnapshot + ChampionSelectCTA)
 5. Overall mode → Individual mode switch → verify cards swap correctly
+6. Solo page → verify heatmap renders below Performance Profile / Danger Zones grid
+7. Solo page → change queue filter → verify heatmap updates with filtered data
 
 ## Validation Criteria
 
@@ -318,7 +359,7 @@ Feature is considered complete when:
 - [ ] Today's Session card renders with correct fallback chain (today → week → season)
 - [ ] Survival Check card renders with death/WR correlation from last 20 games
 - [ ] `RankSnapshot` no longer appears in Overall mode glance section
-- [ ] `MatchActivityHeatmap` is removed from Overview and present on Solo page
+- [ ] `MatchActivityHeatmap` is removed from Overview and renders on Solo page in Zone 4, below Performance Profile
 - [ ] `ChampionSelectCTA` is in the Quick Actions section (recent-left)
 - [ ] Section heading reads "Quick actions" (both modes)
 - [ ] Individual mode layout is unchanged (except section rename)
@@ -335,8 +376,11 @@ Feature is considered complete when:
 - [ ] `useWinRateColor()` composable (reused)
 - [ ] `getChampionIconUrl()` utility (reused)
 - [ ] `CombinedStats` in `OverviewResponse` (already exists, used as season fallback)
+- [ ] `AnalysisLayout.vue` `#deep-analysis` slot (already supports arbitrary content)
+- [ ] `getMatchActivity()` API call (moved from OverviewPage to SoloStatsPage)
 
 ### Migration Notes
-- `MatchActivityHeatmap` removal from Overview is a breaking layout change — coordinate with Solo page addition
+- `MatchActivityHeatmap` removal from Overview is a breaking layout change — coordinate with Solo page addition in the same PR
 - Existing E2E tests reference "Today at a glance" heading and `RankSnapshot` — update selectors
-- `getMatchActivity()` API call can be removed from `OverviewPage.vue` once heatmap is moved
+- `getMatchActivity()` API call moves from `OverviewPage.vue` to `SoloStatsPage.vue`
+- Existing `SoloStatsPage.spec.js` tests must be updated to expect the heatmap in Zone 4
