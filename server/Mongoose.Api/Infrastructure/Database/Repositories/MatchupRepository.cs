@@ -26,15 +26,6 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
     /// <inheritdoc />
     public async Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null)
     {
-        if (puuids.Count == 0)
-        {
-            return new ChampionMatchupsResponse(
-                Matchups: Array.Empty<ChampionMatchup>(),
-                QueueType: queueType ?? "all",
-                TimeRange: timeRange ?? "all"
-            );
-        }
-
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var effectiveTimeRangeForLog = string.IsNullOrWhiteSpace(timeRangeFilter.NormalizedTimeRange) ? "all" : timeRangeFilter.NormalizedTimeRange;
