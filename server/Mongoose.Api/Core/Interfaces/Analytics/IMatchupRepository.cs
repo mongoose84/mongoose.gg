@@ -14,7 +14,7 @@ public interface IMatchupRepository
     /// Supports optional queue filtering and time range filtering.
     /// Aggregates data across multiple accounts if multiple PUUIDs are provided.
     /// </summary>
-    /// <param name="puuids">Player PUUIDs (one or more for multi-account aggregation)</param>
+    /// <param name="puuids">Player PUUIDs (zero or more); an empty list returns an empty response</param>
     /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, normal, aram, all)</param>
     /// <param name="timeRange">Time range filter (current_season, last_season, 1w, 1m, 3m, 6m)</param>
     /// <returns>Champion matchups response</returns>

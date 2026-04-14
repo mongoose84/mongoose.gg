@@ -1550,8 +1550,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         public Task<ChampionSelectResponse?> GetChampionSelectDataAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null)
         {
-            // For testing, aggregate data from all provided PUUIDs
-            // Return the first found or null if none exist
+            // Returns the first matching PUUID's data, or null if none exist
             foreach (var puuid in puuids)
             {
                 if (_championSelectData.TryGetValue(puuid, out var data))
