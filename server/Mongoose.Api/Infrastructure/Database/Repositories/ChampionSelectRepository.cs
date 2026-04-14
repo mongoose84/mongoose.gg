@@ -26,12 +26,15 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
     }
 
     /// <inheritdoc />
-    public async Task<ChampionSelectResponse?> GetChampionSelectDataAsync(string puuid, string? queueType = null, string? timeRange = null)
+    public async Task<ChampionSelectResponse?> GetChampionSelectDataAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null)
     {
+        if (puuids.Count == 0)
+            return null;
+
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var effectiveTimeRangeForLog = string.IsNullOrWhiteSpace(timeRangeFilter.NormalizedTimeRange) ? "all" : timeRangeFilter.NormalizedTimeRange;
-        _logger.LogInformation("GetChampionSelectDataAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", LogSanitizer.HashForLog(puuid), LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(effectiveTimeRangeForLog));
+        _logger.LogInformation("GetChampionSelectDataAsync start: accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}", puuids.Count, LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(effectiveTimeRangeForLog));
 
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
@@ -39,12 +42,12 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
         try
         {
             // Get basic stats (games played, win rate)
-            var basicStats = await GetBasicStatsAsync(puuid, queueFilter, timeFilter, timeRangeFilter);
+            var basicStats = await GetBasicStatsAsync(puuids, queueFilter, timeFilter, timeRangeFilter);
             if (basicStats == null)
                 return null;
 
             // Get main champions by role
-            var mainChampionsByRole = await GetMainChampionsByRoleAsync(puuid, queueType, queueFilter, timeFilter, timeRangeFilter);
+            var mainChampionsByRole = await GetMainChampionsByRoleAsync(puuids, queueType, queueFilter, timeFilter, timeRangeFilter);
 
             var response = new ChampionSelectResponse(
                 MainChampions: mainChampionsByRole.ToArray(),
@@ -52,31 +55,35 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
                 WinRate: basicStats.Value.WinRate
             );
 
-            _logger.LogInformation("GetChampionSelectDataAsync success: puuid={Puuid}, games={Games}", LogSanitizer.HashForLog(puuid), basicStats.Value.Games);
+            _logger.LogInformation("GetChampionSelectDataAsync success: accountCount={AccountCount}, games={Games}", puuids.Count, basicStats.Value.Games);
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetChampionSelectDataAsync error: puuid={Puuid}, queueType={Queue}", LogSanitizer.HashForLog(puuid), LogSanitizer.Sanitize(queueType));
+            _logger.LogError(ex, "GetChampionSelectDataAsync error: accountCount={AccountCount}, queueType={Queue}", puuids.Count, LogSanitizer.Sanitize(queueType));
             throw;
         }
     }
 
     private async Task<(int Games, double WinRate)?> GetBasicStatsAsync(
-        string puuid, string queueFilter, string timeFilter, TimeRangeFilter timeRangeFilter)
+        IReadOnlyList<string> puuids, string queueFilter, string timeFilter, TimeRangeFilter timeRangeFilter)
     {
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
                 COUNT(DISTINCT p.match_id) as Games,
                 SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid {queueFilter} {timeFilter}";
+            WHERE {puuidPredicate} {queueFilter} {timeFilter}";
 
         var result = await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync() && !reader.IsDBNull(0))
@@ -94,8 +101,9 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
     }
 
     private async Task<IReadOnlyList<MainChampionRoleGroup>> GetMainChampionsByRoleAsync(
-        string puuid, string queueType, string queueFilter, string timeFilter, TimeRangeFilter timeRangeFilter)
+        IReadOnlyList<string> puuids, string queueType, string queueFilter, string timeFilter, TimeRangeFilter timeRangeFilter)
     {
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
                 COALESCE(NULLIF(p.role, ''), 'UNKNOWN') as Role,
@@ -115,14 +123,17 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN participant_checkpoints cp15 ON cp15.participant_id = p.id AND cp15.minute_mark = 15
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
-            WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+            WHERE {puuidPredicate} {queueFilter} {timeFilter}
             GROUP BY Role, p.champion_id, p.champion_name";
 
         var rows = new List<MainChampionRecommender.ChampionRoleStats>();
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
