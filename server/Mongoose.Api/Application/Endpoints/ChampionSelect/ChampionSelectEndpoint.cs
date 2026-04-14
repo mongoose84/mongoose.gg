@@ -29,6 +29,7 @@ public sealed class ChampionSelectEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IChampionSelectRepository championSelectRepo,
             [FromServices] ILogger<ChampionSelectEndpoint> logger
@@ -41,22 +42,27 @@ public sealed class ChampionSelectEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                // Resolve primary Riot account
-                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                // Resolve requested account scope (primary/all/specific)
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
-                var primaryPuuid = resolvedAccount!.Account.Puuid;
+                if (resolvedAccounts == null || resolvedAccounts.Count == 0)
+                {
+                    return Results.NotFound(new { error = "No riot accounts found for this user", code = "RIOT_ACCOUNT_NOT_FOUND" });
+                }
+
+                var puuids = resolvedAccounts.Select(a => a.Account.Puuid).ToList();
 
                 // Fetch champion select data (only main champions, games played, win rate)
-                logger.LogInformation("Champion select request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), LogSanitizer.HashForLog(primaryPuuid), LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
-                var championSelectData = await championSelectRepo.GetChampionSelectDataAsync(primaryPuuid, queueType, timeRange);
+                logger.LogInformation("Champion select request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}",
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), resolvedAccounts.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
+                var championSelectData = await championSelectRepo.GetChampionSelectDataAsync(puuids, queueType, timeRange);
 
                 if (championSelectData == null)
                 {
-                    logger.LogInformation("Champion select: no match data for puuid {Puuid} with queueType {Queue} and timeRange {TimeRange}",
-                        LogSanitizer.HashForLog(primaryPuuid), LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
+                    logger.LogInformation("Champion select: no match data for accounts {AccountCount} with queueType {Queue} and timeRange {TimeRange}",
+                        resolvedAccounts.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
                     return Results.NotFound(new { error = "No match data found for this player" });
                 }
 

@@ -24,24 +24,24 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
     }
 
     /// <inheritdoc />
-    public async Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(string puuid, string? queueType = null, string? timeRange = null)
+    public async Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null)
     {
         queueType = _filterBuilder.ValidateQueueType(queueType);
         var timeRangeFilter = await _filterBuilder.ResolveTimeRangeAsync(timeRange);
         var effectiveTimeRangeForLog = string.IsNullOrWhiteSpace(timeRangeFilter.NormalizedTimeRange) ? "all" : timeRangeFilter.NormalizedTimeRange;
-        _logger.LogInformation("GetChampionMatchupsAsync start: puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}", LogSanitizer.HashForLog(puuid), LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(effectiveTimeRangeForLog));
+        _logger.LogInformation("GetChampionMatchupsAsync start: accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}", puuids.Count, LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(effectiveTimeRangeForLog));
 
         var queueFilter = _filterBuilder.BuildQueueFilter(queueType);
         var timeFilter = _filterBuilder.BuildTimeRangeFilter(timeRangeFilter);
 
         try
         {
-            var topChampions = await GetTopChampionsForMatchupsAsync(puuid, queueFilter, timeFilter, timeRangeFilter);
+            var topChampions = await GetTopChampionsForMatchupsAsync(puuids, queueFilter, timeFilter, timeRangeFilter);
 
             var matchups = new List<ChampionMatchup>();
             foreach (var champ in topChampions)
             {
-                var opponents = await GetOpponentMatchupsAsync(puuid, champ.ChampionId, champ.Role, queueFilter, timeFilter, timeRangeFilter);
+                var opponents = await GetOpponentMatchupsAsync(puuids, champ.ChampionId, champ.Role, queueFilter, timeFilter, timeRangeFilter);
                 matchups.Add(new ChampionMatchup(
                     ChampionId: champ.ChampionId,
                     ChampionName: champ.ChampionName,
@@ -53,19 +53,20 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
                 ));
             }
 
-            _logger.LogInformation("GetChampionMatchupsAsync success: puuid={Puuid}, champions={Count}", LogSanitizer.HashForLog(puuid), matchups.Count);
+            _logger.LogInformation("GetChampionMatchupsAsync success: accountCount={AccountCount}, champions={Count}", puuids.Count, matchups.Count);
             return new ChampionMatchupsResponse(matchups.ToArray(), queueType, effectiveTimeRangeForLog);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetChampionMatchupsAsync error: puuid={Puuid}, queueType={Queue}", LogSanitizer.HashForLog(puuid), LogSanitizer.Sanitize(queueType));
+            _logger.LogError(ex, "GetChampionMatchupsAsync error: accountCount={AccountCount}, queueType={Queue}", puuids.Count, LogSanitizer.Sanitize(queueType));
             throw;
         }
     }
 
     private async Task<List<(int ChampionId, string ChampionName, string Role, int TotalGames, int Wins, double WinRate)>> GetTopChampionsForMatchupsAsync(
-        string puuid, string queueFilter, string timeFilter, TimeRangeFilter timeRangeFilter)
+        IReadOnlyList<string> puuids, string queueFilter, string timeFilter, TimeRangeFilter timeRangeFilter)
     {
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
                 p.champion_id,
@@ -75,7 +76,7 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
                 SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid {queueFilter} {timeFilter}
+            WHERE {puuidPredicate} {queueFilter} {timeFilter}
             GROUP BY p.champion_id, p.champion_name, Role
             ORDER BY TotalGames DESC
             LIMIT 5";
@@ -85,7 +86,10 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -106,8 +110,9 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
     }
 
     private async Task<List<OpponentMatchup>> GetOpponentMatchupsAsync(
-        string puuid, int championId, string role, string queueFilter, string timeFilter, TimeRangeFilter timeRangeFilter)
+        IReadOnlyList<string> puuids, int championId, string role, string queueFilter, string timeFilter, TimeRangeFilter timeRangeFilter)
     {
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
                 t.OpponentChampionId,
@@ -132,7 +137,7 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
                 INNER JOIN matches m ON m.match_id = p.match_id
                 INNER JOIN participants opp ON opp.match_id = p.match_id
                     AND opp.team_id != p.team_id
-                WHERE p.puuid = @puuid
+                WHERE {puuidPredicate}
                     AND p.champion_id = @championId
                     AND COALESCE(NULLIF(p.role, ''), 'UNKNOWN') = @role
                     {queueFilter} {timeFilter}
@@ -145,7 +150,10 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
         await ExecuteWithConnectionAsync(async conn =>
         {
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
             cmd.Parameters.AddWithValue("@championId", championId);
             cmd.Parameters.AddWithValue("@role", role);
             _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);

@@ -1513,10 +1513,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _matchupData.Clear();
         }
 
-        public Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(string puuid, string? queueType = null, string? timeRange = null)
+        public Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null)
         {
-            if (_matchupData.TryGetValue(puuid, out var data))
-                return Task.FromResult(data);
+            // For testing, return data from the first PUUID that has data
+            foreach (var puuid in puuids)
+            {
+                if (_matchupData.TryGetValue(puuid, out var data))
+                    return Task.FromResult(data);
+            }
 
             // Return empty response if no data
             return Task.FromResult(new ChampionMatchupsResponse(
@@ -1544,10 +1548,15 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _championSelectData.Clear();
         }
 
-        public Task<ChampionSelectResponse?> GetChampionSelectDataAsync(string puuid, string? queueType = null, string? timeRange = null)
+        public Task<ChampionSelectResponse?> GetChampionSelectDataAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null)
         {
-            _championSelectData.TryGetValue(puuid, out var data);
-            return Task.FromResult(data);
+            // Returns the first matching PUUID's data, or null if none exist
+            foreach (var puuid in puuids)
+            {
+                if (_championSelectData.TryGetValue(puuid, out var data))
+                    return Task.FromResult<ChampionSelectResponse?>(data);
+            }
+            return Task.FromResult<ChampionSelectResponse?>(null);
         }
     }
 

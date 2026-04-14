@@ -27,6 +27,7 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
             [FromRoute] string userId,
             [FromQuery] string? queueType,
             [FromQuery] string? timeRange,
+            [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IMatchupRepository matchupRepo,
             [FromServices] ILogger<SoloMatchupsEndpoint> logger
@@ -39,17 +40,22 @@ public sealed class SoloMatchupsEndpoint : IEndpoint
                 if (authError != null)
                     return authError;
 
-                // Resolve primary Riot account
-                var (accountError, resolvedAccount) = await puuidResolutionService.ResolvePrimaryAccountAsync(authorizedUser!.UserId);
+                // Resolve requested account scope (primary/all/specific)
+                var (accountError, resolvedAccounts) = await puuidResolutionService.ResolveRequestedAccountsAsync(authorizedUser!.UserId, accountId);
                 if (accountError != null)
                     return accountError;
 
-                var primaryPuuid = resolvedAccount!.Account.Puuid;
+                if (resolvedAccounts == null || resolvedAccounts.Count == 0)
+                {
+                    return Results.NotFound(new { error = "No riot accounts found for this user", code = "RIOT_ACCOUNT_NOT_FOUND" });
+                }
+
+                var puuids = resolvedAccounts.Select(a => a.Account.Puuid).ToList();
 
                 // Fetch matchups data
-                logger.LogInformation("Solo matchups request: userId={UserId}, puuid={Puuid}, queueType={Queue}, timeRange={TimeRange}",
-                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), LogSanitizer.HashForLog(primaryPuuid), LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
-                var matchups = await matchupRepo.GetChampionMatchupsAsync(primaryPuuid, queueType, timeRange);
+                logger.LogInformation("Solo matchups request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, timeRange={TimeRange}",
+                    LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), resolvedAccounts.Count, LogSanitizer.Sanitize(queueType) ?? "all", LogSanitizer.Sanitize(timeRange) ?? "all");
+                var matchups = await matchupRepo.GetChampionMatchupsAsync(puuids, queueType, timeRange);
 
                 return Results.Ok(matchups);
             }
