@@ -143,7 +143,7 @@
         to="/app/user"
         class="user-item flex items-center gap-md mx-sm text-text no-underline rounded-md whitespace-nowrap hover:bg-background-elevated"
         :class="isCollapsed ? 'justify-center py-sm px-xs' : 'p-md'"
-        :title="isCollapsed ? (hasLinkedAccount ? riotAccountName : username) : ''"
+        :title="isCollapsed ? username : ''"
       >
         <!-- Profile Icon with Level Badge -->
         <div
@@ -153,7 +153,7 @@
           <img
             v-if="userIconUrl && !userIconError"
             :src="userIconUrl"
-            :alt="`${hasLinkedAccount ? riotAccountName : username} profile icon`"
+            :alt="`${username} profile icon`"
             class="w-full h-full object-cover rounded-full"
             @error="handleUserIconError"
           />
@@ -165,15 +165,8 @@
         <!-- User Info (expanded only) -->
         <Transition name="fade">
           <div v-if="!isCollapsed" class="flex flex-col gap-0.5 min-w-0 flex-1">
-            <!-- Riot Account Info -->
-            <template v-if="hasLinkedAccount">
-              <span class="text-sm font-semibold text-text overflow-hidden text-ellipsis whitespace-nowrap">{{ riotAccountName }}</span>
-              <span class="text-xs text-text-secondary uppercase tracking-wider">{{ regionLabel }}</span>
-            </template>
-            <template v-else>
-              <span class="text-sm font-semibold text-text overflow-hidden text-ellipsis whitespace-nowrap">{{ username }}</span>
-              <span class="text-xs text-text-secondary">No account linked</span>
-            </template>
+            <span class="text-sm font-semibold text-text overflow-hidden text-ellipsis whitespace-nowrap">{{ username }}</span>
+            <span class="text-xs text-text-secondary capitalize">{{ userTierLabel }}</span>
           </div>
         </Transition>
       </router-link>
@@ -203,7 +196,6 @@ import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';
 import { BaseButton } from '@/components/base';
 import AccountSwitcher from '@/components/sidebar/AccountSwitcher.vue';
-import { formatRegion } from '@/utils/leagueAssets';
 import { useUserIcon } from '@/composables/useUserIcon';
 
 const authStore = useAuthStore();
@@ -236,6 +228,7 @@ function toggleSidebar() {
 
 // User data
 const username = computed(() => authStore.username || 'User');
+const userTierLabel = computed(() => authStore.tier || 'free');
 const showCompactUpgradeLink = computed(() => authStore.hasReachedRiotAccountLimit);
 
 // Account switcher data
@@ -243,19 +236,6 @@ const riotAccounts = computed(() => authStore.riotAccounts);
 const activeAccountPuuid = computed(() => authStore.activeAccountPuuid);
 const canUseOverallAccountView = computed(() => authStore.canUseOverallAccountView);
 
-// Profile icon from first Riot account
-const primaryRiotAccount = computed(() => authStore.primaryRiotAccount);
-
-// Linked Riot Account data
-const hasLinkedAccount = computed(() => authStore.hasLinkedAccount);
-
-const riotAccountName = computed(() => {
-  const account = primaryRiotAccount.value;
-  if (!account) return '';
-  return `${account.gameName}#${account.tagLine}`;
-});
-
-const regionLabel = computed(() => formatRegion(primaryRiotAccount.value?.region));
 </script>
 
 

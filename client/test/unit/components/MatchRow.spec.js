@@ -153,4 +153,37 @@ describe('MatchRow.vue', () => {
       expect(wrapper.find('.match-row').classes()).toContain('selected')
     })
   })
+
+  describe('Remake badge', () => {
+    it('shows Remake badge when game duration is under 5 minutes', () => {
+      const wrapper = createWrapper({ gameDurationSec: 240 })
+      const badge = wrapper.findComponent({ name: 'TrendBadge' })
+      expect(badge.props('badge')).toMatchObject({ text: 'Remake', type: 'neutral' })
+    })
+
+    it('shows Remake badge when game duration is exactly 0', () => {
+      const wrapper = createWrapper({ gameDurationSec: 0 })
+      const badge = wrapper.findComponent({ name: 'TrendBadge' })
+      expect(badge.props('badge')).toMatchObject({ text: 'Remake', type: 'neutral' })
+    })
+
+    it('does not show Remake badge when game duration is exactly 5 minutes', () => {
+      const wrapper = createWrapper({ gameDurationSec: 300, trendBadge: null })
+      const badge = wrapper.findComponent({ name: 'TrendBadge' })
+      expect(badge.props('badge')).toBeNull()
+    })
+
+    it('does not show Remake badge when game duration is over 5 minutes', () => {
+      const wrapper = createWrapper({ gameDurationSec: 1800, trendBadge: null })
+      const badge = wrapper.findComponent({ name: 'TrendBadge' })
+      expect(badge.props('badge')).toBeNull()
+    })
+
+    it('shows trendBadge instead of Remake for normal length games', () => {
+      const trendBadge = { text: 'Clean game', type: 'positive', stat: 'deaths' }
+      const wrapper = createWrapper({ gameDurationSec: 1800, trendBadge })
+      const badge = wrapper.findComponent({ name: 'TrendBadge' })
+      expect(badge.props('badge')).toEqual(trendBadge)
+    })
+  })
 })
