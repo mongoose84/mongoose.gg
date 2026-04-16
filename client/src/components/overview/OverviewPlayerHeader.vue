@@ -22,6 +22,22 @@
         <span class="region-tag">{{ regionDisplay }}</span>
       </div>
 
+      <!-- Rank Badge -->
+      <div v-if="rankDisplay" class="rank-badge-row" data-testid="rank-badge">
+        <img
+          v-if="rankEmblemUrl"
+          :src="rankEmblemUrl"
+          :alt="rankDisplay"
+          class="rank-badge-emblem"
+          @error="handleEmblemError"
+        />
+        <span class="rank-badge-text">{{ rankDisplay }}</span>
+        <span v-if="lp != null" class="rank-badge-lp">{{ lp }} LP</span>
+      </div>
+      <div v-else-if="primaryQueueLabel" class="rank-badge-row" data-testid="rank-badge-unranked">
+        <span class="rank-badge-text">Unranked</span>
+      </div>
+
       <!-- Context Badges -->
       <div v-if="visibleContexts.length > 0" class="context-badges">
         <span
@@ -60,12 +76,42 @@ const props = defineProps({
   activeContexts: {
     type: Array,
     default: () => []
+  },
+  rank: {
+    type: String,
+    default: null
+  },
+  lp: {
+    type: Number,
+    default: null
+  },
+  primaryQueueLabel: {
+    type: String,
+    default: null
   }
 })
 
 const iconError = ref(false)
+const emblemError = ref(false)
 
 const regionDisplay = computed(() => formatRegion(props.region))
+
+const rankTier = computed(() => {
+  if (!props.rank) return null
+  return props.rank.split(' ')[0].toLowerCase()
+})
+
+const rankEmblemUrl = computed(() => {
+  if (!rankTier.value || emblemError.value) return null
+  return `/assets/ranked/emblem-${rankTier.value}.png`
+})
+
+const rankDisplay = computed(() => {
+  if (!props.rank) return null
+  const parts = props.rank.split(' ')
+  const tier = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase()
+  return parts.length > 1 ? `${tier} ${parts[1]}` : tier
+})
 
 const visibleContexts = computed(() => {
   return (props.activeContexts || []).filter(context => context?.toLowerCase() !== 'duo')
@@ -73,6 +119,10 @@ const visibleContexts = computed(() => {
 
 function handleIconError() {
   iconError.value = true
+}
+
+function handleEmblemError() {
+  emblemError.value = true
 }
 
 function contextLabel(context) {
@@ -181,6 +231,29 @@ function contextLabel(context) {
   border-radius: var(--radius-sm);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* Rank badge row */
+.rank-badge-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.rank-badge-emblem {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.rank-badge-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.rank-badge-lp {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 .context-solo {

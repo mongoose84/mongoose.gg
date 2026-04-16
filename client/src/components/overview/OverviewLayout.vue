@@ -39,9 +39,9 @@
           <slot name="header"></slot>
         </section>
 
-        <!-- Today at a glance Section -->
+        <!-- At a glance Section -->
         <section v-if="$slots['glance-left'] || $slots['glance-right']" class="overview-section">
-          <h2 class="section-title">Today at a glance</h2>
+          <h2 class="section-title">At a glance</h2>
           <div class="section-row">
             <div class="section-col section-col--primary">
               <slot name="glance-left"></slot>
@@ -52,15 +52,15 @@
           </div>
         </section>
 
-        <!-- Recent games Section -->
-        <section v-if="$slots['recent-left'] || $slots['recent-right']" class="overview-section">
-          <h2 class="section-title">Recent matches</h2>
+        <!-- Quick actions Section -->
+        <section v-if="$slots['actions-left'] || $slots['actions-right']" class="overview-section">
+          <h2 class="section-title">Quick actions</h2>
           <div class="section-row">
             <div class="section-col section-col--primary">
-              <slot name="recent-left"></slot>
+              <slot name="actions-left"></slot>
             </div>
             <div class="section-col section-col--secondary">
-              <slot name="recent-right"></slot>
+              <slot name="actions-right"></slot>
             </div>
           </div>
         </section>
