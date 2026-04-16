@@ -184,14 +184,8 @@
             :end-date="matchActivityData.endDate"
             :total-matches="matchActivityData.totalMatches"
           />
-        <MatchActivityHeatmap
-          v-if="matchActivityData"
-          :daily-match-counts="matchActivityData.dailyMatchCounts"
-          :start-date="matchActivityData.startDate"
-          :end-date="matchActivityData.endDate"
-          :total-matches="matchActivityData.totalMatches"
-        />
-        <div v-else-if="!matchActivityLoading" class="empty-state">No match activity data</div>
+          <div v-else-if="!matchActivityLoading" class="empty-state">No match activity data</div>
+        </BaseCard>
       </div>
     </template>
 
