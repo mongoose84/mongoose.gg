@@ -47,7 +47,7 @@
 
     <!-- Trend Badge -->
     <div class="trend-badge-wrapper">
-      <TrendBadge :badge="match.trendBadge" />
+      <TrendBadge :badge="displayBadge" />
     </div>
 
     <!-- Account Icon (Overall mode only — outermost right) -->
@@ -105,6 +105,13 @@ function handleIconError() {
 }
 
 const relativeTime = computed(() => formatRelativeTime(props.match.gameStartTime, { short: true }))
+
+const displayBadge = computed(() => {
+  if (props.match.gameDurationSec < 300) {
+    return { text: 'Remake', type: 'neutral', stat: null }
+  }
+  return props.match.trendBadge
+})
 
 const accountIconUrl = computed(() => {
   if (!props.match.accountGameName) return null
