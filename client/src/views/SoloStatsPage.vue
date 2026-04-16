@@ -184,7 +184,15 @@
             :end-date="matchActivityData.endDate"
             :total-matches="matchActivityData.totalMatches"
           />
-          <div v-else-if="!matchActivityLoading" class="empty-state">No match activity data</div>
+          <div
+            v-else-if="matchActivityLoading"
+            class="empty-state"
+            data-testid="match-activity-loading-state"
+            aria-live="polite"
+          >
+            Loading match activity...
+          </div>
+          <div v-else class="empty-state">No match activity data</div>
         </BaseCard>
       </div>
     </template>
