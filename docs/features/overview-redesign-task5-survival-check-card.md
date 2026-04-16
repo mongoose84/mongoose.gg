@@ -304,6 +304,21 @@ When in motivational mode, the hero number is `winRateLowDeaths` (green). When i
 
 ---
 
+## Height Alignment with TodaySessionCard
+
+`DeathInsightCard` (right column) must match the height of `TodaySessionCard` (left column) in the "At a glance" row. Since the two cards can render different amounts of content, height must be enforced at the layout level — not by setting a fixed pixel height on either card.
+
+**Required**: The `section-row` in `OverviewLayout.vue` already uses `align-items: stretch` on desktop. Both cards must use `height: 100%` so they fill the row height set by whichever card is taller.
+
+**Implementation checklist**:
+- [ ] `TodaySessionCard` root element: `height: 100%`
+- [ ] `DeathInsightCard` root element: `height: 100%`
+- [ ] Both cards use `display: flex; flex-direction: column` internally so content distributes within the full height
+- [ ] `OverviewPage.vue` — the `.glance-right-fill` wrapper (if present) must also propagate height: `display: flex; flex-direction: column; height: 100%`
+- [ ] Verify alignment holds in all four card states: loading skeleton, empty, motivational, and neutral/warning
+
+---
+
 ## Consistency with TodaySessionCard
 
 Both `#glance-left` and `#glance-right` follow the same card pattern — natural left-to-right read: **"How am I doing?" → "What should I focus on?"**
