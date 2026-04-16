@@ -1,17 +1,17 @@
-# Task 5: `DeathInsightCard.vue` component
+# Task 5: `SurvivalCheckCard.vue` component
 
 > Source: [overview-redesign-frontend.md](overview-redesign-frontend.md) — extracted from Task 5
 
-**Scope**: Build `DeathInsightCard.vue` in `client/src/components/overview/`. Single-insight card answering one question: *"Does dying less actually win me games?"* — with rank-adaptive death thresholds.
+**Scope**: Build `SurvivalCheckCard.vue` in `client/src/components/overview/`. Single-insight card answering one question: *"Does dying less actually win me games?"* — with rank-adaptive death thresholds.
 
 **File to create**:
-- `client/src/components/overview/DeathInsightCard.vue`
+- `client/src/components/overview/SurvivalCheckCard.vue`
 
 ---
 
 ## Design Principles
 
-This card replaces the original `SurvivalCheckCard` design after applying two UX principles from the [UI/UX spec](../../.github/specs/ui-ux.spec.md):
+This `SurvivalCheckCard` design applies two UX principles from the [UI/UX spec](../../.github/specs/ui-ux.spec.md):
 
 1. **"Every insight answers one question and implies one action"** — the old spec answered three questions (how much do I die? when do I die? how do deaths affect my wins?) and implied no clear action.
 2. **"Overview is orientation, not work — 5–15 seconds"** — parsing avg deaths, a percentage bar, AND two bucket rows with game counts required focused reading, not a glance.
