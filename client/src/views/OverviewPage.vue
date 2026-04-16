@@ -303,19 +303,6 @@ watch(() => authStore.activeAccountPuuid, () => {
   transform: translateY(-2px);
 }
 
-.recent-right-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  height: 100%;
-}
-
-.recent-right-stack :deep(.analysis-status-card),
-.recent-right-stack :deep(.solo-analytics-cta) {
-  flex: 1;
-  height: 100%;
-}
-
 .actions-right-stack {
   display: flex;
   flex-direction: column;
@@ -339,4 +326,3 @@ watch(() => authStore.activeAccountPuuid, () => {
   height: 100%;
 }
 </style>
-
