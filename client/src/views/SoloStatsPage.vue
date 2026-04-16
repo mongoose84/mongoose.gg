@@ -175,6 +175,17 @@
             @update:side="onSideFilterChange"
           />
         </BaseCard>
+
+        <BaseCard title="Match Activity" data-testid="match-activity-card">
+          <MatchActivityHeatmap
+            v-if="matchActivityData"
+            :daily-match-counts="matchActivityData.dailyMatchCounts"
+            :start-date="matchActivityData.startDate"
+            :end-date="matchActivityData.endDate"
+            :total-matches="matchActivityData.totalMatches"
+          />
+          <div v-else-if="!matchActivityLoading" class="empty-state">No match activity data</div>
+        </BaseCard>
       </div>
     </template>
 
@@ -200,6 +211,7 @@ import DragonParticipationChart from '../components/solo/DragonParticipationChar
 import VisionChart from '../components/solo/VisionChart.vue'
 import DangerZonesMap from '../components/solo/DangerZonesMap.vue'
 import RadarChart from '../components/solo/RadarChart.vue'
+import MatchActivityHeatmap from '../components/overview/MatchActivityHeatmap.vue'
 
 const authStore = useAuthStore()
 const { chartMode } = useChartDisplayMode()
@@ -230,6 +242,8 @@ const {
   deathPositionsData,
   deathPositionsLoading,
   deathPositionsError,
+  matchActivityData,
+  matchActivityLoading,
   handleWinrateExpand,
   handleGoldAt15Expand,
   handleCsPerMinuteExpand,
@@ -259,14 +273,52 @@ onMounted(() => { fetchAllData() })
 <style scoped>
 .deep-analysis-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  align-items: start;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
   gap: var(--spacing-lg);
+}
+
+/* Performance Profile: top-left */
+.deep-analysis-grid > :nth-child(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+/* Danger Zones: spans full right column */
+.deep-analysis-grid > :nth-child(2) {
+  grid-column: 2;
+  grid-row: 1 / -1;
+}
+
+/* Match Activity: bottom-left, sizes to content */
+.deep-analysis-grid > :nth-child(3) {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
 }
 
 @media (max-width: 768px) {
   .deep-analysis-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  /* On mobile, reset all explicit placement so items stack in order:
+     Performance Profile → Match Activity → Danger Zones */
+  .deep-analysis-grid > :nth-child(1),
+  .deep-analysis-grid > :nth-child(2),
+  .deep-analysis-grid > :nth-child(3) {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  /* Danger Zones last on mobile */
+  .deep-analysis-grid > :nth-child(2) {
+    order: 3;
+  }
+
+  .deep-analysis-grid > :nth-child(3) {
+    order: 2;
   }
 }
 </style>

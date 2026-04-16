@@ -31,46 +31,42 @@
         :region="overviewData.playerHeader.region"
         :profile-icon-url="overviewData.playerHeader.profileIconUrl"
         :active-contexts="overviewData.playerHeader.activeContexts"
+        :rank="overviewData.rankSnapshot?.rank ?? null"
+        :lp="overviewData.rankSnapshot?.lp ?? null"
+        :primary-queue-label="overviewData.rankSnapshot?.primaryQueueLabel ?? null"
       />
     </template>
 
-    <!-- Today at a glance: Left - Rank Snapshot -->
+    <!-- At a glance: Left - Today Session Card -->
     <template #glance-left>
-      <RankSnapshot
-        v-if="overviewData?.rankSnapshot"
-        :primary-queue-label="rankSnapshotLabel"
-        :rank="overviewData.rankSnapshot.rank"
-        :lp="overviewData.rankSnapshot.lp"
-        :last20-wins="overviewData.rankSnapshot.last20Wins"
-        :last20-losses="overviewData.rankSnapshot.last20Losses"
-        :wl-last20="overviewData.rankSnapshot.wlLast20"
+      <TodaySessionCard
+        :session-stats="overviewData?.sessionStats ?? null"
+        :combined-stats="overviewData?.combinedStats ?? null"
+        :loading="pageIsLoading"
       />
     </template>
 
-    <!-- Today at a glance: Right - Champion Select CTA -->
+    <!-- At a glance: Right - Survival Check Card (placeholder) -->
     <template #glance-right>
       <div class="glance-right-fill">
-        <ChampionSelectCTA
-          :mural-url="championSelectMuralUrl"
-          :champion-name="mostPlayedChampionName"
+        <SurvivalCheckCard
+          :survival-stats="overviewData?.survivalStats ?? null"
+          :loading="pageIsLoading"
         />
       </div>
     </template>
 
-    <!-- Recent games: Left - Match Activity Heatmap -->
-    <template #recent-left>
-      <MatchActivityHeatmap
-        v-if="matchActivityData"
-        :daily-match-counts="matchActivityData.dailyMatchCounts"
-        :start-date="matchActivityData.startDate"
-        :end-date="matchActivityData.endDate"
-        :total-matches="matchActivityData.totalMatches"
+    <!-- Quick actions: Left - Champion Select CTA -->
+    <template #actions-left>
+      <ChampionSelectCTA
+        :mural-url="championSelectMuralUrl"
+        :champion-name="mostPlayedChampionName"
       />
     </template>
 
-    <!-- Recent games: Right - Analysis Status Card -->
-    <template #recent-right>
-      <div class="recent-right-stack">
+    <!-- Quick actions: Right - Analysis Status Card + Solo CTA -->
+    <template #actions-right>
+      <div class="actions-right-stack">
         <AnalysisStatusCard />
         <SoloAnalyticsCTA
           :subtitle="soloCtaSubtitle"
@@ -108,13 +104,13 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { useAsyncData } from '../composables/useAsyncData'
-import { getOverview, getMatchActivity, getSoloDashboard } from '../services/soloApi'
+import { getOverview, getSoloDashboard } from '../services/soloApi'
 import { getChampionSplashUrl } from '../utils/leagueAssets'
 import OverviewLayout from '../components/overview/OverviewLayout.vue'
 import OverviewAccountCards from '../components/overview/OverviewAccountCards.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
-import MatchActivityHeatmap from '../components/overview/MatchActivityHeatmap.vue'
-import RankSnapshot from '../components/overview/RankSnapshot.vue'
+import TodaySessionCard from '../components/overview/TodaySessionCard.vue'
+import SurvivalCheckCard from '../components/overview/SurvivalCheckCard.vue'
 import LastMatchCard from '../components/overview/LastMatchCard.vue'
 import ChampionSelectCTA from '../components/overview/ChampionSelectCTA.vue'
 import AnalysisStatusCard from '../components/overview/AnalysisStatusCard.vue'
@@ -126,7 +122,6 @@ const { syncProgress, resetProgress } = useSyncWebSocket()
 
 // State
 const overviewData = ref(null)
-const matchActivityData = ref(null)
 const soloDashboardData = ref(null)
 const isRefreshing = ref(false)
 const showLinkModal = ref(false)
@@ -137,18 +132,16 @@ const {
   isLoading,
   execute: executeOverviewFetch
 } = useAsyncData(async () => {
-  const [overview, activity, soloDashboard] = await Promise.all([
-    getOverview(authStore.userId),
-    getMatchActivity(authStore.userId),
-    getSoloDashboard(authStore.userId)
-  ])
+    const [overview, soloDashboard] = await Promise.all([
+      getOverview(authStore.userId),
+      getSoloDashboard(authStore.userId)
+    ])
 
-  return {
-    overview,
-    activity,
-    soloDashboard
-  }
-}, { immediate: false, errorMessage: 'Failed to load overview' })
+    return {
+      overview,
+      soloDashboard
+    }
+  }, { immediate: false, errorMessage: 'Failed to load overview' })
 
 const pageIsLoading = computed(() => isLoading.value && !overviewData.value)
 
@@ -166,25 +159,6 @@ const displayedAccounts = computed(() => {
   const accounts = overviewData.value?.accountSummaries || []
   // Limit to 3 accounts for aesthetic reasons - maintains clean visual layout in header
   return accounts.slice(0, 3)
-})
-
-const rankSnapshotLabel = computed(() => {
-  if (authStore.isOverallMode) {
-    const originalLabel = overviewData.value?.rankSnapshot?.primaryQueueLabel || ''
-    // Extract queue type from label (e.g., "Ranked Solo/Duo" -> "Solo", "Ranked Flex" -> "Flex")
-    let queueType = ''
-    if (originalLabel.includes('Solo')) {
-      queueType = ' (Solo)'
-    } else if (originalLabel.includes('Flex')) {
-      queueType = ' (Flex)'
-    } else if (originalLabel.includes('ARAM')) {
-      queueType = ' (ARAM)'
-    } else if (originalLabel.includes('Normal')) {
-      queueType = ' (Normal)'
-    }
-    return `Highest Rank${queueType}`
-  }
-  return overviewData.value?.rankSnapshot?.primaryQueueLabel || ''
 })
 
 const lastMatchAccountName = computed(() => {
@@ -241,11 +215,9 @@ async function fetchData() {
   try {
     const result = await executeOverviewFetch()
     overviewData.value = result.overview
-    matchActivityData.value = result.activity
     soloDashboardData.value = result.soloDashboard
   } catch {
     overviewData.value = null
-    matchActivityData.value = null
     soloDashboardData.value = null
   } finally {
     if (!isInitialLoad) {
@@ -340,6 +312,19 @@ watch(() => authStore.activeAccountPuuid, () => {
 
 .recent-right-stack :deep(.analysis-status-card),
 .recent-right-stack :deep(.solo-analytics-cta) {
+  flex: 1;
+  height: 100%;
+}
+
+.actions-right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  height: 100%;
+}
+
+.actions-right-stack :deep(.analysis-status-card),
+.actions-right-stack :deep(.solo-analytics-cta) {
   flex: 1;
   height: 100%;
 }
