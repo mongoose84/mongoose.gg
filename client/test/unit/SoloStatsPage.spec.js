@@ -114,7 +114,7 @@ describe('SoloStatsPage', () => {
     expect(grid.findAll('[data-testid="danger-zones-card"]').length).toBe(1)
   })
 
-  it('heatmap updates when queue filter changes (matchActivityData is reactive)', () => {
+  it('renders heatmap when match activity data is available', () => {
     const wrapper = mount(SoloStatsPage, { global: { stubs: componentStubs } })
     // Heatmap is rendered when matchActivityData is available
     expect(wrapper.find('[data-testid="match-activity-heatmap"]').exists()).toBe(true)
