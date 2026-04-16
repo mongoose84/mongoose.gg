@@ -170,4 +170,4 @@ Tasks 4 and 5 are independent of each other. Task 6 depends on both new componen
 
 **Tests** (update `test/unit/SoloStatsPage.spec.js`):
 - [ ] `MatchActivityHeatmap` renders in Zone 4 below Performance Profile
-- [ ] Heatmap updates when queue filter changes
+- [ ] Heatmap renders from `/solo/activity/{userId}` data (currently account-scoped; queue/time-range filters do not apply)
