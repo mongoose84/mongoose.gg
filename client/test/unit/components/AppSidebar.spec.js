@@ -5,8 +5,7 @@ import AppSidebar from '@/components/AppSidebar.vue'
 
 const mockAuthStore = {
   username: 'TestUser',
-  hasLinkedAccount: false,
-  primaryRiotAccount: null,
+  tier: 'free',
   hasReachedRiotAccountLimit: false
 }
 
@@ -50,9 +49,8 @@ describe('AppSidebar.vue', () => {
 
   beforeEach(() => {
     mockAuthStore.hasReachedRiotAccountLimit = false
-    mockAuthStore.hasLinkedAccount = false
-    mockAuthStore.primaryRiotAccount = null
     mockAuthStore.username = 'TestUser'
+    mockAuthStore.tier = 'free'
     mockUserIconUrl.value = null
     mockUiStore.isSidebarCollapsed = false
     mockUiStore.initializeSidebar.mockReset()
@@ -88,5 +86,30 @@ describe('AppSidebar.vue', () => {
 
     expect(userSection.find('img').exists()).toBe(false)
     expect(userSection.find('svg').exists()).toBe(true)
+  })
+
+  describe('User info display', () => {
+    it('shows mongoose username in user section', () => {
+      mockAuthStore.username = 'JeppeKronborg'
+      const wrapper = createWrapper()
+      expect(wrapper.find('.user-item').text()).toContain('JeppeKronborg')
+    })
+
+    it('shows free tier label for free users', () => {
+      mockAuthStore.tier = 'free'
+      const wrapper = createWrapper()
+      expect(wrapper.find('.user-item').text()).toContain('free')
+    })
+
+    it('shows pro tier label for pro users', () => {
+      mockAuthStore.tier = 'pro'
+      const wrapper = createWrapper()
+      expect(wrapper.find('.user-item').text()).toContain('pro')
+    })
+
+    it('does not show riot account name in user section', () => {
+      const wrapper = createWrapper()
+      expect(wrapper.find('.user-item').text()).not.toContain('Faker#KR1')
+    })
   })
 })
