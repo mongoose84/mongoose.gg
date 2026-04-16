@@ -203,6 +203,175 @@ public class OverviewEndpointTests
         body!.MostPlayedChampion.Should().BeNull();
     }
 
+    [Fact]
+    public async Task Overview_returns_session_stats_non_null()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body.Should().NotBeNull();
+        body!.SessionStats.Should().NotBeNull();
+        body.SessionStats!.GamesToday.Should().Be(0);
+        body.SessionStats.GamesThisWeek.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Overview_returns_session_stats_with_configured_data()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        factory.OverviewStatsRepository.AddSessionData("test-puuid-123",
+            gamesToday: 3, winsToday: 2, lossesToday: 1,
+            gamesThisWeek: 10, winsThisWeek: 6, lossesThisWeek: 4);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body.Should().NotBeNull();
+        body!.SessionStats.Should().NotBeNull();
+        body.SessionStats!.GamesToday.Should().Be(3);
+        body.SessionStats.WinsToday.Should().Be(2);
+        body.SessionStats.LossesToday.Should().Be(1);
+        body.SessionStats.GamesThisWeek.Should().Be(10);
+        body.SessionStats.WinsThisWeek.Should().Be(6);
+        body.SessionStats.LossesThisWeek.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task Overview_returns_survival_stats_non_null()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body.Should().NotBeNull();
+        body!.SurvivalStats.Should().NotBeNull();
+        body.SurvivalStats!.TotalGames.Should().Be(0);
+        body.SurvivalStats.AvgDeathsPerGame.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Overview_returns_survival_stats_with_configured_data()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        factory.OverviewStatsRepository.SetSurvivalStats(new Mongoose.Api.Core.QueryModels.SurvivalStatsData(
+            AvgDeathsPerGame: 4.5,
+            DeathsBefore10Pct: 0.3,
+            WinRateAtOrBelow3Deaths: 0.65,
+            WinRateAbove5Deaths: 0.2,
+            GamesAtOrBelow3Deaths: 8,
+            GamesAbove5Deaths: 5,
+            TotalGames: 20
+        ));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body.Should().NotBeNull();
+        body!.SurvivalStats.Should().NotBeNull();
+        body.SurvivalStats!.AvgDeathsPerGame.Should().Be(4.5);
+        body.SurvivalStats.DeathsBefore10Pct.Should().Be(0.3);
+        body.SurvivalStats.WinRateAtOrBelow3Deaths.Should().Be(0.65);
+        body.SurvivalStats.WinRateAbove5Deaths.Should().Be(0.2);
+        body.SurvivalStats.TotalGames.Should().Be(20);
+    }
+
+    [Fact]
+    public async Task Overview_all_mode_returns_account_summaries_with_game_counts()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-a", "PlayerA", "EUW1", "PlayerA#EUW", 150, 10);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-a", isPrimary: true);
+        factory.OverviewStatsRepository.AddSessionData("puuid-a",
+            gamesToday: 2, winsToday: 1, lossesToday: 1,
+            gamesThisWeek: 7, winsThisWeek: 4, lossesThisWeek: 3);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1?accountId=all");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body.Should().NotBeNull();
+        body!.AccountSummaries.Should().NotBeNull();
+        body.AccountSummaries!.Should().NotBeEmpty();
+
+        var accountA = body.AccountSummaries!.First(a => a.GameName == "PlayerA");
+        accountA.GamesToday.Should().Be(2);
+        accountA.GamesThisWeek.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task Overview_rank_snapshot_does_not_include_wl_fields()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccountWithRank(
+            userId: 1, puuid: "test-puuid-123", gameName: "TestPlayer", region: "NA1",
+            summonerName: "TestPlayer#NA1", summonerLevel: 100, profileIconId: 42,
+            soloTier: "PLATINUM", soloRank: "I", soloLp: 50);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var raw = await response.Content.ReadAsStringAsync();
+        raw.Should().NotContain("wlLast20");
+        raw.Should().NotContain("last20Wins");
+        raw.Should().NotContain("last20Losses");
+        var body = await System.Text.Json.JsonSerializer.DeserializeAsync<OverviewResponse>(
+            new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(raw)),
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        body!.RankSnapshot.Rank.Should().Be("PLATINUM I");
+    }
+
     // Response DTOs for deserialization
     private record OverviewResponse(
         PlayerHeader PlayerHeader,
@@ -210,14 +379,23 @@ public class OverviewEndpointTests
         LastMatch? LastMatch,
         MostPlayedChampion? MostPlayedChampion,
         GoalPreview[] ActiveGoals,
-        SuggestedAction[] SuggestedActions
+        SuggestedAction[] SuggestedActions,
+        AccountSummary[]? AccountSummaries = null,
+        CombinedStats? CombinedStats = null,
+        SessionStats? SessionStats = null,
+        SurvivalStats? SurvivalStats = null
     );
-    
+
     private record PlayerHeader(string SummonerName, int Level, string Region, string ProfileIconUrl, string[] ActiveContexts);
-    private record RankSnapshot(string PrimaryQueueLabel, string? Rank, int? Lp, int Last20Wins, int Last20Losses, bool[] WlLast20);
+    private record RankSnapshot(string PrimaryQueueLabel, string? Rank, int? Lp);
     private record LastMatch(string MatchId, string ChampionIconUrl, string ChampionName, string Result, string Kda, long Timestamp);
     private record MostPlayedChampion(string ChampionName, int GamesPlayed, string Source);
     private record GoalPreview(string GoalId, string Title, string Context, double Progress);
     private record SuggestedAction(string ActionId, string Text, string DeepLink, int Priority);
+    private record AccountSummary(string AccountId, string GameName, string TagLine, string Region, string? Rank, int? Lp, int GamesToday, int GamesThisWeek);
+    private record CombinedStats(int TotalGames, double WinRate, double AvgKda);
+    private record SessionStats(int GamesToday, int WinsToday, int LossesToday, double? AvgKdaToday, SessionChampion? BestChampionToday, int GamesThisWeek, int WinsThisWeek, int LossesThisWeek, double? AvgKdaThisWeek);
+    private record SessionChampion(string ChampionName, int Wins, int Losses, double AvgKda);
+    private record SurvivalStats(double AvgDeathsPerGame, double DeathsBefore10Pct, double? WinRateAtOrBelow3Deaths, double? WinRateAbove5Deaths, int GamesAtOrBelow3Deaths, int GamesAbove5Deaths, int TotalGames);
 }
 

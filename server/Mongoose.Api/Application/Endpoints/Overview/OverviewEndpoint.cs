@@ -79,29 +79,29 @@ public sealed class OverviewEndpoint : IEndpoint
                 // Determine primary queue
                 var (primaryQueueId, primaryQueueLabel, _) = await overviewStatsRepo.GetPrimaryQueueAsync(selectedPuuids);
 
-                // Get last 20 matches for primary queue
-                var last20Matches = await overviewStatsRepo.GetLast20MatchesAsync(selectedPuuids, primaryQueueId);
+                // Calculate rank snapshot (wlLast20 fields removed)
+                var rankSnapshot = BuildRankSnapshot(primaryAccount, primaryQueueId, primaryQueueLabel);
 
-                // Calculate rank snapshot
-                var rankSnapshot = BuildRankSnapshot(
-                    primaryAccount,
-                    primaryQueueId,
-                    primaryQueueLabel,
-                    last20Matches
-                );
+                // Parallelize independent data fetches
+                var lastMatchTask = overviewStatsRepo.GetLastMatchAsync(selectedPuuids);
+                var mostPlayedChampionTask = overviewStatsRepo.GetMostPlayedChampionAsync(selectedPuuids);
+                var sessionStatsTask = overviewStatsRepo.GetSessionStatsAsync(selectedPuuids, DateTime.UtcNow);
+                var survivalStatsTask = overviewStatsRepo.GetSurvivalStatsAsync(selectedPuuids);
+                await Task.WhenAll(lastMatchTask, mostPlayedChampionTask, sessionStatsTask, survivalStatsTask);
 
-                // Get last match
-                var lastMatchData = await overviewStatsRepo.GetLastMatchAsync(selectedPuuids);
+                var lastMatchData = lastMatchTask.Result;
                 var lastMatch = lastMatchData != null ? BuildLastMatch(lastMatchData) : null;
 
-                // Most played champion for CTA mural personalization
-                var mostPlayedChampionData = await overviewStatsRepo.GetMostPlayedChampionAsync(selectedPuuids);
+                var mostPlayedChampionData = mostPlayedChampionTask.Result;
                 var mostPlayedChampion = mostPlayedChampionData != null
                     ? new MostPlayedChampion(
                         ChampionName: mostPlayedChampionData.ChampionName,
                         GamesPlayed: mostPlayedChampionData.GamesPlayed,
                         Source: "current_season")
                     : null;
+
+                var sessionStatsData = sessionStatsTask.Result;
+                var survivalStatsData = survivalStatsTask.Result;
 
                 // Active goals (placeholder - no goals table yet, return empty)
                 var activeGoals = Array.Empty<GoalPreview>();
@@ -115,16 +115,21 @@ public sealed class OverviewEndpoint : IEndpoint
                 if (isAllMode && allAccounts != null)
                 {
                     accountSummaries = allAccounts
-                        .Select(resolved => new AccountSummary(
-                            AccountId: resolved.AccountId,
-                            GameName: resolved.Account.GameName,
-                            TagLine: resolved.Account.TagLine,
-                            Region: resolved.Account.Region,
-                            Rank: BuildRankString(resolved.Account),
-                            Lp: BuildLpValue(resolved.Account),
-                            GamesToday: 0,
-                            GamesThisWeek: 0
-                        ))
+                        .Select(resolved =>
+                        {
+                            var perAccountData = sessionStatsData.PerAccount
+                                .FirstOrDefault(a => a.Puuid == resolved.Account.Puuid);
+                            return new AccountSummary(
+                                AccountId: resolved.AccountId,
+                                GameName: resolved.Account.GameName,
+                                TagLine: resolved.Account.TagLine,
+                                Region: resolved.Account.Region,
+                                Rank: BuildRankString(resolved.Account),
+                                Lp: BuildLpValue(resolved.Account),
+                                GamesToday: perAccountData?.GamesToday ?? 0,
+                                GamesThisWeek: perAccountData?.GamesThisWeek ?? 0
+                            );
+                        })
                         .ToArray();
 
                     var aggregatePerformance = await soloPerformanceRepo.GetSoloPerformanceAsync(selectedPuuids, "all", null);
@@ -138,6 +143,17 @@ public sealed class OverviewEndpoint : IEndpoint
                     }
                 }
 
+                var sessionStats = BuildSessionStats(sessionStatsData);
+                var survivalStats = new SurvivalStats(
+                    AvgDeathsPerGame: survivalStatsData.AvgDeathsPerGame,
+                    DeathsBefore10Pct: survivalStatsData.DeathsBefore10Pct,
+                    WinRateAtOrBelow3Deaths: survivalStatsData.WinRateAtOrBelow3Deaths,
+                    WinRateAbove5Deaths: survivalStatsData.WinRateAbove5Deaths,
+                    GamesAtOrBelow3Deaths: survivalStatsData.GamesAtOrBelow3Deaths,
+                    GamesAbove5Deaths: survivalStatsData.GamesAbove5Deaths,
+                    TotalGames: survivalStatsData.TotalGames
+                );
+
                 var response = new OverviewResponse(
                     PlayerHeader: playerHeader,
                     RankSnapshot: rankSnapshot,
@@ -146,7 +162,9 @@ public sealed class OverviewEndpoint : IEndpoint
                     ActiveGoals: activeGoals,
                     SuggestedActions: suggestedActions,
                     AccountSummaries: accountSummaries,
-                    CombinedStats: combinedStats
+                    CombinedStats: combinedStats,
+                    SessionStats: sessionStats,
+                    SurvivalStats: survivalStats
                 );
 
                 return Results.Ok(response);
@@ -180,10 +198,8 @@ public sealed class OverviewEndpoint : IEndpoint
     private static RankSnapshot BuildRankSnapshot(
         Mongoose.Api.Core.Entities.RiotAccount account,
         int primaryQueueId,
-        string primaryQueueLabel,
-        List<MatchResultData> last20Matches)
+        string primaryQueueLabel)
     {
-        // Get current rank based on primary queue
         string? rank = null;
         int? currentLp = null;
 
@@ -204,20 +220,70 @@ public sealed class OverviewEndpoint : IEndpoint
             }
         }
 
-        // Calculate wins and losses from last 20
-        var last20Wins = last20Matches.Count(m => m.Win);
-        var last20Losses = last20Matches.Count(m => !m.Win);
-
-        // Build W/L array (newest first, true = win, false = loss)
-        var wlLast20 = last20Matches.Select(m => m.Win).ToArray();
-
         return new RankSnapshot(
             PrimaryQueueLabel: primaryQueueLabel,
             Rank: rank,
-            Lp: currentLp,
-            Last20Wins: last20Wins,
-            Last20Losses: last20Losses,
-            WlLast20: wlLast20
+            Lp: currentLp
+        );
+    }
+
+    private static SessionStats BuildSessionStats(SessionStatsData data)
+    {
+        var perAccount = data.PerAccount;
+        var totalGamesToday = perAccount.Sum(a => a.GamesToday);
+        var totalWinsToday = perAccount.Sum(a => a.WinsToday);
+        var totalLossesToday = perAccount.Sum(a => a.LossesToday);
+
+        double? avgKdaToday = null;
+        if (totalGamesToday > 0)
+        {
+            var weightedSum = perAccount
+                .Where(a => a.AvgKdaToday.HasValue && a.GamesToday > 0)
+                .Sum(a => a.AvgKdaToday!.Value * a.GamesToday);
+            avgKdaToday = weightedSum / totalGamesToday;
+        }
+
+        SessionChampion? bestChampionToday = null;
+        var bestChamp = perAccount
+            .Where(a => a.BestChampionName != null)
+            .OrderByDescending(a => a.BestChampionWins + a.BestChampionLosses > 0
+                ? (double)a.BestChampionWins / (a.BestChampionWins + a.BestChampionLosses)
+                : 0.0)
+            .ThenByDescending(a => a.BestChampionAvgKda)
+            .FirstOrDefault();
+        if (bestChamp != null)
+        {
+            bestChampionToday = new SessionChampion(
+                ChampionName: bestChamp.BestChampionName!,
+                Wins: bestChamp.BestChampionWins,
+                Losses: bestChamp.BestChampionLosses,
+                AvgKda: bestChamp.BestChampionAvgKda
+            );
+        }
+
+        var totalGamesThisWeek = perAccount.Sum(a => a.GamesThisWeek);
+        var totalWinsThisWeek = perAccount.Sum(a => a.WinsThisWeek);
+        var totalLossesThisWeek = perAccount.Sum(a => a.LossesThisWeek);
+
+        double? avgKdaThisWeek = null;
+        if (totalGamesThisWeek > 0)
+        {
+            var weightedSum = perAccount
+                .Where(a => a.AvgKdaThisWeek.HasValue && a.GamesThisWeek > 0)
+                .Sum(a => a.AvgKdaThisWeek!.Value * a.GamesThisWeek);
+            avgKdaThisWeek = weightedSum / totalGamesThisWeek;
+        }
+
+        return new SessionStats(
+            GamesToday: totalGamesToday,
+            WinsToday: totalWinsToday,
+            LossesToday: totalLossesToday,
+            AvgKdaToday: avgKdaToday,
+            BestChampionToday: bestChampionToday,
+            GamesThisWeek: totalGamesThisWeek,
+            WinsThisWeek: totalWinsThisWeek,
+            LossesThisWeek: totalLossesThisWeek,
+            AvgKdaThisWeek: avgKdaThisWeek
         );
     }
 

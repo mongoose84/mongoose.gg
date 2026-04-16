@@ -315,5 +315,224 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             return result == null || result == DBNull.Value ? (int?)null : Convert.ToInt32(result);
         });
     }
+
+    /// <summary>
+    /// Returns per-PUUID session breakdown for today and the last 7 days.
+    /// Uses conditional aggregation so both time windows are covered in a single stats query,
+    /// plus a second query for per-champion breakdowns today.
+    /// </summary>
+    public virtual async Task<SessionStatsData> GetSessionStatsAsync(IReadOnlyList<string> puuids, DateTime todayUtc)
+    {
+        if (puuids.Count == 0)
+            return new SessionStatsData(Array.Empty<PerAccountSessionData>());
+
+        var todayStart = new DateTime(todayUtc.Year, todayUtc.Month, todayUtc.Day, 0, 0, 0, DateTimeKind.Utc);
+        var todayStartMs = new DateTimeOffset(todayStart).ToUnixTimeMilliseconds();
+        var weekStartMs = new DateTimeOffset(todayStart.AddDays(-7)).ToUnixTimeMilliseconds();
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        var statsSql = $@"
+            SELECT
+                p.puuid,
+                SUM(CASE WHEN m.game_start_time >= @today_start THEN 1 ELSE 0 END) AS games_today,
+                SUM(CASE WHEN m.game_start_time >= @today_start AND p.win = 1 THEN 1 ELSE 0 END) AS wins_today,
+                SUM(CASE WHEN m.game_start_time >= @today_start AND p.win = 0 THEN 1 ELSE 0 END) AS losses_today,
+                AVG(CASE WHEN m.game_start_time >= @today_start THEN (p.kills + p.assists) / GREATEST(p.deaths, 1) ELSE NULL END) AS avg_kda_today,
+                COUNT(*) AS games_this_week,
+                SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) AS wins_this_week,
+                SUM(CASE WHEN p.win = 0 THEN 1 ELSE 0 END) AS losses_this_week,
+                AVG((p.kills + p.assists) / GREATEST(p.deaths, 1)) AS avg_kda_this_week
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE {puuidPredicate}
+              AND m.game_start_time >= @week_start
+            GROUP BY p.puuid";
+
+        var (puuidPredicate2, puuidParams2) = BuildStringInClause("p.puuid", puuids, "puuid2");
+        var championSql = $@"
+            SELECT
+                p.puuid,
+                p.champion_name,
+                SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) AS wins,
+                SUM(CASE WHEN p.win = 0 THEN 1 ELSE 0 END) AS losses,
+                AVG((p.kills + p.assists) / GREATEST(p.deaths, 1)) AS avg_kda
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE {puuidPredicate2}
+              AND m.game_start_time >= @today_start2
+            GROUP BY p.puuid, p.champion_name";
+
+        var statsRows = new Dictionary<string, (int GamesToday, int WinsToday, int LossesToday, double? AvgKdaToday, int GamesThisWeek, int WinsThisWeek, int LossesThisWeek, double? AvgKdaThisWeek)>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(statsSql, conn);
+            foreach (var (name, value) in puuidParams)
+                cmd.Parameters.AddWithValue(name, value);
+            cmd.Parameters.AddWithValue("@today_start", todayStartMs);
+            cmd.Parameters.AddWithValue("@week_start", weekStartMs);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var puuid = reader.GetString(0);
+                statsRows[puuid] = (
+                    GamesToday: reader.IsDBNull(1) ? 0 : Convert.ToInt32(reader.GetValue(1)),
+                    WinsToday: reader.IsDBNull(2) ? 0 : Convert.ToInt32(reader.GetValue(2)),
+                    LossesToday: reader.IsDBNull(3) ? 0 : Convert.ToInt32(reader.GetValue(3)),
+                    AvgKdaToday: reader.IsDBNull(4) ? (double?)null : reader.GetDouble(4),
+                    GamesThisWeek: reader.IsDBNull(5) ? 0 : Convert.ToInt32(reader.GetValue(5)),
+                    WinsThisWeek: reader.IsDBNull(6) ? 0 : Convert.ToInt32(reader.GetValue(6)),
+                    LossesThisWeek: reader.IsDBNull(7) ? 0 : Convert.ToInt32(reader.GetValue(7)),
+                    AvgKdaThisWeek: reader.IsDBNull(8) ? (double?)null : reader.GetDouble(8)
+                );
+            }
+            return 0;
+        });
+
+        var championRows = new Dictionary<string, List<(string ChampionName, int Wins, int Losses, double AvgKda)>>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(championSql, conn);
+            foreach (var (name, value) in puuidParams2)
+                cmd.Parameters.AddWithValue(name, value);
+            cmd.Parameters.AddWithValue("@today_start2", todayStartMs);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var puuid = reader.GetString(0);
+                if (!championRows.TryGetValue(puuid, out var list))
+                {
+                    list = new List<(string, int, int, double)>();
+                    championRows[puuid] = list;
+                }
+                list.Add((
+                    reader.GetString(1),
+                    reader.IsDBNull(2) ? 0 : Convert.ToInt32(reader.GetValue(2)),
+                    reader.IsDBNull(3) ? 0 : Convert.ToInt32(reader.GetValue(3)),
+                    reader.IsDBNull(4) ? 0.0 : reader.GetDouble(4)
+                ));
+            }
+            return 0;
+        });
+
+        var perAccount = new List<PerAccountSessionData>();
+        foreach (var puuid in puuids)
+        {
+            if (!statsRows.TryGetValue(puuid, out var stats))
+                continue;
+
+            championRows.TryGetValue(puuid, out var champions);
+
+            string? bestChampionName = null;
+            var bestChampionWins = 0;
+            var bestChampionLosses = 0;
+            var bestChampionAvgKda = 0.0;
+
+            if (champions != null && champions.Count > 0)
+            {
+                var best = champions
+                    .OrderByDescending(c => c.Wins + c.Losses > 0 ? (double)c.Wins / (c.Wins + c.Losses) : 0.0)
+                    .ThenByDescending(c => c.AvgKda)
+                    .First();
+                bestChampionName = best.ChampionName;
+                bestChampionWins = best.Wins;
+                bestChampionLosses = best.Losses;
+                bestChampionAvgKda = best.AvgKda;
+            }
+
+            perAccount.Add(new PerAccountSessionData(
+                Puuid: puuid,
+                GamesToday: stats.GamesToday,
+                WinsToday: stats.WinsToday,
+                LossesToday: stats.LossesToday,
+                AvgKdaToday: stats.AvgKdaToday,
+                BestChampionName: bestChampionName,
+                BestChampionWins: bestChampionWins,
+                BestChampionLosses: bestChampionLosses,
+                BestChampionAvgKda: bestChampionAvgKda,
+                GamesThisWeek: stats.GamesThisWeek,
+                WinsThisWeek: stats.WinsThisWeek,
+                LossesThisWeek: stats.LossesThisWeek,
+                AvgKdaThisWeek: stats.AvgKdaThisWeek
+            ));
+        }
+
+        return new SessionStatsData(perAccount);
+    }
+
+    /// <summary>
+    /// Returns survival statistics computed from the last N games across all specified PUUIDs.
+    /// Joins participant_metrics for deaths_pre_10 data.
+    /// </summary>
+    public virtual async Task<SurvivalStatsData> GetSurvivalStatsAsync(IReadOnlyList<string> puuids, int lastNGames = 20)
+    {
+        if (puuids.Count == 0)
+            return new SurvivalStatsData(0, 0, null, null, 0, 0, 0);
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        var sql = $@"
+            SELECT
+                p.win,
+                p.deaths,
+                pm.deaths_pre_10
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
+            WHERE {puuidPredicate}
+            ORDER BY m.game_start_time DESC
+            LIMIT @last_n_games";
+
+        var rows = new List<(bool Win, int Deaths, int? DeathsPre10)>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            foreach (var (name, value) in puuidParams)
+                cmd.Parameters.AddWithValue(name, value);
+            cmd.Parameters.AddWithValue("@last_n_games", lastNGames);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                rows.Add((
+                    Win: reader.GetBoolean(0),
+                    Deaths: reader.GetInt32(1),
+                    DeathsPre10: reader.IsDBNull(2) ? (int?)null : reader.GetInt32(2)
+                ));
+            }
+            return 0;
+        });
+
+        if (rows.Count == 0)
+            return new SurvivalStatsData(0, 0, null, null, 0, 0, 0);
+
+        var totalGames = rows.Count;
+        var avgDeathsPerGame = rows.Average(r => (double)r.Deaths);
+        var totalDeaths = rows.Sum(r => r.Deaths);
+        var totalDeathsPre10 = rows.Sum(r => r.DeathsPre10 ?? 0);
+        var deathsBefore10Pct = totalDeaths > 0 ? (double)totalDeathsPre10 / totalDeaths : 0.0;
+
+        var atOrBelow3 = rows.Where(r => r.Deaths <= 3).ToList();
+        var above5 = rows.Where(r => r.Deaths > 5).ToList();
+        var winRateAtOrBelow3 = atOrBelow3.Count > 0
+            ? atOrBelow3.Count(r => r.Win) / (double)atOrBelow3.Count
+            : (double?)null;
+        var winRateAbove5 = above5.Count > 0
+            ? above5.Count(r => r.Win) / (double)above5.Count
+            : (double?)null;
+
+        return new SurvivalStatsData(
+            AvgDeathsPerGame: avgDeathsPerGame,
+            DeathsBefore10Pct: deathsBefore10Pct,
+            WinRateAtOrBelow3Deaths: winRateAtOrBelow3,
+            WinRateAbove5Deaths: winRateAbove5,
+            GamesAtOrBelow3Deaths: atOrBelow3.Count,
+            GamesAbove5Deaths: above5.Count,
+            TotalGames: totalGames
+        );
+    }
 }
 

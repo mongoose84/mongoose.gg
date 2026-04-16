@@ -858,6 +858,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         private readonly ConcurrentDictionary<string, List<MatchResultData>> _matchesByPuuid = new();
         private readonly ConcurrentDictionary<string, LastMatchData> _lastMatchByPuuid = new();
         private readonly ConcurrentDictionary<string, MostPlayedChampionData> _mostPlayedChampionByPuuid = new();
+        private readonly ConcurrentDictionary<string, (int GamesToday, int WinsToday, int LossesToday, int GamesThisWeek, int WinsThisWeek, int LossesThisWeek)> _sessionDataByPuuid = new();
+        private SurvivalStatsData _survivalStats = new SurvivalStatsData(0, 0, null, null, 0, 0, 0);
         private int _defaultQueueId = 420;
         private string _defaultQueueLabel = "Ranked Solo/Duo";
 
@@ -984,6 +986,56 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public void SetMostPlayedChampion(string puuid, string championName, int gamesPlayed)
         {
             _mostPlayedChampionByPuuid[puuid] = new MostPlayedChampionData(championName, gamesPlayed);
+        }
+
+        public override Task<SessionStatsData> GetSessionStatsAsync(IReadOnlyList<string> puuids, DateTime todayUtc)
+        {
+            var perAccount = puuids
+                .Where(puuid => _sessionDataByPuuid.TryGetValue(puuid, out _))
+                .Select(puuid =>
+                {
+                    var data = _sessionDataByPuuid[puuid];
+                    return new PerAccountSessionData(
+                        Puuid: puuid,
+                        GamesToday: data.GamesToday,
+                        WinsToday: data.WinsToday,
+                        LossesToday: data.LossesToday,
+                        AvgKdaToday: null,
+                        BestChampionName: null,
+                        BestChampionWins: 0,
+                        BestChampionLosses: 0,
+                        BestChampionAvgKda: 0,
+                        GamesThisWeek: data.GamesThisWeek,
+                        WinsThisWeek: data.WinsThisWeek,
+                        LossesThisWeek: data.LossesThisWeek,
+                        AvgKdaThisWeek: null
+                    );
+                })
+                .ToList();
+
+            return Task.FromResult(new SessionStatsData(perAccount));
+        }
+
+        public override Task<SurvivalStatsData> GetSurvivalStatsAsync(IReadOnlyList<string> puuids, int lastNGames = 20)
+        {
+            return Task.FromResult(_survivalStats);
+        }
+
+        /// <summary>
+        /// Configures per-account session data for tests.
+        /// </summary>
+        public void AddSessionData(string puuid, int gamesToday, int winsToday, int lossesToday,
+            int gamesThisWeek, int winsThisWeek, int lossesThisWeek)
+        {
+            _sessionDataByPuuid[puuid] = (gamesToday, winsToday, lossesToday, gamesThisWeek, winsThisWeek, lossesThisWeek);
+        }
+
+        /// <summary>
+        /// Overrides the survival stats returned by the fake.
+        /// </summary>
+        public void SetSurvivalStats(SurvivalStatsData survivalStats)
+        {
+            _survivalStats = survivalStats;
         }
     }
 
