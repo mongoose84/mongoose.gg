@@ -184,16 +184,14 @@
             :end-date="matchActivityData.endDate"
             :total-matches="matchActivityData.totalMatches"
           />
-          <div
-            v-else-if="matchActivityLoading"
-            class="empty-state"
-            data-testid="match-activity-loading-state"
-            aria-live="polite"
-          >
-            Loading match activity...
-          </div>
-          <div v-else class="empty-state">No match activity data</div>
-        </BaseCard>
+        <MatchActivityHeatmap
+          v-if="matchActivityData"
+          :daily-match-counts="matchActivityData.dailyMatchCounts"
+          :start-date="matchActivityData.startDate"
+          :end-date="matchActivityData.endDate"
+          :total-matches="matchActivityData.totalMatches"
+        />
+        <div v-else-if="!matchActivityLoading" class="empty-state">No match activity data</div>
       </div>
     </template>
 
