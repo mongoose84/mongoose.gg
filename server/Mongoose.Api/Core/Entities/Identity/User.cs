@@ -10,9 +10,9 @@ public class User : EntityBase
     public bool EmailVerified { get; set; }
     public bool IsActive { get; set; } = true;
     public string Tier { get; set; } = "free";
+    public int? UserIconId { get; set; }
     public string? MollieCustomerId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
 }
-

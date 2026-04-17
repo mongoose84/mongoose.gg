@@ -369,6 +369,7 @@ public sealed class PuuidResolutionServiceTests
         public Task<bool> EmailExistsAsync(string email) => throw new NotImplementedException();
         public Task<long> GetActiveUserCountAsync() => throw new NotImplementedException();
         public Task UpdateEmailVerifiedAsync(long userId, bool verified) => throw new NotImplementedException();
+        public Task UpdateUserIconIdAsync(long userId, int? userIconId) => throw new NotImplementedException();
         public Task UpdatePasswordHashAsync(long userId, string passwordHash) => throw new NotImplementedException();
         public Task<string?> GetSecurityStampAsync(long userId) => throw new NotImplementedException();
         public Task<bool> DeleteUserAsync(long userId) => throw new NotImplementedException();

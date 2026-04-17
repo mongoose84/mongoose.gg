@@ -9,6 +9,7 @@ vi.mock('@/services/authApi', () => ({
   logout: vi.fn(),
   verify: vi.fn(),
   getCurrentUser: vi.fn(),
+  updateUserIcon: vi.fn(),
   changePassword: vi.fn(),
   linkRiotAccount: vi.fn(),
   unlinkRiotAccount: vi.fn(),
@@ -184,6 +185,15 @@ describe('authStore', () => {
       expect(authApi.getCurrentUser).toHaveBeenCalledOnce();
     });
 
+    it('hydrates local user icon from persisted profile data', async () => {
+      authApi.getCurrentUser.mockResolvedValue({ userId: 1, userIconId: 503 });
+
+      const store = useAuthStore();
+      await store.initialize();
+
+      expect(localStorage.getItem('mongoose_user_icon')).toBe('503');
+    });
+
     it('does not clear an already authenticated user with stale initialize result', async () => {
       let resolveCurrentUser;
       authApi.getCurrentUser.mockImplementationOnce(() => new Promise(resolve => {
@@ -272,6 +282,17 @@ describe('authStore', () => {
       await loginPromise;
 
       expect(store.isLoading).toBe(false);
+    });
+
+    it('clears local user icon when server profile has no icon', async () => {
+      localStorage.setItem('mongoose_user_icon', '29');
+      authApi.login.mockResolvedValue({ success: true });
+      authApi.getCurrentUser.mockResolvedValue({ userId: 1, emailVerified: true, userIconId: null });
+
+      const store = useAuthStore();
+      await store.login({ username: 'testuser', password: 'password123' });
+
+      expect(localStorage.getItem('mongoose_user_icon')).toBeNull();
     });
 
     it('restores stored active account on login when still linked', async () => {
@@ -748,6 +769,22 @@ describe('authStore', () => {
     });
   });
 
+  describe('updateUserIcon', () => {
+    it('calls API and updates user profile icon', async () => {
+      authApi.updateUserIcon.mockResolvedValue({ success: true, userIconId: 4025 });
+
+      const store = useAuthStore();
+      store.user = { userId: 1, userIconId: null };
+
+      const result = await store.updateUserIcon(4025);
+
+      expect(authApi.updateUserIcon).toHaveBeenCalledWith(4025);
+      expect(store.user.userIconId).toBe(4025);
+      expect(localStorage.getItem('mongoose_user_icon')).toBe('4025');
+      expect(result).toEqual({ success: true });
+    });
+  });
+
   describe('clearError', () => {
     it('clears the error state', () => {
       const store = useAuthStore();
@@ -889,4 +926,3 @@ describe('authStore', () => {
     });
   });
 });
-

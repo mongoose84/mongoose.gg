@@ -26,7 +26,7 @@
             v-if="selectedIconId"
             class="text-xs text-text-secondary hover:text-error cursor-pointer bg-transparent border-none p-0 text-left"
             data-testid="user-icon-clear"
-            @click="setUserIcon(null)"
+            @click="handleSetUserIcon(null)"
           >
             Remove icon
           </button>
@@ -52,7 +52,7 @@
           class="w-10 h-10 rounded-md overflow-hidden cursor-pointer border-2 transition-all duration-150 hover:opacity-80 hover:border-text-secondary bg-transparent p-0"
           :class="selectedIconId === iconId ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'"
           :data-testid="`user-icon-option-${iconId}`"
-          @click="setUserIcon(iconId)"
+          @click="handleSetUserIcon(iconId)"
         >
           <img
             :src="getIconUrl(iconId)"
@@ -71,8 +71,10 @@
 import { reactive } from 'vue'
 import { useUserIcon, ICON_OPTIONS } from '@/composables/useUserIcon'
 import { getProfileIconUrl } from '@/utils/leagueAssets'
+import { useAuthStore } from '@/stores/authStore'
 
 const { selectedIconId, userIconUrl, setUserIcon } = useUserIcon()
+const authStore = useAuthStore()
 
 const iconOptions = ICON_OPTIONS
 const failedIcons = reactive([])
@@ -88,6 +90,20 @@ function handleIconError(iconId) {
 }
 
 function handlePreviewError() {
-  setUserIcon(null)
+  handleSetUserIcon(null)
+}
+
+async function handleSetUserIcon(iconId) {
+  setUserIcon(iconId)
+
+  if (!authStore.isAuthenticated) {
+    return
+  }
+
+  try {
+    await authStore.updateUserIcon(iconId)
+  } catch (error) {
+    console.error('Failed to persist user icon preference:', error)
+  }
 }
 </script>

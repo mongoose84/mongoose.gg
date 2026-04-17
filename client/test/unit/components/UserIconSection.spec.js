@@ -6,6 +6,8 @@ import UserIconSection from '@/components/settings/UserIconSection.vue'
 const mockSelectedIconId = ref(null)
 const mockUserIconUrl = ref(null)
 const mockSetUserIcon = vi.fn()
+const mockUpdateUserIcon = vi.fn()
+const mockIsAuthenticated = true
 
 vi.mock('@/composables/useUserIcon', () => ({
   useUserIcon: () => ({
@@ -16,6 +18,13 @@ vi.mock('@/composables/useUserIcon', () => ({
   ICON_OPTIONS: [29, 1, 2, 3]
 }))
 
+vi.mock('@/stores/authStore', () => ({
+  useAuthStore: () => ({
+    isAuthenticated: mockIsAuthenticated,
+    updateUserIcon: mockUpdateUserIcon
+  })
+}))
+
 describe('UserIconSection.vue', () => {
   const createWrapper = () => mount(UserIconSection)
 
@@ -23,6 +32,7 @@ describe('UserIconSection.vue', () => {
     mockSelectedIconId.value = null
     mockUserIconUrl.value = null
     mockSetUserIcon.mockReset()
+    mockUpdateUserIcon.mockReset()
   })
 
   it('renders the section', () => {
@@ -59,6 +69,7 @@ describe('UserIconSection.vue', () => {
     await wrapper.find('[data-testid="user-icon-option-29"]').trigger('click')
 
     expect(mockSetUserIcon).toHaveBeenCalledWith(29)
+    expect(mockUpdateUserIcon).toHaveBeenCalledWith(29)
   })
 
   it('shows remove button when an icon is selected', () => {
@@ -82,6 +93,7 @@ describe('UserIconSection.vue', () => {
     await wrapper.find('[data-testid="user-icon-clear"]').trigger('click')
 
     expect(mockSetUserIcon).toHaveBeenCalledWith(null)
+    expect(mockUpdateUserIcon).toHaveBeenCalledWith(null)
   })
 
   it('highlights the currently selected icon in the grid', () => {
