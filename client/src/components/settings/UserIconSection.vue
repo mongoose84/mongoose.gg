@@ -108,7 +108,7 @@ async function handleSetUserIcon(iconId) {
   try {
     await authStore.updateUserIcon(iconId)
   } catch (error) {
-    persistError.value = 'Could not save your icon right now. Your change may not persist.'
+    persistError.value = 'Could not save icon to your profile. This selection will be lost after you sign out.'
     console.error('Failed to persist user icon preference:', error)
   }
 }
