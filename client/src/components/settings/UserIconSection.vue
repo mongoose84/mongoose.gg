@@ -5,6 +5,9 @@
       <p id="user-icon-description" class="text-xs text-text-secondary mb-md">
         Choose a profile icon to display in the sidebar
       </p>
+      <p v-if="persistError" class="text-xs text-error mb-md" data-testid="user-icon-persist-error">
+        {{ persistError }}
+      </p>
 
       <!-- Current selection preview -->
       <div class="flex items-center gap-md mb-lg" data-testid="user-icon-preview">
@@ -68,13 +71,14 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useUserIcon, ICON_OPTIONS } from '@/composables/useUserIcon'
 import { getProfileIconUrl } from '@/utils/leagueAssets'
 import { useAuthStore } from '@/stores/authStore'
 
 const { selectedIconId, userIconUrl, setUserIcon } = useUserIcon()
 const authStore = useAuthStore()
+const persistError = ref('')
 
 const iconOptions = ICON_OPTIONS
 const failedIcons = reactive([])
@@ -94,6 +98,7 @@ function handlePreviewError() {
 }
 
 async function handleSetUserIcon(iconId) {
+  persistError.value = ''
   setUserIcon(iconId)
 
   if (!authStore.isAuthenticated) {
@@ -103,6 +108,7 @@ async function handleSetUserIcon(iconId) {
   try {
     await authStore.updateUserIcon(iconId)
   } catch (error) {
+    persistError.value = 'Could not save your icon right now. Your change may not persist.'
     console.error('Failed to persist user icon preference:', error)
   }
 }

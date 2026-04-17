@@ -241,6 +241,29 @@ public class RiotAccountsEndpointTests
     }
 
     [Fact]
+    public async Task UpdateUserIcon_AllowsNullToClearPersistedIcon()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetUserIconId("tester", 4025);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/icon")
+        {
+            Content = JsonContent.Create(new { userIconId = (int?)null })
+        };
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updatedUser = await factory.UsersRepository.GetByUsernameAsync("tester");
+        updatedUser.Should().NotBeNull();
+        updatedUser!.UserIconId.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Sync_Returns202_WhenAccountIsLinkedAndNotSyncing()
     {
         using var factory = new TestWebApplicationFactory();

@@ -96,6 +96,17 @@ describe('UserIconSection.vue', () => {
     expect(mockUpdateUserIcon).toHaveBeenCalledWith(null)
   })
 
+  it('shows an inline error when icon persistence fails', async () => {
+    mockUpdateUserIcon.mockRejectedValueOnce(new Error('network'))
+    const wrapper = createWrapper()
+
+    await wrapper.find('[data-testid="user-icon-option-29"]').trigger('click')
+    await Promise.resolve()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="user-icon-persist-error"]').exists()).toBe(true)
+  })
+
   it('highlights the currently selected icon in the grid', () => {
     mockSelectedIconId.value = 29
 

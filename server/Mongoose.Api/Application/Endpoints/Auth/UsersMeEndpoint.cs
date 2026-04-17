@@ -117,13 +117,13 @@ public sealed class UsersMeEndpoint : IEndpoint
                 return authError;
             }
 
-            if (request.UserIconId is <= 0)
+            if (request.UserIconId.HasValue && request.UserIconId.Value <= 0)
             {
                 logger.LogWarning(
                     "Invalid user icon id update attempted for user {UserId}: {UserIconId}",
                     LogSanitizer.Sanitize(authenticatedUser!.UserId.ToString()),
                     LogSanitizer.Sanitize(request.UserIconId?.ToString()));
-                return Results.BadRequest(new { error = "Invalid user icon id", code = "INVALID_USER_ICON_ID" });
+                return Results.BadRequest(new { error = "Invalid user icon id. Use null to clear.", code = "INVALID_USER_ICON_ID" });
             }
 
             await usersRepo.UpdateUserIconIdAsync(authenticatedUser!.UserId, request.UserIconId);
