@@ -272,6 +272,9 @@ public class RiotAccountsEndpointTests
         var response = await client.PutAsJsonAsync("/api/v2/users/me/icon", new { userIconId = 4025 });
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("NOT_AUTHENTICATED");
+        json.RootElement.GetProperty("error").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
     [Theory]

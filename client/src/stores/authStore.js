@@ -513,20 +513,15 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const result = await authApi.updateUserIcon(userIconId)
-      const resolvedUserIconId =
-        result && typeof result === 'object' && 'userIconId' in result
-          ? result.userIconId ?? null
-          : userIconId
+      if (!result || typeof result !== 'object' || !('userIconId' in result)) {
+        throw new Error('Invalid user icon update response')
+      }
+      const resolvedUserIconId = result.userIconId ?? null
 
       if (user.value) {
         user.value = { ...user.value, userIconId: resolvedUserIconId }
       }
       syncStoredUserIcon(user.value)
-
-      if (result && typeof result === 'object') {
-        return { ...result, success: true, userIconId: resolvedUserIconId }
-      }
-
       return { success: true, userIconId: resolvedUserIconId }
     } catch (e) {
       error.value = e.message
