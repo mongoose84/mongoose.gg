@@ -264,6 +264,39 @@ public class RiotAccountsEndpointTests
     }
 
     [Fact]
+    public async Task UpdateUserIcon_Returns401_WhenUnauthenticated()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PutAsJsonAsync("/api/v2/users/me/icon", new { userIconId = 4025 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task UpdateUserIcon_Returns400_WhenIconIdIsInvalid(int invalidIconId)
+    {
+        using var factory = new TestWebApplicationFactory();
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/icon")
+        {
+            Content = JsonContent.Create(new { userIconId = invalidIconId })
+        };
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("INVALID_USER_ICON_ID");
+    }
+
+    [Fact]
     public async Task Sync_Returns202_WhenAccountIsLinkedAndNotSyncing()
     {
         using var factory = new TestWebApplicationFactory();

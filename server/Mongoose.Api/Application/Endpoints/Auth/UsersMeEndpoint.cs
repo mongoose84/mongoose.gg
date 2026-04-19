@@ -111,23 +111,49 @@ public sealed class UsersMeEndpoint : IEndpoint
             [FromServices] ILogger<UsersMeEndpoint> logger
         ) =>
         {
-            var (authError, authenticatedUser) = AuthorizationHelper.GetAuthenticatedUser(httpContext, logger);
-            if (authError != null)
+            try
             {
-                return authError;
-            }
+                var (authError, authenticatedUser) = AuthorizationHelper.GetAuthenticatedUser(httpContext, logger);
+                if (authError != null)
+                {
+                    return authError;
+                }
 
-            if (request.UserIconId.HasValue && request.UserIconId.Value <= 0)
+                var user = await usersRepo.GetByIdAsync(authenticatedUser!.UserId);
+                if (user == null)
+                {
+                    return AuthResults.InvalidSession();
+                }
+
+                if (!user.IsActive)
+                {
+                    return AuthResults.AccountDeactivated();
+                }
+
+                if (request.UserIconId.HasValue && request.UserIconId.Value <= 0)
+                {
+                    logger.LogWarning(
+                        "Invalid user icon id update attempted for user {UserId}: {UserIconId}",
+                        LogSanitizer.Sanitize(authenticatedUser.UserId.ToString()),
+                        LogSanitizer.Sanitize(request.UserIconId?.ToString()));
+                    return Results.BadRequest(new { error = "Invalid user icon id. Use null to clear.", code = "INVALID_USER_ICON_ID" });
+                }
+
+                await usersRepo.UpdateUserIconIdAsync(authenticatedUser.UserId, request.UserIconId);
+                return Results.Ok(new { success = true, userIconId = request.UserIconId });
+            }
+            catch (Exception ex)
             {
-                logger.LogWarning(
-                    "Invalid user icon id update attempted for user {UserId}: {UserIconId}",
-                    LogSanitizer.Sanitize(authenticatedUser!.UserId.ToString()),
+                logger.LogError(
+                    ex,
+                    "Unexpected error updating user icon for user {UserId} with requested icon {UserIconId}",
+                    LogSanitizer.Sanitize(httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value),
                     LogSanitizer.Sanitize(request.UserIconId?.ToString()));
-                return Results.BadRequest(new { error = "Invalid user icon id. Use null to clear.", code = "INVALID_USER_ICON_ID" });
-            }
 
-            await usersRepo.UpdateUserIconIdAsync(authenticatedUser!.UserId, request.UserIconId);
-            return Results.Ok(new { success = true, userIconId = request.UserIconId });
+                return Results.Json(
+                    new { error = "An unexpected error occurred while updating the user icon.", code = "INTERNAL_SERVER_ERROR" },
+                    statusCode: StatusCodes.Status500InternalServerError);
+            }
         });
     }
 

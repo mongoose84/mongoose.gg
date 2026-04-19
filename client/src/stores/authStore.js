@@ -512,12 +512,22 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      await authApi.updateUserIcon(userIconId)
+      const result = await authApi.updateUserIcon(userIconId)
+      const resolvedUserIconId =
+        result && typeof result === 'object' && 'userIconId' in result
+          ? result.userIconId ?? null
+          : userIconId
+
       if (user.value) {
-        user.value = { ...user.value, userIconId }
+        user.value = { ...user.value, userIconId: resolvedUserIconId }
       }
       syncStoredUserIcon(user.value)
-      return { success: true }
+
+      if (result && typeof result === 'object') {
+        return { ...result, success: true, userIconId: resolvedUserIconId }
+      }
+
+      return { success: true, userIconId: resolvedUserIconId }
     } catch (e) {
       error.value = e.message
       throw e

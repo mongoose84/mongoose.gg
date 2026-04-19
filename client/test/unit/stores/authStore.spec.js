@@ -781,7 +781,20 @@ describe('authStore', () => {
       expect(authApi.updateUserIcon).toHaveBeenCalledWith(4025);
       expect(store.user.userIconId).toBe(4025);
       expect(localStorage.getItem('mongoose_user_icon')).toBe('4025');
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({ success: true, userIconId: 4025 });
+    });
+
+    it('uses server-returned icon id when response differs from request', async () => {
+      authApi.updateUserIcon.mockResolvedValue({ success: true, userIconId: 503 });
+
+      const store = useAuthStore();
+      store.user = { userId: 1, userIconId: null };
+
+      const result = await store.updateUserIcon(4025);
+
+      expect(store.user.userIconId).toBe(503);
+      expect(localStorage.getItem('mongoose_user_icon')).toBe('503');
+      expect(result).toEqual({ success: true, userIconId: 503 });
     });
   });
 
