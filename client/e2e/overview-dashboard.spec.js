@@ -9,11 +9,9 @@ async function gotoOverviewPage(page) {
  * Overview Dashboard E2E Tests
  *
  * Tests the Overview dashboard page which displays:
- * - Player header (summoner name, level, region)
- * - Rank snapshot (rank, LP, win/loss)
- * - Champion Select CTA
- * - Match activity heatmap
- * - Analysis status card
+ * - Player header (summoner name, level, region, rank)
+ * - At a glance: TodaySessionCard (win/loss strip) + SurvivalCheckCard (death insights)
+ * - Quick actions: Champion Select CTA + AnalysisStatusCard + SoloAnalyticsCTA
  * - Latest match card
  *
  * Authentication is handled by global-setup.js which:
@@ -86,15 +84,15 @@ test.describe('Overview Dashboard - Content', () => {
     await expect(rankText).toBeVisible();
   });
 
-  test('should display "Today at a glance" section', async ({ page }) => {
+  test('should display "At a glance" section', async ({ page }) => {
     // Section title should be visible
-    const sectionTitle = page.getByRole('heading', { name: /today at a glance/i });
+    const sectionTitle = page.getByRole('heading', { name: /at a glance/i });
     await expect(sectionTitle).toBeVisible({ timeout: 10_000 });
   });
 
-  test('should display "Recent matches" section', async ({ page }) => {
+  test('should display "Quick actions" section', async ({ page }) => {
     // Section title should be visible
-    const sectionTitle = page.getByRole('heading', { name: /recent matches/i });
+    const sectionTitle = page.getByRole('heading', { name: /quick actions/i });
     await expect(sectionTitle).toBeVisible({ timeout: 10_000 });
   });
 
@@ -157,15 +155,37 @@ test.describe('Overview Dashboard - Content', () => {
   });
 
   test('should display Champion Select CTA', async ({ page }) => {
-    // The CTA should be in the "Today at a glance" section
-    const glanceSection = page.locator('.section-col--secondary').first();
-    await expect(glanceSection).toBeVisible({ timeout: 10_000 });
+    // The CTA should be in the "Quick actions" section
+    const cta = page.locator('[data-testid="champion-select-cta"]');
+    await expect(cta).toBeVisible({ timeout: 10_000 });
   });
 
-  test('should display Analysis Status Card in recent matches section', async ({ page }) => {
-    // The Analysis Status Card should be in the "Recent matches" section
-    const recentSection = page.locator('.section-col--secondary').nth(1);
-    await expect(recentSection).toBeVisible({ timeout: 10_000 });
+  test('should display Analysis Status Card in quick actions section', async ({ page }) => {
+    // The Analysis Status Card should be in the "Quick actions" section
+    const analysisCard = page.locator('.analysis-status-card');
+    await expect(analysisCard).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('should display TodaySessionCard in "At a glance" section', async ({ page }) => {
+    const card = page.locator('[data-testid="today-session-card"]');
+    await expect(card).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('should display SurvivalCheckCard in "At a glance" section', async ({ page }) => {
+    const card = page.locator('[data-testid="survival-check-card"]');
+    await expect(card).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('should display Solo Analytics CTA in quick actions section', async ({ page }) => {
+    const cta = page.locator('.solo-analytics-cta');
+    await expect(cta).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('should navigate to solo page when clicking Solo Analytics CTA', async ({ page }) => {
+    const cta = page.locator('.solo-analytics-cta');
+    await expect(cta).toBeVisible({ timeout: 10_000 });
+    await cta.click();
+    await expect(page).toHaveURL('/app/solo');
   });
 
   test('should display rank badge in player header', async ({ page }) => {
@@ -262,7 +282,7 @@ test.describe('Overview Dashboard - Responsive', () => {
     // All sections should be visible — header is either the individual player header
     // or the account cards header when the user is in overall mode
     await expect(page.locator('.overview-player-header, [data-testid="overview-account-cards"]')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole('heading', { name: /today at a glance/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /at a glance/i })).toBeVisible();
   });
 });
 
