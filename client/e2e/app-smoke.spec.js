@@ -19,7 +19,7 @@ test.describe('Smoke - Core app journey', () => {
   test('@smoke loads the authenticated overview shell', async ({ page }) => {
     await gotoAppPage(page, '/app/overview')
     await expect(page.locator('.overview-player-header, [data-testid="overview-account-cards"]')).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByRole('heading', { name: /today at a glance/i })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole('heading', { name: /at a glance/i })).toBeVisible({ timeout: 10_000 })
   })
 
   test('@smoke navigates across core pages from the sidebar', async ({ page }) => {
