@@ -31,24 +31,6 @@ export const AUTH_ERROR_CODES = {
 }
 
 /**
- * Check if an error code indicates the session has expired
- * @param {string} code - Error code from API response
- * @returns {boolean}
- */
-export function isSessionExpiredError(code) {
-  return code === AUTH_ERROR_CODES.SESSION_EXPIRED
-}
-
-/**
- * Check if an error code indicates the user is not authenticated
- * @param {string} code - Error code from API response
- * @returns {boolean}
- */
-export function isNotAuthenticatedError(code) {
-  return code === AUTH_ERROR_CODES.NOT_AUTHENTICATED
-}
-
-/**
  * Make an API request with global session expiry handling.
  * @param {string} endpoint - API endpoint (without base URL)
  * @param {Object} options - Fetch options

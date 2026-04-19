@@ -13,7 +13,9 @@ public record OverviewResponse(
     [property: JsonPropertyName("activeGoals")] GoalPreview[] ActiveGoals,
     [property: JsonPropertyName("suggestedActions")] SuggestedAction[] SuggestedActions,
     [property: JsonPropertyName("accountSummaries")] AccountSummary[]? AccountSummaries = null,
-    [property: JsonPropertyName("combinedStats")] CombinedStats? CombinedStats = null
+    [property: JsonPropertyName("combinedStats")] CombinedStats? CombinedStats = null,
+    [property: JsonPropertyName("sessionStats")] SessionStats? SessionStats = null,
+    [property: JsonPropertyName("survivalStats")] SurvivalStats? SurvivalStats = null
 );
 
 public record AccountSummary(
@@ -45,15 +47,12 @@ public record PlayerHeader(
 );
 
 /// <summary>
-/// Rank snapshot for the primary queue with last 20 games metrics
+/// Rank snapshot for the primary queue
 /// </summary>
 public record RankSnapshot(
     [property: JsonPropertyName("primaryQueueLabel")] string PrimaryQueueLabel,
     [property: JsonPropertyName("rank")] string? Rank,
-    [property: JsonPropertyName("lp")] int? Lp,
-    [property: JsonPropertyName("last20Wins")] int Last20Wins,
-    [property: JsonPropertyName("last20Losses")] int Last20Losses,
-    [property: JsonPropertyName("wlLast20")] bool[] WlLast20
+    [property: JsonPropertyName("lp")] int? Lp
 );
 
 /// <summary>
@@ -96,5 +95,46 @@ public record SuggestedAction(
     [property: JsonPropertyName("text")] string Text,
     [property: JsonPropertyName("deepLink")] string DeepLink,
     [property: JsonPropertyName("priority")] int Priority
+);
+
+/// <summary>
+/// Session stats aggregated across all selected accounts for today and this week.
+/// </summary>
+public record SessionStats(
+    [property: JsonPropertyName("gamesToday")] int GamesToday,
+    [property: JsonPropertyName("winsToday")] int WinsToday,
+    [property: JsonPropertyName("lossesToday")] int LossesToday,
+    [property: JsonPropertyName("avgKdaToday")] double? AvgKdaToday,
+    [property: JsonPropertyName("bestChampionToday")] SessionChampion? BestChampionToday,
+    [property: JsonPropertyName("gamesThisWeek")] int GamesThisWeek,
+    [property: JsonPropertyName("winsThisWeek")] int WinsThisWeek,
+    [property: JsonPropertyName("lossesThisWeek")] int LossesThisWeek,
+    [property: JsonPropertyName("avgKdaThisWeek")] double? AvgKdaThisWeek
+);
+
+/// <summary>
+/// Best-performing champion in today's session.
+/// </summary>
+public record SessionChampion(
+    [property: JsonPropertyName("championName")] string ChampionName,
+    [property: JsonPropertyName("wins")] int Wins,
+    [property: JsonPropertyName("losses")] int Losses,
+    [property: JsonPropertyName("avgKda")] double AvgKda
+);
+
+/// <summary>
+/// Survival statistics derived from the last 20 games across all selected accounts.
+/// Death buckets are rank-adaptive: thresholds are resolved server-side and returned
+/// so the frontend can display them without duplicating rank logic.
+/// </summary>
+public record SurvivalStats(
+    [property: JsonPropertyName("avgDeathsPerGame")] double AvgDeathsPerGame,
+    [property: JsonPropertyName("winRateLowDeaths")] double? WinRateLowDeaths,
+    [property: JsonPropertyName("winRateHighDeaths")] double? WinRateHighDeaths,
+    [property: JsonPropertyName("gamesLowDeaths")] int GamesLowDeaths,
+    [property: JsonPropertyName("gamesHighDeaths")] int GamesHighDeaths,
+    [property: JsonPropertyName("lowDeathThreshold")] int LowDeathThreshold,
+    [property: JsonPropertyName("highDeathThreshold")] int HighDeathThreshold,
+    [property: JsonPropertyName("totalGames")] int TotalGames
 );
 

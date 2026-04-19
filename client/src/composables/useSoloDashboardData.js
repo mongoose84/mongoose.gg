@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from './useSyncWebSocket'
 import { useAsyncData } from './useAsyncData'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard, getDeathPositions, getRadarChart } from '../services/soloApi'
+import { getSoloDashboard, getDeathPositions, getRadarChart, getMatchActivity } from '../services/soloApi'
 import {
   getWinrateTrend,
   getGoldAt15Trend,
@@ -104,6 +104,16 @@ export function useSoloDashboardData() {
   } = useAsyncData(
     async () => await getDeathPositions(authStore.userId, queueFilter.value, timeRange.value, sideFilter.value),
     { immediate: false, errorMessage: 'Failed to load death positions' }
+  )
+
+  // Match activity heatmap
+  const {
+    data: matchActivityData,
+    isLoading: matchActivityLoading,
+    execute: executeMatchActivityFetch
+  } = useAsyncData(
+    async () => await getMatchActivity(authStore.userId),
+    { immediate: false, errorMessage: 'Failed to load match activity' }
   )
 
   // Individual fetch functions
@@ -219,6 +229,15 @@ export function useSoloDashboardData() {
     }
   }
 
+  async function fetchMatchActivity() {
+    if (!authStore.userId) return
+    try {
+      await executeMatchActivityFetch()
+    } catch {
+      matchActivityData.value = null
+    }
+  }
+
   // Fetch all data in parallel
   async function fetchAllData() {
     await Promise.all([
@@ -230,7 +249,8 @@ export function useSoloDashboardData() {
       fetchDragonParticipationTrend(),
       fetchVisionScoreTrend(),
       fetchRadarChart(),
-      fetchDeathPositions()
+      fetchDeathPositions(),
+      fetchMatchActivity()
     ])
   }
 
@@ -328,6 +348,9 @@ export function useSoloDashboardData() {
     deathPositionsData,
     deathPositionsLoading,
     deathPositionsError,
+    // Match activity
+    matchActivityData,
+    matchActivityLoading,
     // Handlers
     handleWinrateExpand,
     handleGoldAt15Expand,
