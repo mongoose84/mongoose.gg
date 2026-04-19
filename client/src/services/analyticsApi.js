@@ -42,32 +42,6 @@ export async function track(eventName, payload = null) {
   }
 }
 
-/**
- * Track multiple events in a single batch request
- * @param {Array<{eventName: string, payload?: Object}>} events - Array of events
- * @returns {Promise<void>}
- */
-export async function trackBatch(events) {
-  if (!events || events.length === 0) return
-
-  try {
-    await fetch(`${API_BASE}/analytics/batch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        events: events.map(e => ({
-          eventName: e.eventName,
-          payload: e.payload,
-          sessionId: SESSION_ID
-        }))
-      })
-    })
-  } catch {
-    console.debug('[Analytics] Failed to track batch events')
-  }
-}
-
 // ============ Convenience methods for common events ============
 
 /**
@@ -90,47 +64,12 @@ export function trackAuth(action, success, extra = {}) {
 }
 
 /**
- * Track navigation click
- * @param {string} target - Navigation target (e.g., 'settings', 'dashboard')
- * @param {string} [label] - Optional label for the clicked element
- */
-export function trackNavClick(target, label = null) {
-  track('click:nav', { target, label })
-}
-
-/**
  * Track filter changes (queue type, time range)
  * @param {'queue' | 'time'} filterType - Type of filter changed
  * @param {string} value - New filter value
  */
 export function trackFilterChange(filterType, value) {
   track('filter:change', { filterType, value })
-}
-
-/**
- * Track feature usage (champion matchup, sync, etc.)
- * @param {string} feature - Feature name
- * @param {Object} [data] - Feature-specific data
- */
-export function trackFeature(feature, data = {}) {
-  track(`feature:${feature}`, data)
-}
-
-/**
- * Track upgrade flow events
- * @param {'started' | 'completed' | 'cancelled'} step - Upgrade step
- * @param {string} source - Where the upgrade was triggered from
- */
-export function trackUpgrade(step, source) {
-  track(`upgrade:${step}`, { source })
-}
-
-/**
- * Get the current session ID (for debugging)
- * @returns {string}
- */
-export function getSessionId() {
-  return SESSION_ID
 }
 
 // ============ Match Details Analytics ============
@@ -156,16 +95,6 @@ export function trackMatchDetailsView(matchId, role, win) {
 }
 
 /**
- * Track section expand/collapse in match details
- * @param {'personal_stats' | 'match_narrative'} section - Section name
- * @param {boolean} expanded - Whether section is now expanded
- * @param {Object} [extra] - Additional data (e.g., role for narrative)
- */
-export function trackSectionToggle(section, expanded, extra = {}) {
-  track('match:section_toggle', { section, expanded, ...extra })
-}
-
-/**
  * Track lane matchup expansion in Match Narrative
  * @param {string} role - The role that was expanded (TOP, JUNGLE, etc.)
  * @param {boolean} isUserRole - Whether this is the user's own role
@@ -175,19 +104,4 @@ export function trackLaneExpand(role, isUserRole, laneWinner) {
   track('match:lane_expand', { role, isUserRole, laneWinner })
 }
 
-/**
- * Track Team Comparison section interactions
- * @param {string} metric - The metric interacted with (damage, gold, objectives)
- */
-export function trackTeamComparisonView(metric) {
-  track('match:team_comparison', { metric })
-}
-
-/**
- * Track Win Prediction Stats section view
- * @param {string} role - User's role (affects which metrics are shown)
- */
-export function trackWinPredictionStatsView(role) {
-  track('match:win_prediction_stats_view', { role })
-}
 
