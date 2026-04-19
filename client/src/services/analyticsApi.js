@@ -19,6 +19,14 @@ const SESSION_ID = (() => {
 })()
 
 /**
+ * Returns the stable session ID for this browser session.
+ * @returns {string}
+ */
+export function getSessionId() {
+  return SESSION_ID
+}
+
+/**
  * Track a single analytics event
  * @param {string} eventName - Event name (e.g., 'page:view', 'click:nav', 'auth:login')
  * @param {Object} [payload] - Optional event-specific data
@@ -104,4 +112,31 @@ export function trackLaneExpand(role, isUserRole, laneWinner) {
   track('match:lane_expand', { role, isUserRole, laneWinner })
 }
 
+/**
+ * Track section toggle in match details
+ * @param {string} section - The section identifier
+ * @param {boolean} expanded - Whether the section was expanded
+ */
+export function trackSectionToggle(section, expanded) {
+  track('match:section_toggle', { section, expanded })
+}
+
+/**
+ * Send multiple events in a single batch request
+ * @param {Array<{eventName: string, payload?: Object}>} events - Events to send
+ * @returns {Promise<void>}
+ */
+export async function trackBatch(events) {
+  if (!events || events.length === 0) return
+  try {
+    await fetch(`${API_BASE}/analytics/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ events, sessionId: SESSION_ID })
+    })
+  } catch {
+    console.debug('[Analytics] Failed to track batch events')
+  }
+}
 

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import TodaySessionCard from '../../../src/components/overview/TodaySessionCard.vue'
+import TodaySessionCard from '../../src/components/overview/TodaySessionCard.vue'
 
-vi.mock('../../../src/utils/leagueAssets', () => ({
+vi.mock('../../src/utils/leagueAssets', () => ({
   getChampionIconUrl: (name) => `https://cdn.example.com/icon/${name}.png`,
   getChampionSplashUrl: (name) => `https://cdn.example.com/splash/${name}.jpg`
 }))

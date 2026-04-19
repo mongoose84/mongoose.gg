@@ -81,6 +81,24 @@ export function getProfileIconUrl(profileIconId) {
 }
 
 /**
+ * Generates a Data Dragon CDN URL for an item icon.
+ * @param {number} itemId - The item ID
+ * @returns {string} The full URL to the item icon image
+ */
+export function getItemIconUrl(itemId) {
+  return `${DATA_DRAGON_CDN}/${DATA_DRAGON_VERSION}/img/item/${itemId}.png`
+}
+
+/**
+ * Generates a Data Dragon CDN URL for a summoner spell icon.
+ * @param {string} spellName - The summoner spell name (e.g., 'Flash', 'Ignite')
+ * @returns {string} The full URL to the summoner spell icon image
+ */
+export function getSummonerSpellIconUrl(spellName) {
+  return `${DATA_DRAGON_CDN}/${DATA_DRAGON_VERSION}/img/spell/Summoner${spellName}.png`
+}
+
+/**
  * Mapping of Riot region codes to short display labels.
  */
 export const REGION_LABELS = {

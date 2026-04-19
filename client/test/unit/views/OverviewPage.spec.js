@@ -106,7 +106,7 @@ describe('OverviewPage', () => {
     const wrapper = mountPage()
     await flushPromises()
 
-    expect(wrapper.find('.recent-right-stack').exists()).toBe(true)
+    expect(wrapper.find('.actions-right-stack').exists()).toBe(true)
     expect(wrapper.find('solo-analytics-c-t-a-stub').exists()).toBe(true)
   })
 
