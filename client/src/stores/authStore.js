@@ -514,7 +514,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const result = await authApi.updateUserIcon(userIconId)
       if (!result || typeof result !== 'object' || !('userIconId' in result)) {
-        throw new Error('Invalid user icon update response')
+        throw new Error('Server response missing required userIconId field')
       }
       const resolvedUserIconId = result.userIconId ?? null
 

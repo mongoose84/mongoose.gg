@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
@@ -147,7 +148,7 @@ public sealed class UsersMeEndpoint : IEndpoint
                 logger.LogError(
                     ex,
                     "Unexpected error updating user icon for user {UserId} with requested icon {UserIconId}",
-                    LogSanitizer.Sanitize(httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value),
+                    LogSanitizer.Sanitize(httpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value),
                     LogSanitizer.Sanitize(request.UserIconId?.ToString()));
 
                 return Results.Json(
