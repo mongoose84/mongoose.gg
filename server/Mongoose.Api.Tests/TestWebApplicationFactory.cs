@@ -859,7 +859,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         private readonly ConcurrentDictionary<string, LastMatchData> _lastMatchByPuuid = new();
         private readonly ConcurrentDictionary<string, MostPlayedChampionData> _mostPlayedChampionByPuuid = new();
         private readonly ConcurrentDictionary<string, (int GamesToday, int WinsToday, int LossesToday, int GamesThisWeek, int WinsThisWeek, int LossesThisWeek)> _sessionDataByPuuid = new();
-        private SurvivalStatsData _survivalStats = new SurvivalStatsData(0, 0, null, null, 0, 0, 0);
+        private SurvivalStatsData _survivalStats = new SurvivalStatsData(0, null, null, 0, 0, 0);
         private int _defaultQueueId = 420;
         private string _defaultQueueLabel = "Ranked Solo/Duo";
 
@@ -1016,7 +1016,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult(new SessionStatsData(perAccount));
         }
 
-        public override Task<SurvivalStatsData> GetSurvivalStatsAsync(IReadOnlyList<string> puuids, int lastNGames = 20)
+        public override Task<SurvivalStatsData> GetSurvivalStatsAsync(IReadOnlyList<string> puuids, int lowDeathThreshold, int highDeathThreshold, int lastNGames = 20)
         {
             return Task.FromResult(_survivalStats);
         }

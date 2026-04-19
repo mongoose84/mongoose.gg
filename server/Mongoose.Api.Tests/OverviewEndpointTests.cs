@@ -289,11 +289,10 @@ public class OverviewEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
         factory.OverviewStatsRepository.SetSurvivalStats(new Mongoose.Api.Core.QueryModels.SurvivalStatsData(
             AvgDeathsPerGame: 4.5,
-            DeathsBefore10Pct: 0.3,
-            WinRateAtOrBelow3Deaths: 0.65,
-            WinRateAbove5Deaths: 0.2,
-            GamesAtOrBelow3Deaths: 8,
-            GamesAbove5Deaths: 5,
+            WinRateLowDeaths: 0.65,
+            WinRateHighDeaths: 0.2,
+            GamesLowDeaths: 8,
+            GamesHighDeaths: 5,
             TotalGames: 20
         ));
 
@@ -308,9 +307,10 @@ public class OverviewEndpointTests
         body.Should().NotBeNull();
         body!.SurvivalStats.Should().NotBeNull();
         body.SurvivalStats!.AvgDeathsPerGame.Should().Be(4.5);
-        body.SurvivalStats.DeathsBefore10Pct.Should().Be(0.3);
-        body.SurvivalStats.WinRateAtOrBelow3Deaths.Should().Be(0.65);
-        body.SurvivalStats.WinRateAbove5Deaths.Should().Be(0.2);
+        body.SurvivalStats.WinRateLowDeaths.Should().Be(0.65);
+        body.SurvivalStats.WinRateHighDeaths.Should().Be(0.2);
+        body.SurvivalStats.GamesLowDeaths.Should().Be(8);
+        body.SurvivalStats.GamesHighDeaths.Should().Be(5);
         body.SurvivalStats.TotalGames.Should().Be(20);
     }
 
@@ -372,6 +372,81 @@ public class OverviewEndpointTests
         body!.RankSnapshot.Rank.Should().Be("PLATINUM I");
     }
 
+    [Fact]
+    public async Task Overview_survival_stats_uses_gold_thresholds_for_gold_rank()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccountWithRank(
+            userId: 1, puuid: "test-puuid-123", gameName: "TestPlayer", region: "NA1",
+            summonerName: "TestPlayer#NA1", summonerLevel: 100, profileIconId: 42,
+            soloTier: "GOLD", soloRank: "II", soloLp: 75);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body!.SurvivalStats.Should().NotBeNull();
+        body.SurvivalStats!.LowDeathThreshold.Should().Be(4);
+        body.SurvivalStats.HighDeathThreshold.Should().Be(6);
+    }
+
+    [Fact]
+    public async Task Overview_survival_stats_uses_default_thresholds_for_unranked_player()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body!.SurvivalStats.Should().NotBeNull();
+        body.SurvivalStats!.LowDeathThreshold.Should().Be(4);
+        body.SurvivalStats.HighDeathThreshold.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task Overview_survival_stats_response_does_not_contain_removed_fields()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var raw = await response.Content.ReadAsStringAsync();
+        raw.Should().NotContain("deathsBefore10Pct");
+        raw.Should().NotContain("winRateAtOrBelow3Deaths");
+        raw.Should().NotContain("winRateAbove5Deaths");
+        raw.Should().NotContain("gamesAtOrBelow3Deaths");
+        raw.Should().NotContain("gamesAbove5Deaths");
+        raw.Should().Contain("winRateLowDeaths");
+        raw.Should().Contain("winRateHighDeaths");
+        raw.Should().Contain("lowDeathThreshold");
+        raw.Should().Contain("highDeathThreshold");
+    }
+
     // Response DTOs for deserialization
     private record OverviewResponse(
         PlayerHeader PlayerHeader,
@@ -396,6 +471,6 @@ public class OverviewEndpointTests
     private record CombinedStats(int TotalGames, double WinRate, double AvgKda);
     private record SessionStats(int GamesToday, int WinsToday, int LossesToday, double? AvgKdaToday, SessionChampion? BestChampionToday, int GamesThisWeek, int WinsThisWeek, int LossesThisWeek, double? AvgKdaThisWeek);
     private record SessionChampion(string ChampionName, int Wins, int Losses, double AvgKda);
-    private record SurvivalStats(double AvgDeathsPerGame, double DeathsBefore10Pct, double? WinRateAtOrBelow3Deaths, double? WinRateAbove5Deaths, int GamesAtOrBelow3Deaths, int GamesAbove5Deaths, int TotalGames);
+    private record SurvivalStats(double AvgDeathsPerGame, double? WinRateLowDeaths, double? WinRateHighDeaths, int GamesLowDeaths, int GamesHighDeaths, int LowDeathThreshold, int HighDeathThreshold, int TotalGames);
 }
 

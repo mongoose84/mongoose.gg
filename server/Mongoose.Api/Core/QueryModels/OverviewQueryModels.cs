@@ -72,14 +72,14 @@ public record SessionStatsData(
 
 /// <summary>
 /// Survival analysis over the last N games.
+/// Bucket boundaries are determined by rank-adaptive thresholds passed to the repository.
 /// </summary>
 public record SurvivalStatsData(
     double AvgDeathsPerGame,
-    double DeathsBefore10Pct,
-    double? WinRateAtOrBelow3Deaths,
-    double? WinRateAbove5Deaths,
-    int GamesAtOrBelow3Deaths,
-    int GamesAbove5Deaths,
+    double? WinRateLowDeaths,
+    double? WinRateHighDeaths,
+    int GamesLowDeaths,
+    int GamesHighDeaths,
     int TotalGames
 );
 

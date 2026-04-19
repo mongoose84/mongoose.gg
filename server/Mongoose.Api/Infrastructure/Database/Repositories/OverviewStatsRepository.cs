@@ -465,27 +465,31 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
 
     /// <summary>
     /// Returns survival statistics computed from the last N games across all specified PUUIDs.
-    /// Joins participant_metrics for deaths_pre_10 data.
+    /// Death buckets use rank-adaptive thresholds: games with deaths &lt;= lowDeathThreshold are the
+    /// "low" bucket; games with deaths &gt; highDeathThreshold are the "high" bucket.
+    /// Win rates are null when a bucket has zero games (not 0.0).
     /// </summary>
-    public virtual async Task<SurvivalStatsData> GetSurvivalStatsAsync(IReadOnlyList<string> puuids, int lastNGames = 20)
+    public virtual async Task<SurvivalStatsData> GetSurvivalStatsAsync(
+        IReadOnlyList<string> puuids,
+        int lowDeathThreshold,
+        int highDeathThreshold,
+        int lastNGames = 20)
     {
         if (puuids.Count == 0)
-            return new SurvivalStatsData(0, 0, null, null, 0, 0, 0);
+            return new SurvivalStatsData(0, null, null, 0, 0, 0);
 
         var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
                 p.win,
-                p.deaths,
-                pm.deaths_pre_10
+                p.deaths
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
             WHERE {puuidPredicate}
             ORDER BY m.game_start_time DESC
             LIMIT @last_n_games";
 
-        var rows = new List<(bool Win, int Deaths, int? DeathsPre10)>();
+        var rows = new List<(bool Win, int Deaths)>();
 
         await ExecuteWithConnectionAsync(async conn =>
         {
@@ -499,38 +503,33 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             {
                 rows.Add((
                     Win: reader.GetBoolean(0),
-                    Deaths: reader.GetInt32(1),
-                    DeathsPre10: reader.IsDBNull(2) ? (int?)null : reader.GetInt32(2)
+                    Deaths: reader.GetInt32(1)
                 ));
             }
             return 0;
         });
 
         if (rows.Count == 0)
-            return new SurvivalStatsData(0, 0, null, null, 0, 0, 0);
+            return new SurvivalStatsData(0, null, null, 0, 0, 0);
 
         var totalGames = rows.Count;
         var avgDeathsPerGame = rows.Average(r => (double)r.Deaths);
-        var totalDeaths = rows.Sum(r => r.Deaths);
-        var totalDeathsPre10 = rows.Sum(r => r.DeathsPre10 ?? 0);
-        var deathsBefore10Pct = totalDeaths > 0 ? (double)totalDeathsPre10 / totalDeaths : 0.0;
 
-        var atOrBelow3 = rows.Where(r => r.Deaths <= 3).ToList();
-        var above5 = rows.Where(r => r.Deaths > 5).ToList();
-        var winRateAtOrBelow3 = atOrBelow3.Count > 0
-            ? atOrBelow3.Count(r => r.Win) / (double)atOrBelow3.Count
+        var lowDeaths = rows.Where(r => r.Deaths <= lowDeathThreshold).ToList();
+        var highDeaths = rows.Where(r => r.Deaths > highDeathThreshold).ToList();
+        var winRateLowDeaths = lowDeaths.Count > 0
+            ? lowDeaths.Count(r => r.Win) / (double)lowDeaths.Count
             : (double?)null;
-        var winRateAbove5 = above5.Count > 0
-            ? above5.Count(r => r.Win) / (double)above5.Count
+        var winRateHighDeaths = highDeaths.Count > 0
+            ? highDeaths.Count(r => r.Win) / (double)highDeaths.Count
             : (double?)null;
 
         return new SurvivalStatsData(
             AvgDeathsPerGame: avgDeathsPerGame,
-            DeathsBefore10Pct: deathsBefore10Pct,
-            WinRateAtOrBelow3Deaths: winRateAtOrBelow3,
-            WinRateAbove5Deaths: winRateAbove5,
-            GamesAtOrBelow3Deaths: atOrBelow3.Count,
-            GamesAbove5Deaths: above5.Count,
+            WinRateLowDeaths: winRateLowDeaths,
+            WinRateHighDeaths: winRateHighDeaths,
+            GamesLowDeaths: lowDeaths.Count,
+            GamesHighDeaths: highDeaths.Count,
             TotalGames: totalGames
         );
     }

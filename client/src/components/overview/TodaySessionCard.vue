@@ -12,15 +12,47 @@
       <div class="skeleton-strip"></div>
     </div>
 
-    <!-- TODAY'S SESSION (mural + champion badge) -->
-    <template v-else-if="state === 'today'">
-      <div v-if="hasMural" class="session-mural-layer" aria-hidden="true">
+    <!-- Content -->
+    <template v-else>
+      <!-- Mural (today page only) -->
+      <div v-if="currentPage === 0 && hasMural" class="session-mural-layer" aria-hidden="true">
         <img :src="muralUrl" alt="" class="session-mural-image" @error="handleMuralError" />
       </div>
-      <div v-if="hasMural" class="session-overlay-layer" aria-hidden="true"></div>
+      <div v-if="currentPage === 0 && hasMural" class="session-overlay-layer" aria-hidden="true"></div>
+
       <div class="session-foreground">
+        <!-- Top row: [◂ LABEL ▸] [dots] [champion badge] -->
         <div class="session-top-row">
-          <span class="session-label">TODAY'S SESSION</span>
+          <div class="session-nav-group">
+            <button
+              class="session-nav-btn"
+              @click="prev"
+              @keydown.left="prev"
+              @keydown.right="next"
+              aria-label="Previous time period"
+              data-testid="session-prev-btn"
+            >
+              <ChevronLeftIcon class="nav-icon" aria-hidden="true" />
+            </button>
+            <span class="session-label" aria-live="polite" aria-atomic="true">{{ pageLabel }}</span>
+            <button
+              class="session-nav-btn"
+              @click="next"
+              @keydown.left="prev"
+              @keydown.right="next"
+              aria-label="Next time period"
+              data-testid="session-next-btn"
+            >
+              <ChevronRightIcon class="nav-icon" aria-hidden="true" />
+            </button>
+          </div>
+
+          <div class="session-dots" aria-hidden="true">
+            <span class="session-dot" :class="{ active: currentPage === 0 }"></span>
+            <span class="session-dot" :class="{ active: currentPage === 1 }"></span>
+            <span class="session-dot" :class="{ active: currentPage === 2 }"></span>
+          </div>
+
           <div v-if="bestChampion" class="session-champion" data-testid="champion-badge">
             <img
               :src="championIconUrl"
@@ -30,54 +62,25 @@
             <span class="champion-name">{{ bestChampion.championName }}</span>
           </div>
         </div>
-        <div class="session-stats-row">
-          <span class="session-wr" :class="winRateClass" data-testid="win-rate">{{ winRateDisplay }}%</span>
-          <span class="session-detail">{{ detailDisplay }}</span>
-        </div>
-        <div v-if="wlDots.length > 0" class="session-strip" data-testid="wl-strip">
-          <div
-            v-for="(isWin, index) in wlDots"
-            :key="index"
-            class="wl-indicator"
-            :class="isWin ? 'win' : 'loss'"
-            :aria-label="isWin ? 'Win' : 'Loss'"
-          ></div>
-        </div>
-      </div>
-    </template>
 
-    <!-- THIS WEEK (no mural, no champion) -->
-    <template v-else-if="state === 'week'">
-      <div class="session-foreground">
-        <div class="session-top-row">
-          <span class="session-label">THIS WEEK</span>
-        </div>
-        <div class="session-stats-row">
-          <span class="session-wr" :class="winRateClass" data-testid="win-rate">{{ winRateDisplay }}%</span>
-          <span class="session-detail">{{ detailDisplay }}</span>
-        </div>
-        <div v-if="wlDots.length > 0" class="session-strip" data-testid="wl-strip">
-          <div
-            v-for="(isWin, index) in wlDots"
-            :key="index"
-            class="wl-indicator"
-            :class="isWin ? 'win' : 'loss'"
-            :aria-label="isWin ? 'Win' : 'Loss'"
-          ></div>
-        </div>
-      </div>
-    </template>
-
-    <!-- THIS SEASON (combinedStats, no strip) -->
-    <template v-else>
-      <div class="session-foreground">
-        <div class="session-top-row">
-          <span class="session-label">THIS SEASON</span>
-        </div>
-        <div class="session-stats-row">
-          <span class="session-wr" :class="winRateClass" data-testid="win-rate">{{ winRateDisplay }}%</span>
-          <span class="session-detail">{{ detailDisplay }}</span>
-        </div>
+        <!-- Stats body — crossfade on page change -->
+        <Transition name="session-fade" mode="out-in">
+          <div :key="currentPage" class="session-body">
+            <div class="session-stats-row">
+              <span class="session-wr" :class="winRateClass" data-testid="win-rate">{{ winRateDisplay }}%</span>
+              <span class="session-detail">{{ detailDisplay }}</span>
+            </div>
+            <div v-if="wlDots.length > 0" class="session-strip" data-testid="wl-strip">
+              <div
+                v-for="(isWin, index) in wlDots"
+                :key="index"
+                class="wl-indicator"
+                :class="isWin ? 'win' : 'loss'"
+                :aria-label="isWin ? 'Win' : 'Loss'"
+              ></div>
+            </div>
+          </div>
+        </Transition>
       </div>
     </template>
   </section>
@@ -85,8 +88,11 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/solid'
 import { getWinRateColorClass } from '@/composables/useWinRateColor'
 import { getChampionIconUrl, getChampionSplashUrl } from '@/utils/leagueAssets'
+
+const PAGE_COUNT = 3
 
 const props = defineProps({
   sessionStats: { type: Object, default: null },
@@ -96,14 +102,36 @@ const props = defineProps({
 
 const muralErrored = ref(false)
 
-const state = computed(() => {
-  if (props.sessionStats?.gamesToday > 0) return 'today'
-  if (props.sessionStats?.gamesThisWeek > 0) return 'week'
-  return 'season'
+// Waterfall: determine the most relevant starting page
+const defaultPage = computed(() => {
+  if (props.sessionStats?.gamesToday > 0) return 0
+  if (props.sessionStats?.gamesThisWeek > 0) return 1
+  return 2
+})
+
+const currentPage = ref(defaultPage.value)
+
+// Reset to the most relevant page when data loads/changes
+watch(defaultPage, (val) => {
+  currentPage.value = val
+})
+
+function prev() {
+  currentPage.value = (currentPage.value + PAGE_COUNT - 1) % PAGE_COUNT
+}
+
+function next() {
+  currentPage.value = (currentPage.value + 1) % PAGE_COUNT
+}
+
+const pageLabel = computed(() => {
+  if (currentPage.value === 0) return "TODAY'S SESSION"
+  if (currentPage.value === 1) return 'THIS WEEK'
+  return 'THIS SEASON'
 })
 
 const bestChampion = computed(() => {
-  if (state.value !== 'today') return null
+  if (currentPage.value !== 0) return null
   return props.sessionStats?.bestChampionToday ?? null
 })
 
@@ -120,13 +148,13 @@ const championIconUrl = computed(() => {
 })
 
 const winRate = computed(() => {
-  if (state.value === 'today') {
+  if (currentPage.value === 0) {
     const wins = props.sessionStats?.winsToday ?? 0
     const losses = props.sessionStats?.lossesToday ?? 0
     const total = wins + losses
     return total > 0 ? Math.round((wins / total) * 100) : null
   }
-  if (state.value === 'week') {
+  if (currentPage.value === 1) {
     const wins = props.sessionStats?.winsThisWeek ?? 0
     const losses = props.sessionStats?.lossesThisWeek ?? 0
     const total = wins + losses
@@ -149,14 +177,14 @@ const accentClass = computed(() => {
 })
 
 const detailDisplay = computed(() => {
-  if (state.value === 'today') {
+  if (currentPage.value === 0) {
     const wins = props.sessionStats?.winsToday ?? 0
     const losses = props.sessionStats?.lossesToday ?? 0
     const kda = props.sessionStats?.avgKdaToday
     const kdaPart = kda != null ? ` · ${kda.toFixed(1)} KDA` : ''
     return `${wins}W ${losses}L${kdaPart}`
   }
-  if (state.value === 'week') {
+  if (currentPage.value === 1) {
     const wins = props.sessionStats?.winsThisWeek ?? 0
     const losses = props.sessionStats?.lossesThisWeek ?? 0
     const kda = props.sessionStats?.avgKdaThisWeek
@@ -170,13 +198,13 @@ const detailDisplay = computed(() => {
 })
 
 const wlDots = computed(() => {
-  if (state.value === 'season') return []
-  if (state.value === 'today') {
+  if (currentPage.value === 2) return []
+  if (currentPage.value === 0) {
     const wins = props.sessionStats?.winsToday ?? 0
     const losses = props.sessionStats?.lossesToday ?? 0
     return [...Array(losses).fill(false), ...Array(wins).fill(true)]
   }
-  if (state.value === 'week') {
+  if (currentPage.value === 1) {
     const wins = props.sessionStats?.winsThisWeek ?? 0
     const losses = props.sessionStats?.lossesThisWeek ?? 0
     return [...Array(losses).fill(false), ...Array(wins).fill(true)]
@@ -226,7 +254,7 @@ watch(() => props.sessionStats?.bestChampionToday?.championName, () => {
   border-left-color: var(--color-error-border);
 }
 
-/* Mural layers (same pattern as ChampionSelectCTA) */
+/* Mural layers */
 .session-mural-layer {
   position: absolute;
   inset: 0;
@@ -264,11 +292,54 @@ watch(() => props.sessionStats?.bestChampionToday?.championName, () => {
   height: 100%;
 }
 
-/* Top row: label + champion badge */
+/* Top row: nav group + dots + optional champion badge */
 .session-top-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+/* Nav group: prev button + label + next button */
+.session-nav-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.session-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.session-nav-btn:hover {
+  color: var(--color-text);
+  background-color: var(--color-elevated);
+}
+
+.session-nav-btn:active {
+  transform: scale(0.9);
+}
+
+.session-nav-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.nav-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .session-label {
@@ -277,12 +348,37 @@ watch(() => props.sessionStats?.bestChampionToday?.championName, () => {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
+/* Dot indicators */
+.session-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.session-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-elevated);
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.session-dot.active {
+  background: var(--color-primary);
+}
+
+/* Champion badge — pushed to the right */
 .session-champion {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .champion-icon {
@@ -295,6 +391,13 @@ watch(() => props.sessionStats?.bestChampionToday?.championName, () => {
 .champion-name {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+}
+
+/* Stats body */
+.session-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
 /* Stats row */
@@ -339,6 +442,24 @@ watch(() => props.sessionStats?.bestChampionToday?.championName, () => {
 .wl-indicator.loss {
   background: var(--color-error);
   opacity: 0.8;
+}
+
+/* Crossfade transition */
+.session-fade-enter-active,
+.session-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.session-fade-enter-from,
+.session-fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-fade-enter-active,
+  .session-fade-leave-active {
+    transition: none;
+  }
 }
 
 /* Skeleton */

@@ -321,7 +321,8 @@ watch(() => authStore.activeAccountPuuid, () => {
   height: 100%;
 }
 
-.glance-right-fill :deep(.champion-select-cta) {
+.glance-right-fill :deep(.champion-select-cta),
+.glance-right-fill :deep(.survival-check-card) {
   flex: 1;
   height: 100%;
 }

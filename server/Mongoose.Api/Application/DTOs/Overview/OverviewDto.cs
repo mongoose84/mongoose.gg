@@ -124,14 +124,17 @@ public record SessionChampion(
 
 /// <summary>
 /// Survival statistics derived from the last 20 games across all selected accounts.
+/// Death buckets are rank-adaptive: thresholds are resolved server-side and returned
+/// so the frontend can display them without duplicating rank logic.
 /// </summary>
 public record SurvivalStats(
     [property: JsonPropertyName("avgDeathsPerGame")] double AvgDeathsPerGame,
-    [property: JsonPropertyName("deathsBefore10Pct")] double DeathsBefore10Pct,
-    [property: JsonPropertyName("winRateAtOrBelow3Deaths")] double? WinRateAtOrBelow3Deaths,
-    [property: JsonPropertyName("winRateAbove5Deaths")] double? WinRateAbove5Deaths,
-    [property: JsonPropertyName("gamesAtOrBelow3Deaths")] int GamesAtOrBelow3Deaths,
-    [property: JsonPropertyName("gamesAbove5Deaths")] int GamesAbove5Deaths,
+    [property: JsonPropertyName("winRateLowDeaths")] double? WinRateLowDeaths,
+    [property: JsonPropertyName("winRateHighDeaths")] double? WinRateHighDeaths,
+    [property: JsonPropertyName("gamesLowDeaths")] int GamesLowDeaths,
+    [property: JsonPropertyName("gamesHighDeaths")] int GamesHighDeaths,
+    [property: JsonPropertyName("lowDeathThreshold")] int LowDeathThreshold,
+    [property: JsonPropertyName("highDeathThreshold")] int HighDeathThreshold,
     [property: JsonPropertyName("totalGames")] int TotalGames
 );
 

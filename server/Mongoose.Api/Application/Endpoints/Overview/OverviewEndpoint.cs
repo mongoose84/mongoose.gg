@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
+using Mongoose.Api.Core;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
 using Mongoose.Api.Infrastructure.Helpers;
@@ -82,11 +83,14 @@ public sealed class OverviewEndpoint : IEndpoint
                 // Calculate rank snapshot (wlLast20 fields removed)
                 var rankSnapshot = BuildRankSnapshot(primaryAccount, primaryQueueId, primaryQueueLabel);
 
+                // Compute rank-adaptive death thresholds from the primary account's solo queue tier
+                var (lowDeathThreshold, highDeathThreshold) = DeathThresholds.ForRank(primaryAccount.SoloTier);
+
                 // Parallelize independent data fetches
                 var lastMatchTask = overviewStatsRepo.GetLastMatchAsync(selectedPuuids);
                 var mostPlayedChampionTask = overviewStatsRepo.GetMostPlayedChampionAsync(selectedPuuids);
                 var sessionStatsTask = overviewStatsRepo.GetSessionStatsAsync(selectedPuuids, DateTime.UtcNow);
-                var survivalStatsTask = overviewStatsRepo.GetSurvivalStatsAsync(selectedPuuids);
+                var survivalStatsTask = overviewStatsRepo.GetSurvivalStatsAsync(selectedPuuids, lowDeathThreshold, highDeathThreshold);
                 await Task.WhenAll(lastMatchTask, mostPlayedChampionTask, sessionStatsTask, survivalStatsTask);
 
                 var lastMatchData = lastMatchTask.Result;
@@ -146,11 +150,12 @@ public sealed class OverviewEndpoint : IEndpoint
                 var sessionStats = BuildSessionStats(sessionStatsData);
                 var survivalStats = new SurvivalStats(
                     AvgDeathsPerGame: survivalStatsData.AvgDeathsPerGame,
-                    DeathsBefore10Pct: survivalStatsData.DeathsBefore10Pct,
-                    WinRateAtOrBelow3Deaths: survivalStatsData.WinRateAtOrBelow3Deaths,
-                    WinRateAbove5Deaths: survivalStatsData.WinRateAbove5Deaths,
-                    GamesAtOrBelow3Deaths: survivalStatsData.GamesAtOrBelow3Deaths,
-                    GamesAbove5Deaths: survivalStatsData.GamesAbove5Deaths,
+                    WinRateLowDeaths: survivalStatsData.WinRateLowDeaths,
+                    WinRateHighDeaths: survivalStatsData.WinRateHighDeaths,
+                    GamesLowDeaths: survivalStatsData.GamesLowDeaths,
+                    GamesHighDeaths: survivalStatsData.GamesHighDeaths,
+                    LowDeathThreshold: lowDeathThreshold,
+                    HighDeathThreshold: highDeathThreshold,
                     TotalGames: survivalStatsData.TotalGames
                 );
 
