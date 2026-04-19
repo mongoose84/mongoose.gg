@@ -71,6 +71,24 @@ export async function apiRequest(endpoint, options = {}, config = {}) {
 }
 
 /**
+ * Returns true if the error code indicates an expired session.
+ * @param {string|null} code - The error code from the API response
+ * @returns {boolean}
+ */
+export function isSessionExpiredError(code) {
+  return code === AUTH_ERROR_CODES.SESSION_EXPIRED
+}
+
+/**
+ * Returns true if the error code indicates the user is not authenticated.
+ * @param {string|null} code - The error code from the API response
+ * @returns {boolean}
+ */
+export function isNotAuthenticatedError(code) {
+  return code === AUTH_ERROR_CODES.NOT_AUTHENTICATED
+}
+
+/**
  * Make a GET request
  * @param {string} endpoint - API endpoint
  * @param {Object} config - Additional config
