@@ -267,6 +267,16 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.CompletedTask;
         }
 
+        public override Task UpdateUserIconIdAsync(long userId, int? userIconId)
+        {
+            if (_usersById.TryGetValue(userId, out var user))
+            {
+                user.UserIconId = userIconId;
+            }
+
+            return Task.CompletedTask;
+        }
+
         public override Task UpdatePasswordHashAsync(long userId, string passwordHash)
         {
             if (_usersById.TryGetValue(userId, out var user))
@@ -348,6 +358,14 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             if (_usersByUsername.TryGetValue(username, out var user))
             {
                 user.Tier = tier;
+            }
+        }
+
+        public void SetUserIconId(string username, int? userIconId)
+        {
+            if (_usersByUsername.TryGetValue(username, out var user))
+            {
+                user.UserIconId = userIconId;
             }
         }
 
@@ -2017,4 +2035,3 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         }
     }
 }
-

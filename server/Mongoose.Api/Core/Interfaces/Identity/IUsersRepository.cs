@@ -12,6 +12,7 @@ public interface IUsersRepository
     Task<bool> EmailExistsAsync(string email);
     Task<long> GetActiveUserCountAsync();
     Task UpdateEmailVerifiedAsync(long userId, bool verified);
+    Task UpdateUserIconIdAsync(long userId, int? userIconId);
 
     /// <summary>
     /// Updates a user's password hash and rotates the security stamp
@@ -36,4 +37,3 @@ public interface IUsersRepository
     /// <returns>True if user was deleted, false if user not found</returns>
     Task<bool> DeleteUserAsync(long userId);
 }
-

@@ -17,8 +17,8 @@ public class UsersRepository : RepositoryBase, IUsersRepository
     public virtual async Task<long> UpsertAsync(User user)
     {
         const string sql = @"INSERT INTO users
-            (user_id, email, username, password_hash, security_stamp, email_verified, is_active, tier, mollie_customer_id, created_at, updated_at, last_login_at)
-            VALUES (@user_id, @email, @username, @password_hash, @security_stamp, @email_verified, @is_active, @tier, @mollie_customer_id, @created_at, @updated_at, @last_login_at) AS new
+            (user_id, email, username, password_hash, security_stamp, email_verified, is_active, tier, user_icon_id, mollie_customer_id, created_at, updated_at, last_login_at)
+            VALUES (@user_id, @email, @username, @password_hash, @security_stamp, @email_verified, @is_active, @tier, @user_icon_id, @mollie_customer_id, @created_at, @updated_at, @last_login_at) AS new
             ON DUPLICATE KEY UPDATE
                 email = new.email,
                 username = new.username,
@@ -27,6 +27,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
                 email_verified = new.email_verified,
                 is_active = new.is_active,
                 tier = new.tier,
+                user_icon_id = new.user_icon_id,
                 mollie_customer_id = new.mollie_customer_id,
                 updated_at = new.updated_at,
                 last_login_at = new.last_login_at;";
@@ -46,6 +47,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
             cmd.Parameters.AddWithValue("@email_verified", user.EmailVerified);
             cmd.Parameters.AddWithValue("@is_active", user.IsActive);
             cmd.Parameters.AddWithValue("@tier", user.Tier);
+            cmd.Parameters.AddWithValue("@user_icon_id", (object?)user.UserIconId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@mollie_customer_id", user.MollieCustomerId ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@created_at", user.CreatedAt == default ? DateTime.UtcNow : user.CreatedAt);
             cmd.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
@@ -66,6 +68,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
                 email_verified,
                 is_active,
                 tier,
+                user_icon_id,
                 mollie_customer_id,
                 created_at,
                 updated_at,
@@ -89,6 +92,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
                 email_verified,
                 is_active,
                 tier,
+                user_icon_id,
                 mollie_customer_id,
                 created_at,
                 updated_at,
@@ -110,6 +114,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
                 email_verified,
                 is_active,
                 tier,
+                user_icon_id,
                 mollie_customer_id,
                 created_at,
                 updated_at,
@@ -203,6 +208,20 @@ public class UsersRepository : RepositoryBase, IUsersRepository
         });
     }
 
+    public virtual async Task UpdateUserIconIdAsync(long userId, int? userIconId)
+    {
+        const string sql = "UPDATE users SET user_icon_id = @user_icon_id, updated_at = @updated_at WHERE user_id = @user_id";
+        await ExecuteWithConnectionAsync<object?>(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@user_icon_id", (object?)userIconId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
+            cmd.Parameters.AddWithValue("@user_id", userId);
+            await cmd.ExecuteNonQueryAsync();
+            return null;
+        });
+    }
+
     /// <inheritdoc />
     public virtual async Task<bool> DeleteUserAsync(long userId)
     {
@@ -276,6 +295,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
         var emailVerifiedOrdinal = r.GetOrdinal("email_verified");
         var isActiveOrdinal = r.GetOrdinal("is_active");
         var tierOrdinal = r.GetOrdinal("tier");
+        var userIconIdOrdinal = r.GetOrdinal("user_icon_id");
         var mollieCustomerIdOrdinal = r.GetOrdinal("mollie_customer_id");
         var createdAtOrdinal = r.GetOrdinal("created_at");
         var updatedAtOrdinal = r.GetOrdinal("updated_at");
@@ -341,6 +361,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
             EmailVerified = r.GetFieldValue<bool>(emailVerifiedOrdinal),
             IsActive = r.GetFieldValue<bool>(isActiveOrdinal),
             Tier = r.GetString(tierOrdinal),
+            UserIconId = r.IsDBNull(userIconIdOrdinal) ? null : r.GetInt32(userIconIdOrdinal),
             MollieCustomerId = r.IsDBNull(mollieCustomerIdOrdinal) ? null : r.GetString(mollieCustomerIdOrdinal),
             CreatedAt = r.GetDateTimeUtc(createdAtOrdinal),
             UpdatedAt = r.GetDateTimeUtc(updatedAtOrdinal),

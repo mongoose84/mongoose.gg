@@ -169,6 +169,20 @@ export async function getCurrentUser({ skipSessionCheck = false } = {}) {
   return response.json()
 }
 
+/**
+ * Update the current user's persisted icon preference.
+ * @param {number|null} userIconId - League profile icon ID, or null to clear.
+ * @returns {Promise<Object>} Success payload
+ */
+export async function updateUserIcon(userIconId) {
+  const response = await apiRequest('/users/me/icon', {
+    method: 'PUT',
+    body: JSON.stringify({ userIconId })
+  })
+
+  return parseResponse(response, 'Failed to update user icon')
+}
+
 // ============ Riot Account API ============
 
 /**
@@ -330,4 +344,3 @@ export async function changePassword({ currentPassword, newPassword }) {
 
   return parseResponse(response, 'Failed to change password')
 }
-

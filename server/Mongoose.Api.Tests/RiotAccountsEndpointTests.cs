@@ -197,6 +197,109 @@ public class RiotAccountsEndpointTests
     }
 
     [Fact]
+    public async Task UsersMe_ReturnsPersistedUserIconId()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetUserIconId("tester", 503);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/users/me");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("userIconId").GetInt32().Should().Be(503);
+    }
+
+    [Fact]
+    public async Task UpdateUserIcon_Returns200_AndPersistsIcon()
+    {
+        using var factory = new TestWebApplicationFactory();
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/icon")
+        {
+            Content = JsonContent.Create(new { userIconId = 4025 })
+        };
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("success").GetBoolean().Should().BeTrue();
+        json.RootElement.GetProperty("userIconId").GetInt32().Should().Be(4025);
+
+        var updatedUser = await factory.UsersRepository.GetByUsernameAsync("tester");
+        updatedUser.Should().NotBeNull();
+        updatedUser!.UserIconId.Should().Be(4025);
+    }
+
+    [Fact]
+    public async Task UpdateUserIcon_AllowsNullToClearPersistedIcon()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetUserIconId("tester", 4025);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/icon")
+        {
+            Content = JsonContent.Create(new { userIconId = (int?)null })
+        };
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updatedUser = await factory.UsersRepository.GetByUsernameAsync("tester");
+        updatedUser.Should().NotBeNull();
+        updatedUser!.UserIconId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateUserIcon_Returns401_WhenUnauthenticated()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PutAsJsonAsync("/api/v2/users/me/icon", new { userIconId = 4025 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("NOT_AUTHENTICATED");
+        json.RootElement.GetProperty("error").GetString().Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task UpdateUserIcon_Returns400_WhenIconIdIsInvalid(int invalidIconId)
+    {
+        using var factory = new TestWebApplicationFactory();
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/icon")
+        {
+            Content = JsonContent.Create(new { userIconId = invalidIconId })
+        };
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("INVALID_USER_ICON_ID");
+    }
+
+    [Fact]
     public async Task Sync_Returns202_WhenAccountIsLinkedAndNotSyncing()
     {
         using var factory = new TestWebApplicationFactory();

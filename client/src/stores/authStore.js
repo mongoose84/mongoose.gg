@@ -6,6 +6,7 @@ import { useCookieConsent } from '../composables/useCookieConsent'
 
 const ACTIVE_ACCOUNT_STORAGE_KEY = 'mongoose_active_account'
 const DEFAULT_VIEW_KEY = 'mongoose_default_view'
+const USER_ICON_KEY = 'mongoose_user_icon'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -166,6 +167,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function syncStoredUserIcon(userData) {
+    const userIconId = userData?.userIconId
+    if (typeof userIconId === 'number' && userIconId > 0) {
+      localStorage.setItem(USER_ICON_KEY, String(userIconId))
+      return
+    }
+
+    localStorage.removeItem(USER_ICON_KEY)
+  }
+
   // Actions
   async function initialize() {
     if (isInitialized.value) return
@@ -203,6 +214,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         if (canApplyFetchedUser) {
           user.value = userData
+          syncStoredUserIcon(userData)
           validateActiveAccount()
           validateDefaultView()
           applyDefaultViewIfNeeded()
@@ -241,6 +253,7 @@ export const useAuthStore = defineStore('auth', () => {
       // After login, fetch full user data (session is fresh, skip session check)
       const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
+      syncStoredUserIcon(userData)
       validateActiveAccount()
       // Mark that user is now authenticated and clear any previous session expiry state
       wasAuthenticated.value = true
@@ -265,6 +278,7 @@ export const useAuthStore = defineStore('auth', () => {
       // After registration, user is logged in but not verified (session is fresh, skip session check)
       const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
+      syncStoredUserIcon(userData)
       validateActiveAccount()
       return { success: true, needsVerification: true }
     } catch (e) {
@@ -284,6 +298,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Refresh user data to get updated emailVerified status (session is fresh, skip session check)
       const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData
+      syncStoredUserIcon(userData)
       validateActiveAccount()
       return { success: true }
     } catch (e) {
@@ -301,11 +316,13 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await authApi.logout()
       user.value = null
+      syncStoredUserIcon(null)
       setActiveAccount('overall')
     } catch (e) {
       error.value = e.message
       // Clear user anyway on logout failure
       user.value = null
+      syncStoredUserIcon(null)
       setActiveAccount('overall')
       throw e
     } finally {
@@ -360,6 +377,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Don't skip session check - if session expired, show the banner
       const userData = await authApi.getCurrentUser()
       user.value = userData
+      syncStoredUserIcon(userData)
       validateActiveAccount()
     } catch (e) {
       // Silent fail - user might be logged out
@@ -490,6 +508,27 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateUserIcon(userIconId) {
+    error.value = null
+
+    try {
+      const result = await authApi.updateUserIcon(userIconId)
+      if (!result || typeof result !== 'object' || !('userIconId' in result)) {
+        throw new Error('Server response missing required userIconId field')
+      }
+      const resolvedUserIconId = result.userIconId ?? null
+
+      if (user.value) {
+        user.value = { ...user.value, userIconId: resolvedUserIconId }
+      }
+      syncStoredUserIcon(user.value)
+      return { success: true, userIconId: resolvedUserIconId }
+    } catch (e) {
+      error.value = e.message
+      throw e
+    }
+  }
+
   return {
     // State
     user,
@@ -533,7 +572,7 @@ export const useAuthStore = defineStore('auth', () => {
     linkRiotAccount,
     unlinkRiotAccount,
     setPrimary,
-    triggerSync
+    triggerSync,
+    updateUserIcon
   }
 })
-

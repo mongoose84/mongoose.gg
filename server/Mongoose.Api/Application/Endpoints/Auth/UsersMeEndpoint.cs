@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
@@ -92,6 +93,7 @@ public sealed class UsersMeEndpoint : IEndpoint
                     user.Email,
                     user.EmailVerified,
                     user.Tier ?? "free",
+                    user.UserIconId,
                     user.CreatedAt,
                     riotAccountResponses
                 ));
@@ -102,6 +104,58 @@ public sealed class UsersMeEndpoint : IEndpoint
                 return Results.Json(new { error = "Internal server error" }, statusCode: 500);
             }
         });
+
+        app.MapPut(Route + "/icon", [Authorize] async (
+            HttpContext httpContext,
+            [FromBody] UpdateUserIconRequest request,
+            [FromServices] IUsersRepository usersRepo,
+            [FromServices] ILogger<UsersMeEndpoint> logger
+        ) =>
+        {
+            try
+            {
+                var (authError, authenticatedUser) = AuthorizationHelper.GetAuthenticatedUser(httpContext, logger);
+                if (authError != null)
+                {
+                    return authError;
+                }
+
+                var user = await usersRepo.GetByIdAsync(authenticatedUser!.UserId);
+                if (user == null)
+                {
+                    return AuthResults.InvalidSession();
+                }
+
+                if (!user.IsActive)
+                {
+                    return AuthResults.AccountDeactivated();
+                }
+
+                if (request.UserIconId.HasValue && request.UserIconId.Value <= 0)
+                {
+                    logger.LogWarning(
+                        "Invalid user icon id update attempted for user {UserId}: {UserIconId}",
+                        LogSanitizer.Sanitize(authenticatedUser.UserId.ToString()),
+                        LogSanitizer.Sanitize(request.UserIconId?.ToString()));
+                    return Results.BadRequest(new { error = "Invalid user icon id. Use null to clear.", code = "INVALID_USER_ICON_ID" });
+                }
+
+                await usersRepo.UpdateUserIconIdAsync(authenticatedUser.UserId, request.UserIconId);
+                return Results.Ok(new { success = true, userIconId = request.UserIconId });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Unexpected error updating user icon for user {UserId} with requested icon {UserIconId}",
+                    LogSanitizer.Sanitize(httpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value),
+                    LogSanitizer.Sanitize(request.UserIconId?.ToString()));
+
+                return Results.Json(
+                    new { error = "An unexpected error occurred while updating the user icon.", code = "INTERNAL_SERVER_ERROR" },
+                    statusCode: StatusCodes.Status500InternalServerError);
+            }
+        });
     }
 
     public record UserMeResponse(
@@ -110,8 +164,13 @@ public sealed class UsersMeEndpoint : IEndpoint
         [property: JsonPropertyName("email")] string Email,
         [property: JsonPropertyName("emailVerified")] bool EmailVerified,
         [property: JsonPropertyName("tier")] string Tier,
+        [property: JsonPropertyName("userIconId")] int? UserIconId,
         [property: JsonPropertyName("createdAt")] DateTime CreatedAt,
         [property: JsonPropertyName("riotAccounts")] List<RiotAccountResponse> RiotAccounts
+    );
+
+    public record UpdateUserIconRequest(
+        [property: JsonPropertyName("userIconId")] int? UserIconId
     );
 
     /// <summary>
@@ -141,4 +200,3 @@ public sealed class UsersMeEndpoint : IEndpoint
         [property: JsonPropertyName("createdAt")] DateTime CreatedAt
     );
 }
-
