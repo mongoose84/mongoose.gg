@@ -1,7 +1,7 @@
 ---
-description: 'Orchestrate full feature implementation: architect designs, backend + frontend implement in parallel, code review, E2E validation. Use when implementing a new feature end-to-end, building a complete feature, or running the full feature workflow.'
+description: 'Orchestrate full feature implementation: read spec, backend + frontend implement in parallel, code review, E2E validation. Use when implementing a new feature end-to-end, building a complete feature, or running the full feature workflow.'
 tools: ['read', 'edit', 'search', 'execute', 'agent', 'todo']
-agents: [architect, backend-developer, frontend-developer, code-reviewer]
+agents: [backend-developer, frontend-developer, code-reviewer]
 model: ['Claude Opus 4.6', 'Claude Sonnet 4.6']
 argument-hint: 'Describe the feature to implement (e.g., "champion win rate history chart on solo dashboard")'
 ---
@@ -12,26 +12,15 @@ You are a feature implementation orchestrator. You coordinate specialized agents
 
 You MUST follow these stages in order. Use the todo tool to track progress through each stage.
 
-### Stage 1 — Architecture Review (architect subagent)
+### Stage 1 — Read the Feature Spec
 
-Invoke the `architect` agent with a prompt containing:
-- The user's feature description
-- Instruction to review the [feature template](../specs/feature-template.spec.md), [architecture spec](../specs/architecture.spec.md), [database schema](../specs/database-schema.spec.md), and [UI/UX spec](../specs/ui-ux.spec.md)
-- Request to produce a complete implementation plan covering:
-  - Problem statement and proposed solution
-  - Backend changes: new/modified endpoints, DTOs, repository interfaces, SQL queries, DI registrations
-  - Frontend changes: new/modified components, store changes, API service functions, route additions
-  - Database changes: new tables, columns, indexes (if any)
-  - API contracts: request/response shapes for each endpoint
-  - Testing strategy: what integration tests and component tests to write
-  - DDD alignment: bounded contexts, ubiquitous language, domain model placement
-  - Risks or open questions
+The feature spec has already been created at `.github/specs/features/` before this agent was invoked. Locate and read the relevant spec file. Do not create or modify it.
 
-The architect is read-only — it will return the plan as text. You must then **create the spec file** yourself at `.github/specs/features/{feature-name}.spec.md` using the architect's output, structured per the [feature template](../specs/feature-template.spec.md).
+Use the spec as the single source of truth for all subsequent stages. Confirm the spec exists and contains the required sections before proceeding.
 
 ### Stage 2 — Implementation (backend-developer + frontend-developer subagents)
 
-After the spec is written, invoke **both** agents. Pass each one:
+After reading the spec, invoke **both** agents. Pass each one:
 - The full spec content (copy the relevant sections — subagents are stateless)
 - Their specific implementation scope from the spec
 

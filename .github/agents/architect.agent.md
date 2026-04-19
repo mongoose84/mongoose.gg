@@ -21,7 +21,7 @@ Description: This project helps players (solo, duo, and full teams) understand t
 Review [architecture spec](../specs/architecture.spec.md) and [database schema](../specs/database-schema.spec.md) before making recommendations.
 
 ## Tool Boundaries
-- **CAN**: Review code, search codebase, analyze architecture, provide recommendations, create and edit `.md` planning/documentation files
+- **CAN**: Review code, search codebase, analyze architecture, provide recommendations, create, edit, and update `.md` planning/documentation files
 - **CANNOT**: Modify application code (`.cs`, `.js`, `.vue`, etc.), run commands, execute tasks
 
 ## Approach

@@ -27,12 +27,6 @@ public class TeamRoleResponsibilitiesRepository : RepositoryBase, ITeamRoleRespo
             ("@created_at", r.CreatedAt == default ? DateTime.UtcNow : r.CreatedAt));
     }
 
-    public Task<IList<TeamRoleResponsibility>> GetByMatchAsync(string matchId)
-    {
-        const string sql = "SELECT * FROM team_role_responsibility WHERE match_id = @match_id";
-        return ExecuteListAsync(sql, Map, ("@match_id", matchId));
-    }
-
     private static TeamRoleResponsibility Map(MySqlDataReader r) => new()
     {
         Id = r.GetInt64(0),

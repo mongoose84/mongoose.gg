@@ -41,3 +41,45 @@ public record MostPlayedChampionData(
     int GamesPlayed
 );
 
+/// <summary>
+/// Per-PUUID session breakdown. The repository returns one entry per PUUID so the
+/// endpoint can populate both the aggregate SessionStats DTO and per-account
+/// AccountSummary.GamesToday / GamesThisWeek fields in a single query.
+/// </summary>
+public record PerAccountSessionData(
+    string Puuid,
+    int GamesToday,
+    int WinsToday,
+    int LossesToday,
+    double? AvgKdaToday,
+    string? BestChampionName,
+    int BestChampionWins,
+    int BestChampionLosses,
+    double BestChampionAvgKda,
+    int GamesThisWeek,
+    int WinsThisWeek,
+    int LossesThisWeek,
+    double? AvgKdaThisWeek
+);
+
+/// <summary>
+/// Aggregate session stats across all requested PUUIDs.
+/// Built by the endpoint from the per-account breakdown.
+/// </summary>
+public record SessionStatsData(
+    IReadOnlyList<PerAccountSessionData> PerAccount
+);
+
+/// <summary>
+/// Survival analysis over the last N games.
+/// Bucket boundaries are determined by rank-adaptive thresholds passed to the repository.
+/// </summary>
+public record SurvivalStatsData(
+    double AvgDeathsPerGame,
+    double? WinRateLowDeaths,
+    double? WinRateHighDeaths,
+    int GamesLowDeaths,
+    int GamesHighDeaths,
+    int TotalGames
+);
+
