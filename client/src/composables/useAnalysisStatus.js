@@ -153,13 +153,6 @@ export function useAnalysisStatus() {
     }
   }
   
-  // When sync completes, refresh user data so lastSyncAt updates in the store
-  watch(status, (newStatus) => {
-    if (newStatus === 'completed') {
-      authStore.refreshUser()
-    }
-  })
-
   // Subscribe to WebSocket when primary account changes
   // Unsubscribe from old puuid to prevent memory leaks
   watch(primaryPuuid, (newPuuid, oldPuuid) => {

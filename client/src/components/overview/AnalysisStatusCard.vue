@@ -90,12 +90,13 @@ const {
 // the WebSocket confirms the job is actually running (or the request fails).
 const isPending = ref(false)
 
-// Once the WebSocket reports running or a terminal state, clear the optimistic flag.
-watch(isRunning, (running) => {
-  if (running) isPending.value = false
-})
-watch(hasFailed, (failed) => {
-  if (failed) isPending.value = false
+// Clear the optimistic flag whenever the job reaches any settled state:
+// running (confirmed by WS), completed, failed, or any non-running state
+// (covers fast completions where isRunning never transitions to true).
+watch([isRunning, isUpToDate, hasFailed], ([running, upToDate, failed]) => {
+  if (running || upToDate || failed) {
+    isPending.value = false
+  }
 })
 
 // Load status on mount for persisted state
