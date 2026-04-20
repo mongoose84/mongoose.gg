@@ -7,7 +7,6 @@ namespace Mongoose.Api.Application.DTOs;
 /// </summary>
 public record OverviewResponse(
     [property: JsonPropertyName("playerHeader")] PlayerHeader PlayerHeader,
-    [property: JsonPropertyName("rankSnapshot")] RankSnapshot RankSnapshot,
     [property: JsonPropertyName("lastMatch")] LastMatch? LastMatch,
     [property: JsonPropertyName("mostPlayedChampion")] MostPlayedChampion? MostPlayedChampion,
     [property: JsonPropertyName("activeGoals")] GoalPreview[] ActiveGoals,
@@ -43,16 +42,10 @@ public record PlayerHeader(
     [property: JsonPropertyName("level")] int Level,
     [property: JsonPropertyName("region")] string Region,
     [property: JsonPropertyName("profileIconUrl")] string ProfileIconUrl,
-    [property: JsonPropertyName("activeContexts")] string[] ActiveContexts
-);
-
-/// <summary>
-/// Rank snapshot for the primary queue
-/// </summary>
-public record RankSnapshot(
-    [property: JsonPropertyName("primaryQueueLabel")] string PrimaryQueueLabel,
-    [property: JsonPropertyName("rank")] string? Rank,
-    [property: JsonPropertyName("lp")] int? Lp
+    [property: JsonPropertyName("activeContexts")] string[] ActiveContexts,
+    [property: JsonPropertyName("rank")] string? Rank = null,
+    [property: JsonPropertyName("lp")] int? Lp = null,
+    [property: JsonPropertyName("primaryQueueLabel")] string? PrimaryQueueLabel = null
 );
 
 /// <summary>
@@ -137,4 +130,3 @@ public record SurvivalStats(
     [property: JsonPropertyName("highDeathThreshold")] int HighDeathThreshold,
     [property: JsonPropertyName("totalGames")] int TotalGames
 );
-

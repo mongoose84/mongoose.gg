@@ -31,20 +31,9 @@
         :region="overviewData.playerHeader.region"
         :profile-icon-url="overviewData.playerHeader.profileIconUrl"
         :active-contexts="overviewData.playerHeader.activeContexts"
-        :rank="overviewData.rankSnapshot?.rank ?? null"
-        :lp="overviewData.rankSnapshot?.lp ?? null"
-        :primary-queue-label="overviewData.rankSnapshot?.primaryQueueLabel ?? null"
-      />
-
-      <!-- Rank Snapshot card -->
-      <RankSnapshot
-        v-if="overviewData?.rankSnapshot"
-        :primary-queue-label="effectivePrimaryQueueLabel"
-        :rank="overviewData.rankSnapshot.rank"
-        :lp="overviewData.rankSnapshot.lp"
-        :last20-wins="overviewData.rankSnapshot.last20Wins"
-        :last20-losses="overviewData.rankSnapshot.last20Losses"
-        :wl-last20="overviewData.rankSnapshot.wlLast20 ?? []"
+        :rank="overviewData.playerHeader.rank ?? null"
+        :lp="overviewData.playerHeader.lp ?? null"
+        :primary-queue-label="overviewData.playerHeader.primaryQueueLabel ?? null"
       />
     </template>
 
@@ -120,7 +109,6 @@ import { getChampionSplashUrl } from '../utils/leagueAssets'
 import OverviewLayout from '../components/overview/OverviewLayout.vue'
 import OverviewAccountCards from '../components/overview/OverviewAccountCards.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
-import RankSnapshot from '../components/overview/RankSnapshot.vue'
 import TodaySessionCard from '../components/overview/TodaySessionCard.vue'
 import SurvivalCheckCard from '../components/overview/SurvivalCheckCard.vue'
 import LastMatchCard from '../components/overview/LastMatchCard.vue'
@@ -197,11 +185,6 @@ const soloCtaSubtitle = computed(() => {
 
   const sign = diff > 0 ? '+' : ''
   return `KDA trend: ${avgKda.toFixed(1)} (${sign}${diff.toFixed(1)} vs overall)`
-})
-
-const effectivePrimaryQueueLabel = computed(() => {
-  if (authStore.isOverallMode) return 'Highest Rank (Solo)'
-  return overviewData.value?.rankSnapshot?.primaryQueueLabel ?? ''
 })
 
 const soloCtaTrendDirection = computed(() => {
