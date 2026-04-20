@@ -93,7 +93,7 @@ export function formatRelativeTime(timestamp, { short = false } = {}) {
   const diffMonth = Math.floor(diffDay / 30)
 
   if (short) {
-    if (diffMin < 1) return 'Just now'
+    if (diffMin < 1) return 'just now'
     if (diffMin < 60) return `${diffMin}m ago`
     if (diffHour < 24) return `${diffHour}h ago`
     if (diffDay < 7) return `${diffDay}d ago`
@@ -101,7 +101,7 @@ export function formatRelativeTime(timestamp, { short = false } = {}) {
     return `${diffMonth}mo ago`
   }
 
-  if (diffMin < 1) return 'Just now'
+  if (diffMin < 1) return 'just now'
   if (diffMin < 60) return `${diffMin} min ago`
   if (diffHour < 24) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`
   if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`

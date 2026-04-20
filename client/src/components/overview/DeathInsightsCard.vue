@@ -2,7 +2,7 @@
   <section
     class="survival-check-card"
     :class="borderClass"
-    data-testid="survival-check-card"
+    data-testid="death-insights-card"
     aria-label="Death insight: win rate correlation with deaths"
   >
     <!-- Loading skeleton -->
@@ -85,18 +85,17 @@ const neutralContext = computed(() => {
   const avg = s.avgDeathsPerGame
   const low = s.lowDeathThreshold
   const high = s.highDeathThreshold
-  const n = s.totalGames
 
   if (avg <= low)
-    return { text: `Within target range (≤${low}) · ${n} games`, colorClass: 'context-success' }
+    return { text: `Within target range (≤ ${low})`, colorClass: 'context-success' }
   if (avg >= high)
-    return { text: `Above danger zone (${high}+) · ${n} games`, colorClass: 'context-error' }
+    return { text: `Above danger zone (${high}+)`, colorClass: 'context-error' }
 
   const midpoint = (low + high) / 2
   if (avg > midpoint)
-    return { text: `Approaching danger zone (${high}+) · ${n} games`, colorClass: 'context-warning' }
+    return { text: `Approaching danger zone (${high}+)`, colorClass: 'context-warning' }
 
-  return { text: `Room to improve — target ≤${low} · ${n} games`, colorClass: 'context-muted' }
+  return { text: `Room to improve — target ≤ ${low}`, colorClass: 'context-muted' }
 })
 
 const headlineState = computed(() => {

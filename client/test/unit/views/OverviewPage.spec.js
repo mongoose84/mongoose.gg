@@ -81,8 +81,8 @@ describe('OverviewPage', () => {
           },
           AnalysisStatusCard: true,
           SoloAnalyticsCTA: {
-            props: ['subtitle', 'trendDirection'],
-            template: '<div data-testid="solo-cta-stub">{{ subtitle }}|{{ trendDirection }}</div>'
+            props: ['subtitle'],
+            template: '<div data-testid="solo-cta-stub">{{ subtitle }}</div>'
           },
           LinkRiotAccountModal: true
         }
@@ -117,43 +117,14 @@ describe('OverviewPage', () => {
     expect(wrapper.find('solo-analytics-c-t-a-stub').exists()).toBe(false)
   })
 
-  it('passes KDA trend subtitle and direction to SoloAnalyticsCTA', async () => {
+  it('passes default subtitle to SoloAnalyticsCTA', async () => {
     mockGetOverview.mockResolvedValue({})
-    mockGetSoloDashboard.mockResolvedValue({
-      avgKda: 3.4,
-      overallAvgKda: 2.9
-    })
+    mockGetSoloDashboard.mockResolvedValue({})
 
     const wrapper = mountPageWithCtaStub()
     await flushPromises()
 
-    expect(wrapper.find('[data-testid="solo-cta-stub"]').text()).toBe('KDA trend: 3.4 (+0.5 vs overall)|up')
-  })
-
-  it('passes neutral trend when KDA difference is below threshold', async () => {
-    mockGetOverview.mockResolvedValue({})
-    mockGetSoloDashboard.mockResolvedValue({
-      avgKda: 3.02,
-      overallAvgKda: 3.0
-    })
-
-    const wrapper = mountPageWithCtaStub()
-    await flushPromises()
-
-    expect(wrapper.find('[data-testid="solo-cta-stub"]').text()).toBe('KDA trend: 3.0 (even vs overall)|neutral')
-  })
-
-  it('passes down trend when KDA is below overall baseline', async () => {
-    mockGetOverview.mockResolvedValue({})
-    mockGetSoloDashboard.mockResolvedValue({
-      avgKda: 2.3,
-      overallAvgKda: 2.9
-    })
-
-    const wrapper = mountPageWithCtaStub()
-    await flushPromises()
-
-    expect(wrapper.find('[data-testid="solo-cta-stub"]').text()).toBe('KDA trend: 2.3 (-0.6 vs overall)|down')
+    expect(wrapper.find('[data-testid="solo-cta-stub"]').text()).toBe('Track your trends and improve')
   })
 
   it('passes mural props to ChampionSelectCTA when most played champion exists', async () => {

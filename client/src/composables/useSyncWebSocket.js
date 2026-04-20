@@ -1,5 +1,6 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { getHost, isDevelopment } from '../services/apiConfig'
+import { useAuthStore } from '../stores/authStore'
 
 /**
  * Singleton state for WebSocket connection.
@@ -255,6 +256,10 @@ export function useSyncWebSocket() {
         // TEMPORARY: Clear rate limited flag on completion
         // TODO: Remove this once we have a more sophisticated rate limiting UX.
         progress.isRateLimited = false
+        // Refresh user data once globally so lastSyncAt updates in the store.
+        // Doing this here (singleton message handler) ensures it fires exactly
+        // once per completion event regardless of how many components are mounted.
+        useAuthStore().refreshUser()
         break
 
       case 'sync_error':

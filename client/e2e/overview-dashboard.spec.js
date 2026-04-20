@@ -10,7 +10,7 @@ async function gotoOverviewPage(page) {
  *
  * Tests the Overview dashboard page which displays:
  * - Player header (summoner name, level, region, rank)
- * - At a glance: TodaySessionCard (win/loss strip) + SurvivalCheckCard (death insights)
+ * - At a glance: TodaySessionCard (win/loss strip) + DeathInsightsCard (death insights)
  * - Quick actions: Champion Select CTA + AnalysisStatusCard + SoloAnalyticsCTA
  * - Latest match card
  *
@@ -157,8 +157,8 @@ test.describe('Overview Dashboard - Content', () => {
     await expect(card).toBeVisible({ timeout: 10_000 });
   });
 
-  test('should display SurvivalCheckCard in "At a glance" section', async ({ page }) => {
-    const card = page.locator('[data-testid="survival-check-card"]');
+  test('should display DeathInsightsCard in "At a glance" section', async ({ page }) => {
+    const card = page.locator('[data-testid="death-insights-card"]');
     await expect(card).toBeVisible({ timeout: 10_000 });
   });
 

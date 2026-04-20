@@ -85,6 +85,7 @@
       </router-link>
 
       <router-link
+        v-if="featureFlags.teamAnalytics"
         to="/app/team"
         data-testid="nav-team"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
@@ -96,6 +97,7 @@
       </router-link>
 
       <router-link
+        v-if="featureFlags.goals"
         to="/app/goals"
         data-testid="nav-goals"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
@@ -197,6 +199,7 @@ import { useAnalysisStatus } from '../composables/useAnalysisStatus';
 import { BaseButton } from '@/components/base';
 import AccountSwitcher from '@/components/sidebar/AccountSwitcher.vue';
 import { useUserIcon } from '@/composables/useUserIcon';
+import { featureFlags } from '@/utils/featureFlags';
 
 const authStore = useAuthStore();
 const uiStore = useUiStore();

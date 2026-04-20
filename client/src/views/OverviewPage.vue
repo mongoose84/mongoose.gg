@@ -46,10 +46,10 @@
       />
     </template>
 
-    <!-- At a glance: Right - Survival Check Card (placeholder) -->
+    <!-- At a glance: Right - Death Insights Card -->
     <template #glance-right>
       <div class="glance-right-fill">
-        <SurvivalCheckCard
+        <DeathInsightsCard
           :survival-stats="overviewData?.survivalStats ?? null"
           :loading="pageIsLoading"
         />
@@ -70,7 +70,6 @@
         <AnalysisStatusCard />
         <SoloAnalyticsCTA
           :subtitle="soloCtaSubtitle"
-          :trend-direction="soloCtaTrendDirection"
         />
       </div>
     </template>
@@ -104,13 +103,13 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { useAsyncData } from '../composables/useAsyncData'
-import { getOverview, getSoloDashboard } from '../services/soloApi'
+import { getOverview } from '../services/soloApi'
 import { getChampionSplashUrl } from '../utils/leagueAssets'
 import OverviewLayout from '../components/overview/OverviewLayout.vue'
 import OverviewAccountCards from '../components/overview/OverviewAccountCards.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
 import TodaySessionCard from '../components/overview/TodaySessionCard.vue'
-import SurvivalCheckCard from '../components/overview/SurvivalCheckCard.vue'
+import DeathInsightsCard from '../components/overview/DeathInsightsCard.vue'
 import LastMatchCard from '../components/overview/LastMatchCard.vue'
 import ChampionSelectCTA from '../components/overview/ChampionSelectCTA.vue'
 import AnalysisStatusCard from '../components/overview/AnalysisStatusCard.vue'
@@ -122,7 +121,6 @@ const { syncProgress, resetProgress } = useSyncWebSocket()
 
 // State
 const overviewData = ref(null)
-const soloDashboardData = ref(null)
 const isRefreshing = ref(false)
 const showLinkModal = ref(false)
 const previousSyncStatuses = ref(new Map())
@@ -131,17 +129,10 @@ const {
   error,
   isLoading,
   execute: executeOverviewFetch
-} = useAsyncData(async () => {
-    const [overview, soloDashboard] = await Promise.all([
-      getOverview(authStore.userId),
-      getSoloDashboard(authStore.userId)
-    ])
-
-    return {
-      overview,
-      soloDashboard
-    }
-  }, { immediate: false, errorMessage: 'Failed to load overview' })
+} = useAsyncData(
+  () => getOverview(authStore.userId),
+  { immediate: false, errorMessage: 'Failed to load overview' }
+)
 
 const pageIsLoading = computed(() => isLoading.value && !overviewData.value)
 
@@ -170,38 +161,7 @@ const lastMatchAccountName = computed(() => {
   return null
 })
 
-const soloCtaSubtitle = computed(() => {
-  const avgKda = soloDashboardData.value?.avgKda
-  const overallAvgKda = soloDashboardData.value?.overallAvgKda
-
-  if (typeof avgKda !== 'number' || typeof overallAvgKda !== 'number') {
-    return 'Track your trends and improve'
-  }
-
-  const diff = avgKda - overallAvgKda
-  if (Math.abs(diff) < 0.05) {
-    return `KDA trend: ${avgKda.toFixed(1)} (even vs overall)`
-  }
-
-  const sign = diff > 0 ? '+' : ''
-  return `KDA trend: ${avgKda.toFixed(1)} (${sign}${diff.toFixed(1)} vs overall)`
-})
-
-const soloCtaTrendDirection = computed(() => {
-  const avgKda = soloDashboardData.value?.avgKda
-  const overallAvgKda = soloDashboardData.value?.overallAvgKda
-
-  if (typeof avgKda !== 'number' || typeof overallAvgKda !== 'number') {
-    return 'neutral'
-  }
-
-  const diff = avgKda - overallAvgKda
-  if (Math.abs(diff) < 0.05) {
-    return 'neutral'
-  }
-
-  return diff > 0 ? 'up' : 'down'
-})
+const soloCtaSubtitle = computed(() => 'Track your trends and improve')
 
 async function fetchData() {
   if (!authStore.userId) return
@@ -213,12 +173,9 @@ async function fetchData() {
   }
 
   try {
-    const result = await executeOverviewFetch()
-    overviewData.value = result.overview
-    soloDashboardData.value = result.soloDashboard
+    overviewData.value = await executeOverviewFetch()
   } catch {
     overviewData.value = null
-    soloDashboardData.value = null
   } finally {
     if (!isInitialLoad) {
       isRefreshing.value = false

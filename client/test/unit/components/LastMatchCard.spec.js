@@ -153,9 +153,9 @@ describe('LastMatchCard.vue', () => {
   });
 
   describe('Relative Time', () => {
-    it('displays "Just now" for very recent matches', () => {
+    it('displays "just now" for very recent matches', () => {
       const wrapper = createWrapper({ timestamp: Date.now() - 30000 }); // 30 seconds ago
-      expect(wrapper.find('.timestamp').text()).toBe('Just now');
+      expect(wrapper.find('.timestamp').text()).toBe('just now');
     });
 
     it('displays minutes for matches within an hour', () => {

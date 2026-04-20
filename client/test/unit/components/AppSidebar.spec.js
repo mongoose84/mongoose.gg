@@ -3,6 +3,15 @@ import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 
+const mockFeatureFlags = {
+  teamAnalytics: true,
+  goals: true,
+}
+
+vi.mock('@/utils/featureFlags', () => ({
+  get featureFlags() { return mockFeatureFlags }
+}))
+
 const mockAuthStore = {
   username: 'TestUser',
   tier: 'free',
@@ -56,6 +65,8 @@ describe('AppSidebar.vue', () => {
     mockUiStore.initializeSidebar.mockReset()
     mockUiStore.handleResize.mockReset()
     mockUiStore.toggleSidebar.mockReset()
+    mockFeatureFlags.teamAnalytics = true
+    mockFeatureFlags.goals = true
   })
 
   it('shows compact upgrade CTA when user is free-tier and at account limit', () => {
@@ -86,6 +97,32 @@ describe('AppSidebar.vue', () => {
 
     expect(userSection.find('img').exists()).toBe(false)
     expect(userSection.find('svg').exists()).toBe(true)
+  })
+
+  describe('Feature flags', () => {
+    it('shows Team Analytics nav item when flag is enabled', () => {
+      mockFeatureFlags.teamAnalytics = true
+      const wrapper = createWrapper()
+      expect(wrapper.find('[data-testid="nav-team"]').exists()).toBe(true)
+    })
+
+    it('hides Team Analytics nav item when flag is disabled', () => {
+      mockFeatureFlags.teamAnalytics = false
+      const wrapper = createWrapper()
+      expect(wrapper.find('[data-testid="nav-team"]').exists()).toBe(false)
+    })
+
+    it('shows Goals nav item when flag is enabled', () => {
+      mockFeatureFlags.goals = true
+      const wrapper = createWrapper()
+      expect(wrapper.find('[data-testid="nav-goals"]').exists()).toBe(true)
+    })
+
+    it('hides Goals nav item when flag is disabled', () => {
+      mockFeatureFlags.goals = false
+      const wrapper = createWrapper()
+      expect(wrapper.find('[data-testid="nav-goals"]').exists()).toBe(false)
+    })
   })
 
   describe('User info display', () => {

@@ -143,8 +143,8 @@ describe('formatters', () => {
     });
 
     describe('long format (default)', () => {
-      it('returns "Just now" for less than 1 minute', () => {
-        expect(formatRelativeTime(mockNow - 30000)).toBe('Just now');
+      it('returns "just now" for less than 1 minute', () => {
+        expect(formatRelativeTime(mockNow - 30000)).toBe('just now');
       });
 
       it('formats minutes correctly', () => {
@@ -178,8 +178,8 @@ describe('formatters', () => {
     });
 
     describe('short format', () => {
-      it('returns "Just now" for less than 1 minute', () => {
-        expect(formatRelativeTime(mockNow - 30000, { short: true })).toBe('Just now');
+      it('returns "just now" for less than 1 minute', () => {
+        expect(formatRelativeTime(mockNow - 30000, { short: true })).toBe('just now');
       });
 
       it('formats minutes with m suffix', () => {

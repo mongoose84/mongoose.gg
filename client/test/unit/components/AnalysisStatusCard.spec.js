@@ -137,9 +137,7 @@ describe('AnalysisStatusCard', () => {
 
     it('does not show action button when running', () => {
       const wrapper = mountCard();
-      // Button should not be visible when running (showActionButton is false)
-      // Actually, looking at the component, showActionButton = hasFailed || !isRunning
-      // So when running, button should be hidden
+      // showActionButton = hasFailed || !isActiveOrPending, so hidden when running
       expect(wrapper.find('button').exists()).toBe(false);
     });
   });
@@ -230,6 +228,47 @@ describe('AnalysisStatusCard', () => {
     it('shows Analyze button to re-analyze', () => {
       const wrapper = mountCard();
       expect(wrapper.find('button').text()).toBe('Analyze');
+    });
+  });
+
+  describe('optimistic pending state', () => {
+    it('shows spinner and "Starting analysis..." immediately on click before WebSocket update', async () => {
+      mockTriggerAnalysis.mockResolvedValue(true);
+      const wrapper = mountCard();
+
+      await wrapper.find('button').trigger('click');
+      // Don't flush promises — check the optimistic state synchronously
+      expect(wrapper.text()).toContain('Starting analysis...');
+      expect(wrapper.find('.status-spinner').exists()).toBe(true);
+    });
+
+    it('hides the action button while optimistically pending', async () => {
+      mockTriggerAnalysis.mockResolvedValue(true);
+      const wrapper = mountCard();
+
+      await wrapper.find('button').trigger('click');
+      expect(wrapper.find('button').exists()).toBe(false);
+    });
+
+    it('restores action button if triggerAnalysis fails', async () => {
+      mockTriggerAnalysis.mockResolvedValue(false);
+      const wrapper = mountCard();
+
+      await wrapper.find('button').trigger('click');
+      await flushPromises();
+      expect(wrapper.find('button').exists()).toBe(true);
+    });
+
+    it('clears "Last updated" subtitle immediately when clicking from up-to-date state', async () => {
+      mockIsUpToDate.value = true;
+      mockLastSyncAt.value = '2026-04-04T12:00:00Z';
+      mockTriggerAnalysis.mockResolvedValue(true);
+      const wrapper = mountCard();
+
+      expect(wrapper.text()).toContain('Last updated');
+
+      await wrapper.find('button').trigger('click');
+      expect(wrapper.text()).not.toContain('Last updated');
     });
   });
 
