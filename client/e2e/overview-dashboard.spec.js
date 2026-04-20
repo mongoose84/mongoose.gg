@@ -177,17 +177,18 @@ test.describe('Overview Dashboard - Content', () => {
   test('should display rank badge in player header', async ({ page }) => {
     const header = page.locator('.overview-player-header');
     const accountCards = page.locator('[data-testid="overview-account-cards"]');
-    await page.waitForFunction(() => {
-      const isVisible = (el) => Boolean(el && el instanceof HTMLElement && el.offsetParent !== null);
-      return isVisible(document.querySelector('.overview-player-header'))
-        || isVisible(document.querySelector('[data-testid="overview-account-cards"]'));
-    }, { timeout: 10_000 });
+
+    // Wait for the page to settle into one of the two header states before branching
+    await expect(page.locator('.overview-player-header, [data-testid="overview-account-cards"]'))
+      .toBeVisible({ timeout: 10_000 });
 
     if (await header.isVisible()) {
+      // Individual mode: rank badge must be present in the player header
       const rankBadge = page.locator('[data-testid="rank-badge"], [data-testid="rank-badge-unranked"]');
       await expect(rankBadge).toBeVisible();
     } else {
-      await expect(accountCards).toBeVisible({ timeout: 10_000 });
+      // Overall/account-cards mode: rank badge lives per card, not in an overview header
+      await expect(accountCards).toBeVisible();
     }
   });
 
