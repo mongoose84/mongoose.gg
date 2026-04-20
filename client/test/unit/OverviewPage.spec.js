@@ -54,7 +54,7 @@ const componentStubs = {
   OverviewAccountCards: { template: '<div data-testid="overview-account-cards" />' },
   OverviewPlayerHeader: { template: '<div data-testid="overview-player-header" />', props: ['rank', 'lp', 'primaryQueueLabel', 'summonerName', 'level', 'region', 'profileIconUrl', 'activeContexts'] },
   TodaySessionCard: { template: '<div data-testid="today-session-card" />', props: ['sessionStats', 'combinedStats', 'loading'] },
-  SurvivalCheckCard: { template: '<div data-testid="survival-check-card" />', props: ['survivalStats', 'loading'] },
+  DeathInsightsCard: { template: '<div data-testid="death-insights-card" />', props: ['survivalStats', 'loading'] },
   ChampionSelectCTA: { template: '<div data-testid="champion-select-cta" />', props: ['muralUrl', 'championName'] },
   AnalysisStatusCard: { template: '<div data-testid="analysis-status-card" />' },
   SoloAnalyticsCTA: { template: '<div data-testid="solo-analytics-cta" />', props: ['subtitle', 'trendDirection'] },
@@ -74,9 +74,9 @@ describe('OverviewPage', () => {
     expect(wrapper.find('[data-testid="today-session-card"]').exists()).toBe(true)
   })
 
-  it('renders SurvivalCheckCard in glance-right slot', () => {
+  it('renders DeathInsightsCard in glance-right slot', () => {
     const wrapper = mount(OverviewPage, { global: { stubs: componentStubs } })
-    expect(wrapper.find('[data-testid="survival-check-card"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="death-insights-card"]').exists()).toBe(true)
   })
 
   it('renders ChampionSelectCTA in actions-left slot', () => {

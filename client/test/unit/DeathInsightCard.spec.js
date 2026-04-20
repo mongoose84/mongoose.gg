@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import SurvivalCheckCard from '../../src/components/overview/SurvivalCheckCard.vue'
+import DeathInsightsCard from '../../src/components/overview/DeathInsightsCard.vue'
 
 const motivationalStats = {
   avgDeathsPerGame: 6.8,
@@ -35,9 +35,9 @@ const neutralStats = {
   totalGames: 18
 }
 
-describe('SurvivalCheckCard (DeathInsightCard)', () => {
+describe('DeathInsightsCard', () => {
   it('renders motivational headline when winRateLowDeaths >= 0.55 and gap >= 0.15', () => {
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: motivationalStats, loading: false }
     })
 
@@ -51,7 +51,7 @@ describe('SurvivalCheckCard (DeathInsightCard)', () => {
   })
 
   it('renders warning headline when winRateHighDeaths <= 0.45 and gap >= 0.15', () => {
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: warningStats, loading: false }
     })
 
@@ -63,7 +63,7 @@ describe('SurvivalCheckCard (DeathInsightCard)', () => {
   })
 
   it('falls back to neutral when gap < 0.15', () => {
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: neutralStats, loading: false }
     })
 
@@ -74,7 +74,7 @@ describe('SurvivalCheckCard (DeathInsightCard)', () => {
   })
 
   it('shows empty state when survivalStats is null', () => {
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: null, loading: false }
     })
 
@@ -84,7 +84,7 @@ describe('SurvivalCheckCard (DeathInsightCard)', () => {
   })
 
   it('shows empty state when survivalStats has totalGames === 0', () => {
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: { ...neutralStats, totalGames: 0 }, loading: false }
     })
 
@@ -93,7 +93,7 @@ describe('SurvivalCheckCard (DeathInsightCard)', () => {
   })
 
   it('shows loading skeleton when loading is true', () => {
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: null, loading: true }
     })
 
@@ -103,7 +103,7 @@ describe('SurvivalCheckCard (DeathInsightCard)', () => {
   })
 
   it('footer shows avg deaths and total games', () => {
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: motivationalStats, loading: false }
     })
 
@@ -115,7 +115,7 @@ describe('SurvivalCheckCard (DeathInsightCard)', () => {
 
   it('displays rank-adaptive thresholds in headline text', () => {
     // lowDeathThreshold: 5, highDeathThreshold: 8
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: motivationalStats, loading: false }
     })
 
@@ -125,7 +125,7 @@ describe('SurvivalCheckCard (DeathInsightCard)', () => {
 
   it('displays rank-adaptive thresholds for a lower-threshold player (Gold)', () => {
     // lowDeathThreshold: 4, highDeathThreshold: 6
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: warningStats, loading: false }
     })
 
@@ -136,28 +136,28 @@ describe('SurvivalCheckCard (DeathInsightCard)', () => {
 
   it('applies success border class when avg deaths <= lowDeathThreshold', () => {
     const stats = { ...motivationalStats, avgDeathsPerGame: 3.0, lowDeathThreshold: 5 }
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: stats, loading: false }
     })
 
-    expect(wrapper.find('[data-testid="survival-check-card"]').classes()).toContain('border-success')
+    expect(wrapper.find('[data-testid="death-insights-card"]').classes()).toContain('border-success')
   })
 
   it('applies error border class when avg deaths >= highDeathThreshold', () => {
     const stats = { ...motivationalStats, avgDeathsPerGame: 9.0, highDeathThreshold: 8 }
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: stats, loading: false }
     })
 
-    expect(wrapper.find('[data-testid="survival-check-card"]').classes()).toContain('border-error')
+    expect(wrapper.find('[data-testid="death-insights-card"]').classes()).toContain('border-error')
   })
 
   it('applies default border class when avg deaths is between thresholds', () => {
     // avgDeathsPerGame: 6.8, lowDeathThreshold: 5, highDeathThreshold: 8
-    const wrapper = mount(SurvivalCheckCard, {
+    const wrapper = mount(DeathInsightsCard, {
       props: { survivalStats: motivationalStats, loading: false }
     })
 
-    expect(wrapper.find('[data-testid="survival-check-card"]').classes()).toContain('border-default')
+    expect(wrapper.find('[data-testid="death-insights-card"]').classes()).toContain('border-default')
   })
 })

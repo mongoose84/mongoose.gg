@@ -46,10 +46,10 @@
       />
     </template>
 
-    <!-- At a glance: Right - Survival Check Card (placeholder) -->
+    <!-- At a glance: Right - Death Insights Card -->
     <template #glance-right>
       <div class="glance-right-fill">
-        <SurvivalCheckCard
+        <DeathInsightsCard
           :survival-stats="overviewData?.survivalStats ?? null"
           :loading="pageIsLoading"
         />
@@ -110,7 +110,7 @@ import OverviewLayout from '../components/overview/OverviewLayout.vue'
 import OverviewAccountCards from '../components/overview/OverviewAccountCards.vue'
 import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
 import TodaySessionCard from '../components/overview/TodaySessionCard.vue'
-import SurvivalCheckCard from '../components/overview/SurvivalCheckCard.vue'
+import DeathInsightsCard from '../components/overview/DeathInsightsCard.vue'
 import LastMatchCard from '../components/overview/LastMatchCard.vue'
 import ChampionSelectCTA from '../components/overview/ChampionSelectCTA.vue'
 import AnalysisStatusCard from '../components/overview/AnalysisStatusCard.vue'
