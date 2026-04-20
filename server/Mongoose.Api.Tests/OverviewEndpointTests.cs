@@ -413,6 +413,7 @@ public class OverviewEndpointTests
         raw.Should().NotContain("winRateAbove5Deaths");
         raw.Should().NotContain("gamesAtOrBelow3Deaths");
         raw.Should().NotContain("gamesAbove5Deaths");
+        raw.Should().NotContain("\"rankSnapshot\"");
         raw.Should().Contain("winRateLowDeaths");
         raw.Should().Contain("winRateHighDeaths");
         raw.Should().Contain("lowDeathThreshold");

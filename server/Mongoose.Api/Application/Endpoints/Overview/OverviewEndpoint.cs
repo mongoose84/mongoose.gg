@@ -68,15 +68,16 @@ public sealed class OverviewEndpoint : IEndpoint
                 // Build player header
                 var profileIconUrl = BuildProfileIconUrl(primaryAccount.ProfileIconId);
                 var activeContexts = DetermineActiveContexts(linkedAccountsCount);
+                var (rank, lp, primaryQueueLabel) = BuildRankMetadata(primaryAccount);
                 var playerHeader = new PlayerHeader(
                     SummonerName: primaryAccount.SummonerName,
                     Level: primaryAccount.SummonerLevel ?? 0,
                     Region: primaryAccount.Region.ToUpperInvariant(),
                     ProfileIconUrl: profileIconUrl,
                     ActiveContexts: activeContexts,
-                    Rank: BuildRankString(primaryAccount),
-                    Lp: BuildLpValue(primaryAccount),
-                    PrimaryQueueLabel: BuildPrimaryQueueLabel(primaryAccount)
+                    Rank: rank,
+                    Lp: lp,
+                    PrimaryQueueLabel: primaryQueueLabel
                 );
 
                 // Compute rank-adaptive death thresholds from the primary account's solo queue tier
@@ -119,13 +120,14 @@ public sealed class OverviewEndpoint : IEndpoint
                         {
                             var perAccountData = sessionStatsData.PerAccount
                                 .FirstOrDefault(a => a.Puuid == resolved.Account.Puuid);
+                            var (accountRank, accountLp, _) = BuildRankMetadata(resolved.Account);
                             return new AccountSummary(
                                 AccountId: resolved.AccountId,
                                 GameName: resolved.Account.GameName,
                                 TagLine: resolved.Account.TagLine,
                                 Region: resolved.Account.Region,
-                                Rank: BuildRankString(resolved.Account),
-                                Lp: BuildLpValue(resolved.Account),
+                                Rank: accountRank,
+                                Lp: accountLp,
                                 GamesToday: perAccountData?.GamesToday ?? 0,
                                 GamesThisWeek: perAccountData?.GamesThisWeek ?? 0
                             );
@@ -280,48 +282,28 @@ public sealed class OverviewEndpoint : IEndpoint
         return $"https://ddragon.leagueoflegends.com/cdn/{DataDragonVersion}/img/champion/{normalized}.png";
     }
 
-    private static string? BuildRankString(Mongoose.Api.Core.Entities.RiotAccount account)
+    private static (string? Rank, int? Lp, string PrimaryQueueLabel) BuildRankMetadata(Mongoose.Api.Core.Entities.RiotAccount account)
     {
-        if (!string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank))
+        if (HasSoloRank(account))
         {
-            return $"{account.SoloTier} {account.SoloRank}";
+            return ($"{account.SoloTier} {account.SoloRank}", account.SoloLp, "Ranked Solo/Duo");
         }
 
-        if (!string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank))
+        if (HasFlexRank(account))
         {
-            return $"{account.FlexTier} {account.FlexRank}";
+            return ($"{account.FlexTier} {account.FlexRank}", account.FlexLp, "Ranked Flex");
         }
 
-        return null;
+        return (null, null, "Ranked");
     }
 
-    private static int? BuildLpValue(Mongoose.Api.Core.Entities.RiotAccount account)
+    private static bool HasSoloRank(Mongoose.Api.Core.Entities.RiotAccount account)
     {
-        if (!string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank))
-        {
-            return account.SoloLp;
-        }
-
-        if (!string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank))
-        {
-            return account.FlexLp;
-        }
-
-        return null;
+        return !string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank);
     }
 
-    private static string BuildPrimaryQueueLabel(Mongoose.Api.Core.Entities.RiotAccount account)
+    private static bool HasFlexRank(Mongoose.Api.Core.Entities.RiotAccount account)
     {
-        if (!string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank))
-        {
-            return "Ranked Solo/Duo";
-        }
-
-        if (!string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank))
-        {
-            return "Ranked Flex";
-        }
-
-        return "Ranked";
+        return !string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank);
     }
 }

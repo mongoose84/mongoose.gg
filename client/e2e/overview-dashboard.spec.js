@@ -177,6 +177,11 @@ test.describe('Overview Dashboard - Content', () => {
   test('should display rank badge in player header', async ({ page }) => {
     const header = page.locator('.overview-player-header');
     const accountCards = page.locator('[data-testid="overview-account-cards"]');
+    await page.waitForFunction(() => {
+      const isVisible = (el) => Boolean(el && el instanceof HTMLElement && el.offsetParent !== null);
+      return isVisible(document.querySelector('.overview-player-header'))
+        || isVisible(document.querySelector('[data-testid="overview-account-cards"]'));
+    }, { timeout: 10_000 });
 
     if (await header.isVisible()) {
       const rankBadge = page.locator('[data-testid="rank-badge"], [data-testid="rank-badge-unranked"]');
