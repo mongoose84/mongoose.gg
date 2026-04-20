@@ -18,20 +18,9 @@
 
     <div class="cta-foreground">
     <div class="cta-icon-wrapper">
-      <ArrowTrendingUpIcon
-        v-if="props.trendDirection === 'up'"
-        class="cta-icon cta-icon--up"
-        data-testid="solo-kda-trend-up-icon"
-      />
-      <ArrowTrendingDownIcon
-        v-else-if="props.trendDirection === 'down'"
-        class="cta-icon cta-icon--down"
-        data-testid="solo-kda-trend-down-icon"
-      />
       <ChartBarIcon
-        v-else
         class="cta-icon cta-icon--neutral"
-        data-testid="solo-kda-trend-neutral-icon"
+        data-testid="solo-analytics-icon"
       />
     </div>
 
@@ -50,17 +39,12 @@
 </template>
 
 <script setup>
-import { ChartBarIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/vue/24/solid'
+import { ChartBarIcon } from '@heroicons/vue/24/solid'
 
 const props = defineProps({
   subtitle: {
     type: String,
     default: 'Track your trends and improve'
-  },
-  trendDirection: {
-    type: String,
-    default: 'neutral',
-    validator: (value) => ['up', 'down', 'neutral'].includes(value)
   }
 })
 </script>
@@ -154,14 +138,6 @@ const props = defineProps({
 
 .cta-icon--neutral {
   color: var(--color-primary);
-}
-
-.cta-icon--up {
-  color: var(--color-success);
-}
-
-.cta-icon--down {
-  color: var(--color-error);
 }
 
 .cta-content {

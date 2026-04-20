@@ -57,7 +57,7 @@ const componentStubs = {
   DeathInsightsCard: { template: '<div data-testid="death-insights-card" />', props: ['survivalStats', 'loading'] },
   ChampionSelectCTA: { template: '<div data-testid="champion-select-cta" />', props: ['muralUrl', 'championName'] },
   AnalysisStatusCard: { template: '<div data-testid="analysis-status-card" />' },
-  SoloAnalyticsCTA: { template: '<div data-testid="solo-analytics-cta" />', props: ['subtitle', 'trendDirection'] },
+  SoloAnalyticsCTA: { template: '<div data-testid="solo-analytics-cta" />', props: ['subtitle'] },
   LastMatchCard: { template: '<div data-testid="last-match-card" />', props: ['matchId', 'championIconUrl', 'championName', 'result', 'kda', 'timestamp', 'queueType', 'accountName'] },
   LinkRiotAccountModal: { template: '<div />', props: ['isOpen'] }
 }

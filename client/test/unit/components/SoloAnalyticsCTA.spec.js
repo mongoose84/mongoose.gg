@@ -11,9 +11,7 @@ describe('SoloAnalyticsCTA', () => {
             template: '<a :href="to" class="router-link-stub"><slot /></a>',
             props: ['to']
           },
-          ChartBarIcon: { template: '<svg data-testid="chartbar-icon" />' },
-          ArrowTrendingUpIcon: { template: '<svg data-testid="arrow-trending-up-icon" />' },
-          ArrowTrendingDownIcon: { template: '<svg data-testid="arrow-trending-down-icon" />' }
+          ChartBarIcon: { template: '<svg data-testid="chartbar-icon" />' }
         }
       },
       ...options
@@ -42,27 +40,6 @@ describe('SoloAnalyticsCTA', () => {
     const wrapper = mountCTA()
     expect(wrapper.find('[data-testid="solo-analytics-mural"]').exists()).toBe(true)
     expect(wrapper.find('.cta-overlay-layer').exists()).toBe(true)
-  })
-
-  it('renders up icon and success color when trendDirection is up', () => {
-    const wrapper = mountCTA({ props: { trendDirection: 'up' } })
-    expect(wrapper.find('.cta-icon--up').exists()).toBe(true)
-    expect(wrapper.find('.cta-icon--down').exists()).toBe(false)
-    expect(wrapper.find('.cta-icon--neutral').exists()).toBe(false)
-  })
-
-  it('renders down icon and error color when trendDirection is down', () => {
-    const wrapper = mountCTA({ props: { trendDirection: 'down' } })
-    expect(wrapper.find('.cta-icon--down').exists()).toBe(true)
-    expect(wrapper.find('.cta-icon--up').exists()).toBe(false)
-    expect(wrapper.find('.cta-icon--neutral').exists()).toBe(false)
-  })
-
-  it('renders neutral icon when trendDirection is neutral', () => {
-    const wrapper = mountCTA({ props: { trendDirection: 'neutral' } })
-    expect(wrapper.find('.cta-icon--neutral').exists()).toBe(true)
-    expect(wrapper.find('.cta-icon--up').exists()).toBe(false)
-    expect(wrapper.find('.cta-icon--down').exists()).toBe(false)
   })
 
   it('renders provided subtitle text', () => {

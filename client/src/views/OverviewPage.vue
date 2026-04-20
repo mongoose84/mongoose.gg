@@ -70,7 +70,6 @@
         <AnalysisStatusCard />
         <SoloAnalyticsCTA
           :subtitle="soloCtaSubtitle"
-          :trend-direction="soloCtaTrendDirection"
         />
       </div>
     </template>
@@ -170,38 +169,7 @@ const lastMatchAccountName = computed(() => {
   return null
 })
 
-const soloCtaSubtitle = computed(() => {
-  const avgKda = soloDashboardData.value?.avgKda
-  const overallAvgKda = soloDashboardData.value?.overallAvgKda
-
-  if (typeof avgKda !== 'number' || typeof overallAvgKda !== 'number') {
-    return 'Track your trends and improve'
-  }
-
-  const diff = avgKda - overallAvgKda
-  if (Math.abs(diff) < 0.05) {
-    return `KDA trend: ${avgKda.toFixed(1)} (even vs overall)`
-  }
-
-  const sign = diff > 0 ? '+' : ''
-  return `KDA trend: ${avgKda.toFixed(1)} (${sign}${diff.toFixed(1)} vs overall)`
-})
-
-const soloCtaTrendDirection = computed(() => {
-  const avgKda = soloDashboardData.value?.avgKda
-  const overallAvgKda = soloDashboardData.value?.overallAvgKda
-
-  if (typeof avgKda !== 'number' || typeof overallAvgKda !== 'number') {
-    return 'neutral'
-  }
-
-  const diff = avgKda - overallAvgKda
-  if (Math.abs(diff) < 0.05) {
-    return 'neutral'
-  }
-
-  return diff > 0 ? 'up' : 'down'
-})
+const soloCtaSubtitle = computed(() => 'Track your trends and improve')
 
 async function fetchData() {
   if (!authStore.userId) return
