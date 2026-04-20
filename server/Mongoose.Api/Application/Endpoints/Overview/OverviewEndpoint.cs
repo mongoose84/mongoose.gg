@@ -322,6 +322,6 @@ public sealed class OverviewEndpoint : IEndpoint
             return "Ranked Flex";
         }
 
-        return "Ranked Solo/Duo";
+        return "Ranked";
     }
 }
