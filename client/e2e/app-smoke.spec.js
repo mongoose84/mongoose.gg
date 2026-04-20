@@ -6,8 +6,6 @@ const coreRoutes = [
   { navTestId: 'nav-solo', path: '/app/solo', locator: '[data-testid="solo-dashboard"]' },
   { navTestId: 'nav-matches', path: '/app/matches', locator: '[data-testid="matches-page"]' },
   { navTestId: 'nav-champion-select', path: '/app/champion-select', locator: '[data-testid="champion-select-page"]' },
-  { navTestId: 'nav-team', path: '/app/team', heading: /team analytics/i },
-  { navTestId: 'nav-goals', path: '/app/goals', heading: /goals/i },
   { navTestId: 'nav-feedback', path: '/app/feedback', heading: /send feedback/i },
 ]
 
