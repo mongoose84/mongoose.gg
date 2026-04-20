@@ -57,7 +57,6 @@ describe('OverviewPage', () => {
           OverviewAccountCards: true,
           OverviewPlayerHeader: true,
           MatchActivityHeatmap: true,
-          RankSnapshot: true,
           LastMatchCard: true,
           ChampionSelectCTA: true,
           AnalysisStatusCard: true,
@@ -75,7 +74,6 @@ describe('OverviewPage', () => {
           OverviewAccountCards: true,
           OverviewPlayerHeader: true,
           MatchActivityHeatmap: true,
-          RankSnapshot: true,
           LastMatchCard: true,
           ChampionSelectCTA: {
             props: ['muralUrl', 'championName'],
@@ -219,78 +217,6 @@ describe('OverviewPage', () => {
       expect(wrapper.find('overview-account-cards-stub').exists()).toBe(false)
     })
 
-    it('shows "Highest Rank (Solo)" label in RankSnapshot when in Overall mode', async () => {
-      mockIsOverallMode.value = true
-      mockGetOverview.mockResolvedValue({
-        rankSnapshot: {
-          primaryQueueLabel: 'Ranked Solo/Duo',
-          rank: 'Diamond II',
-          lp: 67,
-          last20Wins: 12,
-          last20Losses: 8,
-          wlLast20: []
-        }
-      })
-
-      const wrapper = mount(OverviewPage, {
-        global: {
-          stubs: {
-            OverviewPlayerHeader: true,
-            OverviewAccountCards: true,
-            MatchActivityHeatmap: true,
-            RankSnapshot: {
-              props: ['primaryQueueLabel', 'rank', 'lp', 'last20Wins', 'last20Losses', 'wlLast20'],
-              template: '<div data-testid="rank-snapshot-stub">{{ primaryQueueLabel }}</div>'
-            },
-            LastMatchCard: true,
-            ChampionSelectCTA: true,
-            AnalysisStatusCard: true,
-            SoloAnalyticsCTA: true,
-            LinkRiotAccountModal: true
-          }
-        }
-      })
-      await flushPromises()
-
-      expect(wrapper.find('[data-testid="rank-snapshot-stub"]').text()).toBe('Highest Rank (Solo)')
-    })
-
-    it('shows primary queue label in RankSnapshot when in individual mode', async () => {
-      mockIsOverallMode.value = false
-      mockGetOverview.mockResolvedValue({
-        rankSnapshot: {
-          primaryQueueLabel: 'Ranked Solo/Duo',
-          rank: 'Diamond II',
-          lp: 67,
-          last20Wins: 12,
-          last20Losses: 8,
-          wlLast20: []
-        }
-      })
-
-      const wrapper = mount(OverviewPage, {
-        global: {
-          stubs: {
-            OverviewPlayerHeader: true,
-            OverviewAccountCards: true,
-            MatchActivityHeatmap: true,
-            RankSnapshot: {
-              props: ['primaryQueueLabel', 'rank', 'lp', 'last20Wins', 'last20Losses', 'wlLast20'],
-              template: '<div data-testid="rank-snapshot-stub">{{ primaryQueueLabel }}</div>'
-            },
-            LastMatchCard: true,
-            ChampionSelectCTA: true,
-            AnalysisStatusCard: true,
-            SoloAnalyticsCTA: true,
-            LinkRiotAccountModal: true
-          }
-        }
-      })
-      await flushPromises()
-
-      expect(wrapper.find('[data-testid="rank-snapshot-stub"]').text()).toBe('Ranked Solo/Duo')
-    })
-
     it('calls setActiveAccount when account is selected', async () => {
       mockIsOverallMode.value = true
       mockGetOverview.mockResolvedValue({
@@ -308,7 +234,6 @@ describe('OverviewPage', () => {
               template: '<div><button data-testid="account-select" @click="$emit(\'select\', \'acc_1\')">Select</button></div>'
             },
             MatchActivityHeatmap: true,
-            RankSnapshot: true,
             LastMatchCard: true,
             ChampionSelectCTA: true,
             AnalysisStatusCard: true,

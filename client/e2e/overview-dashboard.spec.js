@@ -70,20 +70,6 @@ test.describe('Overview Dashboard - Content', () => {
     }
   });
 
-  test('should display rank snapshot section', async ({ page }) => {
-    // Rank info is now shown in the player header
-    const header = page.locator('.overview-player-header');
-    await expect(header).toBeVisible({ timeout: 10_000 });
-
-    // Rank badge should be visible (either ranked or unranked)
-    const rankBadge = page.locator('[data-testid="rank-badge"], [data-testid="rank-badge-unranked"]');
-    await expect(rankBadge).toBeVisible();
-
-    // Rank text should be visible (e.g., "Silver IV" or "Unranked")
-    const rankText = header.locator('.rank-badge-text');
-    await expect(rankText).toBeVisible();
-  });
-
   test('should display "At a glance" section', async ({ page }) => {
     // Section title should be visible
     const sectionTitle = page.getByRole('heading', { name: /at a glance/i });
@@ -190,11 +176,14 @@ test.describe('Overview Dashboard - Content', () => {
 
   test('should display rank badge in player header', async ({ page }) => {
     const header = page.locator('.overview-player-header');
-    await expect(header).toBeVisible({ timeout: 10_000 });
+    const accountCards = page.locator('[data-testid="overview-account-cards"]');
 
-    // Rank badge (ranked or unranked) should be visible
-    const rankBadge = page.locator('[data-testid="rank-badge"], [data-testid="rank-badge-unranked"]');
-    await expect(rankBadge).toBeVisible();
+    if (await header.isVisible()) {
+      const rankBadge = page.locator('[data-testid="rank-badge"], [data-testid="rank-badge-unranked"]');
+      await expect(rankBadge).toBeVisible();
+    } else {
+      await expect(accountCards).toBeVisible({ timeout: 10_000 });
+    }
   });
 
   test('should display profile icon or fallback', async ({ page }) => {
@@ -285,4 +274,3 @@ test.describe('Overview Dashboard - Responsive', () => {
     await expect(page.getByRole('heading', { name: /at a glance/i })).toBeVisible();
   });
 });
-

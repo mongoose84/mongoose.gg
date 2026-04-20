@@ -100,7 +100,7 @@ public class OverviewEndpointTests
     }
 
     [Fact]
-    public async Task Overview_returns_rank_snapshot_with_default_queue()
+    public async Task Overview_returns_player_header_rank_with_default_queue()
     {
         using var factory = new TestWebApplicationFactory();
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
@@ -130,8 +130,9 @@ public class OverviewEndpointTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
         body.Should().NotBeNull();
-        body!.RankSnapshot.Should().NotBeNull();
-        body.RankSnapshot.PrimaryQueueLabel.Should().Be("Ranked Solo/Duo");
+        body!.PlayerHeader.Rank.Should().Be("GOLD II");
+        body.PlayerHeader.Lp.Should().Be(75);
+        body.PlayerHeader.PrimaryQueueLabel.Should().Be("Ranked Solo/Duo");
     }
 
     [Fact]
@@ -344,35 +345,6 @@ public class OverviewEndpointTests
     }
 
     [Fact]
-    public async Task Overview_rank_snapshot_does_not_include_wl_fields()
-    {
-        using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
-
-        factory.RiotAccountsRepository.AddRiotAccountWithRank(
-            userId: 1, puuid: "test-puuid-123", gameName: "TestPlayer", region: "NA1",
-            summonerName: "TestPlayer#NA1", summonerLevel: 100, profileIconId: 42,
-            soloTier: "PLATINUM", soloRank: "I", soloLp: 50);
-        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
-
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
-        req.Headers.Add("Cookie", authCookie);
-
-        var response = await client.SendAsync(req);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var raw = await response.Content.ReadAsStringAsync();
-        raw.Should().NotContain("wlLast20");
-        raw.Should().NotContain("last20Wins");
-        raw.Should().NotContain("last20Losses");
-        var body = await System.Text.Json.JsonSerializer.DeserializeAsync<OverviewResponse>(
-            new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(raw)),
-            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        body!.RankSnapshot.Rank.Should().Be("PLATINUM I");
-    }
-
-    [Fact]
     public async Task Overview_survival_stats_uses_gold_thresholds_for_gold_rank()
     {
         using var factory = new TestWebApplicationFactory();
@@ -450,7 +422,6 @@ public class OverviewEndpointTests
     // Response DTOs for deserialization
     private record OverviewResponse(
         PlayerHeader PlayerHeader,
-        RankSnapshot RankSnapshot,
         LastMatch? LastMatch,
         MostPlayedChampion? MostPlayedChampion,
         GoalPreview[] ActiveGoals,
@@ -461,8 +432,7 @@ public class OverviewEndpointTests
         SurvivalStats? SurvivalStats = null
     );
 
-    private record PlayerHeader(string SummonerName, int Level, string Region, string ProfileIconUrl, string[] ActiveContexts);
-    private record RankSnapshot(string PrimaryQueueLabel, string? Rank, int? Lp);
+    private record PlayerHeader(string SummonerName, int Level, string Region, string ProfileIconUrl, string[] ActiveContexts, string? Rank, int? Lp, string? PrimaryQueueLabel);
     private record LastMatch(string MatchId, string ChampionIconUrl, string ChampionName, string Result, string Kda, long Timestamp);
     private record MostPlayedChampion(string ChampionName, int GamesPlayed, string Source);
     private record GoalPreview(string GoalId, string Title, string Context, double Progress);
@@ -473,4 +443,3 @@ public class OverviewEndpointTests
     private record SessionChampion(string ChampionName, int Wins, int Losses, double AvgKda);
     private record SurvivalStats(double AvgDeathsPerGame, double? WinRateLowDeaths, double? WinRateHighDeaths, int GamesLowDeaths, int GamesHighDeaths, int LowDeathThreshold, int HighDeathThreshold, int TotalGames);
 }
-

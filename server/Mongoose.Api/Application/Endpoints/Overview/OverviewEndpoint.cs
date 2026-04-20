@@ -12,8 +12,7 @@ namespace Mongoose.Api.Application.Endpoints.Overview;
 /// <summary>
 /// Overview Endpoint
 /// Returns aggregated dashboard data for the Overview page.
-/// Includes player header, rank snapshot, last match, active goals, and suggested actions.
-/// Primary queue is auto-selected based on highest match count in recent window.
+/// Includes player header, last match, active goals, and suggested actions.
 /// </summary>
 public sealed class OverviewEndpoint : IEndpoint
 {
@@ -74,14 +73,11 @@ public sealed class OverviewEndpoint : IEndpoint
                     Level: primaryAccount.SummonerLevel ?? 0,
                     Region: primaryAccount.Region.ToUpperInvariant(),
                     ProfileIconUrl: profileIconUrl,
-                    ActiveContexts: activeContexts
+                    ActiveContexts: activeContexts,
+                    Rank: BuildRankString(primaryAccount),
+                    Lp: BuildLpValue(primaryAccount),
+                    PrimaryQueueLabel: BuildPrimaryQueueLabel(primaryAccount)
                 );
-
-                // Determine primary queue
-                var (primaryQueueId, primaryQueueLabel, _) = await overviewStatsRepo.GetPrimaryQueueAsync(selectedPuuids);
-
-                // Calculate rank snapshot (wlLast20 fields removed)
-                var rankSnapshot = BuildRankSnapshot(primaryAccount, primaryQueueId, primaryQueueLabel);
 
                 // Compute rank-adaptive death thresholds from the primary account's solo queue tier
                 var (lowDeathThreshold, highDeathThreshold) = DeathThresholds.ForRank(primaryAccount.SoloTier);
@@ -161,7 +157,6 @@ public sealed class OverviewEndpoint : IEndpoint
 
                 var response = new OverviewResponse(
                     PlayerHeader: playerHeader,
-                    RankSnapshot: rankSnapshot,
                     LastMatch: lastMatch,
                     MostPlayedChampion: mostPlayedChampion,
                     ActiveGoals: activeGoals,
@@ -198,38 +193,6 @@ public sealed class OverviewEndpoint : IEndpoint
         // For now, just return Solo
         
         return contexts.ToArray();
-    }
-
-    private static RankSnapshot BuildRankSnapshot(
-        Mongoose.Api.Core.Entities.RiotAccount account,
-        int primaryQueueId,
-        string primaryQueueLabel)
-    {
-        string? rank = null;
-        int? currentLp = null;
-
-        if (primaryQueueId == 420) // Ranked Solo/Duo
-        {
-            if (!string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank))
-            {
-                rank = $"{account.SoloTier} {account.SoloRank}";
-                currentLp = account.SoloLp;
-            }
-        }
-        else if (primaryQueueId == 440) // Ranked Flex
-        {
-            if (!string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank))
-            {
-                rank = $"{account.FlexTier} {account.FlexRank}";
-                currentLp = account.FlexLp;
-            }
-        }
-
-        return new RankSnapshot(
-            PrimaryQueueLabel: primaryQueueLabel,
-            Rank: rank,
-            Lp: currentLp
-        );
     }
 
     private static SessionStats BuildSessionStats(SessionStatsData data)
@@ -346,5 +309,19 @@ public sealed class OverviewEndpoint : IEndpoint
 
         return null;
     }
-}
 
+    private static string BuildPrimaryQueueLabel(Mongoose.Api.Core.Entities.RiotAccount account)
+    {
+        if (!string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank))
+        {
+            return "Ranked Solo/Duo";
+        }
+
+        if (!string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank))
+        {
+            return "Ranked Flex";
+        }
+
+        return "Ranked Solo/Duo";
+    }
+}

@@ -382,12 +382,12 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Route**: `GET /api/v2/overview/{userId}`  
 **Auth**: Yes  
 **Query params**: None  
-**Response**: `OverviewResponse(playerHeader, rankSnapshot, lastMatch, activeGoals[], suggestedActions[])`  
+**Response**: `OverviewResponse(playerHeader, lastMatch, activeGoals[], suggestedActions[])`  
 **Logic**:
 1. Get primary Riot account
 2. Build player header (name, level, region, icon, contexts)
-3. Auto-select primary queue by most matches
-4. Get last 20 matches for rank snapshot
+3. Build rank metadata in player header
+4. Get latest match and overview cards
 **Tables**: `users`, `user_riot_accounts`, `riot_accounts`  
 **Repos**: `IOverviewStatsRepository`, `IUserRiotAccountsRepository`
 
@@ -533,21 +533,20 @@ public record FeedbackResponse(bool Success, string Message);
 // OverviewDto.cs
 public record OverviewResponse(
     PlayerHeader PlayerHeader,
-    RankSnapshot RankSnapshot,
     LastMatch? LastMatch,
     GoalPreview[] ActiveGoals,
     SuggestedAction[] SuggestedActions
 );
 
-public record PlayerHeader(string SummonerName, int Level, string Region, string ProfileIconUrl, string[] ActiveContexts);
-
-public record RankSnapshot(
-    string PrimaryQueueLabel,
+public record PlayerHeader(
+    string SummonerName,
+    int Level,
+    string Region,
+    string ProfileIconUrl,
+    string[] ActiveContexts,
     string? Rank,
     int? Lp,
-    int Last20Wins,
-    int Last20Losses,
-    bool[] WlLast20             // per-game win/loss booleans
+    string? PrimaryQueueLabel
 );
 
 public record LastMatch(string MatchId, string ChampionIconUrl, string ChampionName, string Result, string Kda, long Timestamp, string QueueType);
