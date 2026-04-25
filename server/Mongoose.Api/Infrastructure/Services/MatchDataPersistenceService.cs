@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure.Riot;
@@ -58,11 +59,11 @@ public class MatchDataPersistenceService : IMatchDataPersistenceService
         var info = matchRoot.GetProperty("info");
         var matchIdForLog = matchRoot.GetProperty("metadata").GetProperty("matchId").GetString();
 
-        var gameDuration = info.GetProperty("gameDuration").GetInt32();
-        if (gameDuration < 300)
+        var gameDurationSec = info.GetProperty("gameDuration").GetInt32();
+        if (gameDurationSec < GameConstants.MinValidGameDurationSec)
         {
             _logger.LogDebug("Skipping match {MatchId}: short_duration ({Duration}s)",
-                LogSanitizer.Sanitize(matchIdForLog), gameDuration);
+                LogSanitizer.Sanitize(matchIdForLog), gameDurationSec);
             return;
         }
 
@@ -93,7 +94,6 @@ public class MatchDataPersistenceService : IMatchDataPersistenceService
         var participantRoles = new Dictionary<int, string?>();
         var participantChampions = new Dictionary<int, int>(); // Riot participantId (1-10) -> championId
 
-        var gameDurationSec = info.GetProperty("gameDuration").GetInt32();
         var deathTimings = timelineRoot.HasValue
             ? RiotTimelineMapper.ExtractDeathTimings(timelineRoot.Value)
             : null;

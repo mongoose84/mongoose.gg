@@ -1,3 +1,4 @@
+using Mongoose.Api.Core;
 using MySqlConnector;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
@@ -39,9 +40,9 @@ public abstract class RepositoryBase
 
     /// <summary>
     /// Minimum game duration (seconds) for a match to be included in analytics queries.
-    /// Excludes remakes and abandoned games.
+    /// Excludes remakes and abandoned games. Shared constant from <see cref="GameConstants"/>.
     /// </summary>
-    protected const int MinValidGameDurationSec = 300;
+    protected const int MinValidGameDurationSec = GameConstants.MinValidGameDurationSec;
 
     protected RepositoryBase(IDbConnectionFactory factory)
     {
