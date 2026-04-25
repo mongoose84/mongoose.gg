@@ -41,10 +41,11 @@
 │  Registered via MongooseApiApplication.ConfigureEndpoints()       │
 ├──────────────────────────────────────────────────────────────────┤
 │  Application Services — server/Mongoose.Api/Application/Services/  │
-│  LoginSyncService, MainChampionRecommender                         │
+│  LoginSyncService, PuuidResolutionService                          │
 ├──────────────────────────────────────────────────────────────────┤
 │  Core Layer — server/Mongoose.Api/Core/                            │
-│  Entities (POCOs) · Interfaces (repos, services) · Enums          │
+│  Entities · Interfaces · Enums · QueryModels                      │
+│  Domain Services: TrendBadgeCalculator, MainChampionRecommender   │
 ├──────────────────────────────────────────────────────────────────┤
 │  Infrastructure — server/Mongoose.Api/Infrastructure/              │
 │  Database/Repositories · Riot API client · Email · Jobs · WebSocket│
@@ -57,12 +58,14 @@
 
 **Clean Architecture + DDD layers** (dependency flows inward):
 
-- **Core** (`server/Mongoose.Api/Core/`) — Entities, Interfaces, Enums, ValueObjects. Zero external dependencies.
-- **Application** (`server/Mongoose.Api/Application/`) — Endpoints, DTOs, Services. Depends only on Core.
-- **Infrastructure** (`server/Mongoose.Api/Infrastructure/`) — Repository implementations, Riot API, email, jobs. Implements Core interfaces.
+- **Core** (`server/Mongoose.Api/Core/`) — Entities, Interfaces, Enums, ValueObjects, QueryModels, Domain Services. Zero dependencies on Application or Infrastructure layers.
+- **Application** (`server/Mongoose.Api/Application/`) — Endpoints, DTOs (stub shells), Application Services (orchestration). Depends only on Core.
+- **Infrastructure** (`server/Mongoose.Api/Infrastructure/`) — Repository implementations, Riot API, email, jobs. Implements Core interfaces. Depends only on Core (plus `Application.Endpoints.Shared` for cross-cutting `LogSanitizer`).
 
 **DDD conventions**:
 - Keep business invariants in domain entities/value objects inside Core.
+- Domain services (pure calculation logic like `TrendBadgeCalculator`, `MainChampionRecommender`) live in `Core/Services/`.
+- Query result types shared across layers live in `Core/QueryModels/`.
 - Maintain ubiquitous language consistency across endpoint names, DTOs, services, and repositories.
 - Respect bounded contexts when adding features to avoid cross-domain leakage.
 

@@ -37,7 +37,8 @@ server/Mongoose.Api/
 │   ├── Interfaces/          # Repository + service contracts (29 interfaces)
 │   ├── Enums/
 │   ├── ValueObjects/
-│   └── QueryModels/         # Shared query result types
+│   ├── Services/            # Domain services: TrendBadgeCalculator, MainChampionRecommender
+│   └── QueryModels/         # Shared query result types used across all layers
 ├── Application/             # Use cases: endpoints, DTOs, services
 │   ├── Endpoints/           # Minimal API endpoint classes (one per endpoint)
 │   │   ├── Auth/            # Register, Login, Logout, Delete, Verify, Resend, RiotAccounts, UsersMe
@@ -50,9 +51,8 @@ server/Mongoose.Api/
 │   │   ├── Feedback/
 │   │   ├── Diagnostics/
 │   │   └── Shared/          # AuthResults helper, IEndpoint interface
-│   ├── DTOs/                # Response records organized by domain (mirrors Endpoints/)
-│   ├── Services/            # LoginSyncService, MainChampionRecommender
-│   └── QueryModels/
+│   ├── DTOs/                # Response record stubs (types live in Core.QueryModels)
+│   └── Services/            # Application orchestration: LoginSyncService, PuuidResolutionService
 ├── Infrastructure/          # External concerns: DB, Riot API, email, jobs
 │   ├── Database/            # DbConnectionFactory, QueryFilterBuilder, Repositories/
 │   ├── Riot/                # RiotApiClient, RiotUrlBuilder, rate limiting, mappers
