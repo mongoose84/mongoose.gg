@@ -75,7 +75,9 @@ vi.mock('vue', async () => {
 // Mock apiConfig
 vi.mock('@/services/apiConfig', () => ({
   getHost: () => 'http://localhost:5164',
-  isDevelopment: false
+  getBaseApi: () => 'http://localhost:5164/api/v2',
+  isDevelopment: false,
+  apiVersionPath: '/api/v2'
 }));
 
 describe('useSyncWebSocket', () => {

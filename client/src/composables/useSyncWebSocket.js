@@ -35,14 +35,21 @@ const activeInstances = ref(0)
 export function useSyncWebSocket() {
   
   /**
-   * Get WebSocket URL based on current host
+   * Get WebSocket URL based on current host.
+   * In development getHost() returns '' (relative), so fall back to
+   * window.location so the Vite dev-server proxy is used correctly.
    */
   function getWebSocketUrl() {
     const host = getHost()
-    // Convert http(s) to ws(s)
-    const wsProtocol = host.startsWith('https') ? 'wss' : 'ws'
-    const wsHost = host.replace(/^https?:\/\//, '')
-    return `${wsProtocol}://${wsHost}/ws/sync`
+    if (host) {
+      // Production: absolute origin like https://api.mongoose.gg
+      const wsProtocol = host.startsWith('https') ? 'wss' : 'ws'
+      const wsHost = host.replace(/^https?:\/\//, '')
+      return `${wsProtocol}://${wsHost}/ws/sync`
+    }
+    // Development: derive from the current page's origin
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    return `${wsProtocol}://${window.location.host}/ws/sync`
   }
   
   /**

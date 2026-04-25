@@ -33,13 +33,13 @@
         <!-- Warning state -->
         <template v-else-if="headlineState === 'warning'">
           <div class="death-hero-row">
-            <span class="death-hero-wr" :class="getWinRateColorClass(Math.round(survivalStats.winRateLowDeaths * 100))" data-testid="hero-wr">{{ Math.round(survivalStats.winRateLowDeaths * 100) }}%</span>
-            <span class="death-hero-text">win rate when under {{ survivalStats.highDeathThreshold }} deaths</span>
+            <span class="death-hero-wr" :class="getWinRateColorClass(Math.round(survivalStats.winRateHighDeaths * 100))" data-testid="hero-wr">{{ Math.round(survivalStats.winRateHighDeaths * 100) }}%</span>
+            <span class="death-hero-text">win rate when {{ survivalStats.highDeathThreshold }}+ deaths</span>
           </div>
           <div class="death-contrast-row" data-testid="contrast-row">
             <span class="death-contrast-prefix">vs</span>
-            <span class="death-contrast-wr" :class="getWinRateColorClass(Math.round(survivalStats.winRateHighDeaths * 100))">{{ Math.round(survivalStats.winRateHighDeaths * 100) }}%</span>
-            <span class="death-contrast-text">above that — a {{ Math.round((survivalStats.winRateLowDeaths - survivalStats.winRateHighDeaths) * 100) }}pt gap</span>
+            <span class="death-contrast-wr" :class="getWinRateColorClass(Math.round(survivalStats.winRateLowDeaths * 100))">{{ Math.round(survivalStats.winRateLowDeaths * 100) }}%</span>
+            <span class="death-contrast-text">under that — a {{ Math.round((survivalStats.winRateLowDeaths - survivalStats.winRateHighDeaths) * 100) }}pt gap</span>
           </div>
         </template>
 
