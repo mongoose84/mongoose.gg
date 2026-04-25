@@ -301,11 +301,13 @@ builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
 builder.Logging.AddFilter("System.Net.Http.HttpClient.RiotApi.LogicalHandler", LogLevel.Warning);
 builder.Logging.AddFilter("System.Net.Http.HttpClient.RiotApi.ClientHandler", LogLevel.Warning);
 
-// In development, print ILogger messages to console (and debug)
+// Always log to console so production logs are visible
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+builder.Logging.AddConsole();
+
+// In development, also log to the debug output window
 if (builder.Environment.IsDevelopment())
 {
-    builder.Logging.SetMinimumLevel(LogLevel.Information);
-    builder.Logging.AddConsole();
     builder.Logging.AddDebug();
 }
 
