@@ -39,7 +39,7 @@
           <div class="death-contrast-row" data-testid="contrast-row">
             <span class="death-contrast-prefix">vs</span>
             <span class="death-contrast-wr" :class="getWinRateColorClass(Math.round(survivalStats.winRateLowDeaths * 100))">{{ Math.round(survivalStats.winRateLowDeaths * 100) }}%</span>
-            <span class="death-contrast-text">under that — a {{ Math.round((survivalStats.winRateLowDeaths - survivalStats.winRateHighDeaths) * 100) }}pt gap</span>
+            <span class="death-contrast-text">when ≤{{ survivalStats.lowDeathThreshold }} deaths — a {{ Math.round((survivalStats.winRateLowDeaths - survivalStats.winRateHighDeaths) * 100) }}pt gap</span>
           </div>
         </template>
 
@@ -61,7 +61,7 @@
         <template v-if="headlineState === 'motivational' || headlineState === 'warning'">
           <div class="death-divider" aria-hidden="true"></div>
           <p class="death-footer" data-testid="death-insight-footer">
-            Your avg: {{ survivalStats.avgDeathsPerGame.toFixed(1) }} deaths/game
+            Your avg: {{ survivalStats.avgDeathsPerGame.toFixed(1) }} deaths/game · {{ survivalStats.totalGames }} games
           </p>
         </template>
       </div>

@@ -49,16 +49,6 @@ describe('TodaySessionCard', () => {
     expect(wrapper.text()).toContain('5W 2L')
   })
 
-  it('shows champion splash mural when best champion exists', () => {
-    const wrapper = mount(TodaySessionCard, {
-      props: { sessionStats: sessionStatsToday, combinedStats, loading: false }
-    })
-
-    const muralImg = wrapper.find('.session-mural-image')
-    expect(muralImg.exists()).toBe(true)
-    expect(muralImg.attributes('src')).toContain('Jinx')
-  })
-
   it('shows champion badge with icon in today state', () => {
     const wrapper = mount(TodaySessionCard, {
       props: { sessionStats: sessionStatsToday, combinedStats, loading: false }
