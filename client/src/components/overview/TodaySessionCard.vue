@@ -196,17 +196,13 @@ const wlDots = computed(() => {
   }
   return []
 })
-
-
 </script>
 
 <style scoped>
 .today-session-card {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
   display: flex;
   flex-direction: column;
+  height: 100%;
   padding: var(--spacing-lg);
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
