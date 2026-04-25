@@ -75,7 +75,8 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
                 SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}";
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}";
 
         var result = await ExecuteWithConnectionAsync(async conn =>
         {
@@ -123,7 +124,8 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN participant_checkpoints cp15 ON cp15.participant_id = p.id AND cp15.minute_mark = 15
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
             GROUP BY Role, p.champion_id, p.champion_name";
 
         var rows = new List<MainChampionRecommender.ChampionRoleStats>();
@@ -166,4 +168,5 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
         return MainChampionRecommender.BuildMainChampionsByRole(rows, queueType);
     }
 }
+
 

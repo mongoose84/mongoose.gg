@@ -90,12 +90,27 @@ const {
 // the WebSocket confirms the job is actually running (or the request fails).
 const isPending = ref(false)
 
+// Safety timeout handle: clears isPending if the WS never delivers a status
+// update (e.g. connection failure, instant completion with no progress events).
+let pendingTimeoutId = null
+
+function clearPending() {
+  if (pendingTimeoutId !== null) {
+    clearTimeout(pendingTimeoutId)
+    pendingTimeoutId = null
+  }
+  isPending.value = false
+}
+
 // Clear the optimistic flag whenever the job reaches any settled state:
-// running (confirmed by WS), completed, failed, or any non-running state
-// (covers fast completions where isRunning never transitions to true).
+// running (confirmed by WS), completed, failed.
+//
+// NOTE: this watcher only fires on *changes*. The 5-second safety timeout in
+// handleAction covers the edge case where the sync completes so fast that
+// isUpToDate never transitions away from true (no value change → no watcher fire).
 watch([isRunning, isUpToDate, hasFailed], ([running, upToDate, failed]) => {
   if (running || upToDate || failed) {
-    isPending.value = false
+    clearPending()
   }
 })
 
@@ -174,7 +189,21 @@ async function handleAction() {
   const success = await triggerAnalysis()
   if (!success) {
     isPending.value = false
+    return
   }
+
+  // Immediately clear if WS has already confirmed a settled state during the
+  // HTTP await (e.g. the sync started and completed before we got here, or
+  // isUpToDate was already true and the WS delivered no status change).
+  if (isRunning.value || hasFailed.value || isUpToDate.value) {
+    clearPending()
+    return
+  }
+
+  // Safety net: clears isPending if the WS never delivers a status update
+  // (connection issues, fast no-op syncs with no progress events, or the rare
+  // case where isUpToDate stays true across the whole sync without changing).
+  pendingTimeoutId = setTimeout(clearPending, 5_000)
 }
 </script>
 

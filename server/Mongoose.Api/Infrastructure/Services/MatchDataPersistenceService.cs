@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure.Riot;
@@ -54,6 +55,27 @@ public class MatchDataPersistenceService : IMatchDataPersistenceService
 
     public async Task PersistMatchDataAsync(JsonElement matchRoot, JsonElement? timelineRoot)
     {
+        // Guard: reject remakes and abandoned games before writing anything to the database
+        var info = matchRoot.GetProperty("info");
+        var matchIdForLog = matchRoot.GetProperty("metadata").GetProperty("matchId").GetString();
+
+        var gameDurationSec = info.GetProperty("gameDuration").GetInt32();
+        if (gameDurationSec < GameConstants.MinValidGameDurationSec)
+        {
+            _logger.LogDebug("Skipping match {MatchId}: short_duration ({Duration}s)",
+                LogSanitizer.Sanitize(matchIdForLog), gameDurationSec);
+            return;
+        }
+
+        var hasEarlySurrender = info.GetProperty("participants").EnumerateArray()
+            .Any(p => p.TryGetProperty("gameEndedInEarlySurrender", out var flag) && flag.GetBoolean());
+        if (hasEarlySurrender)
+        {
+            _logger.LogDebug("Skipping match {MatchId}: early_surrender",
+                LogSanitizer.Sanitize(matchIdForLog));
+            return;
+        }
+
         // 1. Map and persist match
         var match = RiotMatchMapper.MapMatch(matchRoot);
 
@@ -72,8 +94,6 @@ public class MatchDataPersistenceService : IMatchDataPersistenceService
         var participantRoles = new Dictionary<int, string?>();
         var participantChampions = new Dictionary<int, int>(); // Riot participantId (1-10) -> championId
 
-        var info = matchRoot.GetProperty("info");
-        var gameDurationSec = info.GetProperty("gameDuration").GetInt32();
         var deathTimings = timelineRoot.HasValue
             ? RiotTimelineMapper.ExtractDeathTimings(timelineRoot.Value)
             : null;

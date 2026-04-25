@@ -17,29 +17,16 @@
       <div class="death-foreground">
         <span class="death-label">DEATH INSIGHT</span>
 
-        <!-- Motivational state -->
-        <template v-if="headlineState === 'motivational'">
+        <!-- Motivational / Warning state (shared markup, values from computed) -->
+        <template v-if="headlineState === 'motivational' || headlineState === 'warning'">
           <div class="death-hero-row">
-            <span class="death-hero-wr" :class="getWinRateColorClass(Math.round(survivalStats.winRateLowDeaths * 100))" data-testid="hero-wr">{{ Math.round(survivalStats.winRateLowDeaths * 100) }}%</span>
-            <span class="death-hero-text">win rate when you die ≤{{ survivalStats.lowDeathThreshold }} times</span>
+            <span class="death-hero-wr" :class="getWinRateColorClass(heroWinRate)" data-testid="hero-wr">{{ heroWinRate }}%</span>
+            <span class="death-hero-text">{{ heroText }}</span>
           </div>
           <div class="death-contrast-row" data-testid="contrast-row">
             <span class="death-contrast-prefix">vs</span>
-            <span class="death-contrast-wr" :class="getWinRateColorClass(Math.round(survivalStats.winRateHighDeaths * 100))">{{ Math.round(survivalStats.winRateHighDeaths * 100) }}%</span>
-            <span class="death-contrast-text">when you die {{ survivalStats.highDeathThreshold }}+ times</span>
-          </div>
-        </template>
-
-        <!-- Warning state -->
-        <template v-else-if="headlineState === 'warning'">
-          <div class="death-hero-row">
-            <span class="death-hero-wr" :class="getWinRateColorClass(Math.round(survivalStats.winRateHighDeaths * 100))" data-testid="hero-wr">{{ Math.round(survivalStats.winRateHighDeaths * 100) }}%</span>
-            <span class="death-hero-text">win rate when {{ survivalStats.highDeathThreshold }}+ deaths</span>
-          </div>
-          <div class="death-contrast-row" data-testid="contrast-row">
-            <span class="death-contrast-prefix">vs</span>
-            <span class="death-contrast-wr" :class="getWinRateColorClass(Math.round(survivalStats.winRateLowDeaths * 100))">{{ Math.round(survivalStats.winRateLowDeaths * 100) }}%</span>
-            <span class="death-contrast-text">when ≤{{ survivalStats.lowDeathThreshold }} deaths — a {{ Math.round((survivalStats.winRateLowDeaths - survivalStats.winRateHighDeaths) * 100) }}pt gap</span>
+            <span class="death-contrast-wr" :class="getWinRateColorClass(contrastWinRate)">{{ contrastWinRate }}%</span>
+            <span class="death-contrast-text">{{ contrastText }}</span>
           </div>
         </template>
 
@@ -112,6 +99,35 @@ const headlineState = computed(() => {
   }
 
   return 'neutral'
+})
+
+const heroWinRate = computed(() => {
+  const s = props.survivalStats
+  if (!s) return 0
+  return Math.round(s.winRateLowDeaths * 100)
+})
+
+const contrastWinRate = computed(() => {
+  const s = props.survivalStats
+  if (!s) return 0
+  return Math.round(s.winRateHighDeaths * 100)
+})
+
+const heroText = computed(() => {
+  const s = props.survivalStats
+  if (!s) return ''
+  return `win rate when you die ≤${s.lowDeathThreshold} times`
+})
+
+const contrastText = computed(() => {
+  const s = props.survivalStats
+  if (!s) return ''
+  const base = `when you die ${s.highDeathThreshold}+ times`
+  if (headlineState.value === 'warning') {
+    const gap = Math.round((s.winRateLowDeaths - s.winRateHighDeaths) * 100)
+    return `${base} — a ${gap}pt gap`
+  }
+  return base
 })
 
 const borderClass = computed(() => {

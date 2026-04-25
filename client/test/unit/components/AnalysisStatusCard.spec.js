@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import AnalysisStatusCard from '@/components/overview/AnalysisStatusCard.vue';
 
 // Create reactive refs for mock
@@ -259,16 +259,66 @@ describe('AnalysisStatusCard', () => {
       expect(wrapper.find('button').exists()).toBe(true);
     });
 
-    it('clears "Last updated" subtitle immediately when clicking from up-to-date state', async () => {
+    it('clears "Last updated" subtitle while HTTP request is in-flight after clicking from up-to-date state', async () => {
+      mockIsUpToDate.value = true;
+      mockLastSyncAt.value = '2026-04-04T12:00:00Z';
+
+      // Use a deferred promise so the HTTP request stays in-flight and we can
+      // inspect the optimistic (isPending = true) UI state before it resolves.
+      let resolve;
+      mockTriggerAnalysis.mockReturnValue(new Promise(r => { resolve = r; }));
+      const wrapper = mountCard();
+
+      expect(wrapper.text()).toContain('Last updated');
+
+      // Don't await — let handleAction run up to its first `await` only
+      wrapper.find('button').trigger('click');
+      await nextTick();
+
+      // While in-flight: isPending = true, subtitle should be hidden
+      expect(wrapper.text()).not.toContain('Last updated');
+
+      resolve(true);
+    });
+
+    it('clears isPending after triggerAnalysis resolves when isUpToDate was already true (WS delivers no change)', async () => {
+      // Simulate a user who has synced before: isUpToDate starts true.
+      // The WS only sends sync_complete (no progress events), so isUpToDate
+      // never changes and the watcher never fires. The immediate post-await
+      // check must clear isPending instead.
       mockIsUpToDate.value = true;
       mockLastSyncAt.value = '2026-04-04T12:00:00Z';
       mockTriggerAnalysis.mockResolvedValue(true);
       const wrapper = mountCard();
 
-      expect(wrapper.text()).toContain('Last updated');
+      await wrapper.find('button').trigger('click');
+      await flushPromises();
+
+      // isPending should be false — Analyze button visible again, no spinner
+      expect(wrapper.find('button').exists()).toBe(true);
+      expect(wrapper.find('.status-spinner').exists()).toBe(false);
+    });
+
+    it('clears isPending via 30-second safety timeout when WS never delivers a status update', async () => {
+      vi.useFakeTimers();
+      // Status is not settled: no isRunning, isUpToDate, or hasFailed
+      mockTriggerAnalysis.mockResolvedValue(true);
+      const wrapper = mountCard();
 
       await wrapper.find('button').trigger('click');
-      expect(wrapper.text()).not.toContain('Last updated');
+      await flushPromises();
+
+      // Still pending — no WS update has arrived
+      expect(wrapper.find('.status-spinner').exists()).toBe(true);
+
+      // Advance past the 30-second safety timeout
+      vi.advanceTimersByTime(30_000);
+      await flushPromises();
+
+      expect(wrapper.find('.status-spinner').exists()).toBe(false);
+      expect(wrapper.find('button').exists()).toBe(true);
+
+      vi.useRealTimers();
     });
   });
 
