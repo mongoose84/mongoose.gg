@@ -1,0 +1,45 @@
+name: Frontpage - Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontpage/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify frontpage folder exists
+        run: |
+          if [ ! -d "./frontpage" ]; then
+            echo "❌ ./frontpage does NOT exist - aborting deployment."
+            exit 1
+          fi
+          echo "✅ ./frontpage found - proceeding to upload."
+
+      - name: List files to deploy
+        run: |
+          echo "=== Content of frontpage/ ==="
+          ls -R ./frontpage
+
+      - name: FTP Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_HOSTNAME }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./frontpage/
+          server-dir: /public_html/

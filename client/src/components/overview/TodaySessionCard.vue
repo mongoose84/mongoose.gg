@@ -14,12 +14,6 @@
 
     <!-- Content -->
     <template v-else>
-      <!-- Mural (today page only) -->
-      <div v-if="currentPage === 0 && hasMural" class="session-mural-layer" aria-hidden="true">
-        <img :src="muralUrl" alt="" class="session-mural-image" @error="handleMuralError" />
-      </div>
-      <div v-if="currentPage === 0 && hasMural" class="session-overlay-layer" aria-hidden="true"></div>
-
       <div class="session-foreground">
         <!-- Top row: [◂ LABEL ▸] [dots] [champion badge] -->
         <div class="session-top-row">
@@ -90,7 +84,7 @@
 import { computed, ref, watch } from 'vue'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/solid'
 import { getWinRateColorClass } from '@/composables/useWinRateColor'
-import { getChampionIconUrl, getChampionSplashUrl } from '@/utils/leagueAssets'
+import { getChampionIconUrl } from '@/utils/leagueAssets'
 
 const PAGE_COUNT = 3
 
@@ -99,8 +93,6 @@ const props = defineProps({
   combinedStats: { type: Object, default: null },
   loading: { type: Boolean, default: false }
 })
-
-const muralErrored = ref(false)
 
 // Waterfall: determine the most relevant starting page
 const defaultPage = computed(() => {
@@ -134,13 +126,6 @@ const bestChampion = computed(() => {
   if (currentPage.value !== 0) return null
   return props.sessionStats?.bestChampionToday ?? null
 })
-
-const muralUrl = computed(() => {
-  if (!bestChampion.value) return null
-  return getChampionSplashUrl(bestChampion.value.championName)
-})
-
-const hasMural = computed(() => Boolean(muralUrl.value) && !muralErrored.value)
 
 const championIconUrl = computed(() => {
   if (!bestChampion.value) return null
@@ -211,23 +196,13 @@ const wlDots = computed(() => {
   }
   return []
 })
-
-function handleMuralError() {
-  muralErrored.value = true
-}
-
-watch(() => props.sessionStats?.bestChampionToday?.championName, () => {
-  muralErrored.value = false
-})
 </script>
 
 <style scoped>
 .today-session-card {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
   display: flex;
   flex-direction: column;
+  height: 100%;
   padding: var(--spacing-lg);
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
@@ -254,38 +229,8 @@ watch(() => props.sessionStats?.bestChampionToday?.championName, () => {
   border-left-color: var(--color-error-border);
 }
 
-/* Mural layers */
-.session-mural-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.session-mural-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.5;
-}
-
-.session-overlay-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-  background: linear-gradient(
-    120deg,
-    color-mix(in srgb, var(--color-surface) 98%, transparent) 0%,
-    color-mix(in srgb, var(--color-surface) 92%, transparent) 45%,
-    color-mix(in srgb, var(--color-surface) 78%, transparent) 100%
-  );
-}
-
 /* Foreground content */
 .session-foreground {
-  position: relative;
-  z-index: 3;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);

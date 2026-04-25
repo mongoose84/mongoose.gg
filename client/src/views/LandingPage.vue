@@ -12,22 +12,14 @@
           </div>
           <h2 class="text-2xl font-bold text-text -mt-4 ml-sm mb-2xl">Mongoose.gg <span class="beta-tag">Beta</span></h2>
 
-          <div class="inline-flex items-center gap-sm py-sm px-lg bg-background-surface border border-border rounded-full text-sm text-text-secondary mt-2xl mb-2xl backdrop-blur-[10px]">
-            <span class="text-lg">🎮</span>
-            <span>First 500 users get free Pro tier</span>
-            <span class="text-primary font-semibold">{{ freeUsersLeft }} spots left</span>
-          </div>
-
           <h1 class="hero-title">
             The <span class="hero-gradient">Solo Queue</span> Improvement Tracker<br />
-            Built for <span class="hero-gradient">Teams</span>
+            Built to Help You <span class="hero-gradient">Climb</span>
           </h1>
 
           <p class="text-lg text-text-secondary leading-relaxed mb-xl max-w-[600px] mx-auto">
             Not just another builds app.
-          </p>
-          <p class="text-lg text-text-secondary leading-relaxed mb-xl max-w-[600px] mx-auto">
-            Better champ select picks, post-game takeaways that stick, and track your progress over time—and climb better as a team.
+            Better champ select picks, post-game takeaways that stick, and track your progress over time.
           </p>
 
           <div class="flex gap-md justify-center flex-wrap mb-2xl">
@@ -51,10 +43,6 @@
 	              <div class="text-2xl font-bold text-primary tracking-tight">{{ gamesAnalyzedDisplay }}</div>
 	              <div class="text-sm text-text-secondary mt-xs">Games Analyzed</div>
 	            </div>
-	            <div class="text-center">
-	              <div class="text-2xl font-bold text-primary tracking-tight">0/5</div>
-	              <div class="text-sm text-text-secondary mt-xs">User Rating</div>
-	            </div>
 	          </div>
         </div>
       </section>
@@ -70,7 +58,7 @@
           </div>
 
           <div class="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-lg">
-            <div v-for="feature in features" :key="feature.title" class="feature-card">
+            <div v-for="feature in displayedFeatures" :key="feature.title" class="feature-card">
               <div class="text-[3rem] mb-md" data-testid="feature-icon">{{ feature.icon }}</div>
               <h3 class="text-xl font-bold tracking-tight mb-sm text-text m-0">{{ feature.title }}</h3>
               <p class="text-md text-text-secondary leading-relaxed m-0">{{ feature.description }}</p>
@@ -90,7 +78,7 @@
           </div>
 
           <div class="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-xl">
-            <div v-for="(step, index) in steps" :key="index" class="text-center p-xl">
+            <div v-for="(step, index) in displayedSteps" :key="index" class="text-center p-xl">
               <div class="step-number">{{ index + 1 }}</div>
               <h3 class="text-lg font-bold tracking-tight mb-sm text-text m-0">{{ step.title }}</h3>
               <p class="text-md text-text-secondary leading-relaxed m-0">{{ step.description }}</p>
@@ -100,7 +88,7 @@
       </section>
 
       <!-- Pricing Section -->
-      <section id="pricing" class="p-2xl">
+      <section v-if="enableUpcomingFeatures" id="pricing" class="p-2xl">
         <div class="max-w-[1200px] mx-auto">
           <div class="text-center mb-2xl">
             <h2 class="section-title">Simple, Transparent Pricing</h2>
@@ -156,7 +144,7 @@
             <div class="flex flex-col gap-sm">
               <h4 class="text-sm font-semibold tracking-tight text-text mb-xs">Product</h4>
               <a href="#features" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Features</a>
-              <a href="#pricing" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Pricing</a>
+              <a v-if="enableUpcomingFeatures" href="#pricing" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">Pricing</a>
               <a href="#how-it-works" class="text-sm text-text-secondary no-underline hover:text-text transition-colors duration-200">How It Works</a>
             </div>
 
@@ -190,7 +178,7 @@
   import { useAsyncData } from '../composables/useAsyncData';
 	import { getPublicStats } from '../services/publicApi';
 
-	const freeUsersLeft = ref(493);
+	const enableUpcomingFeatures = import.meta.env.VITE_ENABLE_UPCOMING_FEATURES === 'true';
 	const currentYear = computed(() => new Date().getFullYear());
 
 	const gamesAnalyzed = ref(null);
@@ -235,18 +223,20 @@ const features = [
   },
   {
     title: 'Post-Game Takeaways',
-    description: 'After every game, get 2-3 specific things to focus on next time. No walls of stats—just what matters.',
+    description: 'After every game, see a lane-by-lane breakdown of how each matchup played out—gold leads, early advantages, and where the game shifted.',
     icon: '📝'
   },
   {
     title: 'Goal Setting & Progress',
     description: 'Set concrete improvement goals and track them over your next 20 games. Watch your metrics trend upward.',
-    icon: '📈'
+    icon: '📈',
+    upcoming: true
   },
   {
     title: 'Team Dashboards',
     description: 'Upgrade to Pro and unlock shared team views. Set goals together and climb as a unit.',
-    icon: '👥'
+    icon: '👥',
+    upcoming: true
   },
   {
     title: 'Full Match History',
@@ -275,9 +265,13 @@ const steps = [
   },
   {
     title: 'Climb Together (Pro)',
-    description: 'Invite your team. Unlock shared dashboards and set goals you can achieve together.'
+    description: 'Invite your team. Unlock shared dashboards and set goals you can achieve together.',
+    upcoming: true
   }
 ];
+
+const displayedFeatures = enableUpcomingFeatures ? features : features.filter(f => !f.upcoming);
+const displayedSteps = enableUpcomingFeatures ? steps : steps.filter(s => !s.upcoming);
 
 const pricingTiers = [
   {

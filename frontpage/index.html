@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Mongoose.gg — The Solo Queue Improvement Tracker. Better champ select picks, post-game breakdowns, and a full match history — all in one place." />
+  <title>Mongoose.gg — The Solo Queue Improvement Tracker</title>
+  <link rel="icon" type="image/png" href="mongoose_square.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: #000000;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      background-image: url('hero-bg.svg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: #000000;
+      z-index: 0;
+    }
+
+    .bg-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.30);
+      z-index: 1;
+    }
+
+    main {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 680px;
+      gap: 0;
+    }
+
+    .logo-lockup {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .logo-img {
+      width: 210px;
+      height: auto;
+    }
+
+    .wordmark {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+    }
+
+    .beta-badge {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #6d28d9;
+      background: rgba(109, 40, 217, 0.15);
+      border: 1px solid rgba(109, 40, 217, 0.35);
+      border-radius: 0.25rem;
+      padding: 0.125rem 0.4rem;
+    }
+
+    .headline {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      margin-bottom: 0.35em;
+    }
+
+    .headline-gradient {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #6d28d9, #00a8ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1.5rem;
+    }
+
+    .supporting {
+      font-size: clamp(1rem, 2vw, 1.125rem);
+      font-weight: 400;
+      color: #888888;
+      line-height: 1.65;
+      margin-bottom: 2.5rem;
+      max-width: 480px;
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #6d28d9;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: clamp(1rem, 2vw, 1.125rem);
+      font-weight: 600;
+      text-decoration: none;
+      padding: 1rem 2rem;
+      border-radius: 0.5rem;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 4px 24px rgba(109, 40, 217, 0.35);
+    }
+
+    .cta-btn:hover {
+      background: #5b21b6;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(109, 40, 217, 0.5);
+    }
+
+    .cta-btn:focus-visible {
+      outline: 2px solid #6d28d9;
+      outline-offset: 4px;
+    }
+
+    .cta-btn:active {
+      transform: translateY(0);
+    }
+
+    .cta-icon {
+      flex-shrink: 0;
+    }
+
+    footer {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 1.25rem 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: #888888;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    @media (max-width: 480px) {
+      .logo-img {
+        width: 160px;
+      }
+
+      .hero {
+        gap: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-layer" aria-hidden="true"></div>
+  <div class="bg-overlay" aria-hidden="true"></div>
+
+  <main>
+    <div class="hero">
+      <div class="logo-lockup">
+        <img
+          class="logo-img"
+          src="mongoose.png"
+          alt="Mongoose.gg logo"
+          width="210"
+          height="100"
+        />
+        <div class="wordmark">
+          Mongoose.gg
+          <span class="beta-badge">Beta</span>
+        </div>
+      </div>
+
+      <h1 class="headline">The Solo Queue Improvement Tracker</h1>
+      <p class="headline-gradient" aria-hidden="false">Built to Help You Climb</p>
+
+      <p class="supporting">
+        Better champ select picks, post-game breakdowns, and a full match history — all in one place.
+      </p>
+
+      <a
+        href="https://beta.mongoose.gg"
+        class="cta-btn"
+        role="button"
+      >
+        Join the Beta
+        <svg
+          class="cta-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </a>
+    </div>
+  </main>
+
+  <footer>
+    Mongoose.gg Beta &middot; Not affiliated with Riot Games
+  </footer>
+</body>
+</html>

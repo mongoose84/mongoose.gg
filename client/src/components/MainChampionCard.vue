@@ -96,24 +96,17 @@
                   <span :class="['stat-value', getWinRateColorClass(champion.winRate)]">{{ formatWinRate(champion.winRate) }}</span>
                 </div>
 
-                <!-- W/L Record -->
+                <!-- KDA -->
                 <div class="stat-row">
-                  <span class="stat-label">Record</span>
-                  <div class="flex-1 flex items-center gap-1 px-2">
-                    <div class="flex-1 h-1.5 rounded-full bg-[rgba(255,255,255,0.1)] overflow-hidden flex">
-                      <div
-                        class="h-full bg-success"
-                        :style="{ width: `${champion.gamesPlayed > 0 ? (champion.wins / champion.gamesPlayed) * 100 : 0}%` }"
-                      ></div>
-                      <div
-                        class="h-full bg-error"
-                        :style="{ width: `${champion.gamesPlayed > 0 ? (champion.losses / champion.gamesPlayed) * 100 : 0}%` }"
-                      ></div>
-                    </div>
+                  <span class="stat-label">KDA</span>
+                  <div class="stat-bar-container">
+                    <div
+                      class="stat-bar"
+                      :class="getKdaBarClass(champion.avgKda)"
+                      :style="{ width: `${Math.min((champion.avgKda / 5) * 100, 100)}%` }"
+                    ></div>
                   </div>
-                  <span class="stat-value">
-                    <span class="text-success">{{ champion.wins }}</span><span class="text-text-secondary">-</span><span class="text-error">{{ champion.losses }}</span>
-                  </span>
+                  <span :class="['stat-value', getKdaColorClass(champion.avgKda)]">{{ formatKda(champion.avgKda) }}</span>
                 </div>
 
                 <!-- Games Played -->
@@ -402,6 +395,26 @@ function getMScoreBarClass(score) {
 function getMScoreTextClass(score) {
   if (score == null) return 'text-text-secondary'
   return 'text-info'
+}
+
+// KDA helpers
+function formatKda(kda) {
+  if (kda == null) return '—'
+  return kda.toFixed(2)
+}
+
+function getKdaBarClass(kda) {
+  if (kda == null) return 'bg-[rgba(255,255,255,0.2)]'
+  if (kda >= 3.0) return 'bg-success'
+  if (kda >= 2.0) return 'bg-[#eab308]'
+  return 'bg-error'
+}
+
+function getKdaColorClass(kda) {
+  if (kda == null) return 'text-text-secondary'
+  if (kda >= 3.0) return 'text-success'
+  if (kda >= 2.0) return 'text-[#eab308]'
+  return 'text-error'
 }
 </script>
 

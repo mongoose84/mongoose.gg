@@ -75,7 +75,6 @@ public static class MainChampionRecommender
     {
         var games = s.GamesPlayed;
         var wins = s.Wins;
-        var losses = Math.Max(0, games - wins);
 
         var winRate = games > 0
             ? Math.Round((double)wins / games * 100, 1)
@@ -91,15 +90,16 @@ public static class MainChampionRecommender
         // Score ranges from 0 to 1, so multiply by 100 and round
         var mScore = Math.Round(score * 100, 1);
 
+        var avgKda = Math.Round((s.AvgKills + s.AvgAssists) / Math.Max(1.0, s.AvgDeaths), 2);
+
         var entry = new MainChampionEntry(
             ChampionName: s.ChampionName,
             ChampionId: s.ChampionId,
             Role: normalizedRole,
             WinRate: winRate,
             GamesPlayed: games,
-            Wins: wins,
-            Losses: losses,
-            MScore: mScore
+            MScore: mScore,
+            AvgKda: avgKda
         );
 
         return (entry, score);
