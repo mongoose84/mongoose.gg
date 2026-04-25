@@ -57,6 +57,129 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task GetMatchListSummaryAsync_ExcludesShortGames_BelowMinDuration()
+    {
+        if (!IsIntegrationDbOptInEnabled()) return;
+        var connectionString = GetTestConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var factory = new DirectDbConnectionFactory(connectionString);
+        await EnsureSchemaAsync(factory);
+        var repository = new MatchesRepository(factory);
+
+        var testKey = Guid.NewGuid().ToString("N")[..12];
+        var puuid = $"integration-puuid-{testKey}";
+        var shortMatchId = $"SHORT_MATCH_{testKey}";
+
+        try
+        {
+            await InsertRiotAccountAsync(factory, puuid, $"Player{testKey}", "NA1", "na1");
+            await InsertMatchWithDurationAsync(factory, shortMatchId, gameDurationSec: 180);
+            await InsertParticipantAsync(factory, shortMatchId, puuid);
+
+            var result = await repository.GetMatchListSummaryAsync([puuid], string.Empty, 20, null);
+
+            result.Should().BeEmpty("a match with 180s duration is a remake and must be excluded");
+        }
+        finally
+        {
+            await CleanupAsync(factory, shortMatchId, puuid);
+        }
+    }
+
+    [Fact]
+    public async Task GetMatchListSummaryAsync_IncludesGames_AtExactMinDuration()
+    {
+        if (!IsIntegrationDbOptInEnabled()) return;
+        var connectionString = GetTestConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var factory = new DirectDbConnectionFactory(connectionString);
+        await EnsureSchemaAsync(factory);
+        var repository = new MatchesRepository(factory);
+
+        var testKey = Guid.NewGuid().ToString("N")[..12];
+        var puuid = $"integration-puuid-{testKey}";
+        var matchId = $"BOUNDARY_MATCH_{testKey}";
+
+        try
+        {
+            await InsertRiotAccountAsync(factory, puuid, $"Player{testKey}", "NA1", "na1");
+            await InsertMatchWithDurationAsync(factory, matchId, gameDurationSec: 300);
+            await InsertParticipantAsync(factory, matchId, puuid);
+
+            var result = await repository.GetMatchListSummaryAsync([puuid], string.Empty, 20, null);
+
+            result.Should().ContainSingle("a match with exactly 300s duration is valid and must be included");
+            result[0].MatchId.Should().Be(matchId);
+        }
+        finally
+        {
+            await CleanupAsync(factory, matchId, puuid);
+        }
+    }
+
+    [Fact]
+    public async Task GetRoleBaselinesAsync_ExcludesShortGames_BelowMinDuration()
+    {
+        if (!IsIntegrationDbOptInEnabled()) return;
+        var connectionString = GetTestConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var factory = new DirectDbConnectionFactory(connectionString);
+        await EnsureSchemaAsync(factory);
+        var repository = new MatchesRepository(factory);
+
+        var testKey = Guid.NewGuid().ToString("N")[..12];
+        var puuid = $"integration-puuid-{testKey}";
+        var shortMatchId = $"SHORT_BASELINE_{testKey}";
+
+        try
+        {
+            await InsertMatchWithDurationAsync(factory, shortMatchId, gameDurationSec: 180);
+            await InsertParticipantAsync(factory, shortMatchId, puuid);
+
+            var baselines = await repository.GetRoleBaselinesAsync([puuid], string.Empty);
+
+            baselines.Should().BeEmpty("a remake with 180s duration must not contribute to role baselines");
+        }
+        finally
+        {
+            await CleanupAsync(factory, shortMatchId, puuid);
+        }
+    }
+
+    [Fact]
+    public async Task GetRoleBaselinesAsync_IncludesGames_AtExactMinDuration()
+    {
+        if (!IsIntegrationDbOptInEnabled()) return;
+        var connectionString = GetTestConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var factory = new DirectDbConnectionFactory(connectionString);
+        await EnsureSchemaAsync(factory);
+        var repository = new MatchesRepository(factory);
+
+        var testKey = Guid.NewGuid().ToString("N")[..12];
+        var puuid = $"integration-puuid-{testKey}";
+        var matchId = $"BOUNDARY_BASELINE_{testKey}";
+
+        try
+        {
+            await InsertMatchWithDurationAsync(factory, matchId, gameDurationSec: 300);
+            await InsertParticipantWithRoleAsync(factory, matchId, puuid, role: "TOP");
+
+            var baselines = await repository.GetRoleBaselinesAsync([puuid], string.Empty);
+
+            baselines.Should().ContainKey("TOP", "a match with exactly 300s duration is valid for baselines");
+        }
+        finally
+        {
+            await CleanupAsync(factory, matchId, puuid);
+        }
+    }
+
     private static string? GetTestConnectionString()
     {
         return Environment.GetEnvironmentVariable("Database_test")
@@ -192,8 +315,45 @@ public sealed class MatchesRepositoryIntegrationTests
         await cmd.ExecuteNonQueryAsync();
     }
 
-    private static async Task CleanupAsync(IDbConnectionFactory factory, string matchId, string puuid)
+    private static async Task InsertMatchWithDurationAsync(IDbConnectionFactory factory, string matchId, int gameDurationSec)
     {
+        const string sql = @"
+            INSERT INTO matches (
+                match_id, queue_id, game_duration_sec, game_start_time, patch_version, season_code
+            ) VALUES (
+                @matchId, 420, @gameDurationSec, @gameStartTime, '15.1.1', NULL
+            );";
+
+        await using var connection = await factory.CreateOpenConnectionAsync();
+        await using var cmd = new MySqlCommand(sql, connection);
+        cmd.Parameters.AddWithValue("@matchId", matchId);
+        cmd.Parameters.AddWithValue("@gameDurationSec", gameDurationSec);
+        cmd.Parameters.AddWithValue("@gameStartTime", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    private static async Task InsertParticipantWithRoleAsync(IDbConnectionFactory factory, string matchId, string puuid, string role)
+    {
+        const string sql = @"
+            INSERT INTO participants (
+                match_id, puuid, team_id, role, lane, champion_id, champion_name,
+                win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec,
+                lp_after, tier_after, rank_after
+            ) VALUES (
+                @matchId, @puuid, 100, @role, @role, 266, 'Aatrox',
+                TRUE, 7, 2, 6, 210, 14500, 50,
+                NULL, NULL, NULL
+            );";
+
+        await using var connection = await factory.CreateOpenConnectionAsync();
+        await using var cmd = new MySqlCommand(sql, connection);
+        cmd.Parameters.AddWithValue("@matchId", matchId);
+        cmd.Parameters.AddWithValue("@puuid", puuid);
+        cmd.Parameters.AddWithValue("@role", role);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    private static async Task CleanupAsync(IDbConnectionFactory factory, string matchId, string puuid)    {
         await using var connection = await factory.CreateOpenConnectionAsync();
 
         await using (var deleteParticipants = new MySqlCommand("DELETE FROM participants WHERE match_id = @matchId AND puuid = @puuid;", connection))

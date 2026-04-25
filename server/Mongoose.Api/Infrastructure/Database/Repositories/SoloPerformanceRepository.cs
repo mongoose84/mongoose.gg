@@ -133,7 +133,8 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 AVG(p.assists) as AvgAssists
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}";
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}";
 
         _logger.LogDebug("GetOverallStatsAsync SQL: {Sql} | accountCount={AccountCount}, queueFilter={QueueFilter}, timeFilter={TimeFilter}, seasonCode={SeasonCode}",
             sql, puuids.Count, queueFilter, timeFilter, timeRangeFilter.SeasonCode);
@@ -179,7 +180,8 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 SUM(CASE WHEN p.team_id = 200 AND p.win = 1 THEN 1 ELSE 0 END) as RedWins
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}";
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}";
 
         return await ExecuteWithConnectionAsync(async conn =>
         {
@@ -225,7 +227,8 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
             GROUP BY p.champion_id, p.champion_name
             ORDER BY Picks DESC
             LIMIT 20";
@@ -276,7 +279,8 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN participant_checkpoints cp15 ON cp15.participant_id = p.id AND cp15.minute_mark = 15
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
             GROUP BY Role, p.champion_id, p.champion_name";
 
         var rows = new List<MainChampionRecommender.ChampionRoleStats>();
@@ -330,7 +334,8 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 AVG(CASE WHEN p.deaths > 0 THEN (p.kills + p.assists) / p.deaths ELSE (p.kills + p.assists) END) as AvgKda
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
             GROUP BY Role
             ORDER BY Games DESC";
 
@@ -372,7 +377,8 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
             FROM participants p
             INNER JOIN participant_metrics pm ON pm.participant_id = p.id
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}";
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}";
 
         return await ExecuteWithConnectionAsync(async conn =>
         {
@@ -417,7 +423,8 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 AVG(CASE WHEN p.deaths > 0 THEN (p.kills + p.assists) / p.deaths ELSE (p.kills + p.assists) END) as AvgKda
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
             GROUP BY FLOOR(m.game_duration_sec / 60)
             ORDER BY Minutes";
 
@@ -535,7 +542,8 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 SELECT p.win, p.kills, p.deaths, p.assists
                 FROM participants p
                 INNER JOIN matches m ON m.match_id = p.match_id
-                WHERE {puuidPredicate} {queueFilter} {timeFilter}
+                WHERE {puuidPredicate}
+                AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
                 ORDER BY m.game_start_time DESC
                 LIMIT @limit
             ) r";

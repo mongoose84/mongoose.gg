@@ -44,7 +44,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 p.puuid
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
             ORDER BY m.game_start_time ASC";
 
         var games = new List<(bool Win, long Timestamp, string Puuid)>();
@@ -137,7 +138,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 AND opp_p.team_id != p.team_id 
                 AND opp_p.role = p.role
             LEFT JOIN participant_checkpoints opp_pc ON opp_pc.participant_id = opp_p.id AND opp_pc.minute_mark = 15
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
             ORDER BY m.game_start_time ASC";
 
         var dataPoints = new List<GoldAt15TrendPoint>();
@@ -214,7 +216,7 @@ public class TrendRepository : RepositoryBase, ITrendRepository
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
-            AND m.game_duration_sec >= 900 {queueFilter} {timeFilter}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
             ORDER BY m.game_start_time ASC";
 
         var dataPoints = new List<CsPerMinuteTrendPoint>();
@@ -290,7 +292,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 p.puuid
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
             ORDER BY m.game_start_time ASC";
 
         var dataPoints = new List<(string MatchId, long Timestamp, int Deaths, string ChampionName, string? Role, int GameDurationSec, string Puuid)>();
@@ -404,7 +407,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 INNER JOIN matches m ON m.match_id = p.match_id
                 LEFT JOIN participant_objectives po ON po.participant_id = p.id
                 LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
-                WHERE {puuidPredicate} {queueFilter} {timeFilter}
+                WHERE {puuidPredicate}
+                AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
                 ORDER BY m.game_start_time ASC";
 
             var dataPoints = new List<(string MatchId, long Timestamp, string ChampionName, string? Role, int TeamDragons, int DragonsParticipated, string Puuid)>();
@@ -553,8 +557,8 @@ public class TrendRepository : RepositoryBase, ITrendRepository
                 FROM participants p
                 INNER JOIN matches m ON m.match_id = p.match_id
                 INNER JOIN participant_metrics pm ON pm.participant_id = p.id
-                                WHERE {puuidPredicate} {queueFilter} {timeFilter}
-                  AND m.game_duration_sec >= 600
+                                WHERE {puuidPredicate}
+                  AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
                 ORDER BY m.game_start_time {orderDirection}
                 {limitClause}";
 

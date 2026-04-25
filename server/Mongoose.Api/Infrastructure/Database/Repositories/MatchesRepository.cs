@@ -132,6 +132,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
             LEFT JOIN team_objectives tobj_enemy ON tobj_enemy.match_id = p.match_id AND tobj_enemy.team_id != p.team_id
             WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec}
             {queueFilter}
             ORDER BY m.game_start_time DESC
             LIMIT @limit";
@@ -248,6 +249,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN riot_accounts ra ON ra.puuid = p.puuid
             WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec}
             {queueFilter}
             ORDER BY m.game_start_time DESC
             LIMIT @limit";
@@ -465,6 +467,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 INNER JOIN matches m ON m.match_id = p.match_id
                 LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
                 WHERE {puuidPredicate}
+                AND m.game_duration_sec >= {MinValidGameDurationSec}
                 {queueFilter}
             )
             SELECT

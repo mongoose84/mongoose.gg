@@ -76,7 +76,8 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
                 SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}
             GROUP BY p.champion_id, p.champion_name, Role
             ORDER BY TotalGames DESC
             LIMIT 5";
@@ -140,6 +141,7 @@ public class MatchupRepository : RepositoryBase, IMatchupRepository
                 WHERE {puuidPredicate}
                     AND p.champion_id = @championId
                     AND COALESCE(NULLIF(p.role, ''), 'UNKNOWN') = @role
+                    AND m.game_duration_sec >= {MinValidGameDurationSec}
                     {queueFilter} {timeFilter}
             ) t
             GROUP BY t.OpponentChampionId, t.OpponentChampionName

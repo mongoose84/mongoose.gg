@@ -37,6 +37,12 @@ public abstract class RepositoryBase
 {
     protected readonly IDbConnectionFactory _factory;
 
+    /// <summary>
+    /// Minimum game duration (seconds) for a match to be included in analytics queries.
+    /// Excludes remakes and abandoned games.
+    /// </summary>
+    protected const int MinValidGameDurationSec = 300;
+
     protected RepositoryBase(IDbConnectionFactory factory)
     {
         _factory = factory;

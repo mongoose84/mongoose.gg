@@ -55,6 +55,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
+              AND m.game_duration_sec >= {MinValidGameDurationSec}
               AND (
                   m.game_start_time >= @thirty_days_ago
                   OR p.match_id IN (
@@ -63,6 +64,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
                           FROM participants p2
                           INNER JOIN matches m2 ON m2.match_id = p2.match_id
                           WHERE {subqueryPuuidPredicate}
+                          AND m2.game_duration_sec >= {MinValidGameDurationSec}
                           ORDER BY m2.game_start_time DESC
                           LIMIT 50
                       ) recent_matches
@@ -137,6 +139,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
+              AND m.game_duration_sec >= {MinValidGameDurationSec}
               AND m.queue_id = @queue_id
             ORDER BY m.game_start_time DESC
             LIMIT 20";
@@ -196,6 +199,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec}
             ORDER BY m.game_start_time DESC
             LIMIT 1";
 
@@ -346,6 +350,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
               AND m.game_start_time >= @week_start
+              AND m.game_duration_sec >= {MinValidGameDurationSec}
             GROUP BY p.puuid";
 
         var (puuidPredicate2, puuidParams2) = BuildStringInClause("p.puuid", puuids, "puuid2");
@@ -360,6 +365,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate2}
               AND m.game_start_time >= @today_start2
+              AND m.game_duration_sec >= {MinValidGameDurationSec}
             GROUP BY p.puuid, p.champion_name";
 
         var statsRows = new Dictionary<string, (int GamesToday, int WinsToday, int LossesToday, double? AvgKdaToday, int GamesThisWeek, int WinsThisWeek, int LossesThisWeek, double? AvgKdaThisWeek)>();

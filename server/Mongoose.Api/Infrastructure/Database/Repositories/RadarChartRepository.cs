@@ -61,7 +61,8 @@ public class RadarChartRepository : RepositoryBase, IRadarChartRepository
             LEFT JOIN participant_checkpoints pc ON pc.participant_id = p.id AND pc.minute_mark = 15
             LEFT JOIN participant_objectives po ON po.participant_id = p.id
             LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
-            WHERE {puuidPredicate} {queueFilter} {timeFilter}";
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter} {timeFilter}";
 
         return await ExecuteWithConnectionAsync(async conn =>
         {
