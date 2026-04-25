@@ -105,10 +105,9 @@ function clearPending() {
 // Clear the optimistic flag whenever the job reaches any settled state:
 // running (confirmed by WS), completed, failed.
 //
-// NOTE: this watcher only fires on *changes*. If isUpToDate was already true
-// before the user clicked (prior sync exists) it will not re-fire when
-// sync_complete arrives and leaves isUpToDate still true. The immediate check
-// inside handleAction and the 30-second safety timeout below cover that case.
+// NOTE: this watcher only fires on *changes*. The 5-second safety timeout in
+// handleAction covers the edge case where the sync completes so fast that
+// isUpToDate never transitions away from true (no value change → no watcher fire).
 watch([isRunning, isUpToDate, hasFailed], ([running, upToDate, failed]) => {
   if (running || upToDate || failed) {
     clearPending()
@@ -193,17 +192,17 @@ async function handleAction() {
     return
   }
 
-  // Immediately clear if status is already settled — covers the case where
-  // isUpToDate was already true before clicking (watcher won't re-fire on an
-  // unchanged value) or the WS update arrived during the HTTP await.
-  if (isRunning.value || isUpToDate.value || hasFailed.value) {
+  // Immediately clear if WS has already confirmed a settled state during the
+  // HTTP await (e.g. the sync started and completed before we got here).
+  if (isRunning.value || hasFailed.value) {
     clearPending()
     return
   }
 
-  // Safety net: if the WS never delivers a status update (connection issues,
-  // instant completions with no progress events, etc.) clear after 30 seconds.
-  pendingTimeoutId = setTimeout(clearPending, 30_000)
+  // Safety net: clears isPending if the WS never delivers a status update
+  // (connection issues, fast no-op syncs with no progress events, or the rare
+  // case where isUpToDate stays true across the whole sync without changing).
+  pendingTimeoutId = setTimeout(clearPending, 5_000)
 }
 </script>
 
