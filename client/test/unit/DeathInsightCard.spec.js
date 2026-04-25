@@ -55,11 +55,13 @@ describe('DeathInsightsCard', () => {
       props: { survivalStats: warningStats, loading: false }
     })
 
-    expect(wrapper.find('[data-testid="hero-wr"]').text()).toContain('32%')
-    expect(wrapper.find('[data-testid="hero-wr"]').classes()).toContain('winrate-red')
+    // Hero shows the positive (low-death) win rate
+    expect(wrapper.find('[data-testid="hero-wr"]').text()).toContain('50%')
+    expect(wrapper.find('[data-testid="hero-wr"]').classes()).toContain('winrate-orange')
     const contrastRow = wrapper.find('[data-testid="contrast-row"]')
     expect(contrastRow.exists()).toBe(true)
-    expect(contrastRow.text()).toContain('50%')
+    // Contrast row shows the high-death win rate
+    expect(contrastRow.text()).toContain('32%')
   })
 
   it('falls back to neutral when gap < 0.15', () => {
@@ -129,9 +131,9 @@ describe('DeathInsightsCard', () => {
       props: { survivalStats: warningStats, loading: false }
     })
 
-    // Warning state: hero is highDeathThreshold+, contrast is lowDeathThreshold
-    expect(wrapper.text()).toContain('6+')
-    expect(wrapper.find('[data-testid="contrast-row"]').text()).toContain('≤4')
+    // Warning state: hero shows low-death threshold positively, contrast shows high-death threshold
+    expect(wrapper.text()).toContain('≤4')
+    expect(wrapper.find('[data-testid="contrast-row"]').text()).toContain('6+')
   })
 
   it('applies success border class when avg deaths <= lowDeathThreshold', () => {
