@@ -1,7 +1,6 @@
+using Mongoose.Api.Core.QueryModels;
 
-using static Mongoose.Api.Application.DTOs.MainChampionDto;
-
-namespace Mongoose.Api.Application.Services;
+namespace Mongoose.Api.Core.Services;
 
 /// <summary>
 /// Builds per-role "main champion" recommendations from aggregated match stats.
@@ -227,4 +226,3 @@ public static class MainChampionRecommender
     }
     
 }
-

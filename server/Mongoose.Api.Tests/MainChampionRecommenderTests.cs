@@ -1,6 +1,6 @@
 using System.Linq;
 using FluentAssertions;
-using Mongoose.Api.Application.Services;
+using Mongoose.Api.Core.Services;
 using Xunit;
 
 namespace Mongoose.Api.Tests;

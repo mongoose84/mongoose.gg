@@ -4,9 +4,8 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Mongoose.Api.Application.DTOs;
+using Mongoose.Api.Core.QueryModels;
 using Xunit;
-using static Mongoose.Api.Application.DTOs.MainChampionDto;
-using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
 
 namespace Mongoose.Api.Tests;
 

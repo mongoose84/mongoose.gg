@@ -4,7 +4,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
-using static Mongoose.Api.Application.DTOs.Solo.RadarChartDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Tests;
 

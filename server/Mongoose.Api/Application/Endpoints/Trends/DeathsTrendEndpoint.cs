@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
-using static Mongoose.Api.Application.DTOs.TrendDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Application.Endpoints.Trends;
 

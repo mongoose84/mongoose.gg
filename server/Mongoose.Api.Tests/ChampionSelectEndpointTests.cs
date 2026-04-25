@@ -2,12 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Mongoose.Api.Core.QueryModels;
 using Xunit;
-using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
-using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
-using static Mongoose.Api.Application.DTOs.MainChampionDto;
-using static Mongoose.Api.Application.DTOs.TrendDto;
-using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
 
 namespace Mongoose.Api.Tests;
 

@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Application.DTOs;
 
@@ -90,7 +90,7 @@ public static class RankInfoDto
         public ChampionSummary? MainChampion { get; init; }
 
         [JsonPropertyName("mainChampions")]
-        public MainChampionDto.MainChampionRoleGroup[] MainChampions { get; init; } = Array.Empty<MainChampionDto.MainChampionRoleGroup>();
+        public MainChampionRoleGroup[] MainChampions { get; init; } = Array.Empty<MainChampionRoleGroup>();
 
         [JsonPropertyName("last10Games")]
         public TrendMetric? Last10Games { get; init; }

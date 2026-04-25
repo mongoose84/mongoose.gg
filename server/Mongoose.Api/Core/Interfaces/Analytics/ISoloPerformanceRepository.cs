@@ -1,4 +1,4 @@
-using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Core.Interfaces;
 

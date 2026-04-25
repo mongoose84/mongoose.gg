@@ -1,7 +1,7 @@
 using MySqlConnector;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Application.Endpoints.Shared;
-using static Mongoose.Api.Application.DTOs.TrendDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
