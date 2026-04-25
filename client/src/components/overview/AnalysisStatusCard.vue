@@ -193,8 +193,9 @@ async function handleAction() {
   }
 
   // Immediately clear if WS has already confirmed a settled state during the
-  // HTTP await (e.g. the sync started and completed before we got here).
-  if (isRunning.value || hasFailed.value) {
+  // HTTP await (e.g. the sync started and completed before we got here, or
+  // isUpToDate was already true and the WS delivered no status change).
+  if (isRunning.value || hasFailed.value || isUpToDate.value) {
     clearPending()
     return
   }
