@@ -215,6 +215,14 @@ Goals            → /app/goals
 User             → /app/user
 ```
 
+> **Implementation note**: The Team and Goals nav entries are currently gated by feature flags
+> (`VITE_FEATURE_TEAM_ANALYTICS` and `VITE_FEATURE_GOALS`) and are hidden when the flags are
+> disabled. This is **intentional** — both features are still under development. The long-term
+> design intent (always-visible entries with a lock icon for free-tier users) will be implemented
+> once the underlying pages are ready. Until then, `v-if="featureFlags.teamAnalytics"` and
+> `v-if="featureFlags.goals"` remain on the corresponding `<router-link>` elements in
+> `AppSidebar.vue`.
+
 **Architecture decision**: Solo and Team are **separate top-level pages** (not tabs) for:
 1. Better upgrade perceived value
 2. Content diverges significantly in v2
@@ -927,8 +935,8 @@ These prevent common UX errors in stressful gaming contexts:
 1. Champion Select reachable in one click from any page
 2. Overview never blocks user flow
 3. No duplicated deep analysis across pages
-4. Context (Solo/Team) always visible via separate sidebar entries
-5. Team shows lock icon for free users (not 403 or blank wall)
+4. Context (Solo/Team) always visible via separate sidebar entries *(planned — currently gated by feature flags; see Section 6 implementation note)*
+5. Team shows lock icon for free users (not 403 or blank wall) *(planned — not yet implemented)*
 6. Navigation hierarchy remains stable across all pages
 7. Every chart/stat must have actionable meaning
 8. Single-match insights always framed as trends

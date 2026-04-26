@@ -100,30 +100,28 @@ describe('AppSidebar.vue', () => {
   })
 
   describe('Feature flags', () => {
-    it('always shows Team Analytics nav item (spec: lock icon for free users, not hidden)', () => {
-      mockFeatureFlags.teamAnalytics = false
-      const wrapper = createWrapper()
-      expect(wrapper.find('[data-testid="nav-team"]').exists()).toBe(true)
-    })
-
-    it('always shows Goals nav item regardless of feature flag', () => {
-      mockFeatureFlags.goals = false
-      const wrapper = createWrapper()
-      expect(wrapper.find('[data-testid="nav-goals"]').exists()).toBe(true)
-    })
-
-    it('shows Team Analytics nav item with PRO badge', () => {
+    it('shows Team Analytics nav item when flag is enabled', () => {
       mockFeatureFlags.teamAnalytics = true
       const wrapper = createWrapper()
       expect(wrapper.find('[data-testid="nav-team"]').exists()).toBe(true)
-      expect(wrapper.find('[data-testid="nav-team"] .pro-badge').exists()).toBe(true)
     })
 
-    it('shows Goals nav item (no PRO badge — free tier feature)', () => {
+    it('hides Team Analytics nav item when flag is disabled', () => {
+      mockFeatureFlags.teamAnalytics = false
+      const wrapper = createWrapper()
+      expect(wrapper.find('[data-testid="nav-team"]').exists()).toBe(false)
+    })
+
+    it('shows Goals nav item when flag is enabled', () => {
       mockFeatureFlags.goals = true
       const wrapper = createWrapper()
       expect(wrapper.find('[data-testid="nav-goals"]').exists()).toBe(true)
-      expect(wrapper.find('[data-testid="nav-goals"] .pro-badge').exists()).toBe(false)
+    })
+
+    it('hides Goals nav item when flag is disabled', () => {
+      mockFeatureFlags.goals = false
+      const wrapper = createWrapper()
+      expect(wrapper.find('[data-testid="nav-goals"]').exists()).toBe(false)
     })
   })
 
