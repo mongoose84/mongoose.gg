@@ -112,22 +112,6 @@
       </router-link>
     </nav>
 
-    <div v-if="showCompactUpgradeLink" class="px-sm pb-sm">
-      <BaseButton
-        to="/#pricing"
-        variant="ghost"
-        size="sm"
-        class="w-full justify-start text-xs text-primary"
-        data-testid="sidebar-upgrade-link"
-        :title="isCollapsed ? 'Link unlimited accounts with Pro' : ''"
-      >
-        <template #icon-left>
-          <LockClosedIcon class="w-4 h-4" aria-hidden="true" />
-        </template>
-        <span v-if="!isCollapsed">+ Link</span>
-      </BaseButton>
-    </div>
-
     <!-- Account Switcher - above feedback -->
     <div class="border-t border-border py-sm px-sm">
       <AccountSwitcher
@@ -193,7 +177,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { ChatBubbleLeftEllipsisIcon, ChartBarIcon, LockClosedIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
+import { ChatBubbleLeftEllipsisIcon, ChartBarIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';
@@ -233,8 +217,6 @@ function toggleSidebar() {
 // User data
 const username = computed(() => authStore.username || 'User');
 const userTierLabel = computed(() => authStore.tier || 'free');
-const showCompactUpgradeLink = computed(() => authStore.hasReachedRiotAccountLimit);
-
 // Account switcher data
 const riotAccounts = computed(() => authStore.riotAccounts);
 const activeAccountPuuid = computed(() => authStore.activeAccountPuuid);
@@ -258,6 +240,11 @@ const canUseOverallAccountView = computed(() => authStore.canUseOverallAccountVi
 /* Nav item transitions - only for hover states, not layout */
 .nav-item {
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Center icons when sidebar is collapsed */
+[data-collapsed="true"] .nav-item {
+  justify-content: center;
 }
 
 /* Nav label smooth hide/show - synced with sidebar width transition */

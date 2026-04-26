@@ -130,7 +130,7 @@ describe('authStore', () => {
       expect(localStorage.getItem('mongoose_active_account')).toBe('acc_1');
     });
 
-    it('validateActiveAccount resets to overall when active account is no longer linked', () => {
+    it('validateActiveAccount falls back to linked account when overall view is unavailable', () => {
       const store = useAuthStore();
       store.user = {
         userId: 1,
@@ -146,8 +146,41 @@ describe('authStore', () => {
       };
       store.validateActiveAccount();
 
-      expect(store.activeAccountPuuid).toBe('overall');
-      expect(localStorage.getItem('mongoose_active_account')).toBe('overall');
+      expect(store.activeAccountPuuid).toBe('acc_2');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('acc_2');
+    });
+
+    it('setActiveAccount(overall) normalizes to linked account when overall view is unavailable', () => {
+      const store = useAuthStore();
+      store.user = {
+        userId: 1,
+        tier: 'free',
+        riotAccounts: [{ puuid: 'puuid-1', accountId: 'acc_1', isPrimary: true }]
+      };
+
+      store.setActiveAccount('overall');
+
+      expect(store.activeAccountPuuid).toBe('acc_1');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('acc_1');
+      expect(store.isOverallMode).toBe(false);
+      expect(store.getAccountParam()).toBe('acc_1');
+    });
+
+    it('validateActiveAccount normalizes persisted overall when overall view is unavailable', () => {
+      const store = useAuthStore();
+      store.user = {
+        userId: 1,
+        tier: 'free',
+        riotAccounts: [{ puuid: 'puuid-1', accountId: 'acc_1', isPrimary: true }]
+      };
+      store.activeAccountPuuid = 'overall';
+      localStorage.setItem('mongoose_active_account', 'overall');
+
+      store.validateActiveAccount();
+
+      expect(store.activeAccountPuuid).toBe('acc_1');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('acc_1');
+      expect(store.isOverallMode).toBe(false);
     });
   });
 
@@ -314,7 +347,7 @@ describe('authStore', () => {
       expect(store.activeAccountPuuid).toBe('acc_2');
     });
 
-    it('resets to overall on login when stored active account is no longer linked', async () => {
+    it('falls back to linked account on login when stored active account is no longer linked and overall view is unavailable', async () => {
       localStorage.setItem('mongoose_active_account', 'puuid-missing');
       authApi.login.mockResolvedValue({ success: true });
       authApi.getCurrentUser.mockResolvedValue({
@@ -327,8 +360,8 @@ describe('authStore', () => {
       const store = useAuthStore();
       await store.login({ username: 'testuser', password: 'password123' });
 
-      expect(store.activeAccountPuuid).toBe('overall');
-      expect(localStorage.getItem('mongoose_active_account')).toBe('overall');
+      expect(store.activeAccountPuuid).toBe('acc_1');
+      expect(localStorage.getItem('mongoose_active_account')).toBe('acc_1');
     });
   });
 
