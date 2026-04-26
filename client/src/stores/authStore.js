@@ -529,7 +529,8 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function updateUserIcon(userIconId) {    error.value = null
+  async function updateUserIcon(userIconId) {
+    error.value = null
 
     try {
       const result = await authApi.updateUserIcon(userIconId)

@@ -168,8 +168,7 @@ const buttonClasses = computed(() => {
 }
 
 .btn--destructive:hover:not(.btn--disabled):not(.btn--loading) {
-  background: var(--color-error);
-  filter: brightness(0.85);
+  background: var(--color-error-hover);
   box-shadow: var(--shadow-sm);
 }
 
