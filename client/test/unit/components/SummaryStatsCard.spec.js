@@ -390,7 +390,7 @@ describe('SummaryStatsCard', () => {
 
     it('handles decimal winrate edge at 55', () => {
       const wrapper = mountComponent({ winRate: 55.0 })
-      expect(wrapper.find('.winrate-great').exists()).toBe(true)
+      expect(wrapper.find('.winrate-good').exists()).toBe(true)
     })
 
     it('transitions from loading to data correctly', async () => {

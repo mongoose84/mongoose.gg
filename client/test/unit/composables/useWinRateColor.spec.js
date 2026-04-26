@@ -84,11 +84,15 @@ describe('getWinRateColorClass', () => {
     it('returns winrate-good for 54.99', () => {
       expect(getWinRateColorClass(54.99)).toBe('winrate-good')
     })
+
+    it('returns winrate-good for 55', () => {
+      expect(getWinRateColorClass(55)).toBe('winrate-good')
+    })
   })
 
-  describe('great range (>= 55)', () => {
-    it('returns winrate-great for 55', () => {
-      expect(getWinRateColorClass(55)).toBe('winrate-great')
+  describe('great range (> 55)', () => {
+    it('returns winrate-great for 55.01', () => {
+      expect(getWinRateColorClass(55.01)).toBe('winrate-great')
     })
 
     it('returns winrate-great for 60', () => {

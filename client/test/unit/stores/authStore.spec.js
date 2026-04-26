@@ -11,6 +11,7 @@ vi.mock('@/services/authApi', () => ({
   getCurrentUser: vi.fn(),
   updateUserIcon: vi.fn(),
   changePassword: vi.fn(),
+  deleteAccount: vi.fn(),
   linkRiotAccount: vi.fn(),
   unlinkRiotAccount: vi.fn(),
   setPrimaryRiotAccount: vi.fn(),
@@ -830,6 +831,84 @@ describe('authStore', () => {
       expect(result).toEqual({ success: true, userIconId: 503 });
     });
   });
+
+  describe('deleteAccount', () => {
+    it('calls authApi.deleteAccount with the provided password', async () => {
+      authApi.deleteAccount.mockResolvedValue()
+
+      const store = useAuthStore()
+      store.user = { userId: 1, username: 'testuser' }
+
+      await store.deleteAccount('myPassword')
+
+      expect(authApi.deleteAccount).toHaveBeenCalledWith('myPassword')
+    })
+
+    it('clears user state on success', async () => {
+      authApi.deleteAccount.mockResolvedValue()
+
+      const store = useAuthStore()
+      store.user = { userId: 1, username: 'testuser' }
+
+      await store.deleteAccount('myPassword')
+
+      expect(store.user).toBeNull()
+    })
+
+    it('resets active account to overall on success', async () => {
+      authApi.deleteAccount.mockResolvedValue()
+
+      const store = useAuthStore()
+      store.user = { userId: 1, username: 'testuser' }
+
+      await store.deleteAccount('myPassword')
+
+      expect(store.isOverallMode).toBe(true)
+    })
+
+    it('returns success result on success', async () => {
+      authApi.deleteAccount.mockResolvedValue()
+
+      const store = useAuthStore()
+      store.user = { userId: 1 }
+
+      const result = await store.deleteAccount('myPassword')
+
+      expect(result).toEqual({ success: true })
+    })
+
+    it('resets isLoading to false after success', async () => {
+      authApi.deleteAccount.mockResolvedValue()
+
+      const store = useAuthStore()
+      store.user = { userId: 1 }
+
+      await store.deleteAccount('myPassword')
+
+      expect(store.isLoading).toBe(false)
+    })
+
+    it('sets error and rethrows on failure', async () => {
+      const err = new Error('Incorrect password')
+      authApi.deleteAccount.mockRejectedValue(err)
+
+      const store = useAuthStore()
+      store.user = { userId: 1 }
+
+      await expect(store.deleteAccount('wrong')).rejects.toThrow('Incorrect password')
+      expect(store.error).toBe('Incorrect password')
+    })
+
+    it('resets isLoading to false after failure', async () => {
+      authApi.deleteAccount.mockRejectedValue(new Error('Failed'))
+
+      const store = useAuthStore()
+      store.user = { userId: 1 }
+
+      await expect(store.deleteAccount('wrong')).rejects.toThrow()
+      expect(store.isLoading).toBe(false)
+    })
+  })
 
   describe('clearError', () => {
     it('clears the error state', () => {

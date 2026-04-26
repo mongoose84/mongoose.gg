@@ -8,7 +8,7 @@
  *   45–48 → winrate-poor
  *   48–52 → winrate-average
  *   52–55 → winrate-good
- *   ≥ 55  → winrate-great
+ *   > 55  → winrate-great
  */
 
 /**
@@ -24,7 +24,7 @@ export function getWinRateColorClass(value) {
   if (value < 45) return 'winrate-bad'
   if (value < 48) return 'winrate-poor'
   if (value < 52) return 'winrate-average'
-  if (value < 55) return 'winrate-good'
+  if (value <= 55) return 'winrate-good'
   return 'winrate-great'
 }
 

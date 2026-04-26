@@ -275,7 +275,7 @@ function hideTooltip() {
   padding: 6px 10px;
   font-size: 12px;
   color: var(--color-text, #ffffff);
-  z-index: 400;
+  z-index: 200;
   pointer-events: none;
   white-space: nowrap;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);

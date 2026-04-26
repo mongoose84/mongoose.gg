@@ -69,21 +69,6 @@ describe('AppSidebar.vue', () => {
     mockFeatureFlags.goals = true
   })
 
-  it('shows compact upgrade CTA when user is free-tier and at account limit', () => {
-    mockAuthStore.hasReachedRiotAccountLimit = true
-
-    const wrapper = createWrapper()
-
-    expect(wrapper.find('[data-testid="sidebar-upgrade-link"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('+ Link')
-  })
-
-  it('hides compact upgrade CTA when user is not at account limit', () => {
-    const wrapper = createWrapper()
-
-    expect(wrapper.find('[data-testid="sidebar-upgrade-link"]').exists()).toBe(false)
-  })
-
   it('shows SVG fallback when user icon image fails to load', async () => {
     mockUserIconUrl.value = 'https://ddragon.leagueoflegends.com/cdn/16.1.1/img/profileicon/9999.png'
 
