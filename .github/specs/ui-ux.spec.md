@@ -312,7 +312,6 @@ All routes defined in `client/src/router/index.js`.
 
 Components used:
 - `OverviewPlayerHeader` — profile icon, summoner name, region, context badges
-- `RankSnapshot` — rank, LP, ΔLP last 20, W/L strip
 - `ChampionSelectCTA` — quick link to champion select
 - `MatchActivityHeatmap` — daily match counts grid
 - `AnalysisStatusCard` — sync/analysis status
@@ -483,20 +482,6 @@ Slots: `#header`, `#glance-left`, `#glance-right`, `#recent-left`, `#recent-righ
 | `profileIconUrl` | `String` | Profile icon URL |
 | `activeContexts` | `Array` | Context badges (Solo/Team) |
 
-### `RankSnapshot`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `primaryQueueLabel` | `String` | e.g., "Ranked Solo/Duo" |
-| `rank` | `String` | Tier + division |
-| `lp` | `Number` | Current LP |
-| `lpDeltaLast20` | `Number` | LP change over last 20 games |
-| `last20Wins` | `Number` | Wins in last 20 |
-| `last20Losses` | `Number` | Losses in last 20 |
-| `wlLast20` | `Array` | Per-game W/L array for strip visualization |
-
-**Primary queue selection rule** (computed upstream): Queue with highest match count in recent window (last 50 or 30 days). Tie-breaker: Solo/Duo → Flex → Normal → ARAM → other.
-
 ### `LastMatchCard`
 
 | Prop | Type | Description |
@@ -610,9 +595,6 @@ Wrapper for trend charts with expand/collapse.
 
 Events: `@toggle-expand`  
 Slots: `#default` with `{ dataLimit }` slot prop
-
-### `LpChart`
-Chart.js line chart for LP over time. Prop: `data` (array of LP data points).
 
 ### `WinrateChart`
 Chart.js line chart for rolling win rate. Prop: `data` (array of win rate data points). Subtitle: "Rolling 20-game average".

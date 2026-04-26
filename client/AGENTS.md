@@ -66,12 +66,12 @@ client/
 │   ├── components/
 │   │   ├── base/                # Reusable primitives: BaseButton, BaseCard, BaseModal, BaseInput,
 │   │   │                        #   BaseQueueToggle, BaseTimeRangeSelect (barrel export via index.js)
-│   │   ├── overview/            # OverviewLayout, PlayerHeader, RankSnapshot, LastMatchCard,
+│   │   ├── overview/            # OverviewLayout, PlayerHeader, LastMatchCard,
 │   │   │                        #   MatchActivityHeatmap, AnalysisStatusCard, ChampionSelectCTA
 │   │   ├── matches/             # MatchList, MatchRow, MatchDetails, MatchHeader, MatchHighlights,
 │   │   │                        #   MatchNarrative, StatSnapshot, ImpactStats, LaneMatchupDetails,
 │   │   │                        #   TeamComparison, TrendBadge, HighlightTile, MatchActions
-│   │   ├── solo/                # SummaryStatsCard, TrendChartCard, LpChart, WinrateChart
+│   │   ├── solo/                # SummaryStatsCard, TrendChartCard, WinrateChart
 │   │   ├── shared/              # AnalysisLayout (zone-based layout for Solo/Team)
 │   │   ├── AppSidebar.vue       # Left nav with collapsible state, Pro tier lock icons
 │   │   ├── AppHeader.vue
