@@ -237,9 +237,9 @@ async function handleAction() {
 .status-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(59, 130, 246, 0.3);
+  border: 2px solid var(--color-info-soft);
   border-radius: 50%;
-  border-top-color: #3b82f6;
+  border-top-color: var(--color-info);
   animation: spin 0.8s linear infinite;
 }
 
@@ -255,13 +255,13 @@ async function handleAction() {
 }
 
 .status-dot--idle {
-  background-color: #6b7280;
+  background-color: var(--color-muted);
 }
 
 /* Color utility classes */
-.text-success { color: #22c55e; }
-.text-warning { color: #f59e0b; }
-.text-muted { color: #6b7280; }
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-muted { color: var(--color-muted); }
 .text-secondary { color: var(--color-text-secondary); }
 
 /* Progress bar */
@@ -274,13 +274,13 @@ async function handleAction() {
 
 .progress-bar__fill {
   height: 100%;
-  background: #3b82f6;
+  background: var(--color-info);
   border-radius: 2px;
   transition: width 0.3s ease;
 }
 
 .progress-bar__fill--rate-limited {
-  background: #f59e0b;
+  background: var(--color-warning);
 }
 
 /* Icon crossfade transition */

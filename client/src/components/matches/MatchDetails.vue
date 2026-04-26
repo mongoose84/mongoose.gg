@@ -306,13 +306,13 @@ defineExpose({ downloadMatchData })
 .error-icon {
   width: 48px;
   height: 48px;
-  color: var(--color-danger, #ef4444);
+  color: var(--color-error);
   opacity: 0.7;
 }
 
 .error-text {
   font-size: var(--font-size-sm);
-  color: var(--color-danger, #ef4444);
+  color: var(--color-error);
 }
 
 /* Empty State */

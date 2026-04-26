@@ -412,7 +412,7 @@ const assistsTrendClass = computed(() => {
 
 /* K/D/A Group */
 .stat-kda-group {
-  gap: var(--spacing-xxs);
+  gap: 0.25rem;
 }
 
 .kda-values {
@@ -508,7 +508,7 @@ const assistsTrendClass = computed(() => {
   font-size: var(--font-size-xs);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
-  background-color: var(--color-background-elevated, rgba(255, 255, 255, 0.05));
+  background-color: var(--color-elevated);
   color: var(--color-text-secondary);
   border: 1px solid transparent;
   cursor: default;

@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setupPinia } from '@test/helpers/testUtils'
-import TeamAnalytics from '@/views/TeamAnalytics.vue'
+import TeamAnalyticsPage from '@/views/TeamAnalyticsPage.vue'
 
-describe('TeamAnalytics', () => {
+describe('TeamAnalyticsPage', () => {
   beforeEach(() => {
     setupPinia()
   })
 
   function mountPage() {
-    return mount(TeamAnalytics)
+    return mount(TeamAnalyticsPage)
   }
 
   it('renders the page heading', () => {

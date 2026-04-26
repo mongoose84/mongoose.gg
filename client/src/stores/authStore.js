@@ -508,8 +508,28 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function updateUserIcon(userIconId) {
+  /**
+   * Delete the authenticated user's account
+   */
+  async function deleteAccount(password) {
+    isLoading.value = true
     error.value = null
+
+    try {
+      await authApi.deleteAccount(password)
+      user.value = null
+      syncStoredUserIcon(null)
+      setActiveAccount('overall')
+      return { success: true }
+    } catch (e) {
+      error.value = e.message
+      throw e
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function updateUserIcon(userIconId) {    error.value = null
 
     try {
       const result = await authApi.updateUserIcon(userIconId)
@@ -573,6 +593,7 @@ export const useAuthStore = defineStore('auth', () => {
     unlinkRiotAccount,
     setPrimary,
     triggerSync,
+    deleteAccount,
     updateUserIcon
   }
 })

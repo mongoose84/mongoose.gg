@@ -22,7 +22,7 @@ describe('OverviewLayout', () => {
   it('section heading reads "Quick actions" (not "Recent matches")', () => {
     const wrapper = mount(OverviewLayout, {
       props: { isLoading: false, error: null, isEmpty: false },
-      slots: { 'actions-left': '<div>actions</div>' },
+      slots: { 'recent-left': '<div>actions</div>' },
       global: { stubs }
     })
 
@@ -30,20 +30,20 @@ describe('OverviewLayout', () => {
     expect(wrapper.text()).not.toContain('Recent matches')
   })
 
-  it('slot #actions-left renders content correctly', () => {
+  it('slot #recent-left renders content correctly', () => {
     const wrapper = mount(OverviewLayout, {
       props: { isLoading: false, error: null, isEmpty: false },
-      slots: { 'actions-left': '<div data-testid="actions-left-content">actions left</div>' },
+      slots: { 'recent-left': '<div data-testid="actions-left-content">actions left</div>' },
       global: { stubs }
     })
 
     expect(wrapper.find('[data-testid="actions-left-content"]').exists()).toBe(true)
   })
 
-  it('slot #actions-right renders content correctly', () => {
+  it('slot #recent-right renders content correctly', () => {
     const wrapper = mount(OverviewLayout, {
       props: { isLoading: false, error: null, isEmpty: false },
-      slots: { 'actions-right': '<div data-testid="actions-right-content">actions right</div>' },
+      slots: { 'recent-right': '<div data-testid="actions-right-content">actions right</div>' },
       global: { stubs }
     })
 

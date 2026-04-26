@@ -16,6 +16,7 @@
       <button
         @click="toggleSidebar"
         class="bg-transparent border-none text-text-secondary cursor-pointer p-xs rounded-sm flex items-center justify-center transition-all duration-200 shrink-0 hover:bg-background-elevated hover:text-text"
+        :aria-label="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
       >
         <!-- Chevron right (>) when collapsed, chevron left (<) when expanded -->
@@ -85,7 +86,6 @@
       </router-link>
 
       <router-link
-        v-if="featureFlags.teamAnalytics"
         to="/app/team"
         data-testid="nav-team"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
@@ -97,17 +97,15 @@
       </router-link>
 
       <router-link
-        v-if="featureFlags.goals"
         to="/app/goals"
         data-testid="nav-goals"
         class="nav-item flex items-center gap-md p-md mx-sm text-text-secondary no-underline rounded-md cursor-pointer whitespace-nowrap hover:bg-background-elevated hover:text-text"
-        :title="isCollapsed ? 'Goals (Pro)' : ''"
+        :title="isCollapsed ? 'Goals' : ''"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="nav-icon w-5 h-5 shrink-0">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
         </svg>
         <span v-if="!isCollapsed" class="nav-label text-sm font-medium tracking-tight">Goals</span>
-        <span v-if="!isCollapsed" class="pro-badge">PRO</span>
       </router-link>
     </nav>
 
@@ -199,7 +197,6 @@ import { useAnalysisStatus } from '../composables/useAnalysisStatus';
 import { BaseButton } from '@/components/base';
 import AccountSwitcher from '@/components/sidebar/AccountSwitcher.vue';
 import { useUserIcon } from '@/composables/useUserIcon';
-import { featureFlags } from '@/utils/featureFlags';
 
 const authStore = useAuthStore();
 const uiStore = useUiStore();
@@ -273,7 +270,7 @@ const canUseOverallAccountView = computed(() => authStore.canUseOverallAccountVi
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 3px 6px;
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--radius-sm);
   background: var(--color-primary-soft);
   color: var(--color-primary);
 }
@@ -315,9 +312,9 @@ nav::-webkit-scrollbar-thumb:hover {
   display: inline-block;
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(59, 130, 246, 0.3);
+  border: 2px solid var(--color-info-soft);
   border-radius: 50%;
-  border-top-color: #3b82f6;
+  border-top-color: var(--color-info);
   animation: analysis-spin 0.8s linear infinite;
   flex-shrink: 0;
 }

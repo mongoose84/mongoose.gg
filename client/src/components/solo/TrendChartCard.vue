@@ -110,13 +110,13 @@ function toggleExpand() {
   margin: 0;
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .chart-subtitle {
   margin: var(--spacing-xs) 0 0 0;
   font-size: var(--font-size-xs);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .expand-toggle {
@@ -124,25 +124,25 @@ function toggleExpand() {
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--background-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--border-radius-sm);
-  color: var(--text-secondary);
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
 }
 
 .expand-toggle:hover {
-  background: var(--background-hover);
-  color: var(--text);
-  border-color: var(--border-hover);
+  background: var(--color-elevated);
+  color: var(--color-text);
+  border-color: var(--color-primary);
 }
 
 .toggle-icon {
   width: 14px;
   height: 14px;
-  transition: transform var(--transition-fast);
+  transition: transform 0.15s ease;
 }
 
 .icon-rotated {
@@ -166,13 +166,13 @@ function toggleExpand() {
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--background-elevated) 25%,
-    var(--background-hover) 50%,
-    var(--background-elevated) 75%
+    var(--color-elevated) 25%,
+    var(--color-primary-soft) 50%,
+    var(--color-elevated) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-chart {

@@ -43,7 +43,7 @@ describe('DeathInsightsCard', () => {
 
     expect(wrapper.find('[data-testid="hero-wr"]').text()).toContain('72%')
     // Hero WR should use the low-death win rate
-    expect(wrapper.find('[data-testid="hero-wr"]').classes()).toContain('winrate-green')
+    expect(wrapper.find('[data-testid="hero-wr"]').classes()).toContain('winrate-great')
     // Contrast row shows the high-death win rate
     const contrastRow = wrapper.find('[data-testid="contrast-row"]')
     expect(contrastRow.exists()).toBe(true)
@@ -57,7 +57,7 @@ describe('DeathInsightsCard', () => {
 
     // Hero shows the positive (low-death) win rate
     expect(wrapper.find('[data-testid="hero-wr"]').text()).toContain('50%')
-    expect(wrapper.find('[data-testid="hero-wr"]').classes()).toContain('winrate-orange')
+    expect(wrapper.find('[data-testid="hero-wr"]').classes()).toContain('winrate-average')
     const contrastRow = wrapper.find('[data-testid="contrast-row"]')
     expect(contrastRow.exists()).toBe(true)
     // Contrast row shows the high-death win rate

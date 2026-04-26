@@ -143,34 +143,34 @@ describe('SummaryStatsCard', () => {
   })
 
   describe('Winrate color classes', () => {
-    it('applies winrate-red class for winrate < 47', () => {
-      const wrapper = mountComponent({ winRate: 45 })
-      expect(wrapper.find('.winrate-red').exists()).toBe(true)
+    it('applies winrate-terrible class for winrate < 40', () => {
+      const wrapper = mountComponent({ winRate: 35 })
+      expect(wrapper.find('.winrate-terrible').exists()).toBe(true)
     })
 
-    it('applies winrate-redorange class for winrate 47-49', () => {
-      const wrapper = mountComponent({ winRate: 48 })
-      expect(wrapper.find('.winrate-redorange').exists()).toBe(true)
+    it('applies winrate-poor class for winrate 45-48', () => {
+      const wrapper = mountComponent({ winRate: 46 })
+      expect(wrapper.find('.winrate-poor').exists()).toBe(true)
     })
 
-    it('applies winrate-orange class for winrate 49-51', () => {
+    it('applies winrate-average class for winrate 48-52', () => {
       const wrapper = mountComponent({ winRate: 50 })
-      expect(wrapper.find('.winrate-orange').exists()).toBe(true)
+      expect(wrapper.find('.winrate-average').exists()).toBe(true)
     })
 
-    it('applies winrate-yellow class for winrate 51-52', () => {
+    it('applies winrate-average class for winrate 51-52', () => {
       const wrapper = mountComponent({ winRate: 51.5 })
-      expect(wrapper.find('.winrate-yellow').exists()).toBe(true)
+      expect(wrapper.find('.winrate-average').exists()).toBe(true)
     })
 
-    it('applies winrate-yellowgreen class for winrate 52-53', () => {
+    it('applies winrate-good class for winrate 52-55', () => {
       const wrapper = mountComponent({ winRate: 52.5 })
-      expect(wrapper.find('.winrate-yellowgreen').exists()).toBe(true)
+      expect(wrapper.find('.winrate-good').exists()).toBe(true)
     })
 
-    it('applies winrate-green class for winrate >= 53', () => {
-      const wrapper = mountComponent({ winRate: 55 })
-      expect(wrapper.find('.winrate-green').exists()).toBe(true)
+    it('applies winrate-great class for winrate >= 55', () => {
+      const wrapper = mountComponent({ winRate: 57 })
+      expect(wrapper.find('.winrate-great').exists()).toBe(true)
     })
 
     it('applies winrate-neutral class for null winrate', () => {
@@ -383,14 +383,14 @@ describe('SummaryStatsCard', () => {
       expect(wrapper.text()).toContain('9999')
     })
 
-    it('handles decimal winrate edge at 47', () => {
-      const wrapper = mountComponent({ winRate: 46.9 })
-      expect(wrapper.find('.winrate-red').exists()).toBe(true)
+    it('handles decimal winrate edge at 45', () => {
+      const wrapper = mountComponent({ winRate: 44.9 })
+      expect(wrapper.find('.winrate-bad').exists()).toBe(true)
     })
 
-    it('handles decimal winrate edge at 53', () => {
-      const wrapper = mountComponent({ winRate: 53.0 })
-      expect(wrapper.find('.winrate-green').exists()).toBe(true)
+    it('handles decimal winrate edge at 55', () => {
+      const wrapper = mountComponent({ winRate: 55.0 })
+      expect(wrapper.find('.winrate-great').exists()).toBe(true)
     })
 
     it('transitions from loading to data correctly', async () => {

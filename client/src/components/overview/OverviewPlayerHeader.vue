@@ -257,7 +257,7 @@ function contextLabel(context) {
 }
 
 .context-solo {
-  background: rgba(109, 40, 217, 0.2);
+  background: var(--color-primary-soft);
   color: var(--color-primary);
 }
 
