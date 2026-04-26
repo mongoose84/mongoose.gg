@@ -1,4 +1,4 @@
-namespace Mongoose.Api.Application.QueryModels;
+namespace Mongoose.Api.Core.QueryModels;
 
 /// <summary>
 /// Record representing the latest game details for a player.

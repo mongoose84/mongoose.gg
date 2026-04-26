@@ -1,6 +1,5 @@
 using MySqlConnector;
-using Mongoose.Api.Application.QueryModels;
-using Mongoose.Api.Application.Services;
+using Mongoose.Api.Core.Services;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;

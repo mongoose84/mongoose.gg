@@ -1,4 +1,4 @@
-using static Mongoose.Api.Application.DTOs.Solo.RadarChartDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Core.Interfaces;
 

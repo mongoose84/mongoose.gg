@@ -1,116 +1,108 @@
+using System.Text.Json.Serialization;
+
 namespace Mongoose.Api.Core.QueryModels;
-
-/// <summary>
-/// Core layer data models for solo performance queries.
-/// NOTE: These models are not currently in use. Repositories still return Application DTOs directly.
-/// These were created as part of a planned Clean Architecture refactoring (Phase 3) that was not completed.
-/// To use these, repositories would need to be updated to return these Core types,
-/// and endpoints would map them to Application DTOs.
-/// </summary>
-
-/// <summary>
-/// Comprehensive solo performance data containing all required stats.
-/// </summary>
-public record SoloPerformanceData(
-    int GamesPlayed,
-    int Wins,
-    double WinRate,
-    double AvgKda,
-    double AvgGameDurationMinutes,
-    double AvgKills,
-    double AvgDeaths,
-    double AvgAssists,
-    double OverallWinRate,
-    double OverallAvgKills,
-    double OverallAvgDeaths,
-    double OverallAvgAssists,
-    double OverallAvgKda,
-    SideWinDistributionData SideStats,
-    int UniqueChampsPlayedCount,
-    ChampionSummaryData? MainChampion,
-    MainChampionRoleGroupData[] MainChampions,
-    TrendMetricData? Last10Games,
-    TrendMetricData? Last20Games,
-    PerformancePhaseData[] PerformanceByPhase,
-    RolePerformanceData[] RoleBreakdown,
-    DeathEfficiencyData DeathEfficiency,
-    string QueueType
-);
-
-public record SideWinDistributionData(
-    int BlueWins,
-    int RedWins,
-    int BlueGames,
-    int RedGames,
-    int TotalGames,
-    double BlueWinDistribution,
-    double RedWinDistribution
-);
-
-public record ChampionSummaryData(
-    int ChampionId,
-    string ChampionName,
-    int Picks,
-    double WinRate,
-    double PickRate
-);
-
-public record TrendMetricData(
-    int Games,
-    int Wins,
-    double WinRate,
-    double AvgKda,
-    double AvgKills,
-    double AvgDeaths,
-    double AvgAssists
-);
-
-public record PerformancePhaseData(
-    string Phase,
-    int Games,
-    int Wins,
-    double WinRate,
-    double AvgKda,
-    double AvgGoldPerMin,
-    double AvgDamagePerMin
-);
-
-public record RolePerformanceData(
-    string Role,
-    int GamesPlayed,
-    int Wins,
-    double WinRate,
-    double AvgKda
-);
-
-public record DeathEfficiencyData(
-    int DeathsPre10,
-    int Deaths10To20,
-    int Deaths20To30,
-    int Deaths30Plus,
-    double? AvgFirstDeathMinute,
-    double? AvgFirstKillParticipationMinute
-);
 
 /// <summary>
 /// Main champion recommendation grouped by role.
 /// </summary>
-public record MainChampionRoleGroupData(
-    string Role,
-    MainChampionEntryData[] Champions
+public record MainChampionRoleGroup(
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("champions")] MainChampionEntry[] Champions
 );
 
 /// <summary>
 /// Individual champion entry in main champion recommendations.
 /// </summary>
-public record MainChampionEntryData(
-    string ChampionName,
-    int ChampionId,
-    string Role,
-    double WinRate,
-    int GamesPlayed,
-    int Wins,
-    int Losses,
-    double MScore
+public record MainChampionEntry(
+    [property: JsonPropertyName("championName")] string ChampionName,
+    [property: JsonPropertyName("championId")] int ChampionId,
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("winRate")] double WinRate,
+    [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
+    [property: JsonPropertyName("mScore")] double MScore,
+    [property: JsonPropertyName("avgKda")] double AvgKda
 );
 
+/// <summary>
+/// Comprehensive solo performance response.
+/// </summary>
+public record SoloPerformanceResponse(
+    [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
+    [property: JsonPropertyName("wins")] int Wins,
+    [property: JsonPropertyName("winRate")] double WinRate,
+    [property: JsonPropertyName("avgKda")] double AvgKda,
+    [property: JsonPropertyName("avgGameDurationMinutes")] double AvgGameDurationMinutes,
+    [property: JsonPropertyName("avgKills")] double AvgKills,
+    [property: JsonPropertyName("avgDeaths")] double AvgDeaths,
+    [property: JsonPropertyName("avgAssists")] double AvgAssists,
+    [property: JsonPropertyName("overallWinRate")] double OverallWinRate,
+    [property: JsonPropertyName("overallAvgKills")] double OverallAvgKills,
+    [property: JsonPropertyName("overallAvgDeaths")] double OverallAvgDeaths,
+    [property: JsonPropertyName("overallAvgAssists")] double OverallAvgAssists,
+    [property: JsonPropertyName("overallAvgKda")] double OverallAvgKda,
+    [property: JsonPropertyName("sideStats")] SideWinDistribution SideStats,
+    [property: JsonPropertyName("uniqueChampsPlayedCount")] int UniqueChampsPlayedCount,
+    [property: JsonPropertyName("mainChampion")] ChampionSummary? MainChampion,
+    [property: JsonPropertyName("mainChampions")] MainChampionRoleGroup[] MainChampions,
+    [property: JsonPropertyName("last10Games")] TrendMetric? Last10Games,
+    [property: JsonPropertyName("last20Games")] TrendMetric? Last20Games,
+    [property: JsonPropertyName("performanceByPhase")] PerformancePhase[] PerformanceByPhase,
+    [property: JsonPropertyName("roleBreakdown")] RolePerformance[] RoleBreakdown,
+    [property: JsonPropertyName("deathEfficiency")] DeathEfficiency DeathEfficiency,
+    [property: JsonPropertyName("queueType")] string QueueType
+);
+
+public record SideWinDistribution(
+    [property: JsonPropertyName("blueWins")] int BlueWins,
+    [property: JsonPropertyName("redWins")] int RedWins,
+    [property: JsonPropertyName("blueGames")] int BlueGames,
+    [property: JsonPropertyName("redGames")] int RedGames,
+    [property: JsonPropertyName("totalGames")] int TotalGames,
+    [property: JsonPropertyName("blueWinDistribution")] double BlueWinDistribution,
+    [property: JsonPropertyName("redWinDistribution")] double RedWinDistribution
+);
+
+public record ChampionSummary(
+    [property: JsonPropertyName("championId")] int ChampionId,
+    [property: JsonPropertyName("championName")] string ChampionName,
+    [property: JsonPropertyName("picks")] int Picks,
+    [property: JsonPropertyName("winRate")] double WinRate,
+    [property: JsonPropertyName("pickRate")] double PickRate
+);
+
+public record TrendMetric(
+    [property: JsonPropertyName("games")] int Games,
+    [property: JsonPropertyName("wins")] int Wins,
+    [property: JsonPropertyName("winRate")] double WinRate,
+    [property: JsonPropertyName("avgKda")] double AvgKda,
+    [property: JsonPropertyName("avgKills")] double AvgKills,
+    [property: JsonPropertyName("avgDeaths")] double AvgDeaths,
+    [property: JsonPropertyName("avgAssists")] double AvgAssists
+);
+
+public record PerformancePhase(
+    [property: JsonPropertyName("phase")] string Phase,
+    [property: JsonPropertyName("games")] int Games,
+    [property: JsonPropertyName("wins")] int Wins,
+    [property: JsonPropertyName("winRate")] double WinRate,
+    [property: JsonPropertyName("avgKda")] double AvgKda,
+    [property: JsonPropertyName("avgGoldPerMin")] double AvgGoldPerMin,
+    [property: JsonPropertyName("avgDamagePerMin")] double AvgDamagePerMin
+);
+
+public record RolePerformance(
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
+    [property: JsonPropertyName("wins")] int Wins,
+    [property: JsonPropertyName("winRate")] double WinRate,
+    [property: JsonPropertyName("avgKda")] double AvgKda
+);
+
+public record DeathEfficiency(
+    [property: JsonPropertyName("deathsPre10")] int DeathsPre10,
+    [property: JsonPropertyName("deaths10To20")] int Deaths10To20,
+    [property: JsonPropertyName("deaths20To30")] int Deaths20To30,
+    [property: JsonPropertyName("deaths30Plus")] int Deaths30Plus,
+    [property: JsonPropertyName("avgFirstDeathMinute")] double? AvgFirstDeathMinute,
+    [property: JsonPropertyName("avgFirstKillParticipationMinute")] double? AvgFirstKillParticipationMinute
+);

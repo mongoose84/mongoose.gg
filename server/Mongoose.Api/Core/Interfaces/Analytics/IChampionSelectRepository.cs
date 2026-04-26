@@ -1,4 +1,4 @@
-using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Core.Interfaces;
 

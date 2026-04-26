@@ -1,6 +1,6 @@
 using Mongoose.Api.Core.QueryModels;
 
-namespace Mongoose.Api.Application.Services;
+namespace Mongoose.Api.Core.Services;
 
 /// <summary>
 /// Computes trend badges by comparing a match's stats against the player's role baseline.

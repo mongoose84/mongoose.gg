@@ -157,7 +157,7 @@ let heatInstance = null
 
 // Constants
 const MAP_SIZE = 15000 // Riot API coordinate max
-const mapImageSrc = '/assets/images/summoners-rift-minimap.jpg'
+const mapImageSrc = '/assets/images/summoners-rift-minimap.png'
 
 // Side filter options
 const sideOptions = [

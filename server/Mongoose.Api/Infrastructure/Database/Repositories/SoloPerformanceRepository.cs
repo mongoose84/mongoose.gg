@@ -1,9 +1,8 @@
 using MySqlConnector;
-using Mongoose.Api.Application.Services;
+using Mongoose.Api.Core.Services;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
-using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
-using static Mongoose.Api.Application.DTOs.MainChampionDto;
+using Mongoose.Api.Core.QueryModels;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 

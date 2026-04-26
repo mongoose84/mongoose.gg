@@ -15,11 +15,6 @@ using Mongoose.Api.Application.DTOs;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
 using System.Text.Json;
-using static Mongoose.Api.Application.DTOs.SoloPerformanceDto;
-using static Mongoose.Api.Application.DTOs.SoloMatchupsDto;
-using static Mongoose.Api.Application.DTOs.ChampionSelectDto;
-using static Mongoose.Api.Application.DTOs.TrendDto;
-using static Mongoose.Api.Application.DTOs.Solo.RadarChartDto;
 
 namespace Mongoose.Api.Tests;
 
