@@ -53,7 +53,7 @@ client/
 │   ├── views/                   # Page components (one per route)
 │   │   ├── OverviewPage.vue     # Post-login landing — orientation dashboard
 │   │   ├── SoloStatsPage.vue    # Solo analysis — LP + winrate trends (free tier)
-│   │   ├── TeamAnalytics.vue    # Team analysis (Pro tier — shows teaser for free)
+│   │   ├── TeamAnalyticsPage.vue # Team analysis (Pro tier — shows teaser for free)
 │   │   ├── MatchesPage.vue      # Match history list + expandable details
 │   │   ├── ChampionSelectPage.vue # Real-time champion select support
 │   │   ├── GoalsPage.vue        # Goal management
@@ -68,9 +68,9 @@ client/
 │   │   │                        #   BaseQueueToggle, BaseTimeRangeSelect (barrel export via index.js)
 │   │   ├── overview/            # OverviewLayout, PlayerHeader, LastMatchCard,
 │   │   │                        #   MatchActivityHeatmap, AnalysisStatusCard, ChampionSelectCTA
-│   │   ├── matches/             # MatchList, MatchRow, MatchDetails, MatchHeader, MatchHighlights,
-│   │   │                        #   MatchNarrative, StatSnapshot, ImpactStats, LaneMatchupDetails,
-│   │   │                        #   TeamComparison, TrendBadge, HighlightTile, MatchActions
+│   │   ├── matches/             # MatchList, MatchRow, MatchDetails, MatchHeader, MatchNarrative,
+│   │   │                        #   StatSnapshot, ImpactStats, WinPredictionStats, LaneMatchupDetails,
+│   │   │                        #   TeamComparison, TrendBadge, MatchActions
 │   │   ├── solo/                # SummaryStatsCard, TrendChartCard, WinrateChart
 │   │   ├── shared/              # AnalysisLayout (zone-based layout for Solo/Team)
 │   │   ├── AppSidebar.vue       # Left nav with collapsible state, Pro tier lock icons

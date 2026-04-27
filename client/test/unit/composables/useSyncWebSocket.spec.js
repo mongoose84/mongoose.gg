@@ -169,6 +169,39 @@ describe('useSyncWebSocket', () => {
       vi.advanceTimersByTime(500);
       expect(MockWebSocket.lastInstance).not.toBe(firstInstance); // Now reconnected
     });
+
+    it('clears transient status and isRateLimited on reconnect and re-subscribes', () => {
+      const { subscribe, syncProgress } = useSyncWebSocket();
+
+      // Open initial connection and subscribe
+      MockWebSocket.lastInstance.simulateOpen();
+      subscribe('test-puuid-reconnect');
+
+      // Seed stale state that should be wiped on reconnect
+      const progress = syncProgress.get('test-puuid-reconnect');
+      progress.status = 'syncing';
+      progress.isRateLimited = true;
+
+      // Simulate disconnect — schedules first reconnect attempt after 1 s
+      MockWebSocket.lastInstance.simulateClose();
+
+      // Advance timers so the reconnect fires and a new WebSocket is created
+      vi.advanceTimersByTime(1000);
+      const newSocket = MockWebSocket.lastInstance;
+
+      // Open the new connection — this triggers the onopen handler that clears state
+      newSocket.simulateOpen();
+
+      // Transient fields must be cleared
+      expect(progress.status).toBeNull();
+      expect(progress.isRateLimited).toBe(false);
+
+      // A fresh subscribe message must have been sent on the new socket
+      expect(newSocket.sentMessages).toContainEqual({
+        type: 'subscribe',
+        puuid: 'test-puuid-reconnect'
+      });
+    });
   });
 
   describe('Subscription', () => {

@@ -168,7 +168,7 @@ describe('SummaryStatsCard', () => {
       expect(wrapper.find('.winrate-good').exists()).toBe(true)
     })
 
-    it('applies winrate-great class for winrate >= 55', () => {
+    it('applies winrate-great class for winrate > 55', () => {
       const wrapper = mountComponent({ winRate: 57 })
       expect(wrapper.find('.winrate-great').exists()).toBe(true)
     })

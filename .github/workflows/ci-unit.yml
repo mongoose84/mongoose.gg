@@ -13,6 +13,9 @@ on:
       - 'server/**'
       - '.github/workflows/ci-unit.yml'
   workflow_dispatch:
+  
+permissions:
+  contents: read
 
 jobs:
   client-unit-tests:
