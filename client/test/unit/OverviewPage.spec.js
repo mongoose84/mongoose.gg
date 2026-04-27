@@ -46,8 +46,8 @@ const componentStubs = {
       <slot name="header" />
       <slot name="glance-left" />
       <slot name="glance-right" />
-      <slot name="actions-left" />
-      <slot name="actions-right" />
+      <slot name="recent-left" />
+      <slot name="recent-right" />
       <slot name="latest-match" />
     </div>`
   },
@@ -79,7 +79,7 @@ describe('OverviewPage', () => {
     expect(wrapper.find('[data-testid="death-insights-card"]').exists()).toBe(true)
   })
 
-  it('renders ChampionSelectCTA in actions-left slot', () => {
+  it('renders ChampionSelectCTA in recent-left slot', () => {
     const wrapper = mount(OverviewPage, { global: { stubs: componentStubs } })
     expect(wrapper.find('[data-testid="champion-select-cta"]').exists()).toBe(true)
   })

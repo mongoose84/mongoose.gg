@@ -179,13 +179,13 @@ const relativeTime = computed(() => {
 }
 
 .champion-name {
-  font-size: var(--text-base);
+  font-size: var(--font-size-md);
   font-weight: 600;
   color: var(--color-text);
 }
 
 .result-badge {
-  font-size: var(--text-xs);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -219,7 +219,7 @@ const relativeTime = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  font-size: var(--text-sm);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
@@ -228,7 +228,7 @@ const relativeTime = computed(() => {
 }
 
 .separator {
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .queue-type {
@@ -236,13 +236,13 @@ const relativeTime = computed(() => {
 }
 
 .timestamp {
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 /* Arrow indicator */
 .arrow-indicator {
   flex-shrink: 0;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   transition: color 0.2s ease, transform 0.2s ease;
 }
 

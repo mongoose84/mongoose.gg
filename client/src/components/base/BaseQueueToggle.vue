@@ -91,7 +91,7 @@ defineEmits(['update:modelValue'])
 }
 
 .queue-toggle-btn:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--color-primary-soft);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 
 /* Dividers between buttons */

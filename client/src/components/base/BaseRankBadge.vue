@@ -171,7 +171,7 @@ const formattedTier = computed(() => {
 }
 
 .rank-badge--lg .rank-tier {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-md);
 }
 
 .rank-badge--lg .rank-lp {
@@ -180,42 +180,42 @@ const formattedTier = computed(() => {
 
 /* Tier-specific accent colors for visual recognition */
 .rank-badge--iron .rank-tier {
-  color: #7d7d7d;
+  color: var(--color-rank-iron);
 }
 
 .rank-badge--bronze .rank-tier {
-  color: #cd7f32;
+  color: var(--color-rank-bronze);
 }
 
 .rank-badge--silver .rank-tier {
-  color: #a0b0c0;
+  color: var(--color-rank-silver);
 }
 
 .rank-badge--gold .rank-tier {
-  color: #ffd700;
+  color: var(--color-rank-gold);
 }
 
 .rank-badge--platinum .rank-tier {
-  color: #4ee0d0;
+  color: var(--color-rank-platinum);
 }
 
 .rank-badge--emerald .rank-tier {
-  color: #50c878;
+  color: var(--color-rank-emerald);
 }
 
 .rank-badge--diamond .rank-tier {
-  color: #b9f2ff;
+  color: var(--color-rank-diamond);
 }
 
 .rank-badge--master .rank-tier {
-  color: #9370db;
+  color: var(--color-rank-master);
 }
 
 .rank-badge--grandmaster .rank-tier {
-  color: #ff4444;
+  color: var(--color-rank-grandmaster);
 }
 
 .rank-badge--challenger .rank-tier {
-  color: #f0e68c;
+  color: var(--color-rank-challenger);
 }
 </style>

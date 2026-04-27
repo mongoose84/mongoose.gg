@@ -215,6 +215,14 @@ Goals            → /app/goals
 User             → /app/user
 ```
 
+> **Implementation note**: The Team and Goals nav entries are currently gated by feature flags
+> (`VITE_FEATURE_TEAM_ANALYTICS` and `VITE_FEATURE_GOALS`) and are hidden when the flags are
+> disabled. This is **intentional** — both features are still under development. The long-term
+> design intent (always-visible entries with a lock icon for free-tier users) will be implemented
+> once the underlying pages are ready. Until then, `v-if="featureFlags.teamAnalytics"` and
+> `v-if="featureFlags.goals"` remain on the corresponding `<router-link>` elements in
+> `AppSidebar.vue`.
+
 **Architecture decision**: Solo and Team are **separate top-level pages** (not tabs) for:
 1. Better upgrade perceived value
 2. Content diverges significantly in v2
@@ -304,7 +312,6 @@ All routes defined in `client/src/router/index.js`.
 
 Components used:
 - `OverviewPlayerHeader` — profile icon, summoner name, region, context badges
-- `RankSnapshot` — rank, LP, ΔLP last 20, W/L strip
 - `ChampionSelectCTA` — quick link to champion select
 - `MatchActivityHeatmap` — daily match counts grid
 - `AnalysisStatusCard` — sync/analysis status
@@ -475,20 +482,6 @@ Slots: `#header`, `#glance-left`, `#glance-right`, `#recent-left`, `#recent-righ
 | `profileIconUrl` | `String` | Profile icon URL |
 | `activeContexts` | `Array` | Context badges (Solo/Team) |
 
-### `RankSnapshot`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `primaryQueueLabel` | `String` | e.g., "Ranked Solo/Duo" |
-| `rank` | `String` | Tier + division |
-| `lp` | `Number` | Current LP |
-| `lpDeltaLast20` | `Number` | LP change over last 20 games |
-| `last20Wins` | `Number` | Wins in last 20 |
-| `last20Losses` | `Number` | Losses in last 20 |
-| `wlLast20` | `Array` | Per-game W/L array for strip visualization |
-
-**Primary queue selection rule** (computed upstream): Queue with highest match count in recent window (last 50 or 30 days). Tie-breaker: Solo/Duo → Flex → Normal → ARAM → other.
-
 ### `LastMatchCard`
 
 | Prop | Type | Description |
@@ -602,9 +595,6 @@ Wrapper for trend charts with expand/collapse.
 
 Events: `@toggle-expand`  
 Slots: `#default` with `{ dataLimit }` slot prop
-
-### `LpChart`
-Chart.js line chart for LP over time. Prop: `data` (array of LP data points).
 
 ### `WinrateChart`
 Chart.js line chart for rolling win rate. Prop: `data` (array of win rate data points). Subtitle: "Rolling 20-game average".
@@ -927,8 +917,8 @@ These prevent common UX errors in stressful gaming contexts:
 1. Champion Select reachable in one click from any page
 2. Overview never blocks user flow
 3. No duplicated deep analysis across pages
-4. Context (Solo/Team) always visible via separate sidebar entries
-5. Team shows lock icon for free users (not 403 or blank wall)
+4. Context (Solo/Team) always visible via separate sidebar entries *(planned — currently gated by feature flags; see Section 6 implementation note)*
+5. Team shows lock icon for free users (not 403 or blank wall) *(planned — not yet implemented)*
 6. Navigation hierarchy remains stable across all pages
 7. Every chart/stat must have actionable meaning
 8. Single-match insights always framed as trends

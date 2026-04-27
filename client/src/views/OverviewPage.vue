@@ -57,7 +57,7 @@
     </template>
 
     <!-- Quick actions: Left - Champion Select CTA -->
-    <template #actions-left>
+    <template #recent-left>
       <ChampionSelectCTA
         :mural-url="championSelectMuralUrl"
         :champion-name="mostPlayedChampionName"
@@ -65,7 +65,7 @@
     </template>
 
     <!-- Quick actions: Right - Analysis Status Card + Solo CTA -->
-    <template #actions-right>
+    <template #recent-right>
       <div class="actions-right-stack">
         <AnalysisStatusCard />
         <SoloAnalyticsCTA

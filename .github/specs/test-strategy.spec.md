@@ -177,7 +177,6 @@ client/test/unit/
 │   ├── LinkRiotAccountModal.spec.js        # ✅ Exists
 │   ├── NavBar.spec.js                      # ✅ Exists
 │   ├── OverviewPlayerHeader.spec.js        # ✅ Exists
-│   ├── RankSnapshot.spec.js                # ✅ Exists
 │   ├── SessionExpiredBanner.spec.js        # ✅ Complete (9 tests)
 │   ├── SummaryStatsCard.spec.js            # ✅ Complete (38 tests)
 │   ├── TrendChartCard.spec.js              # ✅ Complete (40 tests)

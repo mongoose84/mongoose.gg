@@ -110,8 +110,7 @@ const buttonClasses = computed(() => {
 
 .btn:focus-visible {
   outline: none;
-  ring: 3px;
-  ring-color: var(--color-primary-soft);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 
 /* Sizes */
@@ -169,7 +168,7 @@ const buttonClasses = computed(() => {
 }
 
 .btn--destructive:hover:not(.btn--disabled):not(.btn--loading) {
-  background: #dc2626;
+  background: var(--color-error-hover);
   box-shadow: var(--shadow-sm);
 }
 

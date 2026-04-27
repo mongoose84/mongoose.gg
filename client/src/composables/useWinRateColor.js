@@ -1,8 +1,14 @@
 /**
  * Shared composable for win rate color styling
  * Returns a CSS class based on win rate value
- * 
- * Color gradient: red < 47, green > 53, with intermediate warm colors
+ *
+ * Thresholds match the Win Rate Color System in the UI/UX spec (Section 25):
+ *   < 40  → winrate-terrible
+ *   40–45 → winrate-bad
+ *   45–48 → winrate-poor
+ *   48–52 → winrate-average
+ *   52–55 → winrate-good
+ *   > 55  → winrate-great
  */
 
 /**
@@ -14,24 +20,11 @@ export function getWinRateColorClass(value) {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return 'winrate-neutral'
   }
-  if (value < 47) return 'winrate-red'
-  if (value < 49) return 'winrate-redorange'
-  if (value < 51) return 'winrate-orange'
-  if (value < 52) return 'winrate-yellow'
-  if (value < 53) return 'winrate-yellowgreen'
-  return 'winrate-green'
+  if (value < 40) return 'winrate-terrible'
+  if (value < 45) return 'winrate-bad'
+  if (value < 48) return 'winrate-poor'
+  if (value < 52) return 'winrate-average'
+  if (value <= 55) return 'winrate-good'
+  return 'winrate-great'
 }
-
-/**
- * CSS styles for win rate colors (to be used with :deep() or in global styles)
- * These are the color values for reference:
- * 
- * .winrate-red { color: #ef4444; }
- * .winrate-redorange { color: #f97316; }
- * .winrate-orange { color: #fdba74; }
- * .winrate-yellow { color: #eab308; }
- * .winrate-yellowgreen { color: #84cc16; }
- * .winrate-green { color: #22c55e; }
- * .winrate-neutral { color: var(--color-text); }
- */
 

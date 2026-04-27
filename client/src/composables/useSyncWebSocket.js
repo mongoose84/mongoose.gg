@@ -81,8 +81,13 @@ export function useSyncWebSocket() {
           console.log('[SyncWebSocket] Connected')
         }
         
-        // Re-subscribe to any puuids we were tracking
-        for (const puuid of syncProgress.keys()) {
+        // Clear transient WS state so that if we missed messages while
+        // disconnected (e.g. sync completed during navigation), the UI
+        // falls back to the HTTP-loaded storedStatus rather than staying
+        // stuck in a stale isRateLimited / syncing state.
+        for (const [puuid, progress] of syncProgress.entries()) {
+          progress.status = null
+          progress.isRateLimited = false
           sendSubscribe(puuid)
         }
       }

@@ -56,7 +56,7 @@
  * Zones:
  * 1. context-bar: Filters, time range selector
  * 2. summary: Summary stats (games, winrate, KDA)
- * 3. trend-charts: 3-column grid for LP (Solo/Flex) and Winrate charts
+ * 3. trend-charts: 3-column grid for trend charts
  * 4. deep-analysis: Danger zones, champion matrix (v2)
  * 5. goals: Active goals with progress (v2)
  *
@@ -104,7 +104,7 @@ defineProps({
   /* Summary stats card fills width */
 }
 
-/* Zone 3: Trend Charts - 3-column equal-width grid (1/3 width each) */
+/* Zone 3: Trend Charts - 3-column equal-width grid */
 .zone-trend-charts {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

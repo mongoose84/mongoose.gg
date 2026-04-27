@@ -399,13 +399,13 @@ const chartOptions = computed(() => {
 
 .empty-text {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }
 
 .empty-subtext {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   opacity: 0.7;
 }

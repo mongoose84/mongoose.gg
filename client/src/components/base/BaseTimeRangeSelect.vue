@@ -107,7 +107,7 @@ const selectId = computed(() => props.id || `time-range-${generatedId}`)
 
 .time-range-select {
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: #020617;
+  background-color: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text);
@@ -123,12 +123,12 @@ const selectId = computed(() => props.id || `time-range-${generatedId}`)
 .time-range-select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 
 /* Style the dropdown options */
 .time-range-select option {
-  background-color: #020617;
+  background-color: var(--color-bg);
   color: var(--color-text);
 }
 </style>

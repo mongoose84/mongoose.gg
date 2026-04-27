@@ -247,20 +247,20 @@ function hideTooltip() {
 }
 
 .level-0 {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-heatmap-0);
+  border: 1px solid var(--color-heatmap-0-border);
 }
 
 .level-1 {
-  background: rgba(109, 40, 217, 0.3);
+  background: var(--color-heatmap-1);
 }
 
 .level-2 {
-  background: rgba(109, 40, 217, 0.6);
+  background: var(--color-heatmap-2);
 }
 
 .level-3 {
-  background: #6d28d9;
+  background: var(--color-heatmap-3);
 }
 </style>
 
@@ -275,7 +275,7 @@ function hideTooltip() {
   padding: 6px 10px;
   font-size: 12px;
   color: var(--color-text, #ffffff);
-  z-index: 9999;
+  z-index: 200;
   pointer-events: none;
   white-space: nowrap;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);

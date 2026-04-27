@@ -16,6 +16,7 @@
       <button
         @click="toggleSidebar"
         class="bg-transparent border-none text-text-secondary cursor-pointer p-xs rounded-sm flex items-center justify-center transition-all duration-200 shrink-0 hover:bg-background-elevated hover:text-text"
+        :aria-label="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
       >
         <!-- Chevron right (>) when collapsed, chevron left (<) when expanded -->
@@ -111,22 +112,6 @@
       </router-link>
     </nav>
 
-    <div v-if="showCompactUpgradeLink" class="px-sm pb-sm">
-      <BaseButton
-        to="/#pricing"
-        variant="ghost"
-        size="sm"
-        class="w-full justify-start text-xs text-primary"
-        data-testid="sidebar-upgrade-link"
-        :title="isCollapsed ? 'Link unlimited accounts with Pro' : ''"
-      >
-        <template #icon-left>
-          <LockClosedIcon class="w-4 h-4" aria-hidden="true" />
-        </template>
-        <span v-if="!isCollapsed">+ Link</span>
-      </BaseButton>
-    </div>
-
     <!-- Account Switcher - above feedback -->
     <div class="border-t border-border py-sm px-sm">
       <AccountSwitcher
@@ -192,7 +177,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { ChatBubbleLeftEllipsisIcon, ChartBarIcon, LockClosedIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
+import { ChatBubbleLeftEllipsisIcon, ChartBarIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { useAnalysisStatus } from '../composables/useAnalysisStatus';
@@ -232,8 +217,6 @@ function toggleSidebar() {
 // User data
 const username = computed(() => authStore.username || 'User');
 const userTierLabel = computed(() => authStore.tier || 'free');
-const showCompactUpgradeLink = computed(() => authStore.hasReachedRiotAccountLimit);
-
 // Account switcher data
 const riotAccounts = computed(() => authStore.riotAccounts);
 const activeAccountPuuid = computed(() => authStore.activeAccountPuuid);
@@ -259,6 +242,11 @@ const canUseOverallAccountView = computed(() => authStore.canUseOverallAccountVi
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* Center icons when sidebar is collapsed */
+[data-collapsed="true"] .nav-item {
+  justify-content: center;
+}
+
 /* Nav label smooth hide/show - synced with sidebar width transition */
 .nav-label {
   opacity: 1;
@@ -273,7 +261,7 @@ const canUseOverallAccountView = computed(() => authStore.canUseOverallAccountVi
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 3px 6px;
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--radius-sm);
   background: var(--color-primary-soft);
   color: var(--color-primary);
 }
@@ -315,9 +303,9 @@ nav::-webkit-scrollbar-thumb:hover {
   display: inline-block;
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(59, 130, 246, 0.3);
+  border: 2px solid var(--color-info-soft);
   border-radius: 50%;
-  border-top-color: #3b82f6;
+  border-top-color: var(--color-info);
   animation: analysis-spin 0.8s linear infinite;
   flex-shrink: 0;
 }

@@ -114,6 +114,18 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
 
+    // Guard overall mode behind account visibility rules.
+    // If overall is not available but accounts exist, pin selection to a linked account.
+    if (!canUseOverallAccountView.value && riotAccounts.value.length > 0) {
+      const fallbackAccount = primaryRiotAccount.value ?? riotAccounts.value[0] ?? null
+      const fallbackIdentifier = getAccountIdentifier(fallbackAccount)
+      if (fallbackIdentifier) {
+        activeAccountPuuid.value = fallbackIdentifier
+        localStorage.setItem(ACTIVE_ACCOUNT_STORAGE_KEY, fallbackIdentifier)
+        return
+      }
+    }
+
     activeAccountPuuid.value = accountIdentifier
     localStorage.setItem(ACTIVE_ACCOUNT_STORAGE_KEY, accountIdentifier)
   }
@@ -124,6 +136,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   function validateActiveAccount() {
     if (activeAccountPuuid.value === 'overall') {
+      if (!canUseOverallAccountView.value && riotAccounts.value.length > 0) {
+        const fallbackAccount = primaryRiotAccount.value ?? riotAccounts.value[0] ?? null
+        const fallbackIdentifier = getAccountIdentifier(fallbackAccount)
+        if (fallbackIdentifier) {
+          activeAccountPuuid.value = fallbackIdentifier
+          localStorage.setItem(ACTIVE_ACCOUNT_STORAGE_KEY, fallbackIdentifier)
+        }
+      }
       return
     }
 
@@ -508,6 +528,27 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Delete the authenticated user's account
+   */
+  async function deleteAccount(password) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      await authApi.deleteAccount(password)
+      user.value = null
+      syncStoredUserIcon(null)
+      setActiveAccount('overall')
+      return { success: true }
+    } catch (e) {
+      error.value = e.message
+      throw e
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   async function updateUserIcon(userIconId) {
     error.value = null
 
@@ -573,6 +614,7 @@ export const useAuthStore = defineStore('auth', () => {
     unlinkRiotAccount,
     setPrimary,
     triggerSync,
+    deleteAccount,
     updateUserIcon
   }
 })
