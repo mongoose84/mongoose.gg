@@ -45,14 +45,12 @@ test.describe('Overview Dashboard - Content', () => {
     const playerHeader = page.locator('.overview-player-header');
     const accountCards = page.locator('[data-testid="overview-account-cards"]');
 
-    const isIndividualMode = await playerHeader.isVisible();
-    const isOverallMode = await accountCards.isVisible();
+    // Always wait for either to appear before checking which mode we're in
+    await expect(page.locator('.overview-player-header, [data-testid="overview-account-cards"]'))
+      .toBeVisible({ timeout: 10_000 });
 
-    if (!isIndividualMode && !isOverallMode) {
-      // Wait for either to appear
-      await expect(page.locator('.overview-player-header, [data-testid="overview-account-cards"]'))
-        .toBeVisible({ timeout: 10_000 });
-    }
+    // Re-evaluate after the wait so we get the actual loaded state
+    const isIndividualMode = await playerHeader.isVisible();
 
     if (isIndividualMode) {
       // Individual mode: check summoner name and region tag
