@@ -12,13 +12,13 @@ public class MainChampionRecommenderTests
     private static MainChampionRecommender.ChampionRoleStats CreateStats(
         string role, int championId, string championName,
         int gamesPlayed, int wins,
-        double avgGoldPerMin = 350.0, double avgCs = 150.0,
+        double avgGoldPerMin = 350.0, double avgCsPerMin = 7.0,
         double avgKills = 5.0, double avgDeaths = 3.0, double avgAssists = 4.0,
         double? avgGoldDiff15 = 0.0, double? avgDeathsPre10 = 1.0, double? avgVisionPerMin = 0.8)
     {
         return new MainChampionRecommender.ChampionRoleStats(
             role, championId, championName, gamesPlayed, wins,
-            avgGoldPerMin, avgCs, avgKills, avgDeaths, avgAssists,
+            avgGoldPerMin, avgCsPerMin, avgKills, avgDeaths, avgAssists,
             avgGoldDiff15, avgDeathsPre10, avgVisionPerMin);
     }
 

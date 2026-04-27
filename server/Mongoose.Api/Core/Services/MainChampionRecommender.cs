@@ -14,7 +14,7 @@ public static class MainChampionRecommender
         int GamesPlayed,
         int Wins,
         double AvgGoldPerMin,
-        double AvgCs,
+        double AvgCsPerMin,
         double AvgKills,
         double AvgDeaths,
         double AvgAssists,
@@ -98,7 +98,8 @@ public static class MainChampionRecommender
             WinRate: winRate,
             GamesPlayed: games,
             MScore: mScore,
-            AvgKda: avgKda
+            AvgKda: avgKda,
+            AvgCsPerMin: Math.Round(s.AvgCsPerMin, 2)
         );
 
         return (entry, score);

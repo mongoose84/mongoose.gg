@@ -20,7 +20,8 @@ public record MainChampionEntry(
     [property: JsonPropertyName("winRate")] double WinRate,
     [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
     [property: JsonPropertyName("mScore")] double MScore,
-    [property: JsonPropertyName("avgKda")] double AvgKda
+    [property: JsonPropertyName("avgKda")] double AvgKda,
+    [property: JsonPropertyName("avgCsPerMin")] double AvgCsPerMin
 );
 
 /// <summary>

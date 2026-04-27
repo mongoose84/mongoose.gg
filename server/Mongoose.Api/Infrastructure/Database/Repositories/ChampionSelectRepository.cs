@@ -111,7 +111,7 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
                 p.champion_name,
                 COUNT(DISTINCT p.match_id) as Games,
                 SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins,
-                AVG(p.creep_score) as AvgCs,
+                AVG(p.creep_score / (m.game_duration_sec / 60.0)) as AvgCs,
                 AVG(p.gold_earned / (m.game_duration_sec / 60.0)) as AvgGoldPerMin,
                 AVG(p.kills) as AvgKills,
                 AVG(p.deaths) as AvgDeaths,
@@ -144,7 +144,7 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
                 var champName = reader.GetString(2);
                 var games = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
                 var wins = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
-                var avgCs = reader.IsDBNull(5) ? 0 : reader.GetDouble(5);
+                var avgCsPerMin = reader.IsDBNull(5) ? 0 : reader.GetDouble(5);
                 var avgGoldPerMin = reader.IsDBNull(6) ? 0 : reader.GetDouble(6);
                 var avgKills = reader.IsDBNull(7) ? 0 : reader.GetDouble(7);
                 var avgDeaths = reader.IsDBNull(8) ? 0 : reader.GetDouble(8);
@@ -155,7 +155,7 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
 
                 rows.Add(new MainChampionRecommender.ChampionRoleStats(
                     role, champId, champName, games, wins,
-                    avgGoldPerMin, avgCs, avgKills, avgDeaths, avgAssists,
+                    avgGoldPerMin, avgCsPerMin, avgKills, avgDeaths, avgAssists,
                     avgGoldDiff15, avgDeathsPre10, avgVisionPerMin));
             }
             return 0;
