@@ -266,7 +266,7 @@ public class SoloPerformanceRepository : RepositoryBase, ISoloPerformanceReposit
                 p.champion_name,
                 COUNT(DISTINCT p.match_id) as Games,
                 SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) as Wins,
-                AVG(p.creep_score / (m.game_duration_sec / 60.0)) as AvgCs,
+                AVG(p.creep_score / (m.game_duration_sec / 60.0)) as AvgCsPerMin,
                 AVG(p.gold_earned / (m.game_duration_sec / 60.0)) as AvgGoldPerMin,
                 AVG(p.kills) as AvgKills,
                 AVG(p.deaths) as AvgDeaths,

@@ -99,7 +99,7 @@ public static class MainChampionRecommender
             GamesPlayed: games,
             MScore: mScore,
             AvgKda: avgKda,
-            AvgCsPerMin: Math.Round(s.AvgCsPerMin, 2)
+            AvgCsPerMin: Math.Round(s.AvgCsPerMin, 1)
         );
 
         return (entry, score);
