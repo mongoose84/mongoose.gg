@@ -47,6 +47,14 @@ const sampleMatchups = [
         inLaneLosses: 3,
         outOfLaneWins: 2,
         outOfLaneLosses: 0,
+      },
+      {
+        opponentChampionId: 4,
+        opponentChampionName: 'Alistar',
+        inLaneWins: 1,
+        inLaneLosses: 2,
+        outOfLaneWins: 0,
+        outOfLaneLosses: 0,
       }
     ]
   }
@@ -172,20 +180,23 @@ describe('OpponentSearchBar.vue', () => {
     expect(wrapper.emitted('select')[0][0]).toEqual(results[0]);
   });
 
-  it('results are sorted by totalGames descending (Malphite with more games before Darius)', async () => {
+  it('results are sorted by totalGames descending (Malphite with more games before Alistar)', async () => {
     const wrapper = mountComponent();
     const input = wrapper.find('[data-testid="combobox-input"]');
-    // 'a' matches both Darius and Malphite
+    // 'al' matches both Malphite and Alistar in the fixture data
     await input.setValue('al');
     await input.trigger('input');
 
     const results = wrapper.vm.searchResults;
-    // Malphite: 5+3+2+0 = 10 games; Darius would not match 'al'
-    // Let's search with 'a' — but that's only 1 char. Use full matchup search.
-    // Search for both: use 'phite' or check the actual ordering with broader search
-    expect(results[0].opponentName).toBe('Malphite');
-    // Malphite: 10 games total, so should be first
-    expect(results[0].totalGames).toBe(10);
+    const malphiteIndex = results.findIndex(r => r.opponentName === 'Malphite');
+    const alistarIndex = results.findIndex(r => r.opponentName === 'Alistar');
+
+    expect(malphiteIndex).toBeGreaterThanOrEqual(0);
+    expect(alistarIndex).toBeGreaterThanOrEqual(0);
+    // Malphite: 5+3+2+0 = 10 games; Alistar: 1+2+0+0 = 3 games
+    expect(results[malphiteIndex].totalGames).toBe(10);
+    expect(results[alistarIndex].totalGames).toBe(3);
+    expect(malphiteIndex).toBeLessThan(alistarIndex);
   });
 
   it('results contain expected champion info (championId, role, opponentId)', async () => {

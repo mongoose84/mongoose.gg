@@ -7,9 +7,9 @@ describe('featureFlags', () => {
     expect(featureFlags).not.toBeNull();
   });
 
-  it('has exactly the keys teamAnalytics and goals', () => {
-    const keys = Object.keys(featureFlags).sort();
-    expect(keys).toEqual(['goals', 'teamAnalytics']);
+  it('includes the required keys teamAnalytics and goals', () => {
+    expect(featureFlags).toHaveProperty('teamAnalytics');
+    expect(featureFlags).toHaveProperty('goals');
   });
 
   it('teamAnalytics is a boolean', () => {

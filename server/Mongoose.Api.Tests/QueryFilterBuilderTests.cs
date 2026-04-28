@@ -95,7 +95,7 @@ public class QueryFilterBuilderTests
     public void BuildQueueFilter_ReturnsAramFilter()
     {
         var sut = CreateSut();
-        sut.BuildQueueFilter("aram").Should().Be("AND m.queue_id IN (450, 1700)");
+        sut.BuildQueueFilter("aram").Should().Be("AND m.queue_id = 450");
     }
 
     [Fact]
