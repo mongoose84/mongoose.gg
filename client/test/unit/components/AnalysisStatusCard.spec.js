@@ -242,12 +242,14 @@ describe('AnalysisStatusCard', () => {
       expect(wrapper.find('.status-spinner').exists()).toBe(true);
     });
 
-    it('hides the action button while optimistically pending', async () => {
+    it('disables the action button while optimistically pending', async () => {
       mockTriggerAnalysis.mockResolvedValue(true);
       const wrapper = mountCard();
 
       await wrapper.find('button').trigger('click');
-      expect(wrapper.find('button').exists()).toBe(false);
+      // Button stays visible but disabled during the pending gap
+      expect(wrapper.find('button').exists()).toBe(true);
+      expect(wrapper.find('button').attributes('disabled')).toBeDefined();
     });
 
     it('restores action button if triggerAnalysis fails', async () => {
@@ -281,6 +283,17 @@ describe('AnalysisStatusCard', () => {
       resolve(true);
     });
 
+    it('shows indeterminate progress bar while optimistically pending before first WS update', async () => {
+      mockTriggerAnalysis.mockReturnValue(new Promise(() => {})); // never resolves
+      const wrapper = mountCard();
+
+      await wrapper.find('button').trigger('click');
+      await nextTick();
+
+      expect(wrapper.find('.progress-bar').exists()).toBe(true);
+      expect(wrapper.find('.progress-bar__fill--indeterminate').exists()).toBe(true);
+    });
+
     it('clears isPending after triggerAnalysis resolves when isUpToDate was already true (WS delivers no change)', async () => {
       // Simulate a user who has synced before: isUpToDate starts true.
       // The WS only sends sync_complete (no progress events), so isUpToDate
@@ -299,7 +312,7 @@ describe('AnalysisStatusCard', () => {
       expect(wrapper.find('.status-spinner').exists()).toBe(false);
     });
 
-    it('clears isPending via 30-second safety timeout when WS never delivers a status update', async () => {
+    it('re-enables the action button via 1.5-second safety timeout when WS never delivers a status update', async () => {
       vi.useFakeTimers();
       // Status is not settled: no isRunning, isUpToDate, or hasFailed
       mockTriggerAnalysis.mockResolvedValue(true);
@@ -308,15 +321,16 @@ describe('AnalysisStatusCard', () => {
       await wrapper.find('button').trigger('click');
       await flushPromises();
 
-      // Still pending — no WS update has arrived
+      // Still pending — no WS update has arrived; button is disabled
       expect(wrapper.find('.status-spinner').exists()).toBe(true);
+      expect(wrapper.find('button').attributes('disabled')).toBeDefined();
 
-      // Advance past the 30-second safety timeout
-      vi.advanceTimersByTime(30_000);
+      // Advance past the 1.5-second safety timeout
+      vi.advanceTimersByTime(1_500);
       await flushPromises();
 
       expect(wrapper.find('.status-spinner').exists()).toBe(false);
-      expect(wrapper.find('button').exists()).toBe(true);
+      expect(wrapper.find('button').attributes('disabled')).toBeUndefined();
 
       vi.useRealTimers();
     });

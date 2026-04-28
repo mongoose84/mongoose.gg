@@ -13,39 +13,39 @@
             <!-- Check icon for up to date -->
             <CheckCircleIcon v-else-if="isUpToDate" key="up-to-date" class="w-5 h-5 text-success" />
             <!-- Exclamation for error -->
-            <ExclamationCircleIcon v-else-if="hasFailed" key="failed" class="w-5 h-5 text-muted" />
+            <ExclamationCircleIcon v-else-if="hasFailed" key="failed" class="w-5 h-5 text-error" />
             <!-- Default idle state -->
             <div v-else key="idle" class="status-dot status-dot--idle" />
           </Transition>
         </div>
         
         <!-- Status text -->
-        <div class="min-w-0">
+        <div class="min-w-0" aria-live="polite" aria-atomic="true">
           <Transition name="status-text" mode="out-in">
             <p :key="statusText" class="text-sm font-medium text-white truncate">
               {{ statusText }}
             </p>
           </Transition>
           <Transition name="status-text" mode="out-in">
-            <p v-if="subtitleText" :key="subtitleText" class="text-xs text-secondary truncate">
+            <p v-if="subtitleText" :key="subtitleText" class="text-xs text-text-secondary truncate">
               {{ subtitleText }}
             </p>
           </Transition>
         </div>
       </div>
       
-      <!-- Progress bar (only when running and has progress data) -->
-      <div v-if="isRunning && progress.total > 0" class="flex-1 max-w-[120px]">
+      <!-- Progress bar: indeterminate while pending/connecting, determinate once running -->
+      <div v-if="(isRunning && progress.total > 0) || (isPending && !isRunning)" class="flex-1 max-w-[120px]">
         <div class="progress-bar">
           <div 
             class="progress-bar__fill"
-            :class="{ 'progress-bar__fill--rate-limited': isRateLimited }"
-            :style="{ width: `${progressPercent}%` }"
+            :class="{
+              'progress-bar__fill--rate-limited': isRateLimited,
+              'progress-bar__fill--indeterminate': isPending && !isRunning
+            }"
+            :style="!(isPending && !isRunning) ? { width: `${progressPercent}%` } : undefined"
           />
         </div>
-        <p class="text-xs text-secondary text-center mt-1">
-          {{ progress.current }} / {{ progress.total }}
-        </p>
       </div>
       
       <!-- Action button -->
@@ -170,8 +170,10 @@ const progressPercent = computed(() => {
 })
 
 const showActionButton = computed(() => {
-  // Show retry for failed, analyze for idle/completed
-  return hasFailed.value || !isActiveOrPending.value
+  // Hide only while actively running (progress bar takes over).
+  // Keep visible (but disabled) during the pending gap so the user
+  // sees the button revert naturally if the WS never fires.
+  return hasFailed.value || !isRunning.value
 })
 
 const actionButtonText = computed(() => {
@@ -201,9 +203,9 @@ async function handleAction() {
   }
 
   // Safety net: clears isPending if the WS never delivers a status update
-  // (connection issues, fast no-op syncs with no progress events, or the rare
-  // case where isUpToDate stays true across the whole sync without changing).
-  pendingTimeoutId = setTimeout(clearPending, 5_000)
+  // within ~1.5 s. This re-enables the button naturally so the user isn't
+  // stuck looking at a disabled control if nothing is happening.
+  pendingTimeoutId = setTimeout(clearPending, 1_500)
 }
 </script>
 
@@ -258,12 +260,6 @@ async function handleAction() {
   background-color: var(--color-muted);
 }
 
-/* Color utility classes */
-.text-success { color: var(--color-success); }
-.text-warning { color: var(--color-warning); }
-.text-muted { color: var(--color-muted); }
-.text-secondary { color: var(--color-text-secondary); }
-
 /* Progress bar */
 .progress-bar {
   height: 4px;
@@ -281,6 +277,17 @@ async function handleAction() {
 
 .progress-bar__fill--rate-limited {
   background: var(--color-warning);
+}
+
+.progress-bar__fill--indeterminate {
+  width: 40%;
+  transition: none;
+  animation: progress-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+  0% { transform: translateX(-150%); }
+  100% { transform: translateX(350%); }
 }
 
 /* Icon crossfade transition */
