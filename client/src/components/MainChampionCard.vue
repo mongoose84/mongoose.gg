@@ -40,7 +40,7 @@
             <article
               v-for="(champion, index) in championsForRole(role)"
               :key="champion.championId"
-              class="trump-card trump-card-bg relative flex flex-col rounded-xl overflow-hidden border-2 transition-all duration-200"
+              class="trump-card trump-card-bg relative flex flex-col rounded-xl border-2 transition-all duration-200"
               :class="[
                 index === 0
                   ? 'border-primary shadow-lg shadow-primary/20'
@@ -67,8 +67,17 @@
                   #{{ index + 1 }}
                 </div>
 
+                <!-- Games played pill -->
+                <div
+                  class="games-pill absolute top-2 right-2 py-0.5 px-2 bg-background-elevated rounded text-2xs font-medium text-text-secondary cursor-help"
+                  tabindex="0"
+                >
+                  <span :data-testid="`games-pill-${champion.championId}`">{{ champion.gamesPlayed }}g</span>
+                  <div class="games-pill-tooltip" role="tooltip">Games played (sample size)</div>
+                </div>
+
                 <img
-                  class="w-24 h-24 rounded-lg object-cover shadow-xl"
+                  class="w-24 h-24 rounded-lg object-cover shadow-xl overflow-hidden"
                   :class="index === 0 ? 'ring-2 ring-primary ring-offset-2 ring-offset-transparent' : ''"
                   :src="getChampionIconUrl(champion.championName)"
                   :alt="`${champion.championName} icon`"
@@ -96,29 +105,17 @@
                   <span :class="['stat-value', getWinRateColorClass(champion.winRate)]">{{ formatWinRate(champion.winRate) }}</span>
                 </div>
 
-                <!-- KDA -->
+                <!-- CS/m -->
                 <div class="stat-row">
-                  <span class="stat-label">KDA</span>
+                  <span class="stat-label">CS/m</span>
                   <div class="stat-bar-container">
                     <div
                       class="stat-bar"
-                      :class="getKdaBarClass(champion.avgKda)"
-                      :style="{ width: `${Math.min((champion.avgKda / 5) * 100, 100)}%` }"
+                      :class="getCsBarClass(champion.avgCsPerMin)"
+                      :style="{ width: `${champion.avgCsPerMin != null ? Math.min((champion.avgCsPerMin / 10) * 100, 100) : 0}%` }"
                     ></div>
                   </div>
-                  <span :class="['stat-value', getKdaColorClass(champion.avgKda)]">{{ formatKda(champion.avgKda) }}</span>
-                </div>
-
-                <!-- Games Played -->
-                <div class="stat-row">
-                  <span class="stat-label">Games</span>
-                  <div class="stat-bar-container">
-                    <div
-                      class="stat-bar bg-primary"
-                      :style="{ width: `${Math.min(champion.gamesPlayed * 2, 100)}%` }"
-                    ></div>
-                  </div>
-                  <span class="stat-value text-text">{{ champion.gamesPlayed }}</span>
+                  <span :class="['stat-value', getCsColorClass(champion.avgCsPerMin)]">{{ champion.avgCsPerMin != null ? champion.avgCsPerMin.toFixed(1) : '\u2014' }}</span>
                 </div>
 
                 <!-- M-Score -->
@@ -397,23 +394,22 @@ function getMScoreTextClass(score) {
   return 'text-info'
 }
 
-// KDA helpers
-function formatKda(kda) {
-  if (kda == null) return '—'
-  return kda.toFixed(2)
-}
-
-function getKdaBarClass(kda) {
-  if (kda == null) return 'bg-[rgba(255,255,255,0.2)]'
-  if (kda >= 3.0) return 'bg-success'
-  if (kda >= 2.0) return 'bg-[#eab308]'
+// CS/m helpers
+function getCsBarClass(avgCsPerMin) {
+  if (avgCsPerMin == null) return 'bg-[rgba(255,255,255,0.2)]'
+  if (avgCsPerMin >= 8.0) return 'bg-success'
+  if (avgCsPerMin >= 6.5) return 'bg-[#84cc16]'
+  if (avgCsPerMin >= 5.0) return 'bg-[#eab308]'
+  if (avgCsPerMin >= 3.5) return 'bg-[#f97316]'
   return 'bg-error'
 }
 
-function getKdaColorClass(kda) {
-  if (kda == null) return 'text-text-secondary'
-  if (kda >= 3.0) return 'text-success'
-  if (kda >= 2.0) return 'text-[#eab308]'
+function getCsColorClass(avgCsPerMin) {
+  if (avgCsPerMin == null) return 'text-text-secondary'
+  if (avgCsPerMin >= 8.0) return 'text-success'
+  if (avgCsPerMin >= 6.5) return 'text-[#84cc16]'
+  if (avgCsPerMin >= 5.0) return 'text-[#eab308]'
+  if (avgCsPerMin >= 3.5) return 'text-[#f97316]'
   return 'text-error'
 }
 </script>
@@ -542,6 +538,41 @@ function getKdaColorClass(kda) {
   text-align: right;
   font-size: 0.5625rem;
   font-weight: 700;
+}
+
+/* Games pill tooltip */
+.games-pill-tooltip {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.625rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 100;
+}
+
+.games-pill-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  right: 8px;
+  border: 5px solid transparent;
+  border-bottom-color: var(--color-border);
+}
+
+.games-pill:hover .games-pill-tooltip,
+.games-pill:focus-within .games-pill-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* M-Score stat row with tooltip */

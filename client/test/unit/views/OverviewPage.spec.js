@@ -14,6 +14,7 @@ const mockSetActiveAccount = vi.fn()
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({
     userId: 1,
+    isInitialized: true,
     primaryRiotAccount: null,
     refreshUser: vi.fn(),
     get isOverallMode() {

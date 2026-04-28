@@ -256,6 +256,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
+              AND m.game_duration_sec >= {MinValidGameDurationSec}
               AND m.season_code = (
                   SELECT season_code
                   FROM seasons
@@ -492,6 +493,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
+              AND m.game_duration_sec >= {MinValidGameDurationSec}
             ORDER BY m.game_start_time DESC
             LIMIT @last_n_games";
 

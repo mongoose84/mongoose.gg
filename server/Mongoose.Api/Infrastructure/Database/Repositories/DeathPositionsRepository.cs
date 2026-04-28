@@ -110,6 +110,7 @@ public class DeathPositionsRepository : RepositoryBase, IDeathPositionsRepositor
             INNER JOIN participants p ON p.id = pde.participant_id
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
+                AND m.game_duration_sec >= {MinValidGameDurationSec}
                 {queueFilter}
                 {timeFilter}
                 {sideFilter}

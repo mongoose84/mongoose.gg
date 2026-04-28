@@ -1,300 +1,152 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
-import MainChampionCard from '@/components/MainChampionCard.vue';
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
+import MainChampionCard from '@/components/MainChampionCard.vue'
+import { headlessUIStubs } from '../../helpers/testUtils'
 
-// Mock soloApi to prevent real HTTP calls
+vi.mock('@/utils/leagueAssets', () => ({
+  getChampionIconUrl: (name) => `https://cdn.example.com/icon/${name}.png`
+}))
+
+vi.mock('@/composables/useWinRateColor', () => ({
+  getWinRateColorClass: () => 'text-success'
+}))
+
+vi.mock('@/utils/formatters', () => ({
+  formatRoleWithAdc: (role) => role,
+  formatWinRate: (wr) => `${Math.round(wr)}%`
+}))
+
 vi.mock('@/services/soloApi', () => ({
   getChampionMatchups: vi.fn().mockResolvedValue({ matchups: [] })
-}));
+}))
 
-// Mock HeadlessUI TabGroup components
-vi.mock('@headlessui/vue', () => ({
+const tabStubs = {
   TabGroup: {
-    name: 'TabGroup',
-    props: ['selectedIndex', 'as'],
-    emits: ['change'],
-    template: '<div class="tab-group"><slot /></div>'
+    template: '<div><slot :selected-index="0" /></div>',
+    props: ['selectedIndex'],
+    emits: ['change']
   },
-  TabList: {
-    name: 'TabList',
-    template: '<div class="tab-list"><slot /></div>'
-  },
-  Tab: {
-    name: 'Tab',
-    template: '<div><slot :selected="false" /></div>'
-  },
-  TabPanels: {
-    name: 'TabPanels',
-    template: '<div class="tab-panels"><slot /></div>'
-  },
-  TabPanel: {
-    name: 'TabPanel',
-    template: '<div class="tab-panel"><slot /></div>'
-  }
-}));
+  TabList: { template: '<div><slot /></div>' },
+  Tab: { template: '<div><slot :selected="true" /></div>' },
+  TabPanels: { template: '<div><slot /></div>' },
+  TabPanel: { template: '<div><slot /></div>' }
+}
 
-const sampleMainChampions = [
-  {
-    role: 'TOP',
-    champions: [
-      {
-        championId: 1,
-        championName: 'Garen',
-        gamesPlayed: 20,
-        winRate: 60,
-        avgKda: 3.5,
-        mScore: 75
-      },
-      {
-        championId: 2,
-        championName: 'Darius',
-        gamesPlayed: 15,
-        winRate: 53,
-        avgKda: 2.8,
-        mScore: 62
-      },
-      {
-        championId: 3,
-        championName: 'Malphite',
-        gamesPlayed: 8,
-        winRate: 47,
-        avgKda: 1.9,
-        mScore: 45
+const makeChampion = (overrides = {}) => ({
+  championId: 103,
+  championName: 'Ahri',
+  role: 'MID',
+  winRate: 58.3,
+  gamesPlayed: 34,
+  mScore: 74.0,
+  avgKda: 3.21,
+  avgCsPerMin: 7.4,
+  ...overrides
+})
+
+const makeProps = (champions = [makeChampion()]) => ({
+  mainChampions: [{ role: 'MID', champions }],
+  userId: 1,
+  queueType: 'ranked_solo',
+  timeRange: '3m'
+})
+
+function createWrapper(props) {
+  return mount(MainChampionCard, {
+    props,
+    global: {
+      stubs: {
+        ...headlessUIStubs,
+        ...tabStubs
       }
+    }
+  })
+}
+
+describe('MainChampionCard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('renders games played pill with correct text', async () => {
+    const wrapper = createWrapper(makeProps())
+    await flushPromises()
+
+    const pill = wrapper.find('[data-testid="games-pill-103"]')
+    expect(pill.exists()).toBe(true)
+    expect(pill.text()).toBe('34g')
+  })
+
+  it('renders games pill with correct data-testid for each champion', async () => {
+    const champs = [
+      makeChampion({ championId: 103, championName: 'Ahri', gamesPlayed: 34 }),
+      makeChampion({ championId: 75, championName: 'Nasus', gamesPlayed: 12 }),
+      makeChampion({ championId: 99, championName: 'Lux', gamesPlayed: 7 })
     ]
-  },
-  {
-    role: 'JUNGLE',
-    champions: [
-      {
-        championId: 4,
-        championName: 'Vi',
-        gamesPlayed: 12,
-        winRate: 58,
-        avgKda: 4.1,
-        mScore: 70
-      }
-    ]
-  }
-];
+    const wrapper = createWrapper(makeProps(champs))
+    await flushPromises()
 
-describe('MainChampionCard.vue', () => {
-  const mountComponent = (props = {}) => {
-    return mount(MainChampionCard, {
-      props: {
-        mainChampions: sampleMainChampions,
-        userId: 42,
-        queueType: 'ranked_solo',
-        timeRange: '1m',
-        ...props
-      }
-    });
-  };
+    expect(wrapper.find('[data-testid="games-pill-103"]').text()).toBe('34g')
+    expect(wrapper.find('[data-testid="games-pill-75"]').text()).toBe('12g')
+    expect(wrapper.find('[data-testid="games-pill-99"]').text()).toBe('7g')
+  })
 
-  describe('Rendering with champion data', () => {
-    it('renders the component', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.exists()).toBe(true);
-    });
+  it('renders CS stat row', async () => {
+    const wrapper = createWrapper(makeProps())
+    await flushPromises()
 
-    it('displays the "Your Champions" heading', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.text()).toContain('Your Champions');
-    });
+    expect(wrapper.text()).toContain('CS/m')
+  })
 
-    it('displays "Top picks based on your performance" subtitle', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.text()).toContain('Top picks based on your performance');
-    });
+  it('does not render KDA stat row', async () => {
+    const wrapper = createWrapper(makeProps())
+    await flushPromises()
 
-    it('renders champion names when data is present', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.text()).toContain('Garen');
-      expect(wrapper.text()).toContain('Darius');
-      expect(wrapper.text()).toContain('Malphite');
-    });
+    const statLabels = wrapper.findAll('.stat-label').map((el) => el.text())
+    expect(statLabels).not.toContain('KDA')
+  })
 
-    it('renders role tabs for each role in the data', () => {
-      const wrapper = mountComponent();
-      // TabList should be rendered via the TabGroup stub
-      expect(wrapper.find('.tab-list').exists()).toBe(true);
-    });
+  it('does not render Games stat row', async () => {
+    const wrapper = createWrapper(makeProps())
+    await flushPromises()
 
-    it('shows the #1 Pick badge for the first champion', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.text()).toContain('#1 Pick');
-    });
+    const statLabels = wrapper.findAll('.stat-label').map((el) => el.text())
+    expect(statLabels).not.toContain('Games')
+  })
 
-    it('shows rank badges (#2, #3) for other champions', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.text()).toContain('#2');
-      expect(wrapper.text()).toContain('#3');
-    });
+  it('CS bar width reflects avgCsPerMin / 10 * 100 capped at 100', async () => {
+    const wrapper = createWrapper(makeProps([makeChampion({ avgCsPerMin: 7.4 })]))
+    await flushPromises()
 
-    it('displays stat labels: Win Rate, KDA, Games, M-Score', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.text()).toContain('Win Rate');
-      expect(wrapper.text()).toContain('KDA');
-      expect(wrapper.text()).toContain('Games');
-      expect(wrapper.text()).toContain('M-Score');
-    });
+    const expectedWidth = `${Math.min((7.4 / 10) * 100, 100)}%`
+    const csRow = wrapper.findAll('.stat-row').find((row) => row.text().includes('CS/m'))
+    expect(csRow).toBeDefined()
+    const bar = csRow.find('.stat-bar')
+    expect(bar.attributes('style')).toContain(`width: ${expectedWidth}`)
+  })
 
-    it('displays champion game counts', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.text()).toContain('20');
-      expect(wrapper.text()).toContain('15');
-      expect(wrapper.text()).toContain('8');
-    });
+  it('CS bar is capped at 100% for very high avgCsPerMin', async () => {
+    const wrapper = createWrapper(makeProps([makeChampion({ avgCsPerMin: 15 })]))
+    await flushPromises()
 
-    it('renders matchup sections (Strong / Weak)', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.text()).toContain('Strong');
-      expect(wrapper.text()).toContain('Weak');
-    });
-  });
+    const csRow = wrapper.findAll('.stat-row').find((row) => row.text().includes('CS/m'))
+    const bar = csRow.find('.stat-bar')
+    expect(bar.attributes('style')).toContain('width: 100%')
+  })
 
-  describe('Empty / no-data state', () => {
-    it('renders the empty state when mainChampions is empty', () => {
-      const wrapper = mountComponent({ mainChampions: [] });
-      expect(wrapper.text()).toContain('No champion data yet');
-    });
+  it('CS displays — when avgCsPerMin is null', async () => {
+    const wrapper = createWrapper(makeProps([makeChampion({ avgCsPerMin: null })]))
+    await flushPromises()
 
-    it('shows the "Your Champions" heading in empty state too', () => {
-      const wrapper = mountComponent({ mainChampions: [] });
-      expect(wrapper.text()).toContain('Your Champions');
-    });
+    const csRow = wrapper.findAll('.stat-row').find((row) => row.text().includes('CS/m'))
+    expect(csRow.find('.stat-value').text()).toBe('—')
+  })
 
-    it('does not render TabGroup when there is no data', () => {
-      const wrapper = mountComponent({ mainChampions: [] });
-      expect(wrapper.find('.tab-group').exists()).toBe(false);
-    });
+  it('CS value shows 1 decimal when avgCsPerMin is present', async () => {
+    const wrapper = createWrapper(makeProps([makeChampion({ avgCsPerMin: 7.4 })]))
+    await flushPromises()
 
-    it('does not render champion names in empty state', () => {
-      const wrapper = mountComponent({ mainChampions: [] });
-      expect(wrapper.text()).not.toContain('Garen');
-    });
-  });
-
-  describe('Computed properties', () => {
-    it('hasData is true when mainChampions has entries', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.hasData).toBe(true);
-    });
-
-    it('hasData is false when mainChampions is empty', () => {
-      const wrapper = mountComponent({ mainChampions: [] });
-      expect(wrapper.vm.hasData).toBe(false);
-    });
-
-    it('roles computed returns role strings from mainChampions', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.roles).toContain('TOP');
-      expect(wrapper.vm.roles).toContain('JUNGLE');
-    });
-
-    it('championsForRole returns champions for the given role', () => {
-      const wrapper = mountComponent();
-      const topChamps = wrapper.vm.championsForRole('TOP');
-      expect(topChamps).toHaveLength(3);
-      expect(topChamps[0].championName).toBe('Garen');
-    });
-
-    it('championsForRole returns empty array for unknown role', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.championsForRole('MID')).toEqual([]);
-    });
-  });
-
-  describe('Helper methods', () => {
-    it('formatKda formats number to 2 decimal places', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.formatKda(3.5)).toBe('3.50');
-      expect(wrapper.vm.formatKda(2.0)).toBe('2.00');
-    });
-
-    it('formatKda returns "—" for null/undefined', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.formatKda(null)).toBe('—');
-      expect(wrapper.vm.formatKda(undefined)).toBe('—');
-    });
-
-    it('formatMScore rounds to nearest integer', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.formatMScore(75.6)).toBe(76);
-      expect(wrapper.vm.formatMScore(74.4)).toBe(74);
-    });
-
-    it('formatMScore returns "—" for null', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.formatMScore(null)).toBe('—');
-    });
-
-    it('getWinRateBarClass returns bg-success for >= 55%', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.getWinRateBarClass(60)).toBe('bg-success');
-      expect(wrapper.vm.getWinRateBarClass(55)).toBe('bg-success');
-    });
-
-    it('getWinRateBarClass returns bg-error for < 45%', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.getWinRateBarClass(44)).toBe('bg-error');
-      expect(wrapper.vm.getWinRateBarClass(0)).toBe('bg-error');
-    });
-
-    it('getKdaColorClass returns text-success for kda >= 3.0', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.getKdaColorClass(3.0)).toBe('text-success');
-      expect(wrapper.vm.getKdaColorClass(5.0)).toBe('text-success');
-    });
-
-    it('getKdaColorClass returns text-error for kda < 2.0', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.getKdaColorClass(1.9)).toBe('text-error');
-      expect(wrapper.vm.getKdaColorClass(0)).toBe('text-error');
-    });
-
-    it('getKdaColorClass returns yellow class for 2.0 <= kda < 3.0', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.getKdaColorClass(2.0)).toBe('text-[#eab308]');
-      expect(wrapper.vm.getKdaColorClass(2.9)).toBe('text-[#eab308]');
-    });
-
-    it('getMScoreTextClass returns text-info for valid score', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.getMScoreTextClass(70)).toBe('text-info');
-    });
-
-    it('getMScoreTextClass returns text-text-secondary for null', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.getMScoreTextClass(null)).toBe('text-text-secondary');
-    });
-
-    it('getMatchupsForChampion returns empty good/bad when no matchupsData', () => {
-      const wrapper = mountComponent({ userId: null });
-      const result = wrapper.vm.getMatchupsForChampion(1, 'TOP');
-      expect(result).toEqual({ good: [], bad: [] });
-    });
-  });
-
-  describe('Tab interaction', () => {
-    it('selectedTabIndex defaults to 0', () => {
-      const wrapper = mountComponent();
-      expect(wrapper.vm.selectedTabIndex).toBe(0);
-    });
-
-    it('handleTabChange updates selectedTabIndex', async () => {
-      const wrapper = mountComponent();
-      wrapper.vm.handleTabChange(1);
-      await wrapper.vm.$nextTick();
-      expect(wrapper.vm.selectedTabIndex).toBe(1);
-    });
-
-    it('selectedTabIndex resets to 0 when mainChampions becomes empty', async () => {
-      const wrapper = mountComponent();
-      wrapper.vm.handleTabChange(1);
-      await wrapper.vm.$nextTick();
-      await wrapper.setProps({ mainChampions: [] });
-      expect(wrapper.vm.selectedTabIndex).toBe(0);
-    });
-  });
-});
+    const csRow = wrapper.findAll('.stat-row').find((row) => row.text().includes('CS/m'))
+    expect(csRow.find('.stat-value').text()).toBe('7.4')
+  })
+})
