@@ -39,7 +39,7 @@ public class QueryFilterBuilder : IQueryFilterBuilder
             "ranked_solo" => "AND m.queue_id = 420",
             "ranked_flex" => "AND m.queue_id = 440",
             "normal" => "AND m.queue_id IN (430, 400)",
-            "aram" => "AND m.queue_id IN (450, 1700)",  // 450 = ARAM, 1700 = ARAM: Mayhem
+            "aram" => "AND m.queue_id = 450",
             _ => ""  // all
         };
     }
