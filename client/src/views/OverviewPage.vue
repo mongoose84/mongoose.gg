@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { useAsyncData } from '../composables/useAsyncData'
@@ -224,12 +224,17 @@ function handleAccountSelect(accountId) {
   // Data will refresh automatically via watcher
 }
 
-onMounted(() => {
-  fetchData()
-})
+// Defer the initial fetch until auth is fully initialized so that
+// validateActiveAccount() has already corrected activeAccountPuuid before
+// we hit the API. This prevents a transient 'overall' mode flash where
+// OverviewAccountCards appears briefly then disappears when the real mode
+// is applied, causing flaky E2E tests on slower CI runners.
+watch(() => authStore.isInitialized, (initialized) => {
+  if (initialized) fetchData()
+}, { immediate: true })
 
 watch(() => authStore.activeAccountPuuid, () => {
-  fetchData()
+  if (authStore.isInitialized) fetchData()
 })
 </script>
 
