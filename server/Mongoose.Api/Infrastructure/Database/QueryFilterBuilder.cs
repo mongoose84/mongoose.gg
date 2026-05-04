@@ -137,22 +137,68 @@ public class QueryFilterBuilder : IQueryFilterBuilder
 
     private async Task<string?> GetCurrentSeasonCodeAsync()
     {
-        const string sql = @"SELECT season_code FROM seasons WHERE end_date IS NULL ORDER BY start_date DESC LIMIT 1";
-        
+        const string sqlFromMatches = @"
+            SELECT ranked.season_code
+            FROM (
+                SELECT m.season_code, MAX(m.game_start_time) AS last_game_start
+                FROM matches m
+                WHERE m.season_code IS NOT NULL
+                GROUP BY m.season_code
+                ORDER BY last_game_start DESC
+                LIMIT 1
+            ) ranked";
+
+        const string sqlFromSeasons = @"SELECT season_code FROM seasons WHERE end_date IS NULL ORDER BY start_date DESC LIMIT 1";
+
         await using var conn = await _factory.CreateOpenConnectionAsync();
-        await using var cmd = new MySqlCommand(sql, conn);
-        var result = await cmd.ExecuteScalarAsync();
-        return result as string;
+        await using (var cmd = new MySqlCommand(sqlFromMatches, conn))
+        {
+            var result = await cmd.ExecuteScalarAsync();
+            if (result is string seasonCode && !string.IsNullOrWhiteSpace(seasonCode))
+            {
+                return seasonCode;
+            }
+        }
+
+        await using (var cmd = new MySqlCommand(sqlFromSeasons, conn))
+        {
+            var result = await cmd.ExecuteScalarAsync();
+            return result as string;
+        }
     }
 
     private async Task<string?> GetPreviousSeasonCodeAsync()
     {
-        const string sql = @"SELECT season_code FROM seasons WHERE end_date IS NOT NULL ORDER BY end_date DESC LIMIT 1";
-        
+        const string sqlFromMatches = @"
+            SELECT ranked.season_code
+            FROM (
+                SELECT m.season_code, MAX(m.game_start_time) AS last_game_start
+                FROM matches m
+                WHERE m.season_code IS NOT NULL
+                GROUP BY m.season_code
+                ORDER BY last_game_start DESC
+                LIMIT 2
+            ) ranked
+            ORDER BY ranked.last_game_start DESC
+            LIMIT 1 OFFSET 1";
+
+        const string sqlFromSeasons = @"SELECT season_code FROM seasons WHERE end_date IS NOT NULL ORDER BY end_date DESC LIMIT 1";
+
         await using var conn = await _factory.CreateOpenConnectionAsync();
-        await using var cmd = new MySqlCommand(sql, conn);
-        var result = await cmd.ExecuteScalarAsync();
-        return result as string;
+        await using (var cmd = new MySqlCommand(sqlFromMatches, conn))
+        {
+            var result = await cmd.ExecuteScalarAsync();
+            if (result is string seasonCode && !string.IsNullOrWhiteSpace(seasonCode))
+            {
+                return seasonCode;
+            }
+        }
+
+        await using (var cmd = new MySqlCommand(sqlFromSeasons, conn))
+        {
+            var result = await cmd.ExecuteScalarAsync();
+            return result as string;
+        }
     }
 }
 
