@@ -8,9 +8,9 @@
       </router-link>
 
       <!-- Desktop Navigation -->
-      <div class="hidden md:flex gap-lg items-center">
+      <div class="hidden md:flex gap-xl items-center mr-2xl">
         <a href="/#features" class="text-sm font-medium text-text-secondary no-underline transition-colors duration-200 tracking-tight hover:text-text">Features</a>
-        <a href="/#pricing" class="text-sm font-medium text-text-secondary no-underline transition-colors duration-200 tracking-tight hover:text-text">Pricing</a>
+        <a v-if="enableUpcomingFeatures" href="/#pricing" class="text-sm font-medium text-text-secondary no-underline transition-colors duration-200 tracking-tight hover:text-text">Pricing</a>
         <a href="/#how-it-works" class="text-sm font-medium text-text-secondary no-underline transition-colors duration-200 tracking-tight hover:text-text">How It Works</a>
         <router-link to="/auth?mode=login" class="text-sm font-medium text-text-secondary no-underline transition-colors duration-200 tracking-tight hover:text-text">Login</router-link>
       </div>
@@ -46,7 +46,7 @@
     <Transition name="mobile-menu">
       <div v-if="mobileOpen" class="absolute top-full left-0 right-0 bg-[rgba(0,0,0,0.95)] backdrop-blur-[12px] border-b border-border flex flex-col p-lg gap-sm">
         <a href="/#features" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">Features</a>
-        <a href="/#pricing" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">Pricing</a>
+        <a v-if="enableUpcomingFeatures" href="/#pricing" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">Pricing</a>
         <a href="/#how-it-works" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">How It Works</a>
         <router-link to="/auth?mode=login" class="p-md text-base font-medium text-text-secondary no-underline rounded-md transition-all duration-200 tracking-tight hover:text-text hover:bg-background-surface" @click="closeMobile">Login</router-link>
         <BaseButton variant="primary" size="md" to="/auth?mode=signup" class="mt-sm w-full justify-center" @click="closeMobile">
@@ -64,6 +64,7 @@ import { BaseButton } from '@/components/base';
 
 const authStore = useAuthStore();
 const mobileOpen = ref(false);
+const enableUpcomingFeatures = import.meta.env.VITE_ENABLE_UPCOMING_FEATURES === 'true';
 
 // Logo destination based on auth state
 const logoDestination = computed(() => {

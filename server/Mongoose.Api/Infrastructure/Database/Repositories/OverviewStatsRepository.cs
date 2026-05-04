@@ -257,13 +257,17 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
               AND m.game_duration_sec >= {MinValidGameDurationSec}
-              AND m.season_code = (
-                  SELECT season_code
-                  FROM seasons
-                  WHERE end_date IS NULL
-                  ORDER BY start_date DESC
-                  LIMIT 1
-              )
+                            AND m.season_code = (
+                                    SELECT ranked.season_code
+                                    FROM (
+                                            SELECT m2.season_code, MAX(m2.game_start_time) AS last_game_start
+                                            FROM matches m2
+                                            WHERE m2.season_code IS NOT NULL
+                                            GROUP BY m2.season_code
+                                            ORDER BY last_game_start DESC
+                                            LIMIT 1
+                                    ) ranked
+                            )
             GROUP BY p.champion_name
             ORDER BY games_played DESC, MAX(m.game_start_time) DESC
             LIMIT 1";
