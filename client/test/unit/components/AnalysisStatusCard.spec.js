@@ -126,7 +126,7 @@ describe('AnalysisStatusCard', () => {
       mockProgress.value = { current: 3, total: 10 };
       const wrapper = mountCard();
       expect(wrapper.find('.progress-bar').exists()).toBe(true);
-      expect(wrapper.text()).toContain('3 / 10');
+      expect(wrapper.text()).toContain('Processing match 3 of 10');
     });
 
     it('shows progress subtitle', () => {

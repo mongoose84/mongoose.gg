@@ -64,7 +64,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon } from '@heroicons/vue/24/solid'
 import BaseCard from '../base/BaseCard.vue'
 import BaseButton from '../base/BaseButton.vue'
@@ -117,6 +117,11 @@ watch([isRunning, isUpToDate, hasFailed], ([running, upToDate, failed]) => {
 // Load status on mount for persisted state
 onMounted(() => {
   loadStatus()
+})
+
+// Cancel the safety-timeout if the component is destroyed before it fires.
+onUnmounted(() => {
+  clearPending()
 })
 
 // True when the card should show the "active" spinner — either optimistically
