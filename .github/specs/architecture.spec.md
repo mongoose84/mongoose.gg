@@ -315,7 +315,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Route**: `POST /api/v2/auth/login`  
 **Auth**: None (public)  
 **Rate limit**: 10 requests / 15 min / IP  
-**Request body**: `LoginRequest(username, password, rememberMe?)`  
+**Request body**: `LoginRequest(username, password, consentLevel?)`  
 **Response**: `LoginResponse(userId, username, email, emailVerified, tier, message)`  
 **Side effects**: Sets httpOnly session cookie, updates `last_login_at`, fires `LoginSyncService.CheckAccountsOnLoginAsync()` (updates profile data, rank, checks for new matches)  
 **Tables**: `users`, `riot_accounts`, `user_riot_accounts`
@@ -497,7 +497,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 
 ```csharp
 // LoginDto.cs
-public record LoginRequest(string Username, string Password, bool RememberMe = false);
+public record LoginRequest(string Username, string Password, string? ConsentLevel = null);
 public record LoginResponse(long UserId, string Username, string Email, bool EmailVerified, string Tier, string Message);
 
 // RegisterDto.cs

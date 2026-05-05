@@ -259,7 +259,7 @@ export const useAuthStore = defineStore('auth', () => {
     await initializePromise
   }
 
-  async function login({ username: uname, password, rememberMe = false }) {
+  async function login({ username: uname, password }) {
     isLoading.value = true
     error.value = null
 
@@ -269,7 +269,7 @@ export const useAuthStore = defineStore('auth', () => {
       const consentLevel = cookieConsent.getConsent() || 'accepted'
 
       // Call login API with consent level
-      await authApi.login({ username: uname, password, rememberMe, consentLevel })
+      await authApi.login({ username: uname, password, consentLevel })
       // After login, fetch full user data (session is fresh, skip session check)
       const userData = await authApi.getCurrentUser({ skipSessionCheck: true })
       user.value = userData

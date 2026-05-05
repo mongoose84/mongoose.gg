@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -182,30 +181,12 @@ public sealed class RegisterEndpoint : IEndpoint
                     logger.LogInformation("Auto-verified email for user {UserId} (Auth:AutoVerifyEmail enabled)", LogSanitizer.Sanitize(userId.ToString()));
                 }
 
-                // Create claims identity for cookie auth
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                    new Claim(ClaimTypes.Name, newUser.Username),
-                    new Claim(ClaimTypes.Email, newUser.Email),
-                    new Claim("email_verified", autoVerifyEmail ? "true" : "false"),
-                    new Claim("tier", newUser.Tier),
-                    new Claim("security_stamp", newUser.SecurityStamp)
-                };
-
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var sessionTimeoutMinutes = config.GetValue<int>("Auth:SessionTimeout", 30);
-                var authProperties = new AuthenticationProperties
-                {
-                    IsPersistent = true,
-                    AllowRefresh = false,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
-                };
+                var authProperties = AuthSessionFactory.CreatePersistentSlidingSession();
 
                 // Sign in user with cookie
                 await httpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
+                    AuthSessionFactory.CreatePrincipal(newUser, autoVerifyEmail),
                     authProperties
                 );
 

@@ -7,7 +7,6 @@ public static class LoginDto
     public record LoginRequest(
         [property: JsonPropertyName("username")] string Username,
         [property: JsonPropertyName("password")] string Password,
-        [property: JsonPropertyName("rememberMe")] bool RememberMe = false,
         [property: JsonPropertyName("consentLevel")] string? ConsentLevel = null
     );
 

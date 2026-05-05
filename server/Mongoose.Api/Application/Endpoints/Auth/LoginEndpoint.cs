@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +11,7 @@ namespace Mongoose.Api.Application.Endpoints.Auth;
 /// <summary>
 /// Login Endpoint
 /// Validates username/password and sets an httpOnly auth cookie for subsequent requests.
-/// Supports configurable session timeout by default and 30-day remember-me sessions.
+/// All sessions are 14-day sliding persistent cookies.
 /// Rate limited to 10 requests per 15 minutes per IP to prevent brute force attacks.
 /// </summary>
 public sealed class LoginEndpoint : IEndpoint
@@ -142,47 +141,14 @@ public sealed class LoginEndpoint : IEndpoint
                 user.LastLoginAt = DateTime.UtcNow;
                 await usersRepo.UpsertAsync(user);
 
-                // Create claims identity for cookie auth
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim("email_verified", user.EmailVerified.ToString().ToLowerInvariant()),
-                    new Claim("tier", user.Tier),
-                    new Claim("security_stamp", user.SecurityStamp)
-                };
-
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-                // Always emit an explicit cookie expiry so the browser stops sending expired auth
-                // cookies at the configured session boundary. Only remember-me sessions can slide;
-                // short sessions keep their original per-login expiry even when SlidingExpiration is enabled.
-                AuthenticationProperties authProperties;
-                if (request.RememberMe)
-                {
-                    authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = true,
-                        AllowRefresh = true,
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
-                    };
-                }
-                else
-                {
-                    var sessionTimeoutMinutes = config.GetValue<int>("Auth:SessionTimeout", 30);
-                    authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = true,
-                        AllowRefresh = false,
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
-                    };
-                }
+                // Single session policy: every login produces a 14-day persistent cookie.
+                // SlidingExpiration on the cookie handler refreshes it automatically on activity.
+                var authProperties = AuthSessionFactory.CreatePersistentSlidingSession();
 
                 // Sign in user with cookie
                 await httpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
+                    AuthSessionFactory.CreatePrincipal(user),
                     authProperties
                 );
 

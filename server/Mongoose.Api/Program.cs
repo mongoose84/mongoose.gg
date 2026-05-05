@@ -127,10 +127,8 @@ builder.Services.AddSingleton<SyncProgressHub>();
 builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
 
 // Add authentication (cookie-based)
-// ExpireTimeSpan defines the maximum sliding window used for long-lived remember-me cookies.
-// Per-login duration is controlled via AuthenticationProperties.ExpiresUtc at sign-in time.
-// Short sessions set AuthenticationProperties.AllowRefresh = false so activity cannot extend them;
-// remember-me sessions opt into sliding refresh within the 30-day window.
+// All logins produce a 14-day persistent cookie with sliding expiration.
+// ASP.NET reissues the cookie automatically when more than half the lifetime has elapsed.
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -140,7 +138,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = cookieSecurePolicy;
         options.Cookie.SameSite = SameSiteMode.Strict;
-        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
         options.SlidingExpiration = true;
         var cookieName = builder.Configuration.GetValue<string>("Auth:CookieName");
         if (!string.IsNullOrWhiteSpace(cookieName))

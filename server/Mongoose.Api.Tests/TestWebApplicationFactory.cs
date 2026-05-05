@@ -93,7 +93,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             {
                 ["Auth:EnableMvpLogin"] = "true",
                 ["Auth:CookieName"] = "mongoose-auth",
-                ["Auth:SessionTimeout"] = "30",
                 ["Jobs:EnableMatchHistorySync"] = "false",
                 ["Jobs:EnableMatchCleanup"] = "false",
                 ["RIOT_API_KEY"] = "test-key",

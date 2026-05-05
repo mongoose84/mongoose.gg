@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using FluentAssertions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Mongoose.Api.Core.Entities;
 using Xunit;
@@ -116,6 +118,37 @@ public class VerifyEndpointTests
         // Verify the user is now marked as verified
         var user = await factory.UsersRepository.GetByIdAsync(userId);
         user!.EmailVerified.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Verify_reissues_persistent_sliding_cookie_with_security_stamp()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/verify")
+        {
+            Content = JsonContent.Create(new { code = "123456" })
+        };
+        req.Headers.Add("Cookie", cookie);
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var ticket = AuthCookieTestHelper.GetAuthenticationTicket(factory, response);
+        ticket.Properties.IsPersistent.Should().BeTrue();
+        ticket.Properties.AllowRefresh.Should().BeTrue("verify should preserve the sliding session policy");
+        ticket.Properties.ExpiresUtc.Should().NotBeNull();
+
+        var remaining = ticket.Properties.ExpiresUtc!.Value - DateTimeOffset.UtcNow;
+        remaining.Should().BeGreaterThan(TimeSpan.FromDays(13));
+        remaining.Should().BeLessThan(TimeSpan.FromDays(15));
+
+        ticket.Principal.Identity.Should().BeAssignableTo<ClaimsIdentity>();
+        ticket.Principal.FindFirst("security_stamp")?.Value.Should().NotBeNullOrWhiteSpace();
+        ticket.Principal.FindFirst("email_verified")?.Value.Should().Be("true");
     }
 
     [Fact]
