@@ -110,17 +110,8 @@
               minlength="8"
             />
 
-            <!-- Remember me + Forgot password row (login only) -->
-            <div v-if="isLogin" class="flex items-center justify-between gap-sm">
-              <div class="flex items-center gap-sm">
-                <input
-                  id="rememberMe"
-                  v-model="formData.rememberMe"
-                  type="checkbox"
-                  class="w-[18px] h-[18px] accent-primary cursor-pointer"
-                />
-                <label for="rememberMe" class="text-sm text-text-secondary cursor-pointer">Keep me logged in for 30 days</label>
-              </div>
+            <!-- Forgot password row (login only) -->
+            <div v-if="isLogin" class="flex items-center justify-end">
               <button
                 type="button"
                 class="text-sm text-primary hover:opacity-80 transition-opacity bg-transparent border-none cursor-pointer"
@@ -187,8 +178,7 @@ const usernameError = ref('');
 const formData = ref({
   username: '',
   email: '',
-  password: '',
-  rememberMe: false
+  password: ''
 });
 
 // ── Forgot password state ──
@@ -270,7 +260,7 @@ const updateCookiePreferences = () => {
 
 const toggleMode = () => {
   isLogin.value = !isLogin.value;
-  formData.value = { username: '', email: '', password: '', rememberMe: false };
+  formData.value = { username: '', email: '', password: '' };
   errorMessage.value = '';
   usernameError.value = '';
 
@@ -311,11 +301,10 @@ const handleSubmit = async () => {
       // Login flow
       const result = await authStore.login({
         username: formData.value.username,
-        password: formData.value.password,
-        rememberMe: formData.value.rememberMe
+        password: formData.value.password
       });
 
-      trackAuth('login', true, { rememberMe: formData.value.rememberMe });
+      trackAuth('login', true);
 
       if (!result.emailVerified) {
         router.push('/auth/verify');
