@@ -12,7 +12,7 @@ namespace Mongoose.Api.Application.Endpoints.Auth;
 /// <summary>
 /// Login Endpoint
 /// Validates username/password and sets an httpOnly auth cookie for subsequent requests.
-/// Supports configurable session timeout by default and 30-day remember-me sessions.
+/// All sessions are 14-day sliding persistent cookies.
 /// Rate limited to 10 requests per 15 minutes per IP to prevent brute force attacks.
 /// </summary>
 public sealed class LoginEndpoint : IEndpoint
@@ -155,29 +155,14 @@ public sealed class LoginEndpoint : IEndpoint
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                // Always emit an explicit cookie expiry so the browser stops sending expired auth
-                // cookies at the configured session boundary. Only remember-me sessions can slide;
-                // short sessions keep their original per-login expiry even when SlidingExpiration is enabled.
-                AuthenticationProperties authProperties;
-                if (request.RememberMe)
+                // Single session policy: every login produces a 14-day persistent cookie.
+                // SlidingExpiration on the cookie handler refreshes it automatically on activity.
+                var authProperties = new AuthenticationProperties
                 {
-                    authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = true,
-                        AllowRefresh = true,
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
-                    };
-                }
-                else
-                {
-                    var sessionTimeoutMinutes = config.GetValue<int>("Auth:SessionTimeout", 30);
-                    authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = true,
-                        AllowRefresh = false,
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
-                    };
-                }
+                    IsPersistent = true,
+                    AllowRefresh = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14)
+                };
 
                 // Sign in user with cookie
                 await httpContext.SignInAsync(
