@@ -105,6 +105,18 @@ describe('WinPredictionStats.vue', () => {
       const wrapper = createWrapper()
       expect(wrapper.find('[data-testid="kpi-tile-deaths"]').find('.kpi-description').exists()).toBe(false)
     })
+
+    it('rounds floating-point deaths delta to 1 decimal place', () => {
+      // 7 - 9.9 === -2.9000000000000004 in IEEE 754; must render as -2.9
+      const wrapper = createWrapper({ deaths: 7 }, { ...baseBaseline, avgDeaths: 9.9 })
+      expect(wrapper.find('[data-testid="kpi-tile-deaths"]').find('.kpi-description').text()).toBe('-2.9 vs avg')
+    })
+
+    it('renders +0 vs avg instead of -0 vs avg when delta rounds to negative zero', () => {
+      // deaths=4, avgDeaths=4.049 → rawDiff ≈ -0.049 → toFixed(1) → "-0.0" → Number → -0
+      const wrapper = createWrapper({ deaths: 4 }, { ...baseBaseline, avgDeaths: 4.049 })
+      expect(wrapper.find('[data-testid="kpi-tile-deaths"]').find('.kpi-description').text()).toBe('+0 vs avg')
+    })
   })
 
   describe('Gold @15 tile', () => {
