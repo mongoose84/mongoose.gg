@@ -97,7 +97,7 @@ Configured in `playwright.config.js`: Chromium and Firefox. Tests run in paralle
 ### Auth failures in tests
 - Ensure backend started with `Auth__AutoVerifyEmail=true`
 - Check that global setup ran successfully (look for `e2e/.auth/user.json`)
-- If `401 Unauthorized`, the session may have expired — check `Auth:SessionTimeout` setting
+- If `401 Unauthorized`, verify the login flow completed and the auth cookie was issued; sessions use a 14-day sliding persistent cookie
 
 ### Flaky Firefox tests
 - Firefox can hang on `networkidle` when WebSocket connections stay open

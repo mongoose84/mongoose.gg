@@ -100,8 +100,8 @@ Key settings:
 - `ConnectionStrings:Database_production` / `ConnectionStrings:Database_test` — MySQL connection string (also checked as env var `Database_production` / `Database_test`)
 - `Riot:ApiKey` or env var `RIOT_API_KEY` — Riot Games API key
 - `Security:EncryptionSecret` or env var `ENCRYPTION_SECRET` — AES encryption key for PII
-- `Auth:SessionTimeout` — session timeout in minutes (default: 30, dev: 5)
 - `Auth:CookieName` — auth cookie name (`mongoose-auth`)
+- Auth sessions use a single 14-day persistent sliding cookie policy across login/register/verify.
 - `Jobs:MatchRetentionDays` — match data retention (180 days)
 - `Email:DevMode` — skip actual email sending in dev
 

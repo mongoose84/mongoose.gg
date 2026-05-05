@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -142,32 +141,14 @@ public sealed class LoginEndpoint : IEndpoint
                 user.LastLoginAt = DateTime.UtcNow;
                 await usersRepo.UpsertAsync(user);
 
-                // Create claims identity for cookie auth
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim("email_verified", user.EmailVerified.ToString().ToLowerInvariant()),
-                    new Claim("tier", user.Tier),
-                    new Claim("security_stamp", user.SecurityStamp)
-                };
-
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
                 // Single session policy: every login produces a 14-day persistent cookie.
                 // SlidingExpiration on the cookie handler refreshes it automatically on activity.
-                var authProperties = new AuthenticationProperties
-                {
-                    IsPersistent = true,
-                    AllowRefresh = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14)
-                };
+                var authProperties = AuthSessionFactory.CreatePersistentSlidingSession();
 
                 // Sign in user with cookie
                 await httpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
+                    AuthSessionFactory.CreatePrincipal(user),
                     authProperties
                 );
 

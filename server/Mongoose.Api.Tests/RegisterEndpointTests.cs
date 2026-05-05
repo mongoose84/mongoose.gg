@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -51,6 +53,34 @@ public class RegisterEndpointTests
         body.email.Should().Be("newuser@example.com");
         body.emailVerified.Should().BeFalse("email is unverified by default");
         body.message.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Register_sets_persistent_sliding_cookie_with_14_day_expiry()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsJsonAsync("/api/v2/auth/register", new
+        {
+            username = "sessionuser",
+            email = "sessionuser@example.com",
+            password = "securePassword!"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var ticket = AuthCookieTestHelper.GetAuthenticationTicket(factory, response);
+        ticket.Properties.IsPersistent.Should().BeTrue();
+        ticket.Properties.AllowRefresh.Should().BeTrue("register should use the same sliding session policy as login");
+        ticket.Properties.ExpiresUtc.Should().NotBeNull();
+
+        var remaining = ticket.Properties.ExpiresUtc!.Value - DateTimeOffset.UtcNow;
+        remaining.Should().BeGreaterThan(TimeSpan.FromDays(13));
+        remaining.Should().BeLessThan(TimeSpan.FromDays(15));
+
+        ticket.Principal.Identity.Should().BeAssignableTo<ClaimsIdentity>();
+        ticket.Principal.FindFirst("security_stamp")?.Value.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]

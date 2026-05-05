@@ -8,9 +8,8 @@
 ## Background (read once, then implement)
 
 Current behavior:
-- If user does NOT tick "Keep me logged in for 30 days" → cookie expires after `Auth:SessionTimeout` minutes (default **30 minutes**) AND does not slide. Users get logged out fast.
-- If user ticks the box → 30-day persistent cookie with sliding refresh.
-- The checkbox is **unchecked by default**, so most users get the 30-minute experience even though the UI implies 30 days.
+- Legacy auth used a short non-sliding session for the default login path and a separate long-lived remember-me session.
+- That split behavior is being removed so every auth flow uses the same persistent sliding cookie policy.
 
 Target behavior:
 - Every successful login produces a **persistent cookie that lives 14 days** and **slides** (ASP.NET default sliding rules: cookie is reissued when more than half the lifetime has elapsed on a request).
@@ -41,7 +40,7 @@ Do not touch any other option (`HttpOnly`, `SecurePolicy`, `SameSite`, `Cookie.N
 
 ### 2. `server/Mongoose.Api/Application/Endpoints/Auth/LoginEndpoint.cs`
 
-Locate the block that builds `AuthenticationProperties` (currently around lines 154–177, the `if (request.RememberMe) { ... } else { ... }` branch).
+Locate the block that builds `AuthenticationProperties` (currently around lines 154–177, the remember-me/session-timeout branching logic).
 
 Replace the entire `if/else` block — including the comment immediately above it — with:
 
@@ -67,7 +66,7 @@ Update the XML doc summary on the class (currently mentions "configurable sessio
 /// </summary>
 ```
 
-Do not change anything else in the file (rate limiting, BCrypt, security_stamp, login sync, etc.). The `request.RememberMe` value is now ignored by the server — that is intentional and is removed from the DTO in step 3.
+Do not change anything else in the file (rate limiting, BCrypt, security_stamp, login sync, etc.). After this change, the endpoint should use a single auth session policy with no remember-me field or branching logic.
 
 ---
 
@@ -224,7 +223,7 @@ Do not change anything else in the file.
 - `ticket.Properties.IsPersistent.Should().BeTrue();` is added alongside the existing `AllowRefresh` assertion.
 
 **9c.** Update `Login_sets_secure_http_only_cookie_on_success`:
-- Remove the `["Auth:SessionTimeout"] = "45"` config entry from the `TestWebApplicationFactory` constructor (the key is no longer used).
+- Remove any `Auth:SessionTimeout` config entry from the `TestWebApplicationFactory` constructor (the key is no longer used).
 - Update the `remaining` assertion at the bottom:
   ```csharp
   remaining.Should().BeGreaterThan(TimeSpan.FromDays(13));

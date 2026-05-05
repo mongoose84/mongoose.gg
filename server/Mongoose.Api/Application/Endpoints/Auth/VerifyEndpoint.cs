@@ -104,29 +104,13 @@ public sealed class VerifyEndpoint : IEndpoint
                 await usersRepo.UpdateEmailVerifiedAsync(userId, true);
                 await tokensRepo.MarkTokenAsUsedAsync(token.Id);
 
-                // Update the session claims to reflect verified status
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim("email_verified", "true"),
-                    new Claim("tier", user.Tier)
-                };
-
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var sessionTimeoutMinutes = config.GetValue<int>("Auth:SessionTimeout", 30);
-                var authProperties = new AuthenticationProperties
-                {
-                    IsPersistent = true,
-                    AllowRefresh = false,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(sessionTimeoutMinutes)
-                };
+                user.EmailVerified = true;
+                var authProperties = AuthSessionFactory.CreatePersistentSlidingSession();
 
                 // Re-sign in with updated claims
                 await httpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
+                    AuthSessionFactory.CreatePrincipal(user),
                     authProperties
                 );
 
