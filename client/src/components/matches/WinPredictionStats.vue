@@ -104,7 +104,9 @@ const deathsSentiment = computed(() => {
 
 const deathsComparison = computed(() => {
   if (!props.baseline) return null
-  const diff = props.match.deaths - props.baseline.avgDeaths
+  const rawDiff = props.match.deaths - props.baseline.avgDeaths
+  const roundedDiff = Number(rawDiff.toFixed(1))
+  const diff = Object.is(roundedDiff, -0) ? 0 : roundedDiff
   return `${diff >= 0 ? '+' : ''}${diff} vs avg`
 })
 
