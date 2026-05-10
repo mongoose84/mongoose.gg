@@ -53,25 +53,34 @@ As a solo ladder climber, I want a simple DPM trend graph so I can quickly see w
 ### Backend
 
 - Endpoint location: `Application/Endpoints/Trends/`
-- Route: `GET /api/v2/trends/dpm/{userId}`
+- Route: `GET /api/v2/trends/damage-per-minute/{userId}`
 - Query params:
 - `queueType` (optional): `ranked_solo | ranked_flex | normal | aram | all`
-- `timeRange` (optional): `7d | 14d | 30d | 60d | 90d | season | all`
+- `timeRange` (optional): `1w | 1m | 3m | 6m | current_season | last_season | all`
 - `accountId` (optional): omitted, `all`, or opaque `acc_*`
 - `limit` (optional): integer, max 500
 
 Data contract should match other trend endpoints:
-- `trendData` (array of points)
-- `gamesAnalyzed` (int)
+- `dpmTrend` (array of points)
+- `averageDamagePerMinute` (double)
+- `overallAverage` (double)
+- `trend` (string: `up`, `down`, `stable`)
 
-Point shape (minimum fields required for charting):
-- `gameNumber`
-- `value` (DPM)
+Point shape (matching VisionScoreTrendPoint and CsPerMinuteTrendPoint patterns):
+- `matchId`
+- `gameIndex`
 - `timestamp`
-- Optional `accountLabel` when overlaying account series
+- `totalDamageDealt` (int)
+- `damagePerMinute` (double)
+- `gameDurationMinutes` (double)
+- `championName` (string)
+- `role` (string, optional)
+- `accountGameName` (string, optional; included when overlaying account series)
 
 Notes:
-- DPM formula: `totalDamageDealt / (gameDurationSeconds / 60)`
+- DPM formula: `totalDamageDealt / gameDurationMinutes`
+- Reuse `IQueryFilterBuilder` for queue type and time-range normalization to avoid one-off formats.
+- Match response shape to existing trend endpoints (VisionScoreTrendResponse, CsPerMinuteTrendResponse).
 - Keep orchestration in Application and reusable calculations in Core.
 - Use parameterized SQL only.
 - Sanitize logged values.
@@ -87,21 +96,28 @@ Notes:
 
 ### Endpoint
 
-`GET /api/v2/trends/dpm/{userId}?queueType=ranked_solo&timeRange=90d&accountId=all`
+`GET /api/v2/trends/damage-per-minute/{userId}?queueType=ranked_solo&timeRange=3m&accountId=all`
 
 ### Response (200)
 
 ```json
 {
-  "trendData": [
+  "dpmTrend": [
     {
-      "gameNumber": 1,
-      "value": 45.3,
+      "matchId": "NA1_12345_67890",
+      "gameIndex": 1,
       "timestamp": "2026-05-09T14:30:00Z",
-      "accountLabel": "Main"
+      "totalDamageDealt": 18000,
+      "damagePerMinute": 456.0,
+      "gameDurationMinutes": 39.5,
+      "championName": "Ahri",
+      "role": "mid",
+      "accountGameName": "Main"
     }
   ],
-  "gamesAnalyzed": 47
+  "averageDamagePerMinute": 445.2,
+  "overallAverage": 420.5,
+  "trend": "up"
 }
 ```
 
