@@ -11,7 +11,9 @@ Audit the codebase for missing tests, coverage gaps, and deviations from the tes
 
 Read these before auditing:
 - [Test Strategy Spec](../specs/test-strategy.spec.md) — coverage map, gaps, pyramid
-- [Testing Instructions](../instructions/testing.instructions.md) — mandatory patterns
+- [Backend Test Instructions](../instructions/backend-test.instructions.md) — backend test patterns and helpers
+- [Frontend Unit Test Instructions](../instructions/frontend-unit-test.instructions.md) — Vitest and Vue Test Utils patterns
+- [E2E Test Instructions](../instructions/e2e-test.instructions.md) — Playwright scope and quality rules
 - [Architecture Spec](../specs/architecture.spec.md) — all endpoints that need tests
 
 Use the current workspace as the source of truth. If the spec is stale or out of sync with the repo, call that out explicitly instead of repeating outdated counts.

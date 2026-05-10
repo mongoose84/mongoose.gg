@@ -2,11 +2,11 @@
 type: "manual"
 ---
 
-# Database Schema - LoL Improvement Tracker
+# Mongoose.gg — Database Schema Specification
 
 ## Overview
 
-This document defines the complete database schema for the LoL Improvement Tracker, supporting solo, duo, and team analytics with AI-powered insights. The schema is designed to store Riot match data, derive performance metrics, and power advanced dashboards with minimal real-time computation.
+This document defines the complete database schema for Mongoose.gg, supporting solo, duo, and team analytics with AI-powered insights. It is a reference spec for the current data model: use it to understand table responsibilities, relationships, and storage assumptions when extending or debugging the system.
 
 **Schema Domains:**
 1. Core Identity & Season Context

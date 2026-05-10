@@ -158,7 +158,7 @@ Use CSS custom properties (design tokens) for all themed values. See [UI/UX Spec
 ## Testing Requirements
 
 ### Unit Test Rules
-- Use Vitest + Vue Test Utils. See [testing.instructions.md](testing.instructions.md) for full patterns.
+- Use Vitest + Vue Test Utils. See [frontend-unit-test.instructions.md](frontend-unit-test.instructions.md) for full patterns.
 - Mock external dependencies (`vue-chartjs`, API services) with `vi.mock()`
 - Create a `mountComponent` helper with sensible defaults
 - Test rendering (all 4 states), user interactions, and emitted events

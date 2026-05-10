@@ -1,5 +1,7 @@
 # Feature: [Feature Name]
 
+> **Purpose**: Implementation-oriented feature spec template for planning and handing off work. Use it to capture the problem, intended solution, contracts, affected files, UX expectations, and validation plan before implementation begins.
+
 ## Problem Statement
 [Describe the problem this feature solves. What user need or business requirement does this address? Be specific about the current pain points.]
 

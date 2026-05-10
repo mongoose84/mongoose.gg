@@ -1,5 +1,7 @@
 # Component Specification: [ComponentName]
 
+> **Purpose**: Implementation-oriented component spec template for documenting a component's role, API, behavior, and test expectations before or during delivery.
+
 ## Overview
 **Purpose**: [Brief description of what this component does]
 
