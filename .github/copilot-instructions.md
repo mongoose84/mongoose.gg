@@ -1,131 +1,51 @@
 # Global Repository Instructions
 
-## Project Overview
-Mongoose.gg is a League of Legends performance analytics platform helping solo players, duos, and full teams understand their gameplay through rich match analytics, timeline-derived metrics, and AI-powered goal recommendations.
+Mongoose.gg is a League of Legends analytics platform built with .NET 10, MySQL, Vue 3, Pinia, Tailwind, and Playwright.
 
-**Key Features**: Match history sync, solo/duo/team dashboards, LP/winrate trend charts, champion matchups, real-time champion select support, AI goal recommendations, match narratives.
+Keep this file short and always-on. Use it for repo-wide invariants, routing, and deep-reference pointers. Put detailed templates, checklists, and long examples in targeted instructions, skills, prompts, or specs.
 
-## Technology Stack
+## Targeted Guidance
 
-- **Backend**: .NET 10 (C#), Minimal API, Domain-Driven Design (DDD) aligned Clean Architecture (Core → Application → Infrastructure)
-- **Database**: MySQL 8.0+ with MySqlConnector — raw SQL, no ORM, parameterized queries only
-- **Frontend**: Vue 3 (Composition API) + Vite + Pinia + Tailwind CSS + Chart.js
-- **Auth**: Cookie-based sessions (HttpOnly, Secure, SameSite=Strict)
-- **External**: Riot Games API v5 with custom rate limiting
-- **Testing**: xUnit (backend), Vitest + Vue Test Utils (frontend), Playwright (E2E)
+- C# app code → [backend.instructions.md](instructions/backend.instructions.md)
+- Vue/JS/CSS app code → [frontend.instructions.md](instructions/frontend.instructions.md)
+- Backend tests → [backend-test.instructions.md](instructions/backend-test.instructions.md)
+- Frontend unit tests → [frontend-unit-test.instructions.md](instructions/frontend-unit-test.instructions.md)
+- E2E tests → [e2e-test.instructions.md](instructions/e2e-test.instructions.md)
+- Backend local context → [server/Mongoose.Api/AGENTS.md](../server/Mongoose.Api/AGENTS.md)
+- Frontend local context → [client/AGENTS.md](../client/AGENTS.md)
 
-## Detailed Standards (loaded automatically per file type)
+## Deep References
 
-- **C# files** → [backend.instructions.md](instructions/backend.instructions.md) — endpoint pattern, repos, DTOs, logging, DI
-- **Vue/JS/CSS files** → [frontend.instructions.md](instructions/frontend.instructions.md) — components, stores, API layer, styling
-- **Test files** → [testing.instructions.md](instructions/testing.instructions.md) — xUnit, Vitest, Playwright patterns
-- **Build & run** → [server/Mongoose.Api/AGENTS.md](../server/Mongoose.Api/AGENTS.md), [client/AGENTS.md](../client/AGENTS.md)
+- API routes and contracts → [architecture.spec.md](specs/architecture.spec.md)
+- Database structure and SQL shape → [database-schema.spec.md](specs/database-schema.spec.md)
+- UI behavior and design tokens → [ui-ux.spec.md](specs/ui-ux.spec.md)
+- Test scope and coverage strategy → [test-strategy.spec.md](specs/test-strategy.spec.md)
+- Feature spec template → [feature-template.spec.md](specs/feature-template.spec.md)
 
-## Reference Specs
+Load those specs only when the change actually touches contracts, schema, UX behavior, or test strategy.
 
-- [Architecture & API spec](specs/architecture.spec.md) — all endpoints, DTOs, route map
-- [Database schema](specs/database-schema.spec.md) — table structure and relationships
-- [UI/UX spec](specs/ui-ux.spec.md) — design system, tokens, component inventory
-- [Test strategy](specs/test-strategy.spec.md) — testing pyramid, coverage map, patterns
-- [Feature template](specs/feature-template.spec.md) — template for new feature specs
+## Repo-Wide Invariants
 
-## Universal Rules
+- Do not accept raw PUUID as client input for analytics or protected data endpoints; resolve Riot account identity server-side.
+- Sanitize all user or external values before logging with `LogSanitizer.Sanitize()`.
+- Encrypt PII at rest with `IEncryptor`; keep secrets in environment variables only.
+- Protect data endpoints with authenticated ownership checks.
+- Use parameterized SQL only.
+- Preserve Clean Architecture dependency direction: Infrastructure → Application → Core.
+- Keep domain rules in Core and orchestration in Application; apply SOLID inside those boundaries.
+- Use UTC for all `DateTime` values.
+- Keep changes minimal and aligned with existing patterns.
+- Update tests and docs when behavior or contracts change.
 
-### Security (Non-Negotiable)
-- **PUUID exposure is bounded** — analytics/data endpoints must never accept PUUID as client input; always resolve PUUID server-side via `IUserRiotAccountsRepository`. Own-account management sub-routes (`/users/me/riot-accounts/{puuid}/sync`, `/primary`, etc.) may use PUUID as a sub-resource key because they are scoped to the authenticated user. The opaque `accountId` (built by `PuuidResolutionService`) is the preferred identifier for multi-account selection on analytics endpoints.
-- **Log sanitization** — all user/external input must be sanitized via `LogSanitizer.Sanitize()` before logging. No exceptions.
-- **PII encrypted at rest** — email and username use `IEncryptor` (AES-256). Riot API keys and DB credentials in env vars only.
-- **Auth on every data endpoint** — verify `ClaimTypes.NameIdentifier` matches route `userId`. Use `AuthResults` helper for 401/403.
-- **Parameterized SQL only** — never concatenate user input into queries.
+## Agent Routing
 
-### Architecture
-- **Clean Architecture** — dependencies point inward: Infrastructure → Application → Core. Core has zero external dependencies.
-- **Domain-Driven Design (DDD)** — the primary design approach for backend modeling. Model business logic in domain entities/value objects, keep ubiquitous language consistent across Core/Application, and respect bounded contexts when introducing new features.
-- **SOLID** — apply as a secondary implementation heuristic inside the chosen DDD boundaries and Clean Architecture layers. Use it to improve cohesion, testability, and dependency direction, but do not introduce abstractions that weaken the domain model or optimize for reuse ahead of domain clarity.
-- **Endpoint pattern** — every endpoint is a sealed class implementing `IEndpoint`, registered in `MongooseApiApplication.cs`.
-- **UTC everywhere** — all `DateTime` values must be UTC. Use `DateTime.UtcNow` and `DateTimeKind.Utc`.
-- **Records for DTOs** — all DTOs are C# records with `[JsonPropertyName("camelCase")]`.
-- **Error responses** — JSON format: `{ "error": "message", "code": "ERROR_CODE" }`.
+- Backend implementation → `backend-developer`
+- Frontend implementation → `frontend-developer`
+- Markdown, specs, and planning → `architect`
+- Tests → `test-writer`
+- Code review → `code-reviewer`
+- DevOps, YAML, and CI → `devops-engineer`
+- UX/UI design → `ux-ui-designer`
+- End-to-end feature delivery → `feature-implementation`
 
-### API Conventions
-- Base path: `/api/v2/`
-- Queue filtering: `?queueType=ranked_solo|ranked_flex|normal|aram|all`
-- Time range: `?timeRange=1w|1m|3m|6m|current_season|last_season`
-- Standard HTTP verbs and status codes (200, 201, 400, 401, 403, 404, 500)
-
-### Frontend Conventions
-- Components: PascalCase `.vue` files with `<script setup>` and `data-testid` attributes
-- Composables: `use` prefix (`useWinRateColor.js`). Stores: `Store` suffix (`authStore.js`). Services: `Api` suffix (`authApi.js`)
-- All API calls centralized in `services/`. Use `apiRequest` from `apiClient.js`
-- All components must handle loading, error, empty, and content states
-- Accessibility: semantic HTML, `aria-label` on icon-only buttons, keyboard navigation, WCAG AA contrast
-
-### Testing
-- Backend: all endpoints must have integration tests (auth, forbidden, not-found, happy path)
-- Frontend: all components with logic must have unit tests
-- E2E: critical user flows covered via Playwright
-
-### Performance
-- `async`/`await` for all I/O. Lazy-load Vue routes. Debounce filters. Specify columns in SQL (no `SELECT *`).
-- Match retention: 180 days (configurable via `Jobs:MatchRetentionDays`)
-
-## Development Workflow
-
-### Branching
-- `main` — production. Feature branches: `feature/description`. Bug fixes: `fix/description`.
-
-### Commits
-Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
-
-### Code Review Checklist
-- [ ] Tests added/updated
-- [ ] Error handling covers edge cases
-- [ ] Logging uses `LogSanitizer.Sanitize()` for all user input
-- [ ] No hardcoded secrets or PII
-- [ ] Follows existing patterns
-- [ ] Accessibility met (frontend)
-
-## Agent Specializations
-
-<instructions>
-<instruction>
-<description>Backend development specialist with security focus</description>
-<file>.github/agents/backend-developer.agent.md</file>
-<applyTo>**/*.cs</applyTo>
-</instruction>
-<instruction>
-<description>Frontend development specialist with UI/UX focus</description>
-<file>.github/agents/frontend-developer.agent.md</file>
-<applyTo>**/*.{vue,js,ts}</applyTo>
-</instruction>
-<instruction>
-<description>System architect and planning specialist</description>
-<file>.github/agents/architect.agent.md</file>
-<applyTo>**/*.md</applyTo>
-</instruction>
-<instruction>
-<description>Code review specialist focused on quality and best practices</description>
-<file>.github/agents/code-reviewer.agent.md</file>
-<applyTo>**/*</applyTo>
-</instruction>
-<instruction>
-<description>DevOps and infrastructure specialist</description>
-<file>.github/agents/devops-engineer.agent.md</file>
-<applyTo>**/*.{yml,yaml,json,sh,dockerfile,Dockerfile}</applyTo>
-</instruction>
-<instruction>
-<description>UX/UI design and research specialist</description>
-<file>.github/agents/ux-ui-designer.agent.md</file>
-<applyTo>**/*.{vue,css,scss,sass,less}</applyTo>
-</instruction>
-<instruction>
-<description>Feature implementation orchestrator: architect → backend + frontend → code review → E2E</description>
-<file>.github/agents/feature-implementation.agent.md</file>
-<applyTo>**/*</applyTo>
-</instruction>
-<instruction>
-<description>Test writing specialist for backend (xUnit) and frontend (Vitest)</description>
-<file>.github/agents/test-writer.agent.md</file>
-<applyTo>**/*.{spec.js,spec.cs,Tests.cs}</applyTo>
-</instruction>
-</instructions>
+Pick the narrowest specialist that fits the task.

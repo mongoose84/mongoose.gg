@@ -9,6 +9,8 @@ description: "Use when implementing a feature from a completed spec in this .NET
 Use this skill after a feature has been documented and approved.
 It coordinates subagents in a deterministic sequence so work is planned, implemented, verified, and reviewed before completion.
 
+This skill is the canonical home for long-form feature workflow guidance, delivery gates, and fix-loop policy. Keep always-on and file-scoped instructions limited to routing and constraints.
+
 ## Project Context
 - Backend: .NET 10 Minimal API (C#), Clean Architecture + DDD (Core → Application → Infrastructure)
 - Frontend: Vue 3 (Composition API) + Vite + Pinia + Tailwind CSS
@@ -83,23 +85,14 @@ Stream preconditions (enforced for every stream):
 #### Backend stream rules (when applicable)
 Agent: backend-developer
 
-- Follow the `IEndpoint` sealed-class pattern registered in `MongooseApiApplication.cs`.
-- Keep SQL parameterized and aligned with OWASP practices.
-- Use `LogSanitizer.Sanitize()` on all user input in log statements.
-- Resolve PUUID server-side via `IUserRiotAccountsRepository` — never accept PUUID from client input on analytics endpoints.
-- Respect Clean Architecture layers: domain rules in Core, orchestration in Application, integration in Infrastructure.
-- Add or update xUnit integration tests (auth, forbidden, not-found, happy path).
+- Follow [backend.instructions.md](../../instructions/backend.instructions.md), [backend-test.instructions.md](../../instructions/backend-test.instructions.md), and [new-endpoint/SKILL.md](../new-endpoint/SKILL.md) when applicable.
 
 Required deliverable: code changes plus test updates and implementation notes.
 
 #### Frontend stream rules (when applicable)
 Agent: frontend-developer
 
-- Use Vue 3 `<script setup>` and Composition API.
-- Handle all 4 states: loading, error, content, empty.
-- Add `data-testid` attributes for testability.
-- Use Pinia stores, `apiRequest` from `apiClient.js`, and CSS variables for theming.
-- Ensure accessibility: semantic HTML, `aria-label` on icon-only buttons, WCAG AA contrast.
+- Follow [frontend.instructions.md](../../instructions/frontend.instructions.md) and [frontend-unit-test.instructions.md](../../instructions/frontend-unit-test.instructions.md).
 
 Required deliverable: code changes plus Vitest unit tests and UX notes.
 
@@ -133,8 +126,7 @@ Agent: code-reviewer
 
 Goals:
 - Review for correctness, maintainability, security, and test adequacy.
-- Security checklist: auth checks via `AuthResults`, PUUID not exposed to client, `LogSanitizer.Sanitize()` usage, parameterized SQL only.
-- Pattern checklist: endpoints implement `IEndpoint`, DTOs are records with `[JsonPropertyName]`, repos follow `RepositoryBase`.
+- Use `copilot-instructions.md` and the relevant targeted instruction files as the review standard.
 - Prioritize issues by severity and identify required fixes.
 
 Required deliverable:
@@ -159,7 +151,7 @@ Repeat until:
 - Keep changes scoped to approved feature boundaries.
 - Avoid unrelated refactors unless required for correctness.
 - Keep commits/review units small and traceable.
-- Never bypass security patterns: auth on every data endpoint, parameterized SQL, log sanitization.
+- Follow repo-wide invariants from `copilot-instructions.md` and file-scoped rules from the targeted instruction files.
 
 ## Suggested Invocation Prompt
 Use this skill when you say:

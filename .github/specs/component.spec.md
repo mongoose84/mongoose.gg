@@ -1,5 +1,9 @@
 # Component Specification: [ComponentName]
 
+> **Purpose**: Implementation-oriented component spec template for documenting a component's role, API, behavior, and test expectations before or during delivery.
+
+> **Role in guidance split**: This spec is the canonical home for full component templates and examples. Keep broad frontend instructions terse and use this file when a task needs the complete component contract or scaffold.
+
 ## Overview
 **Purpose**: [Brief description of what this component does]
 

@@ -8,6 +8,8 @@ argument-hint: 'Describe the endpoint (e.g., "GET solo champion stats for a user
 
 Scaffolds the full vertical slice for a new Mongoose.gg API endpoint: endpoint class, DTO record, repository interface, repository implementation stub, and integration test.
 
+This skill is the canonical home for backend endpoint scaffolding examples and vertical-slice checklists. Keep broad backend instructions terse and point here when full examples are needed.
+
 ## Prerequisites
 
 Before starting, review:
