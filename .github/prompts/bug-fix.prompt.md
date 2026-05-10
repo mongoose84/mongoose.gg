@@ -2,67 +2,33 @@
 agent: agent
 model: Claude Sonnet 4.6
 tools: ['file-search', 'semantic-search', 'codebase', 'problems', 'testFailure', 'editFiles', 'runTests']
-description: 'Systematic bug investigation and fix workflow'
+description: 'Systematic bug investigation and fix workflow. Use when debugging a regression, reproducing a failing behavior, or repairing a concrete bug.'
 ---
 # Bug Fix Workflow
 
-## Context Loading Phase
-1. Review the bug report provided by the user
-2. Search the codebase for the affected component
-3. Review [test failures](testFailure)
-4. Check [recent changes](changes) to affected code
+## Use When
 
-## Investigation Phase
-### Reproduce the Bug
-- [ ] Understand expected behavior
-- [ ] Identify actual behavior
-- [ ] Create minimal reproduction case
-- [ ] Document reproduction steps
+- The user reports a concrete bug, failing behavior, or regression.
+- A failing test or reproducible issue needs investigation and repair.
 
-### Root Cause Analysis
-- [ ] Trace code execution path
-- [ ] Identify point of failure
-- [ ] Understand why the bug occurs
-- [ ] Check for similar bugs elsewhere
+## Context To Load
 
-## Fix Strategy
-### Planning
-- [ ] Determine fix approach
-- [ ] Identify affected components
-- [ ] Consider edge cases
-- [ ] Plan for regression prevention
+1. The bug report or failing behavior.
+2. The owning implementation and one nearby example.
+3. Relevant test failures or recent changes when available.
 
-### Implementation
-1. Write a failing test that reproduces the bug
-2. Implement the fix
-3. Verify the test now passes
-4. Run all tests to check for regressions
-5. Add additional tests for edge cases
+## Workflow
 
-## Fix Validation Checklist
-- [ ] Bug is reproducible before fix
-- [ ] Bug is fixed after changes
-- [ ] New tests prevent regression
-- [ ] All existing tests pass
-- [ ] No new issues introduced
-- [ ] Edge cases are handled
-- [ ] Documentation updated if needed
+1. Reproduce the bug or identify the failing check.
+2. Trace the owning code path and isolate the root cause.
+3. Add or update the narrowest test that proves the defect when practical.
+4. Implement the minimal fix.
+5. Run the narrowest relevant validation, then widen only if needed.
 
-## Deterministic Execution
-Use semantic search to find related code:
-`semantic-search "similar functionality"`
+## Output
 
-Use file search to find test files:
-`file-search "**/*test*"`
-
-## Structured Output Requirements
-Provide fix with:
-1. Clear description of root cause
-2. Explanation of fix approach
-3. Code changes
-4. Test that reproduces and validates fix
-5. Any documentation updates
-
-## Human Validation Gate
-🚨 **STOP**: Review fix strategy before implementation.
-Confirm: Root cause is understood, fix is minimal, tests are comprehensive.
+1. Root cause.
+2. Fix approach.
+3. Files changed.
+4. Validation performed.
+5. Remaining risks or follow-ups.

@@ -5,62 +5,23 @@ description: 'Security audit for files or branches against project security rule
 ---
 # Security Audit
 
-Audit the provided file(s) or current branch changes for security violations. Check against both project-specific rules and OWASP Top 10.
+Audit the provided files or branch changes for security issues using repo rules plus OWASP Top 10 categories.
+
+## Use When
+
+- The user asks for a security review of files, a feature, or a branch.
+- A sensitive auth, logging, data, or SQL change needs focused audit coverage.
 
 ## Scope
 
-If a file or component is specified, audit that. Otherwise, audit all changes on the current branch:
-```
-git diff origin/main...HEAD
-```
+- If a file or component is specified, audit that scope.
+- Otherwise, audit current branch changes against `origin/main`.
 
-## Project Security Rules (Non-Negotiable)
+## Review Standard
 
-### 1. Log Injection Prevention
-Every `logger.Log*` call with dynamic values MUST use `LogSanitizer.Sanitize()`:
-```csharp
-// ✅ Correct
-logger.LogWarning("Invalid userId {UserId}", LogSanitizer.Sanitize(userId));
-
-// ❌ Violation
-logger.LogWarning("Invalid userId {UserId}", userId);
-```
-
-Scan all `.cs` files in scope for `logger.Log` calls where any argument is NOT wrapped in `LogSanitizer.Sanitize()`. Constant strings and numeric literals are exempt.
-
-### 2. PUUID Exposure
-PUUIDs are server-internal. They must NEVER appear in:
-- API response DTOs returned to clients
-- Frontend code (`client/src/`)
-- URL paths exposed to browsers
-
-Verify all data endpoints resolve PUUID from User ID via `IUserRiotAccountsRepository`.
-
-### 3. SQL Injection
-All SQL must use parameterized queries (`@paramName`). Scan for:
-- String concatenation in SQL (`$"SELECT` or `"SELECT" +`)
-- `string.Format` used in query building
-- Any `CommandText` assignment with interpolation
-
-### 4. Authentication & Authorization
-Every data endpoint must:
-- Check `httpContext.User?.Identity?.IsAuthenticated`
-- Verify `ClaimTypes.NameIdentifier` matches route `userId`
-- Use `AuthResults.NotAuthenticated()` / `Results.Forbid()`
-
-### 5. Secrets & PII
-- No hardcoded API keys, connection strings, or passwords
-- Email and username access goes through `IEncryptor`
-- Riot API keys only from environment variables
-
-## OWASP Top 10 Checks
-
-- **A01 Broken Access Control** — horizontal privilege escalation (user A accessing user B's data)
-- **A02 Cryptographic Failures** — PII not encrypted, weak hashing, secrets in code
-- **A03 Injection** — SQL injection, log injection, XSS via unsanitized output
-- **A04 Insecure Design** — missing rate limiting on auth endpoints, no brute-force protection
-- **A07 Auth Failures** — session fixation, missing cookie flags (HttpOnly, Secure, SameSite)
-- **A09 Logging Failures** — auth events not logged, sensitive data in logs
+- Use [copilot-instructions.md](../copilot-instructions.md) and [architecture.spec.md](../specs/architecture.spec.md) for project-specific security rules.
+- Focus on access control, cryptographic handling, injection risks, auth failures, secrets, and logging failures.
+- Check repo-specific hotspots such as log sanitization, PUUID exposure, parameterized SQL, ownership checks, and secret handling.
 
 ## Output Format
 

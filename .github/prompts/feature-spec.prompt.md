@@ -6,37 +6,30 @@ description: 'Generate a feature specification from a description. Use for plann
 ---
 # Feature Specification Generator
 
-Generate a complete feature specification for the described feature.
+## Use When
 
-## Context Loading
-1. Review the [feature template](../specs/feature-template.spec.md) for the required structure
-2. Review the [architecture spec](../specs/architecture.spec.md) for existing endpoints and patterns
-3. Review the [database schema](../specs/database-schema.spec.md) for available tables
-4. Review the [UI/UX spec](../specs/ui-ux.spec.md) for design system and component inventory
-5. Search the codebase for similar existing implementations
+- The user wants a new feature spec or implementation plan.
+- The task is planning, not direct code delivery.
+
+## Context To Load
+
+1. [feature-template.spec.md](../specs/feature-template.spec.md)
+2. [architecture.spec.md](../specs/architecture.spec.md) when routes or contracts matter
+3. [database-schema.spec.md](../specs/database-schema.spec.md) when data shape matters
+4. [ui-ux.spec.md](../specs/ui-ux.spec.md) when user-facing behavior matters
+5. Similar existing implementations in the codebase
+
+## Workflow
+
+1. Translate the user request into problem statement, scope, and acceptance criteria.
+2. Produce a complete spec following the feature template.
+3. Cover backend changes, frontend changes, API contracts, UI/UX requirements, testing strategy, and risks.
+4. Save the result to `.github/specs/features/{feature-name}.spec.md`.
 
 ## Output
-Produce a complete spec following the feature template structure, covering:
-- Problem statement and user stories
-- Backend changes (endpoints, DTOs, repositories, SQL)
-- Frontend changes (components, stores, API services)
-- API contracts (request/response JSON shapes)
-- UI/UX requirements with layout descriptions
-- Testing strategy
-- Risks and dependencies
 
-Save the spec to `.github/specs/features/{feature-name}.spec.md`.
+- Complete feature spec in the template structure.
+- Clear in-scope and out-of-scope boundaries.
+- Risks, dependencies, and testing expectations.
 
-**Tip**: For full end-to-end implementation (spec → code → review → test), use the `@feature-implementation` agent instead.
-- [ ] Add usage examples
-
-## Structured Output Requirements
-Generate implementation with:
-1. Feature code in appropriate module
-2. Comprehensive unit tests
-3. Integration tests for API endpoints
-4. Documentation updates
-
-## Human Validation Gate
-🚨 **STOP**: Review implementation plan before proceeding to code generation.
-Confirm: Architecture alignment, test strategy, and breaking change impact.
+For end-to-end implementation after the spec exists, use `@feature-implementation`.

@@ -2,65 +2,33 @@
 agent: agent
 model: Claude Sonnet 4.6
 tools: ['file-search', 'semantic-search', 'codebase', 'editFiles', 'runTests']
-description: 'Code refactoring workflow with safety checks'
+description: 'Code refactoring workflow with safety checks. Use when restructuring code for clarity or maintainability without changing behavior.'
 ---
 # Code Refactoring Workflow
 
-## Context Loading Phase
-1. Review the target code provided by the user
-2. Search the codebase for all usages of the target code
-3. Find and review related test files
-4. Review [architecture spec](../specs/architecture.spec.md) for relevant conventions
+## Use When
 
-## Refactoring Planning
-### Analysis
-- [ ] Identify code smells and issues
-- [ ] Map dependencies and impacts
-- [ ] Verify test coverage exists
-- [ ] List breaking changes
-- [ ] Identify DDD impacts (bounded contexts, aggregate boundaries, ubiquitous language)
+- The user asks to restructure code without changing behavior.
+- The goal is readability, maintainability, or duplication reduction.
 
-### Refactoring Strategy
-- [ ] Define refactoring objectives
-- [ ] Plan incremental steps
-- [ ] Identify safe transformation patterns
-- [ ] Plan for backward compatibility if needed
-- [ ] Preserve or improve domain model clarity (avoid moving domain rules out of Core)
+## Context To Load
 
-## Safe Refactoring Principles
-1. **Small Steps**: Make small, incremental changes
-2. **Test First**: Ensure tests pass before and after
-3. **One Change**: One refactoring technique at a time
-4. **Verify Often**: Run tests after each change
+1. The target code.
+2. All usages of the target surface.
+3. Related test files.
+4. [architecture.spec.md](../specs/architecture.spec.md) only when conventions or boundaries matter.
 
-## Common Refactoring Patterns
-### Simplification
-- Extract method/function
-- Inline method/function
-- Consolidate duplicate code
-- Simplify conditional expressions
+## Workflow
 
-### Organization
-- Move method/function
-- Rename for clarity
-- Extract class/module
-- Organize imports
+1. Map dependencies and risks before editing.
+2. Establish a baseline with existing tests where possible.
+3. Apply small, incremental refactors.
+4. Re-run focused validation after each meaningful step.
+5. Keep behavior unchanged unless the user explicitly requests otherwise.
 
-## Execution Steps
-1. Run existing tests to establish baseline
-2. Apply refactoring incrementally
-3. Run tests after each change
-4. Update documentation
-5. Final test run
+## Output
 
-## Validation Checklist
-- [ ] All tests pass
-- [ ] No functionality has changed
-- [ ] Code is more readable
-- [ ] Complexity has reduced
-- [ ] Performance is maintained or improved
-- [ ] Documentation is updated
-
-## Human Validation Gate
-🚨 **STOP**: Review refactoring plan before execution.
-Confirm: Test coverage is adequate, changes are incremental, rollback plan exists.
+1. Refactoring goal and approach.
+2. Files changed.
+3. Validation performed.
+4. Any behavior or compatibility risks.

@@ -5,81 +5,29 @@ description: 'Audit test coverage gaps against the test strategy spec and projec
 ---
 # Test Audit
 
-Audit the codebase for missing tests, coverage gaps, and deviations from the test strategy.
+Audit the repo for missing tests, coverage gaps, and deviations from the current testing conventions.
 
-## Step 1: Load References
+## Use When
 
-Read these before auditing:
-- [Test Strategy Spec](../specs/test-strategy.spec.md) — coverage map, gaps, pyramid
-- [Backend Test Instructions](../instructions/backend-test.instructions.md) — backend test patterns and helpers
-- [Frontend Unit Test Instructions](../instructions/frontend-unit-test.instructions.md) — Vitest and Vue Test Utils patterns
-- [E2E Test Instructions](../instructions/e2e-test.instructions.md) — Playwright scope and quality rules
-- [Architecture Spec](../specs/architecture.spec.md) — all endpoints that need tests
+- The user asks where coverage is missing.
+- A test planning or quality pass is needed before broader work.
 
-Use the current workspace as the source of truth. If the spec is stale or out of sync with the repo, call that out explicitly instead of repeating outdated counts.
+## Context To Load
 
-## Step 2: Backend Audit
+- [test-strategy.spec.md](../specs/test-strategy.spec.md)
+- [backend-test.instructions.md](../instructions/backend-test.instructions.md)
+- [frontend-unit-test.instructions.md](../instructions/frontend-unit-test.instructions.md)
+- [e2e-test.instructions.md](../instructions/e2e-test.instructions.md)
+- [architecture.spec.md](../specs/architecture.spec.md) when endpoint inventory matters
 
-### Endpoint Coverage
-List every endpoint registered in `server/Mongoose.Api/Application/MongooseApiApplication.cs`. For each, check if a matching `*Tests.cs` file exists in `server/Mongoose.Api.Tests/`.
+Use the current workspace as the source of truth and call out spec drift explicitly.
 
-For existing test files, verify the mandatory four cases:
-- [ ] Happy path (200 OK with authenticated user)
-- [ ] 401 Unauthorized (unauthenticated request)
-- [ ] 403 Forbidden (accessing another user's data)
-- [ ] 404 Not Found (no linked Riot account)
+## Workflow
 
-### Service/Mapper/Job/External Integration Coverage
-Check `server/Mongoose.Api/Infrastructure/`, `server/Mongoose.Api/Application/Services/`, and any background job / Riot integration code for classes with logic that lack corresponding test files or have only shallow coverage. Priority targets from the test strategy:
-- LoginSyncService
-- RiotTimelineMapper
-- SeasonHelper
-- MatchHistorySyncJob / MatchCleanupJob depth
-- RiotApiClient mocking / integration coverage
-
-### Test Quality
-- [ ] All tests use `FluentAssertions` (not raw `Assert`)
-- [ ] Integration tests use `TestWebApplicationFactory`
-- [ ] No `Thread.Sleep` or timing-dependent assertions
-- [ ] `[Theory]` + `[InlineData]` for parameterized edge cases where appropriate
-
-## Step 3: Frontend Audit
-
-### Component Coverage
-List all `.vue` files in `client/src/components/`, `client/src/layouts/`, `client/src/views/`, and the root `client/src/App.vue`. For each component/view/layout with logic (props, emits, computed, methods, watchers, or async lifecycle hooks), check if a matching `.spec.js` or `.test.js` file exists in the appropriate folder under `client/test/unit/`.
-
-For existing test files, verify state coverage:
-- [ ] Renders with data
-- [ ] Empty state
-- [ ] Loading state
-- [ ] Error state
-- [ ] Key user interactions (clicks, inputs)
-
-### Composable/Store/Utility/Service/Router/Bootstrap Coverage
-Check for missing test files:
-- `client/src/composables/` → `client/test/unit/composables/`
-- `client/src/stores/` → `client/test/unit/stores/`
-- `client/src/utils/` → `client/test/unit/utils/`
-- `client/src/services/` → `client/test/unit/services/`
-- `client/src/router/` → `client/test/unit/router/`
-- `client/src/plugins/` and `client/src/main.js` → relevant unit/bootstrap coverage in `client/test/unit/`
-
-### Test Quality
-- [ ] Uses `data-testid` selectors (not CSS classes or tag names)
-- [ ] External deps mocked (`vi.mock` for Chart.js, HeadlessUI, API services)
-- [ ] Store tests use `setupPinia()` from `test/helpers/testUtils.js`
-- [ ] No snapshot tests (prefer explicit assertions)
-
-## Step 4: E2E Audit
-
-List critical user flows from the test strategy. Check which have Playwright specs in `client/e2e/` and note missing negative-path coverage:
-- [ ] Login / registration / verification flow
-- [ ] Overview dashboard access
-- [ ] Solo dashboard navigation and filtering
-- [ ] Match history browsing and details
-- [ ] Riot account linking
-- [ ] Unauthenticated redirect / session-expiry handling
-- [ ] Error-state / negative-path coverage
+1. Audit backend endpoint, service, and job coverage.
+2. Audit frontend component, composable, store, service, router, utility, and bootstrap coverage.
+3. Audit Playwright coverage for critical user journeys and missing negative paths.
+4. Note both missing tests and quality issues in existing tests.
 
 ## Output Format
 
