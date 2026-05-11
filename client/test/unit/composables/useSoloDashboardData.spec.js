@@ -8,6 +8,7 @@ const mockGetCsPerMinuteTrend = vi.fn()
 const mockGetDeathsTrend = vi.fn()
 const mockGetDragonParticipationTrend = vi.fn()
 const mockGetVisionScoreTrend = vi.fn()
+const mockGetDpmTrend = vi.fn()
 const mockGetDeathPositions = vi.fn()
 const mockGetRadarChart = vi.fn()
 const mockTrackFilterChange = vi.fn()
@@ -47,7 +48,8 @@ vi.mock('@/services/trendsApi', () => ({
   getCsPerMinuteTrend: (...args) => mockGetCsPerMinuteTrend(...args),
   getDeathsTrend: (...args) => mockGetDeathsTrend(...args),
   getDragonParticipationTrend: (...args) => mockGetDragonParticipationTrend(...args),
-  getVisionScoreTrend: (...args) => mockGetVisionScoreTrend(...args)
+  getVisionScoreTrend: (...args) => mockGetVisionScoreTrend(...args),
+  getDpmTrend: (...args) => mockGetDpmTrend(...args)
 }))
 
 import { useSoloDashboardData } from '@/composables/useSoloDashboardData'
@@ -63,6 +65,7 @@ describe('useSoloDashboardData', () => {
     mockGetDeathsTrend.mockResolvedValue({ deathsTrend: [], averageDeaths: 2, overallAverage: 3, trend: 'improving' })
     mockGetDragonParticipationTrend.mockResolvedValue({ dragonParticipationTrend: [], averageParticipation: 0.5, overallAverage: 0.6, trend: 'neutral' })
     mockGetVisionScoreTrend.mockResolvedValue({ visionScoreTrend: [], averageVisionPerMinute: 1.2, overallAverage: 1.0, roleTarget: 1.5, trend: 'improving' })
+    mockGetDpmTrend.mockResolvedValue({ dpmTrend: [], averageDamagePerMinute: 850, overallAverage: 900, trend: 'neutral' })
     mockGetDeathPositions.mockResolvedValue({ deaths: [], totalDeaths: 0, matchesAnalyzed: 0, phaseSummary: { early: 0, mid: 0, late: 0, veryLate: 0 } })
     mockGetRadarChart.mockResolvedValue({ axes: [], gamesAnalyzed: 5 })
   })
@@ -74,7 +77,7 @@ describe('useSoloDashboardData', () => {
     expect(timeRange.value).toBe('current_season')
   })
 
-  it('fetchAllData calls all 9 endpoints', async () => {
+  it('fetchAllData calls all 10 endpoints', async () => {
     const { fetchAllData } = useSoloDashboardData()
 
     await fetchAllData()
@@ -86,6 +89,7 @@ describe('useSoloDashboardData', () => {
     expect(mockGetDeathsTrend).toHaveBeenCalled()
     expect(mockGetDragonParticipationTrend).toHaveBeenCalled()
     expect(mockGetVisionScoreTrend).toHaveBeenCalled()
+    expect(mockGetDpmTrend).toHaveBeenCalled()
     expect(mockGetRadarChart).toHaveBeenCalled()
     expect(mockGetDeathPositions).toHaveBeenCalled()
   })
@@ -121,6 +125,55 @@ describe('useSoloDashboardData', () => {
       roleTarget: 1.5,
       trend: 'improving'
     })
+  })
+
+  it('populates dpmTrendData from API response', async () => {
+    mockGetDpmTrend.mockResolvedValue({ dpmTrend: [{ damagePerMinute: 850 }], averageDamagePerMinute: 850, overallAverage: 900, trend: 'neutral' })
+    const { fetchAllData, dpmTrendData } = useSoloDashboardData()
+
+    await fetchAllData()
+
+    expect(dpmTrendData.value).toEqual([{ damagePerMinute: 850 }])
+  })
+
+  it('populates dpmSummary from DPM trend response', async () => {
+    mockGetDpmTrend.mockResolvedValue({ dpmTrend: [], averageDamagePerMinute: 850, overallAverage: 900, trend: 'improving' })
+    const { fetchAllData, dpmSummary } = useSoloDashboardData()
+
+    await fetchAllData()
+
+    expect(dpmSummary.value).toEqual({
+      averageDamagePerMinute: 850,
+      overallAverage: 900,
+      trend: 'improving'
+    })
+  })
+
+  it('handleDpmExpand re-fetches with null limit when expanded', async () => {
+    const { handleDpmExpand } = useSoloDashboardData()
+
+    await handleDpmExpand(true)
+
+    const lastCall = mockGetDpmTrend.mock.calls[mockGetDpmTrend.mock.calls.length - 1]
+    expect(lastCall[3]).toBeNull()
+  })
+
+  it('handleDpmExpand re-fetches with limit 20 when collapsed', async () => {
+    const { handleDpmExpand } = useSoloDashboardData()
+
+    await handleDpmExpand(false)
+
+    const lastCall = mockGetDpmTrend.mock.calls[mockGetDpmTrend.mock.calls.length - 1]
+    expect(lastCall[3]).toBe(20)
+  })
+
+  it('gracefully resets dpmTrendData to [] on fetch failure', async () => {
+    mockGetDpmTrend.mockRejectedValue(new Error('Network error'))
+    const { fetchAllData, dpmTrendData } = useSoloDashboardData()
+
+    await fetchAllData()
+
+    expect(dpmTrendData.value).toEqual([])
   })
 
   it('handleWinrateExpand re-fetches with null limit when expanded', async () => {
@@ -173,6 +226,7 @@ describe('useSoloDashboardData', () => {
     mockGetDeathsTrend.mockResolvedValue({ deathsTrend: [], averageDeaths: 0, overallAverage: 0, trend: 'neutral' })
     mockGetDragonParticipationTrend.mockResolvedValue({ dragonParticipationTrend: [], overallAverage: 0, trend: 'neutral' })
     mockGetVisionScoreTrend.mockResolvedValue({ visionScoreTrend: [], overallAverage: 0, trend: 'neutral' })
+    mockGetDpmTrend.mockResolvedValue({ dpmTrend: [], overallAverage: 0, trend: 'neutral' })
     mockGetDeathPositions.mockResolvedValue({ deaths: [] })
     mockGetRadarChart.mockResolvedValue({ axes: [] })
 

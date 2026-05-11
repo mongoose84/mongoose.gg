@@ -141,3 +141,29 @@ public record VisionScoreTrendResponse(
     [property: JsonPropertyName("roleTarget")] double RoleTarget,
     [property: JsonPropertyName("trend")] string Trend
 );
+
+/// <summary>
+/// A single data point for the DPM (damage per minute) trend chart.
+/// </summary>
+public record DpmTrendPoint(
+    [property: JsonPropertyName("matchId")] string MatchId,
+    [property: JsonPropertyName("gameIndex")] int GameIndex,
+    [property: JsonPropertyName("timestamp")] DateTime Timestamp,
+    [property: JsonPropertyName("totalDamageDealt")] int TotalDamageDealt,
+    [property: JsonPropertyName("damagePerMinute")] double DamagePerMinute,
+    [property: JsonPropertyName("rollingAverage")] double RollingAverage,
+    [property: JsonPropertyName("gameDurationMinutes")] double GameDurationMinutes,
+    [property: JsonPropertyName("championName")] string ChampionName,
+    [property: JsonPropertyName("role")] string? Role,
+    [property: JsonPropertyName("accountGameName")] string? AccountGameName = null
+);
+
+/// <summary>
+/// Response DTO for the DPM trend endpoint.
+/// </summary>
+public record DpmTrendResponse(
+    [property: JsonPropertyName("dpmTrend")] DpmTrendPoint[] DpmTrend,
+    [property: JsonPropertyName("averageDamagePerMinute")] double AverageDamagePerMinute,
+    [property: JsonPropertyName("overallAverage")] double OverallAverage,
+    [property: JsonPropertyName("trend")] string Trend
+);

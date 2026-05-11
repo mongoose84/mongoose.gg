@@ -734,6 +734,138 @@ public class TrendRepository : RepositoryBase, ITrendRepository
         return result;
     }
 
+    /// <inheritdoc />
+    public async Task<(DpmTrendPoint[] DataPoints, double AverageDamagePerMinute, double OverallAverage, string Trend)> GetDpmTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        => await GetDpmTrendAsync([puuid], queueType, timeRange, limit);
+
+    /// <inheritdoc />
+    public async Task<(DpmTrendPoint[] DataPoints, double AverageDamagePerMinute, double OverallAverage, string Trend)> GetDpmTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
+    {
+        try
+        {
+            if (puuids.Count == 0)
+                return (Array.Empty<DpmTrendPoint>(), 0, 0, "neutral");
+
+            var (_, queueFilter, timeFilter, timeRangeFilter) = await BuildQueryFiltersAsync(queueType, timeRange);
+            var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+
+            // Query to get damage dealt and game duration per game
+            // Filter out games shorter than 15 minutes (900 seconds) for accuracy
+            const int minDpmGameDurationSec = 900;
+            var sql = $@"
+                SELECT
+                    p.match_id,
+                    m.game_start_time,
+                    pm.damage_dealt,
+                    m.game_duration_sec,
+                    p.champion_name,
+                    p.role,
+                    p.puuid
+                FROM participants p
+                INNER JOIN matches m ON m.match_id = p.match_id
+                INNER JOIN participant_metrics pm ON pm.participant_id = p.id
+                WHERE {puuidPredicate}
+                AND m.game_duration_sec >= {minDpmGameDurationSec} {queueFilter} {timeFilter}
+                ORDER BY m.game_start_time ASC";
+
+            var dataPoints = new List<(string MatchId, long Timestamp, int DamageDealt, int GameDurationSec, string ChampionName, string? Role, string Puuid)>();
+
+            await ExecuteWithConnectionAsync(async conn =>
+            {
+                await using var cmd = new MySqlCommand(sql, conn);
+                foreach (var (name, value) in puuidParams)
+                {
+                    cmd.Parameters.AddWithValue(name, value);
+                }
+                _filterBuilder.AddTimeRangeParameters(cmd, timeRangeFilter);
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var matchId = reader.GetString(0);
+                    var timestamp = reader.GetInt64(1);
+                    var damageDealt = reader.GetInt32(2);
+                    var gameDurationSec = reader.GetInt32(3);
+                    var championName = reader.GetString(4);
+                    var role = reader.IsDBNull(5) ? null : reader.GetString(5);
+                    var rowPuuid = reader.GetString(6);
+
+                    dataPoints.Add((matchId, timestamp, damageDealt, gameDurationSec, championName, role, rowPuuid));
+                }
+                return 0;
+            });
+
+            _logger.LogDebug("DPM trend: Retrieved {Count} dataPoints", dataPoints.Count);
+
+            if (dataPoints.Count == 0)
+                return (Array.Empty<DpmTrendPoint>(), 0, 0, "neutral");
+
+            // Calculate rolling 20-game average for each game
+            const int windowSize = 20;
+            var trendPoints = new List<DpmTrendPoint>(dataPoints.Count);
+            var dpmInWindow = 0.0;
+
+            for (int i = 0; i < dataPoints.Count; i++)
+            {
+                var currentDpm = dataPoints[i].DamageDealt / (dataPoints[i].GameDurationSec / 60.0);
+                dpmInWindow += currentDpm;
+                if (i >= windowSize)
+                {
+                    var expiredDpm = dataPoints[i - windowSize].DamageDealt / (dataPoints[i - windowSize].GameDurationSec / 60.0);
+                    dpmInWindow -= expiredDpm;
+                }
+
+                var totalGamesInWindow = Math.Min(i + 1, windowSize);
+                var rollingAverage = Math.Round(dpmInWindow / totalGamesInWindow, 1);
+
+                var point = dataPoints[i];
+                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(point.Timestamp).UtcDateTime;
+                var damagePerMinute = Math.Round(currentDpm, 1);
+                var gameDurationMinutes = Math.Round(point.GameDurationSec / 60.0, 1);
+                var accountGameName = puuidToGameName != null && puuidToGameName.TryGetValue(point.Puuid, out var gn) ? gn : null;
+
+                trendPoints.Add(new DpmTrendPoint(
+                    MatchId: point.MatchId,
+                    GameIndex: i + 1,
+                    Timestamp: timestamp,
+                    TotalDamageDealt: point.DamageDealt,
+                    DamagePerMinute: damagePerMinute,
+                    RollingAverage: rollingAverage,
+                    GameDurationMinutes: gameDurationMinutes,
+                    ChampionName: point.ChampionName,
+                    Role: point.Role,
+                    AccountGameName: accountGameName
+                ));
+            }
+
+            // Calculate summary statistics
+            var overallTotalDpm = dataPoints.Sum(d => d.DamageDealt / (d.GameDurationSec / 60.0));
+            var overallAverage = Math.Round(overallTotalDpm / dataPoints.Count, 1);
+
+            var recentCount = Math.Min(20, dataPoints.Count);
+            var recentGames = dataPoints.TakeLast(recentCount).ToList();
+            var recentTotalDpm = recentGames.Sum(d => d.DamageDealt / (d.GameDurationSec / 60.0));
+            var recentAverage = Math.Round(recentTotalDpm / recentGames.Count, 1);
+
+            // Determine trend: improving if recent DPM is higher
+            var trend = "neutral";
+            if (recentAverage > overallAverage + 100)
+                trend = "improving";
+            else if (recentAverage < overallAverage - 100)
+                trend = "worsening";
+
+            var resultPoints = DownsampleTrendData(trendPoints, limit, p => p.GameIndex);
+
+            return (resultPoints, recentAverage, overallAverage, trend);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetDpmTrendAsync for accountCount={AccountCount}, queueType={QueueType}, timeRange={TimeRange}",
+                puuids.Count, LogSanitizer.Sanitize(queueType), LogSanitizer.Sanitize(timeRange));
+            throw;
+        }
+    }
+
     private async Task<(string ValidatedQueueType, string QueueFilter, string TimeFilter, TimeRangeFilter TimeRangeFilter)> BuildQueryFiltersAsync(
         string? queueType, string? timeRange)
     {

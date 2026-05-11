@@ -108,6 +108,24 @@ public interface ITrendRepository
     Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null);
 
     /// <summary>
+    /// Get damage per minute trend data for chart display.
+    /// Returns an array of data points with total damage dealt, DPM, and rolling average.
+    /// When limit is specified, returns the most recent N games at full resolution.
+    /// When limit is null, returns all games with downsampling if over 100 data points.
+    /// Filters out games shorter than 15 minutes for accuracy.
+    /// Free-tier users see primary account only; Pro-tier users may request all or specific accounts.
+    /// </summary>
+    /// <param name="puuid">Player PUUID</param>
+    /// <param name="queueType">Queue type filter (ranked_solo, ranked_flex, normal, aram, all)</param>
+    /// <param name="timeRange">Time range filter (current_season, last_season, 1w, 1m, 3m, 6m)</param>
+    /// <param name="limit">Maximum number of most recent games to return (null for all with downsampling)</param>
+    /// <returns>Tuple containing array of DPM trend points and summary statistics</returns>
+    Task<(DpmTrendPoint[] DataPoints, double AverageDamagePerMinute, double OverallAverage, string Trend)> GetDpmTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+
+    /// <param name="puuidToGameName">Optional mapping of PUUID to game name for per-account labelling on data points</param>
+    Task<(DpmTrendPoint[] DataPoints, double AverageDamagePerMinute, double OverallAverage, string Trend)> GetDpmTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null);
+
+    /// <summary>
     /// Get daily match counts for the past N days for heatmap display.
     /// Returns a dictionary keyed by date (YYYY-MM-DD) with match count values.
     /// </summary>

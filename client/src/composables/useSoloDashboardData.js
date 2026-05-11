@@ -10,7 +10,8 @@ import {
   getCsPerMinuteTrend,
   getDeathsTrend,
   getDragonParticipationTrend,
-  getVisionScoreTrend
+  getVisionScoreTrend,
+  getDpmTrend
 } from '../services/trendsApi'
 
 export function useSoloDashboardData() {
@@ -29,6 +30,7 @@ export function useSoloDashboardData() {
   const deathsExpanded = ref(false)
   const dragonParticipationExpanded = ref(false)
   const visionScoreExpanded = ref(false)
+  const dpmExpanded = ref(false)
 
   // Dashboard summary data
   const {
@@ -83,6 +85,14 @@ export function useSoloDashboardData() {
   const { isLoading: visionScoreLoading, execute: executeVisionScoreTrendFetch } = useAsyncData(
     async (limit) => await getVisionScoreTrend(authStore.userId, queueFilter.value, timeRange.value, limit),
     { immediate: false, errorMessage: 'Failed to load vision score trend' }
+  )
+
+  // DPM trend
+  const dpmTrendData = ref([])
+  const dpmSummary = ref({ averageDamagePerMinute: 0, overallAverage: 0, trend: 'neutral' })
+  const { isLoading: dpmLoading, execute: executeDpmTrendFetch } = useAsyncData(
+    async (limit) => await getDpmTrend(authStore.userId, queueFilter.value, timeRange.value, limit),
+    { immediate: false, errorMessage: 'Failed to load damage per minute trend' }
   )
 
   // Radar chart
@@ -211,6 +221,23 @@ export function useSoloDashboardData() {
     }
   }
 
+  async function fetchDpmTrend() {
+    if (!authStore.userId) return
+    try {
+      const limit = dpmExpanded.value ? null : 20
+      const result = await executeDpmTrendFetch(limit)
+      dpmTrendData.value = result?.dpmTrend ?? []
+      dpmSummary.value = {
+        averageDamagePerMinute: result?.averageDamagePerMinute ?? 0,
+        overallAverage: result?.overallAverage ?? 0,
+        trend: result?.trend ?? 'neutral'
+      }
+    } catch {
+      dpmTrendData.value = []
+      dpmSummary.value = { averageDamagePerMinute: 0, overallAverage: 0, trend: 'neutral' }
+    }
+  }
+
   async function fetchRadarChart() {
     if (!authStore.userId) return
     try {
@@ -248,6 +275,7 @@ export function useSoloDashboardData() {
       fetchDeathsTrend(),
       fetchDragonParticipationTrend(),
       fetchVisionScoreTrend(),
+      fetchDpmTrend(),
       fetchRadarChart(),
       fetchDeathPositions(),
       fetchMatchActivity()
@@ -283,6 +311,11 @@ export function useSoloDashboardData() {
   function handleVisionScoreExpand(expanded) {
     visionScoreExpanded.value = expanded
     fetchVisionScoreTrend()
+  }
+
+  function handleDpmExpand(expanded) {
+    dpmExpanded.value = expanded
+    fetchDpmTrend()
   }
 
   // Side filter change triggers server re-fetch
@@ -341,6 +374,10 @@ export function useSoloDashboardData() {
     visionScoreTrendData,
     visionScoreLoading,
     visionScoreSummary,
+    // DPM trend
+    dpmTrendData,
+    dpmLoading,
+    dpmSummary,
     // Radar chart
     radarChartData,
     radarChartLoading,
@@ -358,6 +395,7 @@ export function useSoloDashboardData() {
     handleDeathsExpand,
     handleDragonParticipationExpand,
     handleVisionScoreExpand,
+    handleDpmExpand,
     onSideFilterChange,
     fetchAllData
   }

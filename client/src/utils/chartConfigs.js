@@ -275,6 +275,48 @@ export function goldAt15Config() {
 }
 
 /**
+ * DPM (Damage Per Minute) Chart Configuration
+ * @param {Object} options - { overallAverage: number, trend: string }
+ */
+export function dpmConfig(options = {}) {
+  return {
+    dataKey: 'damagePerMinute',
+    label: 'DPM',
+    color: {
+      type: 'trend',
+      trend: options.trend || 'neutral'
+    },
+    tooltip: {
+      title: (point) => `Game ${point.gameIndex} - ${point.championName}`,
+      label: (point) => {
+        const date = new Date(point.timestamp).toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric'
+        })
+        return [
+          `DPM: ${point.damagePerMinute.toFixed(0)}`,
+          `Total Damage: ${point.totalDamageDealt?.toLocaleString() ?? '--'}`,
+          `Game Duration: ${point.gameDurationMinutes.toFixed(1)} min`,
+          point.role ? `Role: ${point.role}` : null,
+          `Date: ${date}`
+        ].filter(line => line !== null)
+      }
+    },
+    yAxis: {
+      min: 0,
+      formatter: (value) => value.toFixed(0)
+    },
+    annotations: options.overallAverage !== null && options.overallAverage !== undefined
+      ? [{
+          value: options.overallAverage,
+          label: `Overall: ${options.overallAverage.toFixed(0)}`,
+          color: 'rgba(255, 255, 255, 0.4)',
+          labelPosition: 'end'
+        }]
+      : []
+  }
+}
+
+/**
  * CS Per Minute Chart Configuration
  * @param {Object} options - { roleTarget: number }
  */

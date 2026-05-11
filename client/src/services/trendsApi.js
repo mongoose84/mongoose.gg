@@ -125,3 +125,19 @@ export async function getVisionScoreTrend(userId, queueType = 'all', timeRange, 
     'Failed to get vision score trend'
   )
 }
+
+/**
+ * Get damage per minute trend data for chart display
+ * @param {number} userId - User ID
+ * @param {string} [queueType] - Optional queue filter
+ * @param {string} [timeRange] - Optional time range
+ * @param {number} [limit] - Maximum number of most recent games to return
+ * @returns {Promise<Object|null>} DPM trend data or null if no data is found
+ */
+export async function getDpmTrend(userId, queueType = 'all', timeRange, limit) {
+  const params = buildTrendParams(queueType, timeRange, limit)
+  return getTrendResponse(
+    `/trends/damage-per-minute/${userId}${params.toString() ? '?' + params.toString() : ''}`,
+    'Failed to get damage per minute trend'
+  )
+}

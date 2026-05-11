@@ -10,6 +10,7 @@ const mockGetCsPerMinuteTrend = vi.fn()
 const mockGetDeathsTrend = vi.fn()
 const mockGetDragonParticipationTrend = vi.fn()
 const mockGetVisionScoreTrend = vi.fn()
+const mockGetDpmTrend = vi.fn()
 const mockGetDeathPositions = vi.fn()
 const mockGetRadarChart = vi.fn()
 const mockTrackFilterChange = vi.fn()
@@ -45,7 +46,8 @@ vi.mock('@/services/trendsApi', () => ({
   getCsPerMinuteTrend: (...args) => mockGetCsPerMinuteTrend(...args),
   getDeathsTrend: (...args) => mockGetDeathsTrend(...args),
   getDragonParticipationTrend: (...args) => mockGetDragonParticipationTrend(...args),
-  getVisionScoreTrend: (...args) => mockGetVisionScoreTrend(...args)
+  getVisionScoreTrend: (...args) => mockGetVisionScoreTrend(...args),
+  getDpmTrend: (...args) => mockGetDpmTrend(...args)
 }))
 
 describe('SoloPage', () => {
@@ -57,6 +59,7 @@ describe('SoloPage', () => {
     mockGetDeathsTrend.mockResolvedValue({ deathsTrend: [], averageDeaths: 0, overallAverage: 0, trend: 'neutral' })
     mockGetDragonParticipationTrend.mockResolvedValue({ dragonParticipationTrend: [], averageParticipation: 0, overallAverage: 0, trend: 'neutral' })
     mockGetVisionScoreTrend.mockResolvedValue({ visionScoreTrend: [], averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' })
+    mockGetDpmTrend.mockResolvedValue({ dpmTrend: [], averageDamagePerMinute: 0, overallAverage: 0, trend: 'neutral' })
     mockGetDeathPositions.mockResolvedValue({ deaths: [], totalDeaths: 0, matchesAnalyzed: 0, phaseSummary: { early: 0, mid: 0, late: 0, veryLate: 0 } })
     mockGetRadarChart.mockResolvedValue({ axes: [], gamesAnalyzed: 0 })
   })
@@ -75,6 +78,7 @@ describe('SoloPage', () => {
           DeathsChart: true,
           DragonParticipationChart: true,
           VisionChart: true,
+          DpmChart: true,
           DangerZonesMap: true,
           RadarChart: true
         }
@@ -86,5 +90,34 @@ describe('SoloPage', () => {
     expect(wrapper.find('[data-testid="zone-deep-analysis"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="radar-chart-card"]').exists()).toBe(true)
     expect(mockGetRadarChart).toHaveBeenCalled()
+  })
+
+  it('renders DPM trend card', async () => {
+    const wrapper = mount(SoloPage, {
+      global: {
+        stubs: {
+          BaseQueueToggle: true,
+          BaseTimeRangeSelect: true,
+          SummaryStatsCard: true,
+          TrendChartCard: true,
+          WinrateChart: true,
+          GoldAt15Chart: true,
+          CsPerMinuteChart: true,
+          DeathsChart: true,
+          DragonParticipationChart: true,
+          VisionChart: true,
+          DpmChart: true,
+          DangerZonesMap: true,
+          RadarChart: true
+        }
+      }
+    })
+
+    await flushPromises()
+
+    const dpmCard = wrapper.findAllComponents({ name: 'TrendChartCard' })
+      .find(c => c.props('testId') === 'dpm-trend-card')
+    expect(dpmCard).toBeTruthy()
+    expect(mockGetDpmTrend).toHaveBeenCalled()
   })
 })

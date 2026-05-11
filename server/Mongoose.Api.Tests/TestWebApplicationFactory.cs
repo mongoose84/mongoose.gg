@@ -1635,6 +1635,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         private readonly ConcurrentDictionary<string, GoldAt15TrendPoint[]> _goldAt15Data = new();
         private readonly ConcurrentDictionary<string, CsPerMinuteTrendPoint[]> _csPerMinuteData = new();
         private readonly ConcurrentDictionary<string, (DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> _deathsData = new();
+        private readonly ConcurrentDictionary<string, (DpmTrendPoint[] DataPoints, double AverageDamagePerMinute, double OverallAverage, string Trend)> _dpmData = new();
 
         public void SetDragonParticipationData(string puuid, DragonParticipationTrendPoint[] dataPoints, double averageParticipation, double overallAverage, string trend)
         {
@@ -1666,6 +1667,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _deathsData[puuid] = (dataPoints, averageDeaths, overallAverage, trend);
         }
 
+        public void SetDpmData(string puuid, DpmTrendPoint[] dataPoints, double averageDamagePerMinute, double overallAverage, string trend)
+        {
+            _dpmData[puuid] = (dataPoints, averageDamagePerMinute, overallAverage, trend);
+        }
+
         public void Clear()
         {
             _dragonParticipationData.Clear();
@@ -1674,6 +1680,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             _goldAt15Data.Clear();
             _csPerMinuteData.Clear();
             _deathsData.Clear();
+            _dpmData.Clear();
         }
 
         public Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
@@ -1919,6 +1926,55 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
             return Task.FromResult<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)>(
                 (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral"));
+        }
+
+        public Task<(DpmTrendPoint[] DataPoints, double AverageDamagePerMinute, double OverallAverage, string Trend)> GetDpmTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
+        {
+            if (_dpmData.TryGetValue(puuid, out var data))
+                return Task.FromResult(data);
+
+            return Task.FromResult<(DpmTrendPoint[] DataPoints, double AverageDamagePerMinute, double OverallAverage, string Trend)>(
+                (Array.Empty<DpmTrendPoint>(), 0, 0, "neutral"));
+        }
+
+        public Task<(DpmTrendPoint[] DataPoints, double AverageDamagePerMinute, double OverallAverage, string Trend)> GetDpmTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
+        {
+            var combinedPoints = new List<DpmTrendPoint>();
+            (double AverageDamagePerMinute, double OverallAverage, string Trend)? summary = null;
+
+            foreach (var puuid in puuids)
+            {
+                if (_dpmData.TryGetValue(puuid, out var data))
+                {
+                    if (summary == null)
+                    {
+                        summary = (data.AverageDamagePerMinute, data.OverallAverage, data.Trend);
+                    }
+
+                    string? accountGameName = null;
+                    if (puuidToGameName != null)
+                    {
+                        puuidToGameName.TryGetValue(puuid, out accountGameName);
+                    }
+
+                    var labeledPoints = data.DataPoints
+                        .Select(point => point with { AccountGameName = point.AccountGameName ?? accountGameName });
+
+                    combinedPoints.AddRange(labeledPoints);
+                }
+            }
+
+            if (summary != null)
+            {
+                return Task.FromResult((
+                    combinedPoints.ToArray(),
+                    summary.Value.AverageDamagePerMinute,
+                    summary.Value.OverallAverage,
+                    summary.Value.Trend));
+            }
+
+            return Task.FromResult<(DpmTrendPoint[] DataPoints, double AverageDamagePerMinute, double OverallAverage, string Trend)>(
+                (Array.Empty<DpmTrendPoint>(), 0, 0, "neutral"));
         }
 
         private readonly ConcurrentDictionary<string, Dictionary<string, int>> _dailyCounts = new();

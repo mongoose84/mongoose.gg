@@ -99,4 +99,38 @@ describe('trendsApi', () => {
       expect(result).toBeNull()
     })
   })
+
+  describe('getDpmTrend', () => {
+    it('calls /trends/damage-per-minute/:userId', async () => {
+      await trendsApi.getDpmTrend(5)
+      expect(mockApiRequest).toHaveBeenCalledWith(
+        expect.stringContaining('/trends/damage-per-minute/5'),
+        { method: 'GET' }
+      )
+    })
+
+    it('appends queueType when not "all"', async () => {
+      await trendsApi.getDpmTrend(5, 'ranked_solo')
+      const endpoint = mockApiRequest.mock.calls[0][0]
+      expect(endpoint).toContain('queueType=ranked_solo')
+    })
+
+    it('appends timeRange when provided', async () => {
+      await trendsApi.getDpmTrend(5, 'all', '3m')
+      const endpoint = mockApiRequest.mock.calls[0][0]
+      expect(endpoint).toContain('timeRange=3m')
+    })
+
+    it('appends limit when provided', async () => {
+      await trendsApi.getDpmTrend(5, 'all', undefined, 20)
+      const endpoint = mockApiRequest.mock.calls[0][0]
+      expect(endpoint).toContain('limit=20')
+    })
+
+    it('returns null on 404', async () => {
+      mockApiRequest.mockResolvedValue({ status: 404 })
+      const result = await trendsApi.getDpmTrend(5)
+      expect(result).toBeNull()
+    })
+  })
 })

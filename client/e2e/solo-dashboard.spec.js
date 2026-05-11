@@ -88,5 +88,32 @@ test.describe('Solo Dashboard Content', () => {
   test('should have solo dashboard section visible', async ({ page }) => {
     await expect(page.locator('[data-testid="solo-dashboard"]')).toBeVisible({ timeout: 15_000 });
   });
+
+  test('should display DPM trend card after Vision Score card', async ({ page }) => {
+    await expect(page.locator('[data-testid="solo-dashboard"]')).toBeVisible({ timeout: 15_000 });
+
+    const visionCard = page.locator('[data-testid="vision-score-trend-card"]');
+    const dpmCard = page.locator('[data-testid="dpm-trend-card"]');
+
+    await expect(visionCard).toBeVisible({ timeout: 10_000 });
+    await expect(dpmCard).toBeVisible({ timeout: 10_000 });
+
+    // DPM card appears after Vision Score card in DOM order
+    const visionBox = await visionCard.boundingBox();
+    const dpmBox = await dpmCard.boundingBox();
+    expect(dpmBox?.y).toBeGreaterThan(visionBox?.y ?? 0);
+  });
+
+  test('DPM graph has no extra toggle controls', async ({ page }) => {
+    await expect(page.locator('[data-testid="solo-dashboard"]')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[data-testid="dpm-trend-card"]')).toBeVisible({ timeout: 10_000 });
+
+    // The DPM card should only contain a single chart — no phase toggles or extra cards
+    const dpmCard = page.locator('[data-testid="dpm-trend-card"]');
+    const chartCanvas = dpmCard.locator('canvas');
+    await expect(chartCanvas).toBeVisible({ timeout: 10_000 });
+    const toggleButtons = dpmCard.locator('button[data-phase], [data-testid*="phase-toggle"]');
+    await expect(toggleButtons).toHaveCount(0);
+  });
 });
 

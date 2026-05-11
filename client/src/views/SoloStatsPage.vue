@@ -112,6 +112,25 @@
         </template>
       </TrendChartCard>
 
+      <!-- DPM Trend Chart — "How much damage am I dealing?" -->
+      <TrendChartCard
+        title="Damage Per Minute"
+        subtitle="Damage output efficiency over time"
+        :loading="dpmLoading"
+        test-id="dpm-trend-card"
+        @toggle-expand="handleDpmExpand"
+      >
+        <template #default>
+          <DpmChart
+            :data="dpmTrendData"
+            :overall-average="dpmSummary.overallAverage"
+            :trend="dpmSummary.trend"
+            :chart-mode="chartMode"
+            :accounts="chartAccounts"
+          />
+        </template>
+      </TrendChartCard>
+
       <!-- Gold at 15 Trend Chart — "Am I winning my lane?" -->
       <TrendChartCard
         title="Gold at 15 Minutes"
@@ -209,6 +228,7 @@ import CsPerMinuteChart from '../components/solo/CsPerMinuteChart.vue'
 import DeathsChart from '../components/solo/DeathsChart.vue'
 import DragonParticipationChart from '../components/solo/DragonParticipationChart.vue'
 import VisionChart from '../components/solo/VisionChart.vue'
+import DpmChart from '../components/solo/DpmChart.vue'
 import DangerZonesMap from '../components/solo/DangerZonesMap.vue'
 import RadarChart from '../components/solo/RadarChart.vue'
 import MatchActivityHeatmap from '../components/overview/MatchActivityHeatmap.vue'
@@ -237,6 +257,9 @@ const {
   visionScoreTrendData,
   visionScoreLoading,
   visionScoreSummary,
+  dpmTrendData,
+  dpmLoading,
+  dpmSummary,
   radarChartData,
   radarChartLoading,
   deathPositionsData,
@@ -250,6 +273,7 @@ const {
   handleDeathsExpand,
   handleDragonParticipationExpand,
   handleVisionScoreExpand,
+  handleDpmExpand,
   onSideFilterChange,
   fetchAllData
 } = useSoloDashboardData()
