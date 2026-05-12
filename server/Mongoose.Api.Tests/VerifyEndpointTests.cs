@@ -143,8 +143,8 @@ public class VerifyEndpointTests
         ticket.Properties.ExpiresUtc.Should().NotBeNull();
 
         var remaining = ticket.Properties.ExpiresUtc!.Value - DateTimeOffset.UtcNow;
-        remaining.Should().BeGreaterThan(TimeSpan.FromDays(13));
-        remaining.Should().BeLessThan(TimeSpan.FromDays(15));
+        remaining.Should().BeGreaterThan(TimeSpan.FromDays(29));
+        remaining.Should().BeLessThan(TimeSpan.FromDays(31));
 
         ticket.Principal.Identity.Should().BeAssignableTo<ClaimsIdentity>();
         ticket.Principal.FindFirst("security_stamp")?.Value.Should().NotBeNullOrWhiteSpace();
