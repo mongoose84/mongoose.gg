@@ -34,7 +34,7 @@ Secrets.Initialize(builder.Configuration);
 // Configure DataProtection:KeyRingPath via environment variable to a folder outside
 // the deploy directory (e.g. D:\Mongoose\keys) so keys also survive redeployments.
 var keyRingPath = builder.Configuration["DataProtection:KeyRingPath"]
-    ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "keys");
+    ?? Path.Combine(builder.Environment.ContentRootPath, "keys");
 Directory.CreateDirectory(keyRingPath);
 
 builder.Services.AddDataProtection()
