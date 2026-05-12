@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -189,6 +190,9 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace IDeathPositionsRepository with a fake
             services.RemoveAll<IDeathPositionsRepository>();
             services.AddSingleton<IDeathPositionsRepository>(_deathPositionsRepository);
+
+            // Use ephemeral (in-memory) Data Protection so tests never write key files to disk
+            services.AddDataProtection().UseEphemeralDataProtectionProvider();
         });
 
         return base.CreateHost(builder);
