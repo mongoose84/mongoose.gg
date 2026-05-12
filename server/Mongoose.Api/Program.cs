@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Mongoose.Api.Application;
 using Mongoose.Api.Application.Services;
@@ -26,6 +27,20 @@ var cookieSecurePolicy = builder.Environment.IsDevelopment()
 
 // Read secrets from configuration/environment (no local secret files required)
 Secrets.Initialize(builder.Configuration);
+
+// Data Protection — persists encryption keys to a stable directory so auth cookies
+// survive app pool recycles and server reboots. Without this, ASP.NET Core uses
+// ephemeral in-memory keys that are lost on restart, invalidating all issued cookies.
+// Configure DataProtection:KeyRingPath via environment variable to a folder outside
+// the deploy directory (e.g. D:\Mongoose\keys) so keys also survive redeployments.
+var keyRingPath = builder.Configuration["DataProtection:KeyRingPath"]
+    ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "keys");
+Directory.CreateDirectory(keyRingPath);
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keyRingPath))
+    .SetApplicationName("Mongoose.Api")
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
 
 
 builder.Services.AddSingleton<IRiotApiClient, RiotApiClient>();
@@ -127,7 +142,7 @@ builder.Services.AddSingleton<SyncProgressHub>();
 builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
 
 // Add authentication (cookie-based)
-// All logins produce a 14-day persistent cookie with sliding expiration.
+// All logins produce a 30-day persistent cookie with sliding expiration.
 // ASP.NET reissues the cookie automatically when more than half the lifetime has elapsed.
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -138,7 +153,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = cookieSecurePolicy;
         options.Cookie.SameSite = SameSiteMode.Strict;
-        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
         var cookieName = builder.Configuration.GetValue<string>("Auth:CookieName");
         if (!string.IsNullOrWhiteSpace(cookieName))

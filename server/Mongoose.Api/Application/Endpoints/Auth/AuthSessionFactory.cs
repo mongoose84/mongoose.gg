@@ -29,7 +29,7 @@ internal static class AuthSessionFactory
         {
             IsPersistent = true,
             AllowRefresh = true,
-            ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14)
+            ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
         };
     }
 }
