@@ -52,7 +52,7 @@ Key settings:
 - `Riot:ApiKey` or env var `RIOT_API_KEY` — Riot Games API key
 - `Security:EncryptionSecret` or env var `ENCRYPTION_SECRET` — AES encryption key for PII
 - `Auth:CookieName` — auth cookie name (`mongoose-auth`)
-- Auth sessions use a single 14-day persistent sliding cookie policy across login/register/verify.
+- Auth sessions use a single 30-day persistent sliding cookie policy across login/register/verify.
 - `Jobs:MatchRetentionDays` — match data retention (180 days)
 - `Email:DevMode` — skip actual email sending in dev
 

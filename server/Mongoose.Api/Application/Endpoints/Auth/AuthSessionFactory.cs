@@ -7,6 +7,8 @@ namespace Mongoose.Api.Application.Endpoints.Auth;
 
 internal static class AuthSessionFactory
 {
+    internal static readonly TimeSpan PersistentSlidingSessionLifetime = TimeSpan.FromDays(30);
+
     public static ClaimsPrincipal CreatePrincipal(User user, bool? emailVerifiedOverride = null)
     {
         var claims = new List<Claim>
@@ -29,7 +31,7 @@ internal static class AuthSessionFactory
         {
             IsPersistent = true,
             AllowRefresh = true,
-            ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
+            ExpiresUtc = DateTimeOffset.UtcNow.Add(PersistentSlidingSessionLifetime)
         };
     }
 }
