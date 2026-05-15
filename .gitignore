@@ -49,3 +49,5 @@ server/Mongoose.Api.Tests/bin
 server/Mongoose.Api.Tests/obj
 server/Mongoose.Api.Tests/TestResults
 server/TestResultsStep1/*
+server/Mongoose.Api/Mongoose.Api.csproj.lscache
+server/Mongoose.Api.Tests/Mongoose.Api.Tests.csproj.lscache
