@@ -11,7 +11,7 @@ namespace Mongoose.Api.Application.Endpoints.Auth;
 /// <summary>
 /// Login Endpoint
 /// Validates username/password and sets an httpOnly auth cookie for subsequent requests.
-/// All sessions are 14-day sliding persistent cookies.
+/// All sessions use <see cref="AuthSessionFactory.PersistentSlidingSessionLifetime"/> sliding persistent cookies.
 /// Rate limited to 10 requests per 15 minutes per IP to prevent brute force attacks.
 /// </summary>
 public sealed class LoginEndpoint : IEndpoint
@@ -141,7 +141,7 @@ public sealed class LoginEndpoint : IEndpoint
                 user.LastLoginAt = DateTime.UtcNow;
                 await usersRepo.UpsertAsync(user);
 
-                // Single session policy: every login produces a 14-day persistent cookie.
+                // Single session policy: every login uses AuthSessionFactory.PersistentSlidingSessionLifetime.
                 // SlidingExpiration on the cookie handler refreshes it automatically on activity.
                 var authProperties = AuthSessionFactory.CreatePersistentSlidingSession();
 

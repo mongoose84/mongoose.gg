@@ -65,12 +65,12 @@ public class LoginEndpointTests
         DateTimeOffset.TryParse(expiresValue, out var expiresUtc).Should().BeTrue("Expires must be parseable");
 
         var remaining = expiresUtc - DateTimeOffset.UtcNow;
-        remaining.Should().BeGreaterThan(TimeSpan.FromDays(13));
-        remaining.Should().BeLessThan(TimeSpan.FromDays(15));
+        remaining.Should().BeGreaterThan(TimeSpan.FromDays(29));
+        remaining.Should().BeLessThan(TimeSpan.FromDays(31));
     }
 
     [Fact]
-    public async Task Login_sets_persistent_sliding_cookie_with_14_day_expiry()
+    public async Task Login_sets_persistent_sliding_cookie_with_30_day_expiry()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -89,8 +89,8 @@ public class LoginEndpointTests
         ticket.Properties.ExpiresUtc.Should().NotBeNull();
 
         var remaining = ticket.Properties.ExpiresUtc!.Value - DateTimeOffset.UtcNow;
-        remaining.Should().BeGreaterThan(TimeSpan.FromDays(13));
-        remaining.Should().BeLessThan(TimeSpan.FromDays(15));
+        remaining.Should().BeGreaterThan(TimeSpan.FromDays(29));
+        remaining.Should().BeLessThan(TimeSpan.FromDays(31));
     }
 
     [Fact]

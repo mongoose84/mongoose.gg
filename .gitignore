@@ -39,6 +39,9 @@ server/Mongoose.Api/bin
 server/Mongoose.Api/obj
 server/Mongoose.Api/publish
 
+# Data Protection key ring — contains encryption keys, must never be committed
+server/Mongoose.Api/keys/
+
 # published files
 server/publish/**/*
 server/publish-output/
@@ -46,3 +49,5 @@ server/Mongoose.Api.Tests/bin
 server/Mongoose.Api.Tests/obj
 server/Mongoose.Api.Tests/TestResults
 server/TestResultsStep1/*
+server/Mongoose.Api/Mongoose.Api.csproj.lscache
+server/Mongoose.Api.Tests/Mongoose.Api.Tests.csproj.lscache
