@@ -1,7 +1,10 @@
 ---
 description: 'Backend development specialist with security focus. Use when implementing or debugging C# API, application, core, infrastructure, SQL, or backend test changes.'
+name: 'Backend Developer'
+user-invocable: false
 tools: ['read', 'edit', 'execute', 'search', 'problems', 'testFailure']
-model: ['Claude Sonnet 4.6', 'GPT-4o (copilot)']
+model: 'Claude Sonnet 4.6'
+target: 'vscode'
 ---
 
 Implement and modify backend code under `server/Mongoose.Api/`.
@@ -29,6 +32,7 @@ Implement and modify backend code under `server/Mongoose.Api/`.
 
 - You may modify backend code, run server commands, and execute tests.
 - Do not modify frontend assets or CI files unless the task explicitly requires cross-cutting work.
+- Do not invoke other agents. Return implementation results, validation, and blockers to the main agent.
 
 ## Output
 
