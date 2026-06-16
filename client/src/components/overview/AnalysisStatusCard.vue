@@ -105,7 +105,7 @@ function clearPending() {
 // Clear the optimistic flag whenever the job reaches any settled state:
 // running (confirmed by WS), completed, failed.
 //
-// NOTE: this watcher only fires on *changes*. The 5-second safety timeout in
+// NOTE: this watcher only fires on *changes*. The safety timeout in
 // handleAction covers the edge case where the sync completes so fast that
 // isUpToDate never transitions away from true (no value change → no watcher fire).
 watch([isRunning, isUpToDate, hasFailed], ([running, upToDate, failed]) => {
@@ -182,6 +182,12 @@ const showActionButton = computed(() => {
 })
 
 const actionButtonText = computed(() => {
+  // While optimistically pending (clicked but no WS confirmation yet) the button
+  // stays visible but disabled — surface "Analyzing..." so the click clearly
+  // registers even before the backend/WebSocket responds.
+  if (isActiveOrPending.value) {
+    return 'Analyzing...'
+  }
   if (hasFailed.value) {
     return 'Retry'
   }
@@ -208,9 +214,10 @@ async function handleAction() {
   }
 
   // Safety net: clears isPending if the WS never delivers a status update
-  // within ~1.5 s. This re-enables the button naturally so the user isn't
-  // stuck looking at a disabled control if nothing is happening.
-  pendingTimeoutId = setTimeout(clearPending, 1_500)
+  // within ~5 s. This keeps the "Analyzing..." feedback on screen long enough
+  // to cover slow backend/WebSocket round-trips, then re-enables the button
+  // naturally so the user isn't stuck looking at a disabled control.
+  pendingTimeoutId = setTimeout(clearPending, 5_000)
 }
 </script>
 

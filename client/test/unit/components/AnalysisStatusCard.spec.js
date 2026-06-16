@@ -312,7 +312,17 @@ describe('AnalysisStatusCard', () => {
       expect(wrapper.find('.status-spinner').exists()).toBe(false);
     });
 
-    it('re-enables the action button via 1.5-second safety timeout when WS never delivers a status update', async () => {
+    it('shows "Analyzing..." on the button while optimistically pending', async () => {
+      mockTriggerAnalysis.mockReturnValue(new Promise(() => {})); // never resolves
+      const wrapper = mountCard();
+
+      await wrapper.find('button').trigger('click');
+      await nextTick();
+
+      expect(wrapper.find('button').text()).toBe('Analyzing...');
+    });
+
+    it('re-enables the action button via 5-second safety timeout when WS never delivers a status update', async () => {
       vi.useFakeTimers();
       // Status is not settled: no isRunning, isUpToDate, or hasFailed
       mockTriggerAnalysis.mockResolvedValue(true);
@@ -325,8 +335,13 @@ describe('AnalysisStatusCard', () => {
       expect(wrapper.find('.status-spinner').exists()).toBe(true);
       expect(wrapper.find('button').attributes('disabled')).toBeDefined();
 
-      // Advance past the 1.5-second safety timeout
-      vi.advanceTimersByTime(1_500);
+      // Still pending just before the safety timeout elapses
+      vi.advanceTimersByTime(4_000);
+      await flushPromises();
+      expect(wrapper.find('button').attributes('disabled')).toBeDefined();
+
+      // Advance past the 5-second safety timeout
+      vi.advanceTimersByTime(1_000);
       await flushPromises();
 
       expect(wrapper.find('.status-spinner').exists()).toBe(false);
