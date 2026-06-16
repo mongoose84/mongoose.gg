@@ -18,6 +18,7 @@ public class MatchHistorySyncJob : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<MatchHistorySyncJob> _logger;
+    private readonly ISyncQueueSignal _queueSignal;
     private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(10);
     private readonly TimeSpan _stuckJobThreshold = TimeSpan.FromMinutes(10);
 
@@ -27,10 +28,11 @@ public class MatchHistorySyncJob : BackgroundService
     private const int DeepAnalysisMatchCount = 100;
     private static readonly TimeSpan BackfillLookbackPeriod = TimeSpan.FromDays(180); // 6 months
 
-    public MatchHistorySyncJob(IServiceProvider serviceProvider, ILogger<MatchHistorySyncJob> logger)
+    public MatchHistorySyncJob(IServiceProvider serviceProvider, ILogger<MatchHistorySyncJob> logger, ISyncQueueSignal queueSignal)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _queueSignal = queueSignal;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -49,8 +51,19 @@ public class MatchHistorySyncJob : BackgroundService
 
                 if (!processed)
                 {
-                    // No work to do, sleep before next poll
-                    await Task.Delay(_pollInterval, stoppingToken);
+                    // No work to do. Wait for either the next poll tick (fallback for
+                    // crash recovery / missed signals) or an explicit wake-up from the
+                    // sync endpoint — whichever comes first. The signal makes a queued
+                    // sync start within milliseconds instead of up to a full poll interval.
+                    //
+                    // Cancel the loser via a linked token so the pending task doesn't
+                    // linger across iterations (which would otherwise leak waiters and
+                    // could let a stale waiter swallow a wake-up permit).
+                    using var idleCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                    var pollTick = Task.Delay(_pollInterval, idleCts.Token);
+                    var wakeUp = _queueSignal.WaitAsync(idleCts.Token);
+                    await Task.WhenAny(pollTick, wakeUp);
+                    idleCts.Cancel();
                 }
             }
             catch (OperationCanceledException)

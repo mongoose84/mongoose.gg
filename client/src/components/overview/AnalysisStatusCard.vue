@@ -213,11 +213,11 @@ async function handleAction() {
     return
   }
 
-  // Safety net: clears isPending if the WS never delivers a status update
-  // within ~5 s. This keeps the "Analyzing..." feedback on screen long enough
-  // to cover slow backend/WebSocket round-trips, then re-enables the button
-  // naturally so the user isn't stuck looking at a disabled control.
-  pendingTimeoutId = setTimeout(clearPending, 5_000)
+  // Dead-WS fallback only. The server opens the aggregate run and broadcasts a
+  // 'syncing' state almost immediately, so in the normal case the watcher above
+  // clears isPending within ~1 s. This longer timeout just re-enables the button
+  // if the WebSocket is down and no aggregate message ever arrives.
+  pendingTimeoutId = setTimeout(clearPending, 15_000)
 }
 </script>
 

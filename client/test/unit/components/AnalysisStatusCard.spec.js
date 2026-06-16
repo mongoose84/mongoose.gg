@@ -322,7 +322,7 @@ describe('AnalysisStatusCard', () => {
       expect(wrapper.find('button').text()).toBe('Analyzing...');
     });
 
-    it('re-enables the action button via 5-second safety timeout when WS never delivers a status update', async () => {
+    it('re-enables the action button via the 15-second dead-WS fallback when no aggregate update arrives', async () => {
       vi.useFakeTimers();
       // Status is not settled: no isRunning, isUpToDate, or hasFailed
       mockTriggerAnalysis.mockResolvedValue(true);
@@ -331,16 +331,16 @@ describe('AnalysisStatusCard', () => {
       await wrapper.find('button').trigger('click');
       await flushPromises();
 
-      // Still pending — no WS update has arrived; button is disabled
+      // Still pending — no aggregate update has arrived; button is disabled
       expect(wrapper.find('.status-spinner').exists()).toBe(true);
       expect(wrapper.find('button').attributes('disabled')).toBeDefined();
 
-      // Still pending just before the safety timeout elapses
-      vi.advanceTimersByTime(4_000);
+      // Still pending just before the fallback timeout elapses
+      vi.advanceTimersByTime(14_000);
       await flushPromises();
       expect(wrapper.find('button').attributes('disabled')).toBeDefined();
 
-      // Advance past the 5-second safety timeout
+      // Advance past the 15-second dead-WS fallback
       vi.advanceTimersByTime(1_000);
       await flushPromises();
 

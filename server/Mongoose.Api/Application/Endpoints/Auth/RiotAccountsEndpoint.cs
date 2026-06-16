@@ -16,7 +16,8 @@ namespace Mongoose.Api.Application.Endpoints.Auth;
 /// - POST /api/v2/users/me/riot-accounts - Link a new Riot account
 /// - DELETE /api/v2/users/me/riot-accounts/{puuid} - Unlink a Riot account
 /// - PUT /api/v2/users/me/riot-accounts/{puuid}/primary - Set a linked account as primary
-/// - POST /api/v2/users/me/riot-accounts/{puuid}/sync - Trigger a sync
+/// - POST /api/v2/users/me/riot-accounts/sync - Trigger a sync for ALL linked accounts
+/// - POST /api/v2/users/me/riot-accounts/{puuid}/sync - Trigger a sync for one account
 /// - GET /api/v2/users/me/riot-accounts/{puuid}/sync-status - Get sync status
 /// </summary>
 public sealed class RiotAccountsEndpoint : IEndpoint
@@ -43,6 +44,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         ConfigureLinkEndpoint(app);
         ConfigureDeleteEndpoint(app);
         ConfigureSetPrimaryEndpoint(app);
+        ConfigureSyncAllEndpoint(app);
         ConfigureSyncEndpoint(app);
         ConfigureSyncStatusEndpoint(app);
     }
@@ -407,6 +409,65 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         });
     }
 
+    private void ConfigureSyncAllEndpoint(WebApplication app)
+    {
+        // Collection-level "Analyze all": queues every linked account in one request and
+        // surfaces a single combined progress stream via the aggregate WebSocket channel.
+        _ = app.MapPost(Route + "/sync", [Authorize] async (
+            HttpContext httpContext,
+            [FromServices] IRiotAccountsRepository riotAccountsRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
+            [FromServices] ISyncProgressAggregator aggregator,
+            [FromServices] ISyncQueueSignal queueSignal,
+            [FromServices] ILogger<RiotAccountsEndpoint> logger
+        ) =>
+        {
+            try
+            {
+                var userId = GetUserId(httpContext);
+                if (userId == null) return AuthResults.InvalidSession();
+
+                var links = await userRiotAccountsRepo.GetByUserIdAsync(userId.Value);
+                if (links.Count == 0)
+                {
+                    return Results.BadRequest(new { error = "No linked Riot accounts", code = "NO_LINKED_ACCOUNT" });
+                }
+
+                var allPuuids = links.Select(l => l.Account.Puuid).ToList();
+
+                // Queue every account that isn't already mid-sync.
+                var queued = 0;
+                foreach (var (_, account) in links)
+                {
+                    if (account.SyncStatus == "syncing")
+                        continue;
+                    await riotAccountsRepo.UpdateSyncStatusAsync(account.Puuid, "pending");
+                    queued++;
+                }
+
+                // Open the aggregate run across ALL linked accounts (covers any already syncing)
+                // and immediately broadcast a "syncing" state so the UI reacts without delay.
+                await aggregator.StartRunAsync(userId.Value, allPuuids);
+
+                // Wake the background job so queued work starts now instead of at the next poll.
+                if (queued > 0)
+                {
+                    queueSignal.Notify();
+                }
+
+                logger.LogInformation("Queued analysis for {Queued}/{Total} linked accounts, user {UserId}",
+                    queued, allPuuids.Count, LogSanitizer.Sanitize(userId.Value.ToString()));
+
+                return Results.Accepted($"{Route}/sync", new SyncAllResponse(allPuuids.Count, queued, "Analysis queued"));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error triggering sync for all linked accounts");
+                return Results.Json(new { error = "Internal server error" }, statusCode: 500);
+            }
+        });
+    }
+
     private void ConfigureSyncEndpoint(WebApplication app)
     {
         app.MapPost(Route + "/{puuid}/sync", [Authorize] async (
@@ -528,6 +589,12 @@ public sealed class RiotAccountsEndpoint : IEndpoint
     public record SyncResponse(
         [property: JsonPropertyName("puuid")] string Puuid,
         [property: JsonPropertyName("status")] string Status,
+        [property: JsonPropertyName("message")] string Message
+    );
+
+    public record SyncAllResponse(
+        [property: JsonPropertyName("accountsTotal")] int AccountsTotal,
+        [property: JsonPropertyName("accountsQueued")] int AccountsQueued,
         [property: JsonPropertyName("message")] string Message
     );
 
