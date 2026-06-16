@@ -20,6 +20,8 @@ public class LoginSyncServiceTests
     private readonly TrackingUserRiotAccountsRepository _userRiotAccountsRepo;
     private readonly ControllableRiotApiClient _riotApiClient;
     private readonly TrackingSyncBroadcaster _broadcaster;
+    private readonly TrackingAggregator _aggregator;
+    private readonly TrackingQueueSignal _queueSignal;
     private readonly LoginSyncService _sut;
 
     public LoginSyncServiceTests()
@@ -27,6 +29,8 @@ public class LoginSyncServiceTests
         _riotAccountsRepo = new TrackingRiotAccountsRepository();
         _riotApiClient = new ControllableRiotApiClient();
         _broadcaster = new TrackingSyncBroadcaster();
+        _aggregator = new TrackingAggregator();
+        _queueSignal = new TrackingQueueSignal();
         _userRiotAccountsRepo = new TrackingUserRiotAccountsRepository(_riotAccountsRepo);
 
         _sut = new LoginSyncService(
@@ -34,6 +38,8 @@ public class LoginSyncServiceTests
             _userRiotAccountsRepo,
             _riotApiClient,
             _broadcaster,
+            _aggregator,
+            _queueSignal,
             NullLogger<LoginSyncService>.Instance);
     }
 
@@ -176,6 +182,10 @@ public class LoginSyncServiceTests
         _riotAccountsRepo.UpdateSyncStatusCallCount.Should().Be(1);
         _riotAccountsRepo.LastSyncStatusSet.Should().Be("pending");
         _broadcaster.BroadcastProgressCallCount.Should().Be(1);
+        // The Overview aggregate run is opened for the queued account, and the job is woken.
+        _aggregator.StartRunCalls.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo((UserId: 1L, Puuids: new[] { "puuid-1" }));
+        _queueSignal.NotifyCount.Should().Be(1);
     }
 
     [Fact]
@@ -196,6 +206,8 @@ public class LoginSyncServiceTests
         // Assert
         _riotAccountsRepo.UpdateSyncStatusCallCount.Should().Be(0);
         _broadcaster.BroadcastProgressCallCount.Should().Be(0);
+        _aggregator.StartRunCalls.Should().BeEmpty();
+        _queueSignal.NotifyCount.Should().Be(0);
     }
 
     [Fact]
@@ -418,5 +430,29 @@ public class LoginSyncServiceTests
         public Task BroadcastCompleteAsync(string puuid, int totalSynced) => Task.CompletedTask;
         public Task BroadcastErrorAsync(string puuid, string error) => Task.CompletedTask;
         public Task BroadcastRateLimitedAsync(string puuid) => Task.CompletedTask;
+    }
+
+    private sealed class TrackingAggregator : ISyncProgressAggregator
+    {
+        public List<(long UserId, string[] Puuids)> StartRunCalls { get; } = new();
+
+        public Task StartRunAsync(long userId, IReadOnlyList<string> puuids)
+        {
+            StartRunCalls.Add((userId, puuids.ToArray()));
+            return Task.CompletedTask;
+        }
+
+        public Task OnProgressAsync(string puuid, int progress, int total, string? matchId) => Task.CompletedTask;
+        public Task OnCompleteAsync(string puuid, int totalSynced) => Task.CompletedTask;
+        public Task OnErrorAsync(string puuid, string error) => Task.CompletedTask;
+    }
+
+    private sealed class TrackingQueueSignal : ISyncQueueSignal
+    {
+        public int NotifyCount { get; private set; }
+
+        public void Notify() => NotifyCount++;
+
+        public Task WaitAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

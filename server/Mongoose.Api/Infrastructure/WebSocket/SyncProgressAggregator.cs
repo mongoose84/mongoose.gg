@@ -33,26 +33,33 @@ public sealed class SyncProgressAggregator : ISyncProgressAggregator
         if (puuids.Count == 0)
             return;
 
-        // Replace any prior run for this user (a new click supersedes the old one).
-        if (_runs.TryRemove(userId, out var previous))
-        {
-            RemoveReverseIndex(userId, previous);
-        }
-
-        var run = new UserRun(userId, puuids);
-        _runs[userId] = run;
-        foreach (var puuid in run.Slots.Keys)
-        {
-            _puuidToUsers.GetOrAdd(puuid, _ => new ConcurrentDictionary<long, byte>())[userId] = 0;
-        }
+        // Get-or-create the user's run and ensure a slot for each account. This is an
+        // ensure/extend, not a replace: an explicit multi-account seed (sync-all or login)
+        // and the per-account ensure from the sync job converge on one combined run, so a
+        // sync surfaces on the Overview regardless of how it was triggered.
+        var run = _runs.GetOrAdd(userId, id => new UserRun(id));
 
         SyncAggregateMessage message;
         lock (run.Gate)
         {
+            foreach (var puuid in puuids)
+            {
+                EnsureSlot(run, userId, puuid);
+            }
             message = BuildProgress(run, matchId: null);
         }
 
         await _hub.BroadcastToUserAsync(userId, message);
+    }
+
+    /// <summary>Adds a slot for the account if the run doesn't already track it. Caller holds the run lock.</summary>
+    private void EnsureSlot(UserRun run, long userId, string puuid)
+    {
+        if (run.Slots.ContainsKey(puuid))
+            return;
+
+        run.Slots[puuid] = new AccountSlot();
+        _puuidToUsers.GetOrAdd(puuid, _ => new ConcurrentDictionary<long, byte>())[userId] = 0;
     }
 
     public Task OnProgressAsync(string puuid, int progress, int total, string? matchId) =>
@@ -199,16 +206,11 @@ public sealed class SyncProgressAggregator : ISyncProgressAggregator
     {
         public long UserId { get; }
         public object Gate { get; } = new();
-        public Dictionary<string, AccountSlot> Slots { get; }
+        public Dictionary<string, AccountSlot> Slots { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-        public UserRun(long userId, IReadOnlyList<string> puuids)
+        public UserRun(long userId)
         {
             UserId = userId;
-            Slots = new Dictionary<string, AccountSlot>(StringComparer.OrdinalIgnoreCase);
-            foreach (var puuid in puuids)
-            {
-                Slots[puuid] = new AccountSlot();
-            }
         }
     }
 }

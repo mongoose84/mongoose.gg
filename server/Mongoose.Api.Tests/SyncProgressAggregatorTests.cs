@@ -149,4 +149,28 @@ public class SyncProgressAggregatorTests
 
         broadcaster.Sent.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task StartRun_ExtendsExistingRun_RatherThanReplacingIt()
+    {
+        // A multi-account seed plus the job's per-account ensure must converge on one run.
+        var aggregator = CreateAggregator(out var broadcaster);
+        await aggregator.StartRunAsync(1, new[] { "p1" });
+        await aggregator.StartRunAsync(1, new[] { "p2" }); // extend, not replace
+
+        var seeded = broadcaster.Last(1).Should().BeOfType<SyncAggregateProgressMessage>().Subject;
+        seeded.AccountsTotal.Should().Be(2);
+
+        // Both accounts now feed the same combined run and only complete together.
+        await aggregator.OnProgressAsync("p1", 4, 4, null);
+        await aggregator.OnCompleteAsync("p1", 4);
+        broadcaster.Last(1).Should().BeOfType<SyncAggregateProgressMessage>(); // p2 still pending
+
+        await aggregator.OnProgressAsync("p2", 6, 6, null);
+        await aggregator.OnCompleteAsync("p2", 6);
+
+        var done = broadcaster.Last(1).Should().BeOfType<SyncAggregateCompleteMessage>().Subject;
+        done.TotalSynced.Should().Be(10);
+        done.AccountsTotal.Should().Be(2);
+    }
 }

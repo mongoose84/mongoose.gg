@@ -19,6 +19,7 @@ public class MatchHistorySyncJob : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<MatchHistorySyncJob> _logger;
     private readonly ISyncQueueSignal _queueSignal;
+    private readonly ISyncProgressAggregator _aggregator;
     private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(10);
     private readonly TimeSpan _stuckJobThreshold = TimeSpan.FromMinutes(10);
 
@@ -28,11 +29,16 @@ public class MatchHistorySyncJob : BackgroundService
     private const int DeepAnalysisMatchCount = 100;
     private static readonly TimeSpan BackfillLookbackPeriod = TimeSpan.FromDays(180); // 6 months
 
-    public MatchHistorySyncJob(IServiceProvider serviceProvider, ILogger<MatchHistorySyncJob> logger, ISyncQueueSignal queueSignal)
+    public MatchHistorySyncJob(
+        IServiceProvider serviceProvider,
+        ILogger<MatchHistorySyncJob> logger,
+        ISyncQueueSignal queueSignal,
+        ISyncProgressAggregator aggregator)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _queueSignal = queueSignal;
+        _aggregator = aggregator;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -110,6 +116,11 @@ public class MatchHistorySyncJob : BackgroundService
         _logger.LogInformation("Starting sync for account {Puuid} ({GameName}#{TagLine})",
             LogSanitizer.HashForLog(account.Puuid), LogSanitizer.Sanitize(account.GameName), LogSanitizer.Sanitize(account.TagLine));
 
+        // Ensure the Overview aggregate reflects this sync regardless of how it was queued
+        // (login auto-sync, Settings, sync-all, or crash recovery). This is the single point
+        // every sync flows through, so opening a run here guarantees progress surfaces.
+        await EnsureAggregateRunAsync(scope.ServiceProvider, account.Puuid);
+
         try
         {
             var syncedCount = await SyncAccountMatchesAsync(scope.ServiceProvider, account, ct);
@@ -145,6 +156,29 @@ public class MatchHistorySyncJob : BackgroundService
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Opens (or extends) the per-user aggregate run for every user who owns this account,
+    /// so the combined Overview progress stream reflects the sync. Non-fatal on failure.
+    /// </summary>
+    private async Task EnsureAggregateRunAsync(IServiceProvider services, string puuid)
+    {
+        try
+        {
+            var userRiotAccountsRepo = services.GetRequiredService<IUserRiotAccountsRepository>();
+            var ownerIds = await userRiotAccountsRepo.GetUserIdsByPuuidAsync(puuid);
+            foreach (var userId in ownerIds)
+            {
+                await _aggregator.StartRunAsync(userId, new[] { puuid });
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the sync if we can't open the aggregate run — progress just won't
+            // surface on the combined Overview stream for this account.
+            _logger.LogWarning(ex, "Failed to open aggregate run for {Puuid}", LogSanitizer.HashForLog(puuid));
+        }
     }
 
     /// <summary>

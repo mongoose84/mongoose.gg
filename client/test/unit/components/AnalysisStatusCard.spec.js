@@ -388,12 +388,13 @@ describe('AnalysisStatusCard', () => {
       expect(wrapper.find('.progress-bar__fill--rate-limited').exists()).toBe(true);
     });
 
-    it('does not show progress bar when total is 0', () => {
+    it('shows an indeterminate progress bar when running before counts arrive (total 0)', () => {
       mockIsRunning.value = true;
       mockProgress.value = { current: 0, total: 0 };
 
       const wrapper = mountCard();
-      expect(wrapper.find('.progress-bar').exists()).toBe(false);
+      expect(wrapper.find('.progress-bar').exists()).toBe(true);
+      expect(wrapper.find('.progress-bar__fill--indeterminate').exists()).toBe(true);
     });
   });
 });

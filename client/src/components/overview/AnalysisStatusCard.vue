@@ -34,16 +34,18 @@
         </div>
       </div>
       
-      <!-- Progress bar: indeterminate while pending/connecting, determinate once running -->
-      <div v-if="(isRunning && progress.total > 0) || (isPending && !isRunning)" class="flex-1 max-w-[120px]">
+      <!-- Progress bar: shown for the whole active window. Indeterminate until we have a
+           real match total (optimistic pending, or running before counts arrive), then
+           determinate once the total is known. -->
+      <div v-if="isActiveOrPending" class="flex-1 max-w-[120px]">
         <div class="progress-bar">
-          <div 
+          <div
             class="progress-bar__fill"
             :class="{
               'progress-bar__fill--rate-limited': isRateLimited,
-              'progress-bar__fill--indeterminate': isPending && !isRunning
+              'progress-bar__fill--indeterminate': isProgressIndeterminate
             }"
-            :style="!(isPending && !isRunning) ? { width: `${progressPercent}%` } : undefined"
+            :style="!isProgressIndeterminate ? { width: `${progressPercent}%` } : undefined"
           />
         </div>
       </div>
@@ -173,6 +175,11 @@ const progressPercent = computed(() => {
   if (!progress.value.total) return 0
   return Math.round((progress.value.current / progress.value.total) * 100)
 })
+
+// Indeterminate whenever we're active but don't yet have a real match total:
+// optimistic pending, or running before the backend reports counts (e.g. the gap
+// before match enumeration, or a login-triggered sync the card joins mid-flight).
+const isProgressIndeterminate = computed(() => isActiveOrPending.value && !(progress.value.total > 0))
 
 const showActionButton = computed(() => {
   // Hide only while actively running (progress bar takes over).
