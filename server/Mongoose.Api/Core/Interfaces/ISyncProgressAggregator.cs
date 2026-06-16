@@ -12,8 +12,13 @@ namespace Mongoose.Api.Core.Interfaces;
 public interface ISyncProgressAggregator
 {
     /// <summary>
-    /// Opens (or replaces) the aggregate run for a user covering the given accounts and
-    /// immediately broadcasts an initial "syncing" state so the UI gets instant feedback.
+    /// Opens (or extends) the aggregate run for a user, ensuring a slot for each given account,
+    /// and immediately broadcasts an initial "syncing" state so the UI gets instant feedback.
+    /// Multiple seeds (sync-all, login) and the job's per-account ensure converge on one run.
+    ///
+    /// Callers must seed a run for an account <em>before</em> marking that account claimable
+    /// (sync_status = 'pending'); otherwise the background job can claim and complete the
+    /// account before its slot exists, leaving an orphaned 'pending' slot that never settles.
     /// </summary>
     Task StartRunAsync(long userId, IReadOnlyList<string> puuids);
 

@@ -12,6 +12,8 @@ const mockHasFailed = ref(false);
 const mockIsUpToDate = ref(false);
 const mockIsLoading = ref(false);
 const mockProgress = ref({ current: 0, total: 0 });
+const mockAccountsTotal = ref(0);
+const mockAccountsDone = ref(0);
 const mockErrorMessage = ref(null);
 const mockLastSyncAt = ref(null);
 const mockLoadStatus = vi.fn();
@@ -27,6 +29,8 @@ vi.mock('@/composables/useAnalysisStatus', () => ({
     isUpToDate: mockIsUpToDate,
     isLoading: mockIsLoading,
     progress: mockProgress,
+    accountsTotal: mockAccountsTotal,
+    accountsDone: mockAccountsDone,
     errorMessage: mockErrorMessage,
     lastSyncAt: mockLastSyncAt,
     loadStatus: mockLoadStatus,
@@ -53,6 +57,8 @@ describe('AnalysisStatusCard', () => {
     mockIsUpToDate.value = false;
     mockIsLoading.value = false;
     mockProgress.value = { current: 0, total: 0 };
+    mockAccountsTotal.value = 0;
+    mockAccountsDone.value = 0;
     mockErrorMessage.value = null;
     mockLastSyncAt.value = null;
   });
@@ -395,6 +401,30 @@ describe('AnalysisStatusCard', () => {
       const wrapper = mountCard();
       expect(wrapper.find('.progress-bar').exists()).toBe(true);
       expect(wrapper.find('.progress-bar__fill--indeterminate').exists()).toBe(true);
+    });
+
+    it('stays indeterminate during a multi-account run until all accounts settle', () => {
+      // Combined total keeps growing as each account is enumerated, so a determinate bar
+      // would jump backward. Hold indeterminate while accountsDone < accountsTotal.
+      mockIsRunning.value = true;
+      mockProgress.value = { current: 4, total: 20 };
+      mockAccountsTotal.value = 3;
+      mockAccountsDone.value = 1;
+
+      const wrapper = mountCard();
+      expect(wrapper.find('.progress-bar__fill--indeterminate').exists()).toBe(true);
+      expect(wrapper.find('.progress-bar__fill').attributes('style')).toBeUndefined();
+    });
+
+    it('shows a determinate bar once every account in a multi-account run has settled', () => {
+      mockIsRunning.value = true;
+      mockProgress.value = { current: 60, total: 80 };
+      mockAccountsTotal.value = 3;
+      mockAccountsDone.value = 3;
+
+      const wrapper = mountCard();
+      expect(wrapper.find('.progress-bar__fill--indeterminate').exists()).toBe(false);
+      expect(wrapper.find('.progress-bar__fill').attributes('style')).toContain('width: 75%');
     });
   });
 });

@@ -435,30 +435,39 @@ public sealed class RiotAccountsEndpoint : IEndpoint
 
                 var allPuuids = links.Select(l => l.Account.Puuid).ToList();
 
-                // Queue every account that isn't already mid-sync.
-                var queued = 0;
-                foreach (var (_, account) in links)
+                // Accounts we'll queue now: everything not already mid-sync. Accounts already
+                // 'syncing' are left alone — the background job opened an aggregate slot for them
+                // when it claimed them, so they remain part of the user's combined run.
+                var queuedPuuids = links
+                    .Where(l => l.Account.SyncStatus != "syncing")
+                    .Select(l => l.Account.Puuid)
+                    .ToList();
+
+                // Open the aggregate run BEFORE marking accounts pending (and broadcast a "syncing"
+                // state so the UI reacts without delay). Seeding first guarantees every account has
+                // a slot before the background job can claim it; otherwise the job could claim and
+                // complete an account in the gap before the run is seeded, leaving an orphaned
+                // 'pending' slot that never settles (Overview card stuck "Analyzing…").
+                if (queuedPuuids.Count > 0)
                 {
-                    if (account.SyncStatus == "syncing")
-                        continue;
-                    await riotAccountsRepo.UpdateSyncStatusAsync(account.Puuid, "pending");
-                    queued++;
+                    await aggregator.StartRunAsync(userId.Value, queuedPuuids);
                 }
 
-                // Open the aggregate run across ALL linked accounts (covers any already syncing)
-                // and immediately broadcast a "syncing" state so the UI reacts without delay.
-                await aggregator.StartRunAsync(userId.Value, allPuuids);
+                foreach (var puuid in queuedPuuids)
+                {
+                    await riotAccountsRepo.UpdateSyncStatusAsync(puuid, "pending");
+                }
 
                 // Wake the background job so queued work starts now instead of at the next poll.
-                if (queued > 0)
+                if (queuedPuuids.Count > 0)
                 {
                     queueSignal.Notify();
                 }
 
                 logger.LogInformation("Queued analysis for {Queued}/{Total} linked accounts, user {UserId}",
-                    queued, allPuuids.Count, LogSanitizer.Sanitize(userId.Value.ToString()));
+                    queuedPuuids.Count, allPuuids.Count, LogSanitizer.Sanitize(userId.Value.ToString()));
 
-                return Results.Accepted($"{Route}/sync", new SyncAllResponse(allPuuids.Count, queued, "Analysis queued"));
+                return Results.Accepted($"{Route}/sync", new SyncAllResponse(allPuuids.Count, queuedPuuids.Count, "Analysis queued"));
             }
             catch (Exception ex)
             {

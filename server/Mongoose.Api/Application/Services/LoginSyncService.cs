@@ -62,23 +62,39 @@ public class LoginSyncService
             }
 
             _logger.LogInformation("Found {Count} linked Riot accounts for user {UserId}", linkedAccounts.Count, LogSanitizer.Sanitize(userId.ToString()));
+
+            // Phase 1: decide which accounts have new matches (no status mutation yet).
             var queuedPuuids = new List<string>();
             foreach (var (_, account) in linkedAccounts)
             {
-                if (await CheckAccountAsync(account))
+                if (await ShouldQueueAccountAsync(account))
                 {
                     queuedPuuids.Add(account.Puuid);
                 }
             }
 
-            // If the login check queued any account, open a combined aggregate run so the
-            // Overview card reflects the login-triggered sync (the per-account broadcasts alone
-            // are ignored by the aggregator without a run), and wake the job to start now.
-            if (queuedPuuids.Count > 0)
+            if (queuedPuuids.Count == 0)
             {
-                await _syncAggregator.StartRunAsync(userId, queuedPuuids);
-                _queueSignal.Notify();
+                return;
             }
+
+            // Phase 2: open the combined aggregate run BEFORE marking any account pending, so the
+            // Overview card reflects the login-triggered sync and — critically — every account
+            // has a slot before the background job can claim it. If we marked an account pending
+            // first, the job could claim and complete it in the gap before the run is seeded,
+            // leaving an orphaned 'pending' slot that never settles (card stuck "Analyzing…").
+            await _syncAggregator.StartRunAsync(userId, queuedPuuids);
+
+            foreach (var puuid in queuedPuuids)
+            {
+                await _riotAccountsRepo.UpdateSyncStatusAsync(puuid, "pending");
+
+                // Notify the per-account channel (Settings page) that sync is starting.
+                await _syncBroadcaster.BroadcastProgressAsync(puuid, 0, 0);
+            }
+
+            // Wake the job so the queued work starts now instead of at the next poll.
+            _queueSignal.Notify();
         }
         catch (Exception ex)
         {
@@ -88,10 +104,11 @@ public class LoginSyncService
     }
 
     /// <summary>
-    /// Returns true if this account was queued for a match sync (so the caller can include it
-    /// in the aggregate run).
+    /// Returns true if this account should be queued for a match sync. Updates profile/rank data
+    /// as a side effect, but does NOT mark the account pending — the caller seeds the aggregate
+    /// run first, then marks the returned accounts pending (see <see cref="CheckAccountsOnLoginAsync"/>).
     /// </summary>
-    private async Task<bool> CheckAccountAsync(RiotAccount account)
+    private async Task<bool> ShouldQueueAccountAsync(RiotAccount account)
     {
         try
         {
@@ -115,8 +132,8 @@ public class LoginSyncService
                 return false;
             }
 
-            // Check for new matches and trigger sync if needed
-            return await CheckForNewMatchesAsync(account);
+            // Queue this account only if it actually has new matches to sync.
+            return await HasNewMatchesAsync(account);
         }
         catch (Exception ex)
         {
@@ -221,9 +238,10 @@ public class LoginSyncService
     }
 
     /// <summary>
-    /// Returns true if new matches were found and the account was queued for sync.
+    /// Returns true if the account has new matches since its last sync. Detection only — the
+    /// caller marks the account pending and broadcasts once the aggregate run has been seeded.
     /// </summary>
-    private async Task<bool> CheckForNewMatchesAsync(RiotAccount account)
+    private async Task<bool> HasNewMatchesAsync(RiotAccount account)
     {
         try
         {
@@ -238,13 +256,7 @@ public class LoginSyncService
             if (matchIdsDoc.RootElement.ValueKind == JsonValueKind.Array &&
                 matchIdsDoc.RootElement.GetArrayLength() > 0)
             {
-                // New matches found - trigger sync
-                _logger.LogInformation("New matches found for {Puuid}, triggering sync", LogSanitizer.HashForLog(account.Puuid));
-                await _riotAccountsRepo.UpdateSyncStatusAsync(account.Puuid, "pending");
-
-                // Notify the per-account channel (Settings page) that sync is starting.
-                // The Overview aggregate run is opened by the caller once all accounts are checked.
-                await _syncBroadcaster.BroadcastProgressAsync(account.Puuid, 0, 0);
+                _logger.LogInformation("New matches found for {Puuid}, queuing sync", LogSanitizer.HashForLog(account.Puuid));
                 return true;
             }
 

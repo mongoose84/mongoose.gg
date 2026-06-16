@@ -22,14 +22,16 @@ public class LoginSyncServiceTests
     private readonly TrackingSyncBroadcaster _broadcaster;
     private readonly TrackingAggregator _aggregator;
     private readonly TrackingQueueSignal _queueSignal;
+    // Records the relative order of key calls across the fakes so tests can assert sequencing.
+    private readonly List<string> _callLog = new();
     private readonly LoginSyncService _sut;
 
     public LoginSyncServiceTests()
     {
-        _riotAccountsRepo = new TrackingRiotAccountsRepository();
+        _riotAccountsRepo = new TrackingRiotAccountsRepository { CallLog = _callLog };
         _riotApiClient = new ControllableRiotApiClient();
         _broadcaster = new TrackingSyncBroadcaster();
-        _aggregator = new TrackingAggregator();
+        _aggregator = new TrackingAggregator { CallLog = _callLog };
         _queueSignal = new TrackingQueueSignal();
         _userRiotAccountsRepo = new TrackingUserRiotAccountsRepository(_riotAccountsRepo);
 
@@ -189,6 +191,27 @@ public class LoginSyncServiceTests
     }
 
     [Fact]
+    public async Task CheckAccountsOnLogin_SeedsAggregateRun_BeforeMarkingAccountsPending()
+    {
+        // Arrange — account has new matches since last sync
+        var account = CreateAccount("puuid-1");
+        account.LastSyncAt = DateTime.UtcNow.AddHours(-2);
+        _riotAccountsRepo.AddAccount(account);
+        _userRiotAccountsRepo.Link(1, "puuid-1");
+        _riotApiClient.SetSummonerResponse("puuid-1", 1, 50);
+        _riotApiClient.SetLeagueEntriesResponse("puuid-1", "[]");
+        _riotApiClient.SetMatchHistoryResponse("puuid-1", """["EUW1_123456789"]""");
+
+        // Act
+        await _sut.CheckAccountsOnLoginAsync(1);
+
+        // Assert — the aggregate run must be seeded BEFORE the account is marked 'pending'.
+        // Otherwise the background job could claim and complete the account in the gap before
+        // its slot exists, leaving an orphaned 'pending' slot that never settles.
+        _callLog.Should().ContainInOrder("StartRun", "UpdateSyncStatus:pending");
+    }
+
+    [Fact]
     public async Task CheckAccountsOnLogin_DoesNotTriggerSync_WhenNoNewMatchesFound()
     {
         // Arrange — account has no new matches
@@ -286,6 +309,7 @@ public class LoginSyncServiceTests
         public int UpdateRankCallCount { get; private set; }
         public int UpdateSyncStatusCallCount { get; private set; }
         public string? LastSyncStatusSet { get; private set; }
+        public List<string>? CallLog { get; init; }
 
         public void AddAccount(RiotAccount account) => _accounts[account.Puuid] = account;
 
@@ -315,6 +339,7 @@ public class LoginSyncServiceTests
         {
             UpdateSyncStatusCallCount++;
             LastSyncStatusSet = syncStatus;
+            CallLog?.Add($"UpdateSyncStatus:{syncStatus}");
             if (_accounts.TryGetValue(puuid, out var a)) a.SyncStatus = syncStatus;
             return Task.CompletedTask;
         }
@@ -435,10 +460,12 @@ public class LoginSyncServiceTests
     private sealed class TrackingAggregator : ISyncProgressAggregator
     {
         public List<(long UserId, string[] Puuids)> StartRunCalls { get; } = new();
+        public List<string>? CallLog { get; init; }
 
         public Task StartRunAsync(long userId, IReadOnlyList<string> puuids)
         {
             StartRunCalls.Add((userId, puuids.ToArray()));
+            CallLog?.Add("StartRun");
             return Task.CompletedTask;
         }
 

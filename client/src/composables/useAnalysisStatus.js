@@ -90,6 +90,14 @@ export function useAnalysisStatus() {
   }))
 
   /**
+   * Account-level progress for the aggregate run. The combined match total keeps growing as
+   * each account is enumerated from Riot, so the bar is only safe to show as determinate once
+   * every account has settled (accountsDone === accountsTotal). 0 means no aggregate info.
+   */
+  const accountsTotal = computed(() => aggregateProgress.accountsTotal || 0)
+  const accountsDone = computed(() => aggregateProgress.accountsDone || 0)
+
+  /**
    * Error message if analysis failed
    */
   const errorMessage = computed(() => {
@@ -181,11 +189,13 @@ export function useAnalysisStatus() {
     isUpToDate,
     isLoading,
     progress,
+    accountsTotal,
+    accountsDone,
     errorMessage,
     lastSyncAt,
     isConnected,
     primaryPuuid,
-    
+
     // Methods
     loadStatus,
     triggerAnalysis,

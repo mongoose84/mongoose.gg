@@ -81,6 +81,8 @@ const {
   isUpToDate,
   isLoading,
   progress,
+  accountsTotal,
+  accountsDone,
   errorMessage,
   lastSyncAt,
   loadStatus,
@@ -176,10 +178,20 @@ const progressPercent = computed(() => {
   return Math.round((progress.value.current / progress.value.total) * 100)
 })
 
-// Indeterminate whenever we're active but don't yet have a real match total:
-// optimistic pending, or running before the backend reports counts (e.g. the gap
-// before match enumeration, or a login-triggered sync the card joins mid-flight).
-const isProgressIndeterminate = computed(() => isActiveOrPending.value && !(progress.value.total > 0))
+// Indeterminate whenever a determinate bar would be misleading:
+//  - active but no real match total yet (optimistic pending, or running before the backend
+//    reports counts — the gap before match enumeration, or a sync joined mid-flight); or
+//  - a multi-account aggregate run that hasn't finished enumerating: its combined total keeps
+//    growing as each account is added, so a determinate bar would jump backward. Stay
+//    indeterminate until every account has settled (accountsDone === accountsTotal). A
+//    single-account run (accountsTotal <= 1) shows determinate progress as soon as total > 0.
+const isProgressIndeterminate = computed(() => {
+  if (!isActiveOrPending.value) return false
+  if (!(progress.value.total > 0)) return true
+  const total = accountsTotal?.value ?? 0
+  const done = accountsDone?.value ?? 0
+  return total > 1 && done < total
+})
 
 const showActionButton = computed(() => {
   // Hide only while actively running (progress bar takes over).
