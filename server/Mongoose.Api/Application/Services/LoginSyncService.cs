@@ -17,6 +17,8 @@ public class LoginSyncService
     private readonly IUserRiotAccountsRepository _userRiotAccountsRepo;
     private readonly IRiotApiClient _riotApiClient;
     private readonly ISyncProgressBroadcaster _syncBroadcaster;
+    private readonly ISyncProgressAggregator _syncAggregator;
+    private readonly ISyncQueueSignal _queueSignal;
     private readonly ILogger<LoginSyncService> _logger;
 
     /// <summary>
@@ -29,12 +31,16 @@ public class LoginSyncService
         IUserRiotAccountsRepository userRiotAccountsRepo,
         IRiotApiClient riotApiClient,
         ISyncProgressBroadcaster syncBroadcaster,
+        ISyncProgressAggregator syncAggregator,
+        ISyncQueueSignal queueSignal,
         ILogger<LoginSyncService> logger)
     {
         _riotAccountsRepo = riotAccountsRepo;
         _userRiotAccountsRepo = userRiotAccountsRepo;
         _riotApiClient = riotApiClient;
         _syncBroadcaster = syncBroadcaster;
+        _syncAggregator = syncAggregator;
+        _queueSignal = queueSignal;
         _logger = logger;
     }
 
@@ -56,10 +62,39 @@ public class LoginSyncService
             }
 
             _logger.LogInformation("Found {Count} linked Riot accounts for user {UserId}", linkedAccounts.Count, LogSanitizer.Sanitize(userId.ToString()));
+
+            // Phase 1: decide which accounts have new matches (no status mutation yet).
+            var queuedPuuids = new List<string>();
             foreach (var (_, account) in linkedAccounts)
             {
-                await CheckAccountAsync(account);
+                if (await ShouldQueueAccountAsync(account))
+                {
+                    queuedPuuids.Add(account.Puuid);
+                }
             }
+
+            if (queuedPuuids.Count == 0)
+            {
+                return;
+            }
+
+            // Phase 2: open the combined aggregate run BEFORE marking any account pending, so the
+            // Overview card reflects the login-triggered sync and — critically — every account
+            // has a slot before the background job can claim it. If we marked an account pending
+            // first, the job could claim and complete it in the gap before the run is seeded,
+            // leaving an orphaned 'pending' slot that never settles (card stuck "Analyzing…").
+            await _syncAggregator.StartRunAsync(userId, queuedPuuids);
+
+            foreach (var puuid in queuedPuuids)
+            {
+                await _riotAccountsRepo.UpdateSyncStatusAsync(puuid, "pending");
+
+                // Notify the per-account channel (Settings page) that sync is starting.
+                await _syncBroadcaster.BroadcastProgressAsync(puuid, 0, 0);
+            }
+
+            // Wake the job so the queued work starts now instead of at the next poll.
+            _queueSignal.Notify();
         }
         catch (Exception ex)
         {
@@ -68,7 +103,12 @@ public class LoginSyncService
         }
     }
 
-    private async Task CheckAccountAsync(RiotAccount account)
+    /// <summary>
+    /// Returns true if this account should be queued for a match sync. Updates profile/rank data
+    /// as a side effect, but does NOT mark the account pending — the caller seeds the aggregate
+    /// run first, then marks the returned accounts pending (see <see cref="CheckAccountsOnLoginAsync"/>).
+    /// </summary>
+    private async Task<bool> ShouldQueueAccountAsync(RiotAccount account)
     {
         try
         {
@@ -81,7 +121,7 @@ public class LoginSyncService
             {
                 _logger.LogDebug("Skipping match sync check for {Puuid} - last sync was {LastSync}",
                     LogSanitizer.HashForLog(account.Puuid), account.LastSyncAt);
-                return;
+                return false;
             }
 
             // Skip match sync if already syncing or pending
@@ -89,16 +129,17 @@ public class LoginSyncService
             {
                 _logger.LogDebug("Skipping match sync check for {Puuid} - already {Status}",
                     LogSanitizer.HashForLog(account.Puuid), LogSanitizer.Sanitize(account.SyncStatus));
-                return;
+                return false;
             }
 
-            // Check for new matches and trigger sync if needed
-            await CheckForNewMatchesAsync(account);
+            // Queue this account only if it actually has new matches to sync.
+            return await HasNewMatchesAsync(account);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error checking account {Puuid} on login", LogSanitizer.HashForLog(account.Puuid));
             // Don't throw - continue with other accounts
+            return false;
         }
     }
 
@@ -196,7 +237,11 @@ public class LoginSyncService
         }
     }
 
-    private async Task CheckForNewMatchesAsync(RiotAccount account)
+    /// <summary>
+    /// Returns true if the account has new matches since its last sync. Detection only — the
+    /// caller marks the account pending and broadcasts once the aggregate run has been seeded.
+    /// </summary>
+    private async Task<bool> HasNewMatchesAsync(RiotAccount account)
     {
         try
         {
@@ -207,26 +252,22 @@ public class LoginSyncService
 
             // Check if there are any new matches since last sync
             using var matchIdsDoc = await _riotApiClient.GetMatchHistoryAsync(account.Puuid, 0, 1, startTimeEpoch);
-            
+
             if (matchIdsDoc.RootElement.ValueKind == JsonValueKind.Array &&
                 matchIdsDoc.RootElement.GetArrayLength() > 0)
             {
-                // New matches found - trigger sync
-                _logger.LogInformation("New matches found for {Puuid}, triggering sync", LogSanitizer.HashForLog(account.Puuid));
-                await _riotAccountsRepo.UpdateSyncStatusAsync(account.Puuid, "pending");
-                
-                // Notify frontend that sync is starting
-                await _syncBroadcaster.BroadcastProgressAsync(account.Puuid, 0, 0);
+                _logger.LogInformation("New matches found for {Puuid}, queuing sync", LogSanitizer.HashForLog(account.Puuid));
+                return true;
             }
-            else
-            {
-                _logger.LogDebug("No new matches for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
-            }
+
+            _logger.LogDebug("No new matches for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
+            return false;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to check for new matches for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
             // Don't throw - this is a best-effort check
+            return false;
         }
     }
 }

@@ -1,7 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from './useSyncWebSocket'
-import { triggerRiotAccountSync, getRiotAccountSyncStatus } from '../services/authApi'
+import { triggerAnalysisAll, getRiotAccountSyncStatus } from '../services/authApi'
 
 /**
  * Composable for managing analysis/sync status across the application.
@@ -10,7 +10,14 @@ import { triggerRiotAccountSync, getRiotAccountSyncStatus } from '../services/au
  */
 export function useAnalysisStatus() {
   const authStore = useAuthStore()
-  const { syncProgress, subscribe, unsubscribe, resetProgress, isConnected } = useSyncWebSocket()
+  const {
+    aggregateProgress,
+    subscribe,
+    unsubscribe,
+    resetProgress,
+    resetAggregateProgress,
+    isConnected
+  } = useSyncWebSocket()
   
   const isLoading = ref(false)
   const error = ref(null)
@@ -23,68 +30,78 @@ export function useAnalysisStatus() {
   const storedStatus = computed(() => authStore.primaryRiotAccount?.syncStatus || null)
   const lastSyncAt = computed(() => authStore.primaryRiotAccount?.lastSyncAt || null)
   
-  // Get WebSocket progress for the primary account
-  const wsProgress = computed(() => {
-    if (!primaryPuuid.value) return null
-    return syncProgress.get(primaryPuuid.value) || null
-  })
-  
   /**
-   * Current analysis status - combines WebSocket real-time updates with stored status.
+   * Whether the server-aggregated "Analyze all" run is currently active (drives the
+   * real-time view). null status means no active run → fall back to stored status.
+   */
+  const hasAggregate = computed(() => aggregateProgress.status !== null)
+
+  /**
+   * Current analysis status - combines the real-time aggregate run with stored status.
    * Possible values: 'idle', 'pending', 'syncing', 'completed', 'failed', 'waiting_rate_limit'
    */
   const status = computed(() => {
-    // WebSocket has priority for real-time updates
-    if (wsProgress.value?.status) {
-      return wsProgress.value.status
+    // The aggregate run (all linked accounts) has priority for real-time updates.
+    if (hasAggregate.value) {
+      return aggregateProgress.status
     }
     // Fall back to stored status from account data
     return storedStatus.value || 'idle'
   })
-  
+
   /**
    * Whether analysis is currently running (pending or syncing)
    */
   const isRunning = computed(() => {
     return status.value === 'pending' || status.value === 'syncing'
   })
-  
+
   /**
-   * Whether waiting on Riot API rate limit
+   * Whether waiting on Riot API rate limit.
+   * The aggregate run surfaces a rate-limited account as 'syncing' (v1), so this is only
+   * meaningful for the at-rest stored status.
    */
   const isRateLimited = computed(() => {
-    return wsProgress.value?.isRateLimited || false
+    return !hasAggregate.value && storedStatus.value === 'waiting_rate_limit'
   })
-  
+
   /**
    * Whether analysis has failed
    */
   const hasFailed = computed(() => {
     return status.value === 'failed'
   })
-  
+
   /**
    * Whether analysis is up to date (completed or idle with lastSyncAt)
    */
   const isUpToDate = computed(() => {
     return (status.value === 'completed' || status.value === 'idle') && lastSyncAt.value
   })
-  
+
   /**
-   * Progress information (current/total matches processed)
+   * Combined progress across all linked accounts (current/total matches processed).
    */
   const progress = computed(() => ({
-    current: wsProgress.value?.progress || 0,
-    total: wsProgress.value?.total || 0,
-    matchId: wsProgress.value?.matchId || null,
-    totalSynced: wsProgress.value?.totalSynced || null
+    current: aggregateProgress.progress || 0,
+    total: aggregateProgress.total || 0,
+    matchId: aggregateProgress.matchId || null,
+    totalSynced: aggregateProgress.totalSynced || null
   }))
-  
+
+  /**
+   * Account-level progress for the aggregate run. The combined match total keeps growing as
+   * each account is enumerated from Riot, so the bar is only safe to show as determinate once
+   * every account has settled (accountsDone === accountsTotal). 0 means no aggregate info.
+   */
+  const accountsTotal = computed(() => aggregateProgress.accountsTotal || 0)
+  const accountsDone = computed(() => aggregateProgress.accountsDone || 0)
+
   /**
    * Error message if analysis failed
    */
   const errorMessage = computed(() => {
-    return wsProgress.value?.error || error.value || null
+    return aggregateProgress.error || error.value || null
   })
   
   /**
@@ -112,7 +129,8 @@ export function useAnalysisStatus() {
   }
   
   /**
-   * Trigger a new analysis/sync for the primary account.
+   * Trigger a new analysis/sync for ALL of the user's linked accounts.
+   * Progress arrives as a single combined stream over the aggregate WebSocket channel.
    * Returns true if successful, false otherwise.
    */
   async function triggerAnalysis() {
@@ -120,19 +138,16 @@ export function useAnalysisStatus() {
       error.value = 'No linked Riot account'
       return false
     }
-    
+
     isLoading.value = true
     error.value = null
-    
+
     try {
-      // Reset any previous error state
-      resetProgress(primaryPuuid.value)
-      
-      await triggerRiotAccountSync(primaryPuuid.value)
-      
-      // Subscribe to WebSocket for real-time updates
-      subscribe(primaryPuuid.value)
-      
+      // Clear any previous aggregate run state so the new run starts clean.
+      resetAggregateProgress()
+
+      await triggerAnalysisAll()
+
       return true
     } catch (e) {
       error.value = e.message
@@ -148,6 +163,7 @@ export function useAnalysisStatus() {
    */
   function clearError() {
     error.value = null
+    resetAggregateProgress()
     if (primaryPuuid.value) {
       resetProgress(primaryPuuid.value)
     }
@@ -173,11 +189,13 @@ export function useAnalysisStatus() {
     isUpToDate,
     isLoading,
     progress,
+    accountsTotal,
+    accountsDone,
     errorMessage,
     lastSyncAt,
     isConnected,
     primaryPuuid,
-    
+
     // Methods
     loadStatus,
     triggerAnalysis,

@@ -1,7 +1,10 @@
 ---
 description: 'Test writing specialist for backend (xUnit), frontend unit (Vitest), and Playwright E2E tests — writes focused, reliable tests following project patterns'
+name: 'Test Writer'
+user-invocable: false
 tools: ['read', 'edit', 'execute', 'search', 'problems', 'testFailure']
-model: ['Claude Sonnet 4.6', 'GPT-4o (copilot)']
+model: 'Claude Sonnet 4.6'
+target: 'vscode'
 ---
 
 Write or update backend, frontend unit, and Playwright tests.
@@ -33,6 +36,7 @@ Write or update backend, frontend unit, and Playwright tests.
 
 - You may create and edit test files and run tests.
 - Do not modify source code just to make tests pass; report the defect instead.
+- Do not invoke other agents. Return test changes, validation, and blockers to the main agent.
 
 ## Output
 

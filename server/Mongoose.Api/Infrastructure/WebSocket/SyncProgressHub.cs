@@ -12,13 +12,18 @@ namespace Mongoose.Api.Infrastructure.WebSocket;
 /// Manages WebSocket connections for sync progress updates.
 /// Handles client subscribe/unsubscribe and broadcasts progress to subscribed clients.
 /// </summary>
-public sealed class SyncProgressHub : ISyncProgressBroadcaster
+public sealed class SyncProgressHub : ISyncProgressBroadcaster, IUserSyncBroadcaster
 {
     private readonly ILogger<SyncProgressHub> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
 
     // Maximum message size in bytes (4KB should be plenty for JSON messages)
     private const int MaxMessageSize = 4096;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
     // Connected clients: ConnectionId -> ClientConnection
     private readonly ConcurrentDictionary<string, ClientConnection> _connections = new();
@@ -240,28 +245,45 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
         await BroadcastToSubscribersAsync(puuid, message);
     }
 
+    /// <summary>
+    /// Broadcasts a user-scoped aggregate message to every open connection authenticated
+    /// to <paramref name="userId"/>. No per-PUUID subscription is required — the connection
+    /// is already authenticated to the user, so pushing their own aggregate is inherently safe.
+    /// </summary>
+    public async Task BroadcastToUserAsync(long userId, SyncAggregateMessage message)
+    {
+        var bytes = Serialize(message);
+        var openConnections = _connections.Values
+            .Where(conn => conn.UserId == userId && conn.WebSocket.State == WebSocketState.Open);
+        await SendToConnectionsAsync(openConnections, bytes);
+    }
+
     private async Task BroadcastToSubscribersAsync<T>(string puuid, T message) where T : SyncServerMessage
     {
         if (!_subscriptions.TryGetValue(puuid, out var subscribers))
             return;
 
-        var json = JsonSerializer.Serialize(message, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
-        var bytes = Encoding.UTF8.GetBytes(json);
-        var segment = new ArraySegment<byte>(bytes);
-
-        // Get open connections explicitly
+        var bytes = Serialize(message);
         var openConnections = subscribers.Keys
             .Select(id => _connections.TryGetValue(id, out var conn) ? conn : null)
-            .Where(conn => conn != null && conn.WebSocket.State == WebSocketState.Open);
+            .Where(conn => conn != null && conn.WebSocket.State == WebSocketState.Open)
+            .Select(conn => conn!);
 
-        foreach (var connection in openConnections)
+        await SendToConnectionsAsync(openConnections, bytes);
+    }
+
+    private static byte[] Serialize<T>(T message) =>
+        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, JsonOptions));
+
+    private async Task SendToConnectionsAsync(IEnumerable<ClientConnection> connections, byte[] bytes)
+    {
+        var segment = new ArraySegment<byte>(bytes);
+
+        foreach (var connection in connections)
         {
             try
             {
-                await connection!.SendLock.WaitAsync();
+                await connection.SendLock.WaitAsync();
                 try
                 {
                     await connection.WebSocket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
@@ -273,7 +295,7 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to send WebSocket message to {ConnectionId}", LogSanitizer.Sanitize(connection!.ConnectionId));
+                _logger.LogWarning(ex, "Failed to send WebSocket message to {ConnectionId}", LogSanitizer.Sanitize(connection.ConnectionId));
             }
         }
     }

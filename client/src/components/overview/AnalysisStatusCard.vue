@@ -34,16 +34,18 @@
         </div>
       </div>
       
-      <!-- Progress bar: indeterminate while pending/connecting, determinate once running -->
-      <div v-if="(isRunning && progress.total > 0) || (isPending && !isRunning)" class="flex-1 max-w-[120px]">
+      <!-- Progress bar: shown for the whole active window. Indeterminate until we have a
+           real match total (optimistic pending, or running before counts arrive), then
+           determinate once the total is known. -->
+      <div v-if="isActiveOrPending" class="flex-1 max-w-[120px]">
         <div class="progress-bar">
-          <div 
+          <div
             class="progress-bar__fill"
             :class="{
               'progress-bar__fill--rate-limited': isRateLimited,
-              'progress-bar__fill--indeterminate': isPending && !isRunning
+              'progress-bar__fill--indeterminate': isProgressIndeterminate
             }"
-            :style="!(isPending && !isRunning) ? { width: `${progressPercent}%` } : undefined"
+            :style="!isProgressIndeterminate ? { width: `${progressPercent}%` } : undefined"
           />
         </div>
       </div>
@@ -79,6 +81,8 @@ const {
   isUpToDate,
   isLoading,
   progress,
+  accountsTotal,
+  accountsDone,
   errorMessage,
   lastSyncAt,
   loadStatus,
@@ -105,7 +109,7 @@ function clearPending() {
 // Clear the optimistic flag whenever the job reaches any settled state:
 // running (confirmed by WS), completed, failed.
 //
-// NOTE: this watcher only fires on *changes*. The 5-second safety timeout in
+// NOTE: this watcher only fires on *changes*. The safety timeout in
 // handleAction covers the edge case where the sync completes so fast that
 // isUpToDate never transitions away from true (no value change → no watcher fire).
 watch([isRunning, isUpToDate, hasFailed], ([running, upToDate, failed]) => {
@@ -174,6 +178,21 @@ const progressPercent = computed(() => {
   return Math.round((progress.value.current / progress.value.total) * 100)
 })
 
+// Indeterminate whenever a determinate bar would be misleading:
+//  - active but no real match total yet (optimistic pending, or running before the backend
+//    reports counts — the gap before match enumeration, or a sync joined mid-flight); or
+//  - a multi-account aggregate run that hasn't finished enumerating: its combined total keeps
+//    growing as each account is added, so a determinate bar would jump backward. Stay
+//    indeterminate until every account has settled (accountsDone === accountsTotal). A
+//    single-account run (accountsTotal <= 1) shows determinate progress as soon as total > 0.
+const isProgressIndeterminate = computed(() => {
+  if (!isActiveOrPending.value) return false
+  if (!(progress.value.total > 0)) return true
+  const total = accountsTotal?.value ?? 0
+  const done = accountsDone?.value ?? 0
+  return total > 1 && done < total
+})
+
 const showActionButton = computed(() => {
   // Hide only while actively running (progress bar takes over).
   // Keep visible (but disabled) during the pending gap so the user
@@ -182,6 +201,12 @@ const showActionButton = computed(() => {
 })
 
 const actionButtonText = computed(() => {
+  // While optimistically pending (clicked but no WS confirmation yet) the button
+  // stays visible but disabled — surface "Analyzing..." so the click clearly
+  // registers even before the backend/WebSocket responds.
+  if (isActiveOrPending.value) {
+    return 'Analyzing...'
+  }
   if (hasFailed.value) {
     return 'Retry'
   }
@@ -207,10 +232,11 @@ async function handleAction() {
     return
   }
 
-  // Safety net: clears isPending if the WS never delivers a status update
-  // within ~1.5 s. This re-enables the button naturally so the user isn't
-  // stuck looking at a disabled control if nothing is happening.
-  pendingTimeoutId = setTimeout(clearPending, 1_500)
+  // Dead-WS fallback only. The server opens the aggregate run and broadcasts a
+  // 'syncing' state almost immediately, so in the normal case the watcher above
+  // clears isPending within ~1 s. This longer timeout just re-enables the button
+  // if the WebSocket is down and no aggregate message ever arrives.
+  pendingTimeoutId = setTimeout(clearPending, 15_000)
 }
 </script>
 

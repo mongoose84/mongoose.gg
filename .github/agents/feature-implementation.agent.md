@@ -1,37 +1,46 @@
 ---
-description: 'Orchestrate full feature implementation: read spec, backend + frontend implement in parallel, code review, E2E validation. Use when implementing a new feature end-to-end, building a complete feature, or running the full feature workflow.'
-tools: ['read', 'edit', 'search', 'execute', 'agent', 'todo']
-agents: [backend-developer, frontend-developer, code-reviewer]
-model: ['Claude Opus 4.6', 'Claude Sonnet 4.6']
+description: 'Full-stack implementation worker for tightly coupled features. Use as a subagent when backend and frontend changes should be implemented in one isolated pass.'
+name: 'Feature Implementation'
+user-invocable: false
+tools: ['read', 'edit', 'search', 'execute', 'problems', 'testFailure', 'todo']
+model: 'Claude Opus 4.6'
+target: 'vscode'
 argument-hint: 'Describe the feature to implement (e.g., "champion win rate history chart on solo dashboard")'
 ---
 
-Coordinate end-to-end feature delivery from an approved spec.
+Implement tightly coupled end-to-end feature work from an approved spec or explicit main-agent task.
 
 ## Use When
 
-- A feature spec already exists and the task spans backend, frontend, tests, or review.
-- The user wants one workflow to plan, implement, verify, and review a feature.
+- A feature spec already exists and the task spans backend, frontend, or tests.
+- The backend and frontend changes are small-to-medium and tightly coupled enough that one worker should preserve local context.
+- The main agent has already decided not to split the work into separate backend and frontend subagents.
 
 ## Required Inputs
 
 - Spec path or enough detail to locate the feature spec.
 - Acceptance criteria and scope boundaries.
+- Any main-agent routing decisions or constraints.
 
 ## Workflow
 
 1. Read the feature spec and treat it as the source of truth.
-2. Delegate backend work to `backend-developer` with the relevant spec sections plus [backend.instructions.md](../instructions/backend.instructions.md), [backend-test.instructions.md](../instructions/backend-test.instructions.md), and [new-endpoint/SKILL.md](../skills/new-endpoint/SKILL.md) when applicable.
-3. Delegate frontend work to `frontend-developer` with the relevant spec sections plus [frontend.instructions.md](../instructions/frontend.instructions.md) and [frontend-unit-test.instructions.md](../instructions/frontend-unit-test.instructions.md).
-4. Run `code-reviewer` against the changed files using `copilot-instructions.md` and the targeted instruction files as the standard.
-5. Apply required fixes, then run the relevant validation commands. Use [run-e2e-tests/SKILL.md](../skills/run-e2e-tests/SKILL.md) when Playwright validation is needed.
+2. Load the relevant instructions:
+   - [backend.instructions.md](../instructions/backend.instructions.md) and [backend-test.instructions.md](../instructions/backend-test.instructions.md) for backend work.
+   - [frontend.instructions.md](../instructions/frontend.instructions.md) and [frontend-unit-test.instructions.md](../instructions/frontend-unit-test.instructions.md) for frontend work.
+   - [new-endpoint/SKILL.md](../skills/new-endpoint/SKILL.md) when adding an endpoint.
+   - [run-e2e-tests/SKILL.md](../skills/run-e2e-tests/SKILL.md) when Playwright validation is needed.
+3. Read the owning backend and frontend files plus nearby examples.
+4. Implement the minimal cross-stack change that satisfies the acceptance criteria.
+5. Add or update focused tests when behavior changes.
+6. Run the narrowest relevant validation commands.
 
 ## Boundaries
 
-- Do not skip or reorder the phases without a concrete reason.
-- Do not implement the main code changes yourself when they can be delegated cleanly.
-- Keep backend and frontend ownership separate unless a change is truly cross-cutting.
-- Pass enough context to each subagent to work independently.
+- Do not invoke other agents. Return implementation results, validation, and blockers to the main agent.
+- Do not take over broad planning; ask the main agent to clarify if the spec is insufficient.
+- Do not modify CI, deployment, or unrelated infrastructure files.
+- Keep edits scoped to the requested feature and its tests.
 
 ## Output
 

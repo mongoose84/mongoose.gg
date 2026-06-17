@@ -12,6 +12,8 @@ const mockHasFailed = ref(false);
 const mockIsUpToDate = ref(false);
 const mockIsLoading = ref(false);
 const mockProgress = ref({ current: 0, total: 0 });
+const mockAccountsTotal = ref(0);
+const mockAccountsDone = ref(0);
 const mockErrorMessage = ref(null);
 const mockLastSyncAt = ref(null);
 const mockLoadStatus = vi.fn();
@@ -27,6 +29,8 @@ vi.mock('@/composables/useAnalysisStatus', () => ({
     isUpToDate: mockIsUpToDate,
     isLoading: mockIsLoading,
     progress: mockProgress,
+    accountsTotal: mockAccountsTotal,
+    accountsDone: mockAccountsDone,
     errorMessage: mockErrorMessage,
     lastSyncAt: mockLastSyncAt,
     loadStatus: mockLoadStatus,
@@ -53,6 +57,8 @@ describe('AnalysisStatusCard', () => {
     mockIsUpToDate.value = false;
     mockIsLoading.value = false;
     mockProgress.value = { current: 0, total: 0 };
+    mockAccountsTotal.value = 0;
+    mockAccountsDone.value = 0;
     mockErrorMessage.value = null;
     mockLastSyncAt.value = null;
   });
@@ -312,7 +318,17 @@ describe('AnalysisStatusCard', () => {
       expect(wrapper.find('.status-spinner').exists()).toBe(false);
     });
 
-    it('re-enables the action button via 1.5-second safety timeout when WS never delivers a status update', async () => {
+    it('shows "Analyzing..." on the button while optimistically pending', async () => {
+      mockTriggerAnalysis.mockReturnValue(new Promise(() => {})); // never resolves
+      const wrapper = mountCard();
+
+      await wrapper.find('button').trigger('click');
+      await nextTick();
+
+      expect(wrapper.find('button').text()).toBe('Analyzing...');
+    });
+
+    it('re-enables the action button via the 15-second dead-WS fallback when no aggregate update arrives', async () => {
       vi.useFakeTimers();
       // Status is not settled: no isRunning, isUpToDate, or hasFailed
       mockTriggerAnalysis.mockResolvedValue(true);
@@ -321,12 +337,17 @@ describe('AnalysisStatusCard', () => {
       await wrapper.find('button').trigger('click');
       await flushPromises();
 
-      // Still pending — no WS update has arrived; button is disabled
+      // Still pending — no aggregate update has arrived; button is disabled
       expect(wrapper.find('.status-spinner').exists()).toBe(true);
       expect(wrapper.find('button').attributes('disabled')).toBeDefined();
 
-      // Advance past the 1.5-second safety timeout
-      vi.advanceTimersByTime(1_500);
+      // Still pending just before the fallback timeout elapses
+      vi.advanceTimersByTime(14_000);
+      await flushPromises();
+      expect(wrapper.find('button').attributes('disabled')).toBeDefined();
+
+      // Advance past the 15-second dead-WS fallback
+      vi.advanceTimersByTime(1_000);
       await flushPromises();
 
       expect(wrapper.find('.status-spinner').exists()).toBe(false);
@@ -373,12 +394,37 @@ describe('AnalysisStatusCard', () => {
       expect(wrapper.find('.progress-bar__fill--rate-limited').exists()).toBe(true);
     });
 
-    it('does not show progress bar when total is 0', () => {
+    it('shows an indeterminate progress bar when running before counts arrive (total 0)', () => {
       mockIsRunning.value = true;
       mockProgress.value = { current: 0, total: 0 };
 
       const wrapper = mountCard();
-      expect(wrapper.find('.progress-bar').exists()).toBe(false);
+      expect(wrapper.find('.progress-bar').exists()).toBe(true);
+      expect(wrapper.find('.progress-bar__fill--indeterminate').exists()).toBe(true);
+    });
+
+    it('stays indeterminate during a multi-account run until all accounts settle', () => {
+      // Combined total keeps growing as each account is enumerated, so a determinate bar
+      // would jump backward. Hold indeterminate while accountsDone < accountsTotal.
+      mockIsRunning.value = true;
+      mockProgress.value = { current: 4, total: 20 };
+      mockAccountsTotal.value = 3;
+      mockAccountsDone.value = 1;
+
+      const wrapper = mountCard();
+      expect(wrapper.find('.progress-bar__fill--indeterminate').exists()).toBe(true);
+      expect(wrapper.find('.progress-bar__fill').attributes('style')).toBeUndefined();
+    });
+
+    it('shows a determinate bar once every account in a multi-account run has settled', () => {
+      mockIsRunning.value = true;
+      mockProgress.value = { current: 60, total: 80 };
+      mockAccountsTotal.value = 3;
+      mockAccountsDone.value = 3;
+
+      const wrapper = mountCard();
+      expect(wrapper.find('.progress-bar__fill--indeterminate').exists()).toBe(false);
+      expect(wrapper.find('.progress-bar__fill').attributes('style')).toContain('width: 75%');
     });
   });
 });
