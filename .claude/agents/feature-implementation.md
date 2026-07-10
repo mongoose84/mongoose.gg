@@ -22,9 +22,9 @@ Implement tightly coupled end-to-end feature work from an approved spec or expli
 ## Workflow
 
 1. Read the feature spec and treat it as the source of truth.
-2. Load the relevant instructions:
-   - `.github/instructions/backend.instructions.md` and `.github/instructions/backend-test.instructions.md` for backend work.
-   - `.github/instructions/frontend.instructions.md` and `.github/instructions/frontend-unit-test.instructions.md` for frontend work.
+2. Load the relevant context (nested `CLAUDE.md` files auto-load when you touch files in their directory, so this mostly happens for you):
+   - `server/Mongoose.Api/CLAUDE.md` and `server/Mongoose.Api.Tests/CLAUDE.md` for backend work.
+   - `client/src/CLAUDE.md` and `client/test/unit/CLAUDE.md` for frontend work.
    - `.claude/skills/new-endpoint/SKILL.md` when adding an endpoint.
    - `.claude/skills/run-e2e-tests/SKILL.md` when Playwright validation is needed.
 3. Read the owning backend and frontend files plus nearby examples.

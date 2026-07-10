@@ -1,10 +1,11 @@
-# Frontend Unit Test Rules
+# Client Unit Tests — Local Context
 
-> Scope: `client/test/unit/**/*.{js,ts}`
+> Vitest + Vue Test Utils unit tests under `client/test/unit/`.
+> For repo-wide invariants see [CLAUDE.md](../../../CLAUDE.md); for build/run/test commands see [client/CLAUDE.md](../../CLAUDE.md).
 
-Load [test-strategy.spec.md](../specs/test-strategy.spec.md) only when changing frontend test scope or infrastructure.
-Load [architecture.spec.md](../specs/architecture.spec.md) only when the test depends on API or route contracts.
-Load [ui-ux.spec.md](../specs/ui-ux.spec.md) only when expected states or accessibility behavior are unclear.
+Load [test-strategy.spec.md](../../../.github/specs/test-strategy.spec.md) only when changing frontend test scope or infrastructure.
+Load [architecture.spec.md](../../../.github/specs/architecture.spec.md) only when the test depends on API or route contracts.
+Load [ui-ux.spec.md](../../../.github/specs/ui-ux.spec.md) only when expected states or accessibility behavior are unclear.
 Always read the source file under test and one nearby unit test first.
 
 ## Test Stack

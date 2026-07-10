@@ -1,11 +1,11 @@
-# Frontend Rules
+# Client Source — Local Context
 
-> Scope: `client/src/**/*.{vue,js,ts,css,scss,sass,less}`
+> Vue 3 application code under `client/src/`.
+> For repo-wide invariants see [CLAUDE.md](../../CLAUDE.md); for build/run/test commands see [client/CLAUDE.md](../CLAUDE.md).
 
-Load [ui-ux.spec.md](../specs/ui-ux.spec.md) only when changing user-facing behavior, layout, design tokens, or accessibility expectations.
-Load [architecture.spec.md](../specs/architecture.spec.md) only when changing API usage, route behavior, or DTO assumptions.
-Load [component.spec.md](../specs/component.spec.md) only when you need the full component template.
-Use [client/AGENTS.md](../../client/AGENTS.md) for client build and run context.
+Load [ui-ux.spec.md](../../.github/specs/ui-ux.spec.md) only when changing user-facing behavior, layout, design tokens, or accessibility expectations.
+Load [architecture.spec.md](../../.github/specs/architecture.spec.md) only when changing API usage, route behavior, or DTO assumptions.
+Load [component.spec.md](../../.github/specs/component.spec.md) only when you need the full component template.
 
 ## Component And State Rules
 
@@ -34,4 +34,4 @@ Use [client/AGENTS.md](../../client/AGENTS.md) for client build and run context.
 
 - Register only the Chart.js pieces you need and avoid rendering charts when there is no data.
 - Use responsive chart configuration and keep chart containers explicitly sized.
-- Add or update unit tests in [frontend-unit-test.instructions.md](frontend-unit-test.instructions.md) when frontend logic changes.
+- Add or update unit tests — see [client/test/unit/CLAUDE.md](../test/unit/CLAUDE.md) — when frontend logic changes.

@@ -15,9 +15,9 @@ Audit the repo for missing tests, coverage gaps, and deviations from the current
 ## Context To Load
 
 - `.github/specs/test-strategy.spec.md`
-- `.github/instructions/backend-test.instructions.md`
-- `.github/instructions/frontend-unit-test.instructions.md`
-- `.github/instructions/e2e-test.instructions.md`
+- `server/Mongoose.Api.Tests/CLAUDE.md`
+- `client/test/unit/CLAUDE.md`
+- `client/e2e/CLAUDE.md`
 - `.github/specs/architecture.spec.md` when endpoint inventory matters
 
 Use the current workspace as the source of truth and call out spec drift explicitly.

@@ -14,7 +14,7 @@ Review changes for correctness, regressions, maintainability, and test adequacy.
 
 ## Review Standard
 
-- Use `CLAUDE.md` and the relevant files under `.github/instructions/` as the standard.
+- Use `CLAUDE.md` as the standard; nested `CLAUDE.md` files (e.g. `server/Mongoose.Api/CLAUDE.md`, `client/src/CLAUDE.md`) auto-load for whatever directories the changed files are in.
 - Load deeper specs only when the review depends on contracts, schema, UX behavior, or test strategy.
 
 ## Workflow

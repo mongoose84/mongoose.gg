@@ -2,19 +2,18 @@
 
 League of Legends analytics platform — .NET 10 Minimal API backend, MySQL, Vue 3 SPA, Pinia, Tailwind CSS, Playwright E2E.
 
-## Targeted Guidance
+## Local Context
 
-Read these files when the task touches the relevant area — do not load them all upfront:
+Claude auto-loads the nearest `CLAUDE.md` for whatever directory you're editing — no manual lookup needed. Map, for reference:
 
 | Area | File |
 |------|------|
-| C# app code | `.github/instructions/backend.instructions.md` |
-| Vue / JS / CSS app code | `.github/instructions/frontend.instructions.md` |
-| Backend tests | `.github/instructions/backend-test.instructions.md` |
-| Frontend unit tests | `.github/instructions/frontend-unit-test.instructions.md` |
-| E2E tests | `.github/instructions/e2e-test.instructions.md` |
-| Backend build, run, runtime layout | `server/Mongoose.Api/AGENTS.md` |
-| Frontend build, run, runtime layout | `client/AGENTS.md` |
+| Backend build, run, coding rules | `server/Mongoose.Api/CLAUDE.md` |
+| Backend tests | `server/Mongoose.Api.Tests/CLAUDE.md` |
+| Frontend build, run | `client/CLAUDE.md` |
+| Frontend component/store/styling rules | `client/src/CLAUDE.md` |
+| Frontend unit tests | `client/test/unit/CLAUDE.md` |
+| E2E tests | `client/e2e/CLAUDE.md` |
 
 ## Deep References
 

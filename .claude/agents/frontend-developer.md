@@ -14,10 +14,10 @@ Implement and modify frontend code under `client/src/`.
 
 ## Context To Load
 
-- Follow `.github/instructions/frontend.instructions.md`.
+- Follow `client/src/CLAUDE.md` (auto-loaded when you touch files there).
 - Load `.github/specs/ui-ux.spec.md` only when changing user-facing behavior, layout, tokens, or accessibility expectations.
 - Load `.github/specs/component.spec.md` only when a full component scaffold is needed.
-- Use `.github/instructions/frontend-unit-test.instructions.md` when unit tests are part of the change.
+- `client/test/unit/CLAUDE.md` (auto-loaded there) when unit tests are part of the change.
 
 ## Workflow
 

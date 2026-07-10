@@ -13,7 +13,7 @@ Review all changes on the current branch against `origin/main`, run relevant tes
 2. Run the narrowest affected tests before reporting.
 3. Review against project standards.
 
-Use `CLAUDE.md` and the relevant files under `.github/instructions/` as the review standard.
+Use `CLAUDE.md` as the review standard; nested `CLAUDE.md` files (e.g. `server/Mongoose.Api/CLAUDE.md`, `client/src/CLAUDE.md`) auto-load for whatever directories the changed files are in.
 
 Focus on:
 - correctness, regressions, and security issues

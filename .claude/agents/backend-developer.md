@@ -14,10 +14,10 @@ Implement and modify backend code under `server/Mongoose.Api/`.
 
 ## Context To Load
 
-- Follow `.github/instructions/backend.instructions.md`.
+- Follow `server/Mongoose.Api/CLAUDE.md` (auto-loaded when you touch files there).
 - Load `.github/specs/architecture.spec.md` only when changing routes, DTOs, auth flow, or contracts.
 - Load `.github/specs/database-schema.spec.md` only when changing SQL, repositories, or persistence shape.
-- Use `.github/instructions/backend-test.instructions.md` when backend tests are part of the change.
+- `server/Mongoose.Api.Tests/CLAUDE.md` (auto-loaded there) when backend tests are part of the change.
 
 ## Workflow
 

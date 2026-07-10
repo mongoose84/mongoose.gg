@@ -1,9 +1,10 @@
-# E2E Test Rules
+# Client E2E Tests — Local Context
 
-> Scope: `client/e2e/**/*.js`
+> Playwright end-to-end tests under `client/e2e/`.
+> For repo-wide invariants see [CLAUDE.md](../../CLAUDE.md); for build/run/test commands see [client/CLAUDE.md](../CLAUDE.md).
 
-Load [test-strategy.spec.md](../specs/test-strategy.spec.md) only when changing E2E scope or deciding whether a workflow belongs in Playwright.
-Load [architecture.spec.md](../specs/architecture.spec.md) only when auth flow, protected routes, or backend contract details affect the UI path.
+Load [test-strategy.spec.md](../../.github/specs/test-strategy.spec.md) only when changing E2E scope or deciding whether a workflow belongs in Playwright.
+Load [architecture.spec.md](../../.github/specs/architecture.spec.md) only when auth flow, protected routes, or backend contract details affect the UI path.
 Always read the target workflow in `client/src/` and one nearby Playwright spec first.
 
 ## Scope

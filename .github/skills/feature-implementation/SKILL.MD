@@ -85,14 +85,14 @@ Stream preconditions (enforced for every stream):
 #### Backend stream rules (when applicable)
 Agent: backend-developer
 
-- Follow [backend.instructions.md](../../instructions/backend.instructions.md), [backend-test.instructions.md](../../instructions/backend-test.instructions.md), and [new-endpoint/SKILL.md](../new-endpoint/SKILL.md) when applicable.
+- Follow `server/Mongoose.Api/CLAUDE.md`, `server/Mongoose.Api.Tests/CLAUDE.md`, and [new-endpoint/SKILL.md](../new-endpoint/SKILL.md) when applicable.
 
 Required deliverable: code changes plus test updates and implementation notes.
 
 #### Frontend stream rules (when applicable)
 Agent: frontend-developer
 
-- Follow [frontend.instructions.md](../../instructions/frontend.instructions.md) and [frontend-unit-test.instructions.md](../../instructions/frontend-unit-test.instructions.md).
+- Follow `client/src/CLAUDE.md` and `client/test/unit/CLAUDE.md`.
 
 Required deliverable: code changes plus Vitest unit tests and UX notes.
 
