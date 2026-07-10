@@ -9,7 +9,20 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { createAnalyticsQueue } from '@/services/analyticsQueue'
+import { createAnalyticsQueue, getAnalyticsQueue } from '@/services/analyticsQueue'
+import { useAnalyticsQueue } from '@/composables/useAnalyticsQueue'
+
+// Run onMounted synchronously and no-op onUnmounted so the composable can be
+// exercised outside of a real component instance.
+vi.mock('vue', async () => {
+  const actual = await vi.importActual('vue')
+  return { ...actual, onMounted: (cb) => cb(), onUnmounted: vi.fn() }
+})
+
+// The composable calls useRouter(); provide a minimal stub.
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ afterEach: vi.fn(() => vi.fn()) }),
+}))
 
 describe('AnalyticsQueue', () => {
   let queue
@@ -45,10 +58,14 @@ describe('AnalyticsQueue', () => {
     })
 
     it('should reject when queue is full', () => {
+      // Prevent the batch-size auto-flush from draining the queue so it can
+      // actually reach the hard cap we're trying to exercise here.
+      vi.spyOn(queue, 'flush').mockImplementation(() => {})
+
       for (let i = 0; i < queue.config.maxQueueSize; i++) {
         queue.addEvent('test:event', { index: i })
       }
-      
+
       const result = queue.addEvent('test:event', { overflow: true })
       expect(result).toBe(false)
       expect(queue.metrics.totalEventsRejected).toBeGreaterThan(0)
@@ -92,13 +109,15 @@ describe('AnalyticsQueue', () => {
       expect(global.fetch).toHaveBeenCalled()
     })
 
-    it('should handle visibility change', async () => {
+    it('should handle visibility change', () => {
+      // Visibility listener is only attached once the queue is started.
+      queue.start()
       const flushSpy = vi.spyOn(queue, 'flush')
-      
-      // Simulate page hidden
-      document.hidden = true
+
+      // jsdom's document.hidden is a read-only getter; override it.
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true })
       document.dispatchEvent(new Event('visibilitychange'))
-      
+
       expect(flushSpy).toHaveBeenCalled()
     })
   })
@@ -221,19 +240,31 @@ describe('AnalyticsQueue', () => {
     })
 
     it('should timeout hanging flushes', async () => {
-      global.fetch.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve({
-          ok: true,
-          json: async () => ({}),
-        }), 100000)) // Very long
+      // Short timeout and no retries so the aborted flush settles quickly.
+      const localQueue = createAnalyticsQueue({
+        minEventsToFlush: 10,
+        flushTimeoutMs: 50,
+        maxRetries: 0,
+      })
+
+      // Never resolves on its own; rejects only when the queue's
+      // AbortController fires, mirroring how real fetch honors the signal.
+      global.fetch.mockImplementation((_url, opts) =>
+        new Promise((_resolve, reject) => {
+          opts.signal.addEventListener('abort', () =>
+            reject(new DOMException('The operation was aborted', 'AbortError'))
+          )
+        })
       )
-      
-      queue.addEvent('test:event', {})
-      queue.flush()
-      
-      await new Promise(resolve => setTimeout(resolve, queue.config.flushTimeoutMs + 100))
-      
-      expect(queue.pendingFlushes).toBe(0) // Should have timed out
+
+      localQueue.addEvent('test:event', {})
+      localQueue.flush()
+      expect(localQueue.pendingFlushes).toBe(1)
+
+      await new Promise(resolve => setTimeout(resolve, localQueue.config.flushTimeoutMs + 100))
+
+      expect(localQueue.pendingFlushes).toBe(0) // Should have timed out
+      localQueue.stop()
     })
   })
 
@@ -280,11 +311,20 @@ describe('AnalyticsQueue', () => {
 })
 
 describe('useAnalyticsQueue (Composable)', () => {
+  afterEach(() => {
+    // The composable starts the singleton queue's interval timer on mount;
+    // stop it so the timer doesn't leak between tests.
+    getAnalyticsQueue().stop()
+    vi.clearAllMocks()
+  })
+
   it('should integrate with Vue', () => {
+    global.fetch = vi.fn()
     const { track, getMetrics, isReady } = useAnalyticsQueue()
-    
+
     expect(isReady.value).toBe(true)
     const metrics = getMetrics()
-    expect(metrics).toHaveProperty('queueSize')
+    expect(metrics).toHaveProperty('currentQueueSize')
+    expect(typeof track).toBe('function')
   })
 })
