@@ -461,4 +461,87 @@ public class RiotAccountsEndpointTests
         var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         json.RootElement.GetProperty("code").GetString().Should().Be("RIOT_ACCOUNT_NOT_FOUND");
     }
+
+    [Fact]
+    public async Task SyncAll_Returns202_AndQueuesEveryLinkedAccount()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "pro");
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-a", "Main", "na1", "Main#NA1", 100, 1);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-b", "Smurf", "na1", "Smurf#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-a", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-b", isPrimary: false);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/sync");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("accountsTotal").GetInt32().Should().Be(2);
+        json.RootElement.GetProperty("accountsQueued").GetInt32().Should().Be(2);
+
+        (await factory.RiotAccountsRepository.GetByPuuidAsync("puuid-a"))!.SyncStatus.Should().Be("pending");
+        (await factory.RiotAccountsRepository.GetByPuuidAsync("puuid-b"))!.SyncStatus.Should().Be("pending");
+    }
+
+    [Fact]
+    public async Task SyncAll_SkipsAccountsThatAreAlreadySyncing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        factory.UsersRepository.SetTier("tester", "pro");
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-idle", "Main", "na1", "Main#NA1", 100, 1);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-syncing", "Smurf", "na1", "Smurf#NA1", 100, 1);
+        await factory.RiotAccountsRepository.UpdateSyncStatusAsync("puuid-syncing", "syncing");
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-idle", isPrimary: true);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-syncing", isPrimary: false);
+
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/sync");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("accountsTotal").GetInt32().Should().Be(2);
+        json.RootElement.GetProperty("accountsQueued").GetInt32().Should().Be(1);
+
+        (await factory.RiotAccountsRepository.GetByPuuidAsync("puuid-idle"))!.SyncStatus.Should().Be("pending");
+        (await factory.RiotAccountsRepository.GetByPuuidAsync("puuid-syncing"))!.SyncStatus.Should().Be("syncing");
+    }
+
+    [Fact]
+    public async Task SyncAll_Returns400_WhenNoLinkedAccounts()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var cookie = await LoginAndGetCookieAsync(factory);
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/sync");
+        request.Headers.Add("Cookie", cookie);
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("code").GetString().Should().Be("NO_LINKED_ACCOUNT");
+    }
+
+    [Fact]
+    public async Task SyncAll_Returns401_WhenUnauthenticated()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.PostAsync("/api/v2/users/me/riot-accounts/sync", content: null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }

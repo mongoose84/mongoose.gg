@@ -261,6 +261,20 @@ export async function triggerRiotAccountSync(puuid) {
 }
 
 /**
+ * Trigger an analysis for ALL of the user's linked Riot accounts.
+ * The backend queues every account and streams a single combined progress
+ * view over the WebSocket aggregate channel.
+ * @returns {Promise<Object>} { accountsTotal, accountsQueued, message }
+ */
+export async function triggerAnalysisAll() {
+  const response = await apiRequest('/users/me/riot-accounts/sync', {
+    method: 'POST'
+  })
+
+  return parseResponse(response, 'Failed to trigger analysis')
+}
+
+/**
  * Get sync status for a Riot account
  * @param {string} puuid - The PUUID of the account
  * @returns {Promise<Object>} Sync status data

@@ -124,6 +124,10 @@ builder.Services.AddHttpClient("RiotApi", client =>
         client.DefaultRequestHeaders.Add("X-Riot-Token", Secrets.ApiKey);
 });
 
+// Wake-up signal so the sync endpoint can start the match-sync job immediately
+// instead of waiting for its next poll tick (shared singleton: endpoint + job).
+builder.Services.AddSingleton<ISyncQueueSignal, SyncQueueSignal>();
+
 // Match History Sync Job (per-account sync for linked Riot accounts)
 var enableMatchHistorySync = builder.Configuration.GetValue<bool>("Jobs:EnableMatchHistorySync", true);
 if (enableMatchHistorySync)
@@ -140,7 +144,17 @@ if (enableMatchCleanup)
 
 // WebSocket hub for sync progress (singleton - shared across all connections)
 builder.Services.AddSingleton<SyncProgressHub>();
-builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
+builder.Services.AddSingleton<IUserSyncBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
+
+// Per-user aggregator for the "Analyze all" flow (combines per-account progress into one stream).
+builder.Services.AddSingleton<ISyncProgressAggregator, SyncProgressAggregator>();
+
+// The broadcaster used by the sync job fans out to both the per-account channel (Settings page)
+// and the per-user aggregate channel (Overview card).
+builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp =>
+    new AggregatingSyncProgressBroadcaster(
+        sp.GetRequiredService<SyncProgressHub>(),
+        sp.GetRequiredService<ISyncProgressAggregator>()));
 
 // Add authentication (cookie-based)
 // All logins produce a 30-day persistent cookie with sliding expiration.
