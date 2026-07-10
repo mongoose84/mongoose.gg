@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Implement the work described by the user in the spec or tickets.
 
-Use /tdd where possible, at pre-agreed seams.
+Work test-first where possible, at the pre-agreed seams: write a failing test that pins the behavior, make it pass with the simplest change, then refactor with the test green.
 
 Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
