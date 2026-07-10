@@ -28,6 +28,21 @@ Load only when the change directly touches contracts, schema, UX behavior, or te
 | Test scope and coverage strategy | `.github/specs/test-strategy.spec.md` |
 | Component template | `.github/specs/component.spec.md` |
 
+## Agent Routing
+
+Specialist subagents live in `.claude/agents/`. Delegate via the `Agent` tool using `subagent_type` set to the agent's name below; pick the narrowest specialist that fits the task and give it exact repo paths and boundaries rather than the whole request.
+
+- Backend implementation → `backend-developer`
+- Frontend implementation → `frontend-developer`
+- Markdown, specs, and planning → `architect`
+- Tests → `test-writer`
+- Code review → `code-reviewer`
+- DevOps, YAML, and CI → `devops-engineer`
+- UX/UI design → `ux-ui-designer`
+- End-to-end feature delivery (small, tightly coupled full-stack change) → `feature-implementation`
+
+Don't delegate tiny single-file edits when doing it directly is simpler, and don't skip validation for behavior changes.
+
 ## Repo-Wide Invariants
 
 These apply to every change regardless of area:
