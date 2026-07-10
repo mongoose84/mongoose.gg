@@ -1,8 +1,6 @@
----
-applyTo: "client/test/unit/**/*.{js,ts}"
-description: "Frontend unit test guidance for Vitest and Vue Test Utils. Use when writing or editing tests under client/test/unit/, including component, composable, store, service, router, and utility tests."
----
 # Frontend Unit Test Rules
+
+> Scope: `client/test/unit/**/*.{js,ts}`
 
 Load [test-strategy.spec.md](../specs/test-strategy.spec.md) only when changing frontend test scope or infrastructure.
 Load [architecture.spec.md](../specs/architecture.spec.md) only when the test depends on API or route contracts.

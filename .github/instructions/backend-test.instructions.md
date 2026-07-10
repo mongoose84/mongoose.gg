@@ -1,8 +1,6 @@
----
-applyTo: "server/Mongoose.Api.Tests/**/*.cs"
-description: "Backend test guidance for xUnit integration and unit tests in the Mongoose.Api.Tests project. Use when writing or editing backend tests, test infrastructure, or endpoint coverage in server/Mongoose.Api.Tests/."
----
 # Backend Test Rules
+
+> Scope: `server/Mongoose.Api.Tests/**/*.cs`
 
 Load [test-strategy.spec.md](../specs/test-strategy.spec.md) only when changing backend test scope or infrastructure.
 Load [architecture.spec.md](../specs/architecture.spec.md) only when the test depends on route, auth, or response-contract details.

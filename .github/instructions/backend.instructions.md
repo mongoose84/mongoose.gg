@@ -1,8 +1,6 @@
----
-applyTo: "server/Mongoose.Api/**/*.cs"
-description: "Backend implementation rules for C# API, application, core, and infrastructure files. Use when writing or editing server/Mongoose.Api code."
----
 # Backend Rules
+
+> Scope: `server/Mongoose.Api/**/*.cs`
 
 Load [architecture.spec.md](../specs/architecture.spec.md) only when changing routes, DTOs, auth flow, or endpoint contracts.
 Load [database-schema.spec.md](../specs/database-schema.spec.md) only when changing SQL, repositories, or persistence shape.

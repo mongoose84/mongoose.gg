@@ -126,7 +126,7 @@ Agent: code-reviewer
 
 Goals:
 - Review for correctness, maintainability, security, and test adequacy.
-- Use `copilot-instructions.md` and the relevant targeted instruction files as the review standard.
+- Use `CLAUDE.md` and the relevant targeted instruction files as the review standard.
 - Prioritize issues by severity and identify required fixes.
 
 Required deliverable:
@@ -151,7 +151,7 @@ Repeat until:
 - Keep changes scoped to approved feature boundaries.
 - Avoid unrelated refactors unless required for correctness.
 - Keep commits/review units small and traceable.
-- Follow repo-wide invariants from `copilot-instructions.md` and file-scoped rules from the targeted instruction files.
+- Follow repo-wide invariants from `CLAUDE.md` and file-scoped rules from the targeted instruction files.
 
 ## Suggested Invocation Prompt
 Use this skill when you say:

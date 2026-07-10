@@ -1,7 +1,3 @@
----
-type: "manual"
----
-
 # Mongoose.gg — Database Schema Specification
 
 ## Overview

@@ -1,8 +1,6 @@
----
-applyTo: "client/src/**/*.{vue,js,ts,css,scss,sass,less}"
-description: "Frontend implementation rules for Vue, JavaScript, TypeScript, and styling files under client/src. Use when writing or editing app UI code."
----
 # Frontend Rules
+
+> Scope: `client/src/**/*.{vue,js,ts,css,scss,sass,less}`
 
 Load [ui-ux.spec.md](../specs/ui-ux.spec.md) only when changing user-facing behavior, layout, design tokens, or accessibility expectations.
 Load [architecture.spec.md](../specs/architecture.spec.md) only when changing API usage, route behavior, or DTO assumptions.

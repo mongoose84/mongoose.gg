@@ -1,8 +1,6 @@
----
-applyTo: "client/e2e/**/*.js"
-description: "Playwright end-to-end test guidance for flows under client/e2e/. Use when writing or editing browser-flow tests, Playwright helpers, global setup, or teardown for the client E2E suite."
----
 # E2E Test Rules
+
+> Scope: `client/e2e/**/*.js`
 
 Load [test-strategy.spec.md](../specs/test-strategy.spec.md) only when changing E2E scope or deciding whether a workflow belongs in Playwright.
 Load [architecture.spec.md](../specs/architecture.spec.md) only when auth flow, protected routes, or backend contract details affect the UI path.
