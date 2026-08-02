@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Mongoose.Api.Application.Endpoints.Analytics;
+using Mongoose.Api.Application.Endpoints.Shared;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -57,7 +58,7 @@ public class AnalyticsAbuseGuards : IAnalyticsAbuseGuards
       {
         _logger.LogWarning(
           "IP rate limit exceeded: IP={Ip}, Count={Count}/{Max}",
-          clientIp, ipCount, _options.MaxEventsPerIpPerWindow);
+          LogSanitizer.Sanitize(clientIp), ipCount, _options.MaxEventsPerIpPerWindow);
         
         return new AbuseCheckResult
         {
@@ -77,7 +78,7 @@ public class AnalyticsAbuseGuards : IAnalyticsAbuseGuards
         {
           _logger.LogWarning(
             "User rate limit exceeded: UserId={UserId}, Count={Count}/{Max}",
-            userId, userCount, _options.MaxEventsPerUserPerWindow);
+            LogSanitizer.Sanitize(userId), userCount, _options.MaxEventsPerUserPerWindow);
           
           return new AbuseCheckResult
           {
@@ -98,7 +99,7 @@ public class AnalyticsAbuseGuards : IAnalyticsAbuseGuards
         {
           _logger.LogWarning(
             "Suspicious user agent rate limit exceeded: UA={Ua}, Count={Count}",
-            userAgent, suspiciousCount);
+            LogSanitizer.Sanitize(userAgent), suspiciousCount);
           
           return new AbuseCheckResult
           {
@@ -111,7 +112,7 @@ public class AnalyticsAbuseGuards : IAnalyticsAbuseGuards
         // Log suspicious UA once
         if (suspiciousCount == 0)
         {
-          _logger.LogInformation("Suspicious user agent detected: {Ua}", userAgent);
+          _logger.LogInformation("Suspicious user agent detected: {Ua}", LogSanitizer.Sanitize(userAgent));
         }
       }
       
