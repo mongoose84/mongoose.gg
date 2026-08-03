@@ -32,7 +32,7 @@ public interface IAnalyticsEventDimensionsRepository
     /// <summary>
     /// Get event detail with all dimension breakdowns
     /// </summary>
-    Task<EventDimensionDetail> GetEventDetailAsync(string eventName, DateTime startUtc, DateTime endUtc);
+    Task<EventDimensionDetail?> GetEventDetailAsync(string eventName, DateTime startUtc, DateTime endUtc);
 
     /// <summary>
     /// Count events by tier within time range
@@ -89,7 +89,7 @@ public interface IAnalyticsFunnelRepository
     /// <summary>
     /// Get funnel definition by name
     /// </summary>
-    Task<AnalyticsFunnelDefinition> GetFunnelDefinitionAsync(string funnelName);
+    Task<AnalyticsFunnelDefinition?> GetFunnelDefinitionAsync(string funnelName);
 
     /// <summary>
     /// Get all enabled funnel definitions

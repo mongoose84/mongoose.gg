@@ -1,5 +1,6 @@
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Core.Entities;
+using Mongoose.Api.Core.Interfaces;
 using static Mongoose.Api.Application.DTOs.AnalyticsV2Dto;
 
 namespace Mongoose.Api.Application.Endpoints.Analytics;
@@ -161,8 +162,3 @@ public static class AnalyticsCompatibilityHelper
         );
     }
 }
-
-/// <summary>
-/// Marker interface for v2 contract support
-/// </summary>
-public interface IEventValidator { }

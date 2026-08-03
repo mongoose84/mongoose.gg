@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 
 /// <summary>
@@ -274,22 +275,4 @@ public class DimensionExtractionService
             return null;
         }
     }
-}
-
-/// <summary>
-/// DTO for analytics events v2 (placeholder for reference)
-/// </summary>
-public record AnalyticsEventV2
-{
-    public long Id { get; set; }
-    public string EventName { get; set; } = string.Empty;
-    public string EventCategory { get; set; } = string.Empty;
-    public long? UserId { get; set; }
-    public string? SessionId { get; set; }
-    public string Tier { get; set; } = "free";
-    public string? PayloadJson { get; set; }
-    public string? UserAgentHash { get; set; }
-    public string? IpAnonymized { get; set; }
-    public DateTime? ClientTimestampUtc { get; set; }
-    public DateTime ServerTimestampUtc { get; set; }
 }

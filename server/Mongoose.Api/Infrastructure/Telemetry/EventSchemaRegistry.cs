@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 using Mongoose.Api.Core.Interfaces;
@@ -44,27 +45,32 @@ public class EventSchemaRegistry : IEventSchemaRegistry
             dynamic? parsed = deserializer.Deserialize<dynamic>(yaml);
             var schemas = new Dictionary<string, EventSchema>();
 
-            if (parsed?["events"] is not null)
+            var eventsField = parsed is null ? null : GetField(parsed, "events");
+            if (eventsField is not null)
             {
-                var events = (dynamic)parsed["events"];
+                var events = (dynamic)eventsField;
 
                 foreach (var eventEntry in events)
                 {
-                    var key = eventEntry.Key.ToString();
+                    string key = eventEntry.Key.ToString();
                     var eventDef = (dynamic)eventEntry.Value;
 
-                    var name = eventDef["name"]?.ToString() ?? key;
-                    var category = eventDef["category"]?.ToString() ?? "system";
-                    var version = int.TryParse(eventDef["version"]?.ToString() ?? "1", out var v) ? v : 1;
-                    var retentionDays = int.TryParse(eventDef["retention_days"]?.ToString() ?? "90", out var r) ? r : 90;
-                    var piiSensitive = bool.TryParse(eventDef["pii_sensitive"]?.ToString() ?? "false", out var p) ? p : false;
-                    var description = eventDef["description"]?.ToString() ?? "";
-                    var deprecated = bool.TryParse(eventDef["deprecated"]?.ToString() ?? "false", out var d) ? d : false;
-                    var replacement = eventDef["replacement"]?.ToString();
+                    string name = GetField(eventDef, "name")?.ToString() ?? key;
+                    string category = GetField(eventDef, "category")?.ToString() ?? "system";
+                    string versionStr = GetField(eventDef, "version")?.ToString() ?? "1";
+                    var version = int.TryParse(versionStr, out var v) ? v : 1;
+                    string retentionDaysStr = GetField(eventDef, "retentionDays")?.ToString() ?? "90";
+                    var retentionDays = int.TryParse(retentionDaysStr, out var r) ? r : 90;
+                    string piiSensitiveStr = GetField(eventDef, "piiSensitive")?.ToString() ?? "false";
+                    var piiSensitive = bool.TryParse(piiSensitiveStr, out var p) ? p : false;
+                    string description = GetField(eventDef, "description")?.ToString() ?? "";
+                    string deprecatedStr = GetField(eventDef, "deprecated")?.ToString() ?? "false";
+                    var deprecated = bool.TryParse(deprecatedStr, out var d) ? d : false;
+                    string? replacement = GetField(eventDef, "replacement")?.ToString();
 
-                    var allowedKeys = ExtractStringSet(eventDef["allowed_payload_keys"]);
-                    var requiredKeys = ExtractStringSet(eventDef["required_payload_keys"]);
-                    var keyTypes = ExtractKeyTypes(eventDef["payload_key_types"]);
+                    var allowedKeys = ExtractStringSet(GetField(eventDef, "allowedPayloadKeys"));
+                    var requiredKeys = ExtractStringSet(GetField(eventDef, "requiredPayloadKeys"));
+                    var keyTypes = ExtractKeyTypes(GetField(eventDef, "payloadKeyTypes"));
 
                     var schema = new EventSchema(
                         name, category, version, retentionDays, piiSensitive,
@@ -104,6 +110,21 @@ public class EventSchemaRegistry : IEventSchemaRegistry
     public int GetSchemaVersion() => _schemaVersion;
 
     /// <summary>
+    /// Safely read a key from a YAML-parsed dynamic map, returning null instead of throwing when absent.
+    /// (YamlDotNet's dynamic deserialization yields a Dictionary&lt;object, object&gt; whose indexer throws
+    /// KeyNotFoundException on a miss, unlike a normal lookup.)
+    /// </summary>
+    private static object? GetField(dynamic map, string key)
+    {
+        if (map is IDictionary dict && dict.Contains(key))
+        {
+            return dict[key];
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Extract string set from YAML list
     /// </summary>
     private static IReadOnlySet<string> ExtractStringSet(dynamic? value)
@@ -136,7 +157,7 @@ public class EventSchemaRegistry : IEventSchemaRegistry
             {
                 foreach (var key in dict.Keys)
                 {
-                    types[key.ToString()] = dict[key]?.ToString() ?? "string";
+                    types[key.ToString() ?? string.Empty] = dict[key]?.ToString() ?? "string";
                 }
             }
             return types.ToImmutableDictionary();

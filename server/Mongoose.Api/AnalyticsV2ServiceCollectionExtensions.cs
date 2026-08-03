@@ -3,6 +3,7 @@
 
 using Mongoose.Api.Application.Endpoints.Analytics;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Database;
 using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Telemetry;
 

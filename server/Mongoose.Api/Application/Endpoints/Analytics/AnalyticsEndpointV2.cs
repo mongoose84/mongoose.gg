@@ -77,22 +77,33 @@ public sealed class AnalyticsEndpointV2 : IEndpoint
     {
         try
         {
+            if (request is null)
+                return Results.BadRequest(new { error = "Invalid request format" });
+
             var (userId, tier) = await GetUserContext(httpContext, usersRepo);
 
-            // Try parsing as v2 first (has eventVersion field)
-            try
-            {
-                var v2Request = JsonSerializer.Deserialize<TrackEventV2Request>(
-                    request.ToString(),
-                    JsonOptions);
+            // Detect v1 vs v2 by presence of the "eventVersion" field itself — checking the
+            // deserialized value instead (e.g. `> 0`) is unreliable, since System.Text.Json fills
+            // a missing property with the record constructor's default value (1), not 0.
+            JsonElement requestElement = request;
+            var isV2Request = requestElement.ValueKind == JsonValueKind.Object
+                && requestElement.TryGetProperty("eventVersion", out _);
 
-                if (v2Request?.EventVersion > 0)
+            if (isV2Request)
+            {
+                try
                 {
-                    // Handle as V2
-                    return await HandleV2SingleInternal(v2Request, userId, tier, analyticsRepoV1, analyticsRepoV2, validator, schemaRegistry, logger);
+                    var v2Request = JsonSerializer.Deserialize<TrackEventV2Request>(
+                        request.ToString(),
+                        JsonOptions);
+
+                    if (v2Request is not null)
+                    {
+                        return await HandleV2SingleInternal(v2Request, userId, tier, analyticsRepoV1, analyticsRepoV2, validator, schemaRegistry, logger);
+                    }
                 }
+                catch { }
             }
-            catch { }
 
             // Fall back to V1
             var v1Request = JsonSerializer.Deserialize<TrackEventRequest>(
@@ -183,62 +194,6 @@ public sealed class AnalyticsEndpointV2 : IEndpoint
 
     // ============ V1 Handlers ============
 
-    private async Task<IResult> HandleTrackEvent_V1Fallback(
-        [FromBody] TrackEventRequest request,
-        HttpContext httpContext,
-        [FromServices] IAnalyticsEventsRepository analyticsRepoV1,
-        [FromServices] IUsersRepository usersRepo,
-        [FromServices] ILogger<AnalyticsEndpointV2> logger)
-    {
-        try
-        {
-            // Validate event name
-            if (string.IsNullOrWhiteSpace(request.EventName))
-                return Results.BadRequest(new { error = "eventName is required" });
-
-            if (request.EventName.Length > 100)
-                return Results.BadRequest(new { error = "eventName must be 100 characters or less" });
-
-            var (userId, tier) = await GetUserContext(httpContext, usersRepo);
-
-            // Validate sessionId length
-            var sessionId = request.SessionId;
-            if (sessionId != null && sessionId.Length > 64)
-                sessionId = sessionId[..64];
-
-            // Serialize payload
-            string? payloadJson = null;
-            if (request.Payload != null && request.Payload.Count > 0)
-            {
-                payloadJson = JsonSerializer.Serialize(request.Payload, JsonOptions);
-                if (payloadJson.Length > 4096)
-                    return Results.BadRequest(new { error = "payload too large (max 4KB)" });
-            }
-
-            var evt = new AnalyticsEvent
-            {
-                UserId = userId,
-                Tier = tier,
-                EventName = request.EventName,
-                PayloadJson = payloadJson,
-                SessionId = sessionId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await analyticsRepoV1.InsertAsync(evt);
-
-            logger.LogDebug("V1 analytics event recorded: {EventName} for user {UserId}",
-                LogSanitizer.Sanitize(request.EventName), userId?.ToString() ?? "anonymous");
-
-            return Results.Ok(new TrackEventResponse(true));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to record v1 analytics event");
-            return Results.Ok(new TrackEventResponse(false));
-        }
-    }
-
     private async Task<IResult> HandleV1SingleInternal(
         TrackEventRequest request,
         long? userId,
@@ -249,38 +204,43 @@ public sealed class AnalyticsEndpointV2 : IEndpoint
         IEventSchemaRegistry schemaRegistry,
         ILogger<AnalyticsEndpointV2> logger)
     {
-        // Transform v1 to v2
+        // Validate event name — v1 contract predates the v2 schema registry, so these
+        // checks (not registry membership) are what determine v1 acceptance.
+        if (string.IsNullOrWhiteSpace(request.EventName))
+            return Results.BadRequest(new { error = "eventName is required" });
+
+        if (request.EventName.Length > 100)
+            return Results.BadRequest(new { error = "eventName must be 100 characters or less" });
+
+        // Transform v1 to v2 for the (best-effort, dual-write) v2 table
         var entity = AnalyticsCompatibilityHelper.TransformV1RequestToEntity(request, request.SessionId, userId, tier, validator, schemaRegistry);
 
-        // Store in V2 table
-        await analyticsRepoV2.InsertAsync(entity);
-
-        // Store in V1 table
-        if (entity.IsAccepted)
+        // Store in V2 table (best-effort; a v1 event not yet in the v2 registry is expected and not fatal)
+        try
         {
-            try
-            {
-                var v1Event = new AnalyticsEvent
-                {
-                    UserId = entity.UserId,
-                    Tier = entity.Tier,
-                    EventName = entity.EventName,
-                    PayloadJson = entity.PayloadJson,
-                    SessionId = entity.SessionId,
-                    CreatedAt = entity.CreatedAt
-                };
-                await analyticsRepoV1.InsertAsync(v1Event);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to dual-write to v1 table");
-            }
+            await analyticsRepoV2.InsertAsync(entity);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to dual-write to v2 table");
         }
 
-        logger.LogDebug("V1→V2 event recorded: {EventName} (accepted: {IsAccepted})",
+        // Store in V1 table — authoritative for the v1 contract; if this fails, v1 truly failed.
+        var v1Event = new AnalyticsEvent
+        {
+            UserId = entity.UserId,
+            Tier = entity.Tier,
+            EventName = entity.EventName,
+            PayloadJson = entity.PayloadJson,
+            SessionId = entity.SessionId,
+            CreatedAt = entity.CreatedAt
+        };
+        await analyticsRepoV1.InsertAsync(v1Event);
+
+        logger.LogDebug("V1→V2 event recorded: {EventName} (v2 accepted: {IsAccepted})",
             LogSanitizer.Sanitize(entity.EventName), entity.IsAccepted);
 
-        return Results.Ok(new TrackEventResponse(entity.IsAccepted));
+        return Results.Ok(new TrackEventResponse(true));
     }
 
     // ============ Batch Handlers ============
@@ -310,41 +270,40 @@ public sealed class AnalyticsEndpointV2 : IEndpoint
 
             foreach (var req in request.Events)
             {
-                var entity = AnalyticsCompatibilityHelper.TransformV1RequestToEntity(req, request.Events.Length > 0 ? null : null, userId, tier, validator, schemaRegistry);
+                // v1 contract predates the v2 schema registry — skip only on v1-level validity,
+                // not on v2 registry membership.
+                if (string.IsNullOrWhiteSpace(req.EventName) || req.EventName.Length > 100)
+                    continue;
+
+                var entity = AnalyticsCompatibilityHelper.TransformV1RequestToEntity(req, null, userId, tier, validator, schemaRegistry);
 
                 eventsV2.Add(entity);
 
-                if (entity.IsAccepted)
+                eventsV1.Add(new AnalyticsEvent
                 {
-                    eventsV1.Add(new AnalyticsEvent
-                    {
-                        UserId = entity.UserId,
-                        Tier = entity.Tier,
-                        EventName = entity.EventName,
-                        PayloadJson = entity.PayloadJson,
-                        SessionId = entity.SessionId,
-                        CreatedAt = entity.CreatedAt
-                    });
-                }
+                    UserId = entity.UserId,
+                    Tier = entity.Tier,
+                    EventName = entity.EventName,
+                    PayloadJson = entity.PayloadJson,
+                    SessionId = entity.SessionId,
+                    CreatedAt = entity.CreatedAt
+                });
             }
 
-            // Insert V2 (authoritative)
-            var countV2 = await analyticsRepoV2.InsertBatchAsync(eventsV2);
-
-            // Dual-write V1
-            if (eventsV1.Count > 0)
+            // Insert V2 (best-effort; v1 events not yet in the v2 registry are expected and not fatal)
+            try
             {
-                try
-                {
-                    await analyticsRepoV1.InsertBatchAsync(eventsV1);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Failed to dual-write batch to v1 table");
-                }
+                await analyticsRepoV2.InsertBatchAsync(eventsV2);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to dual-write batch to v2 table");
             }
 
-            return Results.Ok(new TrackBatchResponse(true, countV2));
+            // Insert V1 — authoritative for the v1 contract
+            var countV1 = await analyticsRepoV1.InsertBatchAsync(eventsV1);
+
+            return Results.Ok(new TrackBatchResponse(true, countV1));
         }
         catch (Exception ex)
         {
@@ -365,10 +324,10 @@ public sealed class AnalyticsEndpointV2 : IEndpoint
     {
         try
         {
-            if (request?.Events == null || request.Events.Length == 0)
+            if (request?.Events == null || request.Events.Count == 0)
                 return Results.BadRequest(new { error = "events array is required" });
 
-            if (request.Events.Length > 50)
+            if (request.Events.Count > 50)
                 return Results.BadRequest(new { error = "max 50 events per batch" });
 
             var (userId, tier) = await GetUserContext(httpContext, usersRepo);

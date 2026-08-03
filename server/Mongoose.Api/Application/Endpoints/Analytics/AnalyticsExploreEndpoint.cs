@@ -18,18 +18,12 @@ using Mongoose.Api.Infrastructure.Services.Analytics;
 /// </summary>
 public class AnalyticsExploreEndpoint : IEndpoint
 {
-    public string Route => "/api/v2/analytics/explore";
+    public string Route { get; }
     public string Description => "Product analytics exploration queries";
 
-    private readonly IAnalyticsEventDimensionsRepository _dimensionRepository;
-    private readonly IAnalyticsJourneyRepository _journeyRepository;
-
-    public AnalyticsExploreEndpoint(
-        IAnalyticsEventDimensionsRepository dimensionRepository,
-        IAnalyticsJourneyRepository journeyRepository)
+    public AnalyticsExploreEndpoint(string basePath)
     {
-        _dimensionRepository = dimensionRepository;
-        _journeyRepository = journeyRepository;
+        Route = basePath + "/analytics/explore";
     }
 
     public void Configure(WebApplication app)
@@ -37,26 +31,23 @@ public class AnalyticsExploreEndpoint : IEndpoint
         // List unique events with filters
         app.MapGet($"{Route}/events", HandleListEventsAsync)
             .WithName("ExploreEvents")
-            .WithOpenApi()
             .Produces<EventListResponse>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest);
 
         // Get dimension values for exploration
         app.MapGet($"{Route}/dimensions", HandleGetDimensionValuesAsync)
             .WithName("ExploreDimensions")
-            .WithOpenApi()
             .Produces<DimensionValuesResponse>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest);
 
         // Deep dive into single event
         app.MapGet($"{Route}/events/{{eventName}}", HandleGetEventDetailAsync)
             .WithName("ExploreEventDetail")
-            .WithOpenApi()
             .Produces<EventDetailResponse>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status404NotFound);
     }
 
-    private async Task<IResult> HandleListEventsAsync(
+    private Task<IResult> HandleListEventsAsync(
         [FromQuery] string? timeRange = "last_7d",
         [FromQuery] string? eventName = null,
         [FromQuery] string? eventCategory = null,
@@ -78,11 +69,12 @@ public class AnalyticsExploreEndpoint : IEndpoint
             PageInfo = new PageInfo { Page = page, PageSize = pageSize, Total = events.Count }
         };
 
-        return Results.Ok(response);
+        return Task.FromResult<IResult>(Results.Ok(response));
     }
 
     private async Task<IResult> HandleGetDimensionValuesAsync(
         [FromQuery] string dimension,
+        [FromServices] IAnalyticsEventDimensionsRepository dimensionRepository,
         [FromQuery] string? timeRange = "last_7d",
         [FromQuery] string? eventName = null,
         [FromQuery] int limit = 50)
@@ -95,7 +87,7 @@ public class AnalyticsExploreEndpoint : IEndpoint
         var (startUtc, endUtc) = ParseTimeRange(timeRange);
 
         // Query dimension values (would call repository)
-        var values = await _dimensionRepository.GetDimensionValuesAsync(dimension, startUtc, endUtc, limit);
+        var values = await dimensionRepository.GetDimensionValuesAsync(dimension, startUtc, endUtc, limit);
 
         var response = new DimensionValuesResponse
         {
@@ -114,12 +106,13 @@ public class AnalyticsExploreEndpoint : IEndpoint
 
     private async Task<IResult> HandleGetEventDetailAsync(
         string eventName,
+        [FromServices] IAnalyticsEventDimensionsRepository dimensionRepository,
         [FromQuery] string? timeRange = "last_7d")
     {
         var (startUtc, endUtc) = ParseTimeRange(timeRange);
 
         // Get event detail (would call repository)
-        var detail = await _dimensionRepository.GetEventDetailAsync(eventName, startUtc, endUtc);
+        var detail = await dimensionRepository.GetEventDetailAsync(eventName, startUtc, endUtc);
 
         if (detail == null)
             return Results.NotFound(new ErrorResponse { Error = $"Event not found: {eventName}" });

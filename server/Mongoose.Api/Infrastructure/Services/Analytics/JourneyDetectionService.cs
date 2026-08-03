@@ -112,6 +112,7 @@ public class JourneyDetectionService
             var pageSequence = events
                 .Select(e => e.PagePath)
                 .Where(p => !string.IsNullOrEmpty(p))
+                .Select(p => p!)
                 .Distinct()
                 .ToList();
 

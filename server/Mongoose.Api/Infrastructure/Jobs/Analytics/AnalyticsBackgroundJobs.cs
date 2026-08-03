@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Services.Analytics;
 
 /// <summary>
 /// Base class for analytics background jobs
@@ -84,10 +86,10 @@ public class DimensionExtractionBackgroundJob : AnalyticsBackgroundJob
         _dimensionService = dimensionService;
     }
 
-    protected override async Task<DateTime> GetNextRunTimeAsync()
+    protected override Task<DateTime> GetNextRunTimeAsync()
     {
         var nextRun = _lastRunTime.AddMinutes(RunIntervalMinutes);
-        return nextRun > DateTime.UtcNow ? nextRun : DateTime.UtcNow;
+        return Task.FromResult(nextRun > DateTime.UtcNow ? nextRun : DateTime.UtcNow);
     }
 
     protected override async Task ExecuteJobAsync(CancellationToken cancellationToken)
@@ -121,14 +123,14 @@ public class RollupAggregationBackgroundJob : AnalyticsBackgroundJob
         _aggregationService = aggregationService;
     }
 
-    protected override async Task<DateTime> GetNextRunTimeAsync()
+    protected override Task<DateTime> GetNextRunTimeAsync()
     {
         // Calculate next hour:05
         var now = DateTime.UtcNow;
         var nextHour = now.AddHours(1);
         var nextRun = new DateTime(nextHour.Year, nextHour.Month, nextHour.Day, nextHour.Hour, 5, 0, DateTimeKind.Utc);
-        
-        return nextRun;
+
+        return Task.FromResult(nextRun);
     }
 
     protected override async Task ExecuteJobAsync(CancellationToken cancellationToken)
@@ -159,7 +161,7 @@ public class RetentionAndPurgeBackgroundJob : AnalyticsBackgroundJob
         _eventsRepository = eventsRepository;
     }
 
-    protected override async Task<DateTime> GetNextRunTimeAsync()
+    protected override Task<DateTime> GetNextRunTimeAsync()
     {
         var now = DateTime.UtcNow;
         var today = now.Date;
@@ -171,7 +173,7 @@ public class RetentionAndPurgeBackgroundJob : AnalyticsBackgroundJob
             nextRun = nextRun.AddDays(1);
         }
 
-        return nextRun;
+        return Task.FromResult(nextRun);
     }
 
     protected override async Task ExecuteJobAsync(CancellationToken cancellationToken)
@@ -207,21 +209,21 @@ public class RetentionAndPurgeBackgroundJob : AnalyticsBackgroundJob
         }
     }
 
-    private async Task<int> PurgeDimensionsAsync(CancellationToken cancellationToken)
+    private Task<int> PurgeDimensionsAsync(CancellationToken cancellationToken)
     {
         // Would call repository to purge dimensions older than max retention
-        return 0; // Placeholder
+        return Task.FromResult(0); // Placeholder
     }
 
-    private async Task<int> PurgeJourneysAsync(CancellationToken cancellationToken)
+    private Task<int> PurgeJourneysAsync(CancellationToken cancellationToken)
     {
         // Would call repository to purge journey steps older than max retention
-        return 0; // Placeholder
+        return Task.FromResult(0); // Placeholder
     }
 
-    private async Task<int> PurefunnelsAsync(CancellationToken cancellationToken)
+    private Task<int> PurefunnelsAsync(CancellationToken cancellationToken)
     {
         // Would call repository to purge funnel steps older than max retention
-        return 0; // Placeholder
+        return Task.FromResult(0); // Placeholder
     }
 }

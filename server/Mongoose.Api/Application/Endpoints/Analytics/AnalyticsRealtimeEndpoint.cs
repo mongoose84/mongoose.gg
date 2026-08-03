@@ -17,14 +17,12 @@ using Mongoose.Api.Core.Interfaces;
 /// </summary>
 public class AnalyticsRealtimeEndpoint : IEndpoint
 {
-    public string Route => "/api/v2/analytics/realtime";
+    public string Route { get; }
     public string Description => "Real-time event stream and metrics";
 
-    private readonly IAnalyticsEventDimensionsRepository _dimensionRepository;
-
-    public AnalyticsRealtimeEndpoint(IAnalyticsEventDimensionsRepository dimensionRepository)
+    public AnalyticsRealtimeEndpoint(string basePath)
     {
-        _dimensionRepository = dimensionRepository;
+        Route = basePath + "/analytics/realtime";
     }
 
     public void Configure(WebApplication app)
@@ -32,14 +30,12 @@ public class AnalyticsRealtimeEndpoint : IEndpoint
         // Live event feed
         app.MapGet($"{Route}/events", HandleLiveEventsAsync)
             .WithName("RealtimeEvents")
-            .WithOpenApi()
             .Produces<RealtimeEventsResponse>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest);
 
         // Real-time metrics
         app.MapGet($"{Route}/stats", HandleRealtimeStatsAsync)
             .WithName("RealtimeStats")
-            .WithOpenApi()
             .Produces<RealtimeStatsResponse>(StatusCodes.Status200OK);
 
         // WebSocket for live streaming (optional, for future enhancement)
@@ -48,16 +44,16 @@ public class AnalyticsRealtimeEndpoint : IEndpoint
         //     .WithOpenApi();
     }
 
-    private async Task<IResult> HandleLiveEventsAsync(
+    private Task<IResult> HandleLiveEventsAsync(
         [FromQuery] string? eventName = null,
         [FromQuery] int limit = 50,
         [FromQuery] int seconds = 60)
     {
         if (limit > 500)
-            return Results.BadRequest(new ErrorResponse { Error = "Limit cannot exceed 500" });
+            return Task.FromResult<IResult>(Results.BadRequest(new ErrorResponse { Error = "Limit cannot exceed 500" }));
 
         if (seconds < 1 || seconds > 3600)
-            return Results.BadRequest(new ErrorResponse { Error = "Seconds must be between 1 and 3600" });
+            return Task.FromResult<IResult>(Results.BadRequest(new ErrorResponse { Error = "Seconds must be between 1 and 3600" }));
 
         var endTime = DateTime.UtcNow;
         var startTime = endTime.AddSeconds(-seconds);
@@ -77,10 +73,10 @@ public class AnalyticsRealtimeEndpoint : IEndpoint
             TimeWindowSeconds = seconds
         };
 
-        return Results.Ok(response);
+        return Task.FromResult<IResult>(Results.Ok(response));
     }
 
-    private async Task<IResult> HandleRealtimeStatsAsync()
+    private Task<IResult> HandleRealtimeStatsAsync()
     {
         var now = DateTime.UtcNow;
         var lastMinute = now.AddSeconds(-60);
@@ -114,7 +110,7 @@ public class AnalyticsRealtimeEndpoint : IEndpoint
             }
         };
 
-        return Results.Ok(response);
+        return Task.FromResult<IResult>(Results.Ok(response));
     }
 
     // Future enhancement: WebSocket streaming

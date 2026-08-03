@@ -7,6 +7,11 @@ namespace Mongoose.Api.Core.Entities;
 public class AnalyticsEventV2 : EntityBase
 {
     /// <summary>
+    /// Auto-increment primary key (persistence identity)
+    /// </summary>
+    public long Id { get; set; }
+
+    /// <summary>
     /// Unique event ID (UUID); optional client-provided for idempotency
     /// </summary>
     public string? EventId { get; set; }

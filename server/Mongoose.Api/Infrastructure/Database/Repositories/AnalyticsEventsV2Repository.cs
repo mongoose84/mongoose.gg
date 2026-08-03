@@ -1,5 +1,6 @@
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
+using MySqlConnector;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
@@ -117,13 +118,13 @@ public class AnalyticsEventsV2Repository : RepositoryBase, IAnalyticsEventsV2Rep
             GROUP BY rejection_reason";
 
         var results = new Dictionary<string, long>();
-        using (var connection = await GetConnectionAsync())
-        using (var cmd = CreateCommand(connection, sql))
+        await using (var connection = await _factory.CreateOpenConnectionAsync())
+        await using (var cmd = new MySqlCommand(sql, connection))
         {
-            cmd.AddParameter("@from", from);
-            cmd.AddParameter("@to", to);
+            cmd.Parameters.AddWithValue("@from", from);
+            cmd.Parameters.AddWithValue("@to", to);
 
-            using (var reader = await ExecuteReaderAsync(cmd))
+            await using (var reader = await cmd.ExecuteReaderAsync())
             {
                 while (await reader.ReadAsync())
                 {
@@ -147,13 +148,13 @@ public class AnalyticsEventsV2Repository : RepositoryBase, IAnalyticsEventsV2Rep
             WHERE created_at >= @from
               AND created_at <= @to";
 
-        using (var connection = await GetConnectionAsync())
-        using (var cmd = CreateCommand(connection, sql))
+        await using (var connection = await _factory.CreateOpenConnectionAsync())
+        await using (var cmd = new MySqlCommand(sql, connection))
         {
-            cmd.AddParameter("@from", from);
-            cmd.AddParameter("@to", to);
+            cmd.Parameters.AddWithValue("@from", from);
+            cmd.Parameters.AddWithValue("@to", to);
 
-            using (var reader = await ExecuteReaderAsync(cmd))
+            await using (var reader = await cmd.ExecuteReaderAsync())
             {
                 if (await reader.ReadAsync())
                 {
@@ -189,13 +190,13 @@ public class AnalyticsEventsV2Repository : RepositoryBase, IAnalyticsEventsV2Rep
             GROUP BY event_category";
 
         var results = new Dictionary<string, long>();
-        using (var connection = await GetConnectionAsync())
-        using (var cmd = CreateCommand(connection, sql))
+        await using (var connection = await _factory.CreateOpenConnectionAsync())
+        await using (var cmd = new MySqlCommand(sql, connection))
         {
-            cmd.AddParameter("@from", from);
-            cmd.AddParameter("@to", to);
+            cmd.Parameters.AddWithValue("@from", from);
+            cmd.Parameters.AddWithValue("@to", to);
 
-            using (var reader = await ExecuteReaderAsync(cmd))
+            await using (var reader = await cmd.ExecuteReaderAsync())
             {
                 while (await reader.ReadAsync())
                 {

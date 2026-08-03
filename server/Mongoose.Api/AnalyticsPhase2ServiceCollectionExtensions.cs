@@ -1,5 +1,6 @@
 using Mongoose.Api.Application.Endpoints.Analytics;
 using Mongoose.Api.Infrastructure.Services.Analytics;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Mongoose.Api;
@@ -22,9 +23,11 @@ public static class AnalyticsPhase2ServiceCollectionExtensions
     AnalyticsQueueOptions? queueOptions = null,
     AnalyticsAbuseGuardsOptions? abuseOptions = null)
   {
-    // Register queue processor (background service)
+    // Register queue processor (background service) as a singleton first so it can be
+    // resolved both as IHostedService (lifecycle) and as IAnalyticsQueueProcessor (endpoint use).
     services.AddSingleton(queueOptions ?? new AnalyticsQueueOptions());
-    services.AddHostedService<AnalyticsQueueProcessor>();
+    services.AddSingleton<AnalyticsQueueProcessor>();
+    services.AddHostedService(sp => sp.GetRequiredService<AnalyticsQueueProcessor>());
     services.AddSingleton<IAnalyticsQueueProcessor>(sp =>
       sp.GetRequiredService<AnalyticsQueueProcessor>());
     

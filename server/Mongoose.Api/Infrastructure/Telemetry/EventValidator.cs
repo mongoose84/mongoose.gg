@@ -1,5 +1,7 @@
+using System.Collections;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Interfaces;
 
 namespace Mongoose.Api.Infrastructure.Telemetry;
@@ -183,6 +185,22 @@ public class EventValidator : IEventValidator
     {
         if (value is null)
             return true; // Allow null for optional fields
+
+        // Dictionary<string, object> payload values deserialize as JsonElement (System.Text.Json
+        // has no way to infer a concrete CLR type for an `object`-typed member), not raw primitives.
+        if (value is JsonElement element)
+        {
+            return expectedType.ToLower() switch
+            {
+                "string" => element.ValueKind == JsonValueKind.String,
+                "int" => element.ValueKind == JsonValueKind.Number,
+                "bool" => element.ValueKind is JsonValueKind.True or JsonValueKind.False,
+                "float" => element.ValueKind == JsonValueKind.Number,
+                "object" => element.ValueKind == JsonValueKind.Object,
+                "array" => element.ValueKind == JsonValueKind.Array,
+                _ => true // Allow unknown types
+            };
+        }
 
         return expectedType.ToLower() switch
         {

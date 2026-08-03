@@ -111,7 +111,8 @@ public class AnalyticsV2EndpointTests
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
         var largePayload = new Dictionary<string, object>
         {
-            { "data", new string('x', 5000) } // Exceeds 4KB limit
+            { "path", "/app/overview" }, // Required field, so the payload is otherwise valid
+            { "title", new string('x', 5000) } // Allowed key, but exceeds the 4KB serialized limit
         };
 
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/v2")
@@ -289,8 +290,8 @@ public class AnalyticsV2EndpointTests
         var response = await client.SendAsync(req);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<dynamic>();
-        result.Should().NotBeNull();
+        var result = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        result.ValueKind.Should().Be(System.Text.Json.JsonValueKind.Object);
     }
 
     // ============ Observability Endpoint Tests ============

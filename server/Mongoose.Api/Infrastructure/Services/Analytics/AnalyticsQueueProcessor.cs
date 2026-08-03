@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Mongoose.Api.Application.Endpoints.Analytics;
-using Mongoose.Api.Core.Entities.Analytics;
+using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

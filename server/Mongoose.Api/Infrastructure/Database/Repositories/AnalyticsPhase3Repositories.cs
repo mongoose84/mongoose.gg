@@ -26,7 +26,7 @@ public class AnalyticsEventDimensionsRepository : IAnalyticsEventDimensionsRepos
 
     public async Task InsertDimensionAsync(AnalyticsEventDimension dimension)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 INSERT INTO analytics_event_dimensions (
@@ -69,7 +69,7 @@ public class AnalyticsEventDimensionsRepository : IAnalyticsEventDimensionsRepos
 
     public async Task<IEnumerable<AnalyticsEventDimension>> GetExtractedDimensionsSinceAsync(long lastEventId, int limit = 1000)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT * FROM analytics_event_dimensions
@@ -83,7 +83,7 @@ public class AnalyticsEventDimensionsRepository : IAnalyticsEventDimensionsRepos
 
     public async Task<IEnumerable<AnalyticsEventDimension>> GetEventsByNameAsync(string eventName, DateTime startUtc, DateTime endUtc, int limit = 1000)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT * FROM analytics_event_dimensions
@@ -98,7 +98,7 @@ public class AnalyticsEventDimensionsRepository : IAnalyticsEventDimensionsRepos
 
     public async Task<IEnumerable<DimensionValue>> GetDimensionValuesAsync(string dimensionName, DateTime startUtc, DateTime endUtc, int limit = 50)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             var columnName = MapDimensionColumn(dimensionName);
             var sql = $@"
@@ -117,9 +117,9 @@ public class AnalyticsEventDimensionsRepository : IAnalyticsEventDimensionsRepos
         }
     }
 
-    public async Task<EventDimensionDetail> GetEventDetailAsync(string eventName, DateTime startUtc, DateTime endUtc)
+    public async Task<EventDimensionDetail?> GetEventDetailAsync(string eventName, DateTime startUtc, DateTime endUtc)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string baseSql = @"
                 SELECT
@@ -158,7 +158,7 @@ public class AnalyticsEventDimensionsRepository : IAnalyticsEventDimensionsRepos
 
     public async Task<int> CountEventsByTierAsync(string tier, DateTime startUtc, DateTime endUtc)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT COUNT(*) FROM analytics_event_dimensions
@@ -200,7 +200,7 @@ public class AnalyticsJourneyRepository : IAnalyticsJourneyRepository
 
     public async Task InsertJourneyStepAsync(AnalyticsJourneyStep step)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 INSERT INTO analytics_journey_steps (
@@ -219,7 +219,7 @@ public class AnalyticsJourneyRepository : IAnalyticsJourneyRepository
 
     public async Task<IEnumerable<AnalyticsJourneyStep>> GetSessionJourneyAsync(string sessionId)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT * FROM analytics_journey_steps
@@ -232,7 +232,7 @@ public class AnalyticsJourneyRepository : IAnalyticsJourneyRepository
 
     public async Task<IEnumerable<NavigationFlow>> GetTopFlowsAsync(DateTime startUtc, DateTime endUtc, int minTransitions = 5, int limit = 50)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT
@@ -255,7 +255,7 @@ public class AnalyticsJourneyRepository : IAnalyticsJourneyRepository
 
     public async Task<IEnumerable<AnalyticsJourneyStep>> GetUserJourneysAsync(long userId, DateTime startUtc, DateTime endUtc)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT * FROM analytics_journey_steps
@@ -292,7 +292,7 @@ public class AnalyticsFunnelRepository : IAnalyticsFunnelRepository
 
     public async Task InsertFunnelStepAsync(AnalyticsFunnelStep step)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 INSERT INTO analytics_funnel_steps (
@@ -311,7 +311,7 @@ public class AnalyticsFunnelRepository : IAnalyticsFunnelRepository
 
     public async Task MarkFunnelStepCompletedAsync(long stepId, DateTime completedAtUtc)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 UPDATE analytics_funnel_steps
@@ -322,9 +322,9 @@ public class AnalyticsFunnelRepository : IAnalyticsFunnelRepository
         }
     }
 
-    public async Task<AnalyticsFunnelDefinition> GetFunnelDefinitionAsync(string funnelName)
+    public async Task<AnalyticsFunnelDefinition?> GetFunnelDefinitionAsync(string funnelName)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT * FROM analytics_funnel_definitions
@@ -336,7 +336,7 @@ public class AnalyticsFunnelRepository : IAnalyticsFunnelRepository
 
     public async Task<IEnumerable<AnalyticsFunnelDefinition>> GetAllFunnelDefinitionsAsync()
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = "SELECT * FROM analytics_funnel_definitions ORDER BY funnel_name";
             return await connection.QueryAsync<AnalyticsFunnelDefinition>(sql);
@@ -345,7 +345,7 @@ public class AnalyticsFunnelRepository : IAnalyticsFunnelRepository
 
     public async Task<FunnelAnalysis> AnalyzeFunnelAsync(string funnelName, DateTime startUtc, DateTime endUtc, string? tierFilter = null)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             // Get all step completions for this funnel
             var sql = @"
@@ -396,7 +396,7 @@ public class AnalyticsFunnelRepository : IAnalyticsFunnelRepository
 
     public async Task<IEnumerable<string>> GetFunnelQualifyingSessionsAsync(string funnelName, DateTime startUtc, DateTime endUtc, string? eventNameFilter = null)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT DISTINCT session_id FROM analytics_funnel_steps
@@ -410,7 +410,7 @@ public class AnalyticsFunnelRepository : IAnalyticsFunnelRepository
 
     public async Task<IEnumerable<AnalyticsFunnelStep>> GetSessionFunnelStepsAsync(string sessionId, string funnelName)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT * FROM analytics_funnel_steps
@@ -440,7 +440,7 @@ public class AnalyticsRollupRepository : IAnalyticsRollupRepository
 
     public async Task UpsertHourlyRollupAsync(AnalyticsRollupHourly rollup)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 INSERT INTO analytics_rollup_hourly (
@@ -467,7 +467,7 @@ public class AnalyticsRollupRepository : IAnalyticsRollupRepository
 
     public async Task<IEnumerable<AnalyticsRollupHourly>> GetEventRollupsAsync(string eventName, DateTime startUtc, DateTime endUtc)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT * FROM analytics_rollup_hourly
@@ -481,7 +481,7 @@ public class AnalyticsRollupRepository : IAnalyticsRollupRepository
 
     public async Task<IEnumerable<AnalyticsRollupHourly>> GetLatestRollupsAsync(int hoursBack = 24, int limit = 100)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT * FROM analytics_rollup_hourly
@@ -495,7 +495,7 @@ public class AnalyticsRollupRepository : IAnalyticsRollupRepository
 
     public async Task<IEnumerable<RollupTrendData>> GetEventTrendAsync(string eventName, int hoursBack = 168)
     {
-        using (var connection = await _connectionFactory.GetConnectionAsync())
+        using (var connection = await _connectionFactory.CreateOpenConnectionAsync())
         {
             const string sql = @"
                 SELECT

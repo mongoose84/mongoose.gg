@@ -25,7 +25,7 @@ public static class AnalyticsV2Dto
     /// V2 Batch Request - Multiple events with optional common fields
     /// </summary>
     public record TrackBatchV2Request(
-        [property: JsonPropertyName("events")] TrackEventV2Request[] Events,
+        [property: JsonPropertyName("events")] List<TrackEventV2Request> Events,
         [property: JsonPropertyName("sessionId")] string? SessionId = null
     );
 

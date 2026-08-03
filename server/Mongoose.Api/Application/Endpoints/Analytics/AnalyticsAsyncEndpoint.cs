@@ -1,83 +1,63 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Mongoose.Api.Application.DTOs.Analytics;
+using Mongoose.Api.Application.DTOs;
+using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using static Mongoose.Api.Application.DTOs.AnalyticsV2Dto;
 
 namespace Mongoose.Api.Application.Endpoints.Analytics;
 
 /// <summary>
 /// Async Analytics Ingestion Endpoint
-/// 
+///
 /// Goals:
 /// - Accept event batches and return 202 Accepted immediately
 /// - Decouple request latency from persistence (async background processing)
 /// - Fire-and-forget user experience; no blocking on network I/O
 /// - Implement abuse guardrails to protect backend
 /// - Track pipeline metrics for observability
-/// 
+///
 /// Routes:
 /// - POST /api/v2/analytics/async - Async batch ingestion (202 Accepted)
-/// - GET  /api/v2/analytics/queue - Queue depth & processing metrics
+/// - GET  /api/v2/analytics/async/queue - Queue depth & processing metrics
 /// </summary>
 public class AnalyticsAsyncEndpoint : IEndpoint
 {
-  private readonly IAnalyticsEventsV2Repository _repository;
-  private readonly IEventValidator _validator;
-  private readonly IEventSchemaRegistry _schemaRegistry;
-  private readonly IUsersRepository _usersRepository;
-  private readonly IAnalyticsQueueProcessor _queueProcessor;
-  private readonly IAnalyticsAbuseGuards _abuseGuards;
-  private readonly ILogger<AnalyticsAsyncEndpoint> _logger;
-  
-  public AnalyticsAsyncEndpoint(
-    IAnalyticsEventsV2Repository repository,
-    IEventValidator validator,
-    IEventSchemaRegistry schemaRegistry,
-    IUsersRepository usersRepository,
-    IAnalyticsQueueProcessor queueProcessor,
-    IAnalyticsAbuseGuards abuseGuards,
-    ILogger<AnalyticsAsyncEndpoint> logger)
+  public string Route { get; }
+
+  public AnalyticsAsyncEndpoint(string basePath)
   {
-    _repository = repository;
-    _validator = validator;
-    _schemaRegistry = schemaRegistry;
-    _usersRepository = usersRepository;
-    _queueProcessor = queueProcessor;
-    _abuseGuards = abuseGuards;
-    _logger = logger;
+    Route = basePath + "/analytics/async";
   }
-  
-  public void MapEndpoints(WebApplication app)
+
+  public void Configure(WebApplication app)
   {
-    var group = app.MapGroup("/api/v2/analytics/async")
-      .WithName("AnalyticsAsync")
-      .WithOpenApi();
-    
-    group.MapPost("/", HandleAsyncBatch)
-      .WithName("AsyncBatch")
-      .WithSummary("Async batch event ingestion (202 Accepted)")
-      .Produces(StatusCodes.Status202Accepted);
-    
-    group.MapGet("/queue", HandleQueueMetrics)
-      .WithName("QueueMetrics")
-      .WithSummary("Get queue processing metrics");
+    app.MapPost(Route, HandleAsyncBatch);
+    app.MapGet($"{Route}/queue", HandleQueueMetrics);
   }
-  
+
   /// <summary>
   /// POST /api/v2/analytics/async
   /// Async batch ingestion endpoint
-  /// 
+  ///
   /// Returns 202 Accepted immediately; processes in background
   /// Fire-and-forget semantics: client doesn't wait for persistence
   /// </summary>
   private async Task<IResult> HandleAsyncBatch(
     HttpContext context,
-    [FromBody] TrackBatchV2Request request)
+    [FromBody] TrackBatchV2Request request,
+    [FromServices] IEventValidator validator,
+    [FromServices] IEventSchemaRegistry schemaRegistry,
+    [FromServices] IUsersRepository usersRepo,
+    [FromServices] IAnalyticsQueueProcessor queueProcessor,
+    [FromServices] IAnalyticsAbuseGuards abuseGuards,
+    [FromServices] ILogger<AnalyticsAsyncEndpoint> logger)
   {
     try
     {
@@ -86,70 +66,65 @@ public class AnalyticsAsyncEndpoint : IEndpoint
       {
         return Results.BadRequest(new { error = "Empty batch" });
       }
-      
+
       // Get user context
-      var (userId, tier) = GetUserContext(context);
-      
+      var (userId, tier) = await GetUserContext(context, usersRepo);
+
       // Check abuse guards
       var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
       var userAgent = context.Request.Headers["User-Agent"].ToString();
-      var abuseCheckResult = await _abuseGuards.CheckAsync(clientIp, userId, userAgent);
-      
+      var abuseCheckResult = await abuseGuards.CheckAsync(clientIp, userId?.ToString(), userAgent);
+
       if (!abuseCheckResult.IsAllowed)
       {
-        _logger.LogWarning(
+        logger.LogWarning(
           "Abuse guard rejected batch from IP={Ip}, UserId={UserId}, Reason={Reason}",
-          clientIp, userId, abuseCheckResult.Reason);
-        
-        return Results.StatusCode(429) // Too Many Requests
-          .WithOpenApi(operation => 
-          {
-            operation.Summary = "Rate limited by abuse guards";
-            return operation;
-          });
+          LogSanitizer.Sanitize(clientIp), userId?.ToString() ?? "anonymous", LogSanitizer.Sanitize(abuseCheckResult.Reason));
+
+        return Results.StatusCode(429); // Too Many Requests
       }
-      
+
       // Validate batch size
       const int maxBatchSize = 50;
       if (request.Events.Count > maxBatchSize)
       {
-        _logger.LogWarning("Batch too large: {Count} events > {Max}", request.Events.Count, maxBatchSize);
+        logger.LogWarning("Batch too large: {Count} events > {Max}", request.Events.Count, maxBatchSize);
         return Results.BadRequest(new { error = $"Batch too large ({request.Events.Count} > {maxBatchSize})" });
       }
-      
+
       // Transform and validate events
       var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
       var entities = new List<AnalyticsEventV2>();
-      
+
       foreach (var evt in request.Events)
       {
         try
         {
           var entity = AnalyticsCompatibilityHelper.TransformV2RequestToEntity(
-            evt, userId, tier, _validator, _schemaRegistry);
-          
+            evt, userId, tier, validator, schemaRegistry);
+
           entities.Add(entity);
         }
         catch (Exception ex)
         {
-          _logger.LogWarning("Error transforming event: {Error}", ex.Message);
+          logger.LogWarning("Error transforming event: {Error}", LogSanitizer.Sanitize(ex.Message));
           // Continue with other events in batch
         }
       }
-      
+
       if (entities.Count == 0)
       {
-        _logger.LogWarning("All events in batch were invalid");
+        logger.LogWarning("All events in batch were invalid");
         return Results.BadRequest(new { error = "No valid events in batch" });
       }
-      
+
       // Queue for async processing (non-blocking)
-      var queuedCount = await _queueProcessor.EnqueueBatchAsync(entities);
-      
-      _logger.LogInformation(
+      var queuedCount = await queueProcessor.EnqueueBatchAsync(entities);
+
+      logger.LogInformation(
         "Batch enqueued: {Queued}/{Total} events, IP={Ip}, UserId={UserId}",
-        queuedCount, entities.Count, clientIp, userId);
-      
+        queuedCount, entities.Count, LogSanitizer.Sanitize(clientIp), userId?.ToString() ?? "anonymous");
+
       // Return 202 Accepted immediately (fire-and-forget)
       return Results.Accepted(
         $"/api/v2/analytics/async/queue",
@@ -163,25 +138,24 @@ public class AnalyticsAsyncEndpoint : IEndpoint
     }
     catch (Exception ex)
     {
-      _logger.LogError(ex, "Error in async batch handler");
-      return Results.StatusCode(500).WithOpenApi(operation =>
-      {
-        operation.Summary = "Internal server error";
-        return operation;
-      });
+      logger.LogError(ex, "Error in async batch handler");
+      return Results.StatusCode(500);
     }
   }
-  
+
   /// <summary>
   /// GET /api/v2/analytics/async/queue
   /// Get queue processing metrics
   /// </summary>
-  private async Task<IResult> HandleQueueMetrics(HttpContext context)
+  private async Task<IResult> HandleQueueMetrics(
+    HttpContext context,
+    [FromServices] IAnalyticsQueueProcessor queueProcessor,
+    [FromServices] ILogger<AnalyticsAsyncEndpoint> logger)
   {
     try
     {
-      var metrics = await _queueProcessor.GetMetricsAsync();
-      
+      var metrics = await queueProcessor.GetMetricsAsync();
+
       return Results.Ok(new
       {
         status = "operational",
@@ -208,20 +182,31 @@ public class AnalyticsAsyncEndpoint : IEndpoint
     }
     catch (Exception ex)
     {
-      _logger.LogError(ex, "Error getting queue metrics");
+      logger.LogError(ex, "Error getting queue metrics");
       return Results.StatusCode(500);
     }
   }
-  
+
   /// <summary>
   /// Extract user context from request claims
   /// </summary>
-  private (string? UserId, string Tier) GetUserContext(HttpContext context)
+  private async Task<(long? UserId, string Tier)> GetUserContext(HttpContext context, IUsersRepository usersRepo)
   {
-    var userIdClaim = context.User.FindFirst("sub")?.Value;
-    var tierClaim = context.User.FindFirst("tier")?.Value ?? "free";
-    
-    return (userIdClaim, tierClaim);
+    long? userId = null;
+    string tier = "free";
+
+    var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    if (!string.IsNullOrEmpty(userIdClaim) && long.TryParse(userIdClaim, out var parsedUserId))
+    {
+      userId = parsedUserId;
+      var user = await usersRepo.GetByIdAsync(parsedUserId);
+      if (user != null)
+      {
+        tier = user.Tier;
+      }
+    }
+
+    return (userId, tier);
   }
 }
 
@@ -236,21 +221,11 @@ public interface IAnalyticsQueueProcessor
   /// Returns immediately; processing happens in background
   /// </summary>
   Task<int> EnqueueBatchAsync(List<AnalyticsEventV2> events);
-  
+
   /// <summary>
   /// Get queue metrics snapshot
   /// </summary>
   Task<AnalyticsQueueMetrics> GetMetricsAsync();
-  
-  /// <summary>
-  /// Start background processing workers
-  /// </summary>
-  Task StartAsync();
-  
-  /// <summary>
-  /// Stop background processing workers
-  /// </summary>
-  Task StopAsync();
 }
 
 /// <summary>

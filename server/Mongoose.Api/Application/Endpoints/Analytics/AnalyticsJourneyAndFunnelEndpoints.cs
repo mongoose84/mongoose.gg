@@ -17,14 +17,12 @@ using Mongoose.Api.Core.Interfaces;
 /// </summary>
 public class AnalyticsJourneyEndpoint : IEndpoint
 {
-    public string Route => "/api/v2/analytics/journey";
+    public string Route { get; }
     public string Description => "User journey and navigation flow analysis";
 
-    private readonly IAnalyticsJourneyRepository _journeyRepository;
-
-    public AnalyticsJourneyEndpoint(IAnalyticsJourneyRepository journeyRepository)
+    public AnalyticsJourneyEndpoint(string basePath)
     {
-        _journeyRepository = journeyRepository;
+        Route = basePath + "/analytics/journey";
     }
 
     public void Configure(WebApplication app)
@@ -32,23 +30,21 @@ public class AnalyticsJourneyEndpoint : IEndpoint
         // Get top navigation flows
         app.MapGet($"{Route}/flows", HandleGetFlowsAsync)
             .WithName("JourneyFlows")
-            .WithOpenApi()
             .Produces<NavigationFlowsResponse>(StatusCodes.Status200OK);
 
         // Get user's journey history
         app.MapGet($"{Route}/user/{{userId}}", HandleGetUserJourneyAsync)
             .WithName("UserJourney")
-            .WithOpenApi()
             .Produces<UserJourneyResponse>(StatusCodes.Status200OK);
 
         // Get common path sequences
         app.MapGet($"{Route}/paths", HandleGetPathSequencesAsync)
             .WithName("JourneyPaths")
-            .WithOpenApi()
             .Produces<PathSequencesResponse>(StatusCodes.Status200OK);
     }
 
     private async Task<IResult> HandleGetFlowsAsync(
+        [FromServices] IAnalyticsJourneyRepository journeyRepository,
         [FromQuery] string? timeRange = "last_7d",
         [FromQuery] int minTransitions = 5,
         [FromQuery] string? tier = null,
@@ -57,7 +53,7 @@ public class AnalyticsJourneyEndpoint : IEndpoint
         var (startUtc, endUtc) = ParseTimeRange(timeRange);
 
         // Query top flows (would call repository)
-        var flows = await _journeyRepository.GetTopFlowsAsync(startUtc, endUtc, minTransitions, limit);
+        var flows = await journeyRepository.GetTopFlowsAsync(startUtc, endUtc, minTransitions, limit);
 
         var response = new NavigationFlowsResponse
         {
@@ -77,13 +73,14 @@ public class AnalyticsJourneyEndpoint : IEndpoint
 
     private async Task<IResult> HandleGetUserJourneyAsync(
         long userId,
+        [FromServices] IAnalyticsJourneyRepository journeyRepository,
         [FromQuery] string? sessionId = null,
         [FromQuery] string? timeRange = "last_7d")
     {
         var (startUtc, endUtc) = ParseTimeRange(timeRange);
 
         // Query user journeys (would call repository)
-        var journeys = await _journeyRepository.GetUserJourneysAsync(userId, startUtc, endUtc);
+        var journeys = await journeyRepository.GetUserJourneysAsync(userId, startUtc, endUtc);
 
         var groupedBySessions = journeys.GroupBy(j => j.SessionId);
 
@@ -112,6 +109,7 @@ public class AnalyticsJourneyEndpoint : IEndpoint
 
     private async Task<IResult> HandleGetPathSequencesAsync(
         [FromQuery] string startEvent,
+        [FromServices] IAnalyticsJourneyRepository journeyRepository,
         [FromQuery] string? timeRange = "last_7d",
         [FromQuery] int maxSteps = 5,
         [FromQuery] int limit = 100)
@@ -119,7 +117,7 @@ public class AnalyticsJourneyEndpoint : IEndpoint
         var (startUtc, endUtc) = ParseTimeRange(timeRange);
 
         // Query path sequences (would call repository)
-        var paths = await _journeyRepository.GetPathSequencesAsync(startEvent, startUtc, endUtc, maxSteps, limit);
+        var paths = await journeyRepository.GetPathSequencesAsync(startEvent, startUtc, endUtc, maxSteps, limit);
 
         var response = new PathSequencesResponse
         {
@@ -155,14 +153,12 @@ public class AnalyticsJourneyEndpoint : IEndpoint
 /// </summary>
 public class AnalyticsFunnelEndpoint : IEndpoint
 {
-    public string Route => "/api/v2/analytics/funnels";
+    public string Route { get; }
     public string Description => "Funnel conversion analysis";
 
-    private readonly IAnalyticsFunnelRepository _funnelRepository;
-
-    public AnalyticsFunnelEndpoint(IAnalyticsFunnelRepository funnelRepository)
+    public AnalyticsFunnelEndpoint(string basePath)
     {
-        _funnelRepository = funnelRepository;
+        Route = basePath + "/analytics/funnels";
     }
 
     public void Configure(WebApplication app)
@@ -170,20 +166,19 @@ public class AnalyticsFunnelEndpoint : IEndpoint
         // List all funnels
         app.MapGet(Route, HandleListFunnelsAsync)
             .WithName("ListFunnels")
-            .WithOpenApi()
             .Produces<ListFunnelsResponse>(StatusCodes.Status200OK);
 
         // Analyze single funnel
         app.MapGet($"{Route}/{{funnelId}}", HandleGetFunnelAnalysisAsync)
             .WithName("FunnelAnalysis")
-            .WithOpenApi()
             .Produces<FunnelAnalysisResponse>(StatusCodes.Status200OK);
     }
 
-    private async Task<IResult> HandleListFunnelsAsync()
+    private async Task<IResult> HandleListFunnelsAsync(
+        [FromServices] IAnalyticsFunnelRepository funnelRepository)
     {
         // Query all funnel definitions (would call repository)
-        var definitions = await _funnelRepository.GetAllFunnelDefinitionsAsync();
+        var definitions = await funnelRepository.GetAllFunnelDefinitionsAsync();
 
         var response = new ListFunnelsResponse
         {
@@ -202,6 +197,7 @@ public class AnalyticsFunnelEndpoint : IEndpoint
 
     private async Task<IResult> HandleGetFunnelAnalysisAsync(
         string funnelId,
+        [FromServices] IAnalyticsFunnelRepository funnelRepository,
         [FromQuery] string? timeRange = "last_7d",
         [FromQuery] string? tier = null,
         [FromQuery] string? deviceType = null)
@@ -209,7 +205,7 @@ public class AnalyticsFunnelEndpoint : IEndpoint
         var (startUtc, endUtc) = ParseTimeRange(timeRange);
 
         // Analyze funnel (would call repository)
-        var analysis = await _funnelRepository.AnalyzeFunnelAsync(funnelId, startUtc, endUtc, tier);
+        var analysis = await funnelRepository.AnalyzeFunnelAsync(funnelId, startUtc, endUtc, tier);
 
         if (analysis == null)
             return Results.NotFound();
