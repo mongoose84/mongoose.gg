@@ -34,4 +34,4 @@ Feature to spec: $ARGUMENTS
 - Clear in-scope and out-of-scope boundaries.
 - Risks, dependencies, and testing expectations.
 
-For end-to-end implementation after the spec exists, delegate to the `feature-implementation` subagent.
+For end-to-end implementation after the spec exists, delegate to the `fullstack-developer` subagent, or run the `feature-implementation` skill for the full multi-agent delivery workflow.

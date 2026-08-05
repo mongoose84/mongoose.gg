@@ -38,7 +38,7 @@ Specialist subagents live in `.claude/agents/`. Delegate via the `Agent` tool us
 - Code review → `code-reviewer`
 - DevOps, YAML, and CI → `devops-engineer`
 - UX/UI design → `ux-ui-designer`
-- End-to-end feature delivery (small, tightly coupled full-stack change) → `feature-implementation`
+- End-to-end feature delivery (small, tightly coupled full-stack change) → `fullstack-developer`
 
 Don't delegate tiny single-file edits when doing it directly is simpler, and don't skip validation for behavior changes.
 
