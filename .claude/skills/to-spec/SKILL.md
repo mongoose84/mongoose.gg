@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 This skill takes the current conversation context and codebase understanding and produces a spec (you may know this document as a PRD). Do NOT interview the user — just synthesize what you already know.
 
-In this repo, specs are published as files: `.github/specs/features/<kebab-name>.spec.md`, following the conventions in `.github/specs/feature-template.spec.md`. Triage state is a `> **Triage**: ...` line in the spec header.
+In this repo, specs are published as files: `.github/specs/features/<kebab-name>.spec.md`, using the spec template at the bottom of this skill (see `.github/specs/features/ai-goals.spec.md` for a finished example). Triage state is a `> **Triage**: ...` line in the spec header.
 
 ## Process
 

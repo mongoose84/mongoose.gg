@@ -38,9 +38,11 @@ Specialist subagents live in `.claude/agents/`. Delegate via the `Agent` tool us
 - Code review → `code-reviewer`
 - DevOps, YAML, and CI → `devops-engineer`
 - UX/UI design → `ux-ui-designer`
-- End-to-end feature delivery (small, tightly coupled full-stack change) → `feature-implementation`
+- End-to-end feature delivery (small, tightly coupled full-stack change) → `fullstack-developer`
 
 Don't delegate tiny single-file edits when doing it directly is simpler, and don't skip validation for behavior changes.
+
+Cost discipline: prefer a direct edit or one narrow specialist over multi-agent workflows — reserve the `feature-implementation` skill for features that genuinely span independent streams. Agent and command model pins (sonnet by default, opus only for `architect`) are deliberate cost controls; don't override them upward. Load specs and skills lazily, run the narrowest validation first, and widen only on failure.
 
 ## Repo-Wide Invariants
 
