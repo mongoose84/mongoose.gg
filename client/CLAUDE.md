@@ -4,7 +4,7 @@
 > For repo-wide invariants see [CLAUDE.md](../CLAUDE.md).
 > For the complete design system, component inventory, UX contracts, and page responsibilities see [ui-ux.spec.md](../.github/specs/ui-ux.spec.md).
 > For backend API endpoints and DTOs see [architecture.spec.md](../.github/specs/architecture.spec.md).
-> For coding patterns (components, stores, API, styling, testing) see [frontend.instructions.md](../.github/instructions/frontend.instructions.md).
+> Component/store/styling rules auto-load from [client/src/CLAUDE.md](src/CLAUDE.md); unit test rules from [client/test/unit/CLAUDE.md](test/unit/CLAUDE.md); E2E rules from [client/e2e/CLAUDE.md](e2e/CLAUDE.md).
 
 ## Build & Run
 
