@@ -1,0 +1,367 @@
+# Event Schema Registry v1.0
+# Source of truth for telemetry event validation and taxonomy
+# Used for: schema validation, rejection tracking, retention policy, privacy governance
+#
+# Fields:
+#   name: Immutable event identifier (category:action format)
+#   category: Event classification (system|navigation|auth|feature|engagement|premium)
+#   version: Schema version (v1, v2, etc.); increment on breaking payload changes
+#   retentionDays: Data retention period; auto-purged after expiration
+#   piiSensitive: Flag for privacy audit; additional checks applied
+#   allowedPayloadKeys: Whitelist of payload keys; unknown keys silently dropped
+#   requiredPayloadKeys: Subset of allowedPayloadKeys that must be present
+#   payloadKeyTypes: Type hints for validation (string|int|bool|float)
+#   description: Human-readable event purpose and context
+#   deprecated: Mark event as obsolete (v1 compat only)
+#   replacement: Event name to use instead of deprecated event
+#
+# Payload key casing matches the client JSON contract (camelCase), consistent with
+# every other DTO in this API.
+
+events:
+  # ============ SYSTEM EVENTS ============
+  system_session_start:
+    name: system:session_start
+    category: system
+    version: 1
+    retentionDays: 7
+    piiSensitive: false
+    allowedPayloadKeys: [durationMs, clientVersion]
+    requiredPayloadKeys: []
+    payloadKeyTypes:
+      durationMs: int
+      clientVersion: string
+    description: "Session initialization; metadata for session lifecycle tracking"
+
+  system_error_network:
+    name: system:error:network
+    category: system
+    version: 1
+    retentionDays: 7
+    piiSensitive: false
+    allowedPayloadKeys: [status, endpoint, timeoutMs]
+    requiredPayloadKeys: [status]
+    payloadKeyTypes:
+      status: int
+      endpoint: string
+      timeoutMs: int
+    description: "Network failures (5xx, timeout); infrastructure debugging"
+
+  system_error_validation:
+    name: system:error:validation
+    category: system
+    version: 1
+    retentionDays: 7
+    piiSensitive: false
+    allowedPayloadKeys: [field, reason, valuePreview]
+    requiredPayloadKeys: [field, reason]
+    payloadKeyTypes:
+      field: string
+      reason: string
+      valuePreview: string
+    description: "Input validation failures; data quality tracking"
+
+  # ============ NAVIGATION EVENTS ============
+  nav_page_view:
+    name: nav:page_view
+    category: navigation
+    version: 1
+    retentionDays: 90
+    piiSensitive: false
+    allowedPayloadKeys: [path, referrer, title, hashQuery]
+    requiredPayloadKeys: [path]
+    payloadKeyTypes:
+      path: string
+      referrer: string
+      title: string
+      hashQuery: string
+    description: "User navigated to a page/view; foundation for journey analysis"
+
+  nav_section_enter:
+    name: nav:section_enter
+    category: navigation
+    version: 1
+    retentionDays: 90
+    piiSensitive: false
+    allowedPayloadKeys: [section, entryPoint]
+    requiredPayloadKeys: [section]
+    payloadKeyTypes:
+      section: string
+      entryPoint: string
+    description: "Entry into major app section (e.g., /app/matches)"
+
+  nav_section_exit:
+    name: nav:section_exit
+    category: navigation
+    version: 1
+    retentionDays: 90
+    piiSensitive: false
+    allowedPayloadKeys: [section, exitReason, durationMs]
+    requiredPayloadKeys: [section]
+    payloadKeyTypes:
+      section: string
+      exitReason: string
+      durationMs: int
+    description: "Exit from section; helps detect drop-off points"
+
+  # ============ AUTHENTICATION EVENTS ============
+  auth_login_attempt:
+    name: auth:login_attempt
+    category: auth
+    version: 1
+    retentionDays: 365
+    piiSensitive: true
+    allowedPayloadKeys: [method, success, errorCode, errorMessage]
+    requiredPayloadKeys: [method, success]
+    payloadKeyTypes:
+      method: string
+      success: bool
+      errorCode: string
+      errorMessage: string
+    description: "Login attempt; method = 'email' or 'oauth'; compliance audit trail"
+
+  auth_register_attempt:
+    name: auth:register_attempt
+    category: auth
+    version: 1
+    retentionDays: 365
+    piiSensitive: true
+    allowedPayloadKeys: [method, success, errorCode, errorMessage]
+    requiredPayloadKeys: [method, success]
+    payloadKeyTypes:
+      method: string
+      success: bool
+      errorCode: string
+      errorMessage: string
+    description: "Registration attempt; security audit trail"
+
+  auth_logout:
+    name: auth:logout
+    category: auth
+    version: 1
+    retentionDays: 365
+    piiSensitive: false
+    allowedPayloadKeys: [reason]
+    requiredPayloadKeys: []
+    payloadKeyTypes:
+      reason: string
+    description: "User-initiated logout"
+
+  auth_session_expired:
+    name: auth:session_expired
+    category: auth
+    version: 1
+    retentionDays: 365
+    piiSensitive: false
+    allowedPayloadKeys: [durationMs, reason]
+    requiredPayloadKeys: []
+    payloadKeyTypes:
+      durationMs: int
+      reason: string
+    description: "Session timeout (passive); security monitoring"
+
+  auth_password_reset_attempt:
+    name: auth:password_reset_attempt
+    category: auth
+    version: 1
+    retentionDays: 365
+    piiSensitive: true
+    allowedPayloadKeys: [success, errorCode]
+    requiredPayloadKeys: [success]
+    payloadKeyTypes:
+      success: bool
+      errorCode: string
+    description: "Password reset flow; security audit trail"
+
+  # ============ FEATURE EVENTS ============
+  feature_match_select:
+    name: feature:match_select
+    category: feature
+    version: 1
+    retentionDays: 90
+    piiSensitive: false
+    allowedPayloadKeys: [matchId, index, queueType]
+    requiredPayloadKeys: [matchId]
+    payloadKeyTypes:
+      matchId: string
+      index: int
+      queueType: string
+    description: "Match selected from list; funnel: matches viewed → selected"
+
+  feature_match_details_view:
+    name: feature:match_details_view
+    category: feature
+    version: 1
+    retentionDays: 90
+    piiSensitive: false
+    allowedPayloadKeys: [matchId, role, win]
+    requiredPayloadKeys: [matchId]
+    payloadKeyTypes:
+      matchId: string
+      role: string
+      win: bool
+    description: "Match details panel opened; funnel: selected → details viewed"
+
+  feature_champion_select_opened:
+    name: feature:champion_select_opened
+    category: feature
+    version: 1
+    retentionDays: 90
+    piiSensitive: false
+    allowedPayloadKeys: [context]
+    requiredPayloadKeys: []
+    payloadKeyTypes:
+      context: string
+    description: "Champion select tool opened"
+
+  feature_goal_created:
+    name: feature:goal_created
+    category: feature
+    version: 1
+    retentionDays: 90
+    piiSensitive: false
+    allowedPayloadKeys: [goalType, isPublic]
+    requiredPayloadKeys: [goalType]
+    payloadKeyTypes:
+      goalType: string
+      isPublic: bool
+    description: "Goal creation; engagement indicator"
+
+  feature_filter_applied:
+    name: feature:filter_applied
+    category: feature
+    version: 1
+    retentionDays: 90
+    piiSensitive: false
+    allowedPayloadKeys: [filterType, value]
+    requiredPayloadKeys: [filterType, value]
+    payloadKeyTypes:
+      filterType: string
+      value: string
+    description: "Queue/time range filter change"
+
+  feature_section_expanded:
+    name: feature:section_expanded
+    category: feature
+    version: 1
+    retentionDays: 90
+    piiSensitive: false
+    allowedPayloadKeys: [section, fromPath]
+    requiredPayloadKeys: [section]
+    payloadKeyTypes:
+      section: string
+      fromPath: string
+    description: "Accordion/expandable content toggled; engagement tracking"
+
+  feature_lane_expand:
+    name: feature:lane_expand
+    category: feature
+    version: 1
+    retentionDays: 90
+    piiSensitive: false
+    allowedPayloadKeys: [role, isUserRole, laneWinner]
+    requiredPayloadKeys: [role]
+    payloadKeyTypes:
+      role: string
+      isUserRole: bool
+      laneWinner: string
+    description: "Lane matchup expansion in Match Narrative"
+
+  # ============ ENGAGEMENT EVENTS ============
+  engagement_session_duration:
+    name: engagement:session_duration
+    category: engagement
+    version: 1
+    retentionDays: 180
+    piiSensitive: false
+    allowedPayloadKeys: [durationMs, viewCount, eventCount]
+    requiredPayloadKeys: [durationMs]
+    payloadKeyTypes:
+      durationMs: int
+      viewCount: int
+      eventCount: int
+    description: "Session summary; fired on exit for retention analysis"
+
+  engagement_feature_adoption:
+    name: engagement:feature_adoption
+    category: engagement
+    version: 1
+    retentionDays: 180
+    piiSensitive: false
+    allowedPayloadKeys: [feature, adoptionStage, daysSinceSignup]
+    requiredPayloadKeys: [feature, adoptionStage]
+    payloadKeyTypes:
+      feature: string
+      adoptionStage: string
+      daysSinceSignup: int
+    description: "Feature first-use or regular adoption milestone"
+
+  engagement_upgrade_initiated:
+    name: engagement:upgrade_initiated
+    category: engagement
+    version: 1
+    retentionDays: 180
+    piiSensitive: false
+    allowedPayloadKeys: [plan, source]
+    requiredPayloadKeys: [plan]
+    payloadKeyTypes:
+      plan: string
+      source: string
+    description: "User starts upgrade flow; free-tier funnel tracking"
+
+  engagement_feedback_submitted:
+    name: engagement:feedback_submitted
+    category: engagement
+    version: 1
+    retentionDays: 180
+    piiSensitive: false
+    allowedPayloadKeys: [sentiment, category, feedbackSource]
+    requiredPayloadKeys: []
+    payloadKeyTypes:
+      sentiment: string
+      category: string
+      feedbackSource: string
+    description: "User submits feedback or bug report"
+
+  # ============ PREMIUM/TIER EVENTS ============
+  premium_advanced_filter_used:
+    name: premium:advanced_filter_used
+    category: premium
+    version: 1
+    retentionDays: 365
+    piiSensitive: false
+    allowedPayloadKeys: [filterName, queryComplexity]
+    requiredPayloadKeys: [filterName]
+    payloadKeyTypes:
+      filterName: string
+      queryComplexity: string
+    description: "Usage of pro-tier features; revenue attribution"
+
+  premium_export_requested:
+    name: premium:export_requested
+    category: premium
+    version: 1
+    retentionDays: 365
+    piiSensitive: false
+    allowedPayloadKeys: [format, dataType, rowsCount]
+    requiredPayloadKeys: [format, dataType]
+    payloadKeyTypes:
+      format: string
+      dataType: string
+      rowsCount: int
+    description: "Data export initiation; pro-tier engagement"
+
+# ============ COMMON FIELDS (V2 CONTRACT) ============
+# All v2 events include these implicit fields (set server-side or required client-side):
+#
+# common_fields:
+#   event_id:              Unique event UUID (server-generated or client provided for idempotency)
+#   event_name:            Must match event registry (100 chars max)
+#   event_version:         Schema version (default: 1)
+#   timestamp_utc:         When event occurred (ISO 8601 UTC; server-corrects if skewed)
+#   client_timestamp_utc:  When client fired event (optional; for clock skew detection)
+#   session_id:            Client session ID (64 chars max, optional)
+#   user_id:               Opaque user ID (set server-side if authenticated)
+#   tier:                  User tier at event time ('free' or 'pro'; set server-side)
+#   payload:               Event-specific data (max 4KB serialized JSON)
+#   metadata:              Optional tracking data (ip_anonymized, user_agent_hash, client_version)

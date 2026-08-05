@@ -14,6 +14,31 @@ const connectionError = ref(null)
 // Map of puuid -> sync progress data (persists across navigation)
 const syncProgress = reactive(new Map())
 
+// Single user-scoped aggregate view for the "Analyze all" flow (combined across all
+// linked accounts). Driven by the server's sync_aggregate_* messages; no subscription
+// needed since the server pushes to the user's own authenticated connection.
+const aggregateProgress = reactive({
+  status: null, // null | 'syncing' | 'completed' | 'failed'
+  progress: null,
+  total: null,
+  accountsTotal: null,
+  accountsDone: null,
+  matchId: null,
+  totalSynced: null,
+  error: null
+})
+
+function resetAggregateProgress() {
+  aggregateProgress.status = null
+  aggregateProgress.progress = null
+  aggregateProgress.total = null
+  aggregateProgress.accountsTotal = null
+  aggregateProgress.accountsDone = null
+  aggregateProgress.matchId = null
+  aggregateProgress.totalSynced = null
+  aggregateProgress.error = null
+}
+
 let socket = null
 let reconnectAttempts = 0
 let reconnectTimeout = null
@@ -90,6 +115,11 @@ export function useSyncWebSocket() {
           progress.isRateLimited = false
           sendSubscribe(puuid)
         }
+
+        // Aggregate runs are in-memory on the server and can't be replayed after a
+        // disconnect, so clear any stale aggregate state and let the UI fall back to
+        // the HTTP-loaded per-account status.
+        resetAggregateProgress()
       }
       
       socket.onmessage = (event) => {
@@ -227,7 +257,38 @@ export function useSyncWebSocket() {
    * Handle incoming WebSocket messages
    */
   function handleMessage(message) {
-    const { type, puuid } = message
+    const { type } = message
+
+    // User-scoped aggregate messages ("Analyze all"): a single combined stream, not
+    // keyed by puuid. Handle these before the per-account branch.
+    switch (type) {
+      case 'sync_aggregate_progress':
+        aggregateProgress.status = message.status || 'syncing'
+        aggregateProgress.progress = message.progress ?? 0
+        aggregateProgress.total = message.total ?? 0
+        aggregateProgress.accountsTotal = message.accountsTotal ?? null
+        aggregateProgress.accountsDone = message.accountsDone ?? null
+        aggregateProgress.matchId = message.matchId ?? null
+        aggregateProgress.error = null
+        return
+
+      case 'sync_aggregate_complete':
+        aggregateProgress.status = 'completed'
+        aggregateProgress.totalSynced = message.totalSynced ?? aggregateProgress.progress
+        aggregateProgress.progress = aggregateProgress.total // fill the bar
+        aggregateProgress.accountsDone = aggregateProgress.accountsTotal
+        aggregateProgress.error = null
+        // Refresh user data once so lastSyncAt updates in the store.
+        useAuthStore().refreshUser()
+        return
+
+      case 'sync_aggregate_error':
+        aggregateProgress.status = 'failed'
+        aggregateProgress.error = message.error || 'Analysis failed'
+        return
+    }
+
+    const { puuid } = message
 
     if (!puuid) return
 
@@ -357,6 +418,7 @@ export function useSyncWebSocket() {
     isConnecting,
     connectionError,
     syncProgress,
+    aggregateProgress,
 
     // Methods
     connect,
@@ -365,7 +427,8 @@ export function useSyncWebSocket() {
     unsubscribe,
     getProgress,
     isSyncing,
-    resetProgress
+    resetProgress,
+    resetAggregateProgress
   }
 }
 

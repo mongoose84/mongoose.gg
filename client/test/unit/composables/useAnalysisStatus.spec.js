@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { reactive } from 'vue';
 import { setActivePinia, createPinia } from 'pinia';
 import { useAnalysisStatus } from '@/composables/useAnalysisStatus';
 
@@ -14,7 +15,7 @@ vi.mock('@/composables/useSyncWebSocket', () => ({
 
 // Mock the authApi
 vi.mock('@/services/authApi', () => ({
-  triggerRiotAccountSync: vi.fn(),
+  triggerAnalysisAll: vi.fn(),
   getRiotAccountSyncStatus: vi.fn()
 }));
 
@@ -25,26 +26,38 @@ vi.mock('@/services/apiClient', () => ({
 
 import { useAuthStore } from '@/stores/authStore';
 import { useSyncWebSocket } from '@/composables/useSyncWebSocket';
-import { triggerRiotAccountSync, getRiotAccountSyncStatus } from '@/services/authApi';
+import { triggerAnalysisAll, getRiotAccountSyncStatus } from '@/services/authApi';
 
 describe('useAnalysisStatus', () => {
   let mockAuthStore;
   let mockSyncWebSocket;
-  let mockSyncProgress;
+  let mockAggregateProgress;
 
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
 
-    // Setup mock sync progress as a Map
-    mockSyncProgress = new Map();
+    // The single, user-scoped aggregate view driven by the server. Reactive so the
+    // composable's computeds recompute when the test mutates it.
+    mockAggregateProgress = reactive({
+      status: null,
+      progress: null,
+      total: null,
+      accountsTotal: null,
+      accountsDone: null,
+      matchId: null,
+      totalSynced: null,
+      error: null
+    });
 
     // Setup mock WebSocket composable
     mockSyncWebSocket = {
-      syncProgress: mockSyncProgress,
+      syncProgress: new Map(),
+      aggregateProgress: mockAggregateProgress,
       subscribe: vi.fn(),
       unsubscribe: vi.fn(),
       resetProgress: vi.fn(),
+      resetAggregateProgress: vi.fn(),
       isConnected: { value: true }
     };
     useSyncWebSocket.mockReturnValue(mockSyncWebSocket);
@@ -65,7 +78,7 @@ describe('useAnalysisStatus', () => {
   });
 
   describe('initial state', () => {
-    it('returns status from stored account data when no WebSocket progress', () => {
+    it('returns status from stored account data when no aggregate run', () => {
       mockAuthStore.primaryRiotAccount.syncStatus = 'completed';
       const { status } = useAnalysisStatus();
       expect(status.value).toBe('completed');
@@ -90,22 +103,22 @@ describe('useAnalysisStatus', () => {
   });
 
   describe('status computation', () => {
-    it('prioritizes WebSocket status over stored status', () => {
+    it('prioritizes the aggregate run status over stored status', () => {
       mockAuthStore.primaryRiotAccount.syncStatus = 'idle';
-      mockSyncProgress.set('test-puuid-123', { status: 'syncing' });
-      
+      mockAggregateProgress.status = 'syncing';
+
       const { status } = useAnalysisStatus();
       expect(status.value).toBe('syncing');
     });
 
-    it('isRunning is true when status is pending', () => {
-      mockSyncProgress.set('test-puuid-123', { status: 'pending' });
+    it('isRunning is true when the aggregate run is syncing', () => {
+      mockAggregateProgress.status = 'syncing';
       const { isRunning } = useAnalysisStatus();
       expect(isRunning.value).toBe(true);
     });
 
-    it('isRunning is true when status is syncing', () => {
-      mockSyncProgress.set('test-puuid-123', { status: 'syncing' });
+    it('isRunning is true when stored status is pending (no aggregate run)', () => {
+      mockAuthStore.primaryRiotAccount.syncStatus = 'pending';
       const { isRunning } = useAnalysisStatus();
       expect(isRunning.value).toBe(true);
     });
@@ -116,14 +129,21 @@ describe('useAnalysisStatus', () => {
       expect(isRunning.value).toBe(false);
     });
 
-    it('isRateLimited is true when WebSocket indicates rate limit', () => {
-      mockSyncProgress.set('test-puuid-123', { status: 'syncing', isRateLimited: true });
+    it('isRateLimited is true when stored status is waiting_rate_limit (no aggregate run)', () => {
+      mockAuthStore.primaryRiotAccount.syncStatus = 'waiting_rate_limit';
       const { isRateLimited } = useAnalysisStatus();
       expect(isRateLimited.value).toBe(true);
     });
 
-    it('hasFailed is true when status is failed', () => {
-      mockSyncProgress.set('test-puuid-123', { status: 'failed' });
+    it('isRateLimited is false while an aggregate run is active', () => {
+      mockAuthStore.primaryRiotAccount.syncStatus = 'waiting_rate_limit';
+      mockAggregateProgress.status = 'syncing';
+      const { isRateLimited } = useAnalysisStatus();
+      expect(isRateLimited.value).toBe(false);
+    });
+
+    it('hasFailed is true when the aggregate run failed', () => {
+      mockAggregateProgress.status = 'failed';
       const { hasFailed } = useAnalysisStatus();
       expect(hasFailed.value).toBe(true);
     });
@@ -144,13 +164,11 @@ describe('useAnalysisStatus', () => {
   });
 
   describe('progress', () => {
-    it('returns progress from WebSocket', () => {
-      mockSyncProgress.set('test-puuid-123', {
-        status: 'syncing',
-        progress: 5,
-        total: 10,
-        matchId: 'match-123'
-      });
+    it('returns combined progress from the aggregate run', () => {
+      mockAggregateProgress.status = 'syncing';
+      mockAggregateProgress.progress = 5;
+      mockAggregateProgress.total = 10;
+      mockAggregateProgress.matchId = 'match-123';
       const { progress } = useAnalysisStatus();
       expect(progress.value).toEqual({
         current: 5,
@@ -160,7 +178,7 @@ describe('useAnalysisStatus', () => {
       });
     });
 
-    it('returns zero progress when no WebSocket data', () => {
+    it('returns zero progress when no aggregate run', () => {
       const { progress } = useAnalysisStatus();
       expect(progress.value).toEqual({
         current: 0,
@@ -172,8 +190,9 @@ describe('useAnalysisStatus', () => {
   });
 
   describe('errorMessage', () => {
-    it('returns error from WebSocket progress', () => {
-      mockSyncProgress.set('test-puuid-123', { status: 'failed', error: 'API error' });
+    it('returns error from the aggregate run', () => {
+      mockAggregateProgress.status = 'failed';
+      mockAggregateProgress.error = 'API error';
       const { errorMessage } = useAnalysisStatus();
       expect(errorMessage.value).toBe('API error');
     });
@@ -238,35 +257,26 @@ describe('useAnalysisStatus', () => {
   });
 
   describe('triggerAnalysis', () => {
-    it('calls triggerRiotAccountSync with puuid', async () => {
-      triggerRiotAccountSync.mockResolvedValue({});
+    it('calls triggerAnalysisAll (all linked accounts, no puuid)', async () => {
+      triggerAnalysisAll.mockResolvedValue({});
 
       const { triggerAnalysis } = useAnalysisStatus();
       await triggerAnalysis();
 
-      expect(triggerRiotAccountSync).toHaveBeenCalledWith('test-puuid-123');
+      expect(triggerAnalysisAll).toHaveBeenCalledWith();
     });
 
-    it('resets progress before triggering', async () => {
-      triggerRiotAccountSync.mockResolvedValue({});
+    it('resets the aggregate run before triggering', async () => {
+      triggerAnalysisAll.mockResolvedValue({});
 
       const { triggerAnalysis } = useAnalysisStatus();
       await triggerAnalysis();
 
-      expect(mockSyncWebSocket.resetProgress).toHaveBeenCalledWith('test-puuid-123');
-    });
-
-    it('subscribes to WebSocket after triggering', async () => {
-      triggerRiotAccountSync.mockResolvedValue({});
-
-      const { triggerAnalysis } = useAnalysisStatus();
-      await triggerAnalysis();
-
-      expect(mockSyncWebSocket.subscribe).toHaveBeenCalledWith('test-puuid-123');
+      expect(mockSyncWebSocket.resetAggregateProgress).toHaveBeenCalled();
     });
 
     it('returns true on success', async () => {
-      triggerRiotAccountSync.mockResolvedValue({});
+      triggerAnalysisAll.mockResolvedValue({});
 
       const { triggerAnalysis } = useAnalysisStatus();
       const result = await triggerAnalysis();
@@ -282,10 +292,11 @@ describe('useAnalysisStatus', () => {
 
       expect(result).toBe(false);
       expect(errorMessage.value).toBe('No linked Riot account');
+      expect(triggerAnalysisAll).not.toHaveBeenCalled();
     });
 
     it('returns false on API error', async () => {
-      triggerRiotAccountSync.mockRejectedValue(new Error('Sync failed'));
+      triggerAnalysisAll.mockRejectedValue(new Error('Sync failed'));
 
       const { triggerAnalysis, errorMessage } = useAnalysisStatus();
       const result = await triggerAnalysis();
@@ -296,14 +307,15 @@ describe('useAnalysisStatus', () => {
   });
 
   describe('clearError', () => {
-    it('resets progress for the account', () => {
+    it('resets the aggregate run and per-account progress', () => {
       const { clearError } = useAnalysisStatus();
       clearError();
 
+      expect(mockSyncWebSocket.resetAggregateProgress).toHaveBeenCalled();
       expect(mockSyncWebSocket.resetProgress).toHaveBeenCalledWith('test-puuid-123');
     });
 
-    it('does not reset progress when no account', () => {
+    it('does not reset per-account progress when no account', () => {
       mockAuthStore.primaryRiotAccount = null;
 
       const { clearError } = useAnalysisStatus();
@@ -327,4 +339,3 @@ describe('useAnalysisStatus', () => {
     });
   });
 });
-

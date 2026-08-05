@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Mongoose.Api;
 using Mongoose.Api.Application;
 using Mongoose.Api.Application.Endpoints.Auth;
 using Mongoose.Api.Application.Services;
@@ -10,12 +11,14 @@ using Mongoose.Api.Infrastructure.Database;
 using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Email;
 using Mongoose.Api.Infrastructure.Jobs;
+using Mongoose.Api.Infrastructure.Jobs.Analytics;
 using Mongoose.Api.Infrastructure.Middleware;
 using Mongoose.Api.Infrastructure.Riot;
 using Mongoose.Api.Infrastructure.Security;
 using Mongoose.Api.Infrastructure.Serialization;
 using Mongoose.Api.Infrastructure.RateLimiting;
 using Mongoose.Api.Infrastructure.Services;
+using Mongoose.Api.Infrastructure.Services.Analytics;
 using Mongoose.Api.Infrastructure.WebSocket;
 using System.Security.Claims;
 using System.Net;
@@ -89,6 +92,14 @@ builder.Services.AddScoped<ISeasonsRepository, SeasonsRepository>();
 builder.Services.AddScoped<IAnalyticsEventsRepository, AnalyticsEventsRepository>();
 builder.Services.AddScoped<IVerificationTokensRepository, VerificationTokensRepository>();
 
+// Analytics Phase 3 repositories (event dimensions, journeys, funnels, rollups)
+builder.Services.AddScoped<IAnalyticsEventDimensionsRepository, AnalyticsEventDimensionsRepository>();
+builder.Services.AddScoped<IAnalyticsJourneyRepository, AnalyticsJourneyRepository>();
+builder.Services.AddScoped<IAnalyticsFunnelRepository, AnalyticsFunnelRepository>();
+builder.Services.AddScoped<IAnalyticsRollupRepository, AnalyticsRollupRepository>();
+builder.Services.AddScoped<AggregationService>();
+builder.Services.AddScoped<DimensionExtractionService>();
+
 // Application services
 builder.Services.AddScoped<LoginSyncService>();
 builder.Services.AddScoped<PuuidResolutionService>();
@@ -96,6 +107,14 @@ builder.Services.AddScoped<IMatchDataPersistenceService, MatchDataPersistenceSer
 
 // Query filter builder for centralized SQL filter generation
 builder.Services.AddScoped<IQueryFilterBuilder, QueryFilterBuilder>();
+
+// In-memory cache — required by AnalyticsAbuseGuards (IMemoryCache).
+// Distinct from AddDistributedMemoryCache() above, which only satisfies IDistributedCache.
+builder.Services.AddMemoryCache();
+
+// Analytics V2 (versioned schema + validation) and Phase 2 (async ingestion) services
+builder.Services.AddAnalyticsV2Services(builder.Configuration);
+builder.Services.AddAnalyticsPhase2Services();
 
 // Authorization helper for consistent authentication/authorization checks (static helper, no DI needed)
 
@@ -124,6 +143,10 @@ builder.Services.AddHttpClient("RiotApi", client =>
         client.DefaultRequestHeaders.Add("X-Riot-Token", Secrets.ApiKey);
 });
 
+// Wake-up signal so the sync endpoint can start the match-sync job immediately
+// instead of waiting for its next poll tick (shared singleton: endpoint + job).
+builder.Services.AddSingleton<ISyncQueueSignal, SyncQueueSignal>();
+
 // Match History Sync Job (per-account sync for linked Riot accounts)
 var enableMatchHistorySync = builder.Configuration.GetValue<bool>("Jobs:EnableMatchHistorySync", true);
 if (enableMatchHistorySync)
@@ -138,9 +161,28 @@ if (enableMatchCleanup)
     builder.Services.AddHostedService<MatchCleanupJob>();
 }
 
+// Analytics background jobs (dimension extraction, hourly rollups, retention/purge)
+var enableAnalyticsBackgroundJobs = builder.Configuration.GetValue<bool>("Jobs:EnableAnalyticsBackgroundJobs", true);
+if (enableAnalyticsBackgroundJobs)
+{
+    builder.Services.AddHostedService<DimensionExtractionBackgroundJob>();
+    builder.Services.AddHostedService<RollupAggregationBackgroundJob>();
+    builder.Services.AddHostedService<RetentionAndPurgeBackgroundJob>();
+}
+
 // WebSocket hub for sync progress (singleton - shared across all connections)
 builder.Services.AddSingleton<SyncProgressHub>();
-builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
+builder.Services.AddSingleton<IUserSyncBroadcaster>(sp => sp.GetRequiredService<SyncProgressHub>());
+
+// Per-user aggregator for the "Analyze all" flow (combines per-account progress into one stream).
+builder.Services.AddSingleton<ISyncProgressAggregator, SyncProgressAggregator>();
+
+// The broadcaster used by the sync job fans out to both the per-account channel (Settings page)
+// and the per-user aggregate channel (Overview card).
+builder.Services.AddSingleton<ISyncProgressBroadcaster>(sp =>
+    new AggregatingSyncProgressBroadcaster(
+        sp.GetRequiredService<SyncProgressHub>(),
+        sp.GetRequiredService<ISyncProgressAggregator>()));
 
 // Add authentication (cookie-based)
 // All logins produce a 30-day persistent cookie with sliding expiration.

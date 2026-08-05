@@ -16,7 +16,8 @@ namespace Mongoose.Api.Application.Endpoints.Auth;
 /// - POST /api/v2/users/me/riot-accounts - Link a new Riot account
 /// - DELETE /api/v2/users/me/riot-accounts/{puuid} - Unlink a Riot account
 /// - PUT /api/v2/users/me/riot-accounts/{puuid}/primary - Set a linked account as primary
-/// - POST /api/v2/users/me/riot-accounts/{puuid}/sync - Trigger a sync
+/// - POST /api/v2/users/me/riot-accounts/sync - Trigger a sync for ALL linked accounts
+/// - POST /api/v2/users/me/riot-accounts/{puuid}/sync - Trigger a sync for one account
 /// - GET /api/v2/users/me/riot-accounts/{puuid}/sync-status - Get sync status
 /// </summary>
 public sealed class RiotAccountsEndpoint : IEndpoint
@@ -43,6 +44,7 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         ConfigureLinkEndpoint(app);
         ConfigureDeleteEndpoint(app);
         ConfigureSetPrimaryEndpoint(app);
+        ConfigureSyncAllEndpoint(app);
         ConfigureSyncEndpoint(app);
         ConfigureSyncStatusEndpoint(app);
     }
@@ -407,6 +409,74 @@ public sealed class RiotAccountsEndpoint : IEndpoint
         });
     }
 
+    private void ConfigureSyncAllEndpoint(WebApplication app)
+    {
+        // Collection-level "Analyze all": queues every linked account in one request and
+        // surfaces a single combined progress stream via the aggregate WebSocket channel.
+        _ = app.MapPost(Route + "/sync", [Authorize] async (
+            HttpContext httpContext,
+            [FromServices] IRiotAccountsRepository riotAccountsRepo,
+            [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
+            [FromServices] ISyncProgressAggregator aggregator,
+            [FromServices] ISyncQueueSignal queueSignal,
+            [FromServices] ILogger<RiotAccountsEndpoint> logger
+        ) =>
+        {
+            try
+            {
+                var userId = GetUserId(httpContext);
+                if (userId == null) return AuthResults.InvalidSession();
+
+                var links = await userRiotAccountsRepo.GetByUserIdAsync(userId.Value);
+                if (links.Count == 0)
+                {
+                    return Results.BadRequest(new { error = "No linked Riot accounts", code = "NO_LINKED_ACCOUNT" });
+                }
+
+                var allPuuids = links.Select(l => l.Account.Puuid).ToList();
+
+                // Accounts we'll queue now: everything not already mid-sync. Accounts already
+                // 'syncing' are left alone — the background job opened an aggregate slot for them
+                // when it claimed them, so they remain part of the user's combined run.
+                var queuedPuuids = links
+                    .Where(l => l.Account.SyncStatus != "syncing")
+                    .Select(l => l.Account.Puuid)
+                    .ToList();
+
+                // Open the aggregate run BEFORE marking accounts pending (and broadcast a "syncing"
+                // state so the UI reacts without delay). Seeding first guarantees every account has
+                // a slot before the background job can claim it; otherwise the job could claim and
+                // complete an account in the gap before the run is seeded, leaving an orphaned
+                // 'pending' slot that never settles (Overview card stuck "Analyzing…").
+                if (queuedPuuids.Count > 0)
+                {
+                    await aggregator.StartRunAsync(userId.Value, queuedPuuids);
+                }
+
+                foreach (var puuid in queuedPuuids)
+                {
+                    await riotAccountsRepo.UpdateSyncStatusAsync(puuid, "pending");
+                }
+
+                // Wake the background job so queued work starts now instead of at the next poll.
+                if (queuedPuuids.Count > 0)
+                {
+                    queueSignal.Notify();
+                }
+
+                logger.LogInformation("Queued analysis for {Queued}/{Total} linked accounts, user {UserId}",
+                    queuedPuuids.Count, allPuuids.Count, LogSanitizer.Sanitize(userId.Value.ToString()));
+
+                return Results.Accepted($"{Route}/sync", new SyncAllResponse(allPuuids.Count, queuedPuuids.Count, "Analysis queued"));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error triggering sync for all linked accounts");
+                return Results.Json(new { error = "Internal server error" }, statusCode: 500);
+            }
+        });
+    }
+
     private void ConfigureSyncEndpoint(WebApplication app)
     {
         app.MapPost(Route + "/{puuid}/sync", [Authorize] async (
@@ -528,6 +598,12 @@ public sealed class RiotAccountsEndpoint : IEndpoint
     public record SyncResponse(
         [property: JsonPropertyName("puuid")] string Puuid,
         [property: JsonPropertyName("status")] string Status,
+        [property: JsonPropertyName("message")] string Message
+    );
+
+    public record SyncAllResponse(
+        [property: JsonPropertyName("accountsTotal")] int AccountsTotal,
+        [property: JsonPropertyName("accountsQueued")] int AccountsQueued,
         [property: JsonPropertyName("message")] string Message
     );
 

@@ -11,6 +11,7 @@ using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Security;
 using Mongoose.Api.Infrastructure.Email;
 using Mongoose.Api.Infrastructure.Jobs;
+using Mongoose.Api.Infrastructure.Jobs.Analytics;
 using Mongoose.Api.Infrastructure.Riot;
 using Mongoose.Api.Application.DTOs;
 using Microsoft.Extensions.Hosting;
@@ -30,6 +31,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeUserRiotAccountsRepository _userRiotAccountsRepository;
     private readonly FakeOverviewStatsRepository _overviewStatsRepository;
     private readonly FakeAnalyticsEventsRepository _analyticsEventsRepository;
+    private readonly FakeAnalyticsEventsV2Repository _analyticsEventsV2Repository;
     private readonly FakeGitHubService _gitHubService;
     private readonly FakeMatchesRepository _matchesRepository;
     private readonly FakeSoloPerformanceRepository _soloPerformanceRepository;
@@ -47,6 +49,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeUserRiotAccountsRepository UserRiotAccountsRepository => _userRiotAccountsRepository;
     public FakeOverviewStatsRepository OverviewStatsRepository => _overviewStatsRepository;
     public FakeAnalyticsEventsRepository AnalyticsEventsRepository => _analyticsEventsRepository;
+    public FakeAnalyticsEventsV2Repository AnalyticsEventsV2Repository => _analyticsEventsV2Repository;
     public FakeGitHubService GitHubService => _gitHubService;
     public FakeMatchesRepository MatchesRepository => _matchesRepository;
     public FakeSoloPerformanceRepository SoloPerformanceRepository => _soloPerformanceRepository;
@@ -67,6 +70,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _userRiotAccountsRepository = new FakeUserRiotAccountsRepository(_riotAccountsRepository);
         _overviewStatsRepository = new FakeOverviewStatsRepository();
         _analyticsEventsRepository = new FakeAnalyticsEventsRepository();
+        _analyticsEventsV2Repository = new FakeAnalyticsEventsV2Repository();
         _gitHubService = new FakeGitHubService();
         _matchesRepository = new FakeMatchesRepository(_riotAccountsRepository);
         _soloPerformanceRepository = new FakeSoloPerformanceRepository();
@@ -96,6 +100,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["Auth:CookieName"] = "mongoose-auth",
                 ["Jobs:EnableMatchHistorySync"] = "false",
                 ["Jobs:EnableMatchCleanup"] = "false",
+                ["Jobs:EnableAnalyticsBackgroundJobs"] = "false",
                 ["RIOT_API_KEY"] = "test-key",
                 ["Database_test"] = "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;",
                 ["Security:EncryptionSecret"] = testEncryptionSecret
@@ -120,7 +125,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 }
 
                 if (descriptor.ImplementationType == typeof(MatchHistorySyncJob)
-                    || descriptor.ImplementationType == typeof(MatchCleanupJob))
+                    || descriptor.ImplementationType == typeof(MatchCleanupJob)
+                    || descriptor.ImplementationType == typeof(DimensionExtractionBackgroundJob)
+                    || descriptor.ImplementationType == typeof(RollupAggregationBackgroundJob)
+                    || descriptor.ImplementationType == typeof(RetentionAndPurgeBackgroundJob))
                 {
                     services.RemoveAt(index);
                 }
@@ -157,6 +165,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace AnalyticsEventsRepository with a fake
             services.RemoveAll<IAnalyticsEventsRepository>();
             services.AddSingleton<IAnalyticsEventsRepository>(_analyticsEventsRepository);
+
+            // Replace AnalyticsEventsV2Repository with a fake (avoids real DB connections)
+            services.RemoveAll<IAnalyticsEventsV2Repository>();
+            services.AddSingleton<IAnalyticsEventsV2Repository>(_analyticsEventsV2Repository);
 
             // Replace IGitHubService with a fake
             services.RemoveAll<IGitHubService>();
@@ -1107,6 +1119,104 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         }
 
         public IReadOnlyCollection<AnalyticsEvent> GetAllEvents() => _events.Values.ToList();
+
+        public void Clear() => _events.Clear();
+    }
+
+    /// <summary>
+    /// Fake analytics events v2 repository for testing (avoids real DB connections).
+    /// </summary>
+    internal sealed class FakeAnalyticsEventsV2Repository : AnalyticsEventsV2Repository
+    {
+        private readonly ConcurrentDictionary<long, AnalyticsEventV2> _events = new();
+        private long _nextId = 1;
+
+        public FakeAnalyticsEventsV2Repository() : base(null!) { }
+
+        public override Task<long> InsertAsync(AnalyticsEventV2 evt)
+        {
+            evt.Id = _nextId++;
+            _events[evt.Id] = evt;
+            return Task.FromResult(evt.Id);
+        }
+
+        public override Task<int> InsertBatchAsync(IEnumerable<AnalyticsEventV2> events)
+        {
+            var count = 0;
+            foreach (var evt in events)
+            {
+                evt.Id = _nextId++;
+                _events[evt.Id] = evt;
+                count++;
+            }
+            return Task.FromResult(count);
+        }
+
+        public override Task<long> GetEventCountAsync(string eventName, DateTime from, DateTime to, bool includeRejected = false)
+        {
+            var count = _events.Values.Count(e =>
+                e.EventName == eventName &&
+                e.CreatedAt >= from &&
+                e.CreatedAt <= to &&
+                (includeRejected || e.IsAccepted));
+            return Task.FromResult((long)count);
+        }
+
+        public override Task<long> GetUniqueUserCountAsync(string eventName, DateTime from, DateTime to)
+        {
+            var count = _events.Values
+                .Where(e => e.EventName == eventName && e.CreatedAt >= from && e.CreatedAt <= to && e.IsAccepted && e.UserId != null)
+                .Select(e => e.UserId)
+                .Distinct()
+                .Count();
+            return Task.FromResult((long)count);
+        }
+
+        public override Task<long> GetAcceptedEventCountAsync(DateTime from, DateTime to)
+        {
+            var count = _events.Values.Count(e => e.IsAccepted && e.CreatedAt >= from && e.CreatedAt <= to);
+            return Task.FromResult((long)count);
+        }
+
+        public override Task<Dictionary<string, long>> GetRejectionsByReasonAsync(DateTime from, DateTime to)
+        {
+            var result = _events.Values
+                .Where(e => !e.IsAccepted && e.CreatedAt >= from && e.CreatedAt <= to)
+                .GroupBy(e => e.RejectionReason!)
+                .ToDictionary(g => g.Key, g => (long)g.Count());
+            return Task.FromResult(result);
+        }
+
+        public override Task<double> GetAcceptanceRateAsync(DateTime from, DateTime to)
+        {
+            var inWindow = _events.Values.Where(e => e.CreatedAt >= from && e.CreatedAt <= to).ToList();
+            if (inWindow.Count == 0)
+                return Task.FromResult(0.0);
+
+            var accepted = inWindow.Count(e => e.IsAccepted);
+            return Task.FromResult((double)accepted / inWindow.Count);
+        }
+
+        public override Task<int> DeleteOlderThanAsync(DateTime cutoffDate)
+        {
+            var toRemove = _events.Values.Where(e => e.ServerTimestampUtc < cutoffDate).Select(e => e.Id).ToList();
+            foreach (var id in toRemove)
+            {
+                _events.TryRemove(id, out _);
+            }
+            return Task.FromResult(toRemove.Count);
+        }
+
+        public override Task<Dictionary<string, long>> GetEventDistributionByCategoryAsync(DateTime from, DateTime to)
+        {
+            var result = _events.Values
+                .Where(e => e.IsAccepted && e.CreatedAt >= from && e.CreatedAt <= to)
+                .GroupBy(e => e.EventCategory)
+                .ToDictionary(g => g.Key, g => (long)g.Count());
+            return Task.FromResult(result);
+        }
+
+        public IReadOnlyCollection<AnalyticsEventV2> GetAllEvents() => _events.Values.ToList();
 
         public void Clear() => _events.Clear();
     }
