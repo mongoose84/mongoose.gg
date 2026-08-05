@@ -17,8 +17,8 @@ public class UsersRepository : RepositoryBase, IUsersRepository
     public virtual async Task<long> UpsertAsync(User user)
     {
         const string sql = @"INSERT INTO users
-            (user_id, email, username, password_hash, security_stamp, email_verified, is_active, tier, user_icon_id, mollie_customer_id, created_at, updated_at, last_login_at)
-            VALUES (@user_id, @email, @username, @password_hash, @security_stamp, @email_verified, @is_active, @tier, @user_icon_id, @mollie_customer_id, @created_at, @updated_at, @last_login_at) AS new
+            (user_id, email, username, password_hash, security_stamp, email_verified, is_active, tier, user_icon_id, mollie_customer_id, riot_puuid, created_at, updated_at, last_login_at)
+            VALUES (@user_id, @email, @username, @password_hash, @security_stamp, @email_verified, @is_active, @tier, @user_icon_id, @mollie_customer_id, @riot_puuid, @created_at, @updated_at, @last_login_at) AS new
             ON DUPLICATE KEY UPDATE
                 email = new.email,
                 username = new.username,
@@ -29,6 +29,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
                 tier = new.tier,
                 user_icon_id = new.user_icon_id,
                 mollie_customer_id = new.mollie_customer_id,
+                riot_puuid = new.riot_puuid,
                 updated_at = new.updated_at,
                 last_login_at = new.last_login_at;";
 
@@ -49,6 +50,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
             cmd.Parameters.AddWithValue("@tier", user.Tier);
             cmd.Parameters.AddWithValue("@user_icon_id", (object?)user.UserIconId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@mollie_customer_id", user.MollieCustomerId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@riot_puuid", user.RiotPuuid ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@created_at", user.CreatedAt == default ? DateTime.UtcNow : user.CreatedAt);
             cmd.Parameters.AddWithValue("@updated_at", DateTime.UtcNow);
             cmd.Parameters.AddWithValue("@last_login_at", user.LastLoginAt ?? (object)DBNull.Value);
@@ -70,6 +72,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
                 tier,
                 user_icon_id,
                 mollie_customer_id,
+                riot_puuid,
                 created_at,
                 updated_at,
                 last_login_at
@@ -94,6 +97,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
                 tier,
                 user_icon_id,
                 mollie_customer_id,
+                riot_puuid,
                 created_at,
                 updated_at,
                 last_login_at
@@ -116,6 +120,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
                 tier,
                 user_icon_id,
                 mollie_customer_id,
+                riot_puuid,
                 created_at,
                 updated_at,
                 last_login_at
@@ -139,6 +144,29 @@ public class UsersRepository : RepositoryBase, IUsersRepository
             var result = await cmd.ExecuteScalarAsync();
             return Convert.ToInt64(result) > 0;
         });
+    }
+
+    public virtual Task<User?> GetByRiotPuuidAsync(string riotPuuid)
+    {
+        const string sql = @"SELECT
+                user_id,
+                email,
+                username,
+                password_hash,
+                security_stamp,
+                email_verified,
+                is_active,
+                tier,
+                user_icon_id,
+                mollie_customer_id,
+                riot_puuid,
+                created_at,
+                updated_at,
+                last_login_at
+            FROM users
+            WHERE riot_puuid = @riot_puuid
+            LIMIT 1";
+        return ExecuteSingleAsync(sql, MapWithDecryption, ("@riot_puuid", riotPuuid));
     }
 
     public virtual async Task<bool> EmailExistsAsync(string email)
@@ -297,6 +325,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
         var tierOrdinal = r.GetOrdinal("tier");
         var userIconIdOrdinal = r.GetOrdinal("user_icon_id");
         var mollieCustomerIdOrdinal = r.GetOrdinal("mollie_customer_id");
+        var riotPuuidOrdinal = r.GetOrdinal("riot_puuid");
         var createdAtOrdinal = r.GetOrdinal("created_at");
         var updatedAtOrdinal = r.GetOrdinal("updated_at");
         var lastLoginAtOrdinal = r.GetOrdinal("last_login_at");
@@ -363,6 +392,7 @@ public class UsersRepository : RepositoryBase, IUsersRepository
             Tier = r.GetString(tierOrdinal),
             UserIconId = r.IsDBNull(userIconIdOrdinal) ? null : r.GetInt32(userIconIdOrdinal),
             MollieCustomerId = r.IsDBNull(mollieCustomerIdOrdinal) ? null : r.GetString(mollieCustomerIdOrdinal),
+            RiotPuuid = r.IsDBNull(riotPuuidOrdinal) ? null : r.GetString(riotPuuidOrdinal),
             CreatedAt = r.GetDateTimeUtc(createdAtOrdinal),
             UpdatedAt = r.GetDateTimeUtc(updatedAtOrdinal),
             LastLoginAt = r.GetDateTimeUtcOrNull(lastLoginAtOrdinal)

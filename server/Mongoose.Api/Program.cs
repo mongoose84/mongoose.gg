@@ -133,6 +133,14 @@ builder.Services.AddDistributedMemoryCache();
 // Rate limiter for endpoint protection (uses distributed cache)
 builder.Services.AddSingleton<IRateLimiter, EndpointRateLimiter>();
 
+// Riot Sign-On (RSO) OAuth client — inert unless Auth:EnableRiotSignOn is set
+// and RSO client credentials are configured (RSO_CLIENT_ID / RSO_CLIENT_SECRET)
+builder.Services.AddHttpClient<IRiotSignOnClient, RiotSignOnClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+});
+
 // Named HttpClient for Riot API
 builder.Services.AddHttpClient("RiotApi", client =>
 {

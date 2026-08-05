@@ -67,6 +67,16 @@ export async function login({ username, password, consentLevel = 'accepted' }) {
 }
 
 /**
+ * Get the URL that starts the Riot Sign-On (RSO) flow.
+ * This is a full-page navigation target, not a fetch: the backend sets a CSRF
+ * state cookie and redirects the browser to Riot's authorize page.
+ * @returns {string} Absolute or proxy-relative URL to the RSO login endpoint
+ */
+export function getRiotSignOnUrl() {
+  return `${API_BASE}/auth/riot/login`
+}
+
+/**
  * Logout current user
  * @returns {Promise<void>}
  */

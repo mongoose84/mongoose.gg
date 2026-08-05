@@ -136,6 +136,7 @@ public sealed class MongooseApiApplication
 
         if (withoutEndpoint is "Register"
             or "Login"
+            or "RiotSignOn"
             or "Logout"
             or "Verify"
             or "ResendVerification"

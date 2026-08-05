@@ -367,6 +367,7 @@ public sealed class PuuidResolutionServiceTests
         public Task<User?> GetByUsernameAsync(string username) => throw new NotImplementedException();
         public Task<bool> UsernameExistsAsync(string username) => throw new NotImplementedException();
         public Task<bool> EmailExistsAsync(string email) => throw new NotImplementedException();
+        public Task<User?> GetByRiotPuuidAsync(string riotPuuid) => throw new NotImplementedException();
         public Task<long> GetActiveUserCountAsync() => throw new NotImplementedException();
         public Task UpdateEmailVerifiedAsync(long userId, bool verified) => throw new NotImplementedException();
         public Task UpdateUserIconIdAsync(long userId, int? userIconId) => throw new NotImplementedException();

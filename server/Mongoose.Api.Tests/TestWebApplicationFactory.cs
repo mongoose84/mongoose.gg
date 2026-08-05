@@ -27,6 +27,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeVerificationTokensRepository _tokensRepository;
     private readonly FakeEmailService _emailService;
     private readonly FakeRiotApiClient _riotApiClient;
+    private readonly FakeRiotSignOnClient _riotSignOnClient;
     private readonly FakeRiotAccountsRepository _riotAccountsRepository;
     private readonly FakeUserRiotAccountsRepository _userRiotAccountsRepository;
     private readonly FakeOverviewStatsRepository _overviewStatsRepository;
@@ -45,6 +46,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
     public FakeEmailService EmailService => _emailService;
     public FakeRiotApiClient RiotApiClient => _riotApiClient;
+    public FakeRiotSignOnClient RiotSignOnClient => _riotSignOnClient;
     public FakeRiotAccountsRepository RiotAccountsRepository => _riotAccountsRepository;
     public FakeUserRiotAccountsRepository UserRiotAccountsRepository => _userRiotAccountsRepository;
     public FakeOverviewStatsRepository OverviewStatsRepository => _overviewStatsRepository;
@@ -66,6 +68,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _tokensRepository = new FakeVerificationTokensRepository();
         _emailService = new FakeEmailService();
         _riotApiClient = new FakeRiotApiClient();
+        _riotSignOnClient = new FakeRiotSignOnClient();
         _riotAccountsRepository = new FakeRiotAccountsRepository();
         _userRiotAccountsRepository = new FakeUserRiotAccountsRepository(_riotAccountsRepository);
         _overviewStatsRepository = new FakeOverviewStatsRepository();
@@ -149,6 +152,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace IRiotApiClient with a fake
             services.RemoveAll<IRiotApiClient>();
             services.AddSingleton<IRiotApiClient>(_riotApiClient);
+
+            // Replace IRiotSignOnClient with a fake (avoids real OAuth calls)
+            services.RemoveAll<IRiotSignOnClient>();
+            services.AddSingleton<IRiotSignOnClient>(_riotSignOnClient);
 
             // Replace RiotAccountsRepository with a fake
             services.RemoveAll<IRiotAccountsRepository>();
@@ -393,6 +400,33 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             var count = _usersById.Values.Count(u => u.IsActive);
             return Task.FromResult((long)count);
+        }
+
+        public override Task<User?> GetByRiotPuuidAsync(string riotPuuid)
+        {
+            var user = _usersById.Values.FirstOrDefault(u => u.RiotPuuid == riotPuuid);
+            return Task.FromResult(user);
+        }
+
+        public void AddRiotSignOnUser(string username, string riotPuuid, bool isActive = true)
+        {
+            var user = new User
+            {
+                UserId = _nextId++,
+                Username = username,
+                Email = $"{riotPuuid}@riot-signon.invalid",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N")),
+                SecurityStamp = Guid.NewGuid().ToString(),
+                EmailVerified = true,
+                IsActive = isActive,
+                Tier = "free",
+                RiotPuuid = riotPuuid,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _usersByUsername[username] = user;
+            _usersByEmail[user.Email] = user;
+            _usersById[user.UserId] = user;
         }
     }
 
@@ -652,6 +686,33 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         private static string BuildRiotIdKey(string gameName, string tagLine)
         {
             return $"{gameName.Trim().ToLowerInvariant()}#{tagLine.Trim().ToLowerInvariant()}";
+        }
+    }
+
+    /// <summary>
+    /// Fake Riot Sign-On client for testing. Maps authorization codes to identities;
+    /// unknown codes throw like a failed token exchange.
+    /// </summary>
+    internal sealed class FakeRiotSignOnClient : IRiotSignOnClient
+    {
+        private readonly ConcurrentDictionary<string, RiotSignOnIdentity> _identitiesByCode = new();
+
+        public Task<RiotSignOnIdentity> ExchangeCodeAsync(string code, CancellationToken ct = default)
+        {
+            if (_identitiesByCode.TryGetValue(code, out var identity))
+            {
+                return Task.FromResult(identity);
+            }
+
+            throw new HttpRequestException("Invalid authorization code");
+        }
+
+        /// <summary>
+        /// Maps an authorization code to the identity the fake exchange returns.
+        /// </summary>
+        public void MapCode(string code, RiotSignOnIdentity identity)
+        {
+            _identitiesByCode[code] = identity;
         }
     }
 

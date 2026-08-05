@@ -260,6 +260,7 @@ string puuid = primary.Value.Account.Puuid;
 |----------|-------|--------|
 | `POST /auth/login` | 10 | 15 min / IP |
 | `POST /auth/register` | 3 | 1 hour / IP |
+| `GET /auth/riot/callback` | 10 | 15 min / IP |
 | `POST /auth/resend-verification` | 5 | 1 hour / user |
 | `POST /feedback` | 5 | 1 hour / IP |
 | `GET /public/stats` | 60 | 1 min / IP |
@@ -278,6 +279,8 @@ Credentials: allowed. Methods & Headers: any.
 |--------|-------|------|--------------|--------------|-------------|
 | `POST` | `/api/v2/auth/login` | No | 10/15min/IP | `Auth/LoginEndpoint.cs` | `LoginResponse` |
 | `POST` | `/api/v2/auth/register` | No | 3/hr/IP | `Auth/RegisterEndpoint.cs` | `RegisterResponse` |
+| `GET` | `/api/v2/auth/riot/login` | No | No | `Auth/RiotSignOnEndpoint.cs` | redirect (302) |
+| `GET` | `/api/v2/auth/riot/callback` | No | 10/15min/IP | `Auth/RiotSignOnEndpoint.cs` | redirect (302) |
 | `POST` | `/api/v2/auth/logout` | Yes | No | `Auth/LogoutEndpoint.cs` | `LogoutResponse` |
 | `DELETE` | `/api/v2/auth/account` | Yes | No | `Auth/DeleteAccountEndpoint.cs` | `DeleteAccountResponse` |
 | `POST` | `/api/v2/auth/verify` | Yes | No | `Auth/VerifyEndpoint.cs` | `VerifyResponse` |
@@ -329,6 +332,21 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Response**: `RegisterResponse(userId, username, email, emailVerified, message)`  
 **Side effects**: Sets session cookie, sends verification email (fire-and-forget)  
 **Tables**: `users`, `verification_tokens`
+
+### 6.2a Auth — Riot Sign-On (RSO)
+**Routes**: `GET /api/v2/auth/riot/login`, `GET /api/v2/auth/riot/callback`  
+**Auth**: None (public)  
+**Feature flag**: `Auth:EnableRiotSignOn` (off by default; requires `Auth:Riot:ClientId`/`ClientSecret`/`RedirectUri` or `RSO_CLIENT_ID`/`RSO_CLIENT_SECRET` env vars)  
+**Rate limit** (callback only): 10 / 15 min / IP  
+**Flow**: OAuth 2.0 authorization code flow against Riot's identity provider.
+1. `GET /auth/riot/login` sets an httpOnly, SameSite=Lax CSRF `state` cookie (`mongoose-rso-state`) and redirects the browser to `https://auth.riotgames.com/authorize`.
+2. Riot redirects back to `GET /auth/riot/callback?code=...&state=...`. The endpoint verifies `state` against the cookie, then exchanges `code` server-side (`IRiotSignOnClient`) for an access token and calls Riot's `account/v1/accounts/me` to resolve the authoritative PUUID, game name, and tag line — **never accepted from client input**.
+3. If no user has this `riot_puuid`, one is created: synthetic placeholder email (`{puuid}@riot-signon.invalid`), random unusable password hash, `email_verified = true`, username derived from the Riot game name (deduplicated).
+4. The Riot account is auto-linked to the user via `user_riot_accounts` (no manual link step, since Riot already authenticated the identity) — set as primary if it's the user's first linked account.
+5. Server signs in with the standard session cookie (`AuthSessionFactory`) and redirects to `{Auth:Riot:ClientBaseUrl}/app/overview`.
+**Error redirects**: `/auth?error=<code>` for `riot_signon_disabled`, `riot_signon_denied`, `riot_signon_state`, `riot_signon_failed`, `riot_signon_rate_limited`, `account_deactivated`.  
+**Side effects**: May create `users` + `riot_accounts` rows, links `user_riot_accounts`, sets session cookie, updates `last_login_at`, fires `LoginSyncService.CheckAccountsOnLoginAsync()`.  
+**Tables**: `users`, `riot_accounts`, `user_riot_accounts`
 
 ### 6.3 Auth — Logout
 **Route**: `POST /api/v2/auth/logout`  

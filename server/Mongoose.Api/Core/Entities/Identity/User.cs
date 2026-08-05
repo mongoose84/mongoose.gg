@@ -12,6 +12,7 @@ public class User : EntityBase
     public string Tier { get; set; } = "free";
     public int? UserIconId { get; set; }
     public string? MollieCustomerId { get; set; }
+    public string? RiotPuuid { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }

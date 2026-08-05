@@ -133,6 +133,24 @@
             </BaseButton>
           </form>
 
+          <!-- Riot Sign-On -->
+          <div class="mt-lg flex items-center gap-md" aria-hidden="true">
+            <div class="flex-1 border-t border-border"></div>
+            <span class="text-sm text-text-secondary">or</span>
+            <div class="flex-1 border-t border-border"></div>
+          </div>
+
+          <BaseButton
+            variant="secondary"
+            size="lg"
+            class="mt-lg w-full"
+            :disabled="isSubmitting || consentRejected"
+            data-testid="riot-signin-button"
+            @click="handleRiotSignIn"
+          >
+            Sign in with Riot
+          </BaseButton>
+
           <div class="mt-xl pt-xl border-t border-border text-center">
             <BaseButton
               variant="ghost"
@@ -159,7 +177,7 @@ import { BaseInput, BaseButton } from '@/components/base';
 import { useAuthStore } from '../stores/authStore';
 import { useCookieConsent } from '../composables/useCookieConsent';
 import { trackAuth } from '../services/analyticsApi';
-import { forgotPassword } from '../services/authApi';
+import { forgotPassword, getRiotSignOnUrl } from '../services/authApi';
 
 const route = useRoute();
 const router = useRouter();
@@ -216,7 +234,29 @@ onMounted(async () => {
   } else if (route.query.mode === 'login') {
     isLogin.value = true;
   }
+
+  // Surface errors reported by the Riot Sign-On callback redirect
+  if (route.query.error) {
+    errorMessage.value = RIOT_SIGNON_ERRORS[route.query.error] || 'Sign-in failed. Please try again.';
+    trackAuth('login_attempt', false, { method: 'riot', errorCode: route.query.error });
+  }
 });
+
+// Error codes the backend appends when redirecting back from the RSO flow
+const RIOT_SIGNON_ERRORS = {
+  riot_signon_disabled: 'Riot sign-in is currently disabled.',
+  riot_signon_denied: 'Riot sign-in was cancelled.',
+  riot_signon_state: 'Your sign-in session expired. Please try again.',
+  riot_signon_failed: 'Riot sign-in failed. Please try again.',
+  riot_signon_rate_limited: 'Too many sign-in attempts. Please try again later.',
+  account_deactivated: 'This account has been deactivated.'
+};
+
+const handleRiotSignIn = () => {
+  if (isSubmitting.value || consentRejected.value) return;
+  // Full-page navigation: the backend redirects the browser to Riot's authorize page
+  window.location.href = getRiotSignOnUrl();
+};
 
 // Watch for route changes to update mode
 watch(() => route.query.mode, (newMode) => {
