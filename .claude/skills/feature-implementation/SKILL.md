@@ -11,6 +11,8 @@ It coordinates subagents in a deterministic sequence so work is planned, impleme
 
 This skill is the canonical home for long-form feature workflow guidance, delivery gates, and fix-loop policy. Keep always-on and file-scoped instructions limited to routing and constraints.
 
+**Cost note**: this workflow spawns five or more subagents. For a small, tightly coupled change, delegate to the `fullstack-developer` subagent in a single pass instead — reserve this workflow for features with genuinely independent work streams.
+
 ## Project Context
 - Backend: .NET 10 Minimal API (C#), Clean Architecture + DDD (Core → Application → Infrastructure)
 - Frontend: Vue 3 (Composition API) + Vite + Pinia + Tailwind CSS
@@ -20,11 +22,11 @@ This skill is the canonical home for long-form feature workflow guidance, delive
 - E2E tests: `client/e2e/` (Playwright)
 
 ## Key References
-- [Architecture spec](../../specs/architecture.spec.md) — endpoints, DTOs, route map
-- [Database schema](../../specs/database-schema.spec.md) — table structure and relationships
-- [UI/UX spec](../../specs/ui-ux.spec.md) — design system, tokens, component inventory
-- [Test strategy](../../specs/test-strategy.spec.md) — testing pyramid, coverage map
-- [Feature template](../../specs/feature-template.spec.md) — template for new feature specs
+- `.github/specs/architecture.spec.md` — endpoints, DTOs, route map
+- `.github/specs/database-schema.spec.md` — table structure and relationships
+- `.github/specs/ui-ux.spec.md` — design system, tokens, component inventory
+- `.github/specs/test-strategy.spec.md` — testing pyramid, coverage map
+- `.github/specs/feature-template.spec.md` — template for new feature specs
 - [new-endpoint skill](../new-endpoint/SKILL.md) — endpoint scaffolding pattern
 - [run-all-tests skill](../run-all-tests/SKILL.md) — full test suite execution
 
