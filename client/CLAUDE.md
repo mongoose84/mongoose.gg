@@ -37,10 +37,10 @@ npm run test:e2e:report             # Open last HTML report
 
 **E2E prerequisite**: Backend must run with E2E flags:
 ```bash
-Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run --project server/Mongoose.Api
+Auth__AutoVerifyEmail=true RateLimiting__Enabled=false Email__DevMode=true dotnet run --project server/Mongoose.Api
 ```
 
-Unit tests live in `test/unit/`. Playwright specs live in `e2e/`. For full E2E workflow details see [run-e2e-tests/SKILL.md](../.github/skills/run-e2e-tests/SKILL.md).
+Unit tests live in `test/unit/`. Playwright specs live in `e2e/`. For full E2E workflow details see [run-e2e-tests/SKILL.md](../.claude/skills/run-e2e-tests/SKILL.md).
 
 ## Runtime Layout
 

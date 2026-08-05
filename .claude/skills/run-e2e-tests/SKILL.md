@@ -75,8 +75,8 @@ Test result artifacts (screenshots, traces) go to `client/test-results/`.
 ### Auth State
 Tests reuse the auth cookie from global setup. Playwright config references `e2e/.auth/user.json` as `storageState`.
 
-### Test Browsers
-Configured in `playwright.config.js`: Chromium and Firefox. Tests run in parallel by default.
+### Test Projects
+Configured in `playwright.config.js` as three projects: `smoke-chromium` (specs matching `*smoke.spec.js`, run on PRs via `npm run test:e2e:smoke`), plus `full-chromium` and `full-firefox` (all other specs, run post-merge via `npm run test:e2e:full`). `npm run test:e2e` runs everything. Tests run in parallel by default.
 
 ### Base URLs
 - Frontend: `http://localhost:5174` (Vite dev server with API proxy)
@@ -97,7 +97,7 @@ Configured in `playwright.config.js`: Chromium and Firefox. Tests run in paralle
 ### Auth failures in tests
 - Ensure backend started with `Auth__AutoVerifyEmail=true`
 - Check that global setup ran successfully (look for `e2e/.auth/user.json`)
-- If `401 Unauthorized`, verify the login flow completed and the auth cookie was issued; sessions use a 14-day sliding persistent cookie
+- If `401 Unauthorized`, verify the login flow completed and the auth cookie was issued; sessions use a 30-day sliding persistent cookie
 
 ### Flaky Firefox tests
 - Firefox can hang on `networkidle` when WebSocket connections stay open

@@ -2,7 +2,7 @@
 name: fullstack-developer
 description: Full-stack implementation worker for tightly coupled features. Use when backend and frontend changes should be implemented in one isolated pass. Not an orchestrator — for the multi-agent delivery workflow, use the feature-implementation skill instead.
 tools: Read, Edit, Write, Grep, Glob, Bash
-model: opus
+model: sonnet
 ---
 
 Implement tightly coupled end-to-end feature work from an approved spec or explicit orchestrator task.

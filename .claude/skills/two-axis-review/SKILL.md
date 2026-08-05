@@ -1,5 +1,5 @@
 ---
-name: code-review
+name: two-axis-review
 description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/PRD asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
 ---
 
@@ -33,7 +33,11 @@ Look for the originating spec, in this order:
 
 ### 3. Identify the standards sources
 
-Anything in the repo that documents how code should be written, such as `CODING_STANDARDS.md` or `CONTRIBUTING.md`.
+In this repo the documented standards are:
+
+- `CLAUDE.md` (repo-wide invariants)
+- The nested `CLAUDE.md` files owning the changed directories (`server/Mongoose.Api/`, `server/Mongoose.Api.Tests/`, `client/src/`, `client/test/unit/`, `client/e2e/`)
+- The relevant `.github/specs/*.spec.md` files when the diff touches contracts, schema, or UX behavior
 
 On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below — a fixed set of Fowler code smells (_Refactoring_, ch.3) that applies even when a repo documents nothing. Two rules bind it:
 
