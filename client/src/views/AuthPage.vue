@@ -133,23 +133,25 @@
             </BaseButton>
           </form>
 
-          <!-- Riot Sign-On -->
-          <div class="mt-lg flex items-center gap-md" aria-hidden="true">
-            <div class="flex-1 border-t border-border"></div>
-            <span class="text-sm text-text-secondary">or</span>
-            <div class="flex-1 border-t border-border"></div>
-          </div>
+          <!-- Riot Sign-On (hidden until production RSO credentials are approved) -->
+          <template v-if="featureFlags.riotSignOn">
+            <div class="mt-lg flex items-center gap-md" aria-hidden="true">
+              <div class="flex-1 border-t border-border"></div>
+              <span class="text-sm text-text-secondary">or</span>
+              <div class="flex-1 border-t border-border"></div>
+            </div>
 
-          <BaseButton
-            variant="secondary"
-            size="lg"
-            class="mt-lg w-full"
-            :disabled="isSubmitting || consentRejected"
-            data-testid="riot-signin-button"
-            @click="handleRiotSignIn"
-          >
-            Sign in with Riot
-          </BaseButton>
+            <BaseButton
+              variant="secondary"
+              size="lg"
+              class="mt-lg w-full"
+              :disabled="isSubmitting || consentRejected"
+              data-testid="riot-signin-button"
+              @click="handleRiotSignIn"
+            >
+              Sign in with Riot
+            </BaseButton>
+          </template>
 
           <div class="mt-xl pt-xl border-t border-border text-center">
             <BaseButton
@@ -178,6 +180,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useCookieConsent } from '../composables/useCookieConsent';
 import { trackAuth } from '../services/analyticsApi';
 import { forgotPassword, getRiotSignOnUrl } from '../services/authApi';
+import { featureFlags } from '@/utils/featureFlags';
 
 const route = useRoute();
 const router = useRouter();

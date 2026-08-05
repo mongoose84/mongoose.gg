@@ -7,9 +7,10 @@ describe('featureFlags', () => {
     expect(featureFlags).not.toBeNull();
   });
 
-  it('includes the required keys teamAnalytics and goals', () => {
+  it('includes the required keys teamAnalytics, goals, and riotSignOn', () => {
     expect(featureFlags).toHaveProperty('teamAnalytics');
     expect(featureFlags).toHaveProperty('goals');
+    expect(featureFlags).toHaveProperty('riotSignOn');
   });
 
   it('teamAnalytics is a boolean', () => {
@@ -20,6 +21,10 @@ describe('featureFlags', () => {
     expect(typeof featureFlags.goals).toBe('boolean');
   });
 
+  it('riotSignOn is a boolean', () => {
+    expect(typeof featureFlags.riotSignOn).toBe('boolean');
+  });
+
   it('teamAnalytics is false in test environment (VITE_ env var not set)', () => {
     // In test env, VITE_FEATURE_TEAM_ANALYTICS is undefined, so !== 'true'
     expect(featureFlags.teamAnalytics).toBe(false);
@@ -28,5 +33,10 @@ describe('featureFlags', () => {
   it('goals is false in test environment (VITE_ env var not set)', () => {
     // In test env, VITE_FEATURE_GOALS is undefined, so !== 'true'
     expect(featureFlags.goals).toBe(false);
+  });
+
+  it('riotSignOn is false in test environment (VITE_ env var not set)', () => {
+    // In test env, VITE_FEATURE_RIOT_SIGNON is undefined, so !== 'true'
+    expect(featureFlags.riotSignOn).toBe(false);
   });
 });
