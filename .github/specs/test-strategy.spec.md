@@ -3,7 +3,7 @@
 > **Purpose**: Single-source-of-truth for AI agents and developers writing, running, and maintaining tests across backend, frontend, and E2E layers. Contains infrastructure details, file maps, patterns, helpers, and checklists.
 
 **Layers**: Backend (xUnit + .NET 10) · Frontend Unit (Vitest + Vue Test Utils) · E2E (Playwright)  
-**Last verified**: March 30, 2026
+**Last verified**: August 8, 2026
 
 ---
 
@@ -92,39 +92,49 @@
 
 ### 3.2 Test File Map
 
+All 55 test files (558 `[Fact]`/`[Theory]` tests total) live **flat** in `server/Mongoose.Api.Tests/` — there are no `Endpoints/`/`Services/`/`Mappers/` subdirectories. Grouped below by what they cover, not by folder:
+
 ```
 server/Mongoose.Api.Tests/
-├── Endpoints/
-│   ├── AnalyticsEndpointTests.cs           # ✅ Exists
-│   ├── Auth/ (Login, Verify, Resend, etc.) # ✅ Exists
-│   ├── ChampionSelectEndpointTests.cs      # ✅ Complete (16 tests)
-│   ├── DiagnosticsEndpointTests.cs         # ✅ Exists
-│   ├── FeedbackEndpointTests.cs            # ✅ Exists
-│   ├── MatchEndpointTests.cs               # ✅ Complete (19 tests)
-│   ├── OverviewEndpointTests.cs            # ✅ Exists
-│   ├── SoloDashboardEndpointTests.cs       # ✅ Exists (needs expansion)
-
-├── Services/
-│   ├── MainChampionRecommenderTests.cs     # ✅ Exists
-│   ├── LoginSyncServiceTests.cs            # Missing
-│   └── SeasonHelperTests.cs                # Missing
-├── Mappers/
-│   ├── RiotMatchMapperTests.cs             # ✅ Complete (28 tests)
-│   └── RiotTimelineMapperTests.cs          # Missing
-├── Infrastructure/
-│   ├── AesEncryptorTests.cs                # ✅ Exists
-│   ├── VerificationCodeGeneratorTests.cs   # ✅ Exists
-│   └── SyncProgressHubTests.cs             # ✅ Exists
-└── Jobs/
-    ├── MatchHistorySyncJobTests.cs         # ✅ Exists
-    └── MatchCleanupJobTests.cs             # ✅ Exists
+├── Endpoint tests (one file per endpoint, or per closely-related group)
+│   ├── LoginEndpointTests.cs, RegisterEndpointTests.cs, LogoutEndpointTests.cs,
+│   │   VerifyEndpointTests.cs, ResendVerificationEndpointTests.cs
+│   ├── AccountSecurityEndpointsTests.cs    # covers change/forgot/reset-password + delete-account
+│   ├── RiotAccountsEndpointTests.cs, RiotSignOnEndpointTests.cs
+│   ├── ChampionSelectEndpointTests.cs, DiagnosticsEndpointTests.cs, FeedbackEndpointTests.cs
+│   ├── MatchEndpointTests.cs               # covers list/details/narrative together
+│   ├── MatchActivityEndpointTests.cs, OverviewEndpointTests.cs, PublicStatsEndpointTests.cs
+│   ├── SoloPerformanceEndpointTests.cs, DeathPositionsEndpointTests.cs, RadarChartEndpointTests.cs
+│   ├── CsPerMinuteTrendEndpointTests.cs, DeathsTrendEndpointTests.cs,
+│   │   DragonParticipationTrendEndpointTests.cs, GoldAt15TrendEndpointTests.cs,
+│   │   VisionScoreTrendEndpointTests.cs, WinrateTrendEndpointTests.cs
+│   └── AnalyticsEndpointTests.cs, AnalyticsAsyncEndpointTests.cs, AnalyticsV2EndpointTests.cs
+├── Services & domain logic
+│   ├── LoginSyncServiceTests.cs, PuuidResolutionServiceTests.cs, AuthorizationHelperTests.cs
+│   ├── MainChampionRecommenderTests.cs, TrendBadgeCalculatorTests.cs
+│   └── MatchDataPersistenceServiceTests.cs, QueryFilterBuilderTests.cs
+├── Mappers & Riot integration
+│   ├── RiotMatchMapperTests.cs, RiotTimelineMapperTests.cs, RiotApiClientTests.cs
+│   ├── SeasonHelperTests.cs, LeagueDataHelperTests.cs, TokenBucketTests.cs
+├── Infrastructure
+│   ├── AesEncryptorTests.cs, VerificationCodeGeneratorTests.cs, VerificationTokenTests.cs
+│   ├── SyncProgressHubTests.cs, SyncProgressAggregatorTests.cs, SyncQueueSignalTests.cs
+│   ├── UtcDateTimeJsonConverterTests.cs, EndpointDiscoveryExtensionTests.cs
+│   └── MatchesRepositoryIntegrationTests.cs
+├── Jobs
+│   ├── MatchHistorySyncJobTests.cs, MatchCleanupJobTests.cs
+└── Helpers (not test classes)
+    ├── TestWebApplicationFactory.cs, AuthCookieTestHelper.cs
+    └── EnvironmentVariableScope.cs, EnvIsolationCollection.cs
 ```
 
 ### 3.3 Gaps to Fill
 
-1. **LoginSyncService Tests** — Triggers on login, important for data freshness
-2. **Riot API Client Mocking** — Enable testing sync flows without real API
-3. **RiotTimelineMapper Tests** — Timeline data transformation
+Everything the previous revision of this spec listed as missing (`LoginSyncServiceTests`, `SeasonHelperTests`, `RiotTimelineMapperTests`, Riot API client mocking via `RiotApiClientTests`) now exists. Current gaps, checked directly against `Application/Endpoints/` (§5 of architecture.spec.md):
+
+1. **`AnalyticsExploreEndpoint`, `AnalyticsJourneyAndFunnelEndpoints`, `AnalyticsRealtimeEndpoint`** — no test coverage at all. These are also the endpoints flagged in architecture.spec.md §5 as missing an auth guard; tests would be a natural place to also assert/document that gap.
+2. **`UsersMeEndpoint`** — no dedicated test file; only incidentally exercised via `LoginEndpointTests` and `RiotAccountsEndpointTests`.
+3. **`SoloMatchupsEndpoint`** and **`HomeEndpoint`** — no test coverage found.
 
 ### 3.4 Backend Test Pattern
 
@@ -168,70 +178,46 @@ public class MyEndpointTests : IClassFixture<TestWebApplicationFactory>
 
 ### 4.2 Test File Map
 
+Test layout mostly mirrors `src/`, but has accumulated a handful of files at the `test/unit/` root that belong in a subdirectory (noted below). Rather than list all ~90 spec files, here's the structure with counts — cross-check against `src/` for any specific file's status rather than trusting a hand-maintained list, since this table goes stale the moment a component is added:
+
 ```
 client/test/unit/
 ├── components/
-│   ├── AnalysisStatusCard.spec.js          # ✅ Complete (26 tests)
-│   ├── ChampionSelectCTA.spec.js           # ✅ Complete (18 tests)
-│   ├── LastMatchCard.spec.js               # ✅ Exists
-│   ├── LinkRiotAccountModal.spec.js        # ✅ Exists
-│   ├── NavBar.spec.js                      # ✅ Exists
-│   ├── OverviewPlayerHeader.spec.js        # ✅ Exists
-│   ├── SessionExpiredBanner.spec.js        # ✅ Complete (9 tests)
-│   ├── SummaryStatsCard.spec.js            # ✅ Complete (38 tests)
-│   ├── TrendChartCard.spec.js              # ✅ Complete (40 tests)
-│   ├── VersionBadge.spec.js                # ✅ Exists
-│   ├── BaseButton.spec.js                  # ✅ Complete (27 tests)
-│   ├── BaseCard.spec.js                    # ✅ Complete (17 tests)
-│   ├── BaseInput.spec.js                   # ✅ Complete (32 tests)
-│   ├── BaseModal.spec.js                   # ✅ Complete (22 tests)
-│   ├── BaseQueueToggle.spec.js             # ✅ Complete (17 tests)
-│   ├── BaseTimeRangeSelect.spec.js         # ✅ Complete (18 tests)
-│   ├── matches/                            # Missing (13 components)
-│   └── overview/                           # Partial (2 of 7 tested)
-├── composables/
-│   ├── useSyncWebSocket.spec.js            # ✅ Complete (19 tests)
-│   ├── useAnalysisStatus.spec.js           # ✅ Complete (31 tests)
-│   └── useWinRateColor.spec.js             # Missing
-├── stores/
-│   ├── authStore.spec.js                   # ✅ Complete (39 tests)
-│   └── uiStore.spec.js                     # Missing
-├── services/
-│   ├── apiClient.spec.js                   # ✅ Complete (23 tests)
-│   ├── analyticsApi.spec.js                # ✅ Exists (15 tests)
-│   ├── feedbackApi.spec.js                 # Missing
-│   └── authApi.spec.js                     # Partial (via authStore)
-├── utils/
-│   ├── formatters.spec.js                  # ✅ Complete (56 tests)
-│   └── leagueAssets.spec.js                # Missing
-└── pages/
-    ├── AuthPage.spec.js                    # ✅ Exists
-    ├── LandingPage.spec.js                 # ✅ Exists
-    ├── PrivacyPage.spec.js                 # ✅ Exists
-    ├── TermsPage.spec.js                   # ✅ Exists
-    ├── VerifyPage.spec.js                  # ✅ Exists
-    └── ...                                 # 9 views missing
+│   ├── (flat)                              # Base*, AppSidebar, NavBar, modals, cards, etc.
+│   ├── matches/                            # 12 of 12 components tested
+│   ├── overview/                           # 6 of 8 components tested — MatchActivityHeatmap untested;
+│   │                                       #   DeathInsightsCard tested but as test/unit/DeathInsightCard.spec.js
+│   │                                       #   (stray name, missing "s", wrong directory — fix if touching this area)
+│   ├── solo/                               # 11 of 11 components tested
+│   └── sidebar/                            # 2 of 2 components tested
+│   # Stray root-level specs that actually belong under components/: DeathInsightCard.spec.js,
+│   # OverviewLayout.spec.js, TodaySessionCard.spec.js (duplicates components/overview/TodaySessionCard.spec.js)
+├── composables/                            # 9 of 10 tested — useAnalyticsQueue untested
+├── stores/                                 # 2 of 2 tested
+├── services/                               # 10 of 11 tested — apiConfig untested (trivial constants module)
+├── utils/                                  # 4 of 4 tested, plus helpers.spec.js (tests test/helpers/, not src/utils/)
+└── views/                                  # 12 of 15 tested — ChampionSelectPage, FeedbackPage,
+                                             #   UserSettingsPage untested
+    # OverviewPage.spec.js and SoloStatsPage.spec.js also exist duplicated at test/unit/ root
 ```
 
 ### 4.3 Coverage Summary
 
 | Category | Total | Tested | Coverage |
 |----------|-------|--------|----------|
-| **Composables** | 3 | 2 | 67% |
-| **Services** | 5 | 2 | 40% |
-| **Stores** | 2 | 1 | 50% |
-| **Utils** | 2 | 1 | 50% |
-| **Views** | 14 | 5 | 36% |
-| **Components** | ~43 | ~16 | ~37% |
-| **Base Components** | 6 | 6 | 100% |
+| **Composables** | 10 | 9 | 90% |
+| **Services** | 11 | 10 | 91% |
+| **Stores** | 2 | 2 | 100% |
+| **Utils** | 4 | 4 | 100% |
+| **Views** | 15 | 12 | 80% |
+| **Components** (incl. Base) | 56 | 55 | 98% |
 
 ### 4.4 Gaps to Fill
 
-1. **useWinRateColor.spec.js** — Pure function, simple to test
-2. **uiStore.spec.js** — Sidebar state, localStorage, responsive behavior
-3. **feedbackApi.spec.js** — Browser/OS detection helpers
-4. **Match components** — 13 untested components
-5. **Remaining views** — 9 untested pages
+1. **`ChampionSelectPage`, `FeedbackPage`, `UserSettingsPage`** — the three untested views
+2. **`MatchActivityHeatmap`** — the one untested component
+3. **`useAnalyticsQueue.spec.js`** — untested composable
+4. **Stray/misplaced specs** — `DeathInsightCard.spec.js` (typo, should be `DeathInsightsCard.spec.js` under `components/overview/`), `OverviewLayout.spec.js` and duplicated `TodaySessionCard.spec.js`/`OverviewPage.spec.js`/`SoloStatsPage.spec.js` at `test/unit/` root — worth consolidating next time this area is touched, not urgent
 
 ### 4.5 Test Helpers (`client/test/helpers/`)
 
@@ -355,11 +341,14 @@ vi.mock('@/composables/useAnalysisStatus', () => ({
 client/e2e/
 ├── global-setup.js            # Creates user, links Riot account, saves auth state
 ├── global-teardown.js         # Deletes test user, cleans up auth files
+├── helpers/
+│   └── app-shell.js           # gotoAppPage(), expectProtectedRouteRedirectsToAuth() shared helpers
 ├── .auth/
 │   ├── user.json              # Saved auth state (auto-generated)
 │   └── test-user.json         # Test user metadata (auto-generated)
+├── app-smoke.spec.js          # Cross-page nav smoke test (route reachability, protected-route redirects)
 ├── solo-dashboard.spec.js     # Solo dashboard tests
-└── overview-dashboard.spec.js # Overview dashboard tests (18 tests)
+└── overview-dashboard.spec.js # Overview dashboard tests
 ```
 
 ### 5.2 Global Setup/Teardown Flow
@@ -446,18 +435,21 @@ test.describe('User Dashboard', () => {
 
 ### 6.1 Pipeline Overview
 
+Four workflows, not three — `ci-unit.yml` is the PR-time fast-feedback gate; `ci-client.yml`/`ci-server.yml` build, test again, and deploy on push to `main`:
+
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Client CI      │     │  Server CI      │     │  E2E CI         │
-│  (ci-client.yml)│     │  (ci-server.yml)│     │  (ci-e2e.yml)   │
-├─────────────────┤     ├─────────────────┤     ├─────────────────┤
-│ • npm ci        │     │ • dotnet restore│     │ • Build both    │
-│ • Unit tests    │     │ • dotnet test   │     │ • Start servers │
-│ • Build         │     │ • Publish       │     │ • Playwright    │
-│ • Deploy        │     │ • Deploy        │     │ • Upload traces │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-      ↓                       ↓                       ↓
-    main                    main                 PR + main
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Unit CI        │     │  Client CI      │     │  Server CI      │     │  E2E CI         │
+│  (ci-unit.yml)  │     │  (ci-client.yml)│     │  (ci-server.yml)│     │  (ci-e2e.yml)   │
+├─────────────────┤     ├─────────────────┤     ├─────────────────┤     ├─────────────────┤
+│ • npm run       │     │ • npm ci        │     │ • dotnet restore│     │ • Build both    │
+│   test:unit     │     │ • Unit tests    │     │ • dotnet test   │     │ • Start servers │
+│ • dotnet test   │     │   + coverage    │     │ • Publish       │     │ • Playwright    │
+│   (no deploy)   │     │ • Build         │     │ • Deploy        │     │ • Upload traces │
+│                 │     │ • Deploy        │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
+      ↓                       ↓                       ↓                       ↓
+  PR + main                 main                    main                 PR + main
 ```
 
 ### 6.2 Test Execution Triggers
@@ -484,9 +476,12 @@ cd client && npm run test:unit:watch     # Watch mode
 cd client && npm run test:unit:coverage  # With coverage
 
 # E2E tests (requires backend running)
-cd client && npm run test:e2e            # Headless
+cd client && npm run test:e2e            # Headless, full Playwright project matrix
+cd client && npm run test:e2e:smoke      # smoke-chromium project only — fast route/nav check
+cd client && npm run test:e2e:full       # full-chromium + full-firefox projects
 cd client && npm run test:e2e:headed     # With browser
 cd client && npm run test:e2e:ui         # Playwright UI
+cd client && npm run test:e2e:report     # Open the last HTML report
 ```
 
 **E2E Local Setup:**
@@ -505,17 +500,18 @@ cd client && npm run test:e2e
 | Backend test factory | `server/Mongoose.Api.Tests/TestWebApplicationFactory.cs` |
 | Riot Match Mapper tests | `server/Mongoose.Api.Tests/RiotMatchMapperTests.cs` |
 | Match Endpoint tests | `server/Mongoose.Api.Tests/MatchEndpointTests.cs` |
-| Auth Store tests | `client/test/unit/authStore.spec.js` |
-| API Client tests | `client/test/unit/apiClient.spec.js` |
-| Formatters tests | `client/test/unit/formatters.spec.js` |
-| Analysis Status tests | `client/test/unit/useAnalysisStatus.spec.js` |
-| WebSocket tests | `client/test/unit/useSyncWebSocket.spec.js` |
-| Base Component tests | `client/test/unit/Base*.spec.js` (6 files, 137 tests) |
+| Auth Store tests | `client/test/unit/stores/authStore.spec.js` |
+| API Client tests | `client/test/unit/services/apiClient.spec.js` |
+| Formatters tests | `client/test/unit/utils/formatters.spec.js` |
+| Analysis Status tests | `client/test/unit/composables/useAnalysisStatus.spec.js` |
+| WebSocket tests | `client/test/unit/composables/useSyncWebSocket.spec.js` |
+| Base Component tests | `client/test/unit/components/Base*.spec.js` (7 files) |
 | Test helpers | `client/test/helpers/` |
 | Vitest config | `client/vitest.config.js` |
 | Playwright config | `client/playwright.config.js` |
-| CI — Client | `.github/workflows/ci-client.yml` |
-| CI — Server | `.github/workflows/ci-server.yml` |
+| CI — Unit (PR gate, client + server) | `.github/workflows/ci-unit.yml` |
+| CI — Client (build + deploy) | `.github/workflows/ci-client.yml` |
+| CI — Server (build + deploy) | `.github/workflows/ci-server.yml` |
 | CI — E2E | `.github/workflows/ci-e2e.yml` |
 
 ### 7.3 Adding New Tests

@@ -3,7 +3,7 @@
 > **Purpose**: Single-source-of-truth for AI agents and developers working on the Mongoose.gg codebase. Contains architecture decisions, every implemented endpoint, all DTOs, entity models, repository interfaces, and the patterns required to extend or debug the system.
 
 **Stack**: C# (.NET 10 Minimal APIs) · MySQL (InnoDB, utf8mb4) · Vue 3 + Tailwind (frontend) · Cookie-based session auth · Raw WebSocket  
-**Last verified**: March 30, 2026
+**Last verified**: August 7, 2026
 
 ---
 
@@ -50,9 +50,10 @@
 │  Infrastructure — server/Mongoose.Api/Infrastructure/              │
 │  Database/Repositories · Riot API client · Email · Jobs · WebSocket│
 ├──────────────────────────────────────────────────────────────────┤
-│  MySQL Database (schema.sql)                                      │
-│  19 tables: users, riot_accounts, user_riot_accounts, matches,    │
-│  participants, participant_checkpoints, participant_metrics, ...   │
+│  MySQL Database (schema.sql + Infrastructure/Database/Migrations/) │
+│  19 tables in schema.sql: users, riot_accounts,                   │
+│  user_riot_accounts, matches, participants, ...                    │
+│  + 10 analytics-pipeline tables added by migrations 001–002        │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -85,81 +86,88 @@
 
 ## 2. Project Structure & File Map
 
+> This tree is illustrative, not exhaustive — `Application/Endpoints/` alone has 38 files and `Infrastructure/Database/Repositories/` has 23. For the complete, authoritative endpoint list use [§5 Route Map](#5-route-map--all-endpoints); for the complete repository interface list use [§9](#9-repository-interfaces). Don't hand-maintain a second endpoint/repo inventory here — update those sections instead.
+
 ```
 server/
 ├── mongoose.sln
 ├── NuGet.config
 ├── Mongoose.Api/
-│   ├── Program.cs                          # DI registration, middleware, endpoint wiring
-│   ├── schema.sql                          # Complete MySQL schema (19 tables)
+│   ├── Program.cs                          # DI registration, middleware, endpoint wiring, /ws/sync mapping
+│   ├── schema.sql                          # Core MySQL schema (see database-schema.spec.md)
 │   ├── appsettings.json                    # Production config
 │   ├── appsettings.Development.json        # Dev config
 │   ├── Application/
 │   │   ├── MongooseApiApplication.cs       # Endpoint registration orchestrator
-│   │   ├── DTOs/
-│   │   │   ├── Analytics/AnalyticsDto.cs
-│   │   │   ├── Auth/LoginDto.cs
-│   │   │   ├── Auth/RegisterDto.cs
-│   │   │   ├── Auth/LogoutDto.cs
-│   │   │   ├── Auth/DeleteAccountDto.cs
-│   │   │   ├── ChampionSelect/ChampionSelectDto.cs
-│   │   │   ├── Feedback/FeedbackDto.cs
-│   │   │   ├── Matches/MatchListDto.cs
-│   │   │   ├── Matches/MatchNarrativeDto.cs
-│   │   │   ├── Overview/OverviewDto.cs
-│   │   │   ├── Solo/SoloPerformanceDto.cs
-│   │   │   ├── Solo/SoloMatchupsDto.cs
-│   │   │   ├── Solo/MainChampionDto.cs
-│   │   │   ├── Solo/MatchActivityDto.cs
-│   │   │   └── Trends/TrendDto.cs
-│   │   ├── Endpoints/
-│   │   │   ├── Shared/IEndpoint.cs         # Interface: Route + Configure(WebApplication)
-│   │   │   ├── Shared/AuthResults.cs       # Standard 401/403 JSON helpers
-│   │   │   ├── Shared/HomeEndpoint.cs      # GET / — sitemap
-│   │   │   ├── Shared/PublicStatsEndpoint.cs  # GET /api/v2/public/stats
-│   │   │   ├── Shared/LogSanitizer.cs
-│   │   │   ├── Analytics/AnalyticsEndpoint.cs
-│   │   │   ├── Auth/LoginEndpoint.cs
-│   │   │   ├── Auth/RegisterEndpoint.cs
-│   │   │   ├── Auth/LogoutEndpoint.cs
-│   │   │   ├── Auth/DeleteAccountEndpoint.cs
-│   │   │   ├── Auth/VerifyEndpoint.cs
-│   │   │   ├── Auth/ResendVerificationEndpoint.cs
-│   │   │   ├── Auth/RiotAccountsEndpoint.cs
-│   │   │   ├── Auth/UsersMeEndpoint.cs
-│   │   │   ├── ChampionSelect/ChampionSelectEndpoint.cs
-│   │   │   ├── Diagnostics/DiagnosticsEndpoint.cs
-│   │   │   ├── Feedback/FeedbackEndpoint.cs
-│   │   │   ├── Matches/MatchListEndpoint.cs
-│   │   │   ├── Matches/MatchDetailsEndpoint.cs
-│   │   │   ├── Matches/MatchNarrativeEndpoint.cs
-│   │   │   ├── Overview/OverviewEndpoint.cs
-│   │   │   ├── Solo/SoloPerformanceEndpoint.cs
-│   │   │   ├── Solo/SoloMatchupsEndpoint.cs
-│   │   │   ├── Solo/MatchActivityEndpoint.cs
-│   │   │   └── Trends/WinrateTrendEndpoint.cs
+│   │   ├── Extensions/
+│   │   │   └── EndpointDiscoveryExtension.cs  # Reflection-based IEndpoint discovery
+│   │   ├── Telemetry/
+│   │   │   └── event-schema.yml            # Analytics event schema definitions
+│   │   ├── DTOs/                           # Auth, Feedback, ChampionSelect, Matches, Overview, Solo DTOs
+│   │   │   └── ...                         # Trends/TrendDto.cs and Solo/RadarChartDto.cs are stubs —
+│   │   │                                   # those response types now live in Core/QueryModels/
+│   │   ├── Endpoints/                      # One class per file, grouped by subdomain (Auth, Solo,
+│   │   │   │                               # Trends, Matches, Overview, ChampionSelect, Analytics,
+│   │   │   │                               # Feedback, Diagnostics, Shared) — see §5 for the full list
+│   │   │   └── Shared/
+│   │   │       ├── IEndpoint.cs            # Interface: Route + Configure(WebApplication)
+│   │   │       ├── AuthResults.cs          # Standard 401/403 JSON helpers
+│   │   │       ├── HomeEndpoint.cs         # GET / — sitemap
+│   │   │       ├── PublicStatsEndpoint.cs  # GET /api/v2/public/stats
+│   │   │       ├── ClientIpAddressResolver.cs
+│   │   │       └── LogSanitizer.cs
 │   │   └── Services/
 │   │       ├── LoginSyncService.cs         # Post-login Riot data refresh
-│   │       └── MainChampionRecommender.cs  # Champion scoring algorithm (MScore)
+│   │       ├── PuuidResolutionService.cs   # Resolves a user's primary Riot account PUUID
+│   │       └── AuthorizationHelper.cs      # Shared authenticated/authorized-user route checks
 │   ├── Core/
 │   │   ├── Entities/                       # POCOs: User, RiotAccount, Match, Participant, etc.
 │   │   ├── Interfaces/                     # Repository + service contracts
 │   │   ├── Enums/
-│   │   ├── QueryModels/                    # MatchListSummaryItem, RoleBaseline, etc.
+│   │   ├── QueryModels/                    # MatchListSummaryItem, RoleBaseline, TrendQueryModels, etc.
+│   │   ├── Services/
+│   │   │   ├── MainChampionRecommender.cs  # Champion scoring algorithm (MScore) — domain logic, lives in Core
+│   │   │   └── TrendBadgeCalculator.cs
 │   │   └── ValueObjects/
 │   └── Infrastructure/
 │       ├── Database/
 │       │   ├── DbConnectionFactory.cs
+│       │   ├── QueryFilterBuilder.cs
+│       │   ├── Migrations/                 # Hand-applied SQL migrations layered on schema.sql
+│       │   │                               # (analytics_events_v2, Phase 3 analytics, RSO puuid column)
 │       │   └── Repositories/               # MySQL implementations of all Core interfaces
-│       ├── Riot/RiotApiClient.cs           # Riot Games API integration
-│       ├── Email/SmtpEmailService.cs
+│       ├── Riot/
+│       │   ├── RiotApiClient.cs            # Riot Games API integration
+│       │   ├── RiotSignOnClient.cs         # RSO OAuth code exchange + identity resolution
+│       │   ├── RiotUrlBuilder.cs
+│       │   ├── SeasonHelper.cs
+│       │   ├── LimitHandler/               # Rate-limit token bucket for Riot API calls
+│       │   └── Mappers/                    # RiotMatchMapper, RiotTimelineMapper
+│       ├── Services/
+│       │   ├── MatchDataPersistenceService.cs
+│       │   └── Analytics/                  # Aggregation, abuse guards, pipeline monitor, queue processor,
+│       │                                   # dimension extraction, journey/funnel detection
+│       ├── Telemetry/
+│       │   ├── EventSchemaRegistry.cs
+│       │   ├── EventValidator.cs
+│       │   └── Metrics.cs
+│       ├── Email/
+│       │   ├── SmtpEmailService.cs
+│       │   └── VerificationCodeGenerator.cs
+│       ├── GitHub/GitHubService.cs         # Feedback → GitHub issue creation
+│       ├── Helpers/LeagueDataHelper.cs
+│       ├── Serialization/UtcDateTimeJsonConverter.cs
 │       ├── Jobs/
 │       │   ├── MatchHistorySyncJob.cs      # Background: syncs match history
-│       │   └── MatchCleanupJob.cs          # Background: deletes old matches
+│       │   ├── MatchCleanupJob.cs          # Background: deletes old matches
+│       │   ├── SyncQueueSignal.cs
+│       │   └── Analytics/AnalyticsBackgroundJobs.cs
 │       ├── WebSocket/
 │       │   ├── SyncProgressHub.cs          # Raw WebSocket hub for real-time sync updates
+│       │   ├── SyncProgressAggregator.cs   # Combined progress across a "sync all" run
 │       │   └── ISyncProgressBroadcaster.cs
-│       ├── Security/Secrets.cs
+│       ├── Configuration/Secrets.cs
+│       ├── Security/{AesEncryptor,IEncryptor}.cs
 │       ├── Middleware/JsonExceptionMiddleware.cs
 │       └── RateLimiting/EndpointRateLimiter.cs
 └── Mongoose.Api.Tests/                     # xUnit test project
@@ -273,6 +281,8 @@ Credentials: allowed. Methods & Headers: any.
 
 ## 5. Route Map — All Endpoints
 
+Endpoints are discovered via reflection (`EndpointDiscoveryExtension.DiscoverEndpoints()`) — every `IEndpoint` implementation under `Application/Endpoints/` is picked up automatically and wired in `MongooseApiApplication.ConfigureEndpoints()`. There is no manual registration list to keep in sync, but this route map must still be kept in sync by hand.
+
 ### Implemented Endpoints
 
 | Method | Route | Auth | Rate Limited | Handler File | Response DTO |
@@ -285,27 +295,58 @@ Credentials: allowed. Methods & Headers: any.
 | `DELETE` | `/api/v2/auth/account` | Yes | No | `Auth/DeleteAccountEndpoint.cs` | `DeleteAccountResponse` |
 | `POST` | `/api/v2/auth/verify` | Yes | No | `Auth/VerifyEndpoint.cs` | `VerifyResponse` |
 | `POST` | `/api/v2/auth/resend-verification` | Yes | 5/hr/user | `Auth/ResendVerificationEndpoint.cs` | `ResendVerificationResponse` |
+| `POST` | `/api/v2/auth/forgot-password` | No | 5/hr/IP | `Auth/ForgotPasswordEndpoint.cs` | — |
+| `POST` | `/api/v2/auth/reset-password` | No | 10/15min/IP | `Auth/ResetPasswordEndpoint.cs` | — |
+| `POST` | `/api/v2/auth/change-password` | Yes | No | `Auth/ChangePasswordEndpoint.cs` | — |
 | `GET` | `/api/v2/users/me` | Yes | No | `Auth/UsersMeEndpoint.cs` | `UserMeResponse` |
+| `PUT` | `/api/v2/users/me/icon` | Yes | No | `Auth/UsersMeEndpoint.cs` | — |
 | `POST` | `/api/v2/users/me/riot-accounts` | Yes | No | `Auth/RiotAccountsEndpoint.cs` | — |
 | `DELETE` | `/api/v2/users/me/riot-accounts/{puuid}` | Yes | No | `Auth/RiotAccountsEndpoint.cs` | — |
+| `PUT` | `/api/v2/users/me/riot-accounts/{puuid}/primary` | Yes | No | `Auth/RiotAccountsEndpoint.cs` | — |
+| `POST` | `/api/v2/users/me/riot-accounts/sync` | Yes | No | `Auth/RiotAccountsEndpoint.cs` | `SyncAllResponse` (sync all linked accounts) |
 | `POST` | `/api/v2/users/me/riot-accounts/{puuid}/sync` | Yes | No | `Auth/RiotAccountsEndpoint.cs` | — |
 | `GET` | `/api/v2/users/me/riot-accounts/{puuid}/sync-status` | Yes | No | `Auth/RiotAccountsEndpoint.cs` | — |
 | `GET` | `/api/v2/overview/{userId}` | Yes | No | `Overview/OverviewEndpoint.cs` | `OverviewResponse` |
 | `GET` | `/api/v2/solo/dashboard/{userId}` | Yes | No | `Solo/SoloPerformanceEndpoint.cs` | `SoloPerformanceResponse` |
 | `GET` | `/api/v2/solo/matchups/{userId}` | Yes | No | `Solo/SoloMatchupsEndpoint.cs` | `ChampionMatchupsResponse` |
 | `GET` | `/api/v2/solo/activity/{userId}` | Yes | No | `Solo/MatchActivityEndpoint.cs` | `MatchActivityResponse` |
+| `GET` | `/api/v2/solo/death-positions/{userId}` | Yes | No | `Solo/DeathPositionsEndpoint.cs` | `DeathPositionsResponse` |
+| `GET` | `/api/v2/solo/radar-chart/{userId}` | Yes | No | `Solo/RadarChartEndpoint.cs` | `RadarChartResponse` |
 | `GET` | `/api/v2/matches/{userId}` | Yes | No | `Matches/MatchListEndpoint.cs` | `MatchListResponse` |
 | `GET` | `/api/v2/matches/{matchId}/details` | Yes | No | `Matches/MatchDetailsEndpoint.cs` | `MatchDetailsResponse` |
 | `GET` | `/api/v2/matches/{matchId}/narrative` | Yes | No | `Matches/MatchNarrativeEndpoint.cs` | `MatchNarrativeResponse` |
 | `GET` | `/api/v2/trends/winrate/{userId}` | Yes | No | `Trends/WinrateTrendEndpoint.cs` | `WinrateTrendResponse` |
+| `GET` | `/api/v2/trends/cs-per-minute/{userId}` | Yes | No | `Trends/CsPerMinuteTrendEndpoint.cs` | `CsPerMinuteTrendResponse` |
+| `GET` | `/api/v2/trends/deaths/{userId}` | Yes | No | `Trends/DeathsTrendEndpoint.cs` | `DeathsTrendResponse` |
+| `GET` | `/api/v2/trends/dragon-participation/{userId}` | Yes | No | `Trends/DragonParticipationTrendEndpoint.cs` | `DragonParticipationTrendResponse` |
+| `GET` | `/api/v2/trends/gold-at-15/{userId}` | Yes | No | `Trends/GoldAt15TrendEndpoint.cs` | `GoldAt15TrendResponse` |
+| `GET` | `/api/v2/trends/vision-score/{userId}` | Yes | No | `Trends/VisionScoreTrendEndpoint.cs` | `VisionScoreTrendResponse` |
 | `GET` | `/api/v2/champion-select/{userId}` | Yes | No | `ChampionSelect/ChampionSelectEndpoint.cs` | `ChampionSelectResponse` |
-| `POST` | `/api/v2/analytics` | No | No | `Analytics/AnalyticsEndpoint.cs` | `TrackEventResponse` |
-| `POST` | `/api/v2/analytics/batch` | No | No | `Analytics/AnalyticsEndpoint.cs` | `TrackBatchResponse` |
+| `POST` | `/api/v2/analytics` | No | No | `Analytics/AnalyticsEndpointV2.cs` | `TrackEventResponse` |
+| `POST` | `/api/v2/analytics/v2` | No | No | `Analytics/AnalyticsEndpointV2.cs` | `TrackEventResponse` |
+| `POST` | `/api/v2/analytics/batch` | No | No | `Analytics/AnalyticsEndpointV2.cs` | `TrackBatchResponse` |
+| `POST` | `/api/v2/analytics/v2/batch` | No | No | `Analytics/AnalyticsEndpointV2.cs` | `TrackBatchResponse` |
+| `GET` | `/api/v2/analytics/health` | No | No | `Analytics/AnalyticsEndpointV2.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/schema` | No | No | `Analytics/AnalyticsEndpointV2.cs` | dynamic JSON |
+| `POST` | `/api/v2/analytics/async` | No | No | `Analytics/AnalyticsAsyncEndpoint.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/async/queue` | No | No | `Analytics/AnalyticsAsyncEndpoint.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/explore/events` | No | No | `Analytics/AnalyticsExploreEndpoint.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/explore/dimensions` | No | No | `Analytics/AnalyticsExploreEndpoint.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/explore/events/{eventName}` | No | No | `Analytics/AnalyticsExploreEndpoint.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/journey/flows` | No | No | `Analytics/AnalyticsJourneyAndFunnelEndpoints.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/journey/user/{userId}` | No | No | `Analytics/AnalyticsJourneyAndFunnelEndpoints.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/journey/paths` | No | No | `Analytics/AnalyticsJourneyAndFunnelEndpoints.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/funnels` | No | No | `Analytics/AnalyticsJourneyAndFunnelEndpoints.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/funnels/{funnelId}` | No | No | `Analytics/AnalyticsJourneyAndFunnelEndpoints.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/realtime/events` | No | No | `Analytics/AnalyticsRealtimeEndpoint.cs` | dynamic JSON |
+| `GET` | `/api/v2/analytics/realtime/stats` | No | No | `Analytics/AnalyticsRealtimeEndpoint.cs` | dynamic JSON |
 | `GET` | `/api/v2/diagnostics` | No | No | `Diagnostics/DiagnosticsEndpoint.cs` | dynamic JSON |
 | `POST` | `/api/v2/feedback` | No | 5/hr/IP | `Feedback/FeedbackEndpoint.cs` | `FeedbackResponse` |
 | `GET` | `/api/v2/public/stats` | No | 60/min/IP | `Shared/PublicStatsEndpoint.cs` | dynamic JSON |
 | `GET` | `/` | No | No | `Shared/HomeEndpoint.cs` | sitemap JSON |
 | `WS` | `/ws/sync` | Yes (cookie) | No | `Program.cs` inline | WebSocket JSON messages |
+
+**Note**: The `analytics/*` sub-routes (`async`, `explore`, `journey`, `funnels`, `realtime`) are internal analytics-admin surfaces — currently unauthenticated at the endpoint level, same as the public event-tracking routes. No `[Authorize]`/`RequireAuthorization()` guard exists on any of them as of this writing; treat that as a known gap rather than intentional design if extending this area.
 
 ### Planned Endpoints (Not Implemented)
 See [Section 14](#14-planned-endpoints-not-yet-implemented).
@@ -940,10 +981,14 @@ public interface IMatchupRepository
     Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(string puuid, string? queueType = null, string? timeRange = null);
 }
 
-// Trend data
+// Trend data — one method pair per solo trend chart, plus the activity heatmap query
 public interface ITrendRepository
 {
     Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
+    Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
     Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91);
 }
 
@@ -951,6 +996,20 @@ public interface ITrendRepository
 public interface IChampionSelectRepository
 {
     Task<ChampionSelectResponse?> GetChampionSelectDataAsync(string puuid, string? queueType = null, string? timeRange = null);
+}
+
+// Death position heatmap (solo/death-positions)
+public interface IDeathPositionsRepository
+{
+    Task<DeathPositionsResult?> GetDeathPositionsAsync(string puuid, string? queueType = null, string? timeRange = null);
+    Task<DeathPositionsResult?> GetDeathPositionsAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null);
+}
+
+// Radar chart (solo/radar-chart)
+public interface IRadarChartRepository
+{
+    Task<RadarChartResponse?> GetRadarChartAsync(string puuid, string? queueType = null, string? timeRange = null);
+    Task<RadarChartResponse?> GetRadarChartAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null);
 }
 
 // User ↔ Riot account (junction table M:M)
@@ -976,9 +1035,43 @@ public interface IUsersRepository
     Task<User?> GetByUsernameAsync(string username);
     Task<bool> UsernameExistsAsync(string username);
     Task<bool> EmailExistsAsync(string email);
+    Task<User?> GetByRiotPuuidAsync(string riotPuuid);           // RSO login lookup
     Task<long> GetActiveUserCountAsync();
     Task UpdateEmailVerifiedAsync(long userId, bool verified);
+    Task UpdateUserIconIdAsync(long userId, int? userIconId);
+    Task UpdatePasswordHashAsync(long userId, string passwordHash);
+    Task<string?> GetSecurityStampAsync(long userId);
     Task<bool> DeleteUserAsync(long userId);
+}
+
+// Verification tokens (email verification, password reset)
+public interface IVerificationTokensRepository
+{
+    Task<long> CreateTokenAsync(long userId, string tokenType, string code, DateTime expiresAt);
+    Task<VerificationToken?> GetActiveTokenAsync(long userId, string tokenType);
+    Task MarkTokenAsUsedAsync(long tokenId);
+    Task IncrementAttemptsAsync(long tokenId);
+    Task<int> CountRecentTokensAsync(long userId, string tokenType, int seconds);
+    Task InvalidateActiveTokensAsync(long userId, string tokenType);
+}
+
+// Riot Sign-On OAuth code exchange (Infrastructure/Riot/RiotSignOnClient.cs)
+public interface IRiotSignOnClient
+{
+    Task<RiotSignOnIdentity> ExchangeCodeAsync(string code, CancellationToken ct = default);
+}
+
+// Subscriptions (Mollie billing — see subscriptions/subscription_events tables)
+public interface ISubscriptionsRepository
+{
+    Task<long> UpsertAsync(Subscription subscription);
+    Task<Subscription?> GetByUserIdAsync(long userId);
+}
+
+public interface ISubscriptionEventsRepository
+{
+    Task<long> InsertAsync(SubscriptionEvent ev);
+    Task<IList<SubscriptionEvent>> GetBySubscriptionIdAsync(long subscriptionId);
 }
 
 // Riot accounts
@@ -992,6 +1085,49 @@ public interface IRiotAccountsRepository
     Task UpdateSyncProgressAsync(string puuid, int progress, int total);
     Task UpdateProfileDataAsync(string puuid, int? profileIconId, int? summonerLevel);
     Task UpdateRankDataAsync(string puuid, string? summonerId, string? soloTier, string? soloRank, int? soloLp, string? flexTier, string? flexRank, int? flexLp);
+}
+
+// Analytics event pipeline v2 (analytics_events_v2 table — see database-schema.spec.md §10)
+public interface IAnalyticsEventsV2Repository
+{
+    Task<long> InsertAsync(AnalyticsEventV2 evt);
+    Task<int> InsertBatchAsync(IEnumerable<AnalyticsEventV2> events);
+    Task<long> GetEventCountAsync(string eventName, DateTime from, DateTime to, bool includeRejected = false);
+    Task<long> GetUniqueUserCountAsync(string eventName, DateTime from, DateTime to);
+    Task<long> GetAcceptedEventCountAsync(DateTime from, DateTime to);
+    Task<Dictionary<string, long>> GetRejectionsByReasonAsync(DateTime from, DateTime to);
+    Task<double> GetAcceptanceRateAsync(DateTime from, DateTime to);
+    Task<int> DeleteOlderThanAsync(DateTime cutoffDate);
+    Task<Dictionary<string, long>> GetEventDistributionByCategoryAsync(DateTime from, DateTime to);
+}
+
+// Phase 3 analytics — exploration dimensions, journey flows, funnel tracking
+// (Core/Interfaces/IAnalyticsPhase3Repositories.cs; backs the /analytics/explore, /analytics/journey,
+// /analytics/funnels admin routes in §5). Three interfaces, trimmed to representative methods:
+public interface IAnalyticsEventDimensionsRepository
+{
+    Task InsertDimensionAsync(AnalyticsEventDimension dimension);
+    Task<IEnumerable<DimensionValue>> GetDimensionValuesAsync(string dimensionName, DateTime startUtc, DateTime endUtc, int limit = 50);
+    Task<EventDimensionDetail?> GetEventDetailAsync(string eventName, DateTime startUtc, DateTime endUtc);
+}
+public interface IAnalyticsJourneyRepository
+{
+    Task InsertJourneyStepAsync(AnalyticsJourneyStep step);
+    Task<IEnumerable<NavigationFlow>> GetTopFlowsAsync(DateTime startUtc, DateTime endUtc, int minTransitions = 5, int limit = 50);
+    Task<IEnumerable<PathSequence>> GetPathSequencesAsync(string startEvent, DateTime startUtc, DateTime endUtc, int maxSteps = 5, int limit = 100);
+}
+public interface IAnalyticsFunnelRepository
+{
+    Task InsertFunnelStepAsync(AnalyticsFunnelStep step);
+    Task<AnalyticsFunnelDefinition?> GetFunnelDefinitionAsync(string funnelName);
+    Task<FunnelAnalysis> AnalyzeFunnelAsync(string funnelName, DateTime startUtc, DateTime endUtc, string? tierFilter = null);
+}
+
+// Event schema validation (Infrastructure/Telemetry/EventSchemaRegistry.cs, backs /analytics/schema)
+public interface IEventSchemaRegistry
+{
+    Task ReloadAsync();
+    // + schema lookup methods used by IEventValidator during ingest
 }
 
 // Query filter builder
@@ -1031,8 +1167,19 @@ public interface IRateLimiter
 
 **Sync cooldown**: 5 minutes between syncs for the same account.
 
+### PuuidResolutionService
+**File**: `server/Mongoose.Api/Application/Services/PuuidResolutionService.cs`  
+**Purpose**: Centralizes primary-Riot-account resolution that was duplicated across 15+ endpoints  
+**Dependencies**: `IUserRiotAccountsRepository`, `IUsersRepository`  
+**Returns**: `ResolvedAccount(RiotAccount Account, bool IsPrimary, string AccountId)` — resolves the user's primary linked account, falling back to the first linked account if none is marked primary.
+
+### AuthorizationHelper
+**File**: `server/Mongoose.Api/Application/Services/AuthorizationHelper.cs`  
+**Purpose**: Shared static helpers so every route-scoped endpoint enforces "authenticated AND userId in route matches the session" the same way, instead of each endpoint re-implementing the check from [§3 User→RiotAccount Resolution Pattern](#user-riotaccount-resolution-pattern)  
+**Key method**: `ValidateAuthenticatedUser(HttpContext, string? userIdParam, ILogger)` → returns an `IResult` 401/403/400 error, or `null` on success (then call `GetAuthorizedUser` for the validated `AuthorizedUser(long UserId, string? Username)`).
+
 ### MainChampionRecommender
-**File**: `server/Mongoose.Api/Application/Services/MainChampionRecommender.cs`  
+**File**: `server/Mongoose.Api/Core/Services/MainChampionRecommender.cs` — lives in Core, not Application, since it's pure domain scoring logic with no orchestration dependencies (consistent with §1's Core Layer description)  
 **Purpose**: Scores and ranks champions per role using the MScore algorithm  
 **Max champions per role**: 3
 

@@ -5,7 +5,7 @@
 **Stack**: Vue 3 (Composition API, `<script setup>`) · Tailwind CSS · Headless UI · Heroicons · Chart.js + vue-chartjs · TanStack Vue Query · Pinia  
 **Theme**: Vercel Developer aesthetic adapted for gaming — dark, technical, premium  
 **Platform**: Desktop-first (future Windows native app)  
-**Last verified**: March 30, 2026
+**Last verified**: August 8, 2026
 
 ---
 
@@ -96,7 +96,9 @@ Defined in `client/src/style.css`. All components MUST use these tokens — neve
 | `--color-error` | `#ef4444` | `rgba(239,68,68,0.1)` | `rgba(239,68,68,0.3)` | Losses, errors |
 | `--color-warning` | `#f59e0b` | `rgba(245,158,11,0.1)` | `rgba(245,158,11,0.3)` | Cautions, pending |
 | `--color-info` | `#3b82f6` | `rgba(59,130,246,0.1)` | `rgba(59,130,246,0.3)` | Informational |
-| `--color-muted` | `#6b7280` | `rgba(107,114,128,0.2)` | — | Neutral/muted |
+| `--color-muted` | `#6b7280` | `rgba(107,114,128,0.2)` (`--color-muted-soft`) | — | Neutral/muted |
+
+`--color-error-hover` (`#dc2626`) is a fourth error variant, used for hover states on destructive actions (e.g. `DeleteAccountModal`'s confirm button) — darker than `--color-error` itself.
 
 ### Win Rate Gradient Colors
 
@@ -108,6 +110,30 @@ Defined in `client/src/style.css`. All components MUST use these tokens — neve
 | `--color-winrate-average` | `#eab308` | 48–52% |
 | `--color-winrate-good` | `#84cc16` | 52–55% |
 | `--color-winrate-great` | `#22c55e` | > 55% |
+
+### Match Activity Heatmap Colors
+
+Used by `MatchActivityHeatmap` for per-day intensity (GitHub-contributions-style).
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--color-heatmap-0` | `rgba(255, 255, 255, 0.05)` | No games that day |
+| `--color-heatmap-0-border` | `rgba(255, 255, 255, 0.1)` | Border for the zero-intensity cell |
+| `--color-heatmap-1` | `rgba(109, 40, 217, 0.3)` | Low activity |
+| `--color-heatmap-2` | `rgba(109, 40, 217, 0.6)` | Medium activity |
+| `--color-heatmap-3` | `#6d28d9` | High activity |
+
+### Rank Colors
+
+Used by `BaseRankBadge` and anywhere a tier needs its canonical color (e.g. `AccountSwitcher`).
+
+| Token | Value | | Token | Value |
+|-------|-------|--|-------|-------|
+| `--color-rank-iron` | `#7d7d7d` | | `--color-rank-emerald` | `#50c878` |
+| `--color-rank-bronze` | `#cd7f32` | | `--color-rank-diamond` | `#b9f2ff` |
+| `--color-rank-silver` | `#a0b0c0` | | `--color-rank-master` | `#9370db` |
+| `--color-rank-gold` | `#ffd700` | | `--color-rank-grandmaster` | `#ff4444` |
+| `--color-rank-platinum` | `#4ee0d0` | | `--color-rank-challenger` | `#f0e68c` |
 
 ---
 
@@ -243,6 +269,7 @@ All routes defined in `client/src/router/index.js`.
 | `/auth/reset-password` | `ResetPasswordPage.vue` | Code + new password, `?email=` pre-fills |
 | `/privacy` | `PrivacyPage.vue` | Static legal |
 | `/terms` | `TermsPage.vue` | Static legal |
+| `/cookies` | `CookiePolicyPage.vue` | Static legal |
 
 ### Auth-Required Routes
 
@@ -252,13 +279,15 @@ All routes defined in `client/src/router/index.js`.
 
 ### App Routes (auth + verified, inside `AppLayout`)
 
+`/app` itself redirects to `/app/overview`.
+
 | Route | Name | View | Tier |
 |-------|------|------|------|
 | `/app/overview` | `app-overview` | `OverviewPage.vue` | Free |
 | `/app/champion-select` | `app-champion-select` | `ChampionSelectPage.vue` | Free |
 | `/app/matches` | `app-matches` | `MatchesPage.vue` | Free |
 | `/app/solo` | `app-solo` | `SoloStatsPage.vue` | Free |
-| `/app/team` | `app-team` | `TeamAnalytics.vue` | Pro |
+| `/app/team` | `app-team` | `TeamAnalyticsPage.vue` | Pro |
 | `/app/goals` | `app-goals` | `GoalsPage.vue` | Free |
 | `/app/user` | `app-user` | `UserSettingsPage.vue` | Free |
 | `/app/feedback` | `app-feedback` | `FeedbackPage.vue` | Free |
@@ -333,14 +362,14 @@ Data sources: `getOverview()`, `getMatchActivity()` from `authApi`
 6. Support user intent first (show data for hovered/locked pick)
 7. No learning required — icons, short labels, zero required reading
 
-Components: `ChampionMatchupsTable`, `OpponentSearchBar`, `MainChampionCard`
+Components: `OpponentSearchBar`, `MainChampionCard`, `BaseQueueToggle`, `BaseTimeRangeSelect`
 
 ### Matches (`/app/matches`)
 **Role**: Review what just happened. Match list with quick summaries.
 
 Components: `MatchList` → `MatchRow` items → click expands `MatchDetails` with:
 - `MatchHeader` — champion, result, KDA, timestamp, queue
-- `MatchHighlights` — 4 key stat tiles (`HighlightTile`)
+- `WinPredictionStats` — role-aware stat grid with sentiment coloring vs. baseline
 - `MatchNarrative` — AI-generated match story
 - `StatSnapshot` — detailed stat breakdown
 - `ImpactStats` — role-aware impact metrics (support vs non-support)
@@ -454,6 +483,15 @@ Time range dropdown (Last 20, Last 50, Season, etc.).
 |------|------|---------|-------------|
 | `modelValue` | `String` | — | v-model binding for selected range |
 
+### `BaseRankBadge`
+Ranked-tier badge, colored via the [Rank Colors](#2-design-tokens-css-variables) tokens.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `tier` | `String` | `null` | IRON through CHALLENGER |
+| `division` | `String` | `null` | I–IV (unused for Master+) |
+| `lp` | `Number` | `null` | League points |
+
 ---
 
 ## 11. Overview Components
@@ -511,6 +549,39 @@ Static call-to-action linking to champion select page. No props.
 ### `AnalysisStatusCard`
 Shows current sync/analysis status. No props (reads from store/composable internally).
 
+### `OverviewAccountCards`
+Per-linked-account summary cards with active-account switching.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `accounts` | `Array` | required | Account summary data to render |
+| `linkedAccounts` | `Array` | `[]` | Full linked-account list (for switching) |
+| `activeAccountPuuid` | `String` | — | Currently selected account |
+
+### `TodaySessionCard`
+Today/this-week/season stat waterfall — auto-selects the most relevant starting page.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `sessionStats` | `Object` | `null` | Today's session stats |
+| `combinedStats` | `Object` | `null` | Combined/season stats |
+| `loading` | `Boolean` | `false` | Loading state |
+
+### `DeathInsightsCard`
+Survival-rate context card (e.g. "you die less than usual after 20 min").
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `survivalStats` | `Object` | `null` | Death/survival aggregate stats |
+| `loading` | `Boolean` | `false` | Loading state |
+
+### `SoloAnalyticsCTA`
+Static call-to-action linking to the Solo analysis page.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `subtitle` | `String` | `'Track your trends and improve'` | CTA subtitle text |
+
 ---
 
 ## 12. Match Components
@@ -529,11 +600,13 @@ Expanded match view containing all sub-components below.
 ### `MatchHeader`
 Champion, result, KDA, timestamp, queue display.
 
-### `MatchHighlights`
-2×2 grid of `HighlightTile` components showing top 4 match stats.
+### `WinPredictionStats`
+Role-aware stat grid with sentiment coloring vs. baseline (deaths, gold, vision, etc. — the support/non-support split described under `ImpactStats` below applies here too).
 
-### `HighlightTile`
-Card with icon + stat name + insight text + trend indicator. 5 built-in SVG icons: `damage`, `kda`, `cs`, `vision`, `chart`.
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `match` | `Object` | required | Match participant data |
+| `baseline` | `Object` | `null` | Role baseline for sentiment comparison |
 
 ### `MatchNarrative`
 AI-generated match story text. Fetched via `getMatchNarrative()`.
@@ -599,6 +672,45 @@ Slots: `#default` with `{ dataLimit }` slot prop
 ### `WinrateChart`
 Chart.js line chart for rolling win rate. Prop: `data` (array of win rate data points). Subtitle: "Rolling 20-game average".
 
+### `TrendLineChart`
+Shared Chart.js line-chart base — `CsPerMinuteChart`, `DeathsChart`, `DragonParticipationChart`, `GoldAt15Chart`, `VisionChart`, and `WinrateChart` all wrap it rather than duplicating Chart.js setup. Reach for this directly only when building a new trend chart with no existing wrapper.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `data` | `Array` | `[]` | Data points to plot |
+| `config` | `Object` | — | Chart behavior config (labels, colors, reference lines) |
+
+### `CsPerMinuteChart`, `DeathsChart`, `DragonParticipationChart`, `VisionChart`
+One `TrendLineChart` wrapper per solo trend metric (§5 route map: `/trends/cs-per-minute`, `/trends/deaths`, `/trends/dragon-participation`, `/trends/vision-score`). Same shape:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `data` | `Array` | `[]` | Trend data points for this metric |
+| `overallAverage` | `Number` | — | Season-wide average, shown as a reference line |
+
+### `GoldAt15Chart`
+Same `data`/`overallAverage` shape as above, plus:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `chartMode` | `String` | — | `'merged'` or `'per-account'` display mode |
+
+### `RadarChart`
+Multi-axis radar chart for the solo dashboard's role-relative performance view (`GET /solo/radar-chart/{userId}`).
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `axes` | `Array` | `[]` | Radar axis definitions + values |
+| `gamesAnalyzed` | `Number` | `0` | Sample size shown alongside the chart |
+
+### `DangerZonesMap`
+Map overlay plotting death positions (`GET /solo/death-positions/{userId}`).
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `deaths` | `Array` | `[]` | Death position data points |
+| `totalDeaths` | `Number` | — | Total death count for the filter window |
+
 ---
 
 ## 14. Shared Components
@@ -629,13 +741,13 @@ Slots: `#context-bar`, `#summary`, `#trend-charts`
 Located in `client/src/components/`.
 
 ### `AppSidebar`
-Vertical navigation sidebar. Reads collapsed state from `uiStore`. Shows lock icons for Pro-tier pages (Duo, Team) when user is free tier.
-
-### `AppHeader`
-Header component (used within app layout context).
+Vertical navigation sidebar. Reads collapsed state from `uiStore`. Shows lock icons for Pro-tier pages (Duo, Team) when user is free tier. Delegates account switching to `sidebar/AccountSwitcher` (below).
 
 ### `SessionExpiredBanner`
 Fixed top banner (z-index 400) with slide-down transition. Appears on 401 detection. Preserves current route for redirect after re-login.
+
+### `CookieConsentBanner`
+Cookie-consent banner. No props — reads/writes consent state via `useCookieConsent()`.
 
 ### `LinkRiotAccountModal`
 BaseModal with: Game Name, Tag Line (3–5 chars, alphanumeric), Region select (16 regions). Error mapping: `RIOT_ACCOUNT_NOT_FOUND`, `ACCOUNT_ALREADY_LINKED`. Resets form on open.
@@ -646,17 +758,39 @@ BaseModal requiring "DELETE" confirmation text + password. Prevents close during
 ### `MainChampionCard`
 Champion detail card with stat bars, M-Score tooltip, matchup tooltips. Responsive breakpoints: 1024px (stat labels), 768px (single column).
 
-### `ChampionMatchupsTable`
-Table of champion matchup data for champion select context.
-
 ### `OpponentSearchBar`
-Search input for looking up opponent data in champion select.
+Search input for looking up opponent matchup data in champion select.
 
-### `WinrateChart`
-Root-level winrate chart variant.
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `matchups` | `Array` | `[]` | Matchup data to search over |
+
+Events: `@select`
 
 ### `VersionBadge`
 Fixed bottom-left badge: "Mongoose.gg Beta • v{version}". Hidden inside `/app` routes.
+
+### `sidebar/AccountSwitcher` and `sidebar/AccountDropdownList`
+Located in `client/src/components/sidebar/`. `AccountSwitcher` renders the current-account control inside `AppSidebar`; `AccountDropdownList` is the dropdown it opens for selecting between linked accounts (or "overall" combined stats).
+
+| Component | Prop | Type | Default | Description |
+|-----------|------|------|---------|-------------|
+| `AccountSwitcher` | `collapsed` | `Boolean` | `false` | Sidebar collapsed state |
+| `AccountSwitcher` | `accounts` | `Array` | — | Linked Riot accounts from `authStore.riotAccounts` |
+| `AccountDropdownList` | `accounts` | `Array` | `[]` | Linked Riot accounts |
+| `AccountDropdownList` | `activeAccountPuuid` | `String` | `'overall'` | Currently selected account, or `'overall'` for combined view |
+
+Both emit `@select`.
+
+### Settings Components (`client/src/components/settings/`)
+Feature components for `UserSettingsPage`. All are self-contained (read `authStore`/composables directly) except `LinkedAccountRow`:
+
+| Component | Purpose |
+|-----------|---------|
+| `LinkedAccountsSection` | Lists linked Riot accounts, rendering one `LinkedAccountRow` per account |
+| `LinkedAccountRow` | Single linked-account row. Props: `account` (Object, required), `isSyncing` (Boolean, `false`). Emits `@sync`, `@set-primary`, `@remove` |
+| `DisplayPreferencesSection` | Display/preference toggles sourced from `authStore.riotAccounts` |
+| `UserIconSection` | Profile-icon picker, backed by `useUserIcon()` |
 
 ---
 
@@ -668,15 +802,36 @@ Located in `client/src/composables/`.
 Returns CSS class for win rate value based on threshold ranges. Maps to `winrate-terrible` through `winrate-great` CSS classes.
 
 ### `useSyncWebSocket()`
-SignalR WebSocket connection to `/ws/sync`. Provides:
+Raw browser `WebSocket` connection to `/ws/sync` (not SignalR — no SignalR dependency exists in this project; see architecture.spec.md §13 for the wire protocol). Provides:
 - `syncProgress` — reactive sync progress data
 - `subscribe()` — connect to sync updates
 - `resetProgress()` — clear sync state
 
-Used by `OverviewPage` and `SoloPage` to reactively update after match sync completes.
+Used by `OverviewPage` and `SoloStatsPage` to reactively update after match sync completes.
 
 ### `useAnalysisStatus()`
 Tracks analysis/sync status for display in `AnalysisStatusCard`.
+
+### `useSoloDashboardData()`
+Orchestration composable for the Solo page — owns filter state (queue/time range), calls `soloApi`/`trendsApi` in parallel via `useAsyncData`, and wires `useSyncWebSocket` so dashboard data refreshes when a sync completes. Centralizes what would otherwise be duplicated fetch/filter logic across the solo dashboard's many chart cards.
+
+### `useAsyncData(fetcher, options)`
+Generic async-fetch composable: standardizes loading/error/data state for a single fetcher function. Options: `immediate` (fetch on creation), `transform` (post-process result), `errorMessage` (fallback error text).
+
+### `useAnalyticsQueue(options)`
+Client-side event queueing/batching for analytics tracking — `track(eventName, payload)` queues an event, auto-flushing to `analyticsApi` on an interval or queue-size threshold; `getMetrics()` exposes queue health for debugging.
+
+### `useCookieConsent()`
+Cookie-consent state: localStorage-backed, cross-tab synchronized, with a 183-day expiry per CNIL guidelines. Backs `CookieConsentBanner`.
+
+### `useUserIcon()`
+Curated, theme-grouped set of League profile icon IDs for the user-icon picker (`UserIconSection`).
+
+### `useChartDisplayMode()`
+Module-level shared `chartMode` ref (`'merged'` | `'per-account'`), persisted to `localStorage`. Lets multi-account users toggle whether trend charts merge accounts or plot them separately — consumed by chart components like `GoldAt15Chart` (see `chartMode` prop in §13).
+
+### `useDefaultView()`
+Module-level shared `defaultView` ref (`'overall'` | a specific account), persisted to `localStorage`. Remembers which account view the user last selected in `AccountSwitcher`/`AccountDropdownList`.
 
 ---
 
@@ -711,17 +866,33 @@ Centralized fetch wrapper with:
 - Methods: `get()`, `post()`, `del()`
 - `parseResponse()` with structured error codes
 
-### `authApi.js` (main API surface — 505 lines)
-- **Auth**: register, login, logout, deleteAccount, verifyEmail, resendVerification, forgotPassword, resetPassword, changePassword
-- **Riot account**: link, unlink, triggerSync, getSyncStatus
-- **Dashboards**: `getOverview()`, `getSoloDashboard()`, `getChampionSelectData()`, `getMatchActivity()`
-- **Trends**: `getWinrateTrend()`
-- **Matchups**: `getChampionMatchups()`
-- **Matches**: `getMatchList()`, `getMatchDetails()`, `getMatchNarrative()`
-- **Public**: `getPublicStats()`
+The API layer is split by domain — `authApi.js` is auth + account management only; dashboard/trend/match data each has its own file. Don't assume `authApi.js` is "the" API surface when adding a new data-fetching function — add it to the matching domain file instead.
+
+### `authApi.js`
+- **Auth**: `register()`, `login()`, `getRiotSignOnUrl()`, `logout()`, `deleteAccount()`, `verify()`, `resendVerification()`, `forgotPassword()`, `resetPassword()`, `changePassword()`
+- **User**: `getCurrentUser()`, `updateUserIcon()`
+- **Riot account**: `linkRiotAccount()`, `unlinkRiotAccount()`, `setPrimaryRiotAccount()`, `triggerRiotAccountSync()`, `triggerAnalysisAll()` (sync-all), `getRiotAccountSyncStatus()`
+
+### `soloApi.js`
+`getOverview()`, `getSoloDashboard()`, `getChampionSelectData()`, `getMatchActivity()`, `getRadarChart()`, `getDeathPositions()`, `getChampionMatchups()`
+
+### `trendsApi.js`
+`getWinrateTrend()`, `getGoldAt15Trend()`, `getCsPerMinuteTrend()`, `getDeathsTrend()`, `getDragonParticipationTrend()`, `getVisionScoreTrend()`
+
+### `matchesApi.js`
+`getMatchList()`, `getMatchDetails()`, `getMatchNarrative()`
+
+### `publicApi.js`
+`getPublicStats()`
 
 ### `analyticsApi.js`
 Fire-and-forget event tracking with session ID. Events: page view, auth, nav click, filter change, feature usage, upgrade flow, match analytics.
+
+### `analyticsQueue.js`
+Underlying queue/batch implementation for `useAnalyticsQueue()` — `createAnalyticsQueue()`/`getAnalyticsQueue()` (module-level singleton).
+
+### `accountContext.js`
+Small helpers for propagating the selected-account query param across API calls: `getAccountParam()`, `appendAccountParam()`. Used wherever a request needs to reflect the sidebar's "overall" vs. per-account selection (`useDefaultView()`).
 
 ### `feedbackApi.js`
 Browser/OS detection, environment context capture, submit via `apiClient.post`.
@@ -732,7 +903,7 @@ Browser/OS detection, environment context capture, submit via `apiClient.post`.
 
 Located in `client/src/utils/`.
 
-### `formatters.js` (233 lines)
+### `formatters.js`
 - **Role**: `formatRole()`, `formatRoleWithAdc()`
 - **Time**: `formatDuration()`, `formatRelativeTime(short|long)`, `formatDate()`
 - **Numbers**: `formatNumber()` (K suffix), `formatWinRate()`, `formatPercent()`, `formatLpPerGame()`, `formatGoldDiff()`, `formatCsDiff()`
@@ -743,6 +914,12 @@ CDN helpers for League of Legends assets:
 - Data Dragon v16.1.1 + Community Dragon CDN
 - `getChampionIconUrl()`, `getRoleIconUrl()`, `getProfileIconUrl()`, `getItemIconUrl()`, `getSummonerSpellIconUrl()`
 - `normalizeChampionName()` — strips special chars for URL safety
+
+### `chartConfigs.js`
+Chart.js configuration builders — one per solo trend chart (`winrateConfig()`, `deathsConfig()`, `dragonParticipationConfig()`, `visionScoreConfig()`, `goldAt15Config()`, `csPerMinuteConfig()`), plus `ACCOUNT_*` color constants for multi-account chart series. Consumed by the `TrendLineChart`-wrapping components in §13.
+
+### `featureFlags.js`
+Exports `featureFlags`, sourced from `VITE_FEATURE_*` env vars (see §6's note on `VITE_FEATURE_TEAM_ANALYTICS` / `VITE_FEATURE_GOALS`).
 
 ---
 
@@ -875,8 +1052,6 @@ Standard sizes:
 - Small: `w-4 h-4` (16px)
 - Medium: `w-5 h-5` (20px)
 - Large: `w-6 h-6` (24px)
-
-`HighlightTile` also uses 5 custom inline SVG icons (`damage`, `kda`, `cs`, `vision`, `chart`) via render functions.
 
 ---
 

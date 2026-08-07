@@ -24,7 +24,7 @@
 > **Naming conventions:**
 > - Components: `PascalCase.vue` (e.g. `MainChampionCard.vue`)
 > - Base/shared components: `client/src/components/base/Base*.vue`
-> - Feature components: `client/src/components/[solo|overview|shared]/*.vue`
+> - Feature components: `client/src/components/[solo|overview|matches|settings|sidebar|shared]/*.vue`
 > - Views/pages: `client/src/views/*Page.vue` (e.g. `SoloStatsPage.vue`)
 > - Composables: `client/src/composables/use*.js`
 
@@ -150,7 +150,7 @@ emit('update', payload)
 
 ### Unit Tests
 **Framework**: Vitest + `@vue/test-utils`
-**Test file**: `client/test/unit/[ComponentName].spec.js`
+**Test file**: `client/test/unit/components/[domain]/[ComponentName].spec.js` — mirror the component's `src/components/[domain]/` path (base components go under `components/` flat, matching `src/components/base/`). See `test-strategy.spec.md` §4.2 for the current layout.
 
 - [ ] Renders without errors
 - [ ] Handles all props correctly (use `it.each` for variants)

@@ -14,6 +14,9 @@ This document defines the complete database schema for Mongoose.gg, supporting s
 7. Duo Analytics
 8. Team Analytics
 9. AI Snapshots
+10. Analytics Event Pipeline
+
+**Last verified**: August 7, 2026
 
 ---
 
@@ -27,11 +30,13 @@ Stores application user accounts and authentication credentials.
 |--------|------|-------------|-------------|
 | `user_id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique user identifier |
 | `email` | VARCHAR(255) | UNIQUE NOT NULL | User email address (login) |
-| `username` | VARCHAR(50) | UNIQUE NOT NULL | Display username |
+| `username` | VARCHAR(255) | UNIQUE NOT NULL | Display username |
 | `password_hash` | VARCHAR(255) | NOT NULL | Bcrypt/Argon2 hashed password |
+| `security_stamp` | VARCHAR(36) | NOT NULL DEFAULT '' | Invalidation token — rotated on password change to invalidate other sessions |
 | `email_verified` | BOOLEAN | DEFAULT FALSE | Whether email has been verified |
 | `is_active` | BOOLEAN | DEFAULT TRUE | Account active status |
 | `tier` | ENUM('free', 'pro') | DEFAULT 'free' | Subscription tier for quick access |
+| `user_icon_id` | INT | NULL | Selected profile icon ID for the app UI (distinct from Riot's `profile_icon_id`) |
 | `mollie_customer_id` | VARCHAR(255) | NULL | Mollie customer identifier |
 | `riot_puuid` | VARCHAR(78) | NULL, UNIQUE | Riot Sign-On login identity (PUUID), set for RSO-authenticated users |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Account creation time |
@@ -55,7 +60,35 @@ Stores application user accounts and authentication credentials.
 - `tier` is denormalized from subscriptions table for fast access in queries
 - `mollie_customer_id` links to Mollie payment system (European payment provider)
 - `riot_puuid` identifies users who signed up/in via Riot Sign-On (RSO); these users have a synthetic placeholder email, a random unusable `password_hash`, and `email_verified = TRUE` since Riot is the identity source of truth. Distinct from `user_riot_accounts`, which tracks linked accounts for analytics regardless of login method.
-- Consider adding: `password_reset_token`, `password_reset_expires`, `failed_login_attempts` for security features
+
+---
+
+### `verification_tokens`
+
+Short-lived codes for email verification and password reset flows.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique token record ID |
+| `user_id` | BIGINT UNSIGNED | NOT NULL | Foreign key to users |
+| `token_type` | ENUM('email_verification', 'password_reset', 'email_change') | NOT NULL | Purpose of the token |
+| `code` | VARCHAR(6) | NOT NULL | 6-digit verification code |
+| `expires_at` | TIMESTAMP | NOT NULL | Token expiry (15 min for verification codes) |
+| `used_at` | TIMESTAMP | NULL | When the token was consumed (NULL = still active) |
+| `attempts` | INT | DEFAULT 0 | Failed verification attempts (max 5 — brute-force protection) |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+
+**Indexes:**
+- PRIMARY KEY: `id`
+- INDEX: `idx_user_type` ON (`user_id`, `token_type`, `used_at`)
+- INDEX: `idx_expires` ON (`expires_at`)
+
+**Foreign Keys:**
+- `user_id` → `users(user_id)` ON DELETE CASCADE
+
+**Notes:**
+- Backs `POST /auth/verify`, `POST /auth/resend-verification`, `POST /auth/forgot-password`, `POST /auth/reset-password` (see architecture.spec.md §6)
+- One active (unused, unexpired) token per `(user_id, token_type)` pair; requesting a new code invalidates prior active tokens of the same type
 
 ---
 
@@ -366,6 +399,35 @@ Gold, CS, and XP snapshots at key minute marks for tracking leads and deficits.
 
 ---
 
+### `participant_death_events`
+
+Per-death position and context, used for the death-position heatmap (`GET /solo/death-positions/{userId}`).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique death event record ID |
+| `participant_id` | BIGINT UNSIGNED | NOT NULL | Foreign key to participants |
+| `minute_mark` | INT | NOT NULL | Minute the death occurred |
+| `position_x` | INT | NOT NULL | Map X coordinate at death |
+| `position_y` | INT | NOT NULL | Map Y coordinate at death |
+| `killer_champion_id` | INT | NULL | Champion ID of the killer, if attributable |
+| `assist_count` | INT | NOT NULL DEFAULT 0 | Number of enemy assists on the kill |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+
+**Indexes:**
+- PRIMARY KEY: `id`
+- INDEX: `idx_participant_id` ON (`participant_id`)
+- INDEX: `idx_minute_mark` ON (`minute_mark`)
+
+**Foreign Keys:**
+- `participant_id` → `participants(id)` ON DELETE CASCADE
+
+**Notes:**
+- Derived from Timeline API `CHAMPION_KILL` events where the tracked participant is the victim
+- One row per death (unlike `participant_metrics`, which stores only aggregate death-timing buckets)
+
+---
+
 ## 5. Derived Performance Metrics
 
 ### `participant_metrics`
@@ -378,6 +440,7 @@ Advanced calculated metrics for damage, vision, and death timing analysis.
 | `participant_id` | BIGINT UNSIGNED | NOT NULL UNIQUE | Foreign key to participants (1:1) |
 | `kill_participation_pct` | DECIMAL(5,2) | NOT NULL | (kills + assists) / team kills * 100 |
 | `damage_share_pct` | DECIMAL(5,2) | NOT NULL | damage dealt / team damage * 100 |
+| `damage_dealt` | INT | NOT NULL | Total damage dealt to champions |
 | `damage_taken` | INT | NOT NULL | Total damage taken |
 | `damage_mitigated` | INT | NOT NULL | Damage self-mitigated |
 | `vision_score` | INT | NOT NULL | Vision score from Riot |
@@ -597,6 +660,54 @@ Pre-aggregated statistical summaries for AI goal recommendation inputs.
 - `summary_text` is input for LLM prompt
 - `goals_json` is LLM response (array of goal objects)
 - Snapshots can be regenerated or cached for rate limit optimization
+
+---
+
+## 10. Analytics Event Pipeline
+
+### `analytics_events` (legacy, in `schema.sql`)
+
+Original event-tracking sink. Backs `POST /api/v2/analytics` / `/analytics/batch` — see architecture.spec.md §6.19.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique event record ID |
+| `user_id` | BIGINT UNSIGNED | NULL | Foreign key to users (NULL if unauthenticated) |
+| `tier` | ENUM('free', 'pro') | DEFAULT 'free' | User tier at event time |
+| `event_name` | VARCHAR(100) | NOT NULL | Event identifier |
+| `payload_json` | JSON | NULL | Arbitrary event payload (max 4KB, enforced at endpoint) |
+| `session_id` | VARCHAR(64) | NULL | Client session identifier |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+
+**Indexes:** PRIMARY KEY `id`; `idx_user_id`, `idx_event_name`, `idx_tier`, `idx_created_at`, `idx_session_id`, `idx_event_created (event_name, created_at)`
+
+### Analytics v2 + Phase 3 tables (`Infrastructure/Database/Migrations/`)
+
+A newer, normalized event pipeline layered on top via hand-applied migrations rather than `schema.sql`. Backs the `analytics/v2`, `analytics/explore/*`, `analytics/journey/*`, `analytics/funnels/*`, `analytics/realtime/*` admin routes (architecture.spec.md §5). Documented here at column-list level — treat the migration files as the source of truth for types/constraints if you need to write queries against them.
+
+**Migration 001 — `Infrastructure/Database/Migrations/001_AddAnalyticsEventsV2Schema.sql`**
+
+| Table | Purpose | Columns |
+|-------|---------|---------|
+| `analytics_events_v2` | Normalized event sink with versioning + validation | `id`, `event_id`, `user_id`, `session_id`, `event_name`, `event_category`, `event_version`, `tier`, `payload_json`, `client_version`, `user_agent_hash`, `ip_anonymized`, `client_timestamp_utc`, `server_timestamp_utc`, `created_at`, `rejection_reason`, `payload_size_bytes` |
+| `analytics_event_rejections` | Observability log of events that failed schema validation | `id`, `event_name`, `rejection_reason`, `payload_preview`, `session_id`, `created_at` |
+| `analytics_retention_policies` | Per-category purge configuration | `id`, `event_category`, `retention_days`, `purge_enabled`, `created_at`, `updated_at` |
+| `analytics_event_summary` | Hourly-aggregated materialized view for dashboards | `id`, `event_name`, `event_category`, `date_hour`, `count_total`, `count_authenticated`, `count_free_tier`, `count_pro_tier`, `unique_users`, `unique_sessions`, `avg_payload_size_bytes` |
+
+**Migration 002 — `Infrastructure/Database/Migrations/002_AddAnalyticsPhase3Schema.sql`**
+
+| Table | Purpose | Columns |
+|-------|---------|---------|
+| `analytics_event_dimensions` | Pre-extracted dimensions (device, geo, referrer) for fast exploration queries | `id`, `event_id`, `event_name`, `event_category`, `page_path`, `referrer_domain`, `referrer_path`, `device_type`, `browser_name`, `browser_version`, `os_name`, `os_version`, `country_code`, `region_code`, `city`, `tier`, `is_authenticated`, `custom_properties`, `user_id`, `session_id`, `event_timestamp_utc`, `created_at` |
+| `analytics_journey_steps` | Per-session page-to-page navigation transitions | `id`, `session_id`, `user_id`, `step_number`, `source_page`, `destination_page`, `event_name`, `transition_timestamp_utc`, `time_on_previous_page_seconds`, `device_type`, `tier`, `created_at` |
+| `analytics_funnel_steps` | Per-session progress through a named funnel | `id`, `funnel_name`, `session_id`, `user_id`, `step_number`, `step_name`, `event_name`, `completed`, `completed_at_utc`, `step_timestamp_utc`, `time_since_previous_step_seconds`, `tier`, `device_type`, `created_at` |
+| `analytics_funnel_definitions` | Named funnel configurations (step list, timing window) | `id`, `funnel_name`, `display_name`, `description`, `enabled`, `steps`, `max_time_between_steps_hours`, `created_at`, `updated_at` |
+| `analytics_rollup_hourly` | Hourly rollup for trend analysis across device/tier segments | `id`, `date_hour`, `event_name`, `event_category`, `event_count`, `unique_users`, `unique_sessions`, `avg_payload_size_bytes`, `count_authenticated`, `count_authenticated_unique_users`, `count_free_tier`, `count_pro_tier`, `unique_free_tier_users`, `unique_pro_tier_users`, `count_desktop`, `count_mobile`, `count_tablet`, `top_countries`, `created_at` |
+| `analytics_dimension_extraction_status` | Cursor/checkpoint for the background dimension-extraction job | `id`, `status_key`, `last_event_id`, `last_processed_at`, `events_processed`, `extraction_duration_ms` |
+
+**Notes:**
+- `analytics_events` (legacy) and `analytics_events_v2` are both live — the v2 endpoints (`/analytics/v2`, `/analytics/v2/batch`) write to `analytics_events_v2`; the original endpoints (`/analytics`, `/analytics/batch`) write to `analytics_events`. Check `AnalyticsEndpointV2.cs` before assuming which table a given route affects.
+- Repository interfaces: `IAnalyticsEventsV2Repository`, `IAnalyticsEventDimensionsRepository`, `IAnalyticsJourneyRepository`, `IAnalyticsFunnelRepository` (see architecture.spec.md §9)
 
 ---
 
@@ -849,6 +960,7 @@ LIMIT 1;
 | Schema Domain | Riot API Source | Status |
 |--------------|-----------------|---------|
 | **users** | Application-managed | N/A Authentication |
+| **verification_tokens** | Application-managed | N/A Authentication |
 | **subscriptions** | Mollie webhooks | N/A Billing (European provider) |
 | **subscription_events** | Mollie webhooks | N/A Audit log |
 | **riot_accounts** | summoner-v4 / account-v1 | ✅ Fully validated |
@@ -857,12 +969,14 @@ LIMIT 1;
 | **participants** | match-v5 info.participants[] | ✅ Fully validated |
 | **participant_checkpoints** | match-v5 timeline participantFrames | ✅ Fully validated |
 | **participant_metrics** | match-v5 info + timeline events | ✅ Fully validated |
+| **participant_death_events** | match-v5 timeline CHAMPION_KILL | ✅ Fully validated |
 | **team_objectives** | match-v5 info.teams[].objectives | ✅ Fully validated |
 | **participant_objectives** | match-v5 timeline ELITE_MONSTER_KILL / BUILDING_KILL | ✅ Fully validated |
 | **duo_metrics** | Derived from checkpoints + timeline | ⚠️ Application logic |
 | **team_match_metrics** | Derived from checkpoints | ⚠️ Application logic |
 | **team_role_responsibility** | Derived from participants | ⚠️ Application logic |
 | **ai_snapshots** | Application-generated | N/A AI-powered |
+| **analytics_events** / **analytics_events_v2** + pipeline tables | Application-managed (client event tracking) | N/A Product analytics |
 
 ### Key Derived Fields
 
