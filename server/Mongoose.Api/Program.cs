@@ -10,6 +10,7 @@ using Mongoose.Api.Infrastructure;
 using Mongoose.Api.Infrastructure.Database;
 using Mongoose.Api.Infrastructure.Database.Repositories;
 using Mongoose.Api.Infrastructure.Email;
+using Mongoose.Api.Infrastructure.Google;
 using Mongoose.Api.Infrastructure.Jobs;
 using Mongoose.Api.Infrastructure.Jobs.Analytics;
 using Mongoose.Api.Infrastructure.Middleware;
@@ -69,6 +70,7 @@ builder.Services.AddSingleton<IEncryptor>(sp =>
 
 // repositories
 builder.Services.AddScoped<IUsersRepository, UsersRepository>();
+builder.Services.AddScoped<IUserIdentityProvidersRepository, UserIdentityProvidersRepository>();
 builder.Services.AddScoped<IRiotAccountsRepository, RiotAccountsRepository>();
 builder.Services.AddScoped<IUserRiotAccountsRepository, UserRiotAccountsRepository>();
 builder.Services.AddScoped<IMatchesRepository, MatchesRepository>();
@@ -136,6 +138,14 @@ builder.Services.AddSingleton<IRateLimiter, EndpointRateLimiter>();
 // Riot Sign-On (RSO) OAuth client — inert unless Auth:EnableRiotSignOn is set
 // and RSO client credentials are configured (RSO_CLIENT_ID / RSO_CLIENT_SECRET)
 builder.Services.AddHttpClient<IRiotSignOnClient, RiotSignOnClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+});
+
+// Google Sign-On OAuth client — inert unless Auth:EnableGoogleSignOn is set
+// and Google client credentials are configured (GSO_CLIENT_ID / GSO_CLIENT_SECRET)
+builder.Services.AddHttpClient<IGoogleSignOnClient, GoogleSignOnClient>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(15);
     client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));

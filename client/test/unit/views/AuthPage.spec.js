@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { ref } from 'vue';
@@ -25,10 +25,17 @@ vi.mock('@/services/analyticsApi', () => ({
   trackAuth: vi.fn()
 }));
 
-// Mock authApi — forgotPassword
+// Mock authApi — forgotPassword, social sign-on URL getters
 const mockForgotPassword = vi.fn().mockResolvedValue({ message: 'ok' });
 vi.mock('@/services/authApi', () => ({
-  forgotPassword: (...args) => mockForgotPassword(...args)
+  forgotPassword: (...args) => mockForgotPassword(...args),
+  getRiotSignOnUrl: () => 'http://localhost/api/v2/auth/riot/login',
+  getGoogleSignOnUrl: () => 'http://localhost/api/v2/auth/google/login'
+}));
+
+// Mock featureFlags — social sign-on is off by default in the real env; enabled here to test the UI
+vi.mock('@/utils/featureFlags', () => ({
+  featureFlags: { riotSignOn: true, googleSignOn: true, teamAnalytics: false, goals: false }
 }));
 
 // Mock useCookieConsent
@@ -416,6 +423,56 @@ describe('AuthPage.vue', () => {
       await updateBtn.trigger('click');
 
       expect(mockResetConsent).toHaveBeenCalledOnce();
+    });
+  });
+
+  // ── Social Sign-On ──
+
+  describe('Social sign-on', () => {
+    const originalLocation = window.location;
+
+    beforeEach(() => {
+      delete window.location;
+      window.location = { ...originalLocation, href: '' };
+    });
+
+    afterEach(() => {
+      window.location = originalLocation;
+    });
+
+    it('shows the Google sign-in button when the feature flag is enabled', () => {
+      const wrapper = createWrapper();
+      expect(wrapper.find('[data-testid="google-signin-button"]').exists()).toBe(true);
+    });
+
+    it('shows the Riot sign-in button when the feature flag is enabled', () => {
+      const wrapper = createWrapper();
+      expect(wrapper.find('[data-testid="riot-signin-button"]').exists()).toBe(true);
+    });
+
+    it('navigates to the Google sign-on URL when the Google button is clicked', async () => {
+      const wrapper = createWrapper();
+
+      await wrapper.find('[data-testid="google-signin-button"]').trigger('click');
+
+      expect(window.location.href).toBe('http://localhost/api/v2/auth/google/login');
+    });
+
+    it('navigates to the Riot sign-on URL when the Riot button is clicked', async () => {
+      const wrapper = createWrapper();
+
+      await wrapper.find('[data-testid="riot-signin-button"]').trigger('click');
+
+      expect(window.location.href).toBe('http://localhost/api/v2/auth/riot/login');
+    });
+
+    it('does not navigate when consent is rejected', async () => {
+      mockIsRejected.value = true;
+      const wrapper = createWrapper();
+      await wrapper.vm.$nextTick();
+
+      const button = wrapper.find('[data-testid="google-signin-button"]');
+      expect(button.element.disabled).toBe(true);
     });
   });
 });

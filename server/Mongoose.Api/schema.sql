@@ -17,17 +17,29 @@ CREATE TABLE IF NOT EXISTS users (
     tier ENUM('free', 'pro') DEFAULT 'free',
     user_icon_id INT NULL,
     mollie_customer_id VARCHAR(255) NULL,
-    riot_puuid VARCHAR(78) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login_at TIMESTAMP NULL,
     UNIQUE KEY idx_email (email),
     UNIQUE KEY idx_username (username),
     UNIQUE KEY idx_mollie_customer_id (mollie_customer_id),
-    UNIQUE KEY idx_riot_puuid (riot_puuid),
     KEY idx_email_verified (email_verified),
     KEY idx_is_active (is_active),
     KEY idx_tier (tier)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Social sign-on identities (Riot Sign-On, Google Sign-On, ...). Generic
+-- (provider, provider_uid) mapping to a local user so new providers need no
+-- schema change; a user may have more than one linked provider identity.
+CREATE TABLE IF NOT EXISTS user_identity_providers (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    provider VARCHAR(32) NOT NULL,
+    provider_uid VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY idx_provider_identity (provider, provider_uid),
+    KEY idx_user_id (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Verification tokens for email verification, password reset, etc.

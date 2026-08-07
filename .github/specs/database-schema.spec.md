@@ -16,7 +16,7 @@ This document defines the complete database schema for Mongoose.gg, supporting s
 9. AI Snapshots
 10. Analytics Event Pipeline
 
-**Last verified**: August 7, 2026
+**Last verified**: August 8, 2026
 
 ---
 
@@ -38,7 +38,6 @@ Stores application user accounts and authentication credentials.
 | `tier` | ENUM('free', 'pro') | DEFAULT 'free' | Subscription tier for quick access |
 | `user_icon_id` | INT | NULL | Selected profile icon ID for the app UI (distinct from Riot's `profile_icon_id`) |
 | `mollie_customer_id` | VARCHAR(255) | NULL | Mollie customer identifier |
-| `riot_puuid` | VARCHAR(78) | NULL, UNIQUE | Riot Sign-On login identity (PUUID), set for RSO-authenticated users |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Account creation time |
 | `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update time |
 | `last_login_at` | TIMESTAMP | NULL | Last successful login time |
@@ -48,7 +47,6 @@ Stores application user accounts and authentication credentials.
 - UNIQUE INDEX: `idx_email` ON (`email`)
 - UNIQUE INDEX: `idx_username` ON (`username`)
 - UNIQUE INDEX: `idx_mollie_customer_id` ON (`mollie_customer_id`)
-- UNIQUE INDEX: `idx_riot_puuid` ON (`riot_puuid`)
 - INDEX: `idx_email_verified` ON (`email_verified`)
 - INDEX: `idx_is_active` ON (`is_active`)
 - INDEX: `idx_tier` ON (`tier`)
@@ -59,7 +57,31 @@ Stores application user accounts and authentication credentials.
 - Use strong password requirements (min 8 chars, complexity rules)
 - `tier` is denormalized from subscriptions table for fast access in queries
 - `mollie_customer_id` links to Mollie payment system (European payment provider)
-- `riot_puuid` identifies users who signed up/in via Riot Sign-On (RSO); these users have a synthetic placeholder email, a random unusable `password_hash`, and `email_verified = TRUE` since Riot is the identity source of truth. Distinct from `user_riot_accounts`, which tracks linked accounts for analytics regardless of login method.
+- Social sign-on login identities (Riot Sign-On, Google Sign-On, ...) are **not** columns on this table — see `user_identity_providers` below. Users provisioned by a social sign-on have a placeholder or provider-supplied email, a random unusable `password_hash`, and `email_verified` set according to that provider's trust level.
+
+---
+
+### `user_identity_providers`
+
+Generic mapping from an external identity provider login to a local user. Exists so a new social sign-on provider needs no schema change — just a new `provider` value — instead of adding one nullable unique column per provider to `users`.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique row identifier |
+| `user_id` | BIGINT UNSIGNED | NOT NULL, FOREIGN KEY → `users(user_id)` ON DELETE CASCADE | The local user this identity is linked to |
+| `provider` | VARCHAR(32) | NOT NULL | Provider name: `riot`, `google`, ... |
+| `provider_uid` | VARCHAR(255) | NOT NULL | The provider's identity id for this user (Riot PUUID, Google `sub`, ...) |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | When the identity was linked |
+
+**Indexes:**
+- PRIMARY KEY: `id`
+- UNIQUE INDEX: `idx_provider_identity` ON (`provider`, `provider_uid`) — the login lookup; also prevents the same provider identity being linked to two different users
+- INDEX: `idx_user_id` ON (`user_id`)
+
+**Notes:**
+- A user may have more than one linked provider identity (e.g. both Riot and Google).
+- Distinct from `user_riot_accounts`, which tracks Riot accounts linked for analytics regardless of login method — a Riot Sign-On login also creates a `user_riot_accounts` link, but `user_identity_providers` is what login resolves against.
+- Rows cascade-delete when the owning user is deleted (FK `ON DELETE CASCADE`); no explicit cleanup needed in `DeleteUserAsync`.
 
 ---
 

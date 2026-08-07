@@ -2,6 +2,7 @@ using System.Net;
 using System.Web;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Xunit;
 
@@ -9,6 +10,16 @@ namespace Mongoose.Api.Tests;
 
 public class RiotSignOnEndpointTests
 {
+    /// <summary>
+    /// Composes the identity-providers lookup with the users lookup, mirroring how
+    /// RiotSignOnEndpoint resolves a user from a Riot Sign-On identity.
+    /// </summary>
+    private static async Task<User?> GetUserByRiotPuuidAsync(TestWebApplicationFactory factory, string puuid)
+    {
+        var userId = await factory.IdentityProvidersRepository.GetUserIdByProviderIdentityAsync("riot", puuid);
+        return userId.HasValue ? await factory.UsersRepository.GetByIdAsync(userId.Value) : null;
+    }
+
     private static TestWebApplicationFactory CreateEnabledFactory(IDictionary<string, string?>? extraOverrides = null)
     {
         var overrides = new Dictionary<string, string?>
@@ -96,7 +107,7 @@ public class RiotSignOnEndpointTests
 
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         response.Headers.Location!.ToString().Should().Be("/auth?error=riot_signon_state");
-        (await factory.UsersRepository.GetByRiotPuuidAsync("puuid-rso-1")).Should().BeNull();
+        (await GetUserByRiotPuuidAsync(factory, "puuid-rso-1")).Should().BeNull();
     }
 
     [Fact]
@@ -140,7 +151,7 @@ public class RiotSignOnEndpointTests
         response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
         cookies!.Should().Contain(c => c.StartsWith("mongoose-auth"), "a session cookie must be issued");
 
-        var user = await factory.UsersRepository.GetByRiotPuuidAsync("puuid-rso-new");
+        var user = await GetUserByRiotPuuidAsync(factory, "puuid-rso-new");
         user.Should().NotBeNull();
         user!.Username.Should().Be("faker");
         user.EmailVerified.Should().BeTrue("RSO users have no email to verify");
@@ -176,7 +187,7 @@ public class RiotSignOnEndpointTests
         response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
         cookies!.Should().Contain(c => c.StartsWith("mongoose-auth"));
 
-        var user = await factory.UsersRepository.GetByRiotPuuidAsync("puuid-rso-返");
+        var user = await GetUserByRiotPuuidAsync(factory, "puuid-rso-返");
         user!.Username.Should().Be("returning-player");
         user.LastLoginAt.Should().NotBeNull();
         (await factory.UsersRepository.GetActiveUserCountAsync()).Should().Be(userCountBefore);

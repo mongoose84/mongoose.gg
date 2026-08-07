@@ -24,10 +24,12 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly IDictionary<string, string?> _overrides;
     private readonly FakeUsersRepository _usersRepository;
+    private readonly FakeUserIdentityProvidersRepository _identityProvidersRepository;
     private readonly FakeVerificationTokensRepository _tokensRepository;
     private readonly FakeEmailService _emailService;
     private readonly FakeRiotApiClient _riotApiClient;
     private readonly FakeRiotSignOnClient _riotSignOnClient;
+    private readonly FakeGoogleSignOnClient _googleSignOnClient;
     private readonly FakeRiotAccountsRepository _riotAccountsRepository;
     private readonly FakeUserRiotAccountsRepository _userRiotAccountsRepository;
     private readonly FakeOverviewStatsRepository _overviewStatsRepository;
@@ -43,10 +45,12 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeDeathPositionsRepository _deathPositionsRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
+    public FakeUserIdentityProvidersRepository IdentityProvidersRepository => _identityProvidersRepository;
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
     public FakeEmailService EmailService => _emailService;
     public FakeRiotApiClient RiotApiClient => _riotApiClient;
     public FakeRiotSignOnClient RiotSignOnClient => _riotSignOnClient;
+    public FakeGoogleSignOnClient GoogleSignOnClient => _googleSignOnClient;
     public FakeRiotAccountsRepository RiotAccountsRepository => _riotAccountsRepository;
     public FakeUserRiotAccountsRepository UserRiotAccountsRepository => _userRiotAccountsRepository;
     public FakeOverviewStatsRepository OverviewStatsRepository => _overviewStatsRepository;
@@ -64,11 +68,13 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
         _overrides = overrides ?? new Dictionary<string, string?>();
-        _usersRepository = new FakeUsersRepository();
+        _identityProvidersRepository = new FakeUserIdentityProvidersRepository();
+        _usersRepository = new FakeUsersRepository(_identityProvidersRepository);
         _tokensRepository = new FakeVerificationTokensRepository();
         _emailService = new FakeEmailService();
         _riotApiClient = new FakeRiotApiClient();
         _riotSignOnClient = new FakeRiotSignOnClient();
+        _googleSignOnClient = new FakeGoogleSignOnClient();
         _riotAccountsRepository = new FakeRiotAccountsRepository();
         _userRiotAccountsRepository = new FakeUserRiotAccountsRepository(_riotAccountsRepository);
         _overviewStatsRepository = new FakeOverviewStatsRepository();
@@ -141,6 +147,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IUsersRepository>();
             services.AddSingleton<IUsersRepository>(_usersRepository);
 
+            // Replace IUserIdentityProvidersRepository with a fake
+            services.RemoveAll<IUserIdentityProvidersRepository>();
+            services.AddSingleton<IUserIdentityProvidersRepository>(_identityProvidersRepository);
+
             // Replace VerificationTokensRepository with a fake
             services.RemoveAll<IVerificationTokensRepository>();
             services.AddSingleton<IVerificationTokensRepository>(_tokensRepository);
@@ -156,6 +166,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace IRiotSignOnClient with a fake (avoids real OAuth calls)
             services.RemoveAll<IRiotSignOnClient>();
             services.AddSingleton<IRiotSignOnClient>(_riotSignOnClient);
+
+            // Replace IGoogleSignOnClient with a fake (avoids real OAuth calls)
+            services.RemoveAll<IGoogleSignOnClient>();
+            services.AddSingleton<IGoogleSignOnClient>(_googleSignOnClient);
 
             // Replace RiotAccountsRepository with a fake
             services.RemoveAll<IRiotAccountsRepository>();
@@ -222,10 +236,12 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         private readonly ConcurrentDictionary<string, User> _usersByUsername = new(StringComparer.OrdinalIgnoreCase);
         private readonly ConcurrentDictionary<string, User> _usersByEmail = new(StringComparer.OrdinalIgnoreCase);
         private readonly ConcurrentDictionary<long, User> _usersById = new();
+        private readonly FakeUserIdentityProvidersRepository _identityProvidersRepo;
         private long _nextId = 1;
 
-        public FakeUsersRepository() : base(null!, new FakeEncryptor())
+        public FakeUsersRepository(FakeUserIdentityProvidersRepository identityProvidersRepo) : base(null!, new FakeEncryptor())
         {
+            _identityProvidersRepo = identityProvidersRepo;
             // Pre-populate with a test user (password: "test-password")
             var testUser = new User
             {
@@ -402,12 +418,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult((long)count);
         }
 
-        public override Task<User?> GetByRiotPuuidAsync(string riotPuuid)
-        {
-            var user = _usersById.Values.FirstOrDefault(u => u.RiotPuuid == riotPuuid);
-            return Task.FromResult(user);
-        }
-
+        /// <summary>
+        /// Creates a user and links a Riot Sign-On identity to it via the identity
+        /// providers fake, mirroring RiotSignOnEndpoint's user-creation shape.
+        /// </summary>
         public void AddRiotSignOnUser(string username, string riotPuuid, bool isActive = true)
         {
             var user = new User
@@ -420,13 +434,59 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 EmailVerified = true,
                 IsActive = isActive,
                 Tier = "free",
-                RiotPuuid = riotPuuid,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
             _usersByUsername[username] = user;
             _usersByEmail[user.Email] = user;
             _usersById[user.UserId] = user;
+            _identityProvidersRepo.LinkProviderIdentityAsync(user.UserId, "riot", riotPuuid).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Creates a user and links a Google Sign-On identity to it via the identity
+        /// providers fake, mirroring GoogleSignOnEndpoint's user-creation shape.
+        /// </summary>
+        public void AddGoogleSignOnUser(string username, string googleId, string? email = null, bool isActive = true)
+        {
+            var user = new User
+            {
+                UserId = _nextId++,
+                Username = username,
+                Email = email ?? $"{googleId}@google-signon.test",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N")),
+                SecurityStamp = Guid.NewGuid().ToString(),
+                EmailVerified = true,
+                IsActive = isActive,
+                Tier = "free",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _usersByUsername[username] = user;
+            _usersByEmail[user.Email] = user;
+            _usersById[user.UserId] = user;
+            _identityProvidersRepo.LinkProviderIdentityAsync(user.UserId, "google", googleId).GetAwaiter().GetResult();
+        }
+    }
+
+    /// <summary>
+    /// Fake user identity providers repository for testing (Riot Sign-On, Google Sign-On, ...).
+    /// In-memory (provider, provider_uid) -&gt; user_id mapping, mirroring user_identity_providers.
+    /// </summary>
+    internal sealed class FakeUserIdentityProvidersRepository : IUserIdentityProvidersRepository
+    {
+        private readonly ConcurrentDictionary<(string Provider, string ProviderUid), long> _linksByIdentity = new();
+
+        public Task<long?> GetUserIdByProviderIdentityAsync(string provider, string providerUid)
+        {
+            var userId = _linksByIdentity.TryGetValue((provider, providerUid), out var value) ? value : (long?)null;
+            return Task.FromResult(userId);
+        }
+
+        public Task LinkProviderIdentityAsync(long userId, string provider, string providerUid)
+        {
+            _linksByIdentity[(provider, providerUid)] = userId;
+            return Task.CompletedTask;
         }
     }
 
@@ -711,6 +771,33 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         /// Maps an authorization code to the identity the fake exchange returns.
         /// </summary>
         public void MapCode(string code, RiotSignOnIdentity identity)
+        {
+            _identitiesByCode[code] = identity;
+        }
+    }
+
+    /// <summary>
+    /// Fake Google Sign-On client for testing. Maps authorization codes to identities;
+    /// unknown codes throw like a failed token exchange.
+    /// </summary>
+    internal sealed class FakeGoogleSignOnClient : IGoogleSignOnClient
+    {
+        private readonly ConcurrentDictionary<string, GoogleSignOnIdentity> _identitiesByCode = new();
+
+        public Task<GoogleSignOnIdentity> ExchangeCodeAsync(string code, CancellationToken ct = default)
+        {
+            if (_identitiesByCode.TryGetValue(code, out var identity))
+            {
+                return Task.FromResult(identity);
+            }
+
+            throw new HttpRequestException("Invalid authorization code");
+        }
+
+        /// <summary>
+        /// Maps an authorization code to the identity the fake exchange returns.
+        /// </summary>
+        public void MapCode(string code, GoogleSignOnIdentity identity)
         {
             _identitiesByCode[code] = identity;
         }

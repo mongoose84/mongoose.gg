@@ -3,7 +3,7 @@
 > **Purpose**: Single-source-of-truth for AI agents and developers working on the Mongoose.gg codebase. Contains architecture decisions, every implemented endpoint, all DTOs, entity models, repository interfaces, and the patterns required to extend or debug the system.
 
 **Stack**: C# (.NET 10 Minimal APIs) · MySQL (InnoDB, utf8mb4) · Vue 3 + Tailwind (frontend) · Cookie-based session auth · Raw WebSocket  
-**Last verified**: August 7, 2026
+**Last verified**: August 8, 2026
 
 ---
 
@@ -51,8 +51,8 @@
 │  Database/Repositories · Riot API client · Email · Jobs · WebSocket│
 ├──────────────────────────────────────────────────────────────────┤
 │  MySQL Database (schema.sql + Infrastructure/Database/Migrations/) │
-│  19 tables in schema.sql: users, riot_accounts,                   │
-│  user_riot_accounts, matches, participants, ...                    │
+│  20 tables in schema.sql: users, user_identity_providers,          │
+│  riot_accounts, user_riot_accounts, matches, participants, ...     │
 │  + 10 analytics-pipeline tables added by migrations 001–002        │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -134,7 +134,7 @@ server/
 │       │   ├── DbConnectionFactory.cs
 │       │   ├── QueryFilterBuilder.cs
 │       │   ├── Migrations/                 # Hand-applied SQL migrations layered on schema.sql
-│       │   │                               # (analytics_events_v2, Phase 3 analytics, RSO puuid column)
+│       │   │                               # (analytics_events_v2, Phase 3 analytics, user_identity_providers)
 │       │   └── Repositories/               # MySQL implementations of all Core interfaces
 │       ├── Riot/
 │       │   ├── RiotApiClient.cs            # Riot Games API integration
@@ -143,6 +143,8 @@ server/
 │       │   ├── SeasonHelper.cs
 │       │   ├── LimitHandler/               # Rate-limit token bucket for Riot API calls
 │       │   └── Mappers/                    # RiotMatchMapper, RiotTimelineMapper
+│       ├── Google/
+│       │   └── GoogleSignOnClient.cs       # Google OAuth code exchange + identity resolution
 │       ├── Services/
 │       │   ├── MatchDataPersistenceService.cs
 │       │   └── Analytics/                  # Aggregation, abuse guards, pipeline monitor, queue processor,
@@ -291,6 +293,8 @@ Endpoints are discovered via reflection (`EndpointDiscoveryExtension.DiscoverEnd
 | `POST` | `/api/v2/auth/register` | No | 3/hr/IP | `Auth/RegisterEndpoint.cs` | `RegisterResponse` |
 | `GET` | `/api/v2/auth/riot/login` | No | No | `Auth/RiotSignOnEndpoint.cs` | redirect (302) |
 | `GET` | `/api/v2/auth/riot/callback` | No | 10/15min/IP | `Auth/RiotSignOnEndpoint.cs` | redirect (302) |
+| `GET` | `/api/v2/auth/google/login` | No | No | `Auth/GoogleSignOnEndpoint.cs` | redirect (302) |
+| `GET` | `/api/v2/auth/google/callback` | No | 10/15min/IP | `Auth/GoogleSignOnEndpoint.cs` | redirect (302) |
 | `POST` | `/api/v2/auth/logout` | Yes | No | `Auth/LogoutEndpoint.cs` | `LogoutResponse` |
 | `DELETE` | `/api/v2/auth/account` | Yes | No | `Auth/DeleteAccountEndpoint.cs` | `DeleteAccountResponse` |
 | `POST` | `/api/v2/auth/verify` | Yes | No | `Auth/VerifyEndpoint.cs` | `VerifyResponse` |
@@ -382,12 +386,28 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Flow**: OAuth 2.0 authorization code flow against Riot's identity provider.
 1. `GET /auth/riot/login` sets an httpOnly, SameSite=Lax CSRF `state` cookie (`mongoose-rso-state`) and redirects the browser to `https://auth.riotgames.com/authorize`.
 2. Riot redirects back to `GET /auth/riot/callback?code=...&state=...`. The endpoint verifies `state` against the cookie, then exchanges `code` server-side (`IRiotSignOnClient`) for an access token and calls Riot's `account/v1/accounts/me` to resolve the authoritative PUUID, game name, and tag line — **never accepted from client input**.
-3. If no user has this `riot_puuid`, one is created: synthetic placeholder email (`{puuid}@riot-signon.invalid`), random unusable password hash, `email_verified = true`, username derived from the Riot game name (deduplicated).
+3. If no user is linked to this PUUID via `user_identity_providers` (provider `riot`), one is created: synthetic placeholder email (`{puuid}@riot-signon.invalid`), random unusable password hash, `email_verified = true`, username derived from the Riot game name (deduplicated), and the identity is linked.
 4. The Riot account is auto-linked to the user via `user_riot_accounts` (no manual link step, since Riot already authenticated the identity) — set as primary if it's the user's first linked account.
 5. Server signs in with the standard session cookie (`AuthSessionFactory`) and redirects to `{Auth:Riot:ClientBaseUrl}/app/overview`.
 **Error redirects**: `/auth?error=<code>` for `riot_signon_disabled`, `riot_signon_denied`, `riot_signon_state`, `riot_signon_failed`, `riot_signon_rate_limited`, `account_deactivated`.  
-**Side effects**: May create `users` + `riot_accounts` rows, links `user_riot_accounts`, sets session cookie, updates `last_login_at`, fires `LoginSyncService.CheckAccountsOnLoginAsync()`.  
-**Tables**: `users`, `riot_accounts`, `user_riot_accounts`
+**Side effects**: May create `users` + `riot_accounts` rows, links `user_riot_accounts` and `user_identity_providers`, sets session cookie, updates `last_login_at`, fires `LoginSyncService.CheckAccountsOnLoginAsync()`.  
+**Tables**: `users`, `riot_accounts`, `user_riot_accounts`, `user_identity_providers`
+
+### 6.2b Auth — Google Sign-On
+**Routes**: `GET /api/v2/auth/google/login`, `GET /api/v2/auth/google/callback`  
+**Auth**: None (public)  
+**Feature flag**: `Auth:EnableGoogleSignOn` (off by default; requires `Auth:Google:ClientId`/`ClientSecret`/`RedirectUri` or `GSO_CLIENT_ID`/`GSO_CLIENT_SECRET` env vars)  
+**Rate limit** (callback only): 10 / 15 min / IP  
+**Flow**: OAuth 2.0 authorization code flow against Google's identity provider.
+1. `GET /auth/google/login` sets an httpOnly, SameSite=Lax CSRF `state` cookie (`mongoose-gso-state`) and redirects the browser to Google's consent page (scope `openid email profile`).
+2. Google redirects back to `GET /auth/google/callback?code=...&state=...`. The endpoint verifies `state` against the cookie, then exchanges `code` server-side (`IGoogleSignOnClient`) for an access token and calls Google's userinfo endpoint to resolve the authoritative `sub` (Google user id), email, `email_verified`, and name — **never accepted from client input**.
+3. If no user is linked to this `sub` via `user_identity_providers` (provider `google`):
+   - If Google reports the email as verified and a local account already has that exact email, the Google identity is **auto-linked** to that existing account (and its `email_verified` is set true) instead of creating a new user.
+   - Otherwise a new user is created: real email from Google, random unusable password hash, `email_verified` mirrors Google's `email_verified` claim, username derived from the Google display name or email local-part (deduplicated). An unverified Google email never auto-links to an existing account, to prevent an attacker who doesn't control a mailbox from hijacking a local account through it.
+4. Server signs in with the standard session cookie (`AuthSessionFactory`) and redirects to `{Auth:Google:ClientBaseUrl}/app/overview`.
+**Error redirects**: `/auth?error=<code>` for `google_signon_disabled`, `google_signon_denied`, `google_signon_state`, `google_signon_failed`, `google_signon_rate_limited`, `account_deactivated`.  
+**Side effects**: May create a `users` row, links `user_identity_providers`, sets session cookie, updates `last_login_at`, fires `LoginSyncService.CheckAccountsOnLoginAsync()`.  
+**Tables**: `users`, `user_identity_providers`
 
 ### 6.3 Auth — Logout
 **Route**: `POST /api/v2/auth/logout`  
@@ -1035,13 +1055,21 @@ public interface IUsersRepository
     Task<User?> GetByUsernameAsync(string username);
     Task<bool> UsernameExistsAsync(string username);
     Task<bool> EmailExistsAsync(string email);
-    Task<User?> GetByRiotPuuidAsync(string riotPuuid);           // RSO login lookup
     Task<long> GetActiveUserCountAsync();
     Task UpdateEmailVerifiedAsync(long userId, bool verified);
     Task UpdateUserIconIdAsync(long userId, int? userIconId);
     Task UpdatePasswordHashAsync(long userId, string passwordHash);
     Task<string?> GetSecurityStampAsync(long userId);
     Task<bool> DeleteUserAsync(long userId);
+}
+
+// Social sign-on identities (Riot Sign-On, Google Sign-On, ...). Generic
+// (provider, providerUid) mapping to a user_id — new providers need no
+// schema or interface change, just a new "provider" string.
+public interface IUserIdentityProvidersRepository
+{
+    Task<long?> GetUserIdByProviderIdentityAsync(string provider, string providerUid);
+    Task LinkProviderIdentityAsync(long userId, string provider, string providerUid);
 }
 
 // Verification tokens (email verification, password reset)

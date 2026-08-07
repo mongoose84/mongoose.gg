@@ -24,6 +24,7 @@ public sealed class RiotSignOnEndpoint : IEndpoint
     public string Route { get; }
 
     internal const string StateCookieName = "mongoose-rso-state";
+    private const string ProviderName = "riot";
     private const string DefaultAuthorizeEndpoint = "https://auth.riotgames.com/authorize";
     private static readonly TimeSpan StateLifetime = TimeSpan.FromMinutes(10);
 
@@ -101,6 +102,7 @@ public sealed class RiotSignOnEndpoint : IEndpoint
             [FromServices] IConfiguration config,
             [FromServices] IRiotSignOnClient riotSignOnClient,
             [FromServices] IUsersRepository usersRepo,
+            [FromServices] IUserIdentityProvidersRepository identityProvidersRepo,
             [FromServices] IRiotAccountsRepository riotAccountsRepo,
             [FromServices] IUserRiotAccountsRepository userRiotAccountsRepo,
             [FromServices] LoginSyncService loginSyncService,
@@ -166,10 +168,11 @@ public sealed class RiotSignOnEndpoint : IEndpoint
                     return Results.Redirect(ClientUrl(config, "/auth?error=riot_signon_failed"));
                 }
 
-                var user = await usersRepo.GetByRiotPuuidAsync(identity.Puuid);
+                var existingUserId = await identityProvidersRepo.GetUserIdByProviderIdentityAsync(ProviderName, identity.Puuid);
+                var user = existingUserId.HasValue ? await usersRepo.GetByIdAsync(existingUserId.Value) : null;
                 if (user == null)
                 {
-                    user = await CreateUserForRiotIdentityAsync(identity, usersRepo, logger);
+                    user = await CreateUserForRiotIdentityAsync(identity, usersRepo, identityProvidersRepo, logger);
                 }
                 else if (!user.IsActive)
                 {
@@ -229,6 +232,7 @@ public sealed class RiotSignOnEndpoint : IEndpoint
     private static async Task<User> CreateUserForRiotIdentityAsync(
         RiotSignOnIdentity identity,
         IUsersRepository usersRepo,
+        IUserIdentityProvidersRepository identityProvidersRepo,
         ILogger logger)
     {
         var username = await GenerateUniqueUsernameAsync(identity, usersRepo);
@@ -242,12 +246,12 @@ public sealed class RiotSignOnEndpoint : IEndpoint
             EmailVerified = true,
             IsActive = true,
             Tier = "free",
-            RiotPuuid = identity.Puuid,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
         user.UserId = await usersRepo.UpsertAsync(user);
+        await identityProvidersRepo.LinkProviderIdentityAsync(user.UserId, ProviderName, identity.Puuid);
 
         logger.LogInformation("Created user {Username} (ID: {UserId}) from Riot Sign-On identity {Puuid}",
             LogSanitizer.Sanitize(user.Username),

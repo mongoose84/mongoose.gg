@@ -10,13 +10,6 @@ public interface IUsersRepository
     Task<User?> GetByUsernameAsync(string username);
     Task<bool> UsernameExistsAsync(string username);
     Task<bool> EmailExistsAsync(string email);
-
-    /// <summary>
-    /// Returns the user whose Riot Sign-On identity (PUUID) matches, or null.
-    /// This is the login identity mapping — distinct from the M:M
-    /// user_riot_accounts link table used for analytics.
-    /// </summary>
-    Task<User?> GetByRiotPuuidAsync(string riotPuuid);
     Task<long> GetActiveUserCountAsync();
     Task UpdateEmailVerifiedAsync(long userId, bool verified);
     Task UpdateUserIconIdAsync(long userId, int? userIconId);

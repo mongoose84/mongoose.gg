@@ -77,6 +77,16 @@ export function getRiotSignOnUrl() {
 }
 
 /**
+ * Get the URL that starts the Google Sign-On flow.
+ * This is a full-page navigation target, not a fetch: the backend sets a CSRF
+ * state cookie and redirects the browser to Google's consent page.
+ * @returns {string} Absolute or proxy-relative URL to the Google sign-on login endpoint
+ */
+export function getGoogleSignOnUrl() {
+  return `${API_BASE}/auth/google/login`
+}
+
+/**
  * Logout current user
  * @returns {Promise<void>}
  */

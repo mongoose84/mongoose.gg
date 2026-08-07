@@ -133,8 +133,8 @@
             </BaseButton>
           </form>
 
-          <!-- Riot Sign-On (hidden until production RSO credentials are approved) -->
-          <template v-if="featureFlags.riotSignOn">
+          <!-- Social sign-on (hidden until each provider's credentials are approved) -->
+          <template v-if="featureFlags.riotSignOn || featureFlags.googleSignOn">
             <div class="mt-lg flex items-center gap-md" aria-hidden="true">
               <div class="flex-1 border-t border-border"></div>
               <span class="text-sm text-text-secondary">or</span>
@@ -142,6 +142,7 @@
             </div>
 
             <BaseButton
+              v-if="featureFlags.riotSignOn"
               variant="secondary"
               size="lg"
               class="mt-lg w-full"
@@ -150,6 +151,18 @@
               @click="handleRiotSignIn"
             >
               Sign in with Riot
+            </BaseButton>
+
+            <BaseButton
+              v-if="featureFlags.googleSignOn"
+              variant="secondary"
+              size="lg"
+              class="mt-lg w-full"
+              :disabled="isSubmitting || consentRejected"
+              data-testid="google-signin-button"
+              @click="handleGoogleSignIn"
+            >
+              Sign in with Google
             </BaseButton>
           </template>
 
@@ -179,7 +192,7 @@ import { BaseInput, BaseButton } from '@/components/base';
 import { useAuthStore } from '../stores/authStore';
 import { useCookieConsent } from '../composables/useCookieConsent';
 import { trackAuth } from '../services/analyticsApi';
-import { forgotPassword, getRiotSignOnUrl } from '../services/authApi';
+import { forgotPassword, getRiotSignOnUrl, getGoogleSignOnUrl } from '../services/authApi';
 import { featureFlags } from '@/utils/featureFlags';
 
 const route = useRoute();
@@ -238,20 +251,26 @@ onMounted(async () => {
     isLogin.value = true;
   }
 
-  // Surface errors reported by the Riot Sign-On callback redirect
+  // Surface errors reported by the Riot Sign-On / Google Sign-On callback redirects
   if (route.query.error) {
-    errorMessage.value = RIOT_SIGNON_ERRORS[route.query.error] || 'Sign-in failed. Please try again.';
-    trackAuth('login_attempt', false, { method: 'riot', errorCode: route.query.error });
+    const method = route.query.error.startsWith('google_') ? 'google' : 'riot';
+    errorMessage.value = SOCIAL_SIGNON_ERRORS[route.query.error] || 'Sign-in failed. Please try again.';
+    trackAuth('login_attempt', false, { method, errorCode: route.query.error });
   }
 });
 
-// Error codes the backend appends when redirecting back from the RSO flow
-const RIOT_SIGNON_ERRORS = {
+// Error codes the backend appends when redirecting back from the RSO / GSO flows
+const SOCIAL_SIGNON_ERRORS = {
   riot_signon_disabled: 'Riot sign-in is currently disabled.',
   riot_signon_denied: 'Riot sign-in was cancelled.',
   riot_signon_state: 'Your sign-in session expired. Please try again.',
   riot_signon_failed: 'Riot sign-in failed. Please try again.',
   riot_signon_rate_limited: 'Too many sign-in attempts. Please try again later.',
+  google_signon_disabled: 'Google sign-in is currently disabled.',
+  google_signon_denied: 'Google sign-in was cancelled.',
+  google_signon_state: 'Your sign-in session expired. Please try again.',
+  google_signon_failed: 'Google sign-in failed. Please try again.',
+  google_signon_rate_limited: 'Too many sign-in attempts. Please try again later.',
   account_deactivated: 'This account has been deactivated.'
 };
 
@@ -259,6 +278,12 @@ const handleRiotSignIn = () => {
   if (isSubmitting.value || consentRejected.value) return;
   // Full-page navigation: the backend redirects the browser to Riot's authorize page
   window.location.href = getRiotSignOnUrl();
+};
+
+const handleGoogleSignIn = () => {
+  if (isSubmitting.value || consentRejected.value) return;
+  // Full-page navigation: the backend redirects the browser to Google's consent page
+  window.location.href = getGoogleSignOnUrl();
 };
 
 // Watch for route changes to update mode

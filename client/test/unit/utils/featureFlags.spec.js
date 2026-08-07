@@ -7,10 +7,11 @@ describe('featureFlags', () => {
     expect(featureFlags).not.toBeNull();
   });
 
-  it('includes the required keys teamAnalytics, goals, and riotSignOn', () => {
+  it('includes the required keys teamAnalytics, goals, riotSignOn, and googleSignOn', () => {
     expect(featureFlags).toHaveProperty('teamAnalytics');
     expect(featureFlags).toHaveProperty('goals');
     expect(featureFlags).toHaveProperty('riotSignOn');
+    expect(featureFlags).toHaveProperty('googleSignOn');
   });
 
   it('teamAnalytics is a boolean', () => {
@@ -38,5 +39,14 @@ describe('featureFlags', () => {
   it('riotSignOn is false in test environment (VITE_ env var not set)', () => {
     // In test env, VITE_FEATURE_RIOT_SIGNON is undefined, so !== 'true'
     expect(featureFlags.riotSignOn).toBe(false);
+  });
+
+  it('googleSignOn is a boolean', () => {
+    expect(typeof featureFlags.googleSignOn).toBe('boolean');
+  });
+
+  it('googleSignOn is false in test environment (VITE_ env var not set)', () => {
+    // In test env, VITE_FEATURE_GOOGLE_SIGNON is undefined, so !== 'true'
+    expect(featureFlags.googleSignOn).toBe(false);
   });
 });
