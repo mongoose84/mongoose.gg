@@ -85,6 +85,12 @@ jobs:
           if ([string]::IsNullOrWhiteSpace("${{ secrets.SMTP_FROM_EMAIL }}")) {
             $missingSecrets += "SMTP_FROM_EMAIL"
           }
+          if ([string]::IsNullOrWhiteSpace("${{ secrets.GSO_CLIENT_ID }}")) {
+            $missingSecrets += "GSO_CLIENT_ID"
+          }
+          if ([string]::IsNullOrWhiteSpace("${{ secrets.GSO_CLIENT_SECRET }}")) {
+            $missingSecrets += "GSO_CLIENT_SECRET"
+          }
 
           if ($missingSecrets.Count -gt 0) {
             Write-Error "❌ Missing required GitHub secrets: $($missingSecrets -join ', ')"
@@ -97,6 +103,8 @@ jobs:
             Write-Error "  - SMTP_USERNAME: Your SMTP username"
             Write-Error "  - SMTP_PASSWORD: Your SMTP password"
             Write-Error "  - SMTP_FROM_EMAIL: Sender email address (e.g., noreply@mongoose.gg)"
+            Write-Error "  - GSO_CLIENT_ID: Google OAuth 2.0 Client ID"
+            Write-Error "  - GSO_CLIENT_SECRET: Google OAuth 2.0 Client Secret"
             exit 1
           }
 
@@ -128,6 +136,8 @@ jobs:
           $smtpUsername = ConvertTo-XmlEscaped "${{ secrets.SMTP_USERNAME }}"
           $smtpPassword = ConvertTo-XmlEscaped "${{ secrets.SMTP_PASSWORD }}"
           $smtpFromEmail = ConvertTo-XmlEscaped "${{ secrets.SMTP_FROM_EMAIL }}"
+          $gsoClientId = ConvertTo-XmlEscaped "${{ secrets.GSO_CLIENT_ID }}"
+          $gsoClientSecret = ConvertTo-XmlEscaped "${{ secrets.GSO_CLIENT_SECRET }}"
 
           # GitHub Feedback Configuration (optional - feedback works without it, just won't create issues)
           $githubToken = ConvertTo-XmlEscaped "${{ secrets.FEEDBACK_TOKEN }}"
@@ -189,6 +199,13 @@ jobs:
                   <environmentVariable name="GitHub__Token" value="$githubToken" />
                   <environmentVariable name="GitHub__Owner" value="$githubOwner" />
                   <environmentVariable name="GitHub__Repo" value="$githubRepo" />
+
+                  <!-- Google Sign-On Configuration -->
+                  <environmentVariable name="Auth__EnableGoogleSignOn" value="true" />
+                  <environmentVariable name="GSO_CLIENT_ID" value="$gsoClientId" />
+                  <environmentVariable name="GSO_CLIENT_SECRET" value="$gsoClientSecret" />
+                  <environmentVariable name="Auth__Google__RedirectUri" value="https://api.mongoose.gg/api/v2/auth/google/callback" />
+                  <environmentVariable name="Auth__Google__ClientBaseUrl" value="https://mongoose.gg" />
                 </environmentVariables>
               </aspNetCore>
 
