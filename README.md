@@ -135,6 +135,24 @@ dotnet user-secrets set "Security:EncryptionSecret" "your-generated-key-here"
 
 **⚠️ Important:** Store this key securely! If lost, encrypted emails cannot be recovered. If leaked, emails can be decrypted.
 
+##### Google Sign-On (GSO)
+Gated off by default. To enable, get an OAuth 2.0 Client ID/Secret from [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (Web application type, redirect URI `http://localhost:5164/api/v2/auth/google/callback`), then set the credentials via user-secrets (recommended):
+```bash
+# from server/ directory
+dotnet user-secrets set "Auth:Google:ClientId" "xxxxxxxx.apps.googleusercontent.com"
+dotnet user-secrets set "Auth:Google:ClientSecret" "GOCSPX-xxxxxxxx"
+```
+Or via environment variables (PowerShell — remember to quote the values, unquoted `-` in the client ID/secret is parsed as a flag):
+```powershell
+$env:GSO_CLIENT_ID = "xxxxxxxx.apps.googleusercontent.com"
+$env:GSO_CLIENT_SECRET = "GOCSPX-xxxxxxxx"
+```
+Then flip the flags:
+- Backend: `Auth:EnableGoogleSignOn` → `true` in `server/Mongoose.Api/appsettings.Development.json`
+- Frontend: `VITE_FEATURE_GOOGLE_SIGNON=true` in `client/.env.development`
+
+See `.github/specs/features/google-sign-on.spec.md` for the full activation checklist.
+
 ##### Build and run
 
 build and run the application

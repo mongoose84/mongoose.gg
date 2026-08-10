@@ -43,12 +43,12 @@ CREATE TABLE IF NOT EXISTS analytics_event_dimensions (
   custom_properties JSON NULL COMMENT '{key: value, ...}',
   
   -- User context
-  user_id BIGINT NULL COMMENT 'User ID (nullable for anonymous)',
+  user_id BIGINT UNSIGNED NULL COMMENT 'User ID (nullable for anonymous)',
   session_id VARCHAR(64) NULL COMMENT 'Client session ID',
   
   -- Timestamps
   event_timestamp_utc DATETIME NOT NULL COMMENT 'When event occurred',
-  created_at DATETIME NOT NULL DEFAULT UTC_TIMESTAMP COMMENT 'Extraction time',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Extraction time',
   
   -- Indexes for exploration queries
   INDEX idx_event_name_timestamp (event_name, event_timestamp_utc),
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS analytics_event_dimensions (
 CREATE TABLE IF NOT EXISTS analytics_journey_steps (
   id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Step record ID',
   session_id VARCHAR(64) NOT NULL COMMENT 'User session identifier',
-  user_id BIGINT NULL COMMENT 'User ID (nullable for anonymous sessions)',
+  user_id BIGINT UNSIGNED NULL COMMENT 'User ID (nullable for anonymous sessions)',
   
   -- Journey sequence
   step_number INT NOT NULL COMMENT 'Sequence number (1, 2, 3, ...)',
@@ -92,8 +92,8 @@ CREATE TABLE IF NOT EXISTS analytics_journey_steps (
   tier VARCHAR(20) NOT NULL COMMENT 'free|pro|premium',
   
   -- Metadata
-  created_at DATETIME NOT NULL DEFAULT UTC_TIMESTAMP COMMENT 'Record creation time',
-  
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation time',
+
   -- Indexes for journey queries
   INDEX idx_session_id (session_id),
   INDEX idx_user_id (user_id),
@@ -102,8 +102,8 @@ CREATE TABLE IF NOT EXISTS analytics_journey_steps (
   INDEX idx_destination_page (destination_page),
   INDEX idx_tier_timestamp (tier, transition_timestamp_utc),
   
-  CONSTRAINT fk_user_id_journey FOREIGN KEY (user_id) 
-    REFERENCES users(id) ON DELETE SET NULL
+  CONSTRAINT fk_user_id_journey FOREIGN KEY (user_id)
+    REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='User navigation journey flow';
 
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS analytics_funnel_steps (
   id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Funnel step record ID',
   funnel_name VARCHAR(100) NOT NULL COMMENT 'Funnel identifier (e.g., auth_to_feature)',
   session_id VARCHAR(64) NOT NULL COMMENT 'User session',
-  user_id BIGINT NULL COMMENT 'User ID',
+  user_id BIGINT UNSIGNED NULL COMMENT 'User ID',
   
   -- Step tracking
   step_number INT NOT NULL COMMENT 'Step position in funnel (1, 2, 3, ...)',
@@ -134,8 +134,8 @@ CREATE TABLE IF NOT EXISTS analytics_funnel_steps (
   device_type VARCHAR(20) NULL COMMENT 'mobile|tablet|desktop',
   
   -- Metadata
-  created_at DATETIME NOT NULL DEFAULT UTC_TIMESTAMP,
-  
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
   -- Indexes for funnel analysis
   INDEX idx_funnel_name (funnel_name),
   INDEX idx_session_id (session_id),
@@ -146,8 +146,8 @@ CREATE TABLE IF NOT EXISTS analytics_funnel_steps (
   INDEX idx_timestamp (step_timestamp_utc),
   INDEX idx_tier_timestamp (tier, completed_at_utc),
   
-  CONSTRAINT fk_user_id_funnel FOREIGN KEY (user_id) 
-    REFERENCES users(id) ON DELETE SET NULL
+  CONSTRAINT fk_user_id_funnel FOREIGN KEY (user_id)
+    REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Funnel step tracking for conversion analysis';
 
@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS analytics_rollup_hourly (
   top_countries JSON NULL COMMENT '[{country: "US", count: 100}, ...]',
   
   -- Metadata
-  created_at DATETIME NOT NULL DEFAULT UTC_TIMESTAMP COMMENT 'Rollup calculation time',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Rollup calculation time',
   
   -- Indexes for rollup queries
   UNIQUE KEY uniq_hour_event (date_hour, event_name),
@@ -217,8 +217,8 @@ CREATE TABLE IF NOT EXISTS analytics_funnel_definitions (
   max_time_between_steps_hours INT NOT NULL DEFAULT 24 COMMENT 'Max hours between steps',
   
   -- Metadata
-  created_at DATETIME NOT NULL DEFAULT UTC_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT UTC_TIMESTAMP ON UPDATE UTC_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
   INDEX idx_enabled (enabled)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -250,9 +250,7 @@ CREATE TABLE IF NOT EXISTS analytics_dimension_extraction_status (
   last_event_id BIGINT NOT NULL DEFAULT 0 COMMENT 'Highest event_id processed',
   last_processed_at DATETIME NOT NULL COMMENT 'Last extraction time',
   events_processed INT NOT NULL DEFAULT 0 COMMENT 'Events in last batch',
-  extraction_duration_ms INT NOT NULL DEFAULT 0 COMMENT 'Time taken (ms)',
-  
-  CONSTRAINT pk_status PRIMARY KEY (status_key)
+  extraction_duration_ms INT NOT NULL DEFAULT 0 COMMENT 'Time taken (ms)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   COMMENT='Dimension extraction job tracking';
 

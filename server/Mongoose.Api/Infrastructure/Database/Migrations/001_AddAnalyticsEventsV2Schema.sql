@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS analytics_events_v2 (
   event_id CHAR(36) UNIQUE COMMENT 'UUID for idempotency (optional, client-provided)',
   
   -- Identifiers
-  user_id BIGINT NULL COMMENT 'User ID (NULL for anonymous)',
+  user_id BIGINT UNSIGNED NULL COMMENT 'User ID (NULL for anonymous)',
   session_id VARCHAR(64) NULL COMMENT 'Client session ID for grouping',
   
   -- Event Definition (indexed for queries)
@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS analytics_events_v2 (
   
   -- Timestamps (all UTC)
   client_timestamp_utc DATETIME NULL COMMENT 'Client timestamp (for skew detection)',
-  server_timestamp_utc DATETIME NOT NULL DEFAULT UTC_TIMESTAMP COMMENT 'Server timestamp (used for retention)',
-  created_at DATETIME NOT NULL DEFAULT UTC_TIMESTAMP COMMENT 'Insertion time (denormalized for sorting)',
+  server_timestamp_utc DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Server timestamp (used for retention)',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Insertion time (denormalized for sorting)',
   
   -- Validation/Status (for observability)
   rejection_reason VARCHAR(100) NULL COMMENT 'If event was rejected: reason code',
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS analytics_events_v2 (
   -- Retention purge support
   INDEX idx_retention_purge (event_category, server_timestamp_utc),
   
-  CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+  CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Versioned analytics events with strict schema validation';
 
@@ -64,8 +64,8 @@ CREATE TABLE IF NOT EXISTS analytics_event_rejections (
   rejection_reason VARCHAR(100) NOT NULL COMMENT 'Enum: MissingEventName, EventNameTooLong, etc.',
   payload_preview VARCHAR(500) NULL COMMENT 'First 500 chars of attempted payload (for debugging)',
   session_id VARCHAR(64) NULL,
-  created_at DATETIME NOT NULL DEFAULT UTC_TIMESTAMP,
-  
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
   INDEX idx_rejection_reason_created (rejection_reason, created_at),
   INDEX idx_created_at (created_at),
   INDEX idx_event_name (event_name)
@@ -78,8 +78,8 @@ CREATE TABLE IF NOT EXISTS analytics_retention_policies (
   event_category VARCHAR(50) NOT NULL UNIQUE COMMENT 'Event category (navigation, auth, etc.)',
   retention_days INT NOT NULL COMMENT 'Days to retain events',
   purge_enabled BOOLEAN NOT NULL DEFAULT 1 COMMENT 'Enable auto-purge',
-  created_at DATETIME NOT NULL DEFAULT UTC_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT UTC_TIMESTAMP ON UPDATE UTC_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
   INDEX idx_event_category (event_category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

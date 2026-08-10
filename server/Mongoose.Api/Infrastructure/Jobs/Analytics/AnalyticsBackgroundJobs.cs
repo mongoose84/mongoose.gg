@@ -3,6 +3,7 @@ namespace Mongoose.Api.Infrastructure.Jobs.Analytics;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Mongoose.Api.Core.Interfaces;
@@ -75,15 +76,15 @@ public abstract class AnalyticsBackgroundJob : BackgroundService
 public class DimensionExtractionBackgroundJob : AnalyticsBackgroundJob
 {
     private DateTime _lastRunTime = DateTime.UtcNow;
-    private readonly DimensionExtractionService _dimensionService;
+    private readonly IServiceScopeFactory _scopeFactory;
     private const int RunIntervalMinutes = 5;
 
     public DimensionExtractionBackgroundJob(
-        DimensionExtractionService dimensionService,
+        IServiceScopeFactory scopeFactory,
         ILogger<DimensionExtractionBackgroundJob> logger)
         : base(logger, "DimensionExtraction")
     {
-        _dimensionService = dimensionService;
+        _scopeFactory = scopeFactory;
     }
 
     protected override Task<DateTime> GetNextRunTimeAsync()
@@ -95,10 +96,13 @@ public class DimensionExtractionBackgroundJob : AnalyticsBackgroundJob
     protected override async Task ExecuteJobAsync(CancellationToken cancellationToken)
     {
         _lastRunTime = DateTime.UtcNow;
-        
+
+        using var scope = _scopeFactory.CreateScope();
+        var dimensionService = scope.ServiceProvider.GetRequiredService<DimensionExtractionService>();
+
         // Implementation would:
         // 1. Query for unprocessed events from analytics_events_v2
-        // 2. Call _dimensionService.ExtractDimensionsAsync()
+        // 2. Call dimensionService.ExtractDimensionsAsync()
         // 3. Mark events as processed
         // 4. Log progress
 
@@ -113,14 +117,14 @@ public class DimensionExtractionBackgroundJob : AnalyticsBackgroundJob
 public class RollupAggregationBackgroundJob : AnalyticsBackgroundJob
 {
     private DateTime _lastRunTime = DateTime.UtcNow;
-    private readonly AggregationService _aggregationService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public RollupAggregationBackgroundJob(
-        AggregationService aggregationService,
+        IServiceScopeFactory scopeFactory,
         ILogger<RollupAggregationBackgroundJob> logger)
         : base(logger, "RollupAggregation")
     {
-        _aggregationService = aggregationService;
+        _scopeFactory = scopeFactory;
     }
 
     protected override Task<DateTime> GetNextRunTimeAsync()
@@ -136,10 +140,13 @@ public class RollupAggregationBackgroundJob : AnalyticsBackgroundJob
     protected override async Task ExecuteJobAsync(CancellationToken cancellationToken)
     {
         _lastRunTime = DateTime.UtcNow;
-        
+
+        using var scope = _scopeFactory.CreateScope();
+        var aggregationService = scope.ServiceProvider.GetRequiredService<AggregationService>();
+
         // Aggregate last hour's events
-        await _aggregationService.AggregateLastHourAsync();
-        
+        await aggregationService.AggregateLastHourAsync();
+
         Logger.LogInformation("Hourly rollup aggregation completed");
     }
 }
@@ -149,16 +156,16 @@ public class RollupAggregationBackgroundJob : AnalyticsBackgroundJob
 /// </summary>
 public class RetentionAndPurgeBackgroundJob : AnalyticsBackgroundJob
 {
-    private readonly IAnalyticsEventsV2Repository _eventsRepository;
+    private readonly IServiceScopeFactory _scopeFactory;
     private const int RunHourUtc = 2;
     private const int RunMinuteUtc = 0;
 
     public RetentionAndPurgeBackgroundJob(
-        IAnalyticsEventsV2Repository eventsRepository,
+        IServiceScopeFactory scopeFactory,
         ILogger<RetentionAndPurgeBackgroundJob> logger)
         : base(logger, "RetentionAndPurge")
     {
-        _eventsRepository = eventsRepository;
+        _scopeFactory = scopeFactory;
     }
 
     protected override Task<DateTime> GetNextRunTimeAsync()
@@ -183,9 +190,11 @@ public class RetentionAndPurgeBackgroundJob : AnalyticsBackgroundJob
         try
         {
             // Purge old events
-            var purgedCount = await _eventsRepository.DeleteOlderThanAsync(
+            using var scope = _scopeFactory.CreateScope();
+            var eventsRepository = scope.ServiceProvider.GetRequiredService<IAnalyticsEventsV2Repository>();
+            var purgedCount = await eventsRepository.DeleteOlderThanAsync(
                 DateTime.UtcNow.AddDays(-365)); // Keep max 365 days
-            
+
             Logger.LogInformation($"Purged {purgedCount} old events from analytics_events_v2");
 
             // Purge from dimensions table
