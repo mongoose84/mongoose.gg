@@ -88,5 +88,5 @@ Key settings:
 ## Validation
 
 - For new or changed endpoints, add or update integration tests — see [server/Mongoose.Api.Tests/CLAUDE.md](../Mongoose.Api.Tests/CLAUDE.md).
-- For new endpoints or vertical slices, use the [new-endpoint skill](../../.github/skills/new-endpoint/SKILL.md).
+- For new endpoints or vertical slices, use the [new-endpoint skill](../../.claude/skills/new-endpoint/SKILL.md).
 - Reuse nearby implementation patterns before introducing new abstractions.

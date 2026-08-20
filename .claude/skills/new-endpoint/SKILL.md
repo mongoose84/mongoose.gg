@@ -13,8 +13,8 @@ This skill is the canonical home for backend endpoint scaffolding examples and v
 ## Prerequisites
 
 Before starting, review:
-- [Architecture Spec](../../specs/architecture.spec.md) — endpoint patterns, existing route map
-- [Database Schema](../../specs/database-schema.spec.md) — available tables and columns
+- `.github/specs/architecture.spec.md` — endpoint patterns, existing route map
+- `.github/specs/database-schema.spec.md` — available tables and columns
 - `server/Mongoose.Api/CLAUDE.md` — coding patterns (auto-loaded when working there)
 
 ## Information Needed

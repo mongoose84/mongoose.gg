@@ -10,8 +10,9 @@ Feature to spec: $ARGUMENTS
 
 ## Use When
 
-- The user wants a new feature spec or implementation plan.
+- The user wants a new feature spec or implementation plan starting from a fresh description.
 - The task is planning, not direct code delivery.
+- If the feature was already designed in the current conversation, use `/to-spec` instead — it synthesizes without re-interviewing.
 
 ## Context To Load
 
@@ -34,4 +35,4 @@ Feature to spec: $ARGUMENTS
 - Clear in-scope and out-of-scope boundaries.
 - Risks, dependencies, and testing expectations.
 
-For end-to-end implementation after the spec exists, delegate to the `feature-implementation` subagent.
+For end-to-end implementation after the spec exists, delegate to the `fullstack-developer` subagent, or run the `feature-implementation` skill for the full multi-agent delivery workflow.
