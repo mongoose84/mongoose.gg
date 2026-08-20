@@ -1,4 +1,3 @@
-using Mongoose.Api.Infrastructure.Telemetry;
 
 namespace Mongoose.Api.Application.Endpoints
 {

@@ -2,8 +2,6 @@ using System.Text.Json;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Riot;
-using Mongoose.Api.Infrastructure.WebSocket;
 
 namespace Mongoose.Api.Application.Services;
 
