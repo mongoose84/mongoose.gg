@@ -10,8 +10,9 @@ Feature to spec: $ARGUMENTS
 
 ## Use When
 
-- The user wants a new feature spec or implementation plan.
+- The user wants a new feature spec or implementation plan starting from a fresh description.
 - The task is planning, not direct code delivery.
+- If the feature was already designed in the current conversation, use `/to-spec` instead — it synthesizes without re-interviewing.
 
 ## Context To Load
 
