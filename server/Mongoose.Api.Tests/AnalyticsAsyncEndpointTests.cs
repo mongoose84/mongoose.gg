@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Endpoints.Analytics;
@@ -228,12 +229,19 @@ public class AnalyticsQueueProcessorTests
     public Task<Dictionary<string, long>> GetEventDistributionByCategoryAsync(DateTime from, DateTime to) => Task.FromResult(new Dictionary<string, long>());
   }
 
+  private static IServiceScopeFactory CreateScopeFactory(IAnalyticsEventsV2Repository repo)
+  {
+    var services = new ServiceCollection();
+    services.AddScoped<IAnalyticsEventsV2Repository>(_ => repo);
+    return services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+  }
+
   [Fact]
   public async Task QueueProcessor_enqueues_events()
   {
     var repo = new FakeAnalyticsEventsV2Repository();
 
-    var processor = new AnalyticsQueueProcessor(repo, NullLogger<AnalyticsQueueProcessor>.Instance);
+    var processor = new AnalyticsQueueProcessor(CreateScopeFactory(repo), NullLogger<AnalyticsQueueProcessor>.Instance);
 
     var events = new List<AnalyticsEventV2>
     {
@@ -256,7 +264,7 @@ public class AnalyticsQueueProcessorTests
   {
     var repo = new FakeAnalyticsEventsV2Repository();
 
-    var processor = new AnalyticsQueueProcessor(repo, NullLogger<AnalyticsQueueProcessor>.Instance);
+    var processor = new AnalyticsQueueProcessor(CreateScopeFactory(repo), NullLogger<AnalyticsQueueProcessor>.Instance);
 
     var metrics = await processor.GetMetricsAsync();
 

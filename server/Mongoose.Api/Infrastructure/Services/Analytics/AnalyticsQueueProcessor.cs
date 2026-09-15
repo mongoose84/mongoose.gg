@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Mongoose.Api.Application.Endpoints.Analytics;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -25,7 +26,8 @@ namespace Mongoose.Api.Infrastructure.Services.Analytics;
 /// </summary>
 public class AnalyticsQueueProcessor : BackgroundService, IAnalyticsQueueProcessor
 {
-  private readonly IAnalyticsEventsV2Repository _repository;
+  // Singleton hosted service: the scoped repository is resolved per batch, never captured.
+  private readonly IServiceScopeFactory _scopeFactory;
   private readonly ILogger<AnalyticsQueueProcessor> _logger;
   private readonly AnalyticsQueueOptions _options;
   
@@ -42,11 +44,11 @@ public class AnalyticsQueueProcessor : BackgroundService, IAnalyticsQueueProcess
   private DateTime _metricsWindowStart = DateTime.UtcNow;
   
   public AnalyticsQueueProcessor(
-    IAnalyticsEventsV2Repository repository,
+    IServiceScopeFactory scopeFactory,
     ILogger<AnalyticsQueueProcessor> logger,
     AnalyticsQueueOptions? options = null)
   {
-    _repository = repository;
+    _scopeFactory = scopeFactory;
     _logger = logger;
     _options = options ?? new AnalyticsQueueOptions();
     
@@ -167,14 +169,17 @@ public class AnalyticsQueueProcessor : BackgroundService, IAnalyticsQueueProcess
           Interlocked.Increment(ref _processingCount);
           
           var stopwatch = Stopwatch.StartNew();
-          
+
           // Insert batch to database
+          using var scope = _scopeFactory.CreateScope();
+          var repository = scope.ServiceProvider.GetRequiredService<IAnalyticsEventsV2Repository>();
+
           var insertCount = 0;
           foreach (var evt in batch)
           {
             try
             {
-              await _repository.InsertAsync(evt);
+              await repository.InsertAsync(evt);
               insertCount++;
             }
             catch (Exception ex)
