@@ -1,3 +1,5 @@
+using Mongoose.Api.Infrastructure;
+using Mongoose.Api.Infrastructure.Telemetry;
 
 namespace Mongoose.Api.Application.Endpoints.Diagnostics
 {

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Infrastructure.Email;
 using static Mongoose.Api.Application.DTOs.RegisterDto;
 
 namespace Mongoose.Api.Application.Endpoints.Auth;
