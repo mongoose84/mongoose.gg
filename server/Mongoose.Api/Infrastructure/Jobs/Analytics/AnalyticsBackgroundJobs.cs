@@ -3,6 +3,7 @@ namespace Mongoose.Api.Infrastructure.Jobs.Analytics;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Mongoose.Api.Core.Interfaces;
@@ -75,15 +76,15 @@ public abstract class AnalyticsBackgroundJob : BackgroundService
 public class DimensionExtractionBackgroundJob : AnalyticsBackgroundJob
 {
     private DateTime _lastRunTime = DateTime.UtcNow;
-    private readonly DimensionExtractionService _dimensionService;
+    private readonly IServiceProvider _serviceProvider;
     private const int RunIntervalMinutes = 5;
 
     public DimensionExtractionBackgroundJob(
-        DimensionExtractionService dimensionService,
+        IServiceProvider serviceProvider,
         ILogger<DimensionExtractionBackgroundJob> logger)
         : base(logger, "DimensionExtraction")
     {
-        _dimensionService = dimensionService;
+        _serviceProvider = serviceProvider;
     }
 
     protected override Task<DateTime> GetNextRunTimeAsync()
@@ -95,10 +96,14 @@ public class DimensionExtractionBackgroundJob : AnalyticsBackgroundJob
     protected override async Task ExecuteJobAsync(CancellationToken cancellationToken)
     {
         _lastRunTime = DateTime.UtcNow;
-        
+
+        // Hosted services are singletons — resolve scoped services per run, never in the constructor.
+        using var scope = _serviceProvider.CreateScope();
+        var dimensionService = scope.ServiceProvider.GetRequiredService<DimensionExtractionService>();
+
         // Implementation would:
         // 1. Query for unprocessed events from analytics_events_v2
-        // 2. Call _dimensionService.ExtractDimensionsAsync()
+        // 2. Call dimensionService.ExtractDimensionsAsync()
         // 3. Mark events as processed
         // 4. Log progress
 
@@ -113,14 +118,14 @@ public class DimensionExtractionBackgroundJob : AnalyticsBackgroundJob
 public class RollupAggregationBackgroundJob : AnalyticsBackgroundJob
 {
     private DateTime _lastRunTime = DateTime.UtcNow;
-    private readonly AggregationService _aggregationService;
+    private readonly IServiceProvider _serviceProvider;
 
     public RollupAggregationBackgroundJob(
-        AggregationService aggregationService,
+        IServiceProvider serviceProvider,
         ILogger<RollupAggregationBackgroundJob> logger)
         : base(logger, "RollupAggregation")
     {
-        _aggregationService = aggregationService;
+        _serviceProvider = serviceProvider;
     }
 
     protected override Task<DateTime> GetNextRunTimeAsync()
@@ -136,9 +141,12 @@ public class RollupAggregationBackgroundJob : AnalyticsBackgroundJob
     protected override async Task ExecuteJobAsync(CancellationToken cancellationToken)
     {
         _lastRunTime = DateTime.UtcNow;
-        
+
+        using var scope = _serviceProvider.CreateScope();
+        var aggregationService = scope.ServiceProvider.GetRequiredService<AggregationService>();
+
         // Aggregate last hour's events
-        await _aggregationService.AggregateLastHourAsync();
+        await aggregationService.AggregateLastHourAsync();
         
         Logger.LogInformation("Hourly rollup aggregation completed");
     }
@@ -149,16 +157,16 @@ public class RollupAggregationBackgroundJob : AnalyticsBackgroundJob
 /// </summary>
 public class RetentionAndPurgeBackgroundJob : AnalyticsBackgroundJob
 {
-    private readonly IAnalyticsEventsV2Repository _eventsRepository;
+    private readonly IServiceProvider _serviceProvider;
     private const int RunHourUtc = 2;
     private const int RunMinuteUtc = 0;
 
     public RetentionAndPurgeBackgroundJob(
-        IAnalyticsEventsV2Repository eventsRepository,
+        IServiceProvider serviceProvider,
         ILogger<RetentionAndPurgeBackgroundJob> logger)
         : base(logger, "RetentionAndPurge")
     {
-        _eventsRepository = eventsRepository;
+        _serviceProvider = serviceProvider;
     }
 
     protected override Task<DateTime> GetNextRunTimeAsync()
@@ -182,8 +190,11 @@ public class RetentionAndPurgeBackgroundJob : AnalyticsBackgroundJob
 
         try
         {
+            using var scope = _serviceProvider.CreateScope();
+            var eventsRepository = scope.ServiceProvider.GetRequiredService<IAnalyticsEventsV2Repository>();
+
             // Purge old events
-            var purgedCount = await _eventsRepository.DeleteOlderThanAsync(
+            var purgedCount = await eventsRepository.DeleteOlderThanAsync(
                 DateTime.UtcNow.AddDays(-365)); // Keep max 365 days
             
             Logger.LogInformation($"Purged {purgedCount} old events from analytics_events_v2");

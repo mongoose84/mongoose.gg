@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Mongoose.Api.Core.Interfaces;
-using Mongoose.Api.Infrastructure.Services.Analytics;
 
 /// <summary>
 /// Product analytics exploration endpoint

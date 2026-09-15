@@ -4,7 +4,6 @@ using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
-using Mongoose.Api.Infrastructure.Helpers;
 
 namespace Mongoose.Api.Application.Endpoints.Matches;
 
