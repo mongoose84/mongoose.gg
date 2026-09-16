@@ -26,6 +26,7 @@ namespace Mongoose.Api.Infrastructure.Services.Analytics;
 /// </summary>
 public class AnalyticsQueueProcessor : BackgroundService, IAnalyticsQueueProcessor
 {
+  // Singleton hosted service: the scoped repository is resolved per batch, never captured.
   private readonly IServiceScopeFactory _scopeFactory;
   private readonly ILogger<AnalyticsQueueProcessor> _logger;
   private readonly AnalyticsQueueOptions _options;

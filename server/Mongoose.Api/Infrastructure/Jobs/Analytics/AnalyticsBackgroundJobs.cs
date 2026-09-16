@@ -97,6 +97,7 @@ public class DimensionExtractionBackgroundJob : AnalyticsBackgroundJob
     {
         _lastRunTime = DateTime.UtcNow;
 
+        // Hosted services are singletons — resolve scoped services per run, never in the constructor.
         using var scope = _scopeFactory.CreateScope();
         var dimensionService = scope.ServiceProvider.GetRequiredService<DimensionExtractionService>();
 
@@ -189,9 +190,10 @@ public class RetentionAndPurgeBackgroundJob : AnalyticsBackgroundJob
 
         try
         {
-            // Purge old events
             using var scope = _scopeFactory.CreateScope();
             var eventsRepository = scope.ServiceProvider.GetRequiredService<IAnalyticsEventsV2Repository>();
+
+            // Purge old events
             var purgedCount = await eventsRepository.DeleteOlderThanAsync(
                 DateTime.UtcNow.AddDays(-365)); // Keep max 365 days
 
