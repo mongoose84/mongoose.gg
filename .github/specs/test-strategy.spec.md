@@ -171,12 +171,15 @@ public class MyEndpointTests : IClassFixture<TestWebApplicationFactory>
 ```
 client/test/unit/
 ├── components/
-│   ├── AnalysisStatusCard.spec.js          # ✅ Complete (26 tests)
-│   ├── ChampionSelectCTA.spec.js           # ✅ Complete (18 tests)
-│   ├── LastMatchCard.spec.js               # ✅ Exists
+│   ├── BaseEmptyState.spec.js              # ✅ Exists
+│   ├── BaseMatchRow.spec.js                # ✅ Exists
+│   ├── BaseSkeleton.spec.js                # ✅ Exists
+│   ├── ChampionHero.spec.js                # ✅ Exists
+│   ├── InsightCard.spec.js                 # ✅ Exists
 │   ├── LinkRiotAccountModal.spec.js        # ✅ Exists
 │   ├── NavBar.spec.js                      # ✅ Exists
-│   ├── OverviewPlayerHeader.spec.js        # ✅ Exists
+│   ├── OverviewAccountCards.spec.js        # ✅ Exists
+│   ├── SyncProgress.spec.js                # ✅ Exists
 │   ├── SessionExpiredBanner.spec.js        # ✅ Complete (9 tests)
 │   ├── SummaryStatsCard.spec.js            # ✅ Complete (38 tests)
 │   ├── TrendChartCard.spec.js              # ✅ Complete (40 tests)
@@ -188,14 +191,14 @@ client/test/unit/
 │   ├── BaseQueueToggle.spec.js             # ✅ Complete (17 tests)
 │   ├── BaseTimeRangeSelect.spec.js         # ✅ Complete (18 tests)
 │   ├── matches/                            # Missing (13 components)
-│   └── overview/                           # Partial (2 of 7 tested)
+│   └── overview/                           # Partial (MatchActivityHeatmap untested)
 ├── composables/
 │   ├── useSyncWebSocket.spec.js            # ✅ Complete (19 tests)
 │   ├── useAnalysisStatus.spec.js           # ✅ Complete (31 tests)
+│   ├── useSyncMatches.spec.js              # ✅ Exists
 │   └── useWinRateColor.spec.js             # Missing
 ├── stores/
-│   ├── authStore.spec.js                   # ✅ Complete (39 tests)
-│   └── uiStore.spec.js                     # Missing
+│   └── authStore.spec.js                   # ✅ Complete (39 tests)
 ├── services/
 │   ├── apiClient.spec.js                   # ✅ Complete (23 tests)
 │   ├── analyticsApi.spec.js                # ✅ Exists (15 tests)
@@ -203,6 +206,7 @@ client/test/unit/
 │   └── authApi.spec.js                     # Partial (via authStore)
 ├── utils/
 │   ├── formatters.spec.js                  # ✅ Complete (56 tests)
+│   ├── overviewSummary.spec.js             # ✅ Exists
 │   └── leagueAssets.spec.js                # Missing
 └── pages/
     ├── AuthPage.spec.js                    # ✅ Exists
@@ -219,7 +223,7 @@ client/test/unit/
 |----------|-------|--------|----------|
 | **Composables** | 3 | 2 | 67% |
 | **Services** | 5 | 2 | 40% |
-| **Stores** | 2 | 1 | 50% |
+| **Stores** | 1 | 1 | 100% |
 | **Utils** | 2 | 1 | 50% |
 | **Views** | 14 | 5 | 36% |
 | **Components** | ~43 | ~16 | ~37% |
@@ -228,10 +232,9 @@ client/test/unit/
 ### 4.4 Gaps to Fill
 
 1. **useWinRateColor.spec.js** — Pure function, simple to test
-2. **uiStore.spec.js** — Sidebar state, localStorage, responsive behavior
-3. **feedbackApi.spec.js** — Browser/OS detection helpers
-4. **Match components** — 13 untested components
-5. **Remaining views** — 9 untested pages
+2. **feedbackApi.spec.js** — Browser/OS detection helpers
+3. **Match components** — 13 untested components
+4. **Remaining views** — 9 untested pages
 
 ### 4.5 Test Helpers (`client/test/helpers/`)
 

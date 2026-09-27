@@ -1,94 +1,198 @@
 <template>
-  <OverviewLayout
-    :is-loading="pageIsLoading"
-    :error="error"
-    :is-empty="!overviewData"
-    @retry="fetchData"
-  >
-    <!-- Empty State Action -->
-    <template #empty-action>
-      <button class="btn-link-account" @click="showLinkModal = true">
-        Link Riot Account
-      </button>
-    </template>
+  <div class="overview-page" data-testid="overview-page">
+    <SyncProgress
+      v-if="syncState"
+      :state="syncState"
+      :current="progressCurrent"
+      :total="progressTotal"
+      :synced-count="syncedCount"
+      @retry="startSync"
+    />
 
-    <!-- Header: Player Header (full width) -->
-    <template #header>
-      <!-- Overall Mode: Show account cards -->
+    <!-- No linked Riot account -->
+    <BaseEmptyState
+      v-if="hasNoLinkedAccount"
+      :heading-level="1"
+      title="Link your Riot account to see your Overview"
+      description="We sync your recent matches and your Overview fills in within a few minutes."
+      data-testid="overview-empty"
+    >
+      <template #action>
+        <BaseButton size="lg" data-testid="overview-link-account" @click="showLinkModal = true">
+          <template #icon-left><BaseIcon name="link" :size="20" /></template>
+          Link Riot account
+        </BaseButton>
+      </template>
+    </BaseEmptyState>
+
+    <!-- Loading: the page frame with skeletons in the layout of the content -->
+    <div
+      v-else-if="pageIsLoading"
+      class="overview-loading"
+      aria-busy="true"
+      data-testid="overview-loading"
+    >
+      <span class="visually-hidden">Loading your Overview</span>
+      <div class="mp-hero overview-loading__hero">
+        <div class="mp-hero-body">
+          <div class="overview-loading__stack">
+            <BaseSkeleton width="14rem" />
+            <BaseSkeleton variant="title" width="70%" height="2.75rem" />
+            <BaseSkeleton width="55%" />
+          </div>
+          <BaseSkeleton variant="block" width="11rem" height="3rem" />
+        </div>
+      </div>
+      <div class="mp-card overview-loading__stack">
+        <BaseSkeleton variant="title" />
+        <div class="overview-loading__row">
+          <BaseSkeleton variant="portrait" />
+          <div class="overview-loading__stack overview-loading__grow">
+            <BaseSkeleton width="30%" />
+            <BaseSkeleton width="50%" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div v-else-if="error || !overviewData" class="mp-card" data-testid="overview-error">
+      <div class="mp-message mp-message--error" role="alert">
+        <BaseIcon name="triangle-alert" :size="20" />
+        <div class="mp-message__body">
+          <p>We couldn't load your Overview. Try again in a minute.</p>
+          <button
+            type="button"
+            class="mp-message__action"
+            data-testid="overview-retry"
+            @click="fetchData"
+          >Try again</button>
+        </div>
+      </div>
+    </div>
+
+    <template v-else>
+      <!-- Overall mode: one card per account in place of the hero -->
       <OverviewAccountCards
         v-if="authStore.isOverallMode && displayedAccounts.length > 0"
         :accounts="displayedAccounts"
         :linked-accounts="authStore.riotAccounts"
         :active-account-puuid="authStore.activeAccountPuuid"
-        @select="handleAccountSelect"
       />
-      
-      <!-- Individual Mode: Show player header -->
-      <OverviewPlayerHeader
-        v-else-if="overviewData?.playerHeader"
-        :summoner-name="overviewData.playerHeader.summonerName"
-        :level="overviewData.playerHeader.level"
-        :region="overviewData.playerHeader.region"
-        :profile-icon-url="overviewData.playerHeader.profileIconUrl"
-        :active-contexts="overviewData.playerHeader.activeContexts"
-        :rank="overviewData.playerHeader.rank ?? null"
-        :lp="overviewData.playerHeader.lp ?? null"
-        :primary-queue-label="overviewData.playerHeader.primaryQueueLabel ?? null"
-      />
-    </template>
 
-    <!-- At a glance: Left - Today Session Card -->
-    <template #glance-left>
-      <TodaySessionCard
-        :session-stats="overviewData?.sessionStats ?? null"
-        :combined-stats="overviewData?.combinedStats ?? null"
-        :loading="pageIsLoading"
-      />
-    </template>
+      <ChampionHero
+        v-else
+        :headline="heroHeadline"
+        :text="heroText"
+        :player-line="playerLine"
+        :champion-name="mostPlayedChampionName || null"
+        :chips="heroChips"
+      >
+        <template #action>
+          <BaseButton to="/app/matches" size="lg" data-testid="hero-matches-link">
+            See your matches
+          </BaseButton>
+        </template>
+      </ChampionHero>
 
-    <!-- At a glance: Right - Death Insights Card -->
-    <template #glance-right>
-      <div class="glance-right-fill">
-        <DeathInsightsCard
-          :survival-stats="overviewData?.survivalStats ?? null"
-          :loading="pageIsLoading"
+      <!-- Today's matches -->
+      <section
+        v-reveal-on-view
+        class="mp-card overview-card"
+        aria-labelledby="overview-today-title"
+        data-testid="today-matches-card"
+      >
+        <header class="overview-card__header">
+          <div>
+            <h2 id="overview-today-title" class="mp-card-title">Today's matches</h2>
+            <p v-if="lastSyncedLabel" class="overview-card__meta" data-testid="today-matches-synced">{{ lastSyncedLabel }}</p>
+          </div>
+          <BaseButton
+            variant="secondary"
+            size="sm"
+            :disabled="isSyncing"
+            data-testid="overview-sync-button"
+            @click="startSync"
+          >
+            <template #icon-left><BaseIcon name="refresh-cw" :size="16" /></template>
+            {{ isSyncing ? 'Syncing…' : 'Sync matches' }}
+          </BaseButton>
+        </header>
+
+        <template v-if="lastMatch">
+          <p class="overview-card__summary" data-testid="today-matches-summary">{{ todaySummary }}</p>
+          <BaseMatchRow
+            :to="{ path: '/app/matches', query: { matchId: lastMatch.matchId } }"
+            :champion-name="lastMatch.championName"
+            :champion-icon-url="lastMatch.championIconUrl"
+            :win="isWinResult(lastMatch.result)"
+            :kda="lastMatch.kda"
+            :queue="lastMatch.queueType"
+            :timestamp="lastMatch.timestamp"
+          />
+          <div class="overview-card__footer">
+            <BaseButton to="/app/matches" variant="ghost" size="sm" data-testid="today-matches-all">
+              All matches
+              <template #icon-right><BaseIcon name="arrow-right" :size="16" /></template>
+            </BaseButton>
+          </div>
+        </template>
+
+        <BaseEmptyState
+          v-else
+          title="No matches yet"
+          description="Sync your matches from Riot and your latest one shows up here."
+          data-testid="today-matches-empty"
         />
-      </div>
-    </template>
+      </section>
 
-    <!-- Quick actions: Left - Champion Select CTA -->
-    <template #recent-left>
-      <ChampionSelectCTA
-        :mural-url="championSelectMuralUrl"
-        :champion-name="mostPlayedChampionName"
-      />
-    </template>
-
-    <!-- Quick actions: Right - Analysis Status Card + Solo CTA -->
-    <template #recent-right>
-      <div class="actions-right-stack">
-        <AnalysisStatusCard />
-        <SoloAnalyticsCTA
-          :subtitle="soloCtaSubtitle"
+      <!-- Insights -->
+      <section
+        v-reveal-on-view
+        class="overview-section"
+        aria-labelledby="overview-insights-title"
+        data-testid="overview-insights"
+      >
+        <h2 id="overview-insights-title" class="mp-card-title">Insights</h2>
+        <div v-if="survivalInsight" class="overview-grid overview-grid--3">
+          <InsightCard
+            :kind="survivalInsight.kind"
+            :title="survivalInsight.title"
+            :text="survivalInsight.text"
+            :champion-name="mostPlayedChampionName || null"
+          />
+        </div>
+        <BaseEmptyState
+          v-else
+          title="No insights yet"
+          description="Insights need a few more matches with a clear pattern. Keep playing and check back after your next session."
+          data-testid="overview-insights-empty"
         />
-      </div>
-    </template>
+      </section>
 
-    <!-- Latest match (full width) -->
-    <template #latest-match>
-      <LastMatchCard
-        v-if="overviewData?.lastMatch"
-        :match-id="overviewData.lastMatch.matchId"
-        :champion-icon-url="overviewData.lastMatch.championIconUrl"
-        :champion-name="overviewData.lastMatch.championName"
-        :result="overviewData.lastMatch.result"
-        :kda="overviewData.lastMatch.kda"
-        :timestamp="overviewData.lastMatch.timestamp"
-        :queue-type="overviewData.lastMatch.queueType"
-        :account-name="lastMatchAccountName"
-      />
+      <!-- Next steps -->
+      <section
+        v-reveal-on-view
+        class="overview-section"
+        aria-labelledby="overview-next-title"
+        data-testid="overview-next-steps"
+      >
+        <h2 id="overview-next-title" class="mp-card-title">Next steps</h2>
+        <div class="overview-grid overview-grid--2">
+          <article class="mp-card overview-next" data-testid="next-step-champion-select">
+            <h3 class="overview-next__title">Pick your next champion</h3>
+            <p class="overview-next__text">Picks from your champion pool against the enemy team, ready before you lock in.</p>
+            <BaseButton to="/app/champion-select" variant="secondary" size="lg">Open Champion Select</BaseButton>
+          </article>
+          <article class="mp-card overview-next" data-testid="next-step-solo">
+            <h3 class="overview-next__title">See how you're trending</h3>
+            <p class="overview-next__text">Win rate, KDA and more across your recent matches, so you know what to work on.</p>
+            <BaseButton to="/app/solo" variant="secondary" size="lg">See your trends</BaseButton>
+          </article>
+        </div>
+      </section>
     </template>
-  </OverviewLayout>
+  </div>
 
   <!-- Link Riot Account Modal -->
   <LinkRiotAccountModal
@@ -103,25 +207,44 @@ import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSyncWebSocket } from '../composables/useSyncWebSocket'
 import { useAsyncData } from '../composables/useAsyncData'
+import { useSyncMatches } from '../composables/useSyncMatches'
+import { vRevealOnView } from '../composables/useRevealOnView'
 import { getOverview } from '../services/soloApi'
-import { getChampionSplashUrl } from '../utils/leagueAssets'
-import OverviewLayout from '../components/overview/OverviewLayout.vue'
+import { formatRelativeTime } from '../utils/formatters'
+import {
+  buildHeroHeadline,
+  buildHeroText,
+  buildHeroChips,
+  buildPlayerLine,
+  buildSurvivalInsight,
+  buildTodaySummary,
+  isWinResult
+} from '../utils/overviewSummary'
+import BaseButton from '../components/base/BaseButton.vue'
+import BaseIcon from '../components/base/BaseIcon.vue'
+import BaseSkeleton from '../components/base/BaseSkeleton.vue'
+import BaseEmptyState from '../components/base/BaseEmptyState.vue'
+import BaseMatchRow from '../components/base/BaseMatchRow.vue'
+import ChampionHero from '../components/base/ChampionHero.vue'
+import InsightCard from '../components/base/InsightCard.vue'
+import SyncProgress from '../components/base/SyncProgress.vue'
 import OverviewAccountCards from '../components/overview/OverviewAccountCards.vue'
-import OverviewPlayerHeader from '../components/overview/OverviewPlayerHeader.vue'
-import TodaySessionCard from '../components/overview/TodaySessionCard.vue'
-import DeathInsightsCard from '../components/overview/DeathInsightsCard.vue'
-import LastMatchCard from '../components/overview/LastMatchCard.vue'
-import ChampionSelectCTA from '../components/overview/ChampionSelectCTA.vue'
-import AnalysisStatusCard from '../components/overview/AnalysisStatusCard.vue'
-import SoloAnalyticsCTA from '../components/overview/SoloAnalyticsCTA.vue'
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
 
 const authStore = useAuthStore()
 const { syncProgress, resetProgress } = useSyncWebSocket()
+const {
+  syncState,
+  isSyncing,
+  progressCurrent,
+  progressTotal,
+  syncedCount,
+  lastSyncAt,
+  startSync
+} = useSyncMatches()
 
 // State
 const overviewData = ref(null)
-const isRefreshing = ref(false)
 const showLinkModal = ref(false)
 const previousSyncStatuses = ref(new Map())
 
@@ -134,56 +257,48 @@ const {
   { immediate: false, errorMessage: 'Failed to load overview' }
 )
 
-const pageIsLoading = computed(() => isLoading.value && !overviewData.value)
+// Until the first fetch settles the page shows its skeleton frame
+const hasFetched = ref(false)
+const pageIsLoading = computed(() => (isLoading.value || !hasFetched.value) && !overviewData.value)
+// The API answers with an error when no Riot account is linked, so check the session first
+const hasNoLinkedAccount = computed(() => authStore.isInitialized && authStore.hasLinkedAccount === false)
 
-const mostPlayedChampionName = computed(() => {
-  return overviewData.value?.mostPlayedChampion?.championName || ''
-})
+const mostPlayedChampionName = computed(() => overviewData.value?.mostPlayedChampion?.championName || '')
+const lastMatch = computed(() => overviewData.value?.lastMatch ?? null)
+const sessionStats = computed(() => overviewData.value?.sessionStats ?? null)
+const survivalStats = computed(() => overviewData.value?.survivalStats ?? null)
 
-const championSelectMuralUrl = computed(() => {
-  return mostPlayedChampionName.value
-    ? getChampionSplashUrl(mostPlayedChampionName.value)
-    : ''
+const heroHeadline = computed(() => buildHeroHeadline(sessionStats.value))
+const heroText = computed(() => buildHeroText(sessionStats.value, survivalStats.value))
+const heroChips = computed(() => buildHeroChips(sessionStats.value))
+const playerLine = computed(() => buildPlayerLine(overviewData.value?.playerHeader, mostPlayedChampionName.value))
+const survivalInsight = computed(() => buildSurvivalInsight(survivalStats.value))
+const todaySummary = computed(() => buildTodaySummary(sessionStats.value))
+
+const lastSyncedLabel = computed(() => {
+  if (!lastSyncAt.value) return null
+  return `Synced ${formatRelativeTime(new Date(lastSyncAt.value).getTime())}`
 })
 
 const displayedAccounts = computed(() => {
   const accounts = overviewData.value?.accountSummaries || []
-  // Limit to 3 accounts for aesthetic reasons - maintains clean visual layout in header
+  // At most three account cards, one row on desktop
   return accounts.slice(0, 3)
 })
 
-const lastMatchAccountName = computed(() => {
-  // Backend does not yet include which account played the last match in Overall mode.
-  // Return null to avoid showing a potentially incorrect account tag.
-  if (authStore.isOverallMode) {
-    return null
-  }
-  return null
-})
-
-const soloCtaSubtitle = computed(() => 'Track your trends and improve')
-
 async function fetchData() {
   if (!authStore.userId) return
-
-  const isInitialLoad = !overviewData.value
-
-  if (!isInitialLoad) {
-    isRefreshing.value = true
-  }
 
   try {
     overviewData.value = await executeOverviewFetch()
   } catch {
     overviewData.value = null
   } finally {
-    if (!isInitialLoad) {
-      isRefreshing.value = false
-    }
+    hasFetched.value = true
   }
 }
 
-// Watch for sync completion to refresh data
+// Refresh once a sync that brought in new matches completes
 watch(syncProgress, (progress) => {
   for (const [puuid, data] of progress.entries()) {
     const previousStatus = previousSyncStatuses.value.get(puuid)
@@ -191,12 +306,9 @@ watch(syncProgress, (progress) => {
 
     if (previousStatus === 'syncing' && currentStatus === 'completed') {
       const totalSynced = typeof data.totalSynced === 'number' ? data.totalSynced : 0
-      const shouldRefreshOverview = totalSynced > 0
 
-      if (shouldRefreshOverview) {
-        // Refresh user data to get updated profile info
+      if (totalSynced > 0) {
         authStore.refreshUser()
-        // Refresh overview data to get updated stats
         fetchData()
       }
 
@@ -210,18 +322,9 @@ watch(syncProgress, (progress) => {
   }
 }, { deep: true })
 
-// Handle successful account link
 async function handleLinkSuccess() {
-  // Refresh user data to get updated riot accounts list
   await authStore.refreshUser()
-  // Refresh overview data
   fetchData()
-}
-
-function handleAccountSelect(accountId) {
-  // Switch to the selected account
-  authStore.setActiveAccount(accountId)
-  // Data will refresh automatically via watcher
 }
 
 // Defer the initial fetch until auth is fully initialized so that
@@ -239,53 +342,128 @@ watch(() => authStore.activeAccountPuuid, () => {
 </script>
 
 <style scoped>
-.placeholder-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  backdrop-filter: blur(10px);
-}
-
-.btn-link-account {
-  margin-top: var(--spacing-md);
-  background: var(--color-primary);
-  color: white;
-  padding: var(--spacing-sm) var(--spacing-xl);
-  border: none;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-link-account:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.actions-right-stack {
+.overview-page {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  height: 100%;
+  gap: 1.75rem;
+  padding: 1.75rem 0 3.5rem;
 }
 
-.actions-right-stack :deep(.analysis-status-card),
-.actions-right-stack :deep(.solo-analytics-cta) {
-  flex: 1;
-  height: 100%;
-}
-
-.glance-right-fill {
+.overview-section {
   display: flex;
-  height: 100%;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-.glance-right-fill :deep(.champion-select-cta),
-.glance-right-fill :deep(.survival-check-card) {
+.overview-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.overview-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.overview-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.overview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.overview-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.overview-card__meta {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.overview-card__summary {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-soft);
+}
+
+.overview-card__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.overview-next {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.overview-next__title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.overview-next__text {
+  max-width: 52ch;
+  margin-bottom: 0.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-ink-soft);
+}
+
+/* Skeletons wait 300ms before showing, so fast loads never flash them */
+.overview-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  animation: overview-loading-appear 0s linear 300ms both;
+}
+
+.overview-loading__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.overview-loading__row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.overview-loading__grow {
   flex: 1;
-  height: 100%;
+}
+
+@keyframes overview-loading-appear {
+  from { visibility: hidden; }
+  to { visibility: visible; }
+}
+
+@media (max-width: 899px) {
+  .overview-grid--3,
+  .overview-grid--2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overview-page {
+    padding: 1rem 0 1.75rem;
+  }
+
+  .overview-loading__hero .mp-hero-body {
+    padding: 1.75rem 1.25rem;
+  }
 }
 </style>

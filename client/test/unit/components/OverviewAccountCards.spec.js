@@ -55,7 +55,7 @@ describe('OverviewAccountCards.vue', () => {
 
     it('renders section title', () => {
       const wrapper = createWrapper()
-      expect(wrapper.find('.section-title').text()).toBe('Your Accounts')
+      expect(wrapper.find('.section-title').text()).toBe('Your accounts')
     })
 
     it('renders correct number of account cards', () => {
@@ -107,7 +107,7 @@ describe('OverviewAccountCards.vue', () => {
       ]
       const wrapper = createWrapper({ accounts })
       const firstCard = wrapper.find('[data-testid="account-card-acc_1"]')
-      expect(firstCard.text()).toContain('Diamond II - 67 LP')
+      expect(firstCard.text()).toContain('Diamond II · 67 LP')
     })
 
     it('shows unranked values when rank data is missing', () => {

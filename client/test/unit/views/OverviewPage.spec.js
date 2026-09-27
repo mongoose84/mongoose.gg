@@ -1,225 +1,244 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { mount, flushPromises, RouterLinkStub } from '@vue/test-utils'
 import { ref } from 'vue'
 import OverviewPage from '@/views/OverviewPage.vue'
 
 const mockGetOverview = vi.fn()
-const mockGetMatchActivity = vi.fn()
-const mockGetSoloDashboard = vi.fn()
 
 const mockIsOverallMode = ref(false)
-const mockActiveAccountPuuid = ref('overall')
-const mockSetActiveAccount = vi.fn()
+const mockActiveAccountPuuid = ref('acc_1')
+const mockHasLinkedAccount = ref(true)
 
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({
     userId: 1,
     isInitialized: true,
-    primaryRiotAccount: null,
+    riotAccounts: [],
     refreshUser: vi.fn(),
+    get hasLinkedAccount() {
+      return mockHasLinkedAccount.value
+    },
     get isOverallMode() {
       return mockIsOverallMode.value
     },
     get activeAccountPuuid() {
       return mockActiveAccountPuuid.value
-    },
-    setActiveAccount: mockSetActiveAccount
+    }
   })
 }))
 
 vi.mock('@/composables/useSyncWebSocket', () => ({
   useSyncWebSocket: () => ({
     syncProgress: ref(new Map()),
-    subscribe: vi.fn(),
     resetProgress: vi.fn()
   })
 }))
 
-vi.mock('@/services/soloApi', () => ({
-  getOverview: (...args) => mockGetOverview(...args),
-  getMatchActivity: (...args) => mockGetMatchActivity(...args),
-  getSoloDashboard: (...args) => mockGetSoloDashboard(...args)
+const mockSyncState = ref(null)
+const mockIsSyncing = ref(false)
+const mockStartSync = vi.fn()
+
+vi.mock('@/composables/useSyncMatches', () => ({
+  useSyncMatches: () => ({
+    syncState: mockSyncState,
+    isSyncing: mockIsSyncing,
+    progressCurrent: ref(12),
+    progressTotal: ref(40),
+    syncedCount: ref(0),
+    lastSyncAt: ref(null),
+    startSync: mockStartSync
+  })
 }))
+
+vi.mock('@/services/soloApi', () => ({
+  getOverview: (...args) => mockGetOverview(...args)
+}))
+
+const fullOverview = {
+  playerHeader: { summonerName: 'Faker#KR1', level: 100, region: 'EUW', profileIconUrl: 'x.png', activeContexts: ['Solo'], rank: 'GOLD II', lp: 45 },
+  mostPlayedChampion: { championName: 'Ahri', gamesPlayed: 28, source: 'current_season' },
+  lastMatch: { matchId: 'EUW1_1', championIconUrl: 'ahri.png', championName: 'Ahri', result: 'Victory', kda: '7/2/9', timestamp: Date.now(), queueType: 'Ranked Solo/Duo' },
+  sessionStats: { gamesToday: 3, winsToday: 2, lossesToday: 1, gamesThisWeek: 12, winsThisWeek: 7, lossesThisWeek: 5 },
+  survivalStats: { avgDeathsPerGame: 5.2, winRateLowDeaths: 0.64, winRateHighDeaths: 0.38, gamesLowDeaths: 9, gamesHighDeaths: 8, lowDeathThreshold: 4, highDeathThreshold: 7, totalGames: 20 },
+  activeGoals: [],
+  suggestedActions: []
+}
+
+const mounted = []
+
+function mountPage() {
+  const wrapper = mount(OverviewPage, {
+    global: {
+      stubs: {
+        RouterLink: RouterLinkStub,
+        OverviewAccountCards: true,
+        LinkRiotAccountModal: { props: ['isOpen'], template: '<div data-testid="link-modal" :data-open="isOpen" />' }
+      }
+    }
+  })
+  mounted.push(wrapper)
+  return wrapper
+}
 
 describe('OverviewPage', () => {
   beforeEach(() => {
     mockGetOverview.mockReset()
-    mockGetMatchActivity.mockResolvedValue(null)
-    mockGetSoloDashboard.mockResolvedValue(null)
     mockIsOverallMode.value = false
     mockActiveAccountPuuid.value = 'acc_1'
-    mockSetActiveAccount.mockClear()
+    mockHasLinkedAccount.value = true
+    mockSyncState.value = null
+    mockIsSyncing.value = false
+    mockStartSync.mockReset()
   })
 
-  function mountPage() {
-    return mount(OverviewPage, {
-      global: {
-        stubs: {
-          OverviewAccountCards: true,
-          OverviewPlayerHeader: true,
-          MatchActivityHeatmap: true,
-          LastMatchCard: true,
-          ChampionSelectCTA: true,
-          AnalysisStatusCard: true,
-          SoloAnalyticsCTA: true,
-          LinkRiotAccountModal: true
-        }
-      }
-    })
-  }
+  afterEach(() => {
+    mounted.splice(0).forEach((wrapper) => wrapper.unmount())
+  })
 
-  function mountPageWithCtaStub() {
-    return mount(OverviewPage, {
-      global: {
-        stubs: {
-          OverviewAccountCards: true,
-          OverviewPlayerHeader: true,
-          MatchActivityHeatmap: true,
-          LastMatchCard: true,
-          ChampionSelectCTA: {
-            props: ['muralUrl', 'championName'],
-            template: '<div data-testid="champion-select-cta-stub">{{ championName }}|{{ muralUrl }}</div>'
-          },
-          AnalysisStatusCard: true,
-          SoloAnalyticsCTA: {
-            props: ['subtitle'],
-            template: '<div data-testid="solo-cta-stub">{{ subtitle }}</div>'
-          },
-          LinkRiotAccountModal: true
-        }
-      }
-    })
-  }
+  it('shows the skeleton frame while loading', () => {
+    mockGetOverview.mockReturnValue(new Promise(() => {}))
+    const wrapper = mountPage()
+    const loading = wrapper.get('[data-testid="overview-loading"]')
+    expect(loading.attributes('aria-busy')).toBe('true')
+    expect(loading.text()).toContain('Loading your Overview')
+  })
 
-  it('renders SoloAnalyticsCTA when overview data is present', async () => {
-    mockGetOverview.mockResolvedValue({
-      playerHeader: {
-        summonerName: 'Test',
-        level: 100,
-        region: 'EUW',
-        profileIconUrl: 'test.png',
-        activeContexts: ['Solo']
-      }
-    })
-
+  it('renders the sections in design-system order with real data', async () => {
+    mockGetOverview.mockResolvedValue(fullOverview)
     const wrapper = mountPage()
     await flushPromises()
 
-    expect(wrapper.find('.actions-right-stack').exists()).toBe(true)
-    expect(wrapper.find('solo-analytics-c-t-a-stub').exists()).toBe(true)
+    const order = ['champion-hero', 'today-matches-card', 'overview-insights', 'overview-next-steps']
+    const html = wrapper.html()
+    const positions = order.map((id) => html.indexOf(`data-testid="${id}"`))
+    expect(positions.every((p) => p >= 0)).toBe(true)
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions)
   })
 
-  it('does not render SoloAnalyticsCTA when overview data is empty', async () => {
-    mockGetOverview.mockResolvedValue(null)
-
+  it('builds the hero from this week and the most-played champion', async () => {
+    mockGetOverview.mockResolvedValue(fullOverview)
     const wrapper = mountPage()
     await flushPromises()
 
-    expect(wrapper.find('solo-analytics-c-t-a-stub').exists()).toBe(false)
+    expect(wrapper.get('h1').text()).toBe("You've won 7 of 12 matches this week")
+    expect(wrapper.get('[data-testid="champion-hero-player"]').text()).toBe('Faker#KR1 · Ahri main · Gold II · 45 LP')
+    expect(wrapper.get('[data-testid="champion-hero-art"]').attributes('alt')).toBe('Ahri splash art')
+    expect(wrapper.findAll('[data-testid="champion-hero-chip"]').map((c) => c.text())).toEqual(['12 matches this week', '58% win rate'])
   })
 
-  it('passes default subtitle to SoloAnalyticsCTA', async () => {
-    mockGetOverview.mockResolvedValue({})
-    mockGetSoloDashboard.mockResolvedValue({})
-
-    const wrapper = mountPageWithCtaStub()
+  it('shows today\'s summary and the last match as a row', async () => {
+    mockGetOverview.mockResolvedValue(fullOverview)
+    const wrapper = mountPage()
     await flushPromises()
 
-    expect(wrapper.find('[data-testid="solo-cta-stub"]').text()).toBe('Track your trends and improve')
+    expect(wrapper.get('[data-testid="today-matches-summary"]').text()).toBe('3 matches today · 2 wins, 1 loss')
+    expect(wrapper.get('[data-testid="match-row-champion"]').text()).toBe('Ahri')
+    expect(wrapper.get('[data-testid="match-row-result"]').text()).toBe('Victory')
   })
 
-  it('passes mural props to ChampionSelectCTA when most played champion exists', async () => {
+  it('shows empty states when there is no match or insight yet', async () => {
+    mockGetOverview.mockResolvedValue({ ...fullOverview, lastMatch: null, survivalStats: null, mostPlayedChampion: null })
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="today-matches-empty"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="overview-insights-empty"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="champion-hero"]').classes()).toContain('champion-hero--plain')
+  })
+
+  it('shows the deaths finding as an insight', async () => {
+    mockGetOverview.mockResolvedValue(fullOverview)
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="insight-card-chip"]').text()).toBe('Pattern')
+    expect(wrapper.get('[data-testid="insight-card-title"]').text()).toBe('You win 64% of matches with 4 or fewer deaths')
+  })
+
+  it('links the next steps to Champion Select and Solo', async () => {
+    mockGetOverview.mockResolvedValue(fullOverview)
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const targets = wrapper.findAllComponents(RouterLinkStub).map((link) => link.props('to'))
+    expect(targets).toEqual(expect.arrayContaining(['/app/champion-select', '/app/solo', '/app/matches']))
+  })
+
+  it('starts a sync from the Today\'s matches card and disables the button while syncing', async () => {
+    mockGetOverview.mockResolvedValue(fullOverview)
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const button = wrapper.get('[data-testid="overview-sync-button"]')
+    expect(button.text()).toBe('Sync matches')
+    await button.trigger('click')
+    expect(mockStartSync).toHaveBeenCalledTimes(1)
+
+    mockIsSyncing.value = true
+    await flushPromises()
+    expect(button.attributes('disabled')).toBeDefined()
+    expect(button.text()).toBe('Syncing…')
+  })
+
+  it('shows SyncProgress at the top while a sync runs, without hiding the content', async () => {
+    mockGetOverview.mockResolvedValue(fullOverview)
+    mockSyncState.value = 'running'
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="sync-progress-title"]').text()).toBe('Syncing 12 of 40 matches')
+    expect(wrapper.find('[data-testid="champion-hero"]').exists()).toBe(true)
+  })
+
+  it('shows an error with retry when the Overview fails to load', async () => {
+    mockGetOverview.mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(fullOverview)
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="overview-error"]').text()).toContain("We couldn't load your Overview")
+    await wrapper.get('[data-testid="overview-retry"]').trigger('click')
+    await flushPromises()
+
+    expect(mockGetOverview).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('[data-testid="champion-hero"]').exists()).toBe(true)
+  })
+
+  it('asks to link a Riot account when none is linked', async () => {
+    mockHasLinkedAccount.value = false
+    mockGetOverview.mockRejectedValue(new Error('No linked account'))
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="overview-error"]').exists()).toBe(false)
+    expect(wrapper.get('h1').text()).toBe('Link your Riot account to see your Overview')
+
+    await wrapper.get('[data-testid="overview-link-account"]').trigger('click')
+    expect(wrapper.get('[data-testid="link-modal"]').attributes('data-open')).toBe('true')
+  })
+
+  it('shows account cards instead of the hero in Overall mode', async () => {
+    mockIsOverallMode.value = true
     mockGetOverview.mockResolvedValue({
-      mostPlayedChampion: {
-        championName: 'Ahri',
-        gamesPlayed: 28,
-        source: 'current_season'
-      }
+      ...fullOverview,
+      accountSummaries: [
+        { accountId: 'acc_1', gameName: 'Test1', tagLine: 'EUW', region: 'EUW', rank: 'Gold I', lp: 50, gamesToday: 2, gamesThisWeek: 10 }
+      ]
     })
-
-    const wrapper = mountPageWithCtaStub()
+    const wrapper = mountPage()
     await flushPromises()
 
-    expect(wrapper.find('[data-testid="champion-select-cta-stub"]').text())
-      .toBe('Ahri|https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Ahri_0.jpg')
+    expect(wrapper.find('overview-account-cards-stub').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="champion-hero"]').exists()).toBe(false)
   })
 
-  it('passes empty mural props to ChampionSelectCTA when no champion data exists', async () => {
-    mockGetOverview.mockResolvedValue({})
-
-    const wrapper = mountPageWithCtaStub()
+  it('refetches when the active account changes', async () => {
+    mockGetOverview.mockResolvedValue(fullOverview)
+    mountPage()
     await flushPromises()
+    expect(mockGetOverview).toHaveBeenCalledTimes(1)
 
-    expect(wrapper.find('[data-testid="champion-select-cta-stub"]').text()).toBe('|')
-  })
-
-  describe('Overall Mode', () => {
-    it('renders OverviewAccountCards when in Overall mode with account summaries', async () => {
-      mockIsOverallMode.value = true
-      mockGetOverview.mockResolvedValue({
-        accountSummaries: [
-          { accountId: 'acc_1', gameName: 'Test1', tagLine: 'EUW', region: 'EUW', rank: 'Gold I', lp: 50, gamesToday: 2, gamesThisWeek: 10 },
-          { accountId: 'acc_2', gameName: 'Test2', tagLine: 'NA', region: 'NA', rank: 'Silver II', lp: 30, gamesToday: 0, gamesThisWeek: 5 }
-        ]
-      })
-
-      const wrapper = mountPage()
-      await flushPromises()
-
-      expect(wrapper.find('overview-account-cards-stub').exists()).toBe(true)
-      expect(wrapper.find('overview-player-header-stub').exists()).toBe(false)
-    })
-
-    it('renders OverviewPlayerHeader when in individual account mode', async () => {
-      mockIsOverallMode.value = false
-      mockGetOverview.mockResolvedValue({
-        playerHeader: {
-          summonerName: 'Test',
-          level: 100,
-          region: 'EUW',
-          profileIconUrl: 'test.png',
-          activeContexts: ['Solo']
-        }
-      })
-
-      const wrapper = mountPage()
-      await flushPromises()
-
-      expect(wrapper.find('overview-player-header-stub').exists()).toBe(true)
-      expect(wrapper.find('overview-account-cards-stub').exists()).toBe(false)
-    })
-
-    it('calls setActiveAccount when account is selected', async () => {
-      mockIsOverallMode.value = true
-      mockGetOverview.mockResolvedValue({
-        accountSummaries: [
-          { accountId: 'acc_1', gameName: 'Test1', tagLine: 'EUW', region: 'EUW', rank: 'Gold I', lp: 50, gamesToday: 2, gamesThisWeek: 10 }
-        ]
-      })
-
-      const wrapper = mount(OverviewPage, {
-        global: {
-          stubs: {
-            OverviewPlayerHeader: true,
-            OverviewAccountCards: {
-              props: ['accounts', 'activeAccountPuuid'],
-              template: '<div><button data-testid="account-select" @click="$emit(\'select\', \'acc_1\')">Select</button></div>'
-            },
-            MatchActivityHeatmap: true,
-            LastMatchCard: true,
-            ChampionSelectCTA: true,
-            AnalysisStatusCard: true,
-            SoloAnalyticsCTA: true,
-            LinkRiotAccountModal: true
-          }
-        }
-      })
-      await flushPromises()
-
-      const selectButton = wrapper.find('[data-testid="account-select"]')
-      await selectButton.trigger('click')
-
-      expect(mockSetActiveAccount).toHaveBeenCalledWith('acc_1')
-    })
+    mockActiveAccountPuuid.value = 'acc_2'
+    await flushPromises()
+    expect(mockGetOverview).toHaveBeenCalledTimes(2)
   })
 })

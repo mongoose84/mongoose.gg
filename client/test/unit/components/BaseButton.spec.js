@@ -6,7 +6,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { mount, RouterLinkStub } from '@vue/test-utils';
+import { mount, flushPromises, RouterLinkStub } from '@vue/test-utils';
+import { createRouter, createMemoryHistory } from 'vue-router';
 import BaseButton from '@/components/base/BaseButton.vue';
 
 describe('BaseButton', () => {
@@ -225,6 +226,29 @@ describe('BaseButton', () => {
       expect(wrapper.classes()).toContain('btn--destructive');
       expect(wrapper.classes()).toContain('btn--lg');
       expect(wrapper.classes()).toContain('btn--block');
+    });
+  });
+
+  describe('Router links', () => {
+    it('keeps the generated href so the link is focusable', async () => {
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [{ path: '/', component: { template: '<div />' } }, { path: '/app/solo', component: { template: '<div />' } }]
+      });
+      router.push('/');
+      await router.isReady();
+
+      const wrapper = mount(BaseButton, {
+        props: { to: '/app/solo' },
+        slots: { default: 'See your trends' },
+        global: { plugins: [router] }
+      });
+      await flushPromises();
+
+      expect(wrapper.element.tagName).toBe('A');
+      expect(wrapper.attributes('href')).toBe('/app/solo');
+      expect(wrapper.attributes('type')).toBeUndefined();
+      expect(wrapper.attributes('disabled')).toBeUndefined();
     });
   });
 });

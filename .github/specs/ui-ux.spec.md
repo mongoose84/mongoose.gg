@@ -106,7 +106,7 @@ All visual rules (colour, type, spacing, radius, depth, motion, iconography, cha
 
 **Code mapping**: tokens live as CSS variables in `client/src/style.css` (existing `--color-*` names mapped to design-system values) and are exposed to Tailwind in `client/tailwind.config.js`. Use Tailwind for layout and sizing, CSS variables for themed values. Never hard-code a colour, radius, shadow or duration that is not a design-system token.
 
-**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in `client/tailwind.config.js`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password), the shared `BaseButton` / `BaseInput`, and the app header (`AppHeader` / `AppTabBar`, replacing the legacy sidebar) are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
+**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in `client/tailwind.config.js`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password), the shared `BaseButton` / `BaseInput`, the app header (`AppHeader` / `AppTabBar`, replacing the legacy sidebar) and the Overview (with the data the API has today) are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
 
 ---
 
@@ -203,11 +203,6 @@ All routes defined in `client/src/router/index.js`.
 - **Idle detection**: 30-minute threshold; on tab return, refreshes user data + triggers sync check
 - **Activity tracking**: Throttled to 30s intervals (mousemove, keydown, click, scroll)
 
-### `OverviewLayout.vue` (overview page container)
-- Named slots: `#header`, `#glance-left`, `#glance-right`, `#recent-left`, `#recent-right`, `#latest-match`, `#empty-action`
-- Handles loading (Skeleton), error (retry), empty (link account CTA) states
-- Single-column layout, one-scroll max
-
 ### `AnalysisLayout.vue` (shared by Solo/Team)
 - Zone-based layout with named slots:
   - `#context-bar` — Zone 1: Filters (queue toggle, time range)
@@ -252,7 +247,14 @@ Sync progress (SyncProgress) sits at the top of the content while matches come i
 
 Data sources: `getOverview()` today; scores, readiness and insights need new backend data, built when the Overview is implemented (Section 1).
 
-Current code (legacy, replaced in the migration): `OverviewPlayerHeader`, `TodaySessionCard`, `DeathInsightsCard`, `ChampionSelectCTA`, `AnalysisStatusCard`, `SoloAnalyticsCTA`, `LastMatchCard`.
+Built today (design migration Phase 2, existing `OverviewResponse` fields only; sections without data are left out until Phase 3 adds scores, champions, readiness and insights):
+1. `SyncProgress` at the top while a sync runs (`useSyncMatches`).
+2. `ChampionHero` with the most-played champion's splash (plain card without one). Headline, supporting sentence and chips come from `sessionStats` and `survivalStats` (`client/src/utils/overviewSummary.js`); primary action "See your matches". In Overall mode `OverviewAccountCards` replaces the hero and holds the page headline.
+3. **Today's matches**: today's count and wins/losses, the last match as a `BaseMatchRow` (links to `/app/matches?matchId=…` until `/app/matches/:matchId` exists), "All matches", and the "Sync matches" button.
+4. **Insights**: the deaths finding from `survivalStats` as one `InsightCard` (Strength or Pattern), or an EmptyState.
+5. **Next steps**: Champion Select and Solo as two plain cards with secondary buttons.
+
+States: the skeleton frame shows after 300ms while loading, an error message with "Try again" when the request fails, and an EmptyState with "Link Riot account" when no Riot account is linked.
 
 **Non-goals**: Deep graphs, champion matrices, filters.
 
@@ -395,50 +397,34 @@ Time range dropdown (Last 20, Last 50, Season, etc.).
 |------|------|---------|-------------|
 | `modelValue` | `String` | — | v-model binding for selected range |
 
+### Design-system components
+
+Built from `.claude/skills/mongoose-design/reference/components.md`; imported directly (not through the barrel).
+
+| Component | Props | Notes |
+|------|------|------|
+| `BaseSkeleton` | `variant` (`text`, `title`, `ring`, `portrait`, `block`), `width`, `height` | One loading shape; the container sets `aria-busy` and a hidden "Loading …" label |
+| `BaseEmptyState` | `title`, `description`, `headingLevel` | Slot `#action` holds the one button that fixes it |
+| `BaseMatchRow` | `to`, `championName`, `championIconUrl`, `win`, `kda`, `queue`, `durationSeconds`, `timestamp`, `lpChange` | Whole row is one link; named `Base…` because `matches/MatchRow` still exists until the Matches phase |
+| `ChampionHero` | `headline`, `text`, `playerLine`, `championName`, `chips` (max 2) | Page `h1`; slot `#action`; plain card without a champion |
+| `InsightCard` | `kind` (`strength`, `pattern`, `trend`), `title`, `text`, `championName` | |
+| `SyncProgress` | `state` (`running`, `waiting`, `done`, `failed`), `current`, `total`, `syncedCount` | Emits `retry`; indeterminate while `total` is 0 |
+| `ScoreRing` | `value`, `label`, `size` | `role="meter"` |
+
 ---
 
 ## 8. Overview Components
 
 Located in `client/src/components/overview/`.
 
-### `OverviewLayout`
-Page-level container with named slots and state management.
+### `OverviewAccountCards`
+Overall mode only, in place of the ChampionHero: one card per linked account (at most three) with Riot ID, level, Flex and Solo rank. Holds the page `h1` ("Your accounts").
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `isLoading` | `Boolean` | Shows loading spinner |
-| `error` | `String` | Shows error with retry button |
-| `isEmpty` | `Boolean` | Shows empty state with link-account CTA |
-
-Events: `@retry`  
-Slots: `#header`, `#glance-left`, `#glance-right`, `#recent-left`, `#recent-right`, `#latest-match`, `#empty-action`
-
-### `OverviewPlayerHeader`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `summonerName` | `String` | Display name |
-| `level` | `Number` | Summoner level |
-| `region` | `String` | Server region |
-| `profileIconUrl` | `String` | Profile icon URL |
-| `activeContexts` | `Array` | Context badges (Solo/Team) |
-
-### `LastMatchCard`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `matchId` | `String` | Match identifier |
-| `championIconUrl` | `String` | Champion icon |
-| `championName` | `String` | Champion name |
-| `result` | `String` | Win/Loss |
-| `kda` | `String` | KDA string |
-| `timestamp` | `String` | Match time |
-| `queueType` | `String` | Queue type label |
-
-Click navigates to `/app/matches/:matchId`.
-
-### `ChampionSelectCTA`
-Static call-to-action linking to champion select page. No props.
+| `accounts` | `Array` | `accountSummaries` from the Overview response |
+| `linkedAccounts` | `Array` | Linked Riot accounts from `authStore` (icons, levels, ranks) |
+| `activeAccountPuuid` | `String` | Marks the active account |
 
 ### `MatchActivityHeatmap`
 
@@ -448,9 +434,6 @@ Static call-to-action linking to champion select page. No props.
 | `startDate` | `String` | Heatmap start date |
 | `endDate` | `String` | Heatmap end date |
 | `totalMatches` | `Number` | Total match count in period |
-
-### `AnalysisStatusCard`
-Shows current sync/analysis status. No props (reads from store/composable internally).
 
 ---
 
@@ -617,7 +600,10 @@ SignalR WebSocket connection to `/ws/sync`. Provides:
 Used by `OverviewPage` and `SoloPage` to reactively update after match sync completes.
 
 ### `useAnalysisStatus()`
-Tracks analysis/sync status for display in `AnalysisStatusCard`.
+Tracks analysis/sync status (stored status plus the live aggregate run).
+
+### `useSyncMatches()`
+Built on `useAnalysisStatus()`. Drives `SyncProgress` and the "Sync matches" button: `syncState` (`null`, `running`, `waiting`, `done`, `failed`), `isSyncing`, `progressCurrent`, `progressTotal` (0 while a multi-account run is still counting), `syncedCount`, `lastSyncAt`, `startSync()`.
 
 ---
 

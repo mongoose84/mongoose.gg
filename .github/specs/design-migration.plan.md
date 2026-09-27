@@ -47,7 +47,7 @@ Frontend only, one PR. **Status: done on branch `create_plan_for_updating_ui`** 
 - [x] `ui-ux.spec.md`: remove the implementation note in §3, the "Legacy" line in §5, and the `AppSidebar` / uiStore inventory entries; update the migration-status line.
 
 ### Check
-- [ ] Solo, Matches, Champion Select, Settings and Feedback still lay out correctly at full width (they keep legacy styling until their own phase). E2E navigates to all of them; a visual pass in the browser is still to do.
+- [x] Solo, Matches, Champion Select, Settings and Feedback still lay out correctly at full width (they keep legacy styling until their own phase). Visual pass done 2026-09-27 at 1440px and 390px (Playwright screenshots).
 
 ### Outcome notes
 - `uiStore` was deleted entirely (nothing else used it). `AccountSwitcher.vue` was retired; only `AccountDropdownList` was kept, now in `client/src/components/header/`.
@@ -65,7 +65,7 @@ Frontend only, one PR. **Status: done on branch `create_plan_for_updating_ui`** 
 
 ## Phase 2: Overview re-skin with existing data
 
-Frontend only, one PR. Order follows the design system; only sections with real data.
+Frontend only, one PR. Order follows the design system; only sections with real data. **Status: built on branch `design_phase2_overview`** (2026-09-27); unit tests (1560), build and E2E (58 full + 8 smoke) green.
 
 | Design section | Data | Component |
 |---|---|---|
@@ -77,19 +77,32 @@ Frontend only, one PR. Order follows the design system; only sections with real 
 | Overall mode | `OverviewAccountCards` re-skinned, in place of the hero | Existing component |
 
 ### Build
-- [ ] Port `mp-hero`, `mp-match-row`, `mp-insight`, `mp-chip`, `mp-skeleton`, `mp-empty` into `style.css`.
-- [ ] `BaseSkeleton` and `BaseEmptyState`; every card gets loading / empty / error-with-retry / content. The page frame renders immediately instead of blocking on one loading state.
-- [ ] Replace `OverviewLayout`'s legacy slots (`glance-*`, `recent-*`, `latest-match`) with sections in the new order, or drop the wrapper.
-- [ ] Remove legacy styling in touched files: gradients, glows, hover lifts, green/red win colours (use winrate tokens / purple-orange), Heroicons.
-- [ ] Retire components that no longer fit (`OverviewPlayerHeader`, `ChampionSelectCTA`, `SoloAnalyticsCTA`, `DeathInsightsCard`, `LastMatchCard`, `TodaySessionCard`, `AnalysisStatusCard`) once their replacements are in, with their unit tests.
+- [x] Port `mp-hero`, `mp-match-row`, `mp-insight`, `mp-chip`, `mp-skeleton`, `mp-empty` into `style.css` (plus `mp-eyebrow`, `mp-up` / `mp-down`, `mp-message`).
+- [x] `BaseSkeleton` and `BaseEmptyState`; every card gets loading / empty / error-with-retry / content. The page frame renders immediately instead of blocking on one loading state.
+- [x] Replace `OverviewLayout`'s legacy slots (`glance-*`, `recent-*`, `latest-match`) with sections in the new order, or drop the wrapper.
+- [x] Remove legacy styling in touched files: gradients, glows, hover lifts, green/red win colours (use winrate tokens / purple-orange), Heroicons.
+- [x] Retire components that no longer fit (`OverviewPlayerHeader`, `ChampionSelectCTA`, `SoloAnalyticsCTA`, `DeathInsightsCard`, `LastMatchCard`, `TodaySessionCard`, `AnalysisStatusCard`) once their replacements are in, with their unit tests.
 
 ### Tests
-- [ ] Unit tests for each new base component and for the summary-sentence logic.
-- [ ] Update Overview view tests and `client/e2e/overview-dashboard.spec.js`.
+- [x] Unit tests for each new base component and for the summary-sentence logic.
+- [x] Update Overview view tests and `client/e2e/overview-dashboard.spec.js`.
 
 ### Docs and design system
-- [ ] `ui-ux.spec.md` §5 (`OverviewLayout`) and the component inventory updated.
-- [ ] New patterns added to the live design system and `reference/` snapshot (mongoose-design Step 5).
+- [x] `ui-ux.spec.md` §5 (`OverviewLayout`) and the component inventory updated.
+- [ ] New patterns added to the live design system and `reference/` snapshot (mongoose-design Step 5): SyncProgress bar styling, "Next steps" plain cards, the phone MatchRow layout (KDA in the meta line), the account cards for Overall mode.
+
+### Outcome notes
+- The MatchRow is `components/base/BaseMatchRow.vue`: `components/matches/MatchRow.vue` still exists until the Matches phase, when the two should merge.
+- `ChampionHero`, `InsightCard` and `SyncProgress` live in `components/base/` under their design-system names, like `ScoreRing`.
+- The summary sentence, chips, player line, today line and deaths insight are pure functions in `client/src/utils/overviewSummary.js`.
+- Sync logic moved from `AnalysisStatusCard` into `composables/useSyncMatches.js`. The "Sync matches" button sits in the Today's matches card header, and SyncProgress shows at the top only while a sync runs, fails or has just finished.
+- All cards come from one request, so a failed request shows one error message with "Try again" in place of the content instead of an error per card. No linked Riot account shows an EmptyState ("Link Riot account") before any request error. Skeletons wait 300ms (CSS delay).
+- Fixed a shared bug: `BaseButton` with `to` passed `href="null"` through to `router-link`, which removed the link's href (no link role, not reachable with Tab). Regression test in `BaseButton.spec.js`.
+- `test-strategy.spec.md` file map updated (retired specs and `uiStore` removed).
+
+### Known leftovers
+- Insights has a single card in a 3-column grid until Phase 3 adds more.
+- The hero's primary action is "See your matches"; the design's "See today's matches" waits for `/app/matches/:matchId` and a today filter.
 
 ---
 
