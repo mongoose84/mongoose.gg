@@ -62,7 +62,6 @@
                 :accounts="riotAccounts"
                 :active-account-puuid="activeAccountPuuid"
                 :show-overall="canUseOverallAccountView"
-                :focused-index="-1"
                 @select="handleAccountSelect"
               />
               <div class="border-t border-border my-xs" />

@@ -558,7 +558,7 @@ Slots: `#context-bar`, `#summary`, `#trend-charts`
 Located in `client/src/components/`.
 
 ### `AppHeader`
-80px top header on every `/app/*` page (56px below 900px), used by `AppLayout`. Logo left (→ `/app/overview`); PillNav centre (Overview, Champion Select, Matches, Solo; `router-link` with `aria-current="page"`), hidden below 900px; avatar right opens a menu (`role="menu"`) with the Riot account switcher (when more than one account is linked or the overall view is available; reuses `components/header/AccountDropdownList.vue`), Settings (`/app/user`), Feedback (`/app/feedback`) and Log out. Closes on Escape, outside click and route change.
+80px top header on every `/app/*` page (56px below 900px), used by `AppLayout`. Logo left (→ `/app/overview`); PillNav centre (Overview, Champion Select, Matches, Solo; `router-link` with `aria-current="page"`), hidden below 900px; avatar right opens a menu of plain buttons and links, all reachable with Tab, with the Riot account switcher (when more than one account is linked or the overall view is available; reuses `components/header/AccountDropdownList.vue`), Settings (`/app/user`), Feedback (`/app/feedback`) and Log out. Closes on Escape, outside click and route change.
 
 ### `AppTabBar`
 Fixed bottom tab bar shown only below 900px, `<nav aria-label="Main" class="mp-tabbar">`. One tab per nav item with icon above label (`house` Overview, `shield` "Champ Select", `swords` Matches, `chart-line` Solo); active tab uses `aria-current="page"`.

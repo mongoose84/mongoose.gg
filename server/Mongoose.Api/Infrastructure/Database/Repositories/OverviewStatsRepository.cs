@@ -201,7 +201,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             {matchFilter}
-            GROUP BY p.champion_id, role";
+            GROUP BY p.champion_id, COALESCE(NULLIF(p.role, ''), 'UNKNOWN')";
 
         var champions = new List<ChampionPoolStatsData>();
         var roleCounts = new List<ChampionRoleCountData>();

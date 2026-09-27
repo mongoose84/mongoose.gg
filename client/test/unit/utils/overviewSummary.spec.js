@@ -59,7 +59,7 @@ describe('overviewSummary', () => {
   describe('buildHeroText', () => {
     it('states the deaths finding when the win-rate gap is large', () => {
       expect(buildHeroText({ gamesThisWeek: 5 }, survival()))
-        .toBe('You win 64% of matches with 4 or fewer deaths and 38% with 7 or more.')
+        .toBe('You win 64% of matches with 4 or fewer deaths and 38% with more than 7.')
     })
 
     it('falls back to average deaths when the gap is small', () => {
@@ -113,7 +113,7 @@ describe('overviewSummary', () => {
       const insight = buildSurvivalInsight(survival())
       expect(insight.kind).toBe('pattern')
       expect(insight.title).toBe('You win 64% of matches with 4 or fewer deaths')
-      expect(insight.text).toContain('With 7 or more it drops to 38%.')
+      expect(insight.text).toContain('With more than 7 it drops to 38%.')
       expect(insight.text).toContain('You average 5.2 per match over your last 20 matches')
     })
 

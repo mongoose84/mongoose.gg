@@ -4,21 +4,16 @@
     data-testid="account-dropdown-list"
   >
     <!-- Overall option -->
-    <div
+    <button
       v-if="showOverall"
-      role="option"
-      :aria-selected="activeAccountPuuid === 'overall'"
-      :data-focused="focusedIndex === 0"
-      class="flex items-center gap-sm px-md py-xs cursor-pointer transition-colors duration-150 rounded-md"
-      :class="[
-        activeAccountPuuid === 'overall'
-          ? 'text-text font-medium'
-          : 'text-text-secondary hover:bg-background-elevated hover:text-text',
-        focusedIndex === 0 ? 'bg-background-elevated text-text' : ''
-      ]"
+      type="button"
+      :aria-current="activeAccountPuuid === 'overall' ? 'true' : undefined"
+      class="mp-focusable w-full text-left flex items-center gap-sm px-md py-xs cursor-pointer transition-colors duration-150 rounded-md"
+      :class="activeAccountPuuid === 'overall'
+        ? 'text-text font-medium'
+        : 'text-text-secondary hover:bg-background-elevated hover:text-text'"
       data-testid="account-option-overall"
       aria-label="View all accounts combined"
-      tabindex="-1"
       @click="$emit('select', 'overall')"
     >
       <!-- Leading slot: checkmark or spacer -->
@@ -34,24 +29,19 @@
 
       <!-- Label -->
       <span class="text-sm">Overall</span>
-    </div>
+    </button>
 
     <!-- Account options -->
-    <div
+    <button
       v-for="(account, index) in accounts"
       :key="account.puuid || account.accountId"
-      role="option"
-      :aria-selected="isAccountActive(account)"
-      :data-focused="focusedIndex === accountOptionIndex(index)"
-      class="flex items-center gap-sm px-md py-xs cursor-pointer transition-colors duration-150 rounded-md"
-      :class="[
-        isAccountActive(account)
-          ? 'text-text font-medium'
-          : 'text-text-secondary hover:bg-background-elevated hover:text-text',
-        focusedIndex === accountOptionIndex(index) ? 'bg-background-elevated text-text' : ''
-      ]"
+      type="button"
+      :aria-current="isAccountActive(account) ? 'true' : undefined"
+      class="mp-focusable w-full text-left flex items-center gap-sm px-md py-xs cursor-pointer transition-colors duration-150 rounded-md"
+      :class="isAccountActive(account)
+        ? 'text-text font-medium'
+        : 'text-text-secondary hover:bg-background-elevated hover:text-text'"
       :data-testid="`account-option-${account.gameName || index}`"
-      tabindex="-1"
       @click="$emit('select', account.accountId || account.puuid)"
     >
       <!-- Leading slot: checkmark or spacer -->
@@ -84,7 +74,7 @@
         </span>
         <span v-if="account.region" class="text-3xs text-text-secondary">{{ formatRegion(account.region) }}</span>
       </span>
-    </div>
+    </button>
 
   </div>
 </template>
@@ -105,10 +95,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  focusedIndex: {
-    type: Number,
-    default: -1
-  },
   ddVersion: {
     type: String,
     default: '16.1.1'
@@ -120,11 +106,6 @@ defineEmits(['select'])
 function isAccountActive(account) {
   const id = props.activeAccountPuuid
   return (account.accountId && account.accountId === id) || (account.puuid && account.puuid === id)
-}
-
-/** Map account list index to the overall focused-index space (accounting for the Overall slot) */
-function accountOptionIndex(index) {
-  return index + (props.showOverall ? 1 : 0)
 }
 
 function getIconUrl(account) {

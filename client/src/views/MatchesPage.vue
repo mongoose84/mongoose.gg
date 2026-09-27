@@ -273,9 +273,16 @@ watch(
   flex-direction: column;
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
-  /* Fill the viewport below the fixed app header (80px on desktop) */
-  height: calc(100dvh - 5rem);
+  /* Fill the viewport between AppLayout's paddings: 56px header + bottom tab bar below 900px */
+  height: calc(100dvh - 7.5rem - env(safe-area-inset-bottom));
   overflow: hidden;
+}
+
+@media (min-width: 900px) {
+  .matches-page {
+    /* 80px header, no tab bar */
+    height: calc(100dvh - 5rem);
+  }
 }
 
 .page-header {

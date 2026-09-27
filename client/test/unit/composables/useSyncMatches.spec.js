@@ -4,6 +4,7 @@ import { defineComponent, ref, computed, nextTick } from 'vue'
 import { useSyncMatches } from '@/composables/useSyncMatches'
 
 const status = ref('idle')
+const hasAggregate = ref(false)
 const lastSyncAt = ref('2026-09-27T10:00:00Z')
 const progressState = ref({ current: 0, total: 0, totalSynced: null })
 const accountsTotal = ref(0)
@@ -14,6 +15,7 @@ const mockClearError = vi.fn()
 
 vi.mock('@/composables/useAnalysisStatus', () => ({
   useAnalysisStatus: () => ({
+    hasAggregate,
     isRunning: computed(() => status.value === 'pending' || status.value === 'syncing'),
     isRateLimited: computed(() => status.value === 'waiting_rate_limit'),
     hasFailed: computed(() => status.value === 'failed'),
@@ -43,6 +45,7 @@ describe('useSyncMatches', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     status.value = 'idle'
+    hasAggregate.value = false
     lastSyncAt.value = null
     progressState.value = { current: 0, total: 0, totalSynced: null }
     accountsTotal.value = 0
@@ -73,6 +76,28 @@ describe('useSyncMatches', () => {
     expect(api.isSyncing.value).toBe(true)
 
     // Dead-WebSocket fallback re-enables the button
+    vi.advanceTimersByTime(15_000)
+    expect(api.isSyncing.value).toBe(false)
+  })
+
+  it('stays running after the request for a returning user until the new run reports', async () => {
+    status.value = 'completed'
+    lastSyncAt.value = '2026-09-27T10:00:00Z'
+    const { api } = mountComposable()
+
+    await api.startSync()
+    await nextTick()
+    // The stale stored 'completed' status must not end the optimistic state
+    expect(api.syncState.value).toBe('running')
+
+    hasAggregate.value = true
+    status.value = 'syncing'
+    await nextTick()
+    expect(api.syncState.value).toBe('running')
+
+    // No leftover fallback timeout once the run has reported
+    status.value = 'completed'
+    await nextTick()
     vi.advanceTimersByTime(15_000)
     expect(api.isSyncing.value).toBe(false)
   })

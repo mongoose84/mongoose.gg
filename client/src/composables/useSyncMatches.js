@@ -16,10 +16,10 @@ const PENDING_TIMEOUT_MS = 15_000
  */
 export function useSyncMatches() {
   const {
+    hasAggregate,
     isRunning,
     isRateLimited,
     hasFailed,
-    isUpToDate,
     progress,
     accountsTotal,
     accountsDone,
@@ -52,8 +52,10 @@ export function useSyncMatches() {
     syncedCount.value = null
   }
 
-  watch([isRunning, isUpToDate, hasFailed], ([running, upToDate, failed]) => {
-    if (running || upToDate || failed) clearPending()
+  // triggerAnalysis clears the aggregate run, so any aggregate status after the click is the
+  // new run reporting in. The stored status can't confirm it: it is stale ('completed') until then.
+  watch(hasAggregate, (reported) => {
+    if (reported) clearPending()
   })
 
   // A run that ends without failing shows "Synced N matches" for a few seconds
@@ -99,7 +101,7 @@ export function useSyncMatches() {
     }
 
     // The WebSocket may already have settled the run while the request was in flight
-    if (isRunning.value || hasFailed.value || isUpToDate.value) {
+    if (hasAggregate.value) {
       clearPending()
       return
     }

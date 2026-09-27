@@ -183,6 +183,7 @@ export function useAnalysisStatus() {
   return {
     // State
     status,
+    hasAggregate,
     isRunning,
     isRateLimited,
     hasFailed,

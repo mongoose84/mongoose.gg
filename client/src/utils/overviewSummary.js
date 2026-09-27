@@ -51,7 +51,7 @@ export function buildHeroText(sessionStats, survivalStats) {
     const hasBothRates = s.winRateLowDeaths != null && s.winRateHighDeaths != null
     if (hasBothRates && s.winRateLowDeaths - s.winRateHighDeaths >= DEATH_GAP_THRESHOLD) {
       return `You win ${percent(s.winRateLowDeaths)}% of matches with ${s.lowDeathThreshold} or fewer deaths `
-        + `and ${percent(s.winRateHighDeaths)}% with ${s.highDeathThreshold} or more.`
+        + `and ${percent(s.winRateHighDeaths)}% with more than ${s.highDeathThreshold}.`
     }
     return `You average ${s.avgDeathsPerGame.toFixed(1)} deaths per match over your last ${matches(s.totalGames)}.`
   }
@@ -108,14 +108,14 @@ export function buildSurvivalInsight(survivalStats) {
       kind: 'strength',
       title: `You win ${low}% of matches with ${s.lowDeathThreshold} or fewer deaths`,
       text: `You average ${avg} deaths per match over your last ${matches(s.totalGames)}, inside that range. `
-        + `With ${s.highDeathThreshold} or more deaths you win ${high}%.`
+        + `With more than ${s.highDeathThreshold} deaths you win ${high}%.`
     }
   }
 
   return {
     kind: 'pattern',
     title: `You win ${low}% of matches with ${s.lowDeathThreshold} or fewer deaths`,
-    text: `With ${s.highDeathThreshold} or more it drops to ${high}%. You average ${avg} per match `
+    text: `With more than ${s.highDeathThreshold} it drops to ${high}%. You average ${avg} per match `
       + `over your last ${matches(s.totalGames)}, so one less death a match is the quickest way up.`
   }
 }
