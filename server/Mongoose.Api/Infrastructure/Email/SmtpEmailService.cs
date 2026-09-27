@@ -54,7 +54,7 @@ public class SmtpEmailService : IEmailService
     {
         _logger.LogWarning("========================================");
         _logger.LogWarning("DEV MODE: Email sending disabled");
-        _logger.LogWarning("To: {Email}", RedactEmailForLog(toEmail));
+        _logger.LogWarning("ToHash: {EmailHash}", LogSanitizer.HashForLog(toEmail));
         _logger.LogWarning("Username: {Username}", LogSanitizer.HashForLog(username));
         _logger.LogWarning("{CodeLabel}: {CodeHash}", codeLabel, LogSanitizer.HashForLog(code));
         _logger.LogWarning("========================================");
@@ -130,29 +130,6 @@ public class SmtpEmailService : IEmailService
             _logger.LogError(ex, "Failed to send {Kind}", kind);
             throw;
         }
-    }
-
-    private static string RedactEmailForLog(string? email)
-    {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            return "empty";
-        }
-
-        var sanitized = LogSanitizer.Sanitize(email);
-        var atIndex = sanitized.IndexOf('@');
-        if (atIndex <= 0 || atIndex == sanitized.Length - 1)
-        {
-            return LogSanitizer.HashForLog(sanitized);
-        }
-
-        var local = sanitized[..atIndex];
-        var domain = sanitized[(atIndex + 1)..];
-        var localRedacted = local.Length <= 2
-            ? "**"
-            : $"{local[0]}***{local[^1]}";
-
-        return $"{localRedacted}@{domain}";
     }
 
     /// <summary>
