@@ -23,7 +23,8 @@ Load only when the change directly touches contracts, schema, UX behavior, or te
 |-------|------|
 | API routes and endpoint contracts | `.github/specs/architecture.spec.md` |
 | Database structure and SQL shape | `.github/specs/database-schema.spec.md` |
-| UI behavior and design tokens | `.github/specs/ui-ux.spec.md` |
+| UI behavior, routes and component inventory | `.github/specs/ui-ux.spec.md` |
+| Visual design system (tokens, type, components, voice) | `.claude/skills/mongoose-design/reference/` — build UI with `/mongoose-design` |
 | Test scope and coverage strategy | `.github/specs/test-strategy.spec.md` |
 | Component template | `.github/specs/component.spec.md` |
 

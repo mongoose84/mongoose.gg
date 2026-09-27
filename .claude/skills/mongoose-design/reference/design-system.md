@@ -1,4 +1,4 @@
-Mongoose Pulse is the design language of Mongoose.gg, a League of Legends improvement coach. It reads like a calm health tracker (scores, readiness, plain-language insights) and dresses itself in the player's own champions. Dark only, purple for good, orange for needs work, champion art for identity.
+This is the design language of Mongoose.gg, a League of Legends improvement coach. It reads like a calm health tracker (scores, readiness, plain-language insights) and dresses itself in the player's own champions. Dark only, purple for good, orange for needs work, champion art for identity.
 
 ## Principles
 
@@ -23,7 +23,7 @@ Mongoose Pulse is the design language of Mongoose.gg, a League of Legends improv
 | match | game, round | One League match, everywhere: the Matches page, "Today's matches", "22 matches", "Syncing 12 of 40 matches". League phrases like "late game" and "early game" keep their word. |
 | Riot ID | summoner name, username, PUUID | `Name#TAG` |
 | sync | import, fetch, refresh | Pulling new matches from Riot |
-| score | rating, grade, index | A 0–100 Pulse score (Laning, Teamfighting, Discipline) |
+| score | rating, grade, index | A 0–100 score (Laning, Teamfighting, Discipline) |
 | readiness | tilt meter, mood | The Queue readiness score |
 | champion pool | roster, mains list | The champions a player plays |
 | insight | tip, alert, notification | A finding with evidence and a fix |
@@ -41,7 +41,7 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 6. **Proof sits next to the main button, as real numbers.** Players, matches analysed or downloads, rounded down with a unit and "+": "3.2M+ matches analysed". Only counts the backend really reports; when the count is small, show a real example result instead of a small number.
 7. **Show the rules are respected.** One short line near the main button says the product is safe to use, only if it is true: "Built on Riot's official API". Never claim Riot approval or endorsement without it in writing.
 8. **Show the patch.** Any meta, tier or champion stat claim carries the current patch next to it: "Patch 16.19". Stale-looking data loses trust faster than missing data.
-9. **Real data on the first screen, not pictures of it.** Show a real result card (a Pulse score card or champion card from a public example account, marked "Example"), not an illustration or a screenshot mock.
+9. **Real data on the first screen, not pictures of it.** Show a real result card (a score card or champion card from a public example account, marked "Example"), not an illustration or a screenshot mock.
 10. **Make it personal.** Stats sites say "stats"; coaching sites say "your strengths and weaknesses". Every first-screen promise is about the player's own matches, never about the meta in general.
 
 ## Charts
@@ -154,14 +154,14 @@ Two libraries were reviewed. Use them as described here and nowhere else.
 
 **Canvas UI** (canvasui.dev; WebGL/WebGPU effects such as Blaze, Liquid, Glass, Shatter, Particle Reveal, VHS; has Vue builds; MIT + Commons Clause). Rejected: the effects are the opposite of "Calm, not loud", run on the GPU on every page they touch, and the full effect relies on Chrome's experimental HTML-in-canvas API (origin trial), so most players would see a partial version. Reconsider only for a single, rare celebration moment (for example a promotion to a new rank), with a reduced-motion fallback, and only with the user's agreement.
 
-**21st.dev** (React + shadcn registry; each component has its own author and licence; free tier allows 2 copies a day). It is React-only, so nothing installs into this Vue app. Use it as a pattern library: browse Empty States, Skeletons and Spinner Loaders, Onboarding, Toasts, Search Bars and Command Palette, Stats & KPIs for structure and behaviour, then rebuild in Vue with Pulse tokens. Skeleton and EmptyState in this system came from that review.
+**21st.dev** (React + shadcn registry; each component has its own author and licence; free tier allows 2 copies a day). It is React-only, so nothing installs into this Vue app. Use it as a pattern library: browse Empty States, Skeletons and Spinner Loaders, Onboarding, Toasts, Search Bars and Command Palette, Stats & KPIs for structure and behaviour, then rebuild in Vue with design-system tokens. Skeleton and EmptyState in this system came from that review.
 
 ### Rules for bringing a component in
 
-1. **Check the system first.** If a Pulse component covers the need, use it. Take outside code only for behaviour the system lacks.
+1. **Check the system first.** If a design-system component covers the need, use it. Take outside code only for behaviour the system lacks.
 2. **No new runtime dependencies without a reason.** Prefer components that import only `vue`. GSAP, `motion-v`, three.js, OGL and icon packs each need the user's agreement first.
 3. **Port, don't paste.** Rewrite to the app's conventions: `<script setup>` in plain JavaScript (not TypeScript), explicit `defineProps` / `defineEmits`, no `className` props, file in `client/src/components/base/` (or the feature folder) with a PascalCase name.
-4. **Re-skin with tokens.** Replace every hard-coded colour, radius, shadow and duration with Pulse tokens (`var(--…)` or Tailwind names mapped to them). Default white glows become `spotlight`; default durations become 150ms (hover), 300ms (entrance) or 600ms (rings and numbers).
+4. **Re-skin with tokens.** Replace every hard-coded colour, radius, shadow and duration with design-system tokens (`var(--…)` or Tailwind names mapped to them). Default white glows become `spotlight`; default durations become 150ms (hover), 300ms (entrance) or 600ms (rings and numbers).
 5. **Add what the library leaves out.** `prefers-reduced-motion` handling, keyboard focus (`shadow-focus`), real buttons and links, `aria-label` holding final values, `data-testid` on interactive parts.
 6. **Credit and licence.** Put a comment at the top of the file: source, original author, licence (for Vue Bits: "Adapted from Vue Bits <name> by David Haz, MIT + Commons Clause"). For 21st.dev components, check the individual licence before copying any code; if it is unclear, rebuild from the pattern without copying.
 7. **Test it.** Add a Vitest unit test for its logic (final value rendered, reduced-motion path, emitted events).

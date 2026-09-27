@@ -1,4 +1,4 @@
-# Mongoose Pulse components
+# Mongoose.gg design system components
 
 Guidelines for each component. Class names refer to components.css.
 
@@ -69,7 +69,7 @@ A plain-language finding with its evidence and fix.
 
 ## Skeleton
 
-The loading state of a card: grey shapes in the exact layout of the content that is coming. Pattern from 21st.dev's Skeleton and Spinner Loaders categories, built on Pulse tokens.
+The loading state of a card: grey shapes in the exact layout of the content that is coming. Pattern from 21st.dev's Skeleton and Spinner Loaders categories, built on design-system tokens.
 
 - Provide: the same card, grid and sizes as the loaded content, with `mp-skeleton` blocks in place of text, rings and portraits.
 - Every card that loads data shows a skeleton, never a spinner in the middle of an empty card. The container gets `aria-busy="true"` and a visually hidden "Loading your matches" label.
@@ -78,7 +78,7 @@ The loading state of a card: grey shapes in the exact layout of the content that
 
 ## EmptyState
 
-What a card or page shows when there is nothing to show yet, written as the next step. Pattern from 21st.dev's Empty States category, built on Pulse tokens and copy rules.
+What a card or page shows when there is nothing to show yet, written as the next step. Pattern from 21st.dev's Empty States category, built on design-system tokens and copy rules.
 
 - Provide: a `title` sentence that says what is missing in the player's words, one line of why or what happens next, and one button that fixes it.
 - Examples: "No ranked matches this week" → "Play a ranked match and your scores update within a few minutes." → "Sync matches". "Link your Riot account to see your scores" → "Link Riot account".

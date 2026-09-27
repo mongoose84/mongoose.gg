@@ -1,4 +1,4 @@
-/* Mongoose Pulse — component classes. Every value comes from tokens.css. */
+/* Mongoose.gg design system — component classes. Every value comes from tokens.css. */
 
 .mp-page { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-variant-numeric: tabular-nums; }
 .mp-display { font-family: var(--font-display); }

@@ -1,50 +1,45 @@
 # Mongoose.gg — UI/UX Specification
 
-> **Purpose**: Single-source-of-truth for AI agents and developers building frontend features. Contains the design system (tokens, components, patterns), UX contracts (navigation, page responsibilities, bias rules), and the complete component inventory with props/slots.
+> **Purpose**: Single-source-of-truth for AI agents and developers building frontend features. Contains UX contracts (navigation, page responsibilities, bias rules), and the complete component inventory with props/slots.
 
-**Stack**: Vue 3 (Composition API, `<script setup>`) · Tailwind CSS · Headless UI · Heroicons · Chart.js + vue-chartjs · TanStack Vue Query · Pinia  
-**Theme**: Vercel Developer aesthetic adapted for gaming — dark, technical, premium  
+**Stack**: Vue 3 (Composition API, `<script setup>`) · Tailwind CSS · Headless UI · Lucide (via `BaseIcon`) · Chart.js + vue-chartjs · TanStack Vue Query · Pinia  
+**Design system**: Mongoose.gg design system — see Section 2 (visual rules live in `.claude/skills/mongoose-design/reference/`)  
 **Platform**: Desktop-first (future Windows native app)  
-**Last verified**: March 30, 2026
+**Last verified**: September 27, 2026
 
 ---
 
 ## Table of Contents
 
 1. [Design Philosophy & UX Principles](#1-design-philosophy--ux-principles)
-2. [Design Tokens (CSS Variables)](#2-design-tokens-css-variables)
-3. [Typography](#3-typography)
-4. [Spacing, Radius & Shadows](#4-spacing-radius--shadows)
-5. [Tailwind Integration](#5-tailwind-integration)
-6. [Navigation Model](#6-navigation-model)
-7. [Route Map](#7-route-map)
-8. [Layout Architecture](#8-layout-architecture)
-9. [Page Responsibilities](#9-page-responsibilities)
-10. [Base Components](#10-base-components)
-11. [Overview Components](#11-overview-components)
-12. [Match Components](#12-match-components)
-13. [Solo Analysis Components](#13-solo-analysis-components)
-14. [Shared Components](#14-shared-components)
-15. [Root-Level Components](#15-root-level-components)
-16. [Composables](#16-composables)
-17. [Stores](#17-stores)
-18. [Services & API Client](#18-services--api-client)
-19. [Utilities](#19-utilities)
-20. [Component Patterns (CSS)](#20-component-patterns-css)
-21. [Animations & Transitions](#21-animations--transitions)
-22. [Accessibility](#22-accessibility)
-23. [Z-Index Scale](#23-z-index-scale)
-24. [Icons](#24-icons)
-25. [Win Rate Color System](#25-win-rate-color-system)
-26. [Bias-Aware UX Rules](#26-bias-aware-ux-rules)
-27. [Design Constraints (Non-Negotiable)](#27-design-constraints-non-negotiable)
-28. [New Component Checklist](#28-new-component-checklist)
+2. [Visual Design System](#2-visual-design-system)
+3. [Navigation Model](#3-navigation-model)
+4. [Route Map](#4-route-map)
+5. [Layout Architecture](#5-layout-architecture)
+6. [Page Responsibilities](#6-page-responsibilities)
+7. [Base Components](#7-base-components)
+8. [Overview Components](#8-overview-components)
+9. [Match Components](#9-match-components)
+10. [Solo Analysis Components](#10-solo-analysis-components)
+11. [Shared Components](#11-shared-components)
+12. [Root-Level Components](#12-root-level-components)
+13. [Composables](#13-composables)
+14. [Stores](#14-stores)
+15. [Services & API Client](#15-services--api-client)
+16. [Utilities](#16-utilities)
+17. [Accessibility](#17-accessibility)
+18. [Z-Index Scale](#18-z-index-scale)
+19. [Icons](#19-icons)
+20. [Win Rate Color System](#20-win-rate-color-system)
+21. [Bias-Aware UX Rules](#21-bias-aware-ux-rules)
+22. [Design Constraints (Non-Negotiable)](#22-design-constraints-non-negotiable)
+23. [New Component Checklist](#23-new-component-checklist)
 
 ---
 
 ## 1. Design Philosophy & UX Principles
 
-**Theme**: Dark-first gaming aesthetic with Vercel-inspired technical precision. Background image (`/hero-bg.svg`, fixed cover) overlaid with dark gradient (`rgba(0,0,0,0.30)`) via `body::before`.
+**Theme**: a calm, dark improvement coach that reads like a health tracker (scores, readiness, plain-language insights) and dresses itself in the player's own champions. See Section 2.
 
 **Core Principles**:
 1. **Tool over website** — speed and clarity over exploration
@@ -68,133 +63,35 @@
 
 ---
 
-## 2. Design Tokens (CSS Variables)
+## 2. Visual Design System
 
-Defined in `client/src/style.css`. All components MUST use these tokens — never hardcode colors or sizes.
+All visual rules (colour, type, spacing, radius, depth, motion, iconography, champion art, copy voice, component look) come from the **Mongoose.gg design system**. This spec no longer defines any visual values; do not reintroduce them here.
 
-### Core Colors
+| Source | Path / link |
+|--------|-------------|
+| Live system (Design System artifact) | https://claude.ai/artifact/CV2Jr6dfMG8A8wv2JoMW2n |
+| Principles, voice, colour, type, layout, accessibility | `.claude/skills/mongoose-design/reference/design-system.md` |
+| Every token with value and usage | `.claude/skills/mongoose-design/reference/tokens.json` |
+| Component guidelines (ChampionHero, ScoreRing, MatchRow, InsightCard, Skeleton, EmptyState, Button, PillNav, …) | `.claude/skills/mongoose-design/reference/components.md` |
+| Reference CSS (`mp-*` classes) | `.claude/skills/mongoose-design/reference/components.css` |
+| Lucide icon set and fonts | `.claude/skills/mongoose-design/reference/icons/`, `reference/fonts/` |
+| Build workflow (foundation setup, Vue rules, validation) | `.claude/skills/mongoose-design/SKILL.md` (`/mongoose-design`) |
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--color-primary` | `#6d28d9` | Primary actions, links, focus states, accents |
-| `--color-primary-soft` | `rgba(109, 40, 217, 0.1)` | Hover backgrounds, subtle highlights |
-| `--color-primary-dark` | `#5b21b6` | Darker primary variant |
-| `--color-primary-light` | `#7c3aed` | Lighter primary variant |
-| `--color-primary-accent` | `#a855f7` | Accent/highlight variant |
-| `--color-bg` | `#000000` | Page background |
-| `--color-surface` | `rgba(255, 255, 255, 0.03)` | Cards, panels, elevated containers |
-| `--color-elevated` | `rgba(255, 255, 255, 0.05)` | Nested elevated elements |
-| `--color-text` | `#ffffff` | Primary text |
-| `--color-text-secondary` | `#888888` | Secondary/muted text |
-| `--color-border` | `rgba(109, 40, 217, 0.15)` | Borders, dividers |
+**The essentials** (full rules in the files above):
+- Dark only. Page `bg` → card `surface` → `surface-selected`; no drop shadows, no gradients except art scrims, one `surface-highlight` card per view.
+- **Purple means good, orange means needs work** — never red/green for match or performance meaning. `--color-error` / `--color-success` stay only for system states (form validation, failed requests, destructive confirmations).
+- **Clash Display** for headlines, titles and every number (tabular); **Satoshi** for everything else. Type and spacing in `rem`.
+- Pill-shaped controls, 24px card radius, 44px minimum touch targets, `shadow-focus` on every focusable element.
+- Lucide icons only, through `BaseIcon`; champion art from `client/src/utils/leagueAssets.js`.
+- Summary sentence before scores before detail; "you" voice; glossary words (match, Riot ID, sync, score, readiness, insight, goal).
 
-### Semantic Colors
+**Code mapping**: tokens live as CSS variables in `client/src/style.css` (existing `--color-*` names mapped to design-system values) and are exposed to Tailwind in `client/tailwind.config.js`. Use Tailwind for layout and sizing, CSS variables for themed values. Never hard-code a colour, radius, shadow or duration that is not a design-system token.
 
-| Token | Value | Soft | Border | Usage |
-|-------|-------|------|--------|-------|
-| `--color-success` | `#22c55e` | `rgba(34,197,94,0.1)` | `rgba(34,197,94,0.3)` | Wins, positive |
-| `--color-error` | `#ef4444` | `rgba(239,68,68,0.1)` | `rgba(239,68,68,0.3)` | Losses, errors |
-| `--color-warning` | `#f59e0b` | `rgba(245,158,11,0.1)` | `rgba(245,158,11,0.3)` | Cautions, pending |
-| `--color-info` | `#3b82f6` | `rgba(59,130,246,0.1)` | `rgba(59,130,246,0.3)` | Informational |
-| `--color-muted` | `#6b7280` | `rgba(107,114,128,0.2)` | — | Neutral/muted |
-
-### Win Rate Gradient Colors
-
-| Token | Color | Threshold |
-|-------|-------|-----------|
-| `--color-winrate-terrible` | `#ef4444` | < 40% |
-| `--color-winrate-bad` | `#f97316` | 40–45% |
-| `--color-winrate-poor` | `#fdba74` | 45–48% |
-| `--color-winrate-average` | `#eab308` | 48–52% |
-| `--color-winrate-good` | `#84cc16` | 52–55% |
-| `--color-winrate-great` | `#22c55e` | > 55% |
+**Migration status**: the Vue app is being migrated to the design system screen by screen. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
 
 ---
 
-## 3. Typography
-
-**Font**: `'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`  
-**Import**: `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap')`  
-**Letter spacing**: `-0.015em` (tight tracking for modern look)
-
-### Font Sizes
-
-| Token | Size | Line Height | Usage |
-|-------|------|-------------|-------|
-| `--font-size-xs` | `0.75rem` (12px) | 1.5 | Labels, badges, captions |
-| `--font-size-sm` | `0.875rem` (14px) | 1.5 | Secondary text, form labels |
-| `--font-size-md` | `1rem` (16px) | 1.6 | Body text, inputs |
-| `--font-size-lg` | `1.125rem` (18px) | 1.6 | Subheadings |
-| `--font-size-xl` | `1.5rem` (24px) | 1.4 | Section titles |
-| `--font-size-2xl` | `2.5rem` (40px) | 1.2 | Page titles, hero text |
-
-Tailwind also extends with: `text-4xs` (8px), `text-3xs` (9px), `text-2xs` (10px).
-
-### Font Weights
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--font-weight-normal` | `400` | Body text |
-| `--font-weight-medium` | `500` | Default weight, labels |
-| `--font-weight-semibold` | `600` | Buttons, emphasis |
-| `--font-weight-bold` | `700` | Headings, strong emphasis |
-
----
-
-## 4. Spacing, Radius & Shadows
-
-### Spacing Scale
-
-| Token | Size | Usage |
-|-------|------|-------|
-| `--spacing-xs` | `0.5rem` (8px) | Tight gaps, inline spacing |
-| `--spacing-sm` | `0.75rem` (12px) | Form element gaps |
-| `--spacing-md` | `1rem` (16px) | Standard padding, gaps |
-| `--spacing-lg` | `1.5rem` (24px) | Section spacing |
-| `--spacing-xl` | `2rem` (32px) | Large section padding |
-| `--spacing-2xl` | `3rem` (48px) | Major section breaks |
-
-### Border Radius
-
-| Token | Size | Usage |
-|-------|------|-------|
-| `--radius-sm` | `0.375rem` (6px) | Badges, small elements |
-| `--radius-md` | `0.5rem` (8px) | Buttons, inputs, cards |
-| `--radius-lg` | `0.75rem` (12px) | Modals, large cards |
-
-### Shadows
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--shadow-sm` | `0 2px 8px rgba(0,0,0,0.5)` | Subtle elevation |
-| `--shadow-md` | `0 8px 30px rgba(109,40,217,0.15)` | Cards, buttons on hover |
-| `--shadow-lg` | `0 20px 60px rgba(109,40,217,0.25)` | Modals, dropdowns |
-
----
-
-## 5. Tailwind Integration
-
-Design tokens are bridged into Tailwind via `client/tailwind.config.js`. CSS variables are the source of truth; Tailwind consumes them.
-
-```js
-// Tailwind class → CSS variable mapping
-bg-primary         → var(--color-primary)
-bg-background-surface → var(--color-surface)
-text-text-secondary → var(--color-text-secondary)
-border-border      → var(--color-border)
-text-success       → var(--color-success)
-text-error         → var(--color-error)
-rounded-md         → var(--radius-md)
-shadow-md          → var(--shadow-md)
-p-md               → var(--spacing-md)
-tracking-tight     → var(--letter-spacing)
-```
-
-**Rule**: Use CSS variables for colors/typography/spacing. Use Tailwind for layout utilities (flex, grid, gap, positioning).
-
----
-
-## 6. Navigation Model
+## 3. Navigation Model
 
 **Primary navigation**: Left-side vertical sidebar (`AppSidebar.vue`)
 - Collapsible: icons + labels → icons only
@@ -230,7 +127,7 @@ User             → /app/user
 
 ---
 
-## 7. Route Map
+## 4. Route Map
 
 All routes defined in `client/src/router/index.js`.
 
@@ -276,7 +173,7 @@ All routes defined in `client/src/router/index.js`.
 
 ---
 
-## 8. Layout Architecture
+## 5. Layout Architecture
 
 ### `AppLayout.vue` (authenticated shell)
 - **Structure**: `AppSidebar` (fixed left) + `<router-view>` (flex-1 main content)
@@ -286,7 +183,7 @@ All routes defined in `client/src/router/index.js`.
 
 ### `OverviewLayout.vue` (overview page container)
 - Named slots: `#header`, `#glance-left`, `#glance-right`, `#recent-left`, `#recent-right`, `#latest-match`, `#empty-action`
-- Handles loading (spinner), error (retry), empty (link account CTA) states
+- Handles loading (Skeleton), error (retry), empty (link account CTA) states
 - Single-column layout, one-scroll max
 
 ### `AnalysisLayout.vue` (shared by Solo/Team)
@@ -298,14 +195,14 @@ All routes defined in `client/src/router/index.js`.
 - Prop: `pageTitle`
 
 ### `NavBar.vue` (public pages)
-- Fixed top, glassmorphism (`rgba(0,0,0,0.8)` + `backdrop-blur-[12px]`)
+- Fixed top header for public pages
 - Desktop: Features/Pricing/How It Works/Login + "Get Started" CTA
 - Mobile: hamburger toggle with slide-down animation
 - Logo links to `/app/user` if authenticated, `/` if not
 
 ---
 
-## 9. Page Responsibilities
+## 6. Page Responsibilities
 
 ### Overview (`/app/overview`)
 **Role**: Situational awareness and routing. Time budget: 5–15 seconds.
@@ -392,7 +289,7 @@ Pre-fills email from `?email=` query param. Code input uses same monospace `trac
 
 ---
 
-## 10. Base Components
+## 7. Base Components
 
 Located in `client/src/components/base/`. Exported via `index.js` barrel.
 
@@ -456,7 +353,7 @@ Time range dropdown (Last 20, Last 50, Season, etc.).
 
 ---
 
-## 11. Overview Components
+## 8. Overview Components
 
 Located in `client/src/components/overview/`.
 
@@ -513,7 +410,7 @@ Shows current sync/analysis status. No props (reads from store/composable intern
 
 ---
 
-## 12. Match Components
+## 9. Match Components
 
 Located in `client/src/components/matches/`.
 
@@ -546,7 +443,7 @@ Detailed stat breakdown grid.
 - **Support**: Kill Participation, Gold @15, Vision/min
 - **Non-Support**: Kill Participation, Gold @15, Dmg/Gold efficiency
 
-Color-coded with sentiment borders (positive green / negative red).
+Color-coded with sentiment borders (positive purple / needs-work orange).
 
 ### `LaneMatchupDetails`
 Two-phase display:
@@ -559,14 +456,14 @@ Includes AI-generated matchup insight text.
 Team damage comparison bars (ally vs enemy), gold lead @15, objective counts (dragons/barons/towers). Uses Community Dragon CDN for icons.
 
 ### `TrendBadge`
-Inline badge with ↑/↓ arrows. Props: `{ text, type, stat }` badge object. Types: positive (green), negative (red), neutral (gray).
+Inline badge with ↑/↓ arrows. Props: `{ text, type, stat }` badge object. Types: positive (`positive-text`), negative (`warn-text`), neutral (`ink-muted`).
 
 ### `MatchActions`
 Navigation links from match detail to relevant analysis pages.
 
 ---
 
-## 13. Solo Analysis Components
+## 10. Solo Analysis Components
 
 Located in `client/src/components/solo/`.
 
@@ -601,7 +498,7 @@ Chart.js line chart for rolling win rate. Prop: `data` (array of win rate data p
 
 ---
 
-## 14. Shared Components
+## 11. Shared Components
 
 ### `AnalysisLayout` (`client/src/components/shared/`)
 Zone-based layout used by Solo and Team pages.
@@ -624,7 +521,7 @@ Slots: `#context-bar`, `#summary`, `#trend-charts`
 
 ---
 
-## 15. Root-Level Components
+## 12. Root-Level Components
 
 Located in `client/src/components/`.
 
@@ -660,7 +557,7 @@ Fixed bottom-left badge: "Mongoose.gg Beta • v{version}". Hidden inside `/app`
 
 ---
 
-## 16. Composables
+## 13. Composables
 
 Located in `client/src/composables/`.
 
@@ -680,7 +577,7 @@ Tracks analysis/sync status for display in `AnalysisStatusCard`.
 
 ---
 
-## 17. Stores
+## 14. Stores
 
 Located in `client/src/stores/`. Using **Pinia**.
 
@@ -695,7 +592,7 @@ Located in `client/src/stores/`. Using **Pinia**.
 
 ---
 
-## 18. Services & API Client
+## 15. Services & API Client
 
 Located in `client/src/services/`.
 
@@ -728,7 +625,7 @@ Browser/OS detection, environment context capture, submit via `apiClient.post`.
 
 ---
 
-## 19. Utilities
+## 16. Utilities
 
 Located in `client/src/utils/`.
 
@@ -746,110 +643,22 @@ CDN helpers for League of Legends assets:
 
 ---
 
-## 20. Component Patterns (CSS)
+## 17. Accessibility
 
-### Cards
-```css
-background: var(--color-surface);
-border: 1px solid var(--color-border);
-border-radius: var(--radius-lg);
-padding: var(--spacing-xl);
-backdrop-filter: blur(10px);
-```
-
-### Primary Button
-```css
-background: var(--color-primary);
-color: white;
-padding: var(--spacing-md);
-border-radius: var(--radius-md);
-font-weight: var(--font-weight-semibold);
-transition: all 0.2s;
-box-shadow: var(--shadow-sm);
-/* Hover: shadow-md + translateY(-2px) */
-/* Disabled: opacity 0.6, cursor not-allowed */
-```
-
-### Ghost Button
-```css
-background: transparent;
-color: var(--color-primary);
-border: 1px solid var(--color-border);
-/* Hover: border-color primary, bg primary-soft */
-```
-
-### Form Inputs
-```css
-padding: var(--spacing-md);
-background: var(--color-bg);
-border: 1px solid var(--color-border);
-border-radius: var(--radius-md);
-color: var(--color-text);
-/* Focus: border primary, box-shadow 0 0 0 3px primary-soft */
-/* Error: border #ef4444, box-shadow rgba(239,68,68,0.2) */
-```
-
-### Dropdowns
-```css
-background: var(--color-surface);
-border: 1px solid var(--color-border);
-border-radius: var(--radius-md);
-box-shadow: var(--shadow-lg);
-/* Items: hover bg elevated */
-/* Divider: 1px border color */
-```
+Follow "States and accessibility" in `.claude/skills/mongoose-design/reference/design-system.md`. In short:
+- **Focus**: every interactive element shows `shadow-focus` on keyboard focus.
+- **Contrast**: 4.5:1 minimum; each text token lists the grounds it is allowed on.
+- **Touch targets**: at least 44px tall (buttons 48px).
+- **Meters**: scores and meters use `role="meter"` with `aria-valuetext` in words.
+- **Motion**: respect `prefers-reduced-motion`; **contrast**: `prefers-contrast: more` uses the High contrast token values.
+- **Text size**: type and spacing in `rem` so 200% zoom works.
+- **Screen reader**: `.visually-hidden` utility class; icon-only buttons get `aria-label`; decorative icons `aria-hidden="true"`.
+- **Headless UI**: used for complex interactive components (Dialog, Menu, Transition) for built-in ARIA support.
+- **Semantic HTML**: proper heading hierarchy, `<button>` vs `<a href>`, form labels, `aria-pressed` / `aria-current`.
 
 ---
 
-## 21. Animations & Transitions
-
-### Standard Transition
-```css
-transition: all 0.2s ease;
-```
-
-### Hover Lift Effect
-```css
-:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-```
-
-### Dropdown Animation
-```css
-.dropdown-enter-from, .dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-```
-
-### Loading Spinner
-```css
-.spinner {
-  width: 16px; height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 0.8s linear infinite;
-}
-```
-
----
-
-## 22. Accessibility
-
-- **Focus states**: Always visible — `box-shadow: 0 0 0 3px var(--color-primary-soft)`
-- **Color contrast**: 4.5:1 ratio minimum for text on backgrounds
-- **Disabled states**: `opacity: 0.6` + `cursor: not-allowed`
-- **Touch targets**: Minimum 44×44px on mobile
-- **Screen reader**: `.visually-hidden` utility class (position absolute, 1×1px, overflow hidden)
-- **Headless UI**: Used for all complex interactive components (Dialog, Menu, Transition) for built-in ARIA support
-- **Semantic HTML**: Required — use proper heading hierarchy, button vs link distinction, form labels
-
----
-
-## 23. Z-Index Scale
+## 18. Z-Index Scale
 
 | Layer | Z-Index | Usage |
 |-------|---------|-------|
@@ -862,43 +671,32 @@ transition: all 0.2s ease;
 
 ---
 
-## 24. Icons
+## 19. Icons
 
-Use [Heroicons](https://heroicons.com/) via `@heroicons/vue`:
+Lucide only, via `BaseIcon` (`client/src/components/base/BaseIcon.vue`, SVGs in `client/src/assets/icons/`). Sizes 16 / 20 / 24px, `currentColor`, always next to a word. The icon vocabulary (one meaning per icon) is the Iconography table in `.claude/skills/mongoose-design/reference/design-system.md`. Champion, item, rune, role and rank emblems are Riot images, never icons.
 
-```js
-import { UserIcon, CogIcon } from '@heroicons/vue/24/solid'
-import { UserIcon, CogIcon } from '@heroicons/vue/24/outline'
-```
-
-Standard sizes:
-- Small: `w-4 h-4` (16px)
-- Medium: `w-5 h-5` (20px)
-- Large: `w-6 h-6` (24px)
-
-`HighlightTile` also uses 5 custom inline SVG icons (`damage`, `kda`, `cs`, `vision`, `chart`) via render functions.
+Heroicons and hand-drawn inline SVGs are legacy: switch a component to `BaseIcon` when you touch it.
 
 ---
 
-## 25. Win Rate Color System
+## 20. Win Rate Color System
 
-Implemented via `useWinRateColor()` composable + CSS classes in `style.css`.
+Implemented via `useWinRateColor()` composable + `winrate-*` CSS classes in `style.css`. Values follow the design-system `winrate-*` tokens (purple = good, orange = needs work):
 
-| Class | CSS Variable | Range |
+| Class | Design token | Range |
 |-------|-------------|-------|
-| `winrate-terrible` | `--color-winrate-terrible` (#ef4444) | < 40% |
-| `winrate-bad` | `--color-winrate-bad` (#f97316) | 40–45% |
-| `winrate-poor` | `--color-winrate-poor` (#fdba74) | 45–48% |
-| `winrate-average` | `--color-winrate-average` (#eab308) | 48–52% |
-| `winrate-good` | `--color-winrate-good` (#84cc16) | 52–55% |
-| `winrate-great` | `--color-winrate-great` (#22c55e) | > 55% |
-| `winrate-neutral` | `--color-text` (#ffffff) | No data |
+| `winrate-terrible` | `winrate-terrible` | < 40% |
+| `winrate-bad` | `winrate-bad` | 40–47% |
+| `winrate-average` | `winrate-average` | 48–52% |
+| `winrate-good` | `winrate-good` | 53–59% |
+| `winrate-great` | `winrate-great` | 60%+ |
+| `winrate-neutral` | `ink` | No data |
 
-Legacy aliases (`winrate-red`, `winrate-green`, etc.) exist for backward compatibility.
+Exact values and allowed grounds are in `.claude/skills/mongoose-design/reference/tokens.json`. Legacy aliases (`winrate-red`, `winrate-green`, etc.) exist only for backward compatibility.
 
 ---
 
-## 26. Bias-Aware UX Rules
+## 21. Bias-Aware UX Rules
 
 These prevent common UX errors in stressful gaming contexts:
 
@@ -912,12 +710,12 @@ These prevent common UX errors in stressful gaming contexts:
 
 ---
 
-## 27. Design Constraints (Non-Negotiable)
+## 22. Design Constraints (Non-Negotiable)
 
 1. Champion Select reachable in one click from any page
 2. Overview never blocks user flow
 3. No duplicated deep analysis across pages
-4. Context (Solo/Team) always visible via separate sidebar entries *(planned — currently gated by feature flags; see Section 6 implementation note)*
+4. Context (Solo/Team) always visible via separate sidebar entries *(planned — currently gated by feature flags; see Section 3 implementation note)*
 5. Team shows lock icon for free users (not 403 or blank wall) *(planned — not yet implemented)*
 6. Navigation hierarchy remains stable across all pages
 7. Every chart/stat must have actionable meaning
@@ -927,23 +725,24 @@ These prevent common UX errors in stressful gaming contexts:
 
 ---
 
-## 28. New Component Checklist
+## 23. New Component Checklist
 
 When creating new UI components:
 
-- [ ] Uses design tokens from `style.css` — no hardcoded colors, sizes, or shadows
+- [ ] Built from the Mongoose.gg design system (`/mongoose-design`): uses an existing design-system component where one fits; tokens only — no hard-coded colours, sizes, radii, shadows or durations
+- [ ] Clash Display for titles and numbers, Satoshi for text; purple/orange semantics, never red/green for performance
 - [ ] Follows `<script setup>` Composition API pattern
-- [ ] Reuses base components (`BaseButton`, `BaseCard`, `BaseModal`, `BaseInput`) where applicable
-- [ ] Includes loading and error states for async data
-- [ ] Has accessibility attributes (aria-labels, roles, keyboard navigation)
-- [ ] Meets 4.5:1 color contrast ratio
-- [ ] Uses Heroicons for iconography
-- [ ] Applies standard `transition: all 0.2s ease`
+- [ ] Reuses base components (`BaseButton`, `BaseCard`, `BaseModal`, `BaseInput`, `BaseIcon`) where applicable
+- [ ] Has Skeleton (loading), EmptyState (nothing yet), inline error with retry, and content states for async data
+- [ ] Has accessibility attributes (aria-labels, roles, meters, keyboard navigation) and `shadow-focus`
+- [ ] Meets 4.5:1 color contrast ratio and 44px touch targets
+- [ ] Uses Lucide icons through `BaseIcon`, always with a word
+- [ ] Motion only shows a change, with a `prefers-reduced-motion` path
 - [ ] Respects z-index scale
 - [ ] Uses Tailwind for layout, CSS variables for visual properties
 - [ ] Has matching unit test in `client/test/unit/`
 - [ ] Every displayed metric answers one question and implies one action
-- [ ] Follows bias-aware rules (Section 26)
+- [ ] Follows bias-aware rules (Section 21)
 
 ---
 

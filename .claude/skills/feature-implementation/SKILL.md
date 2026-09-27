@@ -24,7 +24,8 @@ This skill is the canonical home for long-form feature workflow guidance, delive
 ## Key References
 - `.github/specs/architecture.spec.md` — endpoints, DTOs, route map
 - `.github/specs/database-schema.spec.md` — table structure and relationships
-- `.github/specs/ui-ux.spec.md` — design system, tokens, component inventory
+- `.github/specs/ui-ux.spec.md` — UX contracts, component inventory
+- `.claude/skills/mongoose-design/reference/` — Mongoose.gg design system (tokens, type, components, voice)
 - `.github/specs/test-strategy.spec.md` — testing pyramid, coverage map
 - `.github/specs/feature-template.spec.md` — template for new feature specs
 - [new-endpoint skill](../new-endpoint/SKILL.md) — endpoint scaffolding pattern
