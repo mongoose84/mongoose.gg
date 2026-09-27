@@ -16,7 +16,7 @@ Build whatever the user asked for (`$ARGUMENTS`) in the **Mongoose Pulse** desig
 - Local snapshot, used when the artifact is unavailable and for all code work:
   - `reference/design-system.md`: principles, voice, colour, type, layout, champion-art and accessibility rules.
   - `reference/tokens.json`: every token with its value and usage note.
-  - `reference/components.md`: guidelines for ChampionHero, ScoreRing, AnimatedNumber, ChampionCard, ReadinessMeter, GameRow, InsightCard, Skeleton, EmptyState, SyncProgress, Button, PillNav, SegmentedControl, Chip, Icon.
+  - `reference/components.md`: guidelines for ChampionHero, ScoreRing, AnimatedNumber, ChampionCard, ReadinessMeter, MatchRow, InsightCard, Skeleton, EmptyState, SyncProgress, Button, PillNav, SegmentedControl, Chip, Icon.
   - `reference/components.css`: reference CSS for those components (`mp-*` classes).
   - `reference/icons/`: the approved Lucide SVGs (ISC, `LICENSE` included); their meanings are in the Iconography table of `reference/design-system.md`.
   - `reference/fonts/`: Clash Display 600/700 and Satoshi 400/500/700 (`.woff2`, Fontshare free licence).
@@ -80,7 +80,7 @@ Check `client/src/style.css` for `--font-display` and `--color-surface-selected`
   - When touching a component that uses `@heroicons/vue` or a hand-drawn inline `<svg>`, switch it to `BaseIcon` with the vocabulary's icon. Don't rewrite untouched files just for icons.
   - Icons never replace words; icon-only buttons (close, copy, overflow) need `aria-label`.
 - **Champion art:** use `getChampionIconUrl` and `getChampionSplashUrl` from `client/src/utils/leagueAssets.js`. If you need centred art, add a `getChampionCenteredUrl` helper there (`https://ddragon.leagueoflegends.com/cdn/img/champion/centered/<Name>_0.jpg`) with a unit test, following the splash helper.
-- **Apple HIG lessons (already in the system):** use the glossary words (game, Riot ID, sync, score, readiness, insight, goal); chart titles state the takeaway and every chart has a text alternative; scores and meters use `role="meter"` with `aria-valuetext`; sync shows determinate progress (SyncProgress) and never blocks the page; first-time tips sit next to the thing they explain; no motion on frequent interactions.
+- **Apple HIG lessons (already in the system):** use the glossary words (match — never "game" for a single match —, Riot ID, sync, score, readiness, insight, goal); chart titles state the takeaway and every chart has a text alternative; scores and meters use `role="meter"` with `aria-valuetext`; sync shows determinate progress (SyncProgress) and never blocks the page; first-time tips sit next to the thing they explain; no motion on frequent interactions.
 - **Copy:** follow the voice rules in `reference/design-system.md`: "you", finding → evidence → fix, League vocabulary, sentence case, signed LP with a real minus, no emoji. Never show raw PUUIDs or internal IDs.
 - **Accessibility:** real buttons and links, `aria-pressed` / `aria-current`, `shadow-focus` on focus, 44px touch targets, text only on the grounds its token note allows. Respect `prefers-reduced-motion`.
 - **Responsive:** 56px gutters on desktop, 16px on phones, grids collapse to one column below 900px, and the hero art moves behind the text with a full-width scrim.

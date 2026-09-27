@@ -5,7 +5,7 @@
 
 .mp-focusable:focus-visible,
 .mp-btn:focus-visible, .mp-nav a:focus-visible, .mp-seg button:focus-visible,
-.mp-champ-card:focus-visible, .mp-game-row:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.mp-champ-card:focus-visible, .mp-match-row:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 
 /* Card */
 .mp-card { background: var(--surface); border-radius: var(--radius-xl); padding: var(--space-7); }
@@ -79,11 +79,11 @@
 .mp-bar { position: relative; height: 4px; border-radius: var(--radius-xs); background: rgba(255,255,255,0.12); }
 .mp-bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: var(--radius-xs); background: var(--primary); }
 
-/* Game row */
-.mp-game-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) 110px 90px 80px; gap: var(--space-4); align-items: center; min-height: 68px; border-top: 1px solid var(--divider); color: var(--ink); text-decoration: none; }
+/* Match row */
+.mp-match-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) 110px 90px 80px; gap: var(--space-4); align-items: center; min-height: 68px; border-top: 1px solid var(--divider); color: var(--ink); text-decoration: none; }
 .mp-portrait { width: 48px; height: 48px; border-radius: var(--radius-pill); border: 2px solid var(--primary); object-fit: cover; }
 .mp-portrait--loss { border-color: var(--warn); }
-.mp-game-row .mp-lp { font: 600 16px/1 var(--font-display); text-align: right; }
+.mp-match-row .mp-lp { font: 600 16px/1 var(--font-display); text-align: right; }
 
 /* Insight card */
 .mp-insight { display: flex; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-lg); background: var(--surface); }
