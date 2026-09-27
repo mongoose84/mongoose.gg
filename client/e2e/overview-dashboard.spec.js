@@ -13,6 +13,7 @@ async function gotoOverviewPage(page) {
  *
  * The Overview follows the design-system order:
  * - Champion hero (individual mode) or account cards (Overall mode)
+ * - Your champions: ranked champion cards and "Also played"
  * - Today's matches: summary, last match as a MatchRow, Sync matches
  * - Insights
  * - Next steps: Champion Select and Solo

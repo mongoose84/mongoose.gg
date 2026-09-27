@@ -123,7 +123,12 @@ Each adds fields to `OverviewResponse` (update `architecture.spec.md`) and its s
 - Cards are **static** (no pick, no `aria-pressed`, no spotlight): champion-focused analysis belongs to Champion Select. This deviates from the design system's ChampionCard (a button) — add a static variant to the live system (Step 5).
 - The hero keeps `mostPlayedChampion` (all queues), so card #1 can differ from the hero champion.
 - `CurrentSeasonSubquery` is now shared in `OverviewStatsRepository`.
-- The repository SQL is covered only by E2E (no DB-backed repository test).
+- The repository SQL is covered by E2E (the test user has no ranked matches, so only the empty path) and was checked read-only against the dev database on 2026-09-27 (40 champions for the busiest ranked account; cards Senna / Vladimir / Cho'Gath with Best vision / Best farming / Best laning). Unit tests 1574, backend 609, E2E 35 (Overview + smoke, Chromium + Firefox) green; visual pass at 1440 / 1024 / 390px.
+
+### Your champions: known leftovers
+- Champion names show Riot's internal ID ("Chogath", "MonkeyKing"); this is app-wide (hero, match rows too) — add a display-name mapping from Data Dragon in its own change.
+- The strength-tag baseline mixes roles, so a support-heavy pool makes any laner "Best farming". Revisit with the Score rings, which need per-role baselines anyway.
+- The static ChampionCard variant still has to be added to the live design system and `reference/` (Step 5).
 
 ---
 
