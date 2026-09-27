@@ -1,0 +1,104 @@
+# Design System Migration Plan
+
+Moves the authenticated app (`/app/*`) to the Mongoose.gg design system, one phase per PR. The visual rules live in `.claude/skills/mongoose-design/reference/`; build every UI change through `/mongoose-design`. Navigation and layout behaviour is specified in `ui-ux.spec.md` §3 and §5.
+
+Tick items off as they land so work can resume from any machine.
+
+## Starting point (2026-09-27)
+
+- **Foundation done**: Clash Display + Satoshi in `client/public/fonts/`, tokens in `client/src/style.css`, Tailwind mapping, Lucide icons via `BaseIcon`, `ScoreRing`, `mp-btn`, `useRevealOnView`.
+- **Migrated**: public `NavBar`, Landing page, cookie banner, auth page, `BaseButton`, `BaseInput`.
+- **Not yet ported to `style.css`**: `mp-nav`, `mp-tabbar`, `mp-card`, `mp-hero`, `mp-match-row`, `mp-insight`, `mp-skeleton`, `mp-empty`, `mp-chip`, `mp-seg`, `mp-meter`, `mp-champ-card` (source: `reference/components.css`).
+- **Data gap**: the design's Overview order is hero → 3 score rings → your champions → readiness + today's matches → insights. `OverviewResponse` has no scores, readiness, insights or champion-pool stats. It does have `mostPlayedChampion`, `playerHeader` (rank, LP), `sessionStats`, `survivalStats`, `lastMatch`, `accountSummaries`.
+
+## Decisions
+
+- Sections without real data are **left out**, not shown as placeholders, until Phase 3 delivers the data.
+- Team and Goals leave the navigation; they stay reachable by URL behind their feature flags until the "Advanced" page exists.
+- The "analysis running" dot on the Matches nav item is dropped (no badges on pills); sync status shows on the page as SyncProgress.
+- The tier label under the username is dropped; how Pro is marked is decided when Pro is built.
+
+---
+
+## Phase 1: App header replaces the sidebar
+
+Frontend only, one PR.
+
+### Build
+- [ ] Port `mp-nav`, `mp-tabbar`, `mp-card` into `client/src/style.css`.
+- [ ] `client/src/components/AppHeader.vue`: 80px header, logo left (→ `/app/overview`), PillNav centre (Overview, Champion Select, Matches, Solo; `router-link` with `aria-current="page"`), avatar right opening a menu with the Riot account switcher (when several accounts are linked), Settings (`/app/user`), Feedback (`/app/feedback`), Log out. Keep test IDs `nav-overview`, `nav-champion-select`, `nav-matches`, `nav-solo`, `nav-feedback`; add `app-header`.
+- [ ] `client/src/components/AppTabBar.vue`: below 900px, fixed bottom, 64px + safe-area inset, icon above label (`house`, `shield`, `swords`, `chart-line`), "Champ Select" as the phone label; header shrinks to 56px (logo + avatar).
+- [ ] Move the account-switch logic from `components/sidebar/AccountSwitcher.vue` and `AccountDropdownList.vue` into the avatar menu.
+- [ ] `client/src/layouts/AppLayout.vue`: remove `AppSidebar` and the `marginLeft` binding; render header, tab bar and a content wrapper (max width 1328px, 56px desktop / 16px phone gutters, top padding for the header, bottom padding for the tab bar on phones). Keep idle detection as is.
+
+### Remove
+- [ ] `client/src/components/AppSidebar.vue`
+- [ ] `client/src/components/sidebar/` (after moving what the header reuses)
+- [ ] Sidebar state in `client/src/stores/uiStore.js` (`sidebarCollapsed`, `sidebarWidth`, `toggleSidebar`, `initializeSidebar`, `sidebarCollapsed` localStorage key); delete the store if nothing else uses it.
+- [ ] Heroicons imports that only the sidebar used.
+
+### Tests
+- [ ] Replace `client/test/unit/components/AppSidebar.spec.js` with `AppHeader.spec.js` (active pill, avatar menu, account switch, log out) and `AppTabBar.spec.js`.
+- [ ] Update `client/test/unit/layouts/AppLayout.spec.js` and `client/test/unit/stores/uiStore.spec.js`.
+- [ ] E2E: `client/e2e/helpers/app-shell.js` waits for `app-header` instead of `app-sidebar`; update sidebar tests in `app-smoke.spec.js`, `overview-dashboard.spec.js`, `solo-dashboard.spec.js`.
+
+### Docs
+- [ ] `ui-ux.spec.md`: remove the implementation note in §3, the "Legacy" line in §5, and the `AppSidebar` / uiStore inventory entries; update the migration-status line.
+
+### Check
+- [ ] Solo, Matches, Champion Select, Settings and Feedback still lay out correctly at full width (they keep legacy styling until their own phase).
+
+---
+
+## Phase 2: Overview re-skin with existing data
+
+Frontend only, one PR. Order follows the design system; only sections with real data.
+
+| Design section | Data | Component |
+|---|---|---|
+| Champion hero + summary sentence | `mostPlayedChampion` (splash), `playerHeader` (Riot ID · rank · LP); glass chips from `sessionStats` (matches this week, win rate); sentence built client-side from `sessionStats` / `survivalStats` | New `ChampionHero.vue`; `getChampionCenteredUrl` helper in `leagueAssets.js` if needed |
+| Today's matches | `sessionStats` counts + `lastMatch` as a MatchRow | New base `MatchRow.vue` (links to `/app/matches` until `/app/matches/:matchId` exists) |
+| Insights | `survivalStats` as a Pattern insight ("You win 64% with 4 or fewer deaths…") | New `InsightCard.vue` + `mp-chip` |
+| Next steps | Champion Select and Solo CTAs as two plain cards | `mp-card` + `BaseButton` secondary |
+| Sync | `AnalysisStatusCard` → inline SyncProgress at the top of content | New `SyncProgress.vue` |
+| Overall mode | `OverviewAccountCards` re-skinned, in place of the hero | Existing component |
+
+### Build
+- [ ] Port `mp-hero`, `mp-match-row`, `mp-insight`, `mp-chip`, `mp-skeleton`, `mp-empty` into `style.css`.
+- [ ] `BaseSkeleton` and `BaseEmptyState`; every card gets loading / empty / error-with-retry / content. The page frame renders immediately instead of blocking on one loading state.
+- [ ] Replace `OverviewLayout`'s legacy slots (`glance-*`, `recent-*`, `latest-match`) with sections in the new order, or drop the wrapper.
+- [ ] Remove legacy styling in touched files: gradients, glows, hover lifts, green/red win colours (use winrate tokens / purple-orange), Heroicons.
+- [ ] Retire components that no longer fit (`OverviewPlayerHeader`, `ChampionSelectCTA`, `SoloAnalyticsCTA`, `DeathInsightsCard`, `LastMatchCard`, `TodaySessionCard`, `AnalysisStatusCard`) once their replacements are in, with their unit tests.
+
+### Tests
+- [ ] Unit tests for each new base component and for the summary-sentence logic.
+- [ ] Update Overview view tests and `client/e2e/overview-dashboard.spec.js`.
+
+### Docs and design system
+- [ ] `ui-ux.spec.md` §5 (`OverviewLayout`) and the component inventory updated.
+- [ ] New patterns added to the live design system and `reference/` snapshot (mongoose-design Step 5).
+
+---
+
+## Phase 3: New Overview data
+
+Spec first (`feature-spec` / `architect`), then backend + frontend per item. Each defines a domain rule in Core, so it needs its own spec.
+
+- [ ] **Your champions**: top 3 ChampionCards + "Also played" list. Likely reuses `getChampionSelectData` / `MainChampionRecommender`.
+- [ ] **Insights**: Strength / Pattern / Trend findings with evidence, extending `TrendBadgeCalculator`.
+- [ ] **Score rings**: Laning, Teamfighting, Discipline (0–100, weekly delta, 3 contributors).
+- [ ] **Queue readiness**: the one highlight card (0–100, verdict, advice).
+
+Each adds fields to `OverviewResponse` (update `architecture.spec.md`) and its section to the Overview in the design-system position.
+
+---
+
+## Later phases
+
+One PR each, through `/mongoose-design`:
+
+- [ ] Matches page (MatchRow list, `/app/matches/:matchId` detail)
+- [ ] Solo page
+- [ ] Champion Select page
+- [ ] Settings and Feedback pages
+- [ ] Advanced page (Team + Goals combined) back into the navigation
