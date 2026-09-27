@@ -364,12 +364,12 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-/* Failed request: a system state, so it uses the error colour */
+/* MessageBox (design system), error: a failed request is a system state, so it uses the error tokens */
 .auth-error {
   display: flex;
   gap: 0.75rem;
-  padding: 0.875rem 1rem;
-  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
   background: var(--color-error-soft);
   border: 1px solid var(--color-error-border);
   color: var(--color-text);
@@ -381,12 +381,12 @@ const handleSubmit = async () => {
   color: var(--color-error);
 }
 
-/* Cookie notice: neutral information, not an error */
+/* MessageBox (design system), notice: neutral information, not an error */
 .auth-notice {
   display: flex;
   gap: 0.75rem;
-  padding: 0.875rem 1rem;
-  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
   background: var(--color-elevated);
   border: 1px solid var(--color-border);
   color: var(--color-ink-soft);

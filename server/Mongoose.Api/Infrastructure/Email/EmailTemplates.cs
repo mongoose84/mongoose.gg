@@ -11,7 +11,7 @@ public sealed record EmailContent(string Subject, string Html, string Text);
 /// Builds the transactional emails in the Mongoose.gg design system:
 /// dark ground (bg), one surface card, the code in the single highlight box,
 /// Clash Display for the title and code, Satoshi for text, and plain "you" copy.
-/// Email clients cannot load the web fonts reliably, so each family falls back to system fonts.
+/// Web fonts load from <see cref="FontBaseUrl"/> where the client allows it; otherwise each family falls back to system fonts.
 /// </summary>
 public static class EmailTemplates
 {
@@ -28,6 +28,12 @@ public static class EmailTemplates
     private const string InkSoft = "#cfc9da";
     private const string InkMuted = "#a39cb3";
     private const string InkFaint = "#8a839a";
+
+    /// <summary>
+    /// Where the email loads Clash Display and Satoshi from (the client serves them from /fonts/).
+    /// Clients that support web fonts (Apple Mail, iOS Mail) use them; the rest fall back to system fonts.
+    /// </summary>
+    public const string FontBaseUrl = "https://beta.mongoose.gg/fonts";
 
     private const string DisplayFont = "'Clash Display', 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
     private const string BodyFont = "'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
@@ -92,6 +98,10 @@ public static class EmailTemplates
     <meta name=""supported-color-schemes"" content=""dark"">
     <title>{t.Title}</title>
     <style>
+        @font-face {{ font-family: 'Clash Display'; src: url('{FontBaseUrl}/ClashDisplay-Semibold.woff2') format('woff2'); font-weight: 600; font-style: normal; }}
+        @font-face {{ font-family: 'Clash Display'; src: url('{FontBaseUrl}/ClashDisplay-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; }}
+        @font-face {{ font-family: 'Satoshi'; src: url('{FontBaseUrl}/Satoshi-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; }}
+        @font-face {{ font-family: 'Satoshi'; src: url('{FontBaseUrl}/Satoshi-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; }}
         @media only screen and (max-width: 480px) {{
             .mg-card {{ padding: 28px 20px !important; }}
         }}

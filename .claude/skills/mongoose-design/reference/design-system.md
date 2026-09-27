@@ -64,6 +64,7 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 - Ring colour rule: score ≥ 70 → `primary`, below 70 → `warn`.
 - Win-rate colour: `winrate-terrible` < 40%, `winrate-bad` 40–47%, `winrate-average` 48–52%, `winrate-good` 53–59%, `winrate-great` 60%+.
 - Rank badges keep their tier colours (`rank-iron` … `rank-challenger`); they are the only other hues allowed, and only on rank marks.
+- `error`, `error-soft` and `error-border` are for system states only: form validation, failed requests and destructive buttons (TextField, MessageBox). A lost match or a weak stat is never an error; it uses `warn`.
 
 ## Type
 

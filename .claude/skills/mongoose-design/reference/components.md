@@ -149,7 +149,32 @@ The layout of every transactional email (email verification, password reset): on
 - Layout: `bg` ground; the logo and "Mongoose.gg" above the card; one `surface` card with a `divider` border and `radius-xl`; the code in a `surface-highlight` box with `border-highlight` and `radius-lg`, its digits in Clash Display 40px with wide letter spacing; the footer in `ink-faint` with "Not affiliated with Riot Games" and the year.
 - Text colours: title and code `ink`, body `ink-soft`, the ignore line and code label `ink-muted`.
 - Width: fluid up to 560px; below 480px the card padding drops from 40/36px to 28/20px. Mark it `color-scheme: dark` so clients do not invert it.
-- Fonts: Clash Display and Satoshi first in each stack, then system fonts. Most mail clients cannot load web fonts, so the system fallback is what most players see; the design must hold up in it.
+- Fonts: `@font-face` loads Clash Display and Satoshi from the site (`https://beta.mongoose.gg/fonts/` for now; the site serves them with `Access-Control-Allow-Origin: *`). Apple Mail and iOS Mail use them; Gmail, Outlook and most others fall back to system fonts, so the design must hold up in the fallback.
 - Always send a plain-text part with the same copy next to the HTML part.
 - Code lives in `server/Mongoose.Api/Infrastructure/Email/EmailTemplates.cs`; HTML-encode every user value.
 - Don't: add buttons that log the player in, images other than the logo, tracking pixels, exclamation marks or emoji; put the code in the subject line.
+
+## TextField
+
+A labelled single-line input: pill-shaped, 48px tall, on the page ground.
+
+- Provide: a visible `<label>` above the field (sentence case: "Username", "Email"), the input with the right `type` and `autocomplete`, and optionally a hint or an error line below it. Required fields show a `*` in `ink-muted` after the label.
+- Look: `bg` fill (so it reads as a hole in the `surface` card), 1px `divider` border, `radius-pill`, 20px side padding, Satoshi 16px `ink`; placeholder in `ink-faint` shows the format ("you@example.com"), never the label.
+- States: hover border `border-highlight`; focus border `primary` plus `shadow-focus`; error border `error` with the message below in `error` 13px, tied to the input with `aria-describedby` and `aria-invalid`; disabled at 45% opacity.
+- Hint: 13px `ink-muted` under the field; an error replaces the hint.
+- Stack fields 20px apart (`space-5`); a label sits 8px above its field.
+- In the Vue app: `BaseInput`. Class: `mp-field` with `mp-field__label`, `mp-field__input`, `mp-field__hint`, `mp-field__error` and `mp-field--error` on the wrapper.
+- Don't: use the placeholder as the only label, put icons inside the field without a word next to them, or colour a valid field purple.
+
+## MessageBox
+
+An inline box at the top of a form or card that tells the player something went wrong or needs their attention. Two kinds: error and notice.
+
+- Provide: a Lucide icon (20px), one or two sentences in plain "you" language, and optionally one text action ("Update cookie preferences", "Try again").
+- **Error** (`mp-message--error`): a failed request or a form that could not be sent ("Wrong username or password", "We couldn't reach Riot's servers"). `error-soft` fill, 1px `error-border`, text `ink`, icon `triangle-alert` in `error`. Use `role="alert"`.
+- **Notice** (`mp-message--notice`): neutral information that blocks or changes an action but is not a failure ("You've rejected cookies. Logging in needs an authentication cookie."). `surface-raised` fill, 1px `divider` border, text `ink-soft`, icon `info` in `ink-muted`.
+- Look: `radius-md`, padding 12px 16px, 12px between icon and text, Satoshi 14px. The action is a text button in `positive-text`, 700, below the sentence.
+- Place it directly above the form fields it concerns, inside the same card; one message box at a time.
+- Say what happened and what to do next, calmly ("We couldn't reach Riot's servers. Try again in a minute."). No "Oops", no exclamation marks, no raw error codes.
+- Field-level problems go under the field (TextField error), not in a message box.
+- Don't: use it for match or performance news (that is an InsightCard), use `warn` orange for system errors, or stack several boxes.

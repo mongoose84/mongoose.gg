@@ -16,7 +16,7 @@ Build whatever the user asked for (`$ARGUMENTS`) in the **Mongoose.gg** design s
 - Local snapshot, used when the artifact is unavailable and for all code work:
   - `reference/design-system.md`: principles, voice, colour, type, layout, champion-art and accessibility rules.
   - `reference/tokens.json`: every token with its value and usage note.
-  - `reference/components.md`: guidelines for ChampionHero, ScoreRing, AnimatedNumber, ChampionCard, ReadinessMeter, MatchRow, InsightCard, Skeleton, EmptyState, SyncProgress, Button, PillNav, SegmentedControl, Chip, Icon, EmailTemplate.
+  - `reference/components.md`: guidelines for ChampionHero, ScoreRing, AnimatedNumber, ChampionCard, ReadinessMeter, MatchRow, InsightCard, Skeleton, EmptyState, SyncProgress, Button, PillNav, SegmentedControl, Chip, Icon, EmailTemplate, TextField, MessageBox.
   - `reference/components.css`: reference CSS for those components (`mp-*` classes).
   - `reference/icons/`: the approved Lucide SVGs (ISC, `LICENSE` included); their meanings are in the Iconography table of `reference/design-system.md`.
   - `reference/fonts/`: Clash Display 600/700 and Satoshi 400/500/700 (`.woff2`, Fontshare free licence).

@@ -75,4 +75,14 @@ public class EmailTemplatesTests
         Assert.DoesNotContain("#1a1a1a", html);
         Assert.Contains("Not affiliated with Riot Games. © 2026 Mongoose.gg", html);
     }
+
+    [Fact]
+    public void Html_LoadsBrandFontsFromTheSite()
+    {
+        var html = EmailTemplates.Verification("user", "1", hasLogo: false).Html;
+
+        Assert.Equal("https://beta.mongoose.gg/fonts", EmailTemplates.FontBaseUrl);
+        Assert.Contains("url('https://beta.mongoose.gg/fonts/ClashDisplay-Bold.woff2')", html);
+        Assert.Contains("url('https://beta.mongoose.gg/fonts/Satoshi-Regular.woff2')", html);
+    }
 }
