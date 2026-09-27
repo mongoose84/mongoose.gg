@@ -4,6 +4,7 @@ using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Core.Services;
 using Mongoose.Api.Infrastructure.Helpers;
 using Mongoose.Api.Core.QueryModels;
 
@@ -88,7 +89,8 @@ public sealed class OverviewEndpoint : IEndpoint
                 var mostPlayedChampionTask = overviewStatsRepo.GetMostPlayedChampionAsync(selectedPuuids);
                 var sessionStatsTask = overviewStatsRepo.GetSessionStatsAsync(selectedPuuids, DateTime.UtcNow);
                 var survivalStatsTask = overviewStatsRepo.GetSurvivalStatsAsync(selectedPuuids, lowDeathThreshold, highDeathThreshold);
-                await Task.WhenAll(lastMatchTask, mostPlayedChampionTask, sessionStatsTask, survivalStatsTask);
+                var championPoolTask = overviewStatsRepo.GetChampionPoolStatsAsync(selectedPuuids);
+                await Task.WhenAll(lastMatchTask, mostPlayedChampionTask, sessionStatsTask, survivalStatsTask, championPoolTask);
 
                 var lastMatchData = lastMatchTask.Result;
                 var lastMatch = lastMatchData != null ? BuildLastMatch(lastMatchData) : null;
@@ -166,7 +168,8 @@ public sealed class OverviewEndpoint : IEndpoint
                     AccountSummaries: accountSummaries,
                     CombinedStats: combinedStats,
                     SessionStats: sessionStats,
-                    SurvivalStats: survivalStats
+                    SurvivalStats: survivalStats,
+                    ChampionPool: BuildChampionPool(championPoolTask.Result)
                 );
 
                 return Results.Ok(response);
@@ -255,6 +258,26 @@ public sealed class OverviewEndpoint : IEndpoint
             LossesThisWeek: totalLossesThisWeek,
             AvgKdaThisWeek: avgKdaThisWeek
         );
+    }
+
+    private static ChampionPool BuildChampionPool(ChampionPoolData data)
+    {
+        var pool = ChampionPoolBuilder.Build(data.Champions, data.RoleCounts);
+
+        static PoolChampion ToDto(ChampionPoolBuilder.PoolEntry e) => new(
+            ChampionId: e.ChampionId,
+            ChampionName: e.ChampionName,
+            Role: e.Role,
+            Matches: e.Matches,
+            Wins: e.Wins,
+            WinRate: e.WinRate,
+            AvgKda: e.AvgKda,
+            MScore: e.MScore,
+            StrengthTag: e.StrengthTag);
+
+        return new ChampionPool(
+            Champions: pool.Champions.Select(ToDto).ToArray(),
+            AlsoPlayed: pool.AlsoPlayed.Select(ToDto).ToArray());
     }
 
     private static LastMatch BuildLastMatch(LastMatchData data)

@@ -12,6 +12,7 @@ public interface IOverviewStatsRepository
     Task<LastMatchData?> GetLastMatchAsync(IReadOnlyList<string> puuids);
     Task<MostPlayedChampionData?> GetMostPlayedChampionAsync(string puuid);
     Task<MostPlayedChampionData?> GetMostPlayedChampionAsync(IReadOnlyList<string> puuids);
+    Task<ChampionPoolData> GetChampionPoolStatsAsync(IReadOnlyList<string> puuids);
     Task<int?> GetCurrentLpAsync(string puuid, int queueId);
     Task<SessionStatsData> GetSessionStatsAsync(IReadOnlyList<string> puuids, DateTime todayUtc);
     Task<SurvivalStatsData> GetSurvivalStatsAsync(

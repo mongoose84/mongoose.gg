@@ -888,6 +888,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         private readonly ConcurrentDictionary<string, MostPlayedChampionData> _mostPlayedChampionByPuuid = new();
         private readonly ConcurrentDictionary<string, (int GamesToday, int WinsToday, int LossesToday, int GamesThisWeek, int WinsThisWeek, int LossesThisWeek)> _sessionDataByPuuid = new();
         private SurvivalStatsData _survivalStats = new SurvivalStatsData(0, null, null, 0, 0, 0);
+        private ChampionPoolData _championPool = new ChampionPoolData([], []);
         private int _defaultQueueId = 420;
         private string _defaultQueueLabel = "Ranked Solo/Duo";
 
@@ -1064,6 +1065,19 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public void SetSurvivalStats(SurvivalStatsData survivalStats)
         {
             _survivalStats = survivalStats;
+        }
+
+        public override Task<ChampionPoolData> GetChampionPoolStatsAsync(IReadOnlyList<string> puuids)
+        {
+            return Task.FromResult(_championPool);
+        }
+
+        /// <summary>
+        /// Overrides the champion pool data returned by the fake.
+        /// </summary>
+        public void SetChampionPool(ChampionPoolData championPool)
+        {
+            _championPool = championPool;
         }
     }
 

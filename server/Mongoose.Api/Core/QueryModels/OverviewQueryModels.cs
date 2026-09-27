@@ -42,6 +42,48 @@ public record MostPlayedChampionData(
 );
 
 /// <summary>
+/// Per-champion ranked aggregate for the Overview champion pool (current season).
+/// Nullable averages are null when no match of the champion has that metric;
+/// the sample counts say how many matches each average is based on.
+/// </summary>
+public record ChampionPoolStatsData(
+    int ChampionId,
+    string ChampionName,
+    int Games,
+    int Wins,
+    double AvgKills,
+    double AvgDeaths,
+    double AvgAssists,
+    double AvgCsPerMin,
+    double? AvgGoldDiff15,
+    int GoldDiff15Samples,
+    double? AvgDeathsPre10,
+    double? AvgVisionPerMin,
+    double? AvgDamageSharePct,
+    double? AvgKillParticipationPct,
+    int MetricSamples,
+    long LastPlayed
+);
+
+/// <summary>
+/// Matches per champion and role, used to find each champion's primary role.
+/// </summary>
+public record ChampionRoleCountData(
+    int ChampionId,
+    string Role,
+    int Games,
+    long LastPlayed
+);
+
+/// <summary>
+/// Raw champion pool data: per-champion aggregates and per-role match counts.
+/// </summary>
+public record ChampionPoolData(
+    IReadOnlyList<ChampionPoolStatsData> Champions,
+    IReadOnlyList<ChampionRoleCountData> RoleCounts
+);
+
+/// <summary>
 /// Per-PUUID session breakdown. The repository returns one entry per PUUID so the
 /// endpoint can populate both the aggregate SessionStats DTO and per-account
 /// AccountSummary.GamesToday / GamesThisWeek fields in a single query.

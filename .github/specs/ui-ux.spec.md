@@ -239,7 +239,7 @@ Top to bottom:
 Layout (design system, top to bottom):
 1. **ChampionHero**: the player's main champion splash, one headline about them ("Your Ahri laning is elite. Your late-game discipline is not."), one supporting sentence, the player line (Riot ID · main champion · rank · LP), a primary action ("See today's matches") and up to two glass stat chips.
 2. **Three ScoreRings**: Laning, Teamfighting, Discipline (0–100, change over the last matches, three contributors each).
-3. **Your champions**: three ChampionCards plus an "Also played" list. Choosing a card swaps the hero's art, headline and chips.
+3. **Your champions**: three ChampionCards plus an "Also played" list. The cards are static on the Overview (decided 2026-09-27): champion-focused analysis lives on Champion Select.
 4. **Queue readiness** (ReadinessMeter, the one highlight card) beside **Today's matches** (MatchRows linking to each match).
 5. **Insights**: InsightCards, three per row, strongest first, six at most.
 
@@ -247,12 +247,13 @@ Sync progress (SyncProgress) sits at the top of the content while matches come i
 
 Data sources: `getOverview()` today; scores, readiness and insights need new backend data, built when the Overview is implemented (Section 1).
 
-Built today (design migration Phase 2, existing `OverviewResponse` fields only; sections without data are left out until Phase 3 adds scores, champions, readiness and insights):
+Built today (design migration Phases 2–3; sections without data are left out until Phase 3 adds scores, readiness and insights):
 1. `SyncProgress` at the top while a sync runs (`useSyncMatches`).
 2. `ChampionHero` with the most-played champion's splash (plain card without one). Headline, supporting sentence and chips come from `sessionStats` and `survivalStats` (`client/src/utils/overviewSummary.js`); primary action "See your matches". In Overall mode `OverviewAccountCards` replaces the hero and holds the page headline.
-3. **Today's matches**: today's count and wins/losses, the last match as a `BaseMatchRow` (links to `/app/matches?matchId=…` until `/app/matches/:matchId` exists), "All matches", and the "Sync matches" button.
-4. **Insights**: the deaths finding from `survivalStats` as one `InsightCard` (Strength or Pattern), or an EmptyState.
-5. **Next steps**: Champion Select and Solo as two plain cards with secondary buttons.
+3. **Your champions** (`OverviewChampionPool`): `championPool` from the API — up to three static `ChampionCard`s (ranked this season, by M-Score, with a strength tag) and up to three "Also played" rows; EmptyState "No ranked matches this season" otherwise. Shown in Overall mode too, aggregated across accounts.
+4. **Today's matches**: today's count and wins/losses, the last match as a `BaseMatchRow` (links to `/app/matches?matchId=…` until `/app/matches/:matchId` exists), "All matches", and the "Sync matches" button.
+5. **Insights**: the deaths finding from `survivalStats` as one `InsightCard` (Strength or Pattern), or an EmptyState.
+6. **Next steps**: Champion Select and Solo as two plain cards with secondary buttons.
 
 States: the skeleton frame shows after 300ms while loading, an error message with "Try again" when the request fails, and an EmptyState with "Link Riot account" when no Riot account is linked.
 
@@ -408,6 +409,7 @@ Built from `.claude/skills/mongoose-design/reference/components.md`; imported di
 | `BaseMatchRow` | `to`, `championName`, `championIconUrl`, `win`, `kda`, `queue`, `durationSeconds`, `timestamp`, `lpChange` | Whole row is one link; named `Base…` because `matches/MatchRow` still exists until the Matches phase |
 | `ChampionHero` | `headline`, `text`, `playerLine`, `championName`, `chips` (max 2) | Page `h1`; slot `#action`; plain card without a champion |
 | `InsightCard` | `kind` (`strength`, `pattern`, `trend`), `title`, `text`, `championName` | |
+| `ChampionCard` | `championName`, `winRate`, `matches`, `avgKda`, `strengthTag` | Static `<article>` (no pick, no spotlight); centred art; 220px tall below 900px |
 | `SyncProgress` | `state` (`running`, `waiting`, `done`, `failed`), `current`, `total`, `syncedCount` | Emits `retry`; indeterminate while `total` is 0 |
 | `ScoreRing` | `value`, `label`, `size` | `role="meter"` |
 
@@ -416,6 +418,9 @@ Built from `.claude/skills/mongoose-design/reference/components.md`; imported di
 ## 8. Overview Components
 
 Located in `client/src/components/overview/`.
+
+### `OverviewChampionPool`
+"Your champions": props `champions` (cards, max 3) and `alsoPlayed` (max 3). Grid of three cards plus a 300px "Also played" card; below 1200px the list moves under the cards, below 900px everything is one column. "Also played" win rates under 50% use `warn-text`. EmptyState without champions.
 
 ### `OverviewAccountCards`
 Overall mode only, in place of the ChampionHero: one card per linked account (at most three) with Riot ID, level, Flex and Solo rank. Holds the page `h1` ("Your accounts").

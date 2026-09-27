@@ -60,6 +60,13 @@ const fullOverview = {
   lastMatch: { matchId: 'EUW1_1', championIconUrl: 'ahri.png', championName: 'Ahri', result: 'Victory', kda: '7/2/9', timestamp: Date.now(), queueType: 'Ranked Solo/Duo' },
   sessionStats: { gamesToday: 3, winsToday: 2, lossesToday: 1, gamesThisWeek: 12, winsThisWeek: 7, lossesThisWeek: 5 },
   survivalStats: { avgDeathsPerGame: 5.2, winRateLowDeaths: 0.64, winRateHighDeaths: 0.38, gamesLowDeaths: 9, gamesHighDeaths: 8, lowDeathThreshold: 4, highDeathThreshold: 7, totalGames: 20 },
+  championPool: {
+    champions: [
+      { championId: 103, championName: 'Ahri', role: 'MIDDLE', matches: 22, wins: 14, winRate: 63.6, avgKda: 4.1, mScore: 71.2, strengthTag: 'Best laning' },
+      { championId: 134, championName: 'Syndra', role: 'MIDDLE', matches: 18, wins: 10, winRate: 55.6, avgKda: 3.3, mScore: 60.1, strengthTag: 'Most damage' }
+    ],
+    alsoPlayed: []
+  },
   activeGoals: [],
   suggestedActions: []
 }
@@ -108,7 +115,7 @@ describe('OverviewPage', () => {
     const wrapper = mountPage()
     await flushPromises()
 
-    const order = ['champion-hero', 'today-matches-card', 'overview-insights', 'overview-next-steps']
+    const order = ['champion-hero', 'overview-champion-pool', 'today-matches-card', 'overview-insights', 'overview-next-steps']
     const html = wrapper.html()
     const positions = order.map((id) => html.indexOf(`data-testid="${id}"`))
     expect(positions.every((p) => p >= 0)).toBe(true)
@@ -144,6 +151,24 @@ describe('OverviewPage', () => {
     expect(wrapper.find('[data-testid="today-matches-empty"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="overview-insights-empty"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="champion-hero"]').classes()).toContain('champion-hero--plain')
+  })
+
+  it('shows your ranked champions as cards', async () => {
+    mockGetOverview.mockResolvedValue(fullOverview)
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const names = wrapper.findAll('[data-testid="champion-card-name"]').map((n) => n.text())
+    expect(names).toEqual(['Ahri', 'Syndra'])
+    expect(wrapper.find('[data-testid="champion-pool-empty"]').exists()).toBe(false)
+  })
+
+  it('shows the champion pool empty state without ranked matches this season', async () => {
+    mockGetOverview.mockResolvedValue({ ...fullOverview, championPool: undefined })
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="champion-pool-empty"]').text()).toContain('No ranked matches this season')
   })
 
   it('shows the deaths finding as an insight', async () => {

@@ -108,14 +108,22 @@ Frontend only, one PR. Order follows the design system; only sections with real 
 
 ## Phase 3: New Overview data
 
-Spec first (`feature-spec` / `architect`), then backend + frontend per item. Each defines a domain rule in Core, so it needs its own spec.
+Spec first (`feature-spec` / `architect`), then backend + frontend per item. Each defines a domain rule in Core, so it needs its own spec. One item per PR, end to end. The formulas for Score rings and Queue readiness are defined with the user in an interview before their specs are written.
 
-- [ ] **Your champions**: top 3 ChampionCards + "Also played" list. Likely reuses `getChampionSelectData` / `MainChampionRecommender`.
+- [x] **Your champions**: top 3 ChampionCards + "Also played" list. Spec: `features/overview-champion-pool.spec.md`. **Built on branch `design_phase3_champion_pool`** (2026-09-27).
 - [ ] **Insights**: Strength / Pattern / Trend findings with evidence, extending `TrendBadgeCalculator`.
 - [ ] **Score rings**: Laning, Teamfighting, Discipline (0–100, weekly delta, 3 contributors).
 - [ ] **Queue readiness**: the one highlight card (0–100, verdict, advice).
 
 Each adds fields to `OverviewResponse` (update `architecture.spec.md`) and its section to the Overview in the design-system position.
+
+### Your champions: decisions and outcome notes
+- Window: ranked Solo/Duo + Flex, current season. Ordered by M-Score (`MainChampionRecommender.ComputeMScore`, now public), one entry per champion across roles; the primary role sets the laning weights.
+- Strength tag: the metric (laning, damage, KDA, farming, vision, involvement) where the champion leads the player's own average most; unique across the three cards, ≥5 matches and ≥10% lead required.
+- Cards are **static** (no pick, no `aria-pressed`, no spotlight): champion-focused analysis belongs to Champion Select. This deviates from the design system's ChampionCard (a button) — add a static variant to the live system (Step 5).
+- The hero keeps `mostPlayedChampion` (all queues), so card #1 can differ from the hero champion.
+- `CurrentSeasonSubquery` is now shared in `OverviewStatsRepository`.
+- The repository SQL is covered only by E2E (no DB-backed repository test).
 
 ---
 

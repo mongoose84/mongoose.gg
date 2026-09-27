@@ -384,14 +384,15 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 ### 6.9 Overview Dashboard
 **Route**: `GET /api/v2/overview/{userId}`  
 **Auth**: Yes  
-**Query params**: None  
-**Response**: `OverviewResponse(playerHeader, lastMatch, activeGoals[], suggestedActions[])`  
+**Query params**: `?accountId=` (omitted = primary, `all` = every linked account, or one account ID)  
+**Response**: `OverviewResponse(playerHeader, lastMatch, mostPlayedChampion, activeGoals[], suggestedActions[], accountSummaries[]?, combinedStats?, sessionStats, survivalStats, championPool)`  
 **Logic**:
-1. Get primary Riot account
-2. Build player header (name, level, region, icon, contexts)
-3. Build rank metadata in player header
-4. Get latest match and overview cards
-**Tables**: `users`, `user_riot_accounts`, `riot_accounts`  
+1. Resolve the requested accounts server-side
+2. Build player header (name, level, region, icon, contexts, rank metadata)
+3. In parallel: latest match, most-played champion, session stats, survival stats, champion pool
+4. In `all` mode: per-account summaries and combined stats
+**Champion pool** (`championPool: { champions[], alsoPlayed[] }`, each `PoolChampion(championId, championName, role, matches, wins, winRate, avgKda, mScore, strengthTag?)`): ranked Solo/Duo + Flex matches in the current season, one entry per champion ordered by M-Score; top 3 as `champions` with a unique strength tag each, next 3 as `alsoPlayed`. Rules in `Core/Services/ChampionPoolBuilder.cs` and [overview-champion-pool.spec.md](features/overview-champion-pool.spec.md). Both arrays are empty without ranked matches this season.  
+**Tables**: `users`, `user_riot_accounts`, `riot_accounts`, `matches`, `participants`, `participant_checkpoints`, `participant_metrics`  
 **Repos**: `IOverviewStatsRepository`, `IUserRiotAccountsRepository`
 
 ### 6.10 Solo Dashboard

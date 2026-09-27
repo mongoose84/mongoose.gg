@@ -174,11 +174,13 @@ client/test/unit/
 │   ├── BaseEmptyState.spec.js              # ✅ Exists
 │   ├── BaseMatchRow.spec.js                # ✅ Exists
 │   ├── BaseSkeleton.spec.js                # ✅ Exists
+│   ├── ChampionCard.spec.js                # ✅ Exists
 │   ├── ChampionHero.spec.js                # ✅ Exists
 │   ├── InsightCard.spec.js                 # ✅ Exists
 │   ├── LinkRiotAccountModal.spec.js        # ✅ Exists
 │   ├── NavBar.spec.js                      # ✅ Exists
 │   ├── OverviewAccountCards.spec.js        # ✅ Exists
+│   ├── OverviewChampionPool.spec.js        # ✅ Exists
 │   ├── SyncProgress.spec.js                # ✅ Exists
 │   ├── SessionExpiredBanner.spec.js        # ✅ Complete (9 tests)
 │   ├── SummaryStatsCard.spec.js            # ✅ Complete (38 tests)

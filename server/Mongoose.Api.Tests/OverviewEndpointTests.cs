@@ -420,6 +420,78 @@ public class OverviewEndpointTests
         raw.Should().Contain("highDeathThreshold");
     }
 
+    [Fact]
+    public async Task Overview_returns_empty_champion_pool_without_ranked_matches()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body!.ChampionPool.Should().NotBeNull();
+        body.ChampionPool!.Champions.Should().BeEmpty();
+        body.ChampionPool.AlsoPlayed.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Overview_returns_champion_pool_cards_and_also_played()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        static Mongoose.Api.Core.QueryModels.ChampionPoolStatsData Champ(int id, string name, int games, int wins, double goldDiff15 = 0)
+            => new(id, name, games, wins, 5, 4, 7, 7, goldDiff15, games, 1, 1, 25, 50, games, 1_000);
+
+        factory.OverviewStatsRepository.SetChampionPool(new Mongoose.Api.Core.QueryModels.ChampionPoolData(
+            Champions:
+            [
+                Champ(103, "Ahri", 22, 14, goldDiff15: 600),
+                Champ(134, "Syndra", 18, 11),
+                Champ(112, "Viktor", 13, 8),
+                Champ(61, "Orianna", 11, 5),
+            ],
+            RoleCounts:
+            [
+                new(103, "MIDDLE", 22, 1_000),
+            ]));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var raw = await response.Content.ReadAsStringAsync();
+        raw.Should().Contain("\"championPool\"").And.Contain("\"alsoPlayed\"").And.Contain("\"strengthTag\"");
+
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        var pool = body!.ChampionPool!;
+        pool.Champions.Should().HaveCount(3);
+        pool.AlsoPlayed.Select(c => c.ChampionName).Should().Equal("Orianna");
+
+        var ahri = pool.Champions.First();
+        ahri.ChampionName.Should().Be("Ahri");
+        ahri.ChampionId.Should().Be(103);
+        ahri.Role.Should().Be("MIDDLE");
+        ahri.Matches.Should().Be(22);
+        ahri.Wins.Should().Be(14);
+        ahri.WinRate.Should().Be(63.6);
+        ahri.StrengthTag.Should().Be("Best laning");
+    }
+
     // Response DTOs for deserialization
     private record OverviewResponse(
         PlayerHeader PlayerHeader,
@@ -430,8 +502,12 @@ public class OverviewEndpointTests
         AccountSummary[]? AccountSummaries = null,
         CombinedStats? CombinedStats = null,
         SessionStats? SessionStats = null,
-        SurvivalStats? SurvivalStats = null
+        SurvivalStats? SurvivalStats = null,
+        ChampionPool? ChampionPool = null
     );
+
+    private record ChampionPool(PoolChampion[] Champions, PoolChampion[] AlsoPlayed);
+    private record PoolChampion(int ChampionId, string ChampionName, string Role, int Matches, int Wins, double WinRate, double AvgKda, double MScore, string? StrengthTag);
 
     private record PlayerHeader(string SummonerName, int Level, string Region, string ProfileIconUrl, string[] ActiveContexts, string? Rank, int? Lp, string? PrimaryQueueLabel);
     private record LastMatch(string MatchId, string ChampionIconUrl, string ChampionName, string Result, string Kda, long Timestamp);

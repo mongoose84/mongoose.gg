@@ -24,6 +24,21 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
         { 1700, 4 }, // ARAM: Mayhem (same priority as regular ARAM)
     };
 
+    // The current season is the latest season_code that has matches.
+    private const string CurrentSeasonSubquery = @"
+        SELECT ranked.season_code
+        FROM (
+            SELECT m2.season_code, MAX(m2.game_start_time) AS last_game_start
+            FROM matches m2
+            WHERE m2.season_code IS NOT NULL
+            GROUP BY m2.season_code
+            ORDER BY last_game_start DESC
+            LIMIT 1
+        ) ranked";
+
+    // Ranked Solo/Duo and Ranked Flex
+    private const string RankedQueueIds = "420, 440";
+
     public OverviewStatsRepository(IDbConnectionFactory factory, ILogger<OverviewStatsRepository> logger) : base(factory)
     {
         _logger = logger;
@@ -257,17 +272,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
               AND m.game_duration_sec >= {MinValidGameDurationSec}
-                            AND m.season_code = (
-                                    SELECT ranked.season_code
-                                    FROM (
-                                            SELECT m2.season_code, MAX(m2.game_start_time) AS last_game_start
-                                            FROM matches m2
-                                            WHERE m2.season_code IS NOT NULL
-                                            GROUP BY m2.season_code
-                                            ORDER BY last_game_start DESC
-                                            LIMIT 1
-                                    ) ranked
-                            )
+              AND m.season_code = ({CurrentSeasonSubquery})
             GROUP BY p.champion_name
             ORDER BY games_played DESC, MAX(m.game_start_time) DESC
             LIMIT 1";
@@ -295,6 +300,121 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
         });
 
         return result;
+    }
+
+    /// <summary>
+    /// Per-champion ranked aggregates (Solo/Duo + Flex, current season) for the Overview champion pool,
+    /// plus matches per champion and role so the caller can find each champion's primary role.
+    /// </summary>
+    public virtual async Task<ChampionPoolData> GetChampionPoolStatsAsync(IReadOnlyList<string> puuids)
+    {
+        if (puuids.Count == 0)
+        {
+            return new ChampionPoolData([], []);
+        }
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        var matchFilter = $@"
+            WHERE {puuidPredicate}
+              AND m.game_duration_sec >= {MinValidGameDurationSec}
+              AND m.queue_id IN ({RankedQueueIds})
+              AND m.season_code = ({CurrentSeasonSubquery})";
+
+        var championSql = $@"
+            SELECT
+                p.champion_id,
+                MAX(p.champion_name) AS champion_name,
+                COUNT(*) AS games,
+                SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) AS wins,
+                AVG(p.kills) AS avg_kills,
+                AVG(p.deaths) AS avg_deaths,
+                AVG(p.assists) AS avg_assists,
+                AVG(p.creep_score / (m.game_duration_sec / 60.0)) AS avg_cs_per_min,
+                AVG(cp15.gold_diff_vs_lane) AS avg_gold_diff_15,
+                COUNT(cp15.gold_diff_vs_lane) AS gold_diff_15_samples,
+                AVG(pm.deaths_pre_10) AS avg_deaths_pre_10,
+                AVG(pm.vision_per_min) AS avg_vision_per_min,
+                AVG(pm.damage_share_pct) AS avg_damage_share_pct,
+                AVG(pm.kill_participation_pct) AS avg_kill_participation_pct,
+                COUNT(pm.participant_id) AS metric_samples,
+                MAX(m.game_start_time) AS last_played
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            LEFT JOIN participant_checkpoints cp15 ON cp15.participant_id = p.id AND cp15.minute_mark = 15
+            LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
+            {matchFilter}
+            GROUP BY p.champion_id";
+
+        var roleSql = $@"
+            SELECT
+                p.champion_id,
+                COALESCE(NULLIF(p.role, ''), 'UNKNOWN') AS role,
+                COUNT(*) AS games,
+                MAX(m.game_start_time) AS last_played
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            {matchFilter}
+            GROUP BY p.champion_id, role";
+
+        var champions = new List<ChampionPoolStatsData>();
+        var roleCounts = new List<ChampionRoleCountData>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using (var cmd = new MySqlCommand(championSql, conn))
+            {
+                foreach (var (name, value) in puuidParams)
+                {
+                    cmd.Parameters.AddWithValue(name, value);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    champions.Add(new ChampionPoolStatsData(
+                        ChampionId: reader.GetInt32(0),
+                        ChampionName: reader.GetString(1),
+                        Games: reader.GetInt32(2),
+                        Wins: reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
+                        AvgKills: reader.IsDBNull(4) ? 0 : reader.GetDouble(4),
+                        AvgDeaths: reader.IsDBNull(5) ? 0 : reader.GetDouble(5),
+                        AvgAssists: reader.IsDBNull(6) ? 0 : reader.GetDouble(6),
+                        AvgCsPerMin: reader.IsDBNull(7) ? 0 : reader.GetDouble(7),
+                        AvgGoldDiff15: reader.IsDBNull(8) ? null : reader.GetDouble(8),
+                        GoldDiff15Samples: reader.GetInt32(9),
+                        AvgDeathsPre10: reader.IsDBNull(10) ? null : reader.GetDouble(10),
+                        AvgVisionPerMin: reader.IsDBNull(11) ? null : reader.GetDouble(11),
+                        AvgDamageSharePct: reader.IsDBNull(12) ? null : reader.GetDouble(12),
+                        AvgKillParticipationPct: reader.IsDBNull(13) ? null : reader.GetDouble(13),
+                        MetricSamples: reader.GetInt32(14),
+                        LastPlayed: reader.GetInt64(15)
+                    ));
+                }
+            }
+
+            await using (var cmd = new MySqlCommand(roleSql, conn))
+            {
+                foreach (var (name, value) in puuidParams)
+                {
+                    cmd.Parameters.AddWithValue(name, value);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    roleCounts.Add(new ChampionRoleCountData(
+                        ChampionId: reader.GetInt32(0),
+                        Role: reader.GetString(1),
+                        Games: reader.GetInt32(2),
+                        LastPlayed: reader.GetInt64(3)
+                    ));
+                }
+            }
+
+            return 0;
+        });
+
+        return new ChampionPoolData(champions, roleCounts);
     }
 
     /// <summary>

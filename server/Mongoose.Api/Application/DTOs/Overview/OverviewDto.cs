@@ -14,7 +14,29 @@ public record OverviewResponse(
     [property: JsonPropertyName("accountSummaries")] AccountSummary[]? AccountSummaries = null,
     [property: JsonPropertyName("combinedStats")] CombinedStats? CombinedStats = null,
     [property: JsonPropertyName("sessionStats")] SessionStats? SessionStats = null,
-    [property: JsonPropertyName("survivalStats")] SurvivalStats? SurvivalStats = null
+    [property: JsonPropertyName("survivalStats")] SurvivalStats? SurvivalStats = null,
+    [property: JsonPropertyName("championPool")] ChampionPool? ChampionPool = null
+);
+
+/// <summary>
+/// "Your champions": ranked champions this season ordered by M-Score.
+/// Top three as cards (with a unique strength tag), the next three as "Also played".
+/// </summary>
+public record ChampionPool(
+    [property: JsonPropertyName("champions")] PoolChampion[] Champions,
+    [property: JsonPropertyName("alsoPlayed")] PoolChampion[] AlsoPlayed
+);
+
+public record PoolChampion(
+    [property: JsonPropertyName("championId")] int ChampionId,
+    [property: JsonPropertyName("championName")] string ChampionName,
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("matches")] int Matches,
+    [property: JsonPropertyName("wins")] int Wins,
+    [property: JsonPropertyName("winRate")] double WinRate,
+    [property: JsonPropertyName("avgKda")] double AvgKda,
+    [property: JsonPropertyName("mScore")] double MScore,
+    [property: JsonPropertyName("strengthTag")] string? StrengthTag
 );
 
 public record AccountSummary(

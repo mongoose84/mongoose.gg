@@ -77,6 +77,13 @@ test.describe('Overview Dashboard - Content', () => {
     await expect(button).toHaveText(/sync/i);
   });
 
+  test('should show your champions with cards or an empty state', async ({ page }) => {
+    const section = page.locator('[data-testid="overview-champion-pool"]');
+    await expect(section).toBeVisible();
+    await expect(section.getByRole('heading', { name: 'Your champions' })).toBeVisible();
+    await expect(section.locator('[data-testid="champion-card"], [data-testid="champion-pool-empty"]').first()).toBeVisible();
+  });
+
   test('should show the insights section with an insight or an empty state', async ({ page }) => {
     const section = page.locator('[data-testid="overview-insights"]');
     await expect(section).toBeVisible();

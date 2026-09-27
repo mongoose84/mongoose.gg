@@ -43,6 +43,16 @@
           <BaseSkeleton variant="block" width="11rem" height="3rem" />
         </div>
       </div>
+      <div class="overview-grid overview-grid--3">
+        <BaseSkeleton
+          v-for="n in 3"
+          :key="n"
+          variant="block"
+          width="100%"
+          height="18.75rem"
+          class="overview-loading__champion"
+        />
+      </div>
       <div class="mp-card overview-loading__stack">
         <BaseSkeleton variant="title" />
         <div class="overview-loading__row">
@@ -94,6 +104,13 @@
           </BaseButton>
         </template>
       </ChampionHero>
+
+      <!-- Your champions (score rings go between the hero and this section once they exist) -->
+      <OverviewChampionPool
+        v-reveal-on-view
+        :champions="championPool.champions"
+        :also-played="championPool.alsoPlayed"
+      />
 
       <!-- Today's matches -->
       <section
@@ -229,6 +246,7 @@ import ChampionHero from '../components/base/ChampionHero.vue'
 import InsightCard from '../components/base/InsightCard.vue'
 import SyncProgress from '../components/base/SyncProgress.vue'
 import OverviewAccountCards from '../components/overview/OverviewAccountCards.vue'
+import OverviewChampionPool from '../components/overview/OverviewChampionPool.vue'
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
 
 const authStore = useAuthStore()
@@ -267,6 +285,10 @@ const mostPlayedChampionName = computed(() => overviewData.value?.mostPlayedCham
 const lastMatch = computed(() => overviewData.value?.lastMatch ?? null)
 const sessionStats = computed(() => overviewData.value?.sessionStats ?? null)
 const survivalStats = computed(() => overviewData.value?.survivalStats ?? null)
+const championPool = computed(() => ({
+  champions: overviewData.value?.championPool?.champions ?? [],
+  alsoPlayed: overviewData.value?.championPool?.alsoPlayed ?? []
+}))
 
 const heroHeadline = computed(() => buildHeroHeadline(sessionStats.value))
 const heroText = computed(() => buildHeroText(sessionStats.value, survivalStats.value))
@@ -445,6 +467,10 @@ watch(() => authStore.activeAccountPuuid, () => {
 
 .overview-loading__grow {
   flex: 1;
+}
+
+.overview-loading__champion {
+  border-radius: 1.5rem;
 }
 
 @keyframes overview-loading-appear {
