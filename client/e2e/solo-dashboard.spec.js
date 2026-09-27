@@ -6,7 +6,7 @@ import { gotoAppPage, expectProtectedRouteRedirectsToAuth, seedAcceptedCookieCon
  *
  * Tests the critical user journey:
  * 1. Verify authentication (handled by global setup)
- * 2. Navigate to Solo Dashboard via sidebar
+ * 2. Navigate to Solo Dashboard via the header nav
  * 3. Verify Solo Dashboard loads with data
  *
  * Authentication is handled by global-setup.js which:
@@ -22,7 +22,7 @@ test.describe('Solo Dashboard Flow', () => {
     // Auth is handled by global-setup.js - go directly to overview
     await gotoAppPage(page, '/app/overview')
 
-    // Navigate to Solo Dashboard via the sidebar navigation
+    // Navigate to Solo Dashboard via the header navigation
     const soloLink = page.locator('[data-testid="nav-solo"]');
     await expect(soloLink).toBeVisible({ timeout: 5_000 });
     await Promise.all([

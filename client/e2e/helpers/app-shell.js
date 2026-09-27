@@ -18,7 +18,7 @@ export async function gotoAppPage(page, path) {
   await seedAcceptedCookieConsent(page)
   await page.goto(path, { waitUntil: 'domcontentloaded' })
   await expect(page).toHaveURL(new RegExp(`${escapeForRegex(path)}(?:$|\\?)`))
-  await expect(page.locator('[data-testid="app-sidebar"]')).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('[data-testid="app-header"]')).toBeVisible({ timeout: 15_000 })
 }
 
 export async function expectProtectedRouteRedirectsToAuth(browser, path) {

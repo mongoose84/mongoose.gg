@@ -273,7 +273,8 @@ watch(
   flex-direction: column;
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
-  height: 100vh;
+  /* Fill the viewport below the fixed app header (80px on desktop) */
+  height: calc(100dvh - 5rem);
   overflow: hidden;
 }
 

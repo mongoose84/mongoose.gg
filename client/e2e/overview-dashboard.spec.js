@@ -228,12 +228,12 @@ test.describe('Overview Dashboard - Navigation', () => {
     await gotoOverviewPage(page);
   });
 
-  test('should have sidebar navigation visible', async ({ page }) => {
-    const sidebar = page.locator('[data-testid="app-sidebar"]');
-    await expect(sidebar).toBeVisible({ timeout: 10_000 });
+  test('should have header navigation visible', async ({ page }) => {
+    const header = page.locator('[data-testid="app-header"]');
+    await expect(header).toBeVisible({ timeout: 10_000 });
   });
 
-  test('should navigate to Solo dashboard from sidebar', async ({ page }) => {
+  test('should navigate to Solo dashboard from the header nav', async ({ page }) => {
     const soloLink = page.locator('[data-testid="nav-solo"]');
     await expect(soloLink).toBeVisible({ timeout: 5_000 });
     await soloLink.click();
@@ -241,9 +241,8 @@ test.describe('Overview Dashboard - Navigation', () => {
     await expect(page).toHaveURL('/app/solo');
   });
 
-  test('should navigate to Matches page from sidebar', async ({ page }) => {
-    // Matches is a top-level nav item (not under Analysis section)
-    // It's visible in both collapsed and expanded states
+  test('should navigate to Matches page from the header nav', async ({ page }) => {
+    // Matches is a top-level pill in the header nav
     const matchesLink = page.locator('[data-testid="nav-matches"]');
     await expect(matchesLink).toBeVisible({ timeout: 5_000 });
     await matchesLink.click();

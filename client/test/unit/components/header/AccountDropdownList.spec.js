@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import AccountDropdownList from '@/components/sidebar/AccountDropdownList.vue'
+import AccountDropdownList from '@/components/header/AccountDropdownList.vue'
 
 const mockAccounts = [
   { puuid: 'puuid-1', accountId: 'id-1', gameName: 'FakerMain', tagLine: 'EUW', region: 'euw1', profileIconId: 1234 },

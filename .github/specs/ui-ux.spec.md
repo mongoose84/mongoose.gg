@@ -106,7 +106,7 @@ All visual rules (colour, type, spacing, radius, depth, motion, iconography, cha
 
 **Code mapping**: tokens live as CSS variables in `client/src/style.css` (existing `--color-*` names mapped to design-system values) and are exposed to Tailwind in `client/tailwind.config.js`. Use Tailwind for layout and sizing, CSS variables for themed values. Never hard-code a colour, radius, shadow or duration that is not a design-system token.
 
-**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in `client/tailwind.config.js`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password) and the shared `BaseButton` / `BaseInput` are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
+**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in `client/tailwind.config.js`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password), the shared `BaseButton` / `BaseInput`, and the app header (`AppHeader` / `AppTabBar`, replacing the legacy sidebar) are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
 
 ---
 
@@ -140,9 +140,7 @@ Solo             → /app/solo
 Advanced         → (planned)      Team and Goals combined; not implemented yet
 ```
 
-Advanced (working name) combines Team and Goals into one page, which keeps the navigation at five items. It is not implemented for now: until then the existing Team and Goals pages stay hidden behind their feature flags (`VITE_FEATURE_TEAM_ANALYTICS`, `VITE_FEATURE_GOALS`). How Pro-only pages are marked is decided when Pro is implemented (no badges on pills).
-
-> **Implementation note**: the app still renders the legacy `AppSidebar.vue` (with the feature flags on its `<router-link>` elements). It is replaced by the top header during the design-system migration.
+Advanced (working name) combines Team and Goals into one page, which keeps the navigation at five items. It is not implemented for now: until then the existing Team and Goals pages stay hidden behind their feature flags (`VITE_FEATURE_TEAM_ANALYTICS`, `VITE_FEATURE_GOALS`) and are not reachable from `AppHeader` / `AppTabBar`. How Pro-only pages are marked is decided when Pro is implemented (no badges on pills).
 
 **Architecture decision**: Solo and Team are **separate top-level pages** (not tabs) for:
 1. Better upgrade perceived value
@@ -201,8 +199,7 @@ All routes defined in `client/src/router/index.js`.
 ## 5. Layout Architecture
 
 ### `AppLayout.vue` (authenticated shell)
-- **Structure**: top header (logo, PillNav, avatar menu; Section 3) above `<router-view>`. Content max width 1328px, 56px side gutters on desktop, 16px on phones.
-- **Legacy**: the current code still uses `AppSidebar` with `uiStore.sidebarWidth`; removed in the migration.
+- **Structure**: `AppHeader` (logo, PillNav, avatar menu; Section 3) above a centered content wrapper (max width 1328px, 56px side gutters on desktop, 16px on phones) around `<router-view>`, with `AppTabBar` fixed to the bottom on phones.
 - **Idle detection**: 30-minute threshold; on tab return, refreshes user data + triggers sync check
 - **Activity tracking**: Throttled to 30s intervals (mousemove, keydown, click, scroll)
 
@@ -572,11 +569,11 @@ Slots: `#context-bar`, `#summary`, `#trend-charts`
 
 Located in `client/src/components/`.
 
-### `AppSidebar`
-*(Legacy — replaced by the top header, Section 3.)* Vertical navigation sidebar. Reads collapsed state from `uiStore`. Shows lock icons for Pro-tier pages (Duo, Team) when user is free tier.
-
 ### `AppHeader`
-Header component (used within app layout context).
+80px top header on every `/app/*` page (56px below 900px), used by `AppLayout`. Logo left (→ `/app/overview`); PillNav centre (Overview, Champion Select, Matches, Solo; `router-link` with `aria-current="page"`), hidden below 900px; avatar right opens a menu (`role="menu"`) with the Riot account switcher (when more than one account is linked or the overall view is available; reuses `components/header/AccountDropdownList.vue`), Settings (`/app/user`), Feedback (`/app/feedback`) and Log out. Closes on Escape, outside click and route change.
+
+### `AppTabBar`
+Fixed bottom tab bar shown only below 900px, `<nav aria-label="Main" class="mp-tabbar">`. One tab per nav item with icon above label (`house` Overview, `shield` "Champ Select", `swords` Matches, `chart-line` Solo); active tab uses `aria-current="page"`.
 
 ### `SessionExpiredBanner`
 Fixed top banner (z-index 400) with slide-down transition. Appears on 401 detection. Preserves current route for redirect after re-login.
@@ -632,10 +629,6 @@ Located in `client/src/stores/`. Using **Pinia**.
 - **State**: user object, session expiry tracking (`wasAuthenticated` pattern)
 - **Actions**: `initialize()`, `login()`, `register()`, `verify()`, `logout()`, `changePassword()`, `linkRiotAccount()`, `unlinkRiotAccount()`, `triggerSync()`, `refreshUser()`
 - **Computed**: `isAuthenticated`, `isVerified`, `isInitialized`, `username`, `email`, `tier`, `primaryRiotAccount`
-
-### `uiStore`
-- **State** *(legacy, goes with the sidebar)*: sidebar collapsed (persisted to `localStorage`), mobile breakpoint (1024px)
-- **Computed**: `sidebarWidth` — auto-collapse on small screens
 
 ---
 

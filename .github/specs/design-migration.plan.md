@@ -25,25 +25,25 @@ Tick items off as they land so work can resume from any machine.
 Frontend only, one PR.
 
 ### Build
-- [ ] Port `mp-nav`, `mp-tabbar`, `mp-card` into `client/src/style.css`.
-- [ ] `client/src/components/AppHeader.vue`: 80px header, logo left (→ `/app/overview`), PillNav centre (Overview, Champion Select, Matches, Solo; `router-link` with `aria-current="page"`), avatar right opening a menu with the Riot account switcher (when several accounts are linked), Settings (`/app/user`), Feedback (`/app/feedback`), Log out. Keep test IDs `nav-overview`, `nav-champion-select`, `nav-matches`, `nav-solo`, `nav-feedback`; add `app-header`.
-- [ ] `client/src/components/AppTabBar.vue`: below 900px, fixed bottom, 64px + safe-area inset, icon above label (`house`, `shield`, `swords`, `chart-line`), "Champ Select" as the phone label; header shrinks to 56px (logo + avatar).
-- [ ] Move the account-switch logic from `components/sidebar/AccountSwitcher.vue` and `AccountDropdownList.vue` into the avatar menu.
-- [ ] `client/src/layouts/AppLayout.vue`: remove `AppSidebar` and the `marginLeft` binding; render header, tab bar and a content wrapper (max width 1328px, 56px desktop / 16px phone gutters, top padding for the header, bottom padding for the tab bar on phones). Keep idle detection as is.
+- [x] Port `mp-nav`, `mp-tabbar`, `mp-card` into `client/src/style.css`.
+- [x] `client/src/components/AppHeader.vue`: 80px header, logo left (→ `/app/overview`), PillNav centre (Overview, Champion Select, Matches, Solo; `router-link` with `aria-current="page"`), avatar right opening a menu with the Riot account switcher (when several accounts are linked), Settings (`/app/user`), Feedback (`/app/feedback`), Log out. Keep test IDs `nav-overview`, `nav-champion-select`, `nav-matches`, `nav-solo`, `nav-feedback`; add `app-header`.
+- [x] `client/src/components/AppTabBar.vue`: below 900px, fixed bottom, 64px + safe-area inset, icon above label (`house`, `shield`, `swords`, `chart-line`), "Champ Select" as the phone label; header shrinks to 56px (logo + avatar).
+- [x] Move the account-switch logic from `components/sidebar/AccountSwitcher.vue` and `AccountDropdownList.vue` into the avatar menu.
+- [x] `client/src/layouts/AppLayout.vue`: remove `AppSidebar` and the `marginLeft` binding; render header, tab bar and a content wrapper (max width 1328px, 56px desktop / 16px phone gutters, top padding for the header, bottom padding for the tab bar on phones). Keep idle detection as is.
 
 ### Remove
-- [ ] `client/src/components/AppSidebar.vue`
-- [ ] `client/src/components/sidebar/` (after moving what the header reuses)
-- [ ] Sidebar state in `client/src/stores/uiStore.js` (`sidebarCollapsed`, `sidebarWidth`, `toggleSidebar`, `initializeSidebar`, `sidebarCollapsed` localStorage key); delete the store if nothing else uses it.
-- [ ] Heroicons imports that only the sidebar used.
+- [x] `client/src/components/AppSidebar.vue`
+- [x] `client/src/components/sidebar/` (after moving what the header reuses)
+- [x] Sidebar state in `client/src/stores/uiStore.js` (`sidebarCollapsed`, `sidebarWidth`, `toggleSidebar`, `initializeSidebar`, `sidebarCollapsed` localStorage key); delete the store if nothing else uses it.
+- [x] Heroicons imports that only the sidebar used.
 
 ### Tests
-- [ ] Replace `client/test/unit/components/AppSidebar.spec.js` with `AppHeader.spec.js` (active pill, avatar menu, account switch, log out) and `AppTabBar.spec.js`.
-- [ ] Update `client/test/unit/layouts/AppLayout.spec.js` and `client/test/unit/stores/uiStore.spec.js`.
-- [ ] E2E: `client/e2e/helpers/app-shell.js` waits for `app-header` instead of `app-sidebar`; update sidebar tests in `app-smoke.spec.js`, `overview-dashboard.spec.js`, `solo-dashboard.spec.js`.
+- [x] Replace `client/test/unit/components/AppSidebar.spec.js` with `AppHeader.spec.js` (active pill, avatar menu, account switch, log out) and `AppTabBar.spec.js`.
+- [x] Update `client/test/unit/layouts/AppLayout.spec.js` and `client/test/unit/stores/uiStore.spec.js`.
+- [x] E2E: `client/e2e/helpers/app-shell.js` waits for `app-header` instead of `app-sidebar`; update sidebar tests in `app-smoke.spec.js`, `overview-dashboard.spec.js`, `solo-dashboard.spec.js`.
 
 ### Docs
-- [ ] `ui-ux.spec.md`: remove the implementation note in §3, the "Legacy" line in §5, and the `AppSidebar` / uiStore inventory entries; update the migration-status line.
+- [x] `ui-ux.spec.md`: remove the implementation note in §3, the "Legacy" line in §5, and the `AppSidebar` / uiStore inventory entries; update the migration-status line.
 
 ### Check
 - [ ] Solo, Matches, Champion Select, Settings and Feedback still lay out correctly at full width (they keep legacy styling until their own phase).
