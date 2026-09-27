@@ -119,7 +119,7 @@ describe('LandingPage.vue', () => {
 
       await wrapper.get('[data-testid="trend-range-last50"]').trigger('click');
 
-      expect(wrapper.get('[data-testid="trend-title"]').text()).toBe('Deaths down from 6.6 to 5.2');
+      expect(wrapper.get('[data-testid="trend-title"]').text()).toBe('Deaths down from 6.5 to 5.2');
       expect(wrapper.get('[data-testid="trend-range-last50"]').attributes('aria-pressed')).toBe('true');
       expect(wrapper.get('[data-testid="trend-range-last20"]').attributes('aria-pressed')).toBe('false');
     });

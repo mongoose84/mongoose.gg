@@ -199,7 +199,7 @@ const readinessSegments = Array.from({ length: 20 }, (_, i) => i < Math.round(re
 // Example trend per range; ranges count matches, never days
 const ranges = [
   { id: 'last20', label: 'Last 20', start: '20 matches ago', values: example.deathsTrend },
-  { id: 'last50', label: 'Last 50', start: '50 matches ago', values: [6.6, 6.8, 6.4, 6.5, 6.3, 6.4, 6.1, 6.2, 6.0, 6.1, 5.9, 6.0, 5.8, 5.9, 5.7, 5.6, 5.8, 5.5, 5.4, 5.2] },
+  { id: 'last50', label: 'Last 50', start: '50 matches ago', values: [6.5, 6.4, 6.5, 6.3, 6.4, 6.2, 6.1, 6.2, 6.0, 6.1, 5.9, 6.0, 5.8, 5.9, 5.7, 5.6, 5.8, 5.5, 5.4, 5.2] },
   { id: 'season', label: 'Season', start: 'Season start', values: [6.4, 6.3, 6.5, 6.2, 6.1, 6.2, 6.0, 5.9, 6.0, 5.8, 5.7, 5.8, 5.6, 5.5, 5.6, 5.4, 5.3, 5.4, 5.3, 5.2] }
 ]
 const selectedRange = ref('last20')
