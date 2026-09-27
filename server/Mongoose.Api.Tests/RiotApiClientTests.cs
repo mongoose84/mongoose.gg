@@ -12,7 +12,10 @@ namespace Mongoose.Api.Tests;
 /// <summary>
 /// Unit tests for RiotApiClient — validates HTTP behavior, URL composition, response handling,
 /// and cancellation propagation without calling real Riot endpoints.
+/// Runs in EnvIsolation because Secrets is process-wide static state that parallel
+/// TestWebApplicationFactory boots re-initialize (possibly with an empty API key).
 /// </summary>
+[Collection("EnvIsolation")]
 public class RiotApiClientTests
 {
     private static readonly object _secretsLock = new();
