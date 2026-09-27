@@ -50,7 +50,7 @@ Github actions
 C# Dev Kit
 
 ## In Visual Studio:
-Git clone https://github.com/mongoose84/AgileAstronaut.com.git
+Git clone https://github.com/mongoose84/mongoose.gg.git
 
 The file structure contains a server and a client part.
 
