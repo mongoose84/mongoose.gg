@@ -22,7 +22,7 @@ Tick items off as they land so work can resume from any machine.
 
 ## Phase 1: App header replaces the sidebar
 
-Frontend only, one PR.
+Frontend only, one PR. **Status: done on branch `create_plan_for_updating_ui`** (2026-09-27); unit tests (1671), build and E2E (80, Chromium + Firefox) green.
 
 ### Build
 - [x] Port `mp-nav`, `mp-tabbar`, `mp-card` into `client/src/style.css`.
@@ -41,12 +41,25 @@ Frontend only, one PR.
 - [x] Replace `client/test/unit/components/AppSidebar.spec.js` with `AppHeader.spec.js` (active pill, avatar menu, account switch, log out) and `AppTabBar.spec.js`.
 - [x] Update `client/test/unit/layouts/AppLayout.spec.js` and `client/test/unit/stores/uiStore.spec.js`.
 - [x] E2E: `client/e2e/helpers/app-shell.js` waits for `app-header` instead of `app-sidebar`; update sidebar tests in `app-smoke.spec.js`, `overview-dashboard.spec.js`, `solo-dashboard.spec.js`.
+- [x] New `client/e2e/app-header.spec.js` (full suite, not smoke): active pill, avatar menu open / Escape / outside click, Settings link, log out, phone tab bar navigation.
 
 ### Docs
 - [x] `ui-ux.spec.md`: remove the implementation note in §3, the "Legacy" line in §5, and the `AppSidebar` / uiStore inventory entries; update the migration-status line.
 
 ### Check
-- [ ] Solo, Matches, Champion Select, Settings and Feedback still lay out correctly at full width (they keep legacy styling until their own phase).
+- [ ] Solo, Matches, Champion Select, Settings and Feedback still lay out correctly at full width (they keep legacy styling until their own phase). E2E navigates to all of them; a visual pass in the browser is still to do.
+
+### Outcome notes
+- `uiStore` was deleted entirely (nothing else used it). `AccountSwitcher.vue` was retired; only `AccountDropdownList` was kept, now in `client/src/components/header/`.
+- The avatar menu is a disclosure panel (`aria-expanded` + `aria-controls`), not an ARIA `menu`, since it has no arrow-key navigation. Escape returns focus to the avatar. No drop shadow.
+- `MatchesPage.vue` height changed from `100vh` to `calc(100dvh - 5rem)` so it fits under the fixed header.
+
+### Known leftovers
+- Matches can still overflow slightly on phones (tab bar not subtracted) — fix in the Matches phase.
+- Sync / analysis-running status has no indicator in the shell any more — comes back as SyncProgress in Phase 2.
+- `AccountDropdownList` uses `role="listbox"` / `option` inside the disclosure panel; revisit if the switcher is redesigned.
+- `.github/specs/test-strategy.spec.md` still lists `uiStore.spec.js` as missing coverage — remove when that spec is next touched.
+- Running E2E on a new machine may need `npx playwright install` first.
 
 ---
 
