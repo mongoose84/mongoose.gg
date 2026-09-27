@@ -36,6 +36,7 @@
   --color-warn-text: #fdba74;
   --color-warn-soft: rgba(251, 146, 60, 0.14);
   --color-glass: rgba(255, 255, 255, 0.08);
+  --color-spotlight: rgba(168, 85, 247, 0.14);
   --color-focus-ring: #c4b5fd;
   --color-on-primary: #ffffff;
   --shadow-focus: 0 0 0 2px #0a0810, 0 0 0 4px #c4b5fd;
@@ -207,7 +208,9 @@ body {
   .mp-focusable:focus-visible,
   .mp-btn:focus-visible,
   .mp-nav a:focus-visible,
-  .mp-tabbar a:focus-visible {
+  .mp-tabbar a:focus-visible,
+  .mp-seg button:focus-visible,
+  .mp-champ-card:focus-visible {
     outline: none;
     box-shadow: var(--shadow-focus);
   }
@@ -287,14 +290,27 @@ body {
   .mp-insight h3 { margin: 0; font-family: var(--font-display); font-size: 1rem; font-weight: 600; line-height: 1.4; color: var(--color-text); }
   .mp-insight p { margin: 0; font-size: 0.875rem; line-height: 1.5; color: var(--color-text-secondary); }
 
-  /* Champion card: centred art faded into bg from the bottom. Static on the Overview (no pick, no spotlight). */
+  /* Champion card: centred art faded into bg from the bottom. Static on the Overview; a pick button on Champion Select. */
   .mp-champ-card { position: relative; display: block; height: 18.75rem; padding: 0; overflow: hidden; border-radius: 1.5rem; border: 2px solid transparent; background: var(--color-surface); color: var(--color-text); text-align: left; }
+  button.mp-champ-card { width: 100%; font: inherit; cursor: pointer; }
+  .mp-champ-card[aria-pressed="true"] { border-color: var(--color-primary-accent); }
   .mp-champ-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 55% 30%; }
   .mp-champ-card-scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 11.875rem; background: linear-gradient(180deg, rgba(10, 8, 16, 0) 0%, rgba(10, 8, 16, 0.85) 45%, var(--color-bg) 100%); }
   .mp-champ-card-body { z-index: 1; position: absolute; left: 1.375rem; right: 1.375rem; bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.625rem; }
   .mp-champ-name { font-family: var(--font-display); font-size: 1.625rem; font-weight: 700; line-height: 1.2; }
   .mp-bar { position: relative; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); }
   .mp-bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--color-primary-accent); }
+
+  /* Spotlight hover (ported from Vue Bits SpotlightCard): clickable cards only */
+  .mp-spotlight { position: relative; overflow: hidden; }
+  .mp-spotlight::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), var(--color-spotlight), transparent 70%); }
+  .mp-spotlight:hover::after, .mp-spotlight:focus-visible::after { opacity: 1; }
+
+  /* Segmented control: 2–4 options in a surface-raised pill track */
+  .mp-seg { display: inline-flex; gap: 0.25rem; max-width: 100%; overflow-x: auto; padding: 0.25rem; border-radius: 999px; background: var(--color-elevated); }
+  .mp-seg button { flex-shrink: 0; height: 2.25rem; padding: 0 0.875rem; border: 0; border-radius: 999px; background: transparent; color: var(--color-text-secondary); font-family: var(--font-body); font-size: 0.8125rem; font-weight: 500; line-height: 1; white-space: nowrap; cursor: pointer; }
+  .mp-seg button:hover { color: var(--color-text); }
+  .mp-seg button[aria-pressed="true"] { background: var(--color-surface-selected); color: var(--color-text); font-weight: 700; }
 
   /* Skeleton loading: track-coloured shapes in the layout of the coming content */
   .mp-skeleton { display: block; border-radius: 3px; background: var(--color-track); }
@@ -334,6 +350,9 @@ body {
     opacity: 1;
     transform: none;
   }
+
+  .mp-champ-card, .mp-seg button { transition: border-color 150ms ease-out, background-color 150ms ease-out, color 150ms ease-out; }
+  .mp-spotlight::after { transition: opacity 300ms ease-out; }
 }
 
 @keyframes mp-skeleton-pulse {

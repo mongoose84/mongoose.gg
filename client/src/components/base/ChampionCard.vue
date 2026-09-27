@@ -1,5 +1,14 @@
 <template>
-  <article class="mp-champ-card champion-card" data-testid="champion-card">
+  <component
+    :is="selectable ? 'button' : 'article'"
+    :type="selectable ? 'button' : undefined"
+    class="mp-champ-card champion-card"
+    :class="{ 'mp-spotlight': selectable }"
+    :aria-pressed="selectable ? selected : undefined"
+    data-testid="champion-card"
+    @pointermove="onPointerMove"
+    @click="onClick"
+  >
     <img
       v-if="artUrl && !artFailed"
       :src="artUrl"
@@ -11,7 +20,7 @@
 
     <div class="mp-champ-card-body">
       <div class="champion-card__row champion-card__row--title">
-        <h3 class="mp-champ-name" data-testid="champion-card-name">{{ championName }}</h3>
+        <component :is="selectable ? 'span' : 'h3'" class="mp-champ-name" data-testid="champion-card-name">{{ championName }}</component>
         <span class="champion-card__winrate" data-testid="champion-card-winrate">
           {{ winRateLabel }}<span class="visually-hidden"> win rate</span>
         </span>
@@ -24,14 +33,15 @@
         <span :style="{ width: barWidth }" data-testid="champion-card-bar" />
       </div>
     </div>
-  </article>
+  </component>
 </template>
 
 <script setup>
 /**
  * ChampionCard (design system): one champion in the player's pool — centred art, win rate,
- * matches, KDA and one strength tag. Static here: the Overview has no champion focus, so it is
- * an article, not a button, and gets no spotlight hover.
+ * matches, KDA and one strength tag. Static by default (the Overview has no champion focus, so
+ * it is an article with no spotlight). With `selectable` it is a pick button (Champion Select):
+ * aria-pressed, a primary border when selected, and the spotlight hover that follows the pointer.
  */
 import { computed, ref, watch } from 'vue'
 import { getChampionCenteredUrl } from '@/utils/leagueAssets'
@@ -58,8 +68,32 @@ const props = defineProps({
   strengthTag: {
     type: String,
     default: null
+  },
+  /** Render as a pick button that emits `select` */
+  selectable: {
+    type: Boolean,
+    default: false
+  },
+  /** The page's current champion focus (selectable cards only) */
+  selected: {
+    type: Boolean,
+    default: false
   }
 })
+
+const emit = defineEmits(['select'])
+
+function onClick() {
+  if (props.selectable) emit('select')
+}
+
+// Spotlight hover follows the pointer. Adapted from Vue Bits SpotlightCard by David Haz, MIT + Commons Clause
+function onPointerMove(event) {
+  if (!props.selectable) return
+  const rect = event.currentTarget.getBoundingClientRect()
+  event.currentTarget.style.setProperty('--mx', `${event.clientX - rect.left}px`)
+  event.currentTarget.style.setProperty('--my', `${event.clientY - rect.top}px`)
+}
 
 const artFailed = ref(false)
 watch(() => props.championName, () => { artFailed.value = false })

@@ -25,7 +25,7 @@
 
       <div v-if="$slots.action || visibleChips.length" class="champion-hero__footer">
         <slot name="action" />
-        <ul v-if="visibleChips.length" class="champion-hero__chips" aria-label="This week">
+        <ul v-if="visibleChips.length" class="champion-hero__chips" :aria-label="chipsLabel">
           <li
             v-for="chip in visibleChips"
             :key="chip"
@@ -74,6 +74,11 @@ const props = defineProps({
   chips: {
     type: Array,
     default: () => []
+  },
+  /** What the chips describe, for assistive tech */
+  chipsLabel: {
+    type: String,
+    default: 'This week'
   }
 })
 
