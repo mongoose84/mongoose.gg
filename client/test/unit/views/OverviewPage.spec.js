@@ -55,7 +55,7 @@ vi.mock('@/services/soloApi', () => ({
 }))
 
 const fullOverview = {
-  playerHeader: { summonerName: 'Faker#KR1', level: 100, region: 'EUW', profileIconUrl: 'x.png', activeContexts: ['Solo'], rank: 'GOLD II', lp: 45 },
+  playerHeader: { summonerName: 'Faker#KR1', level: 100, region: 'EUW', rank: 'GOLD II', lp: 45 },
   mostPlayedChampion: { championName: 'Ahri', gamesPlayed: 28, source: 'current_season' },
   lastMatch: { matchId: 'EUW1_1', championIconUrl: 'ahri.png', championName: 'Ahri', result: 'Victory', kda: '7/2/9', timestamp: Date.now(), queueType: 'Ranked Solo/Duo' },
   sessionStats: { gamesToday: 3, winsToday: 2, lossesToday: 1, gamesThisWeek: 12, winsThisWeek: 7, lossesThisWeek: 5 },
@@ -66,9 +66,7 @@ const fullOverview = {
       { championId: 134, championName: 'Syndra', role: 'MIDDLE', matches: 18, wins: 10, winRate: 55.6, avgKda: 3.3, mScore: 60.1, strengthTag: 'Most damage' }
     ],
     alsoPlayed: []
-  },
-  activeGoals: [],
-  suggestedActions: []
+  }
 }
 
 const mounted = []

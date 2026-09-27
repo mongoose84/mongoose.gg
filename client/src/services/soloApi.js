@@ -8,7 +8,7 @@ import { appendAccountParam } from './accountContext'
 /**
  * Get overview dashboard data for a user
  * @param {number} userId - User ID
- * @returns {Promise<Object|null>} Overview data including playerHeader, lastMatch, activeGoals, suggestedActions
+ * @returns {Promise<Object|null>} Overview data including playerHeader, lastMatch, mostPlayedChampion, championPool, sessionStats, survivalStats
  */
 export async function getOverview(userId) {
   const params = new URLSearchParams()

@@ -96,7 +96,6 @@ public class OverviewEndpointTests
         body.PlayerHeader.SummonerName.Should().Be("TestPlayer#NA1");
         body.PlayerHeader.Level.Should().Be(100);
         body.PlayerHeader.Region.Should().Be("NA1");
-        body.PlayerHeader.ActiveContexts.Should().Contain("Solo");
     }
 
     [Fact]
@@ -132,11 +131,10 @@ public class OverviewEndpointTests
         body.Should().NotBeNull();
         body!.PlayerHeader.Rank.Should().Be("GOLD II");
         body.PlayerHeader.Lp.Should().Be(75);
-        body.PlayerHeader.PrimaryQueueLabel.Should().Be("Ranked Solo/Duo");
     }
 
     [Fact]
-    public async Task Overview_returns_empty_goals_and_actions()
+    public async Task Overview_omits_retired_fields()
     {
         using var factory = new TestWebApplicationFactory();
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
@@ -152,10 +150,11 @@ public class OverviewEndpointTests
         var response = await client.SendAsync(req);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
-        body.Should().NotBeNull();
-        body!.ActiveGoals.Should().BeEmpty();
-        body.SuggestedActions.Should().BeEmpty();
+        var raw = await response.Content.ReadAsStringAsync();
+        foreach (var field in new[] { "activeGoals", "suggestedActions", "combinedStats", "activeContexts", "primaryQueueLabel", "profileIconUrl" })
+        {
+            raw.Should().NotContain($"\"{field}\"");
+        }
     }
 
     [Fact]
@@ -497,10 +496,7 @@ public class OverviewEndpointTests
         PlayerHeader PlayerHeader,
         LastMatch? LastMatch,
         MostPlayedChampion? MostPlayedChampion,
-        GoalPreview[] ActiveGoals,
-        SuggestedAction[] SuggestedActions,
         AccountSummary[]? AccountSummaries = null,
-        CombinedStats? CombinedStats = null,
         SessionStats? SessionStats = null,
         SurvivalStats? SurvivalStats = null,
         ChampionPool? ChampionPool = null
@@ -509,13 +505,10 @@ public class OverviewEndpointTests
     private record ChampionPool(PoolChampion[] Champions, PoolChampion[] AlsoPlayed);
     private record PoolChampion(int ChampionId, string ChampionName, string Role, int Matches, int Wins, double WinRate, double AvgKda, double MScore, string? StrengthTag);
 
-    private record PlayerHeader(string SummonerName, int Level, string Region, string ProfileIconUrl, string[] ActiveContexts, string? Rank, int? Lp, string? PrimaryQueueLabel);
+    private record PlayerHeader(string SummonerName, int Level, string Region, string? Rank, int? Lp);
     private record LastMatch(string MatchId, string ChampionIconUrl, string ChampionName, string Result, string Kda, long Timestamp);
     private record MostPlayedChampion(string ChampionName, int GamesPlayed, string Source);
-    private record GoalPreview(string GoalId, string Title, string Context, double Progress);
-    private record SuggestedAction(string ActionId, string Text, string DeepLink, int Priority);
     private record AccountSummary(string AccountId, string GameName, string TagLine, string Region, string? Rank, int? Lp, int GamesToday, int GamesThisWeek);
-    private record CombinedStats(int TotalGames, double WinRate, double AvgKda);
     private record SessionStats(int GamesToday, int WinsToday, int LossesToday, double? AvgKdaToday, SessionChampion? BestChampionToday, int GamesThisWeek, int WinsThisWeek, int LossesThisWeek, double? AvgKdaThisWeek);
     private record SessionChampion(string ChampionName, int Wins, int Losses, double AvgKda);
     private record SurvivalStats(double AvgDeathsPerGame, double? WinRateLowDeaths, double? WinRateHighDeaths, int GamesLowDeaths, int GamesHighDeaths, int LowDeathThreshold, int HighDeathThreshold, int TotalGames);

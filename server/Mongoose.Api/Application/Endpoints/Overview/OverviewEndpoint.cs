@@ -13,7 +13,7 @@ namespace Mongoose.Api.Application.Endpoints.Overview;
 /// <summary>
 /// Overview Endpoint
 /// Returns aggregated dashboard data for the Overview page.
-/// Includes player header, last match, active goals, and suggested actions.
+/// Includes player header, last match, most-played champion, champion pool, session and survival stats.
 /// </summary>
 public sealed class OverviewEndpoint : IEndpoint
 {
@@ -35,7 +35,6 @@ public sealed class OverviewEndpoint : IEndpoint
             [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] IOverviewStatsRepository overviewStatsRepo,
-            [FromServices] ISoloPerformanceRepository soloPerformanceRepo,
             [FromServices] ILogger<OverviewEndpoint> logger
         ) =>
         {
@@ -56,29 +55,22 @@ public sealed class OverviewEndpoint : IEndpoint
                 var primaryPuuid = primaryAccount.Puuid;
                 var selectedPuuids = selectedAccounts.Select(a => a.Account.Puuid).ToList();
 
-                // Get all linked accounts for active contexts determination
+                // All linked accounts, for the per-account summaries in Overall mode
                 var (allAccountsError, allAccounts) = await puuidResolutionService.ResolveAllAccountsAsync(authorizedUser.UserId);
                 if (allAccountsError != null)
                     return allAccountsError;
-
-                var linkedAccountsCount = allAccounts?.Count ?? 1;
 
                 logger.LogInformation("Overview request: userId={UserId}, accountCount={AccountCount}, account={Account}",
                     LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), selectedPuuids.Count, LogSanitizer.HashForLog(accountId, "primary"));
 
                 // Build player header
-                var profileIconUrl = BuildProfileIconUrl(primaryAccount.ProfileIconId);
-                var activeContexts = DetermineActiveContexts(linkedAccountsCount);
-                var (primaryRank, primaryLp, primaryQueueLabel) = ResolveRankedQueue(primaryAccount);
+                var (primaryRank, primaryLp) = ResolveRankedQueue(primaryAccount);
                 var playerHeader = new PlayerHeader(
                     SummonerName: primaryAccount.SummonerName,
                     Level: primaryAccount.SummonerLevel ?? 0,
                     Region: primaryAccount.Region.ToUpperInvariant(),
-                    ProfileIconUrl: profileIconUrl,
-                    ActiveContexts: activeContexts,
                     Rank: primaryRank,
-                    Lp: primaryLp,
-                    PrimaryQueueLabel: primaryQueueLabel
+                    Lp: primaryLp
                 );
 
                 // Compute rank-adaptive death thresholds from the primary account's solo queue tier
@@ -106,14 +98,7 @@ public sealed class OverviewEndpoint : IEndpoint
                 var sessionStatsData = sessionStatsTask.Result;
                 var survivalStatsData = survivalStatsTask.Result;
 
-                // Active goals (placeholder - no goals table yet, return empty)
-                var activeGoals = Array.Empty<GoalPreview>();
-
-                // Suggested actions (placeholder - return empty for now)
-                var suggestedActions = Array.Empty<SuggestedAction>();
-
                 AccountSummary[]? accountSummaries = null;
-                CombinedStats? combinedStats = null;
                 var isAllMode = string.Equals(accountId, "all", StringComparison.OrdinalIgnoreCase);
                 if (isAllMode && allAccounts != null)
                 {
@@ -122,7 +107,7 @@ public sealed class OverviewEndpoint : IEndpoint
                         {
                             var perAccountData = sessionStatsData.PerAccount
                                 .FirstOrDefault(a => a.Puuid == resolved.Account.Puuid);
-                            var (acctRank, acctLp, _) = ResolveRankedQueue(resolved.Account);
+                            var (acctRank, acctLp) = ResolveRankedQueue(resolved.Account);
                             return new AccountSummary(
                                 AccountId: resolved.AccountId,
                                 GameName: resolved.Account.GameName,
@@ -135,16 +120,6 @@ public sealed class OverviewEndpoint : IEndpoint
                             );
                         })
                         .ToArray();
-
-                    var aggregatePerformance = await soloPerformanceRepo.GetSoloPerformanceAsync(selectedPuuids, "all", null);
-                    if (aggregatePerformance != null)
-                    {
-                        combinedStats = new CombinedStats(
-                            TotalGames: aggregatePerformance.GamesPlayed,
-                            WinRate: aggregatePerformance.WinRate,
-                            AvgKda: aggregatePerformance.AvgKda
-                        );
-                    }
                 }
 
                 var sessionStats = BuildSessionStats(sessionStatsData);
@@ -163,10 +138,7 @@ public sealed class OverviewEndpoint : IEndpoint
                     PlayerHeader: playerHeader,
                     LastMatch: lastMatch,
                     MostPlayedChampion: mostPlayedChampion,
-                    ActiveGoals: activeGoals,
-                    SuggestedActions: suggestedActions,
                     AccountSummaries: accountSummaries,
-                    CombinedStats: combinedStats,
                     SessionStats: sessionStats,
                     SurvivalStats: survivalStats,
                     ChampionPool: BuildChampionPool(championPoolTask.Result)
@@ -180,24 +152,6 @@ public sealed class OverviewEndpoint : IEndpoint
                 return Results.Problem("An unexpected error occurred");
             }
         }).RequireAuthorization();
-    }
-
-    private static string BuildProfileIconUrl(int? profileIconId)
-    {
-        var iconId = profileIconId ?? 29; // Default icon if not set
-        return $"https://ddragon.leagueoflegends.com/cdn/{DataDragonVersion}/img/profileicon/{iconId}.png";
-    }
-
-    private static string[] DetermineActiveContexts(int accountCount)
-    {
-        // Solo is always active if there's at least one account
-        // Duo and Team badges will be added when those features are available
-        var contexts = new List<string> { "Solo" };
-        
-        // Could check for duo partners or team memberships in the future
-        // For now, just return Solo
-        
-        return contexts.ToArray();
     }
 
     private static SessionStats BuildSessionStats(SessionStatsData data)
@@ -305,14 +259,14 @@ public sealed class OverviewEndpoint : IEndpoint
         return $"https://ddragon.leagueoflegends.com/cdn/{DataDragonVersion}/img/champion/{normalized}.png";
     }
 
-    private static (string? Rank, int? Lp, string Label) ResolveRankedQueue(Mongoose.Api.Core.Entities.RiotAccount account)
+    private static (string? Rank, int? Lp) ResolveRankedQueue(Mongoose.Api.Core.Entities.RiotAccount account)
     {
         if (!string.IsNullOrEmpty(account.SoloTier) && !string.IsNullOrEmpty(account.SoloRank))
-            return ($"{account.SoloTier} {account.SoloRank}", account.SoloLp, "Ranked Solo/Duo");
+            return ($"{account.SoloTier} {account.SoloRank}", account.SoloLp);
 
         if (!string.IsNullOrEmpty(account.FlexTier) && !string.IsNullOrEmpty(account.FlexRank))
-            return ($"{account.FlexTier} {account.FlexRank}", account.FlexLp, "Ranked Flex");
+            return ($"{account.FlexTier} {account.FlexRank}", account.FlexLp);
 
-        return (null, null, "Ranked");
+        return (null, null);
     }
 }
