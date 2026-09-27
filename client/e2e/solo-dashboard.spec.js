@@ -58,7 +58,7 @@ test.describe('Solo Dashboard Flow', () => {
     await page.getByLabel('Password').fill('wrongpassword');
 
     // Submit
-    await page.getByRole('button', { name: /sign in/i }).click();
+    await page.getByRole('button', { name: /^log in$/i }).click();
 
     // Should show error message
     await expect(page.locator('[class*="error"]').or(page.getByText(/invalid|incorrect|failed/i))).toBeVisible({ timeout: 5_000 });

@@ -92,92 +92,90 @@ const buttonClasses = computed(() => {
 </script>
 
 <style scoped>
-/* Base button styles */
+/* Mongoose.gg design system Button: pill, flat, 150ms colour change, shadow-focus */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
-  font-weight: 600;
+  gap: 0.5rem;
+  border: 0;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  line-height: 1;
   text-decoration: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-  letter-spacing: var(--letter-spacing);
   white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
 }
 
 .btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  box-shadow: var(--shadow-focus);
 }
 
-/* Sizes */
+/* Sizes: 48px default for main actions, 36px only in dense rows */
 .btn--sm {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--font-size-sm);
+  height: 2.25rem;
+  padding: 0 1rem;
+  font-size: 0.875rem;
 }
 
 .btn--md {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  font-size: var(--font-size-sm);
+  height: 2.75rem;
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
 }
 
 .btn--lg {
-  padding: var(--spacing-md) var(--spacing-xl);
-  font-size: var(--font-size-md);
+  height: 3rem;
+  padding: 0 1.5rem;
+  font-size: 0.9375rem;
 }
 
 /* Variants */
 .btn--primary {
   background: var(--color-primary);
-  color: white;
-  box-shadow: var(--shadow-sm);
+  color: var(--color-on-primary);
 }
 
 .btn--primary:hover:not(.btn--disabled):not(.btn--loading) {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  background: var(--color-primary-light);
 }
 
 .btn--secondary {
-  background: transparent;
-  color: var(--color-text-secondary);
-  border-color: var(--color-border);
+  background: var(--color-surface-selected);
+  color: var(--color-text);
 }
 
 .btn--secondary:hover:not(.btn--disabled):not(.btn--loading) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: var(--color-surface-selected-hover);
 }
 
 .btn--ghost {
   background: transparent;
-  color: var(--color-primary);
-  border-color: transparent;
+  color: var(--color-positive-text);
 }
 
 .btn--ghost:hover:not(.btn--disabled):not(.btn--loading) {
-  background: var(--color-primary-soft);
+  color: var(--color-positive-text-strong);
 }
 
+/* Destructive is a system state, so it keeps the error colour */
 .btn--destructive {
   background: var(--color-error);
-  color: white;
+  color: var(--color-on-primary);
 }
 
 .btn--destructive:hover:not(.btn--disabled):not(.btn--loading) {
   background: var(--color-error-hover);
-  box-shadow: var(--shadow-sm);
 }
 
 /* States */
 .btn--disabled,
 .btn--loading {
-  opacity: 0.6;
+  opacity: 0.45;
   cursor: not-allowed;
-  transform: none !important;
 }
 
 .btn--block {
@@ -189,9 +187,9 @@ const buttonClasses = computed(() => {
   display: inline-block;
   width: 1em;
   height: 1em;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid currentColor;
+  border-right-color: transparent;
   border-radius: 50%;
-  border-top-color: currentColor;
   animation: spin 0.6s linear infinite;
 }
 
@@ -200,5 +198,14 @@ const buttonClasses = computed(() => {
     transform: rotate(360deg);
   }
 }
-</style>
 
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+
+  .btn-spinner {
+    animation: none;
+  }
+}
+</style>
