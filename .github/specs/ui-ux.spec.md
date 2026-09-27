@@ -4,7 +4,7 @@
 
 **Stack**: Vue 3 (Composition API, `<script setup>`) · Tailwind CSS · Headless UI · Lucide (via `BaseIcon`) · Chart.js + vue-chartjs · TanStack Vue Query · Pinia  
 **Design system**: Mongoose.gg design system — see Section 2 (visual rules live in `.claude/skills/mongoose-design/reference/`)  
-**Platform**: Desktop-first (future Windows native app)  
+**Platform**: Desktop-first, responsive to phones (grids stack below 900px); future Windows native app  
 **Last verified**: September 27, 2026
 
 ---
@@ -45,9 +45,9 @@
 1. **Tool over website** — speed and clarity over exploration
 2. **Context > Pages** — same data, different perspectives (Solo/Team); each gets its own route
 3. **Fast paths for stressed moments** — Champion Select and Match Review must load instantly
-4. **Overview is orientation, not work** — 5–15 seconds, one scroll max
+4. **Overview opens with the answer** — one summary sentence the player can read in 5 seconds; everything below it is evidence to scroll into when they want it
 5. **Goals are horizontal** — visible everywhere, managed centrally
-6. **Premium value appears early** — not buried deep in navigation
+6. **Free version first** — no upsell, pricing or premium prompts for now; premium placement is decided later
 7. **Every insight answers one question and implies one action**
 8. **Single-match insights framed as multi-game trends**
 
@@ -60,6 +60,25 @@
 - During Champion Select (high stress, low time)
 - Between games (short attention bursts)
 - After sessions (calm analysis)
+
+### UX decisions (2026-09-27)
+
+Settled while aligning this description with the design system:
+
+1. **Top navigation only.** No sidebar; see Section 3.
+2. **Page names** stay as in this description: Overview, Champion Select, Matches, Solo, and Advanced (Team and Goals combined; not built yet).
+3. **Overview follows the design system's layout** (Section 6).
+4. **Time ranges count matches**, never days: Last 20 / Last 50 / Season.
+5. **Matches**: every match has its own address (`/app/matches/:matchId`); desktop shows it beside the list, phones as its own page.
+6. **Sign-up**: email account first, then link the Riot ID. Signing in with a Riot account is planned for later.
+7. **Landing page** is a marketing page that shows what an account gives you (Section 6, Landing).
+8. **Free version first**: no upsell for now.
+9. **Team and Goals become one page, "Advanced"** (working name). It is not implemented for now; the navigation stays at five items.
+10. **Phones get a bottom tab bar** (Section 3). Desktop comes first: phones get this light adaptation, no separate design.
+
+**Deferred**
+- How Pro-only pages are marked in the navigation (no badges on pills): decided when Pro is implemented.
+- Backend for the Overview design (scores Laning / Teamfighting / Discipline, queue readiness, insights): built when we implement the Overview.
 
 ---
 
@@ -93,32 +112,37 @@ All visual rules (colour, type, spacing, radius, depth, motion, iconography, cha
 
 ## 3. Navigation Model
 
-**Primary navigation**: Left-side vertical sidebar (`AppSidebar.vue`)
-- Collapsible: icons + labels → icons only
-- Persistent across all `/app/*` routes
-- Auto-collapses in Champion Select
-- State persisted to `localStorage` via `uiStore`
-- Mobile breakpoint: `1024px` (auto-collapse)
+**Primary navigation**: one 80px top header on every `/app/*` page, built from the design system's PillNav. There is no sidebar.
 
-### Sidebar Entries
+- **Left**: logo, links to `/app/overview`
+- **Middle**: PillNav (`<nav aria-label="Main">`, `aria-current="page"` on the active pill)
+- **Right**: the player's avatar (main champion icon). It opens a menu with the Riot account switcher (when several accounts are linked), Settings (`/app/user`), Feedback (`/app/feedback`) and Log out.
+- The header is the same on every page, including Champion Select.
+- **Phones** (below 900px): the header shrinks to 56px with only the logo and the avatar; the pills move to a fixed bottom tab bar (see below).
+
+### Phone tab bar
+
+Desktop comes first; this is the only phone-specific navigation.
+
+- Fixed to the bottom, 64px tall plus the safe-area inset, `surface-raised` with a `divider` hairline on top.
+- One tab per navigation item: icon above a short label (`house` Overview, `shield` Champ Select, `swords` Matches, `chart-line` Solo, `users` Advanced when enabled).
+- "Champion Select" is shortened to "Champ Select" on phones only; the page title keeps the full name.
+- The active tab uses `positive-text` (light purple) and `aria-current="page"`; the bar is the same `<nav aria-label="Main">` as on desktop.
+- It stays visible on every app page. A match opened at `/app/matches/:matchId` shows a back arrow in the header that returns to the list.
+
+### Navigation Items
 
 ```
 Overview         → /app/overview
 Champion Select  → /app/champion-select
 Matches          → /app/matches
 Solo             → /app/solo
-Team             → /app/team      (Pro tier — lock icon for free users)
-Goals            → /app/goals
-User             → /app/user
+Advanced         → (planned)      Team and Goals combined; not implemented yet
 ```
 
-> **Implementation note**: The Team and Goals nav entries are currently gated by feature flags
-> (`VITE_FEATURE_TEAM_ANALYTICS` and `VITE_FEATURE_GOALS`) and are hidden when the flags are
-> disabled. This is **intentional** — both features are still under development. The long-term
-> design intent (always-visible entries with a lock icon for free-tier users) will be implemented
-> once the underlying pages are ready. Until then, `v-if="featureFlags.teamAnalytics"` and
-> `v-if="featureFlags.goals"` remain on the corresponding `<router-link>` elements in
-> `AppSidebar.vue`.
+Advanced (working name) combines Team and Goals into one page, which keeps the navigation at five items. It is not implemented for now: until then the existing Team and Goals pages stay hidden behind their feature flags (`VITE_FEATURE_TEAM_ANALYTICS`, `VITE_FEATURE_GOALS`). How Pro-only pages are marked is decided when Pro is implemented (no badges on pills).
+
+> **Implementation note**: the app still renders the legacy `AppSidebar.vue` (with the feature flags on its `<router-link>` elements). It is replaced by the top header during the design-system migration.
 
 **Architecture decision**: Solo and Team are **separate top-level pages** (not tabs) for:
 1. Better upgrade perceived value
@@ -154,9 +178,10 @@ All routes defined in `client/src/router/index.js`.
 | `/app/overview` | `app-overview` | `OverviewPage.vue` | Free |
 | `/app/champion-select` | `app-champion-select` | `ChampionSelectPage.vue` | Free |
 | `/app/matches` | `app-matches` | `MatchesPage.vue` | Free |
+| `/app/matches/:matchId` | *(planned)* | `MatchesPage.vue` with one match open | Free |
 | `/app/solo` | `app-solo` | `SoloStatsPage.vue` | Free |
-| `/app/team` | `app-team` | `TeamAnalytics.vue` | Pro |
-| `/app/goals` | `app-goals` | `GoalsPage.vue` | Free |
+| `/app/team` | `app-team` | `TeamAnalytics.vue` | Pro (flagged off; moves into Advanced) |
+| `/app/goals` | `app-goals` | `GoalsPage.vue` | Free (flagged off; moves into Advanced) |
 | `/app/user` | `app-user` | `UserSettingsPage.vue` | Free |
 | `/app/feedback` | `app-feedback` | `FeedbackPage.vue` | Free |
 
@@ -176,8 +201,8 @@ All routes defined in `client/src/router/index.js`.
 ## 5. Layout Architecture
 
 ### `AppLayout.vue` (authenticated shell)
-- **Structure**: `AppSidebar` (fixed left) + `<router-view>` (flex-1 main content)
-- **Sidebar width**: Dynamic from `uiStore.sidebarWidth`; content uses `margin-left` with CSS transition
+- **Structure**: top header (logo, PillNav, avatar menu; Section 3) above `<router-view>`. Content max width 1328px, 56px side gutters on desktop, 16px on phones.
+- **Legacy**: the current code still uses `AppSidebar` with `uiStore.sidebarWidth`; removed in the migration.
 - **Idle detection**: 30-minute threshold; on tab return, refreshes user data + triggers sync check
 - **Activity tracking**: Throttled to 30s intervals (mousemove, keydown, click, scroll)
 
@@ -196,7 +221,7 @@ All routes defined in `client/src/router/index.js`.
 
 ### `NavBar.vue` (public pages)
 - Fixed top header for public pages
-- Desktop: Features/Pricing/How It Works/Login + "Get Started" CTA
+- Logo, "Features" and "How it works" anchors, "Log in", and "Create free account" as the one filled button (no Pricing while we focus on the free version)
 - Mobile: hamburger toggle with slide-down animation
 - Logo links to `/app/user` if authenticated, `/` if not
 
@@ -204,19 +229,34 @@ All routes defined in `client/src/router/index.js`.
 
 ## 6. Page Responsibilities
 
+### Landing (`/`)
+**Role**: Marketing page that shows what a free account gives you, and sends players to sign-up. Like Blitz's landing page, it sells the product; unlike Blitz, the value starts after an account, because we store the player's matches (email sign-up, then Riot ID link).
+
+Top to bottom:
+1. **Header** (`NavBar`, Section 5).
+2. **Hero**: one headline about the player's outcome and a concrete subline (design system headline rules), "Create free account" as the main button, "Log in" beside it, and one trust line ("Free · Built on Riot's official API"). Visual: a product preview built from our real components (champion hero, score rings, an insight) with data from a real example account, labelled "Example". No screenshots or illustrations.
+3. **Features**: a grid of cards, one per thing you get, each tagged with the page it lives on (Overview, Champion Select, Matches, Solo) and showing a small real-component example.
+4. **How it works**: three steps: create an account with your email, link your Riot ID, we sync your recent matches (a few minutes) and your Overview fills in. Mention Riot sign-in only once it is planned for real.
+5. **Proof**: matches analysed and players from `/public/stats`, shown only once the numbers are large enough to help.
+6. **Footer**: legal links, contact, "Not affiliated with Riot Games". No pricing section for now.
+
 ### Overview (`/app/overview`)
-**Role**: Situational awareness and routing. Time budget: 5–15 seconds.
+**Role**: Today at a glance. One summary sentence the player can read in 5 seconds, then the evidence below it.
 
-Components used:
-- `OverviewPlayerHeader` — profile icon, summoner name, region, context badges
-- `ChampionSelectCTA` — quick link to champion select
-- `MatchActivityHeatmap` — daily match counts grid
-- `AnalysisStatusCard` — sync/analysis status
-- `LastMatchCard` — last match summary, click → match details
+Layout (design system, top to bottom):
+1. **ChampionHero**: the player's main champion splash, one headline about them ("Your Ahri laning is elite. Your late-game discipline is not."), one supporting sentence, the player line (Riot ID · main champion · rank · LP), a primary action ("See today's matches") and up to two glass stat chips.
+2. **Three ScoreRings**: Laning, Teamfighting, Discipline (0–100, change over the last matches, three contributors each).
+3. **Your champions**: three ChampionCards plus an "Also played" list. Choosing a card swaps the hero's art, headline and chips.
+4. **Queue readiness** (ReadinessMeter, the one highlight card) beside **Today's matches** (MatchRows linking to each match).
+5. **Insights**: InsightCards, three per row, strongest first, six at most.
 
-Data sources: `getOverview()`, `getMatchActivity()` from `authApi`
+Sync progress (SyncProgress) sits at the top of the content while matches come in and never blocks the page. Every card has skeleton, empty, error and content states.
 
-**Non-goals**: Deep graphs, champion matrices, comparative analysis, editable controls.
+Data sources: `getOverview()` today; scores, readiness and insights need new backend data, built when the Overview is implemented (Section 1).
+
+Current code (legacy, replaced in the migration): `OverviewPlayerHeader`, `TodaySessionCard`, `DeathInsightsCard`, `ChampionSelectCTA`, `AnalysisStatusCard`, `SoloAnalyticsCTA`, `LastMatchCard`.
+
+**Non-goals**: Deep graphs, champion matrices, filters.
 
 ### Champion Select (`/app/champion-select`)
 **Role**: Real-time decision support during pick/ban phase.
@@ -235,7 +275,9 @@ Components: `ChampionMatchupsTable`, `OpponentSearchBar`, `MainChampionCard`
 ### Matches (`/app/matches`)
 **Role**: Review what just happened. Match list with quick summaries.
 
-Components: `MatchList` → `MatchRow` items → click expands `MatchDetails` with:
+Every match has its own address, `/app/matches/:matchId`, so it can be shared and the back button works. Each `MatchRow` is one link to it. On desktop the match opens beside the list, which stays in place; below 900px it opens as its own page with a back link. Opening a match never animates.
+
+Components: `MatchList` → `MatchRow` items → `MatchDetails` with:
 - `MatchHeader` — champion, result, KDA, timestamp, queue
 - `MatchHighlights` — 4 key stat tiles (`HighlightTile`)
 - `MatchNarrative` — AI-generated match story
@@ -251,12 +293,14 @@ Components: `MatchList` → `MatchRow` items → click expands `MatchDetails` wi
 
 Zone layout via `AnalysisLayout`:
 - Zone 1: `BaseQueueToggle` (centered) + `BaseTimeRangeSelect` (right-aligned)
-- Zone 2: `SummaryStatsCard` — games played, win rate, average KDA (with overall comparisons)
-- Zone 3: `TrendChartCard` — Winrate trend (rolling 20-game)
+- Zone 2: `SummaryStatsCard` — matches played, win rate, average KDA (with overall comparisons)
+- Zone 3: `TrendChartCard` — Win rate trend (rolling 20-match)
 
-Charts default to last 20 games. Expand button switches to full season in-place (no modal).
+Time ranges count matches, never days: each chart card has a segmented control (Last 20 / Last 50 / Season), default Last 20, switching in place (no modal).
 
 Data sources: `getSoloDashboard()`, `getWinrateTrend()` from `authApi`
+
+> **Advanced** (planned, not implemented): Team and Goals below will be combined into one page called Advanced (working name).
 
 ### Team (`/app/team`) — Pro tier
 **Role**: Team performance analysis.
@@ -276,6 +320,8 @@ Components: `DeleteAccountModal`, `LinkRiotAccountModal`
 
 ### Auth (`/auth`)
 **Role**: Login/register/forgot-password toggle. `?mode=login|register&redirect={path}`
+
+Onboarding order: create an account with email and password → verify the email (6-digit code) → link a Riot ID ("Link Riot account") → first sync fills the Overview. Signing in with a Riot account is planned and will replace the first two steps.
 
 Forgot-password is a third form state: email input → submit → redirect to reset page. "Forgot password?" link visible in login mode. Back link returns to login.
 
@@ -526,7 +572,7 @@ Slots: `#context-bar`, `#summary`, `#trend-charts`
 Located in `client/src/components/`.
 
 ### `AppSidebar`
-Vertical navigation sidebar. Reads collapsed state from `uiStore`. Shows lock icons for Pro-tier pages (Duo, Team) when user is free tier.
+*(Legacy — replaced by the top header, Section 3.)* Vertical navigation sidebar. Reads collapsed state from `uiStore`. Shows lock icons for Pro-tier pages (Duo, Team) when user is free tier.
 
 ### `AppHeader`
 Header component (used within app layout context).
@@ -587,7 +633,7 @@ Located in `client/src/stores/`. Using **Pinia**.
 - **Computed**: `isAuthenticated`, `isVerified`, `isInitialized`, `username`, `email`, `tier`, `primaryRiotAccount`
 
 ### `uiStore`
-- **State**: sidebar collapsed (persisted to `localStorage`), mobile breakpoint (1024px)
+- **State** *(legacy, goes with the sidebar)*: sidebar collapsed (persisted to `localStorage`), mobile breakpoint (1024px)
 - **Computed**: `sidebarWidth` — auto-collapse on small screens
 
 ---
@@ -715,12 +761,12 @@ These prevent common UX errors in stressful gaming contexts:
 1. Champion Select reachable in one click from any page
 2. Overview never blocks user flow
 3. No duplicated deep analysis across pages
-4. Context (Solo/Team) always visible via separate sidebar entries *(planned — currently gated by feature flags; see Section 3 implementation note)*
-5. Team shows lock icon for free users (not 403 or blank wall) *(planned — not yet implemented)*
+4. Context (Solo/Team) always visible via separate navigation pills *(Team moves into Advanced, which is not built yet; see Section 3)*
+5. Team is never a 403 or blank wall for free users *(how it is marked in the navigation is decided when Pro is implemented)*
 6. Navigation hierarchy remains stable across all pages
 7. Every chart/stat must have actionable meaning
 8. Single-match insights always framed as trends
-9. Premium features appear early in the journey
+9. Premium features appear early in the journey *(deferred: free version first)*
 10. Champion Select is scannable and requires no learning
 
 ---

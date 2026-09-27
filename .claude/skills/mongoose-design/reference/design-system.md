@@ -33,23 +33,25 @@ This is the design language of Mongoose.gg, a League of Legends improvement coac
 
 These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, Blitz, Porofessor). They share them; weaker sites (LeagueSpy, LoLalytics, DeepLoL) break them.
 
-1. **The first screen does the job.** The main control on the first screen is the product's core action, not a sign-up form. Public pages lead with a Riot ID search that shows a real result without an account; in the app, the first screen is the player's own data. Never put a login or join form in front of the first result.
+1. **The landing page sells; the app does the job.** The public landing page is a marketing page: one headline, one main button ("Create free account"), a product preview and the features the player gets, each tagged with the page it lives on. Personal results need an account, because we store the player's matches: sign up with email, then link the Riot ID (Riot sign-in comes later). So never promise a result before sign-up, and never put a sign-up form on the landing page itself: the button leads to it. In the app, the first screen is the player's own data.
 2. **Placeholders teach the exact input.** Show the format and pre-select the region: `Game name + #EUW`. Offer the shortcut players use when there is one ("Paste your lobby chat to scout all five").
 3. **Headlines name the player's outcome in the player's nouns.** Use League words (LP, climb, match history, champ select, builds, counters), and "you/your" in every headline: "Climb faster with coaching from your own match history". Never define the product by what it is not ("Not just another builds app"), and never lead with a category label ("League of Legends Analytics").
 4. **Headline short, subline concrete.** Headline at most 10 words. The line under it lists two to four concrete things the player gets: "Champion picks for your pool, a readiness score before you queue, and one fix after every match."
-5. **Buttons are a verb plus the player's object, three words at most.** "Search", "Link Riot account", "See today's matches", "Get the app". Say "free" when it is free ("Start free"). Never "Start now", "Learn more", "Submit" or "Click here".
-6. **Proof sits next to the main button, as real numbers.** Players, matches analysed or downloads, rounded down with a unit and "+": "3.2M+ matches analysed". Only counts the backend really reports; when the count is small, show a real example result instead of a small number.
+5. **Buttons are a verb plus the player's object, three words at most.** "Search", "Link Riot account", "See today's matches", "Get the app". Say "free" when it is free ("Create free account"). Never "Start now", "Learn more", "Submit" or "Click here".
+6. **Proof sits next to the main button, as real numbers.** Players, matches analysed or downloads, rounded down with a unit and "+": "3.2M+ matches analysed". Only counts the backend really reports; when the count is small, leave it out and let the product preview carry the page.
 7. **Show the rules are respected.** One short line near the main button says the product is safe to use, only if it is true: "Built on Riot's official API". Never claim Riot approval or endorsement without it in writing.
 8. **Show the patch.** Any meta, tier or champion stat claim carries the current patch next to it: "Patch 16.19". Stale-looking data loses trust faster than missing data.
-9. **Real data on the first screen, not pictures of it.** Show a real result card (a score card or champion card from a public example account, marked "Example"), not an illustration or a screenshot mock.
+9. **Show the product, not pictures of it.** Previews on public pages are our real components filled with data from a real example account and labelled "Example" (a score card, a champion pick, a match with its fix). No illustrations, mascots or screenshot mocks that go stale.
 10. **Make it personal.** Stats sites say "stats"; coaching sites say "your strengths and weaknesses". Every first-screen promise is about the player's own matches, never about the meta in general.
+11. **Say what happens after sign-up.** The landing page explains the path in three steps: create an account with your email, link your Riot ID, and we sync your recent matches (a few minutes) and your Overview fills in. Mention that Riot sign-in is coming only once it is planned for real.
 
 ## Charts
 
 - Use a chart only when the shape of the data is the point (a trend, a comparison). A list or table is better for looking things up.
 - The chart title says the takeaway, not the metric: "Up from 61 to 74 in 30 days", with the metric as the subtitle.
-- One or two series at most. More detail comes on demand (a segmented 7D / 30D / Split control, a tap for a single match), never all at once.
+- One or two series at most. More detail comes on demand (a segmented Last 20 / Last 50 / Season control, a tap for a single match), never all at once.
 - Lines use `primary` 2.5–3px with a highlighted last point; grid lines `divider`; axis labels `ink-faint` at 12px; no fills, no 3D, no legends when a label next to the line will do.
+- Time ranges count matches, never days: "Last 20 matches", "Last 50", "Season". Players think in matches and sessions, and a quiet week should not empty a chart.
 - Every chart has a text alternative: an `aria-label` that states the range and the change ("Performance score, 30 days, from 61 to 74"), and the numbers are available as a table or list for screen readers.
 
 ## Colour
@@ -74,6 +76,7 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 
 - Desktop page gutter `space-14` (56px), phones 16px. Content max width 1328px.
 - Cards pad `space-7` (28px); insight cards pad `space-6`. Grids gap `space-5` (20px). Page sections stack with `space-7`.
+- Navigation is one 80px top header on every app page, never a sidebar: logo left, PillNav, the player's avatar right (it opens Settings, Feedback and Log out). On phones the pills move to a bottom tab bar (see PillNav).
 - Standard Overview order: nav → champion hero → three score rings → your champions → readiness + today's matches → insights.
 - Grids: 3 equal columns for score rings and insights; champion cards are 3 equal columns plus a 300px "Also played" list; readiness is a fixed 420px column beside a flexible list.
 - Below 900px everything stacks to one column; the hero art moves behind the text with a full-width scrim.
@@ -103,7 +106,7 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 
 - Show something at once: the page frame and Skeletons render immediately, and each card fills in as its data arrives. Never block the whole page on one request.
 - Syncing never blocks the app. Show sync as determinate progress when the count is known ("Syncing 12 of 40 matches") with SyncProgress, and let people keep using what has already loaded. On a long first sync, use the wait to explain what each score means.
-- Teach in context: a first-time tip sits next to the thing it explains (one sentence and "Got it"), shown once and findable again from the card's info button. No multi-screen tutorials; linking the Riot account is the only required step.
+- Teach in context: a first-time tip sits next to the thing it explains (one sentence and "Got it"), shown once and findable again from the card's info button. No multi-screen tutorials; the only required steps are creating an account with email and linking the Riot ID (Riot sign-in will replace both later).
 - Every data card has four states: Skeleton while loading, EmptyState when there is nothing yet, an inline error line with a retry button when a request fails, and the content.
 - Every interactive element shows `shadow-focus` on keyboard focus.
 - Touch targets are at least 44px tall (buttons 48px, nav pills 36px inside a 44px track).
@@ -128,7 +131,7 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 
 | Group | Icon (Lucide name) and meaning |
 |---|---|
-| Navigation | `house` Overview / Today, `swords` Matches, `shield` Champions, `chart-line` Solo stats and trends, `users` Team, `target` Goals, `settings` Settings, `message-square` Feedback, `log-out` Log out |
+| Navigation | `house` Overview, `swords` Matches, `shield` Champion Select, `chart-line` Solo (trends), `users` Advanced (Team and Goals), `settings` Settings, `message-square` Feedback, `log-out` Log out |
 | Match stats | `sword` Kills, `skull` Deaths, `handshake` Assists, `wheat` CS / farming, `coins` Gold, `zap` Damage, `eye` Vision and wards, `castle` Objectives and towers, `crown` Rank and LP, `trophy` Win, `flame` Win streak, `clock` Match length, time of day, `moon` Late-night matches |
 | Insights | `trending-up` Strength, rising score, `trending-down` Falling score, `repeat` Pattern, `activity` Trend |
 | Actions and status | `search` Search, `refresh-cw` Sync matches, `filter` Filter, `calendar` Date range, `copy` Copy, `link` Link Riot account, `external-link` Opens outside the app, `arrow-right` Go to, `chevron-right` Open detail, `chevron-down` Expand, dropdown, `check` Done, selected, `x` Close, remove, `info` More information, `triangle-alert` Error or warning, `lock` Pro feature, `user` Profile |

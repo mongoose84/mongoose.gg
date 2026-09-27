@@ -57,7 +57,7 @@ One match in a list: champion portrait, meta, KDA, result and LP change.
 
 - Provide: champion icon, champion name, a meta line (queue · length · time ago), K / D / A, result (Victory / Defeat) and the signed LP change.
 - Portrait border and result/LP text: win → `primary` / `positive-text`, loss → `warn` / `warn-text` (`mp-portrait--loss`, `mp-down`).
-- The whole row is one `<a href>` to the match. Rows are separated by `divider` hairlines.
+- The whole row is one `<a href>` to the match (`/app/matches/<matchId>`), so a match can be shared and the back button works. On desktop the match opens beside the list, which stays in place; below 900px it opens as its own page with a back link. Opening a match never animates. Rows are separated by `divider` hairlines.
 
 ## InsightCard
 
@@ -109,13 +109,15 @@ Pill-shaped action. Use `mp-btn--primary` for the one main action in a view ("Se
 Top-level navigation as pills in a `surface-raised` track.
 
 - Provide: `<nav class="mp-nav" aria-label="Main">` with `<a href>` children; mark the current page with `aria-current="page"`.
-- Five items at most: Today, Matches, Champions, Goals, Team.
-- Sits in an 80px header with the logo left and the player's champion avatar right.
-- Don't: icons inside pills, badges on pills, two pill navs on one page.
+- Items, in order: Overview, Champion Select, Matches, Solo, and Advanced (Team and Goals combined, when it ships). Five at most.
+- Sits in an 80px header with the logo left and the player's champion avatar right; the avatar opens a menu with Settings, Feedback and Log out. This header is the only app navigation: no sidebar.
+- Phones (below 900px): the header shrinks to 56px (logo and avatar) and the items move to a fixed bottom tab bar, 64px plus the safe-area inset, `surface-raised` with a `divider` hairline on top. Each tab is an icon above a short label ("Champ Select" on phones); the active tab uses `positive-text` and `aria-current="page"`. Class: `.mp-tabbar` on the same `<nav aria-label="Main">`. This is the one place icons appear in the navigation.
+- How Pro-only items are marked is decided when Pro is built (never a badge on a pill).
+- Don't: icons inside desktop pills, badges on pills, two pill navs on one page.
 
 ## SegmentedControl
 
-Switches the time range or view of one card (7D / 30D / Split).
+Switches the time range or view of one card (Last 20 / Last 50 / Season). Ranges count matches, not days.
 
 - Provide: `<div class="mp-seg" role="group" aria-label="…">` with `<button type="button">` children; the active one has `aria-pressed="true"`.
 - 2–4 short options. Sits top-right of the card it controls.
