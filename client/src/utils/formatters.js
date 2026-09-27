@@ -135,6 +135,20 @@ export function formatNumber(num) {
 }
 
 /**
+ * Format a public proof count, rounded down with a unit and "+"
+ * (design system: "3.2M+ matches analysed"). Never rounds up.
+ * @param {number} num - The count
+ * @returns {string} e.g. 950 -> "950+", 12_345 -> "12K+", 3_249_000 -> "3.2M+"
+ */
+export function formatProofCount(num) {
+  if (typeof num !== 'number' || !Number.isFinite(num) || num < 0) return ''
+  const floorTo = (value, decimals) => Math.floor(value * 10 ** decimals) / 10 ** decimals
+  if (num >= 1_000_000) return `${floorTo(num / 1_000_000, 1)}M+`
+  if (num >= 1_000) return `${Math.floor(num / 1_000)}K+`
+  return `${Math.floor(num)}+`
+}
+
+/**
  * Format a win rate percentage
  * @param {number} value - Win rate value (0-100)
  * @returns {string} Formatted percentage string

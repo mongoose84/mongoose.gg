@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-transparent pt-16">
+  <div class="min-h-screen bg-transparent pt-14 desk:pt-20">
     <NavBar />
 
     <div class="max-w-[800px] mx-auto py-2xl px-xl">

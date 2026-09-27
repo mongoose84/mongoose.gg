@@ -106,7 +106,7 @@ All visual rules (colour, type, spacing, radius, depth, motion, iconography, cha
 
 **Code mapping**: tokens live as CSS variables in `client/src/style.css` (existing `--color-*` names mapped to design-system values) and are exposed to Tailwind in `client/tailwind.config.js`. Use Tailwind for layout and sizing, CSS variables for themed values. Never hard-code a colour, radius, shadow or duration that is not a design-system token.
 
-**Migration status**: the Vue app is being migrated to the design system screen by screen. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
+**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in `client/tailwind.config.js`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password) and the shared `BaseButton` / `BaseInput` are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
 
 ---
 
@@ -220,9 +220,9 @@ All routes defined in `client/src/router/index.js`.
 - Prop: `pageTitle`
 
 ### `NavBar.vue` (public pages)
-- Fixed top header for public pages
+- Fixed top header for public pages: 80px on desktop, 56px below 900px (pages offset their content by the same height)
 - Logo, "Features" and "How it works" anchors, "Log in", and "Create free account" as the one filled button (no Pricing while we focus on the free version)
-- Mobile: hamburger toggle with slide-down animation
+- Below 900px: logo, "Log in" and a menu button (Lucide `menu` / `x`); the menu slides down with the section links and "Create free account"
 - Logo links to `/app/user` if authenticated, `/` if not
 
 ---
@@ -236,9 +236,10 @@ Top to bottom:
 1. **Header** (`NavBar`, Section 5).
 2. **Hero**: one headline about the player's outcome and a concrete subline (design system headline rules), "Create free account" as the main button, "Log in" beside it, and one trust line ("Free · Built on Riot's official API"). Visual: a product preview built from our real components (champion hero, score rings, an insight) with data from a real example account, labelled "Example". No screenshots or illustrations.
 3. **Features**: a grid of cards, one per thing you get, each tagged with the page it lives on (Overview, Champion Select, Matches, Solo) and showing a small real-component example.
-4. **How it works**: three steps: create an account with your email, link your Riot ID, we sync your recent matches (a few minutes) and your Overview fills in. Mention Riot sign-in only once it is planned for real.
-5. **Proof**: matches analysed and players from `/public/stats`, shown only once the numbers are large enough to help.
-6. **Footer**: legal links, contact, "Not affiliated with Riot Games". No pricing section for now.
+4. **Your champion pool**: three champion cards (centred art, strength tag, win rate) from the example account, showing that every champion gets its own scores, matchups and fixes.
+5. **How it works**: three steps: create an account with your email, link your Riot ID, we sync your recent matches (a few minutes) and your Overview fills in. Mention Riot sign-in only once it is planned for real.
+6. **Proof**: the matches-analysed count from `/public/stats` joins the hero's trust line, next to the main button, once it reaches 10,000 (rounded down: "3.2M+ matches analysed"). Below that it is left out.
+7. **Footer**: legal links, contact, "Not affiliated with Riot Games". No pricing section for now.
 
 ### Overview (`/app/overview`)
 **Role**: Today at a glance. One summary sentence the player can read in 5 seconds, then the evidence below it.

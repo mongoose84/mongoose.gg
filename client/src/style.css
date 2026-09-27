@@ -1,20 +1,48 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+/* Mongoose.gg design system fonts (Fontshare, free licence) */
+@font-face { font-family: 'Clash Display'; src: url('/fonts/ClashDisplay-Semibold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Clash Display'; src: url('/fonts/ClashDisplay-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Satoshi'; src: url('/fonts/Satoshi-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Satoshi'; src: url('/fonts/Satoshi-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Satoshi'; src: url('/fonts/Satoshi-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Vercel Developer Theme - Technical cutting-edge */
+/* Mongoose.gg design system tokens (.claude/skills/mongoose-design/reference/tokens.json) */
 :root {
   /* Colors */
-  --color-primary: #6d28d9;
-  --color-primary-soft: rgba(109, 40, 217, 0.1);
-  --color-bg: #000000;
-  --color-surface: rgba(255, 255, 255, 0.03);
-  --color-elevated: rgba(255, 255, 255, 0.05);
-  --color-text: #ffffff;
-  --color-text-secondary: #888888;
-  --color-border: rgba(109, 40, 217, 0.15);
+  --color-primary: #6d28d9; /* primary-strong */
+  --color-primary-soft: rgba(168, 85, 247, 0.2);
+  --color-bg: #0a0810;
+  --color-surface: #120f19;
+  --color-elevated: #15111d; /* surface-raised */
+  --color-text: #f1eef7; /* ink */
+  --color-text-secondary: #a39cb3; /* ink-muted */
+  --color-border: #1f1929; /* divider */
+
+  /* Design-system tokens with no older app equivalent */
+  --color-surface-selected: #2a1f3d;
+  --color-surface-selected-hover: #33264a;
+  --color-surface-highlight: #1a1328;
+  --color-border-highlight: #3b2a5c;
+  --color-track: #231c30;
+  --color-track-strong: #2e2440;
+  --color-ink-soft: #cfc9da;
+  --color-ink-faint: #8a839a;
+  --color-positive-text: #c4b5fd;
+  --color-positive-text-strong: #e9d5ff;
+  --color-warn: #fb923c;
+  --color-warn-text: #fdba74;
+  --color-warn-soft: rgba(251, 146, 60, 0.14);
+  --color-glass: rgba(255, 255, 255, 0.08);
+  --color-focus-ring: #c4b5fd;
+  --color-on-primary: #ffffff;
+  --shadow-focus: 0 0 0 2px #0a0810, 0 0 0 4px #c4b5fd;
+
+  /* Fonts */
+  --font-display: 'Clash Display', 'Satoshi', system-ui, sans-serif;
+  --font-body: 'Satoshi', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Semantic Colors */
   --color-success: #22c55e;
@@ -41,12 +69,12 @@
   --color-primary-accent: #a855f7;
 
   /* Win Rate Gradient Colors (for dynamic coloring based on performance) */
-  --color-winrate-terrible: #ef4444;
-  --color-winrate-bad: #f97316;
+  --color-winrate-terrible: #f97316;
+  --color-winrate-bad: #fdba74;
   --color-winrate-poor: #fdba74;
-  --color-winrate-average: #eab308;
-  --color-winrate-good: #84cc16;
-  --color-winrate-great: #22c55e;
+  --color-winrate-average: #cfc9da;
+  --color-winrate-good: #c4b5fd;
+  --color-winrate-great: #a855f7;
 
   /* Rank Tier Colors */
   --color-rank-iron: #7d7d7d;
@@ -63,9 +91,9 @@
   /* Heatmap Intensity Colors (match activity calendar) */
   --color-heatmap-0: rgba(255, 255, 255, 0.05);
   --color-heatmap-0-border: rgba(255, 255, 255, 0.1);
-  --color-heatmap-1: rgba(109, 40, 217, 0.3);
-  --color-heatmap-2: rgba(109, 40, 217, 0.6);
-  --color-heatmap-3: #6d28d9;
+  --color-heatmap-1: rgba(168, 85, 247, 0.3);
+  --color-heatmap-2: rgba(168, 85, 247, 0.6);
+  --color-heatmap-3: #a855f7;
   
   /* Typography */
   --font-size-xs: 0.75rem;
@@ -112,7 +140,7 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-body);
   color: var(--color-text);
   line-height: 1.6;
   font-weight: 500;
@@ -120,19 +148,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   position: relative;
   min-height: 100vh;
-  /* Global background image from public/ */
-  background: url('/hero-bg.svg') center/cover no-repeat fixed;
-}
-
-/* Removed global background overlay to start from a clean slate */
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.30), rgba(0, 0, 0, 0.30));
+  background: var(--color-bg);
 }
 
 #app {
@@ -161,6 +177,19 @@ body::before {
 }
 
 /* Accessibility utility - visually hidden but accessible to screen readers */
+/* High contrast theme (prefers-contrast: more) */
+@media (prefers-contrast: more) {
+  :root {
+    --color-border-highlight: #7c5cc4;
+    --color-border: #7a6f90;
+    --color-track: #3d3350;
+    --color-track-strong: #4a3f5e;
+    --color-text-secondary: #cfc9da;
+    --color-ink-faint: #bdb6ca;
+    --color-primary-accent: #c084fc;
+  }
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -171,6 +200,57 @@ body::before {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Design-system component classes (reference/components.css) */
+@layer components {
+  .mp-focusable:focus-visible,
+  .mp-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+
+  .mp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 3rem;
+    padding: 0 1.5rem;
+    border: 0;
+    border-radius: 999px;
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 150ms ease-out, color 150ms ease-out;
+  }
+  .mp-btn--primary { background: var(--color-primary); color: var(--color-on-primary); }
+  .mp-btn--primary:hover { background: var(--color-primary-light); }
+  .mp-btn--secondary { background: var(--color-surface-selected); color: var(--color-text); }
+  .mp-btn--secondary:hover { background: var(--color-surface-selected-hover); }
+  .mp-btn--ghost { background: transparent; color: var(--color-positive-text); padding: 0 0.75rem; }
+  .mp-btn--ghost:hover { color: var(--color-positive-text-strong); }
+  .mp-btn--sm { height: 2.75rem; padding: 0 1.25rem; font-size: 0.875rem; }
+
+  /* Section entrance: fades in from 8px below, once (see useRevealOnView) */
+  .mp-reveal {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
+  }
+  .mp-reveal--visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-btn { transition: none; }
+  .mp-reveal { opacity: 1; transform: none; transition: none; }
 }
 
 /* Win rate color classes - used for dynamic coloring based on performance */

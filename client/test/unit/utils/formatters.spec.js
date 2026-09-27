@@ -6,6 +6,7 @@ import {
   formatRelativeTime,
   formatDate,
   formatNumber,
+  formatProofCount,
   formatWinRate,
   formatPercent,
   formatLpPerGame,
@@ -387,5 +388,25 @@ describe('formatters', () => {
       expect(calculateKdaRatio(1, 1, 1)).toBe(2);
     });
   });
-});
 
+  describe('formatProofCount', () => {
+    it('rounds millions down to one decimal', () => {
+      expect(formatProofCount(3_249_000)).toBe('3.2M+');
+      expect(formatProofCount(1_000_000)).toBe('1M+');
+    });
+
+    it('rounds thousands down', () => {
+      expect(formatProofCount(12_999)).toBe('12K+');
+    });
+
+    it('keeps small counts as they are', () => {
+      expect(formatProofCount(950)).toBe('950+');
+    });
+
+    it('returns empty string for invalid input', () => {
+      expect(formatProofCount(null)).toBe('');
+      expect(formatProofCount(-1)).toBe('');
+      expect(formatProofCount(Number.NaN)).toBe('');
+    });
+  });
+});

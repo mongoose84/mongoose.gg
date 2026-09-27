@@ -122,3 +122,27 @@
 /* Icon: Lucide, inline SVG, takes the text colour */
 .mp-icon { display: inline-block; flex-shrink: 0; vertical-align: middle; color: inherit; }
 .mp-chip .mp-icon { margin-left: -2px; }
+
+/* Text field */
+.mp-field { display: flex; flex-direction: column; gap: var(--space-2); }
+.mp-field__label { font: 500 14px/1.5 var(--font-body); color: var(--ink-soft); }
+.mp-field__input { box-sizing: border-box; width: 100%; height: 48px; padding: 0 20px; border: 1px solid var(--divider); border-radius: var(--radius-pill); background: var(--bg); color: var(--ink); font: 400 16px/1 var(--font-body); }
+.mp-field__input::placeholder { color: var(--ink-faint); }
+.mp-field__input:hover:not(:disabled) { border-color: var(--border-highlight); }
+.mp-field__input:focus-visible { outline: none; border-color: var(--primary); box-shadow: var(--shadow-focus); }
+.mp-field__input:disabled { opacity: 0.45; cursor: not-allowed; }
+.mp-field__hint { font: 400 13px/1.4 var(--font-body); color: var(--ink-muted); }
+.mp-field__error { font: 400 13px/1.4 var(--font-body); color: var(--error); }
+.mp-field--error .mp-field__input { border-color: var(--error); }
+
+/* Message box */
+.mp-message { display: flex; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid; font: 400 14px/1.5 var(--font-body); }
+.mp-message__body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+.mp-message__body p { margin: 0; }
+.mp-message--error { background: var(--error-soft); border-color: var(--error-border); color: var(--ink); }
+.mp-message--error .mp-icon { color: var(--error); }
+.mp-message--notice { background: var(--surface-raised); border-color: var(--divider); color: var(--ink-soft); }
+.mp-message--notice .mp-icon { color: var(--ink-muted); }
+.mp-message__action { padding: 0; border: 0; background: transparent; color: var(--positive-text); font: 700 14px/1.5 var(--font-body); cursor: pointer; border-radius: 4px; }
+.mp-message__action:hover { color: var(--positive-text-strong); }
+.mp-message__action:focus-visible { outline: none; box-shadow: var(--shadow-focus); }

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-transparent pt-16">
+  <div class="min-h-screen bg-transparent pt-14 desk:pt-20">
     <NavBar />
 
     <div class="max-w-[800px] mx-auto py-2xl px-xl">
@@ -69,8 +69,8 @@
             When you visit Mongoose.gg, we ask for your consent about cookies:
           </p>
           <ul class="list-disc ml-xl text-text-secondary">
-            <li class="text-base leading-relaxed mb-xs"><strong>Accept Cookies:</strong> You allow us to set the authentication cookie. Login and analytics features will be available.</li>
-            <li class="text-base leading-relaxed mb-xs"><strong>Reject Cookies:</strong> No cookies will be set. You will not be able to log in or use authenticated features.</li>
+            <li class="text-base leading-relaxed mb-xs"><strong>Accept cookies:</strong> You allow us to set the authentication cookie. Login and analytics features will be available.</li>
+            <li class="text-base leading-relaxed mb-xs"><strong>Reject cookies:</strong> No cookies will be set. You will not be able to log in or use authenticated features.</li>
           </ul>
           <p class="text-base text-text-secondary leading-relaxed mb-md mt-md">
             Your consent preference is stored for 6 months. You can change your preference at any time by clicking

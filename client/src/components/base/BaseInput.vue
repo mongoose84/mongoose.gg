@@ -149,21 +149,22 @@ defineExpose({
 </script>
 
 <style scoped>
+/* Mongoose.gg design system text field: pill, bg ground, divider border, shadow-focus */
 .input-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 0.5rem;
 }
 
 .input-label {
-  font-size: var(--font-size-sm);
+  font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text);
-  letter-spacing: var(--letter-spacing);
+  line-height: 1.5;
+  color: var(--color-ink-soft);
 }
 
 .input-required {
-  color: var(--color-error);
+  color: var(--color-text-secondary);
   margin-left: 2px;
 }
 
@@ -176,27 +177,35 @@ defineExpose({
 
 .input-field {
   width: 100%;
-  padding: var(--spacing-md);
+  height: 3rem;
+  box-sizing: border-box;
+  padding: 0 1.25rem;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
   color: var(--color-text);
-  transition: all 0.2s ease;
+  transition: border-color 150ms ease-out;
 }
 
 .input-field::placeholder {
-  color: var(--color-text-secondary);
+  color: var(--color-ink-faint);
 }
 
-.input-field:focus {
+.input-field:hover:not(:disabled) {
+  border-color: var(--color-border-highlight);
+}
+
+.input-field:focus-visible {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  border-color: var(--color-primary-accent);
+  box-shadow: var(--shadow-focus);
 }
 
 .input-field:disabled {
-  opacity: 0.6;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -211,38 +220,41 @@ defineExpose({
 }
 
 .input-icon--left {
-  left: var(--spacing-md);
+  left: 1.25rem;
 }
 
 .input-icon--right {
-  right: var(--spacing-md);
+  right: 1.25rem;
 }
 
 .input-field.has-icon-left {
-  padding-left: calc(var(--spacing-md) * 2 + 1.25rem);
+  padding-left: 3.25rem;
 }
 
 .input-field.has-icon-right {
-  padding-right: calc(var(--spacing-md) * 2 + 1.25rem);
+  padding-right: 3.25rem;
 }
 
-/* Error state */
+/* Error state (form validation is a system state: error colour) */
 .input-container--error .input-field {
   border-color: var(--color-error);
 }
 
-.input-container--error .input-field:focus {
-  box-shadow: 0 0 0 3px var(--color-error-soft);
-}
-
 .input-error {
-  font-size: var(--font-size-xs);
+  font-size: 0.8125rem;
+  line-height: 1.4;
   color: var(--color-error);
 }
 
 .input-hint {
-  font-size: var(--font-size-xs);
+  font-size: 0.8125rem;
+  line-height: 1.4;
   color: var(--color-text-secondary);
 }
-</style>
 
+@media (prefers-reduced-motion: reduce) {
+  .input-field {
+    transition: none;
+  }
+}
+</style>

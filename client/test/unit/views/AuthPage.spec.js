@@ -85,7 +85,7 @@ describe('AuthPage.vue', () => {
 
   it('displays the welcome message', () => {
     const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Welcome to Mongoose.gg');
+    expect(wrapper.text()).toContain('Log in to Mongoose.gg');
   });
 
   it('has email and password inputs', () => {
@@ -96,31 +96,33 @@ describe('AuthPage.vue', () => {
 
   it('has a toggle between login and signup', () => {
     const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Sign in');
+    expect(wrapper.find('[data-testid="auth-toggle"]').text()).toBe('Create free account');
   });
 
   it('has a submit button', () => {
     const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Sign In');
+    const submit = wrapper.find('[data-testid="auth-submit"]');
+    expect(submit.attributes('type')).toBe('submit');
+    expect(submit.text()).toBe('Log in');
   });
 
   it('displays login mode by default', () => {
     const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Sign in to your account');
+    expect(wrapper.text()).toContain('Log in to Mongoose.gg');
   });
 
   it('toggles between login and signup modes', async () => {
     const wrapper = createWrapper();
     
     // Initially in login mode
-    expect(wrapper.text()).toContain('Sign in to your account');
+    expect(wrapper.text()).toContain('Log in to Mongoose.gg');
     
     // Click toggle button
     const toggleBtn = wrapper.find('[data-testid="auth-toggle"]');
     await toggleBtn.trigger('click');
 
     // Should now show signup text
-    expect(wrapper.text()).toContain('Create your account');
+    expect(wrapper.text()).toContain('Create your free account');
   });
 
   it('shows username field in signup mode', async () => {
@@ -161,18 +163,17 @@ describe('AuthPage.vue', () => {
 
   it('submit button text changes with mode', async () => {
     const wrapper = createWrapper();
+    const submitText = () => wrapper.find('[data-testid="auth-submit"]').text();
 
     // Login mode
-    expect(wrapper.text()).toContain('Sign In');
-    expect(wrapper.text()).not.toContain('Create Account');
+    expect(submitText()).toBe('Log in');
 
     // Toggle to signup
     const toggleBtn = wrapper.find('[data-testid="auth-toggle"]');
     await toggleBtn.trigger('click');
-    
-    // Should show Create Account
-    expect(wrapper.text()).toContain('Create Account');
-    expect(wrapper.text()).not.toContain('Sign In');
+
+    expect(submitText()).toBe('Create free account');
+    expect(wrapper.find('[data-testid="auth-toggle"]').text()).toBe('Log in');
   });
 
   it('form inputs have proper attributes', () => {
@@ -210,8 +211,8 @@ describe('AuthPage.vue', () => {
 
       await switchToForgotPassword(wrapper);
 
-      expect(wrapper.text()).toContain('Forgot Your Password?');
-      expect(wrapper.text()).toContain('Enter your email to receive a reset code');
+      expect(wrapper.text()).toContain('Reset your password');
+      expect(wrapper.text()).toContain("Enter your email and we'll send you a reset code.");
       expect(wrapper.find('[data-testid="forgot-form"]').exists()).toBe(true);
     });
 
@@ -239,7 +240,7 @@ describe('AuthPage.vue', () => {
 
       await switchToForgotPassword(wrapper);
 
-      expect(wrapper.text()).toContain('Send Reset Code');
+      expect(wrapper.text()).toContain('Send reset code');
     });
 
     it('shows "Back to Sign In" button', async () => {
@@ -247,7 +248,7 @@ describe('AuthPage.vue', () => {
 
       await switchToForgotPassword(wrapper);
 
-      const backBtn = wrapper.findAll('button').find(b => b.text().includes('Back to Sign In'));
+      const backBtn = wrapper.findAll('button').find(b => b.text().includes('Back to log in'));
       expect(backBtn).toBeTruthy();
     });
 
@@ -257,12 +258,12 @@ describe('AuthPage.vue', () => {
       await switchToForgotPassword(wrapper);
       expect(wrapper.find('[data-testid="forgot-form"]').exists()).toBe(true);
 
-      const backBtn = wrapper.findAll('button').find(b => b.text().includes('Back to Sign In'));
+      const backBtn = wrapper.findAll('button').find(b => b.text().includes('Back to log in'));
       await backBtn.trigger('click');
 
       expect(wrapper.find('[data-testid="forgot-form"]').exists()).toBe(false);
       expect(wrapper.find('[data-testid="auth-form"]').exists()).toBe(true);
-      expect(wrapper.text()).toContain('Sign in to your account');
+      expect(wrapper.text()).toContain('Log in to Mongoose.gg');
     });
 
     it('calls forgotPassword API on form submit', async () => {
@@ -355,7 +356,7 @@ describe('AuthPage.vue', () => {
       expect(wrapper.text()).toContain('Some error');
 
       // Go back to login
-      const backBtn = wrapper.findAll('button').find(b => b.text().includes('Back to Sign In'));
+      const backBtn = wrapper.findAll('button').find(b => b.text().includes('Back to log in'));
       await backBtn.trigger('click');
 
       // Switch back to forgot — error should be cleared

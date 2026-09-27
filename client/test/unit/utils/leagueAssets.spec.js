@@ -4,6 +4,7 @@ import {
   normalizeChampionName,
   getChampionIconUrl,
   getChampionSplashUrl,
+  getChampionCenteredUrl,
   getRoleIconUrl,
   getProfileIconUrl,
   getItemIconUrl,
@@ -68,6 +69,17 @@ describe('leagueAssets', () => {
     it('returns empty string for falsy input', () => {
       expect(getChampionSplashUrl('')).toBe('')
       expect(getChampionSplashUrl(null)).toBe('')
+    })
+  })
+
+  describe('getChampionCenteredUrl', () => {
+    it('returns a centred art URL for a valid champion', () => {
+      expect(getChampionCenteredUrl("Kai'Sa")).toBe('https://ddragon.leagueoflegends.com/cdn/img/champion/centered/KaiSa_0.jpg')
+    })
+
+    it('returns empty string for falsy input', () => {
+      expect(getChampionCenteredUrl('')).toBe('')
+      expect(getChampionCenteredUrl(null)).toBe('')
     })
   })
 

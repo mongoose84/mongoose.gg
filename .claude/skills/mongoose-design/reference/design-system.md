@@ -64,6 +64,7 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 - Ring colour rule: score ≥ 70 → `primary`, below 70 → `warn`.
 - Win-rate colour: `winrate-terrible` < 40%, `winrate-bad` 40–47%, `winrate-average` 48–52%, `winrate-good` 53–59%, `winrate-great` 60%+.
 - Rank badges keep their tier colours (`rank-iron` … `rank-challenger`); they are the only other hues allowed, and only on rank marks.
+- `error`, `error-soft` and `error-border` are for system states only: form validation, failed requests and destructive buttons (TextField, MessageBox). A lost match or a weak stat is never an error; it uses `warn`.
 
 ## Type
 
@@ -134,7 +135,7 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 | Navigation | `house` Overview, `swords` Matches, `shield` Champion Select, `chart-line` Solo (trends), `users` Advanced (Team and Goals), `settings` Settings, `message-square` Feedback, `log-out` Log out |
 | Match stats | `sword` Kills, `skull` Deaths, `handshake` Assists, `wheat` CS / farming, `coins` Gold, `zap` Damage, `eye` Vision and wards, `castle` Objectives and towers, `crown` Rank and LP, `trophy` Win, `flame` Win streak, `clock` Match length, time of day, `moon` Late-night matches |
 | Insights | `trending-up` Strength, rising score, `trending-down` Falling score, `repeat` Pattern, `activity` Trend |
-| Actions and status | `search` Search, `refresh-cw` Sync matches, `filter` Filter, `calendar` Date range, `copy` Copy, `link` Link Riot account, `external-link` Opens outside the app, `arrow-right` Go to, `chevron-right` Open detail, `chevron-down` Expand, dropdown, `check` Done, selected, `x` Close, remove, `info` More information, `triangle-alert` Error or warning, `lock` Pro feature, `user` Profile |
+| Actions and status | `search` Search, `refresh-cw` Sync matches, `filter` Filter, `calendar` Date range, `copy` Copy, `link` Link Riot account, `external-link` Opens outside the app, `arrow-right` Go to, `chevron-right` Open detail, `chevron-down` Expand, dropdown, `check` Done, selected, `x` Close, remove, `menu` Open the phone menu (public header), `info` More information, `triangle-alert` Error or warning, `lock` Pro feature, `user` Profile |
 
 ## Building with this system
 

@@ -1,23 +1,24 @@
 <template>
-  <div class="min-h-screen bg-transparent pt-16">
+  <div class="min-h-screen bg-background pt-14 desk:pt-20">
     <NavBar />
 
-    <div class="min-h-[calc(100vh-64px)] flex items-center justify-center p-xl">
-      <div class="w-full max-w-[440px] p-2xl bg-background-surface border border-border rounded-lg backdrop-blur-[10px]" data-testid="auth-card">
+    <main class="min-h-[calc(100vh-3.5rem)] desk:min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-10 desk:py-14">
+      <div class="w-full max-w-[28rem] p-5 desk:p-7 bg-background-surface border border-border rounded-xl flex flex-col gap-7" data-testid="auth-card">
 
         <!-- ── Forgot Password State ── -->
         <template v-if="isForgotPassword">
-          <div class="flex flex-col items-center justify-center text-center mb-xl">
-            <img src="/mongoose.png" alt="Mongoose" class="w-32 h-16 mb-md" data-testid="auth-logo" />
-            <h1 class="text-2xl font-bold tracking-tight mb-xs text-text">Forgot Your Password?</h1>
-            <p class="text-base text-text-secondary">Enter your email to receive a reset code</p>
+          <div class="flex flex-col items-center text-center gap-3">
+            <img src="/mongoose.png" alt="" class="h-10 w-[6.1875rem] object-contain" data-testid="auth-logo" />
+            <h1 class="font-display font-semibold text-[1.75rem] leading-[1.15] text-text">Reset your password</h1>
+            <p class="text-body text-text-soft">Enter your email and we'll send you a reset code.</p>
           </div>
 
-          <div v-if="forgotErrorMessage" class="p-md bg-error-soft border border-error-border rounded-md text-error text-sm mb-md" role="alert">
-            {{ forgotErrorMessage }}
+          <div v-if="forgotErrorMessage" class="auth-error" role="alert">
+            <BaseIcon name="triangle-alert" :size="20" />
+            <span>{{ forgotErrorMessage }}</span>
           </div>
 
-          <form @submit.prevent="handleForgotSubmit" class="flex flex-col gap-lg" data-testid="forgot-form">
+          <form @submit.prevent="handleForgotSubmit" class="flex flex-col gap-5" data-testid="forgot-form">
             <BaseInput
               id="forgot-email"
               v-model="forgotEmail"
@@ -37,50 +38,54 @@
               :disabled="isSubmitting"
               block
             >
-              {{ isSubmitting ? 'Sending...' : 'Send Reset Code' }}
+              {{ isSubmitting ? 'Sending…' : 'Send reset code' }}
             </BaseButton>
           </form>
 
-          <div class="mt-xl pt-xl border-t border-border text-center">
-            <BaseButton variant="ghost" size="sm" :disabled="isSubmitting" @click="showLogin">
-              ← Back to Sign In
+          <div class="pt-5 border-t border-border flex justify-center">
+            <BaseButton variant="ghost" size="md" :disabled="isSubmitting" data-testid="auth-back" @click="showLogin">
+              Back to log in
             </BaseButton>
           </div>
         </template>
 
         <!-- ── Login / Register State ── -->
         <template v-else>
-          <div class="flex flex-col items-center justify-center text-center mb-xl min-h-[200px]">
-            <img src="/mongoose.png" alt="Mongoose" class="w-32 h-16 mb-md" data-testid="auth-logo" />
-            <h1 class="text-2xl font-bold tracking-tight mb-xs text-text">Welcome to Mongoose.gg <span class="text-[0.5em] text-text-secondary font-normal align-top">Beta</span></h1>
-            <p class="text-base text-text-secondary">{{ isLogin ? 'Sign in to your account' : 'Create your account' }}</p>
+          <div class="flex flex-col items-center text-center gap-3">
+            <img src="/mongoose.png" alt="" class="h-10 w-[6.1875rem] object-contain" data-testid="auth-logo" />
+            <h1 class="font-display font-semibold text-[1.75rem] leading-[1.15] text-text" data-testid="auth-title">
+              {{ isLogin ? 'Log in to Mongoose.gg' : 'Create your free account' }}
+            </h1>
+            <p class="text-body text-text-soft">
+              {{ isLogin ? 'Welcome back. Your Overview is waiting.' : 'Next, link your Riot ID and we sync your recent matches.' }}
+            </p>
           </div>
 
           <!-- Error message -->
-          <div v-if="errorMessage" class="p-md bg-error-soft border border-error-border rounded-md text-error text-sm text-center mb-md" role="alert">
-            {{ errorMessage }}
+          <div v-if="errorMessage" class="auth-error" role="alert">
+            <BaseIcon name="triangle-alert" :size="20" />
+            <span>{{ errorMessage }}</span>
           </div>
 
-          <!-- Cookie consent rejection info banner -->
-          <div v-if="consentRejected" class="p-md bg-warning-soft border border-warning-border rounded-md text-warning text-sm mb-md" role="alert">
-            <p class="m-0 mb-xs">You've rejected cookies. Login requires an authentication cookie.</p>
-            <BaseButton
-              variant="ghost"
-              size="sm"
-              class="text-warning hover:opacity-80 p-0 h-auto mt-xs"
-              @click="updateCookiePreferences"
-            >
-              Update cookie preferences
-            </BaseButton>
+          <!-- Cookie consent rejection info -->
+          <div v-if="consentRejected" class="auth-notice" role="alert">
+            <BaseIcon name="info" :size="20" />
+            <div class="flex flex-col items-start gap-1">
+              <p>You've rejected cookies. Logging in needs an authentication cookie.</p>
+              <button type="button" class="auth-notice__action mp-focusable" @click="updateCookiePreferences">
+                Update cookie preferences
+              </button>
+            </div>
           </div>
 
-          <form @submit.prevent="handleSubmit" class="flex flex-col gap-lg" data-testid="auth-form">
+          <form @submit.prevent="handleSubmit" class="flex flex-col gap-5" data-testid="auth-form">
             <!-- Username field for both login and signup -->
             <BaseInput
               id="username"
               v-model="formData.username"
               label="Username"
               placeholder="Your username"
+              autocomplete="username"
               :error="usernameError"
               required
               minlength="3"
@@ -97,28 +102,33 @@
               type="email"
               label="Email"
               placeholder="you@example.com"
+              autocomplete="email"
               required
             />
 
-            <BaseInput
-              id="password"
-              v-model="formData.password"
-              type="password"
-              label="Password"
-              placeholder="••••••••"
-              required
-              minlength="8"
-            />
+            <div class="flex flex-col gap-2">
+              <BaseInput
+                id="password"
+                v-model="formData.password"
+                type="password"
+                label="Password"
+                :placeholder="isLogin ? 'Your password' : 'At least 8 characters'"
+                :autocomplete="isLogin ? 'current-password' : 'new-password'"
+                required
+                minlength="8"
+              />
 
-            <!-- Forgot password row (login only) -->
-            <div v-if="isLogin" class="flex items-center justify-end">
-              <button
-                type="button"
-                class="text-sm text-primary hover:opacity-80 transition-opacity bg-transparent border-none cursor-pointer"
-                @click="showForgotPassword"
-              >
-                Forgot password?
-              </button>
+              <!-- Forgot password (login only) -->
+              <div v-if="isLogin" class="flex justify-end">
+                <button
+                  type="button"
+                  class="auth-link mp-focusable"
+                  data-testid="auth-forgot"
+                  @click="showForgotPassword"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </div>
 
             <BaseButton
@@ -127,27 +137,29 @@
               size="lg"
               :loading="isSubmitting"
               :disabled="isSubmitting || consentRejected"
-              class="mt-md"
+              block
+              data-testid="auth-submit"
             >
-              {{ isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account') }}
+              {{ submitLabel }}
             </BaseButton>
           </form>
 
-          <div class="mt-xl pt-xl border-t border-border text-center">
-            <BaseButton
-              variant="ghost"
-              size="sm"
+          <p class="pt-5 border-t border-border flex flex-wrap items-center justify-center gap-x-1 text-body-sm text-text-secondary">
+            {{ isLogin ? 'New here?' : 'Already have an account?' }}
+            <button
+              type="button"
+              class="auth-link mp-focusable"
               :disabled="isSubmitting"
               data-testid="auth-toggle"
               @click="toggleMode"
             >
-              {{ isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in' }}
-            </BaseButton>
-          </div>
+              {{ isLogin ? 'Create free account' : 'Log in' }}
+            </button>
+          </p>
         </template>
 
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
@@ -155,7 +167,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
-import { BaseInput, BaseButton } from '@/components/base';
+import { BaseInput, BaseButton, BaseIcon } from '@/components/base';
 import { useAuthStore } from '../stores/authStore';
 import { useCookieConsent } from '../composables/useCookieConsent';
 import { trackAuth } from '../services/analyticsApi';
@@ -179,6 +191,13 @@ const formData = ref({
   username: '',
   email: '',
   password: ''
+});
+
+const submitLabel = computed(() => {
+  if (isSubmitting.value) {
+    return isLogin.value ? 'Logging in…' : 'Creating account…';
+  }
+  return isLogin.value ? 'Log in' : 'Create free account';
 });
 
 // ── Forgot password state ──
@@ -343,3 +362,74 @@ const handleSubmit = async () => {
   }
 };
 </script>
+
+<style scoped>
+/* MessageBox (design system), error: a failed request is a system state, so it uses the error tokens */
+.auth-error {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--color-error-soft);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.auth-error :deep(.base-icon) {
+  color: var(--color-error);
+}
+
+/* MessageBox (design system), notice: neutral information, not an error */
+.auth-notice {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink-soft);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.auth-notice :deep(.base-icon) {
+  color: var(--color-text-secondary);
+}
+
+.auth-notice__action,
+.auth-link {
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--color-positive-text);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 150ms ease-out;
+}
+
+.auth-link {
+  min-height: 2.75rem;
+}
+
+.auth-notice__action:hover,
+.auth-link:hover:not(:disabled) {
+  color: var(--color-positive-text-strong);
+}
+
+.auth-link:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-notice__action,
+  .auth-link {
+    transition: none;
+  }
+}
+</style>
