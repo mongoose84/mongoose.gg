@@ -14,7 +14,8 @@ Produce UI/UX recommendations, critiques, and markdown design artifacts without 
 
 ## Context To Load
 
-- Load `.github/specs/ui-ux.spec.md` for design-system rules and UX contracts.
+- Load `.claude/skills/mongoose-design/reference/design-system.md` and `components.md` for the Mongoose.gg design system (visual rules, voice, components).
+- Load `.github/specs/ui-ux.spec.md` for UX contracts, routes and the component inventory.
 - Load `.github/specs/architecture.spec.md` when data shape or API capability affects the design.
 
 ## Workflow

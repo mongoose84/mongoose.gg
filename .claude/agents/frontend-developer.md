@@ -15,7 +15,8 @@ Implement and modify frontend code under `client/src/`.
 ## Context To Load
 
 - Follow `client/src/CLAUDE.md` (auto-loaded when you touch files there).
-- Load `.github/specs/ui-ux.spec.md` only when changing user-facing behavior, layout, tokens, or accessibility expectations.
+- Load `.github/specs/ui-ux.spec.md` only when changing user-facing behavior, layout, or accessibility expectations.
+- For any visual change, follow the Mongoose.gg design system: read `.claude/skills/mongoose-design/reference/design-system.md` and `components.md` (and `tokens.json` for values). Never copy old-theme styling from existing files.
 - Load `.github/specs/component.spec.md` only when a full component scaffold is needed.
 - `client/test/unit/CLAUDE.md` (auto-loaded there) when unit tests are part of the change.
 

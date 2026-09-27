@@ -79,7 +79,7 @@ POST /api/[endpoint]
 
 ## UI/UX Requirements
 
-All views must follow the existing design system defined in [UI/UX Spec](../ui-ux.spec.md). Use design tokens — never hardcode colors, spacing, or shadows.
+All views must follow the Mongoose.gg design system ([UI/UX Spec §2](../ui-ux.spec.md#2-visual-design-system), built with `/mongoose-design`). Name the design-system components each view uses, use design-system tokens only — never hardcode colors, spacing, radii or shadows — and write copy in the Mongoose.gg voice.
 
 ### [View/Page/Component Name]
 

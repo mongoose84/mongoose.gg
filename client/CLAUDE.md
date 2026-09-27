@@ -2,7 +2,7 @@
 
 > Vue 3 SPA frontend for Mongoose.gg — League of Legends match analytics dashboard.
 > For repo-wide invariants see [CLAUDE.md](../CLAUDE.md).
-> For the complete design system, component inventory, UX contracts, and page responsibilities see [ui-ux.spec.md](../.github/specs/ui-ux.spec.md).
+> For the component inventory, UX contracts, and page responsibilities see [ui-ux.spec.md](../.github/specs/ui-ux.spec.md). The visual design system lives in [`.claude/skills/mongoose-design/reference/`](../.claude/skills/mongoose-design/reference/).
 > For backend API endpoints and DTOs see [architecture.spec.md](../.github/specs/architecture.spec.md).
 > Component/store/styling rules auto-load from [client/src/CLAUDE.md](src/CLAUDE.md); unit test rules from [client/test/unit/CLAUDE.md](test/unit/CLAUDE.md); E2E rules from [client/e2e/CLAUDE.md](e2e/CLAUDE.md).
 

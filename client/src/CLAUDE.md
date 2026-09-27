@@ -25,7 +25,7 @@ Load [component.spec.md](../../.github/specs/component.spec.md) only when you ne
 ## Styling And Accessibility
 
 - Use Tailwind for layout and sizing and CSS custom properties for themed values.
-- Reuse design tokens from the UI/UX spec instead of introducing ad hoc colors or spacing.
+- All visual decisions follow the Mongoose.gg design system (`.claude/skills/mongoose-design/reference/`, summarized in ui-ux.spec.md §2). Use design-system tokens only — no ad hoc colors, spacing, radii or shadows. Old-theme styling in existing files is legacy, never a pattern to copy.
 - Prefer semantic HTML, label form controls correctly, and add `aria-label` for icon-only buttons.
 - Add `data-testid` to interactive or assertion-critical elements.
 - Keep keyboard access and contrast expectations intact.

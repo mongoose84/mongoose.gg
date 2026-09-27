@@ -92,17 +92,17 @@ emit('update', payload)
 ### Styling
 **Approach**: Tailwind utility classes + `<style scoped>` + CSS custom properties (design tokens)
 
-**Design Tokens** (CSS variables from theme):
-- Colors: `var(--color-surface)`, `var(--color-border)`, `var(--color-text-primary)`, etc.
-- Spacing: `var(--spacing-xs)`, `var(--spacing-sm)`, `var(--spacing-md)`, etc.
-- Typography: [font styles]
+**Design system**: Mongoose.gg design system (see [UI/UX Spec §2](./ui-ux.spec.md#2-visual-design-system); build with `/mongoose-design`)
+- Design-system component(s) used: [e.g. ScoreRing, InsightCard, EmptyState — from `.claude/skills/mongoose-design/reference/components.md`]
+- Tokens: [Design-system tokens used, e.g. `surface`, `ink-soft`, `primary` / `warn`, `radius-xl`]
+- Type styles: [e.g. `title` (Clash Display) for the card title, `body-sm` (Satoshi) for rows]
+- Icons: [Lucide names from the vocabulary, via `BaseIcon`]
 
 > Use Tailwind utilities in templates for layout/sizing. Use `<style scoped>` with CSS custom properties for component-specific styles and themed values. No CSS Modules.
 
 ### Responsive Behavior
-- **Mobile** (< 768px): [description]
-- **Tablet** (768px - 1024px): [description]
-- **Desktop** (> 1024px): [description]
+- **Below 900px**: [grids stack to one column; 16px page gutter]
+- **Desktop**: [56px page gutter, max content width 1328px]
 
 ## Behavior
 
