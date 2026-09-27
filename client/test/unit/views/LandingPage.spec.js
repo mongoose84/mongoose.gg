@@ -1,165 +1,131 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mount } from '@vue/test-utils';
-import LandingPage from '@/views/LandingPage.vue';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mount, flushPromises } from '@vue/test-utils';
 import { createRouter, createMemoryHistory } from 'vue-router';
+import LandingPage from '@/views/LandingPage.vue';
+import { getPublicStats } from '@/services/publicApi';
 
-const createWrapper = () => {
+vi.mock('@/services/publicApi', () => ({
+  getPublicStats: vi.fn()
+}));
+
+const createWrapper = async () => {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
       { path: '/', component: { template: '<div>Home</div>' } },
       { path: '/auth', component: { template: '<div>Auth</div>' } },
+      { path: '/privacy', component: { template: '<div>Privacy</div>' } },
+      { path: '/cookies', component: { template: '<div>Cookies</div>' } },
+      { path: '/terms', component: { template: '<div>Terms</div>' } },
     ]
   });
 
-  return mount(LandingPage, {
+  const wrapper = mount(LandingPage, {
     global: {
       plugins: [router],
-      stubs: {
-        NavBar: true,
-      }
+      stubs: { NavBar: true }
     }
   });
+  await flushPromises();
+  return wrapper;
 };
 
 describe('LandingPage.vue', () => {
-  it('renders the landing page', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.exists()).toBe(true);
-  });
-
-  it('displays the hero title', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('The Solo Queue Improvement Tracker');
-  });
-
-  it('hero title no longer contains "Built for Teams"', () => {
-    const wrapper = createWrapper();
-    const h1 = wrapper.find('h1');
-    expect(h1.text()).not.toContain('Built for Teams');
-    expect(h1.text()).toContain('Built to Help You Climb');
-  });
-
-  it('does not render the promo banner pill', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).not.toContain('spots left');
-    expect(wrapper.text()).not.toContain('First 500 users get free Pro tier');
-  });
-
-  it('does not render the 0/5 User Rating counter', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).not.toContain('User Rating');
-    expect(wrapper.text()).not.toContain('0/5');
-  });
-
-  it('renders Active Players and Games Analyzed counters', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Active Players');
-    expect(wrapper.text()).toContain('Games Analyzed');
-  });
-
-  it('displays features section', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Everything You Need to Climb');
-  });
-
-  it('displays how it works section', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('How It Works');
-  });
-
-  it('has CTA buttons', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Start Improving Now');
-  });
-
-  it('renders feature icons as plain text', () => {
-    const wrapper = createWrapper();
-    const featureIcons = wrapper.findAll('[data-testid="feature-icon"]');
-
-    expect(featureIcons.length).toBeGreaterThan(0);
-    expect(featureIcons[0].text()).toBe('⚔️');
-    expect(featureIcons[0].find('img').exists()).toBe(false);
-    expect(featureIcons[0].find('script').exists()).toBe(false);
-  });
-
-  it('Post-Game Takeaways card uses updated description copy', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('lane-by-lane breakdown');
-    expect(wrapper.text()).not.toContain('get 2-3 specific things to focus on next time');
-  });
-});
-
-describe('LandingPage.vue — flag=false (default)', () => {
   beforeEach(() => {
-    vi.stubEnv('VITE_ENABLE_UPCOMING_FEATURES', 'false');
+    getPublicStats.mockReset();
+    getPublicStats.mockResolvedValue({ totalMatches: 120, activePlayers: 4 });
   });
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
+  it('shows one headline about the player outcome', async () => {
+    const wrapper = await createWrapper();
+    const headlines = wrapper.findAll('h1');
+    expect(headlines).toHaveLength(1);
+    expect(headlines[0].text()).toBe('Climb faster with coaching from your own match history');
   });
 
-  it('hides the Pricing section', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).not.toContain('Simple, Transparent Pricing');
+  it('sends the main button to sign-up and the second one to log in', async () => {
+    const wrapper = await createWrapper();
+    expect(wrapper.get('[data-testid="hero-signup"]').attributes('href')).toBe('/auth?mode=signup');
+    expect(wrapper.get('[data-testid="hero-signup"]').text()).toBe('Create free account');
+    expect(wrapper.get('[data-testid="hero-login"]').attributes('href')).toBe('/auth?mode=login');
   });
 
-  it('hides Goal Setting feature card', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).not.toContain('Goal Setting & Progress');
+  it('shows the trust line', async () => {
+    const wrapper = await createWrapper();
+    const trust = wrapper.get('[data-testid="hero-trust"]').text();
+    expect(trust).toContain('Free');
+    expect(trust).toContain("Built on Riot's official API");
   });
 
-  it('hides Team Dashboards feature card', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).not.toContain('Team Dashboards');
+  it('labels the product preview as an example', async () => {
+    const wrapper = await createWrapper();
+    expect(wrapper.get('[data-testid="hero-preview"]').text()).toContain('Example');
+    expect(wrapper.get('[data-testid="hero-preview"]').findAll('[data-testid="score-ring"]')).toHaveLength(3);
   });
 
-  it('renders 3 How It Works steps', () => {
-    const wrapper = createWrapper();
-    const steps = wrapper.findAll('#how-it-works .step-number');
+  it('tags each feature with the page it lives on', async () => {
+    const wrapper = await createWrapper();
+    const tags = wrapper.findAll('[data-testid="feature-page-tag"]').map((tag) => tag.text());
+    expect(tags).toEqual(['Overview', 'Champion Select', 'Matches', 'Solo']);
+  });
+
+  it('explains the three steps after sign-up', async () => {
+    const wrapper = await createWrapper();
+    const steps = wrapper.findAll('#how-it-works [data-testid="landing-step"]');
     expect(steps).toHaveLength(3);
+    expect(steps[0].text()).toContain('Create your account');
+    expect(steps[1].text()).toContain('Link your Riot ID');
+    expect(steps[2].text()).toContain('We sync your matches');
   });
 
-  it('hides the footer Pricing link', () => {
-    const wrapper = createWrapper();
-    const pricingLinks = wrapper.findAll('a[href="#pricing"]');
-    expect(pricingLinks).toHaveLength(0);
-  });
-});
-
-describe('LandingPage.vue — flag=true', () => {
-  beforeEach(() => {
-    vi.stubEnv('VITE_ENABLE_UPCOMING_FEATURES', 'true');
+  it('has no pricing section or emoji', async () => {
+    const wrapper = await createWrapper();
+    expect(wrapper.find('#pricing').exists()).toBe(false);
+    expect(wrapper.text()).not.toMatch(/\p{Emoji_Presentation}/u);
   });
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
+  it('shows the Riot disclaimer and legal links in the footer', async () => {
+    const wrapper = await createWrapper();
+    const footer = wrapper.get('[data-testid="landing-footer"]');
+    expect(footer.text()).toContain('Not affiliated with Riot Games');
+    expect(footer.find('a[href="/privacy"]').exists()).toBe(true);
+    expect(footer.find('a[href="/terms"]').exists()).toBe(true);
   });
 
-  it('shows the Pricing section', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Simple, Transparent Pricing');
+  describe('Solo trend preview', () => {
+    it('switches the example range', async () => {
+      const wrapper = await createWrapper();
+      expect(wrapper.get('[data-testid="trend-title"]').text()).toBe('Deaths down from 6.1 to 5.2');
+      expect(wrapper.get('[data-testid="trend-range-last20"]').attributes('aria-pressed')).toBe('true');
+
+      await wrapper.get('[data-testid="trend-range-last50"]').trigger('click');
+
+      expect(wrapper.get('[data-testid="trend-title"]').text()).toBe('Deaths down from 6.6 to 5.2');
+      expect(wrapper.get('[data-testid="trend-range-last50"]').attributes('aria-pressed')).toBe('true');
+      expect(wrapper.get('[data-testid="trend-range-last20"]').attributes('aria-pressed')).toBe('false');
+    });
   });
 
-  it('shows Goal Setting feature card', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Goal Setting & Progress');
-  });
+  describe('proof count', () => {
+    it('is hidden while the count is small', async () => {
+      const wrapper = await createWrapper();
+      expect(wrapper.get('[data-testid="hero-trust"]').text()).not.toContain('matches analysed');
+    });
 
-  it('shows Team Dashboards feature card', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Team Dashboards');
-  });
+    it('shows the rounded-down count once it is large enough', async () => {
+      getPublicStats.mockResolvedValue({ totalMatches: 3_249_000, activePlayers: 900 });
+      const wrapper = await createWrapper();
+      expect(wrapper.get('[data-testid="hero-trust"]').text()).toContain('3.2M+ matches analysed');
+    });
 
-  it('renders 4 How It Works steps', () => {
-    const wrapper = createWrapper();
-    const steps = wrapper.findAll('#how-it-works .step-number');
-    expect(steps).toHaveLength(4);
-  });
-
-  it('shows the footer Pricing link', () => {
-    const wrapper = createWrapper();
-    const pricingLinks = wrapper.findAll('a[href="#pricing"]');
-    expect(pricingLinks.length).toBeGreaterThan(0);
+    it('keeps the page intact when the stats request fails', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      getPublicStats.mockRejectedValue(new Error('offline'));
+      const wrapper = await createWrapper();
+      expect(wrapper.get('[data-testid="landing-headline"]').exists()).toBe(true);
+      expect(wrapper.get('[data-testid="hero-trust"]').text()).not.toContain('matches analysed');
+      expect(consoleError).toHaveBeenCalled();
+      consoleError.mockRestore();
+    });
   });
 });

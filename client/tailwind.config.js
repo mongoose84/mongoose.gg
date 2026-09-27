@@ -6,26 +6,51 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        // Design-system layout breakpoint: below 900px everything stacks
+        desk: '900px',
+      },
       colors: {
-        // Vercel Developer Theme - Technical cutting-edge
+        // Mongoose.gg design system (values in src/style.css)
         primary: {
           DEFAULT: 'var(--color-primary)',
           soft: 'var(--color-primary-soft)',
           dark: 'var(--color-primary-dark)',
           light: 'var(--color-primary-light)',
           accent: 'var(--color-primary-accent)',
+          on: 'var(--color-on-primary)',
         },
+        positive: {
+          DEFAULT: 'var(--color-positive-text)',
+          strong: 'var(--color-positive-text-strong)',
+        },
+        warn: {
+          DEFAULT: 'var(--color-warn)',
+          text: 'var(--color-warn-text)',
+          soft: 'var(--color-warn-soft)',
+        },
+        track: {
+          DEFAULT: 'var(--color-track)',
+          strong: 'var(--color-track-strong)',
+        },
+        glass: 'var(--color-glass)',
         background: {
           DEFAULT: 'var(--color-bg)',
           surface: 'var(--color-surface)',
           elevated: 'var(--color-elevated)',
+          selected: 'var(--color-surface-selected)',
+          'selected-hover': 'var(--color-surface-selected-hover)',
+          highlight: 'var(--color-surface-highlight)',
         },
         text: {
           DEFAULT: 'var(--color-text)',
           secondary: 'var(--color-text-secondary)',
+          soft: 'var(--color-ink-soft)',
+          faint: 'var(--color-ink-faint)',
         },
         border: {
           DEFAULT: 'var(--color-border)',
+          highlight: 'var(--color-border-highlight)',
         },
         // Semantic colors
         success: {
@@ -63,7 +88,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Satoshi', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        display: 'var(--font-display)',
+        body: 'var(--font-body)',
         mono: ['ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
       },
       fontSize: {
@@ -76,6 +103,22 @@ export default {
         'lg': ['var(--font-size-lg)', { lineHeight: '1.6' }],
         'xl': ['var(--font-size-xl)', { lineHeight: '1.4' }],
         '2xl': ['var(--font-size-2xl)', { lineHeight: '1.2' }],
+        // Design-system type styles (tokens.json → type.groups)
+        // Landing hero only (public marketing pages)
+        'display': ['3.75rem', { lineHeight: '1.06', letterSpacing: '-0.015em', fontWeight: '600' }],
+        'score-xl': ['4rem', { lineHeight: '1', fontWeight: '700' }],
+        'headline': ['2.75rem', { lineHeight: '1.12', letterSpacing: '-0.01em', fontWeight: '600' }],
+        'score-lg': ['2.5rem', { lineHeight: '1', fontWeight: '700' }],
+        'title-lg': ['1.625rem', { lineHeight: '1.2', fontWeight: '700' }],
+        'stat': ['1.375rem', { lineHeight: '1.2', fontWeight: '700' }],
+        'title': ['1.25rem', { lineHeight: '1.3', fontWeight: '600' }],
+        'insight': ['1rem', { lineHeight: '1.4', fontWeight: '600' }],
+        'body-lg': ['1rem', { lineHeight: '1.55', fontWeight: '400' }],
+        'body': ['0.9375rem', { lineHeight: '1.55', fontWeight: '400' }],
+        'body-sm': ['0.875rem', { lineHeight: '1.5', fontWeight: '400' }],
+        'eyebrow': ['0.8125rem', { lineHeight: '1.3', letterSpacing: '0.06em', fontWeight: '700' }],
+        'caption': ['0.8125rem', { lineHeight: '1.4', fontWeight: '400' }],
+        'chip': ['0.75rem', { lineHeight: '1.3', fontWeight: '700' }],
       },
       spacing: {
         'xs': 'var(--spacing-xs)',
@@ -89,11 +132,16 @@ export default {
         'sm': 'var(--radius-sm)',
         'md': 'var(--radius-md)',
         'lg': 'var(--radius-lg)',
+        'card-sm': '1.25rem',  // radius-lg (insight cards)
+        'xl': '1.5rem',        // radius-xl (cards)
+        '2xl': '1.75rem',      // radius-2xl (champion hero)
+        'pill': '999px',
       },
       boxShadow: {
         'sm': 'var(--shadow-sm)',
         'md': 'var(--shadow-md)',
         'lg': 'var(--shadow-lg)',
+        'focus': 'var(--shadow-focus)',
       },
       letterSpacing: {
         'tight': 'var(--letter-spacing)',
