@@ -67,7 +67,7 @@ sudo dnf install dotnet-sdk-10.0
 **Clientis a completely separate Vue 3 + Vite application, independent of the legacy client.**
 
 - Location: `client/` 
-- Style: Start with the Vercel developer aesthetic (dark, sharp, neon-tinged) but keep theme tokens configurable for future restyles.
+- Style: Mongoose.gg design system (dark, purple for good / orange for needs work, Clash Display + Satoshi, champion art). See `.github/specs/ui-ux.spec.md` §2 and `.claude/skills/mongoose-design/`.
 - Rollout: Develop locally until the solo dashboard is ready, then ship.
 - The app will have its own `package.json`, `node_modules`, and complete build setup.
 

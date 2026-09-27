@@ -1,58 +1,53 @@
 # Mongoose.gg — UI/UX Specification
 
-> **Purpose**: Single-source-of-truth for AI agents and developers building frontend features. Contains the design system (tokens, components, patterns), UX contracts (navigation, page responsibilities, bias rules), and the complete component inventory with props/slots.
+> **Purpose**: Single-source-of-truth for AI agents and developers building frontend features. Contains UX contracts (navigation, page responsibilities, bias rules), and the complete component inventory with props/slots.
 
-**Stack**: Vue 3 (Composition API, `<script setup>`) · Tailwind CSS · Headless UI · Heroicons · Chart.js + vue-chartjs · TanStack Vue Query · Pinia  
-**Theme**: Vercel Developer aesthetic adapted for gaming — dark, technical, premium  
-**Platform**: Desktop-first (future Windows native app)  
-**Last verified**: August 8, 2026
+**Stack**: Vue 3 (Composition API, `<script setup>`) · Tailwind CSS · Headless UI · Lucide (via `BaseIcon`) · Chart.js + vue-chartjs · TanStack Vue Query · Pinia  
+**Design system**: Mongoose.gg design system — see Section 2 (visual rules live in `.claude/skills/mongoose-design/reference/`)  
+**Platform**: Desktop-first, responsive to phones (grids stack below 900px); future Windows native app  
+**Last verified**: September 27, 2026
 
 ---
 
 ## Table of Contents
 
 1. [Design Philosophy & UX Principles](#1-design-philosophy--ux-principles)
-2. [Design Tokens (CSS Variables)](#2-design-tokens-css-variables)
-3. [Typography](#3-typography)
-4. [Spacing, Radius & Shadows](#4-spacing-radius--shadows)
-5. [Tailwind Integration](#5-tailwind-integration)
-6. [Navigation Model](#6-navigation-model)
-7. [Route Map](#7-route-map)
-8. [Layout Architecture](#8-layout-architecture)
-9. [Page Responsibilities](#9-page-responsibilities)
-10. [Base Components](#10-base-components)
-11. [Overview Components](#11-overview-components)
-12. [Match Components](#12-match-components)
-13. [Solo Analysis Components](#13-solo-analysis-components)
-14. [Shared Components](#14-shared-components)
-15. [Root-Level Components](#15-root-level-components)
-16. [Composables](#16-composables)
-17. [Stores](#17-stores)
-18. [Services & API Client](#18-services--api-client)
-19. [Utilities](#19-utilities)
-20. [Component Patterns (CSS)](#20-component-patterns-css)
-21. [Animations & Transitions](#21-animations--transitions)
-22. [Accessibility](#22-accessibility)
-23. [Z-Index Scale](#23-z-index-scale)
-24. [Icons](#24-icons)
-25. [Win Rate Color System](#25-win-rate-color-system)
-26. [Bias-Aware UX Rules](#26-bias-aware-ux-rules)
-27. [Design Constraints (Non-Negotiable)](#27-design-constraints-non-negotiable)
-28. [New Component Checklist](#28-new-component-checklist)
+2. [Visual Design System](#2-visual-design-system)
+3. [Navigation Model](#3-navigation-model)
+4. [Route Map](#4-route-map)
+5. [Layout Architecture](#5-layout-architecture)
+6. [Page Responsibilities](#6-page-responsibilities)
+7. [Base Components](#7-base-components)
+8. [Overview Components](#8-overview-components)
+9. [Match Components](#9-match-components)
+10. [Solo Analysis Components](#10-solo-analysis-components)
+11. [Shared Components](#11-shared-components)
+12. [Root-Level Components](#12-root-level-components)
+13. [Composables](#13-composables)
+14. [Stores](#14-stores)
+15. [Services & API Client](#15-services--api-client)
+16. [Utilities](#16-utilities)
+17. [Accessibility](#17-accessibility)
+18. [Z-Index Scale](#18-z-index-scale)
+19. [Icons](#19-icons)
+20. [Win Rate Color System](#20-win-rate-color-system)
+21. [Bias-Aware UX Rules](#21-bias-aware-ux-rules)
+22. [Design Constraints (Non-Negotiable)](#22-design-constraints-non-negotiable)
+23. [New Component Checklist](#23-new-component-checklist)
 
 ---
 
 ## 1. Design Philosophy & UX Principles
 
-**Theme**: Dark-first gaming aesthetic with Vercel-inspired technical precision. Background image (`/hero-bg.svg`, fixed cover) overlaid with dark gradient (`rgba(0,0,0,0.30)`) via `body::before`.
+**Theme**: a calm, dark improvement coach that reads like a health tracker (scores, readiness, plain-language insights) and dresses itself in the player's own champions. See Section 2.
 
 **Core Principles**:
 1. **Tool over website** — speed and clarity over exploration
 2. **Context > Pages** — same data, different perspectives (Solo/Team); each gets its own route
 3. **Fast paths for stressed moments** — Champion Select and Match Review must load instantly
-4. **Overview is orientation, not work** — 5–15 seconds, one scroll max
+4. **Overview opens with the answer** — one summary sentence the player can read in 5 seconds; everything below it is evidence to scroll into when they want it
 5. **Goals are horizontal** — visible everywhere, managed centrally
-6. **Premium value appears early** — not buried deep in navigation
+6. **Free version first** — no upsell, pricing or premium prompts for now; premium placement is decided later
 7. **Every insight answers one question and implies one action**
 8. **Single-match insights framed as multi-game trends**
 
@@ -66,188 +61,88 @@
 - Between games (short attention bursts)
 - After sessions (calm analysis)
 
----
+### UX decisions (2026-09-27)
 
-## 2. Design Tokens (CSS Variables)
+Settled while aligning this description with the design system:
 
-Defined in `client/src/style.css`. All components MUST use these tokens — never hardcode colors or sizes.
+1. **Top navigation only.** No sidebar; see Section 3.
+2. **Page names** stay as in this description: Overview, Champion Select, Matches, Solo, and Advanced (Team and Goals combined; not built yet).
+3. **Overview follows the design system's layout** (Section 6).
+4. **Time ranges count matches**, never days: Last 20 / Last 50 / Season.
+5. **Matches**: every match has its own address (`/app/matches/:matchId`); desktop shows it beside the list, phones as its own page.
+6. **Sign-up**: email account first, then link the Riot ID. Signing in with a Riot account is planned for later.
+7. **Landing page** is a marketing page that shows what an account gives you (Section 6, Landing).
+8. **Free version first**: no upsell for now.
+9. **Team and Goals become one page, "Advanced"** (working name). It is not implemented for now; the navigation stays at five items.
+10. **Phones get a bottom tab bar** (Section 3). Desktop comes first: phones get this light adaptation, no separate design.
 
-### Core Colors
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--color-primary` | `#6d28d9` | Primary actions, links, focus states, accents |
-| `--color-primary-soft` | `rgba(109, 40, 217, 0.1)` | Hover backgrounds, subtle highlights |
-| `--color-primary-dark` | `#5b21b6` | Darker primary variant |
-| `--color-primary-light` | `#7c3aed` | Lighter primary variant |
-| `--color-primary-accent` | `#a855f7` | Accent/highlight variant |
-| `--color-bg` | `#000000` | Page background |
-| `--color-surface` | `rgba(255, 255, 255, 0.03)` | Cards, panels, elevated containers |
-| `--color-elevated` | `rgba(255, 255, 255, 0.05)` | Nested elevated elements |
-| `--color-text` | `#ffffff` | Primary text |
-| `--color-text-secondary` | `#888888` | Secondary/muted text |
-| `--color-border` | `rgba(109, 40, 217, 0.15)` | Borders, dividers |
-
-### Semantic Colors
-
-| Token | Value | Soft | Border | Usage |
-|-------|-------|------|--------|-------|
-| `--color-success` | `#22c55e` | `rgba(34,197,94,0.1)` | `rgba(34,197,94,0.3)` | Wins, positive |
-| `--color-error` | `#ef4444` | `rgba(239,68,68,0.1)` | `rgba(239,68,68,0.3)` | Losses, errors |
-| `--color-warning` | `#f59e0b` | `rgba(245,158,11,0.1)` | `rgba(245,158,11,0.3)` | Cautions, pending |
-| `--color-info` | `#3b82f6` | `rgba(59,130,246,0.1)` | `rgba(59,130,246,0.3)` | Informational |
-| `--color-muted` | `#6b7280` | `rgba(107,114,128,0.2)` (`--color-muted-soft`) | — | Neutral/muted |
-
-`--color-error-hover` (`#dc2626`) is a fourth error variant, used for hover states on destructive actions (e.g. `DeleteAccountModal`'s confirm button) — darker than `--color-error` itself.
-
-### Win Rate Gradient Colors
-
-| Token | Color | Threshold |
-|-------|-------|-----------|
-| `--color-winrate-terrible` | `#ef4444` | < 40% |
-| `--color-winrate-bad` | `#f97316` | 40–45% |
-| `--color-winrate-poor` | `#fdba74` | 45–48% |
-| `--color-winrate-average` | `#eab308` | 48–52% |
-| `--color-winrate-good` | `#84cc16` | 52–55% |
-| `--color-winrate-great` | `#22c55e` | > 55% |
-
-### Match Activity Heatmap Colors
-
-Used by `MatchActivityHeatmap` for per-day intensity (GitHub-contributions-style).
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--color-heatmap-0` | `rgba(255, 255, 255, 0.05)` | No games that day |
-| `--color-heatmap-0-border` | `rgba(255, 255, 255, 0.1)` | Border for the zero-intensity cell |
-| `--color-heatmap-1` | `rgba(109, 40, 217, 0.3)` | Low activity |
-| `--color-heatmap-2` | `rgba(109, 40, 217, 0.6)` | Medium activity |
-| `--color-heatmap-3` | `#6d28d9` | High activity |
-
-### Rank Colors
-
-Used by `BaseRankBadge` and anywhere a tier needs its canonical color (e.g. `AccountSwitcher`).
-
-| Token | Value | | Token | Value |
-|-------|-------|--|-------|-------|
-| `--color-rank-iron` | `#7d7d7d` | | `--color-rank-emerald` | `#50c878` |
-| `--color-rank-bronze` | `#cd7f32` | | `--color-rank-diamond` | `#b9f2ff` |
-| `--color-rank-silver` | `#a0b0c0` | | `--color-rank-master` | `#9370db` |
-| `--color-rank-gold` | `#ffd700` | | `--color-rank-grandmaster` | `#ff4444` |
-| `--color-rank-platinum` | `#4ee0d0` | | `--color-rank-challenger` | `#f0e68c` |
+**Deferred**
+- How Pro-only pages are marked in the navigation (no badges on pills): decided when Pro is implemented.
+- Backend for the Overview design (scores Laning / Teamfighting / Discipline, queue readiness, insights): built when we implement the Overview.
 
 ---
 
-## 3. Typography
+## 2. Visual Design System
 
-**Font**: `'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`  
-**Import**: `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap')`  
-**Letter spacing**: `-0.015em` (tight tracking for modern look)
+All visual rules (colour, type, spacing, radius, depth, motion, iconography, champion art, copy voice, component look) come from the **Mongoose.gg design system**. This spec no longer defines any visual values; do not reintroduce them here.
 
-### Font Sizes
+| Source | Path / link |
+|--------|-------------|
+| Live system (Design System artifact) | https://claude.ai/artifact/CV2Jr6dfMG8A8wv2JoMW2n |
+| Principles, voice, colour, type, layout, accessibility | `.claude/skills/mongoose-design/reference/design-system.md` |
+| Every token with value and usage | `.claude/skills/mongoose-design/reference/tokens.json` |
+| Component guidelines (ChampionHero, ScoreRing, MatchRow, InsightCard, Skeleton, EmptyState, Button, PillNav, …) | `.claude/skills/mongoose-design/reference/components.md` |
+| Reference CSS (`mp-*` classes) | `.claude/skills/mongoose-design/reference/components.css` |
+| Lucide icon set and fonts | `.claude/skills/mongoose-design/reference/icons/`, `reference/fonts/` |
+| Build workflow (foundation setup, Vue rules, validation) | `.claude/skills/mongoose-design/SKILL.md` (`/mongoose-design`) |
 
-| Token | Size | Line Height | Usage |
-|-------|------|-------------|-------|
-| `--font-size-xs` | `0.75rem` (12px) | 1.5 | Labels, badges, captions |
-| `--font-size-sm` | `0.875rem` (14px) | 1.5 | Secondary text, form labels |
-| `--font-size-md` | `1rem` (16px) | 1.6 | Body text, inputs |
-| `--font-size-lg` | `1.125rem` (18px) | 1.6 | Subheadings |
-| `--font-size-xl` | `1.5rem` (24px) | 1.4 | Section titles |
-| `--font-size-2xl` | `2.5rem` (40px) | 1.2 | Page titles, hero text |
+**The essentials** (full rules in the files above):
+- Dark only. Page `bg` → card `surface` → `surface-selected`; no drop shadows, no gradients except art scrims, one `surface-highlight` card per view.
+- **Purple means good, orange means needs work** — never red/green for match or performance meaning. `--color-error` / `--color-success` stay only for system states (form validation, failed requests, destructive confirmations).
+- **Clash Display** for headlines, titles and every number (tabular); **Satoshi** for everything else. Type and spacing in `rem`.
+- Pill-shaped controls, 24px card radius, 44px minimum touch targets, `shadow-focus` on every focusable element.
+- Lucide icons only, through `BaseIcon`; champion art from `client/src/utils/leagueAssets.js`.
+- Summary sentence before scores before detail; "you" voice; glossary words (match, Riot ID, sync, score, readiness, insight, goal).
 
-Tailwind also extends with: `text-4xs` (8px), `text-3xs` (9px), `text-2xs` (10px).
+**Code mapping**: tokens live as CSS variables in `client/src/style.css` (existing `--color-*` names mapped to design-system values) and are exposed to Tailwind in `client/tailwind.config.js`. Use Tailwind for layout and sizing, CSS variables for themed values. Never hard-code a colour, radius, shadow or duration that is not a design-system token.
 
-### Font Weights
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--font-weight-normal` | `400` | Body text |
-| `--font-weight-medium` | `500` | Default weight, labels |
-| `--font-weight-semibold` | `600` | Buttons, emphasis |
-| `--font-weight-bold` | `700` | Headings, strong emphasis |
+**Migration status**: the Vue app is being migrated to the design system screen by screen. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
 
 ---
 
-## 4. Spacing, Radius & Shadows
+## 3. Navigation Model
 
-### Spacing Scale
+**Primary navigation**: one 80px top header on every `/app/*` page, built from the design system's PillNav. There is no sidebar.
 
-| Token | Size | Usage |
-|-------|------|-------|
-| `--spacing-xs` | `0.5rem` (8px) | Tight gaps, inline spacing |
-| `--spacing-sm` | `0.75rem` (12px) | Form element gaps |
-| `--spacing-md` | `1rem` (16px) | Standard padding, gaps |
-| `--spacing-lg` | `1.5rem` (24px) | Section spacing |
-| `--spacing-xl` | `2rem` (32px) | Large section padding |
-| `--spacing-2xl` | `3rem` (48px) | Major section breaks |
+- **Left**: logo, links to `/app/overview`
+- **Middle**: PillNav (`<nav aria-label="Main">`, `aria-current="page"` on the active pill)
+- **Right**: the player's avatar (main champion icon). It opens a menu with the Riot account switcher (when several accounts are linked), Settings (`/app/user`), Feedback (`/app/feedback`) and Log out.
+- The header is the same on every page, including Champion Select.
+- **Phones** (below 900px): the header shrinks to 56px with only the logo and the avatar; the pills move to a fixed bottom tab bar (see below).
 
-### Border Radius
+### Phone tab bar
 
-| Token | Size | Usage |
-|-------|------|-------|
-| `--radius-sm` | `0.375rem` (6px) | Badges, small elements |
-| `--radius-md` | `0.5rem` (8px) | Buttons, inputs, cards |
-| `--radius-lg` | `0.75rem` (12px) | Modals, large cards |
+Desktop comes first; this is the only phone-specific navigation.
 
-### Shadows
+- Fixed to the bottom, 64px tall plus the safe-area inset, `surface-raised` with a `divider` hairline on top.
+- One tab per navigation item: icon above a short label (`house` Overview, `shield` Champ Select, `swords` Matches, `chart-line` Solo, `users` Advanced when enabled).
+- "Champion Select" is shortened to "Champ Select" on phones only; the page title keeps the full name.
+- The active tab uses `positive-text` (light purple) and `aria-current="page"`; the bar is the same `<nav aria-label="Main">` as on desktop.
+- It stays visible on every app page. A match opened at `/app/matches/:matchId` shows a back arrow in the header that returns to the list.
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--shadow-sm` | `0 2px 8px rgba(0,0,0,0.5)` | Subtle elevation |
-| `--shadow-md` | `0 8px 30px rgba(109,40,217,0.15)` | Cards, buttons on hover |
-| `--shadow-lg` | `0 20px 60px rgba(109,40,217,0.25)` | Modals, dropdowns |
-
----
-
-## 5. Tailwind Integration
-
-Design tokens are bridged into Tailwind via `client/tailwind.config.js`. CSS variables are the source of truth; Tailwind consumes them.
-
-```js
-// Tailwind class → CSS variable mapping
-bg-primary         → var(--color-primary)
-bg-background-surface → var(--color-surface)
-text-text-secondary → var(--color-text-secondary)
-border-border      → var(--color-border)
-text-success       → var(--color-success)
-text-error         → var(--color-error)
-rounded-md         → var(--radius-md)
-shadow-md          → var(--shadow-md)
-p-md               → var(--spacing-md)
-tracking-tight     → var(--letter-spacing)
-```
-
-**Rule**: Use CSS variables for colors/typography/spacing. Use Tailwind for layout utilities (flex, grid, gap, positioning).
-
----
-
-## 6. Navigation Model
-
-**Primary navigation**: Left-side vertical sidebar (`AppSidebar.vue`)
-- Collapsible: icons + labels → icons only
-- Persistent across all `/app/*` routes
-- Auto-collapses in Champion Select
-- State persisted to `localStorage` via `uiStore`
-- Mobile breakpoint: `1024px` (auto-collapse)
-
-### Sidebar Entries
+### Navigation Items
 
 ```
 Overview         → /app/overview
 Champion Select  → /app/champion-select
 Matches          → /app/matches
 Solo             → /app/solo
-Team             → /app/team      (Pro tier — lock icon for free users)
-Goals            → /app/goals
-User             → /app/user
+Advanced         → (planned)      Team and Goals combined; not implemented yet
 ```
 
-> **Implementation note**: The Team and Goals nav entries are currently gated by feature flags
-> (`VITE_FEATURE_TEAM_ANALYTICS` and `VITE_FEATURE_GOALS`) and are hidden when the flags are
-> disabled. This is **intentional** — both features are still under development. The long-term
-> design intent (always-visible entries with a lock icon for free-tier users) will be implemented
-> once the underlying pages are ready. Until then, `v-if="featureFlags.teamAnalytics"` and
-> `v-if="featureFlags.goals"` remain on the corresponding `<router-link>` elements in
-> `AppSidebar.vue`.
+Advanced (working name) combines Team and Goals into one page, which keeps the navigation at five items. It is not implemented for now: until then the existing Team and Goals pages stay hidden behind their feature flags (`VITE_FEATURE_TEAM_ANALYTICS`, `VITE_FEATURE_GOALS`). How Pro-only pages are marked is decided when Pro is implemented (no badges on pills).
+
+> **Implementation note**: the app still renders the legacy `AppSidebar.vue` (with the feature flags on its `<router-link>` elements). It is replaced by the top header during the design-system migration.
 
 **Architecture decision**: Solo and Team are **separate top-level pages** (not tabs) for:
 1. Better upgrade perceived value
@@ -256,7 +151,7 @@ User             → /app/user
 
 ---
 
-## 7. Route Map
+## 4. Route Map
 
 All routes defined in `client/src/router/index.js`.
 
@@ -286,9 +181,10 @@ All routes defined in `client/src/router/index.js`.
 | `/app/overview` | `app-overview` | `OverviewPage.vue` | Free |
 | `/app/champion-select` | `app-champion-select` | `ChampionSelectPage.vue` | Free |
 | `/app/matches` | `app-matches` | `MatchesPage.vue` | Free |
+| `/app/matches/:matchId` | *(planned)* | `MatchesPage.vue` with one match open | Free |
 | `/app/solo` | `app-solo` | `SoloStatsPage.vue` | Free |
-| `/app/team` | `app-team` | `TeamAnalyticsPage.vue` | Pro |
-| `/app/goals` | `app-goals` | `GoalsPage.vue` | Free |
+| `/app/team` | `app-team` | `TeamAnalytics.vue` | Pro (flagged off; moves into Advanced) |
+| `/app/goals` | `app-goals` | `GoalsPage.vue` | Free (flagged off; moves into Advanced) |
 | `/app/user` | `app-user` | `UserSettingsPage.vue` | Free |
 | `/app/feedback` | `app-feedback` | `FeedbackPage.vue` | Free |
 
@@ -305,17 +201,17 @@ All routes defined in `client/src/router/index.js`.
 
 ---
 
-## 8. Layout Architecture
+## 5. Layout Architecture
 
 ### `AppLayout.vue` (authenticated shell)
-- **Structure**: `AppSidebar` (fixed left) + `<router-view>` (flex-1 main content)
-- **Sidebar width**: Dynamic from `uiStore.sidebarWidth`; content uses `margin-left` with CSS transition
+- **Structure**: top header (logo, PillNav, avatar menu; Section 3) above `<router-view>`. Content max width 1328px, 56px side gutters on desktop, 16px on phones.
+- **Legacy**: the current code still uses `AppSidebar` with `uiStore.sidebarWidth`; removed in the migration.
 - **Idle detection**: 30-minute threshold; on tab return, refreshes user data + triggers sync check
 - **Activity tracking**: Throttled to 30s intervals (mousemove, keydown, click, scroll)
 
 ### `OverviewLayout.vue` (overview page container)
 - Named slots: `#header`, `#glance-left`, `#glance-right`, `#recent-left`, `#recent-right`, `#latest-match`, `#empty-action`
-- Handles loading (spinner), error (retry), empty (link account CTA) states
+- Handles loading (Skeleton), error (retry), empty (link account CTA) states
 - Single-column layout, one-scroll max
 
 ### `AnalysisLayout.vue` (shared by Solo/Team)
@@ -327,28 +223,43 @@ All routes defined in `client/src/router/index.js`.
 - Prop: `pageTitle`
 
 ### `NavBar.vue` (public pages)
-- Fixed top, glassmorphism (`rgba(0,0,0,0.8)` + `backdrop-blur-[12px]`)
-- Desktop: Features/Pricing/How It Works/Login + "Get Started" CTA
+- Fixed top header for public pages
+- Logo, "Features" and "How it works" anchors, "Log in", and "Create free account" as the one filled button (no Pricing while we focus on the free version)
 - Mobile: hamburger toggle with slide-down animation
 - Logo links to `/app/user` if authenticated, `/` if not
 
 ---
 
-## 9. Page Responsibilities
+## 6. Page Responsibilities
+
+### Landing (`/`)
+**Role**: Marketing page that shows what a free account gives you, and sends players to sign-up. Like Blitz's landing page, it sells the product; unlike Blitz, the value starts after an account, because we store the player's matches (email sign-up, then Riot ID link).
+
+Top to bottom:
+1. **Header** (`NavBar`, Section 5).
+2. **Hero**: one headline about the player's outcome and a concrete subline (design system headline rules), "Create free account" as the main button, "Log in" beside it, and one trust line ("Free · Built on Riot's official API"). Visual: a product preview built from our real components (champion hero, score rings, an insight) with data from a real example account, labelled "Example". No screenshots or illustrations.
+3. **Features**: a grid of cards, one per thing you get, each tagged with the page it lives on (Overview, Champion Select, Matches, Solo) and showing a small real-component example.
+4. **How it works**: three steps: create an account with your email, link your Riot ID, we sync your recent matches (a few minutes) and your Overview fills in. Mention Riot sign-in only once it is planned for real.
+5. **Proof**: matches analysed and players from `/public/stats`, shown only once the numbers are large enough to help.
+6. **Footer**: legal links, contact, "Not affiliated with Riot Games". No pricing section for now.
 
 ### Overview (`/app/overview`)
-**Role**: Situational awareness and routing. Time budget: 5–15 seconds.
+**Role**: Today at a glance. One summary sentence the player can read in 5 seconds, then the evidence below it.
 
-Components used:
-- `OverviewPlayerHeader` — profile icon, summoner name, region, context badges
-- `ChampionSelectCTA` — quick link to champion select
-- `MatchActivityHeatmap` — daily match counts grid
-- `AnalysisStatusCard` — sync/analysis status
-- `LastMatchCard` — last match summary, click → match details
+Layout (design system, top to bottom):
+1. **ChampionHero**: the player's main champion splash, one headline about them ("Your Ahri laning is elite. Your late-game discipline is not."), one supporting sentence, the player line (Riot ID · main champion · rank · LP), a primary action ("See today's matches") and up to two glass stat chips.
+2. **Three ScoreRings**: Laning, Teamfighting, Discipline (0–100, change over the last matches, three contributors each).
+3. **Your champions**: three ChampionCards plus an "Also played" list. Choosing a card swaps the hero's art, headline and chips.
+4. **Queue readiness** (ReadinessMeter, the one highlight card) beside **Today's matches** (MatchRows linking to each match).
+5. **Insights**: InsightCards, three per row, strongest first, six at most.
 
-Data sources: `getOverview()`, `getMatchActivity()` from `authApi`
+Sync progress (SyncProgress) sits at the top of the content while matches come in and never blocks the page. Every card has skeleton, empty, error and content states.
 
-**Non-goals**: Deep graphs, champion matrices, comparative analysis, editable controls.
+Data sources: `getOverview()` today; scores, readiness and insights need new backend data, built when the Overview is implemented (Section 1).
+
+Current code (legacy, replaced in the migration): `OverviewPlayerHeader`, `TodaySessionCard`, `DeathInsightsCard`, `ChampionSelectCTA`, `AnalysisStatusCard`, `SoloAnalyticsCTA`, `LastMatchCard`.
+
+**Non-goals**: Deep graphs, champion matrices, filters.
 
 ### Champion Select (`/app/champion-select`)
 **Role**: Real-time decision support during pick/ban phase.
@@ -367,7 +278,9 @@ Components: `OpponentSearchBar`, `MainChampionCard`, `BaseQueueToggle`, `BaseTim
 ### Matches (`/app/matches`)
 **Role**: Review what just happened. Match list with quick summaries.
 
-Components: `MatchList` → `MatchRow` items → click expands `MatchDetails` with:
+Every match has its own address, `/app/matches/:matchId`, so it can be shared and the back button works. Each `MatchRow` is one link to it. On desktop the match opens beside the list, which stays in place; below 900px it opens as its own page with a back link. Opening a match never animates.
+
+Components: `MatchList` → `MatchRow` items → `MatchDetails` with:
 - `MatchHeader` — champion, result, KDA, timestamp, queue
 - `WinPredictionStats` — role-aware stat grid with sentiment coloring vs. baseline
 - `MatchNarrative` — AI-generated match story
@@ -383,12 +296,14 @@ Components: `MatchList` → `MatchRow` items → click expands `MatchDetails` wi
 
 Zone layout via `AnalysisLayout`:
 - Zone 1: `BaseQueueToggle` (centered) + `BaseTimeRangeSelect` (right-aligned)
-- Zone 2: `SummaryStatsCard` — games played, win rate, average KDA (with overall comparisons)
-- Zone 3: `TrendChartCard` — Winrate trend (rolling 20-game)
+- Zone 2: `SummaryStatsCard` — matches played, win rate, average KDA (with overall comparisons)
+- Zone 3: `TrendChartCard` — Win rate trend (rolling 20-match)
 
-Charts default to last 20 games. Expand button switches to full season in-place (no modal).
+Time ranges count matches, never days: each chart card has a segmented control (Last 20 / Last 50 / Season), default Last 20, switching in place (no modal).
 
 Data sources: `getSoloDashboard()`, `getWinrateTrend()` from `authApi`
+
+> **Advanced** (planned, not implemented): Team and Goals below will be combined into one page called Advanced (working name).
 
 ### Team (`/app/team`) — Pro tier
 **Role**: Team performance analysis.
@@ -409,6 +324,8 @@ Components: `DeleteAccountModal`, `LinkRiotAccountModal`
 ### Auth (`/auth`)
 **Role**: Login/register/forgot-password toggle. `?mode=login|register&redirect={path}`
 
+Onboarding order: create an account with email and password → verify the email (6-digit code) → link a Riot ID ("Link Riot account") → first sync fills the Overview. Signing in with a Riot account is planned and will replace the first two steps.
+
 Forgot-password is a third form state: email input → submit → redirect to reset page. "Forgot password?" link visible in login mode. Back link returns to login.
 
 ### Reset Password (`/auth/reset-password`)
@@ -421,7 +338,7 @@ Pre-fills email from `?email=` query param. Code input uses same monospace `trac
 
 ---
 
-## 10. Base Components
+## 7. Base Components
 
 Located in `client/src/components/base/`. Exported via `index.js` barrel.
 
@@ -494,7 +411,7 @@ Ranked-tier badge, colored via the [Rank Colors](#2-design-tokens-css-variables)
 
 ---
 
-## 11. Overview Components
+## 8. Overview Components
 
 Located in `client/src/components/overview/`.
 
@@ -549,42 +466,9 @@ Static call-to-action linking to champion select page. No props.
 ### `AnalysisStatusCard`
 Shows current sync/analysis status. No props (reads from store/composable internally).
 
-### `OverviewAccountCards`
-Per-linked-account summary cards with active-account switching.
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `accounts` | `Array` | required | Account summary data to render |
-| `linkedAccounts` | `Array` | `[]` | Full linked-account list (for switching) |
-| `activeAccountPuuid` | `String` | — | Currently selected account |
-
-### `TodaySessionCard`
-Today/this-week/season stat waterfall — auto-selects the most relevant starting page.
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `sessionStats` | `Object` | `null` | Today's session stats |
-| `combinedStats` | `Object` | `null` | Combined/season stats |
-| `loading` | `Boolean` | `false` | Loading state |
-
-### `DeathInsightsCard`
-Survival-rate context card (e.g. "you die less than usual after 20 min").
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `survivalStats` | `Object` | `null` | Death/survival aggregate stats |
-| `loading` | `Boolean` | `false` | Loading state |
-
-### `SoloAnalyticsCTA`
-Static call-to-action linking to the Solo analysis page.
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `subtitle` | `String` | `'Track your trends and improve'` | CTA subtitle text |
-
 ---
 
-## 12. Match Components
+## 9. Match Components
 
 Located in `client/src/components/matches/`.
 
@@ -619,7 +503,7 @@ Detailed stat breakdown grid.
 - **Support**: Kill Participation, Gold @15, Vision/min
 - **Non-Support**: Kill Participation, Gold @15, Dmg/Gold efficiency
 
-Color-coded with sentiment borders (positive green / negative red).
+Color-coded with sentiment borders (positive purple / needs-work orange).
 
 ### `LaneMatchupDetails`
 Two-phase display:
@@ -632,14 +516,14 @@ Includes AI-generated matchup insight text.
 Team damage comparison bars (ally vs enemy), gold lead @15, objective counts (dragons/barons/towers). Uses Community Dragon CDN for icons.
 
 ### `TrendBadge`
-Inline badge with ↑/↓ arrows. Props: `{ text, type, stat }` badge object. Types: positive (green), negative (red), neutral (gray).
+Inline badge with ↑/↓ arrows. Props: `{ text, type, stat }` badge object. Types: positive (`positive-text`), negative (`warn-text`), neutral (`ink-muted`).
 
 ### `MatchActions`
 Navigation links from match detail to relevant analysis pages.
 
 ---
 
-## 13. Solo Analysis Components
+## 10. Solo Analysis Components
 
 Located in `client/src/components/solo/`.
 
@@ -672,48 +556,9 @@ Slots: `#default` with `{ dataLimit }` slot prop
 ### `WinrateChart`
 Chart.js line chart for rolling win rate. Prop: `data` (array of win rate data points). Subtitle: "Rolling 20-game average".
 
-### `TrendLineChart`
-Shared Chart.js line-chart base — `CsPerMinuteChart`, `DeathsChart`, `DragonParticipationChart`, `GoldAt15Chart`, `VisionChart`, and `WinrateChart` all wrap it rather than duplicating Chart.js setup. Reach for this directly only when building a new trend chart with no existing wrapper.
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `data` | `Array` | `[]` | Data points to plot |
-| `config` | `Object` | — | Chart behavior config (labels, colors, reference lines) |
-
-### `CsPerMinuteChart`, `DeathsChart`, `DragonParticipationChart`, `VisionChart`
-One `TrendLineChart` wrapper per solo trend metric (§5 route map: `/trends/cs-per-minute`, `/trends/deaths`, `/trends/dragon-participation`, `/trends/vision-score`). Same shape:
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `data` | `Array` | `[]` | Trend data points for this metric |
-| `overallAverage` | `Number` | — | Season-wide average, shown as a reference line |
-
-### `GoldAt15Chart`
-Same `data`/`overallAverage` shape as above, plus:
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `chartMode` | `String` | — | `'merged'` or `'per-account'` display mode |
-
-### `RadarChart`
-Multi-axis radar chart for the solo dashboard's role-relative performance view (`GET /solo/radar-chart/{userId}`).
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `axes` | `Array` | `[]` | Radar axis definitions + values |
-| `gamesAnalyzed` | `Number` | `0` | Sample size shown alongside the chart |
-
-### `DangerZonesMap`
-Map overlay plotting death positions (`GET /solo/death-positions/{userId}`).
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `deaths` | `Array` | `[]` | Death position data points |
-| `totalDeaths` | `Number` | — | Total death count for the filter window |
-
 ---
 
-## 14. Shared Components
+## 11. Shared Components
 
 ### `AnalysisLayout` (`client/src/components/shared/`)
 Zone-based layout used by Solo and Team pages.
@@ -736,12 +581,15 @@ Slots: `#context-bar`, `#summary`, `#trend-charts`
 
 ---
 
-## 15. Root-Level Components
+## 12. Root-Level Components
 
 Located in `client/src/components/`.
 
 ### `AppSidebar`
-Vertical navigation sidebar. Reads collapsed state from `uiStore`. Shows lock icons for Pro-tier pages (Duo, Team) when user is free tier. Delegates account switching to `sidebar/AccountSwitcher` (below).
+*(Legacy — replaced by the top header, Section 3.)* Vertical navigation sidebar. Reads collapsed state from `uiStore`. Shows lock icons for Pro-tier pages (Duo, Team) when user is free tier.
+
+### `AppHeader`
+Header component (used within app layout context).
 
 ### `SessionExpiredBanner`
 Fixed top banner (z-index 400) with slide-down transition. Appears on 401 detection. Preserves current route for redirect after re-login.
@@ -794,7 +642,7 @@ Feature components for `UserSettingsPage`. All are self-contained (read `authSto
 
 ---
 
-## 16. Composables
+## 13. Composables
 
 Located in `client/src/composables/`.
 
@@ -812,30 +660,9 @@ Used by `OverviewPage` and `SoloStatsPage` to reactively update after match sync
 ### `useAnalysisStatus()`
 Tracks analysis/sync status for display in `AnalysisStatusCard`.
 
-### `useSoloDashboardData()`
-Orchestration composable for the Solo page — owns filter state (queue/time range), calls `soloApi`/`trendsApi` in parallel via `useAsyncData`, and wires `useSyncWebSocket` so dashboard data refreshes when a sync completes. Centralizes what would otherwise be duplicated fetch/filter logic across the solo dashboard's many chart cards.
-
-### `useAsyncData(fetcher, options)`
-Generic async-fetch composable: standardizes loading/error/data state for a single fetcher function. Options: `immediate` (fetch on creation), `transform` (post-process result), `errorMessage` (fallback error text).
-
-### `useAnalyticsQueue(options)`
-Client-side event queueing/batching for analytics tracking — `track(eventName, payload)` queues an event, auto-flushing to `analyticsApi` on an interval or queue-size threshold; `getMetrics()` exposes queue health for debugging.
-
-### `useCookieConsent()`
-Cookie-consent state: localStorage-backed, cross-tab synchronized, with a 183-day expiry per CNIL guidelines. Backs `CookieConsentBanner`.
-
-### `useUserIcon()`
-Curated, theme-grouped set of League profile icon IDs for the user-icon picker (`UserIconSection`).
-
-### `useChartDisplayMode()`
-Module-level shared `chartMode` ref (`'merged'` | `'per-account'`), persisted to `localStorage`. Lets multi-account users toggle whether trend charts merge accounts or plot them separately — consumed by chart components like `GoldAt15Chart` (see `chartMode` prop in §13).
-
-### `useDefaultView()`
-Module-level shared `defaultView` ref (`'overall'` | a specific account), persisted to `localStorage`. Remembers which account view the user last selected in `AccountSwitcher`/`AccountDropdownList`.
-
 ---
 
-## 17. Stores
+## 14. Stores
 
 Located in `client/src/stores/`. Using **Pinia**.
 
@@ -845,12 +672,12 @@ Located in `client/src/stores/`. Using **Pinia**.
 - **Computed**: `isAuthenticated`, `isVerified`, `isInitialized`, `username`, `email`, `tier`, `primaryRiotAccount`
 
 ### `uiStore`
-- **State**: sidebar collapsed (persisted to `localStorage`), mobile breakpoint (1024px)
+- **State** *(legacy, goes with the sidebar)*: sidebar collapsed (persisted to `localStorage`), mobile breakpoint (1024px)
 - **Computed**: `sidebarWidth` — auto-collapse on small screens
 
 ---
 
-## 18. Services & API Client
+## 15. Services & API Client
 
 Located in `client/src/services/`.
 
@@ -899,7 +726,7 @@ Browser/OS detection, environment context capture, submit via `apiClient.post`.
 
 ---
 
-## 19. Utilities
+## 16. Utilities
 
 Located in `client/src/utils/`.
 
@@ -915,118 +742,24 @@ CDN helpers for League of Legends assets:
 - `getChampionIconUrl()`, `getRoleIconUrl()`, `getProfileIconUrl()`, `getItemIconUrl()`, `getSummonerSpellIconUrl()`
 - `normalizeChampionName()` — strips special chars for URL safety
 
-### `chartConfigs.js`
-Chart.js configuration builders — one per solo trend chart (`winrateConfig()`, `deathsConfig()`, `dragonParticipationConfig()`, `visionScoreConfig()`, `goldAt15Config()`, `csPerMinuteConfig()`), plus `ACCOUNT_*` color constants for multi-account chart series. Consumed by the `TrendLineChart`-wrapping components in §13.
+---
 
-### `featureFlags.js`
-Exports `featureFlags`, sourced from `VITE_FEATURE_*` env vars (see §6's note on `VITE_FEATURE_TEAM_ANALYTICS` / `VITE_FEATURE_GOALS`).
+## 17. Accessibility
+
+Follow "States and accessibility" in `.claude/skills/mongoose-design/reference/design-system.md`. In short:
+- **Focus**: every interactive element shows `shadow-focus` on keyboard focus.
+- **Contrast**: 4.5:1 minimum; each text token lists the grounds it is allowed on.
+- **Touch targets**: at least 44px tall (buttons 48px).
+- **Meters**: scores and meters use `role="meter"` with `aria-valuetext` in words.
+- **Motion**: respect `prefers-reduced-motion`; **contrast**: `prefers-contrast: more` uses the High contrast token values.
+- **Text size**: type and spacing in `rem` so 200% zoom works.
+- **Screen reader**: `.visually-hidden` utility class; icon-only buttons get `aria-label`; decorative icons `aria-hidden="true"`.
+- **Headless UI**: used for complex interactive components (Dialog, Menu, Transition) for built-in ARIA support.
+- **Semantic HTML**: proper heading hierarchy, `<button>` vs `<a href>`, form labels, `aria-pressed` / `aria-current`.
 
 ---
 
-## 20. Component Patterns (CSS)
-
-### Cards
-```css
-background: var(--color-surface);
-border: 1px solid var(--color-border);
-border-radius: var(--radius-lg);
-padding: var(--spacing-xl);
-backdrop-filter: blur(10px);
-```
-
-### Primary Button
-```css
-background: var(--color-primary);
-color: white;
-padding: var(--spacing-md);
-border-radius: var(--radius-md);
-font-weight: var(--font-weight-semibold);
-transition: all 0.2s;
-box-shadow: var(--shadow-sm);
-/* Hover: shadow-md + translateY(-2px) */
-/* Disabled: opacity 0.6, cursor not-allowed */
-```
-
-### Ghost Button
-```css
-background: transparent;
-color: var(--color-primary);
-border: 1px solid var(--color-border);
-/* Hover: border-color primary, bg primary-soft */
-```
-
-### Form Inputs
-```css
-padding: var(--spacing-md);
-background: var(--color-bg);
-border: 1px solid var(--color-border);
-border-radius: var(--radius-md);
-color: var(--color-text);
-/* Focus: border primary, box-shadow 0 0 0 3px primary-soft */
-/* Error: border #ef4444, box-shadow rgba(239,68,68,0.2) */
-```
-
-### Dropdowns
-```css
-background: var(--color-surface);
-border: 1px solid var(--color-border);
-border-radius: var(--radius-md);
-box-shadow: var(--shadow-lg);
-/* Items: hover bg elevated */
-/* Divider: 1px border color */
-```
-
----
-
-## 21. Animations & Transitions
-
-### Standard Transition
-```css
-transition: all 0.2s ease;
-```
-
-### Hover Lift Effect
-```css
-:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-```
-
-### Dropdown Animation
-```css
-.dropdown-enter-from, .dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-```
-
-### Loading Spinner
-```css
-.spinner {
-  width: 16px; height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 0.8s linear infinite;
-}
-```
-
----
-
-## 22. Accessibility
-
-- **Focus states**: Always visible — `box-shadow: 0 0 0 3px var(--color-primary-soft)`
-- **Color contrast**: 4.5:1 ratio minimum for text on backgrounds
-- **Disabled states**: `opacity: 0.6` + `cursor: not-allowed`
-- **Touch targets**: Minimum 44×44px on mobile
-- **Screen reader**: `.visually-hidden` utility class (position absolute, 1×1px, overflow hidden)
-- **Headless UI**: Used for all complex interactive components (Dialog, Menu, Transition) for built-in ARIA support
-- **Semantic HTML**: Required — use proper heading hierarchy, button vs link distinction, form labels
-
----
-
-## 23. Z-Index Scale
+## 18. Z-Index Scale
 
 | Layer | Z-Index | Usage |
 |-------|---------|-------|
@@ -1039,41 +772,32 @@ transition: all 0.2s ease;
 
 ---
 
-## 24. Icons
+## 19. Icons
 
-Use [Heroicons](https://heroicons.com/) via `@heroicons/vue`:
+Lucide only, via `BaseIcon` (`client/src/components/base/BaseIcon.vue`, SVGs in `client/src/assets/icons/`). Sizes 16 / 20 / 24px, `currentColor`, always next to a word. The icon vocabulary (one meaning per icon) is the Iconography table in `.claude/skills/mongoose-design/reference/design-system.md`. Champion, item, rune, role and rank emblems are Riot images, never icons.
 
-```js
-import { UserIcon, CogIcon } from '@heroicons/vue/24/solid'
-import { UserIcon, CogIcon } from '@heroicons/vue/24/outline'
-```
-
-Standard sizes:
-- Small: `w-4 h-4` (16px)
-- Medium: `w-5 h-5` (20px)
-- Large: `w-6 h-6` (24px)
+Heroicons and hand-drawn inline SVGs are legacy: switch a component to `BaseIcon` when you touch it.
 
 ---
 
-## 25. Win Rate Color System
+## 20. Win Rate Color System
 
-Implemented via `useWinRateColor()` composable + CSS classes in `style.css`.
+Implemented via `useWinRateColor()` composable + `winrate-*` CSS classes in `style.css`. Values follow the design-system `winrate-*` tokens (purple = good, orange = needs work):
 
-| Class | CSS Variable | Range |
+| Class | Design token | Range |
 |-------|-------------|-------|
-| `winrate-terrible` | `--color-winrate-terrible` (#ef4444) | < 40% |
-| `winrate-bad` | `--color-winrate-bad` (#f97316) | 40–45% |
-| `winrate-poor` | `--color-winrate-poor` (#fdba74) | 45–48% |
-| `winrate-average` | `--color-winrate-average` (#eab308) | 48–52% |
-| `winrate-good` | `--color-winrate-good` (#84cc16) | 52–55% |
-| `winrate-great` | `--color-winrate-great` (#22c55e) | > 55% |
-| `winrate-neutral` | `--color-text` (#ffffff) | No data |
+| `winrate-terrible` | `winrate-terrible` | < 40% |
+| `winrate-bad` | `winrate-bad` | 40–47% |
+| `winrate-average` | `winrate-average` | 48–52% |
+| `winrate-good` | `winrate-good` | 53–59% |
+| `winrate-great` | `winrate-great` | 60%+ |
+| `winrate-neutral` | `ink` | No data |
 
-Legacy aliases (`winrate-red`, `winrate-green`, etc.) exist for backward compatibility.
+Exact values and allowed grounds are in `.claude/skills/mongoose-design/reference/tokens.json`. Legacy aliases (`winrate-red`, `winrate-green`, etc.) exist only for backward compatibility.
 
 ---
 
-## 26. Bias-Aware UX Rules
+## 21. Bias-Aware UX Rules
 
 These prevent common UX errors in stressful gaming contexts:
 
@@ -1087,38 +811,39 @@ These prevent common UX errors in stressful gaming contexts:
 
 ---
 
-## 27. Design Constraints (Non-Negotiable)
+## 22. Design Constraints (Non-Negotiable)
 
 1. Champion Select reachable in one click from any page
 2. Overview never blocks user flow
 3. No duplicated deep analysis across pages
-4. Context (Solo/Team) always visible via separate sidebar entries *(planned — currently gated by feature flags; see Section 6 implementation note)*
-5. Team shows lock icon for free users (not 403 or blank wall) *(planned — not yet implemented)*
+4. Context (Solo/Team) always visible via separate navigation pills *(Team moves into Advanced, which is not built yet; see Section 3)*
+5. Team is never a 403 or blank wall for free users *(how it is marked in the navigation is decided when Pro is implemented)*
 6. Navigation hierarchy remains stable across all pages
 7. Every chart/stat must have actionable meaning
 8. Single-match insights always framed as trends
-9. Premium features appear early in the journey
+9. Premium features appear early in the journey *(deferred: free version first)*
 10. Champion Select is scannable and requires no learning
 
 ---
 
-## 28. New Component Checklist
+## 23. New Component Checklist
 
 When creating new UI components:
 
-- [ ] Uses design tokens from `style.css` — no hardcoded colors, sizes, or shadows
+- [ ] Built from the Mongoose.gg design system (`/mongoose-design`): uses an existing design-system component where one fits; tokens only — no hard-coded colours, sizes, radii, shadows or durations
+- [ ] Clash Display for titles and numbers, Satoshi for text; purple/orange semantics, never red/green for performance
 - [ ] Follows `<script setup>` Composition API pattern
-- [ ] Reuses base components (`BaseButton`, `BaseCard`, `BaseModal`, `BaseInput`) where applicable
-- [ ] Includes loading and error states for async data
-- [ ] Has accessibility attributes (aria-labels, roles, keyboard navigation)
-- [ ] Meets 4.5:1 color contrast ratio
-- [ ] Uses Heroicons for iconography
-- [ ] Applies standard `transition: all 0.2s ease`
+- [ ] Reuses base components (`BaseButton`, `BaseCard`, `BaseModal`, `BaseInput`, `BaseIcon`) where applicable
+- [ ] Has Skeleton (loading), EmptyState (nothing yet), inline error with retry, and content states for async data
+- [ ] Has accessibility attributes (aria-labels, roles, meters, keyboard navigation) and `shadow-focus`
+- [ ] Meets 4.5:1 color contrast ratio and 44px touch targets
+- [ ] Uses Lucide icons through `BaseIcon`, always with a word
+- [ ] Motion only shows a change, with a `prefers-reduced-motion` path
 - [ ] Respects z-index scale
 - [ ] Uses Tailwind for layout, CSS variables for visual properties
 - [ ] Has matching unit test in `client/test/unit/`
 - [ ] Every displayed metric answers one question and implies one action
-- [ ] Follows bias-aware rules (Section 26)
+- [ ] Follows bias-aware rules (Section 21)
 
 ---
 

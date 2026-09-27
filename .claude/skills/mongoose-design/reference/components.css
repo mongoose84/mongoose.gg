@@ -1,0 +1,124 @@
+/* Mongoose.gg design system — component classes. Every value comes from tokens.css. */
+
+.mp-page { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-variant-numeric: tabular-nums; }
+.mp-display { font-family: var(--font-display); }
+
+.mp-focusable:focus-visible,
+.mp-btn:focus-visible, .mp-nav a:focus-visible, .mp-seg button:focus-visible,
+.mp-champ-card:focus-visible, .mp-match-row:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+
+/* Card */
+.mp-card { background: var(--surface); border-radius: var(--radius-xl); padding: var(--space-7); }
+.mp-card--highlight { background: var(--surface-highlight); border: 1px solid var(--border-highlight); }
+.mp-card-title { font-family: var(--font-display); font-weight: 600; font-size: 20px; line-height: 1.3; margin: 0; color: var(--ink); }
+
+/* Button */
+.mp-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: 48px; padding: 0 24px; border-radius: var(--radius-pill); border: 0; font: 600 15px/1 var(--font-body); text-decoration: none; cursor: pointer; }
+.mp-btn--primary { background: var(--primary-strong); color: var(--on-primary); }
+.mp-btn--primary:hover { background: var(--primary-strong-hover); }
+.mp-btn--secondary { background: var(--surface-selected); color: var(--ink); }
+.mp-btn--secondary:hover { background: var(--surface-selected-hover); }
+.mp-btn--ghost { background: transparent; color: var(--positive-text); padding: 0 12px; }
+.mp-btn--ghost:hover { color: var(--positive-text-strong); }
+.mp-btn--sm { height: 36px; padding: 0 16px; font-size: 14px; }
+.mp-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+/* Pill navigation */
+.mp-nav { display: inline-flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-pill); background: var(--surface-raised); }
+.mp-nav a { display: flex; align-items: center; height: 36px; padding: 0 18px; border-radius: var(--radius-pill); color: var(--ink-muted); font: 500 14px/1 var(--font-body); text-decoration: none; }
+.mp-nav a:hover { color: var(--ink); }
+.mp-nav a[aria-current="page"] { background: var(--surface-selected); color: var(--ink); font-weight: 700; }
+
+/* Segmented control */
+.mp-seg { display: inline-flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-pill); background: var(--surface-raised); }
+.mp-seg button { height: 32px; padding: 0 14px; border-radius: var(--radius-pill); border: 0; background: transparent; color: var(--ink-muted); font: 500 13px/1 var(--font-body); cursor: pointer; }
+.mp-seg button[aria-pressed="true"] { background: var(--surface-selected); color: var(--ink); font-weight: 700; }
+
+/* Chip */
+.mp-chip { display: inline-flex; align-items: center; gap: var(--space-1); height: 24px; padding: 0 10px; border-radius: var(--radius-pill); font: 700 12px/1 var(--font-body); }
+.mp-chip--strength { background: var(--primary-soft); color: var(--positive-text-strong); }
+.mp-chip--pattern, .mp-chip--trend { background: var(--warn-soft); color: var(--warn-text); }
+.mp-chip--glass { background: var(--glass); color: var(--ink); height: 36px; padding: 0 14px; font-size: 13px; }
+
+/* Score ring */
+.mp-ring { position: relative; flex-shrink: 0; }
+.mp-ring svg { display: block; }
+.mp-ring .mp-ring-track { stroke: var(--track); }
+.mp-ring .mp-ring-fill { stroke: var(--primary); }
+.mp-ring--warn .mp-ring-fill { stroke: var(--warn); }
+.mp-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.mp-ring-value { font: 700 40px/1 var(--font-display); color: var(--ink); }
+.mp-ring-delta { font: 700 13px/1.4 var(--font-body); }
+.mp-up { color: var(--positive-text); }
+.mp-down { color: var(--warn-text); }
+
+.mp-score-card { display: flex; align-items: center; gap: var(--space-7); }
+.mp-score-card .mp-contrib { display: flex; justify-content: space-between; border-top: 1px solid var(--divider); padding-top: var(--space-2); font-size: 14px; color: var(--ink-soft); }
+
+/* Readiness meter */
+.mp-meter { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 3px; }
+.mp-meter span { height: 28px; border-radius: var(--radius-sm); background: var(--track-strong); }
+.mp-meter span.is-on { background: var(--primary); }
+.mp-eyebrow { font: 700 13px/1.3 var(--font-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--positive-text); }
+
+/* Champion hero */
+.mp-hero { position: relative; overflow: hidden; border-radius: var(--radius-2xl); background: var(--surface); min-height: 400px; }
+.mp-hero-art { position: absolute; top: 0; right: 0; height: 100%; width: 68%; object-fit: cover; object-position: 70% 30%; }
+.mp-hero-scrim { position: absolute; inset: 0 auto 0 0; width: 76%; background: linear-gradient(90deg, #0a0810 0%, #0a0810 42%, rgba(10,8,16,0.75) 62%, rgba(10,8,16,0) 100%); }
+.mp-hero-body { position: relative; box-sizing: border-box; min-height: 400px; max-width: 700px; padding: var(--space-11) 48px; display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-7); }
+.mp-hero-body h1 { margin: 0; font: 600 44px/1.12 var(--font-display); letter-spacing: -0.01em; color: var(--ink); }
+.mp-hero-body p { margin: 0; font-size: 16px; line-height: 1.55; color: var(--ink-soft); max-width: 560px; }
+
+/* Champion card */
+.mp-champ-card { position: relative; display: block; height: 300px; padding: 0; overflow: hidden; border-radius: var(--radius-xl); border: 2px solid transparent; background: var(--surface); color: var(--ink); text-align: left; font: inherit; cursor: pointer; }
+.mp-champ-card[aria-pressed="true"] { border-color: var(--primary); }
+.mp-champ-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 55% 30%; }
+.mp-champ-card-scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 190px; background: linear-gradient(180deg, rgba(10,8,16,0) 0%, rgba(10,8,16,0.85) 45%, #0a0810 100%); }
+.mp-champ-card-body { z-index: 1; position: absolute; left: 22px; right: 22px; bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
+.mp-champ-name { font: 700 26px/1.2 var(--font-display); }
+.mp-bar { position: relative; height: 4px; border-radius: var(--radius-xs); background: rgba(255,255,255,0.12); }
+.mp-bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: var(--radius-xs); background: var(--primary); }
+
+/* Match row */
+.mp-match-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) 110px 90px 80px; gap: var(--space-4); align-items: center; min-height: 68px; border-top: 1px solid var(--divider); color: var(--ink); text-decoration: none; }
+.mp-portrait { width: 48px; height: 48px; border-radius: var(--radius-pill); border: 2px solid var(--primary); object-fit: cover; }
+.mp-portrait--loss { border-color: var(--warn); }
+.mp-match-row .mp-lp { font: 600 16px/1 var(--font-display); text-align: right; }
+
+/* Insight card */
+.mp-insight { display: flex; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-lg); background: var(--surface); }
+.mp-insight img { width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0; }
+.mp-insight h3 { margin: 0; font: 600 16px/1.4 var(--font-display); color: var(--ink); }
+.mp-insight p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-muted); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .mp-ring .mp-ring-fill { transition: stroke-dasharray 600ms cubic-bezier(.2,.7,.2,1); }
+  .mp-btn, .mp-nav a, .mp-champ-card { transition: background-color 150ms, color 150ms, border-color 150ms; }
+}
+
+/* Spotlight hover (ported from Vue Bits SpotlightCard): clickable cards only */
+.mp-spotlight { position: relative; overflow: hidden; }
+.mp-spotlight::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), var(--spotlight), transparent 70%); }
+.mp-spotlight:hover::after, .mp-spotlight:focus-visible::after { opacity: 1; }
+
+/* Skeleton loading */
+.mp-skeleton { display: block; border-radius: var(--radius-sm); background: var(--track); }
+.mp-skeleton--text { height: 14px; }
+.mp-skeleton--title { height: 22px; width: 40%; }
+.mp-skeleton--ring { width: 140px; height: 140px; border-radius: var(--radius-pill); background: transparent; border: 11px solid var(--track); box-sizing: border-box; }
+.mp-skeleton--portrait { width: 48px; height: 48px; border-radius: var(--radius-pill); }
+
+/* Empty state */
+.mp-empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: var(--space-7); border-radius: var(--radius-xl); background: var(--surface); border: 1px dashed var(--border-highlight); }
+.mp-empty h3 { margin: 0; font: 600 20px/1.3 var(--font-display); color: var(--ink); }
+.mp-empty p { margin: 0; max-width: 52ch; font-size: 15px; line-height: 1.55; color: var(--ink-soft); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .mp-spotlight::after { transition: opacity 300ms ease-out; }
+  .mp-skeleton { animation: mp-skeleton-pulse 1.6s ease-in-out infinite; }
+  @keyframes mp-skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+}
+
+/* Icon: Lucide, inline SVG, takes the text colour */
+.mp-icon { display: inline-block; flex-shrink: 0; vertical-align: middle; color: inherit; }
+.mp-chip .mp-icon { margin-left: -2px; }
