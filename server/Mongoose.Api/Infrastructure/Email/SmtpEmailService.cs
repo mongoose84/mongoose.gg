@@ -86,7 +86,7 @@ public class SmtpEmailService : IEmailService
 
         if (string.IsNullOrWhiteSpace(smtpUsername) || string.IsNullOrWhiteSpace(smtpPassword) || string.IsNullOrWhiteSpace(fromEmail))
         {
-            _logger.LogError("SMTP configuration is incomplete. Email not sent to {Email}", RedactEmailForLog(toEmail));
+            _logger.LogError("SMTP configuration is incomplete. Email not sent to {EmailHash}", LogSanitizer.HashForLog(toEmail));
             throw new InvalidOperationException("SMTP configuration is incomplete. Please configure Email:SmtpHost, Email:SmtpUsername, and Email:SmtpPassword.");
         }
 

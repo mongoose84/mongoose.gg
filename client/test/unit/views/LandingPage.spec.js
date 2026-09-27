@@ -92,6 +92,25 @@ describe('LandingPage.vue', () => {
     expect(footer.find('a[href="/terms"]').exists()).toBe(true);
   });
 
+  it('exposes the example readiness meter to screen readers', async () => {
+    const wrapper = await createWrapper();
+    const meter = wrapper.get('[data-testid="readiness-meter"]');
+    expect(meter.attributes('role')).toBe('meter');
+    expect(meter.attributes('aria-valuenow')).toBe('71');
+    expect(meter.attributes('aria-valuetext')).toBe('71 out of 100, good to go');
+    // 20 segments, round(71 / 5) = 14 switched on
+    const segments = meter.findAll('span');
+    expect(segments).toHaveLength(20);
+    expect(segments.filter((s) => s.classes().includes('bg-primary-accent'))).toHaveLength(14);
+  });
+
+  it('shows signed LP with a real minus sign in the match example', async () => {
+    const wrapper = await createWrapper();
+    const matches = wrapper.get('[data-testid="feature-matches"]').text();
+    expect(matches).toContain('+19 LP');
+    expect(matches).toContain('−17 LP');
+  });
+
   describe('Solo trend preview', () => {
     it('switches the example range', async () => {
       const wrapper = await createWrapper();
@@ -116,6 +135,18 @@ describe('LandingPage.vue', () => {
       getPublicStats.mockResolvedValue({ totalMatches: 3_249_000, activePlayers: 900 });
       const wrapper = await createWrapper();
       expect(wrapper.get('[data-testid="hero-trust"]').text()).toContain('3.2M+ matches analysed');
+    });
+
+    it('stays hidden just below 10,000 matches', async () => {
+      getPublicStats.mockResolvedValue({ totalMatches: 9_999, activePlayers: 50 });
+      const wrapper = await createWrapper();
+      expect(wrapper.get('[data-testid="hero-trust"]').text()).not.toContain('matches analysed');
+    });
+
+    it('appears at exactly 10,000 matches', async () => {
+      getPublicStats.mockResolvedValue({ totalMatches: 10_000, activePlayers: 50 });
+      const wrapper = await createWrapper();
+      expect(wrapper.get('[data-testid="hero-trust"]').text()).toContain('10K+ matches analysed');
     });
 
     it('keeps the page intact when the stats request fails', async () => {

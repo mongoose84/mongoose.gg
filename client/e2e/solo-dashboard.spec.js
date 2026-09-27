@@ -61,7 +61,7 @@ test.describe('Solo Dashboard Flow', () => {
     await page.getByRole('button', { name: /^log in$/i }).click();
 
     // Should show error message
-    await expect(page.locator('[class*="error"]').or(page.getByText(/invalid|incorrect|failed/i))).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('alert').filter({ hasText: /invalid|incorrect|failed/i })).toBeVisible({ timeout: 5_000 });
 
     // Should still be on auth page
     await expect(page).toHaveURL('/auth');
