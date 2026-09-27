@@ -140,3 +140,16 @@ A Lucide line icon as inline SVG, sized 16, 20 or 24px, coloured by the text aro
 - In the Vue app use `BaseIcon` (`<BaseIcon name="swords" :size="20" />`), which reads the SVG files from `client/src/assets/icons/`.
 - Chips carry an icon at 16px before the word: Strength `trending-up`, Pattern `repeat`, Trend `activity`.
 - Don't: use an icon without a word (except close, copy, overflow), use two icons for one meaning, or colour an icon differently from its label.
+
+## EmailTemplate
+
+The layout of every transactional email (email verification, password reset): one card on the dark ground with the code in the single highlight box.
+
+- Provide: a subject, a preheader (the inbox preview line: when the code expires), a title (sentence case, the action: "Verify your email", "Reset your password"), one sentence that starts "Hi {username}," and says what to do with the code, the code, its label (`eyebrow`: "VERIFICATION CODE", "RESET CODE"), the expiry line, an optional next step, and a line for people who did not ask for the email.
+- Layout: `bg` ground; the logo and "Mongoose.gg" above the card; one `surface` card with a `divider` border and `radius-xl`; the code in a `surface-highlight` box with `border-highlight` and `radius-lg`, its digits in Clash Display 40px with wide letter spacing; the footer in `ink-faint` with "Not affiliated with Riot Games" and the year.
+- Text colours: title and code `ink`, body `ink-soft`, the ignore line and code label `ink-muted`.
+- Width: fluid up to 560px; below 480px the card padding drops from 40/36px to 28/20px. Mark it `color-scheme: dark` so clients do not invert it.
+- Fonts: Clash Display and Satoshi first in each stack, then system fonts. Most mail clients cannot load web fonts, so the system fallback is what most players see; the design must hold up in it.
+- Always send a plain-text part with the same copy next to the HTML part.
+- Code lives in `server/Mongoose.Api/Infrastructure/Email/EmailTemplates.cs`; HTML-encode every user value.
+- Don't: add buttons that log the player in, images other than the logo, tracking pixels, exclamation marks or emoji; put the code in the subject line.

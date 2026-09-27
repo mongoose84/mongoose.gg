@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using System.Reflection;
+using System.Text;
 using Mongoose.Api.Application.Endpoints.Shared;
 
 namespace Mongoose.Api.Infrastructure.Email;
@@ -10,6 +11,8 @@ namespace Mongoose.Api.Infrastructure.Email;
 /// </summary>
 public class SmtpEmailService : IEmailService
 {
+    private const string FromName = "The Mongoose.gg Team";
+
     private readonly IConfiguration _config;
     private readonly ILogger<SmtpEmailService> _logger;
 
@@ -22,19 +25,46 @@ public class SmtpEmailService : IEmailService
     public async Task SendVerificationEmailAsync(string toEmail, string username, string verificationCode)
     {
         // Dev mode: do not log raw secrets (email/code)
-        var devMode = _config.GetValue<bool>("Email:DevMode", false);
-        if (devMode)
+        if (IsDevMode())
         {
-            _logger.LogWarning("========================================");
-            _logger.LogWarning("DEV MODE: Email sending disabled");
-            _logger.LogWarning("To: {Email}", RedactEmailForLog(toEmail));
-            _logger.LogWarning("Username: {Username}", LogSanitizer.HashForLog(username));
-            _logger.LogWarning("Verification Code Hash: {CodeHash}", LogSanitizer.HashForLog(verificationCode));
-            _logger.LogWarning("========================================");
-            await Task.CompletedTask;
+            LogDevModeEmail(toEmail, username, "Verification Code Hash", verificationCode);
             return;
         }
 
+        var content = EmailTemplates.Verification(username, verificationCode, hasLogo: GetLogoPath() is not null);
+        await SendAsync(toEmail, content, "Verification email");
+    }
+
+    public async Task SendPasswordResetEmailAsync(string toEmail, string username, string resetCode)
+    {
+        // Dev mode: do not log raw secrets (email/code)
+        if (IsDevMode())
+        {
+            LogDevModeEmail(toEmail, username, "Password Reset Code Hash", resetCode);
+            return;
+        }
+
+        var content = EmailTemplates.PasswordReset(username, resetCode, hasLogo: GetLogoPath() is not null);
+        await SendAsync(toEmail, content, "Password reset email");
+    }
+
+    private bool IsDevMode() => _config.GetValue<bool>("Email:DevMode", false);
+
+    private void LogDevModeEmail(string toEmail, string username, string codeLabel, string code)
+    {
+        _logger.LogWarning("========================================");
+        _logger.LogWarning("DEV MODE: Email sending disabled");
+        _logger.LogWarning("To: {Email}", RedactEmailForLog(toEmail));
+        _logger.LogWarning("Username: {Username}", LogSanitizer.HashForLog(username));
+        _logger.LogWarning("{CodeLabel}: {CodeHash}", codeLabel, LogSanitizer.HashForLog(code));
+        _logger.LogWarning("========================================");
+    }
+
+    /// <summary>
+    /// Sends one email with a plain-text part and an HTML part (logo embedded as a linked resource for Gmail compatibility).
+    /// </summary>
+    private async Task SendAsync(string toEmail, EmailContent content, string kind)
+    {
         var smtpHost = _config["Email:SmtpHost"] ?? Environment.GetEnvironmentVariable("SMTP_HOST");
         if (string.IsNullOrWhiteSpace(smtpHost))
         {
@@ -51,38 +81,10 @@ public class SmtpEmailService : IEmailService
         }
 
         var smtpUsername = _config["Email:SmtpUsername"] ?? Environment.GetEnvironmentVariable("SMTP_USERNAME");
-        if (string.IsNullOrWhiteSpace(smtpUsername))
-        {
-            var errorMessage = "SMTP username is not configured. Email not sent.";
-            _logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
-        }
-
         var smtpPassword = _config["Email:SmtpPassword"] ?? Environment.GetEnvironmentVariable("SMTP_PASSWORD");
-        if (string.IsNullOrWhiteSpace(smtpPassword))
-        {
-            var errorMessage = "SMTP password is not configured. Email not sent.";
-            _logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
-        }
-
         var fromEmail = _config["Email:FromEmail"] ?? Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? smtpUsername;
-        if (string.IsNullOrWhiteSpace(fromEmail))
-        {
-            var errorMessage = "SMTP from email is not configured. Email not sent.";
-            _logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
-        }
 
-        var fromName = "The Mongoose.gg Team";
-        if (string.IsNullOrWhiteSpace(fromName))
-        {
-            var errorMessage = "SMTP from name is not configured. Email not sent.";
-            _logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
-        }
-
-        if (string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(smtpUsername) || string.IsNullOrWhiteSpace(smtpPassword))
+        if (string.IsNullOrWhiteSpace(smtpUsername) || string.IsNullOrWhiteSpace(smtpPassword) || string.IsNullOrWhiteSpace(fromEmail))
         {
             _logger.LogError("SMTP configuration is incomplete. Email not sent to {Email}", RedactEmailForLog(toEmail));
             throw new InvalidOperationException("SMTP configuration is incomplete. Please configure Email:SmtpHost, Email:SmtpUsername, and Email:SmtpPassword.");
@@ -98,20 +100,18 @@ public class SmtpEmailService : IEmailService
 
             using var mailMessage = new MailMessage
             {
-                From = new MailAddress(fromEmail, fromName),
-                Subject = "Verify your Mongoose.gg email"
+                From = new MailAddress(fromEmail, FromName),
+                Subject = content.Subject
             };
 
             mailMessage.To.Add(toEmail);
 
-            // Build HTML body and attach logo as linked resource for Gmail compatibility
+            // Plain text first, HTML last: clients show the last part they support
+            mailMessage.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(content.Text, Encoding.UTF8, "text/plain"));
+
+            var htmlView = AlternateView.CreateAlternateViewFromString(content.Html, Encoding.UTF8, "text/html");
             var logoPath = GetLogoPath();
-            var hasLogo = !string.IsNullOrEmpty(logoPath);
-            var htmlBody = BuildEmailBody(username, verificationCode, hasLogo);
-
-            var htmlView = AlternateView.CreateAlternateViewFromString(htmlBody, null, "text/html");
-
-            if (hasLogo && logoPath != null)
+            if (logoPath is not null)
             {
                 var logoResource = new LinkedResource(logoPath, new System.Net.Mime.ContentType("image/png"))
                 {
@@ -120,184 +120,16 @@ public class SmtpEmailService : IEmailService
                 };
                 htmlView.LinkedResources.Add(logoResource);
             }
-
             mailMessage.AlternateViews.Add(htmlView);
 
             await smtpClient.SendMailAsync(mailMessage);
-            _logger.LogInformation("Verification email sent successfully");
+            _logger.LogInformation("{Kind} sent successfully", kind);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send verification email");
+            _logger.LogError(ex, "Failed to send {Kind}", kind);
             throw;
         }
-    }
-
-    public async Task SendPasswordResetEmailAsync(string toEmail, string username, string resetCode)
-    {
-        // Dev mode: do not log raw secrets (email/code)
-        var devMode = _config.GetValue<bool>("Email:DevMode", false);
-        if (devMode)
-        {
-            _logger.LogWarning("========================================");
-            _logger.LogWarning("DEV MODE: Email sending disabled");
-            _logger.LogWarning("To: {Email}", RedactEmailForLog(toEmail));
-            _logger.LogWarning("Username: {Username}", LogSanitizer.HashForLog(username));
-            _logger.LogWarning("Password Reset Code Hash: {CodeHash}", LogSanitizer.HashForLog(resetCode));
-            _logger.LogWarning("========================================");
-            await Task.CompletedTask;
-            return;
-        }
-
-        var smtpHost = _config["Email:SmtpHost"] ?? Environment.GetEnvironmentVariable("SMTP_HOST");
-        if (string.IsNullOrWhiteSpace(smtpHost))
-        {
-            _logger.LogError("SMTP host is not configured. Password reset email not sent.");
-            throw new InvalidOperationException("SMTP host is not configured");
-        }
-
-        var smtpPort = _config.GetValue<int>("Email:SmtpPort", 587);
-        var smtpUsername = _config["Email:SmtpUsername"] ?? Environment.GetEnvironmentVariable("SMTP_USERNAME");
-        var smtpPassword = _config["Email:SmtpPassword"] ?? Environment.GetEnvironmentVariable("SMTP_PASSWORD");
-        var fromEmail = _config["Email:FromEmail"] ?? Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? smtpUsername;
-
-        if (string.IsNullOrWhiteSpace(smtpUsername) || string.IsNullOrWhiteSpace(smtpPassword) || string.IsNullOrWhiteSpace(fromEmail))
-        {
-            _logger.LogError("SMTP configuration is incomplete. Password reset email not sent to {Email}", RedactEmailForLog(toEmail));
-            throw new InvalidOperationException("SMTP configuration is incomplete.");
-        }
-
-        try
-        {
-            using var smtpClient = new SmtpClient(smtpHost, smtpPort)
-            {
-                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                EnableSsl = true
-            };
-
-            using var mailMessage = new MailMessage
-            {
-                From = new MailAddress(fromEmail, "The Mongoose.gg Team"),
-                Subject = "Reset your Mongoose.gg password"
-            };
-
-            mailMessage.To.Add(toEmail);
-
-            var logoPath = GetLogoPath();
-            var hasLogo = !string.IsNullOrEmpty(logoPath);
-            var htmlBody = BuildPasswordResetEmailBody(username, resetCode, hasLogo);
-
-            var htmlView = AlternateView.CreateAlternateViewFromString(htmlBody, null, "text/html");
-
-            if (hasLogo && logoPath != null)
-            {
-                var logoResource = new LinkedResource(logoPath, new System.Net.Mime.ContentType("image/png"))
-                {
-                    ContentId = "logo",
-                    TransferEncoding = System.Net.Mime.TransferEncoding.Base64
-                };
-                htmlView.LinkedResources.Add(logoResource);
-            }
-
-            mailMessage.AlternateViews.Add(htmlView);
-
-            await smtpClient.SendMailAsync(mailMessage);
-            _logger.LogInformation("Password reset email sent successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send password reset email");
-            throw;
-        }
-    }
-
-    private string BuildPasswordResetEmailBody(string username, string resetCode, bool hasLogo)
-    {
-        var encodedUsername = WebUtility.HtmlEncode(username);
-        var encodedCode = WebUtility.HtmlEncode(resetCode);
-
-        var logoImageHtml = hasLogo
-            ? @"<img src=""cid:logo"" alt=""Mongoose.gg"" width=""128"" height=""64"" style=""display: block; width: 128px; height: 64px; margin: 0 auto;"" />"
-            : "";
-
-        var textMarginTop = hasLogo ? "-4px" : "0";
-
-        return $@"
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset=""utf-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>Reset Your Password</title>
-</head>
-<body style=""margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a; color: #e5e5e5;"">
-    <table role=""presentation"" style=""width: 100%; border-collapse: collapse;"">
-        <tr>
-            <td align=""center"" style=""padding: 40px 0;"">
-                <table role=""presentation"" style=""width: 600px; max-width: 100%; border-collapse: collapse; background-color: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;"">
-                    <!-- Logo -->
-                    <tr>
-                        <td align=""center"" style=""padding: 40px 40px 10px 40px;"">
-                            <div style=""display: inline-block; text-align: center;"">
-                                {logoImageHtml}
-                                <div style=""margin-top: {textMarginTop};"">
-                                    <span style=""font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.025em;"">Mongoose.gg </span><span style=""font-size: 10px; font-weight: 400; color: #808080; vertical-align: top;"">Beta</span>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    <!-- Header -->
-                    <tr>
-                        <td align=""center"" style=""padding: 20px 40px 20px 40px;"">
-                            <h1 style=""margin: 0; font-size: 24px; font-weight: 700; color: #ffffff;"">Reset Your Password</h1>
-                        </td>
-                    </tr>
-                    <!-- Body -->
-                    <tr>
-                        <td style=""padding: 0 40px 20px 40px;"">
-                            <p style=""margin: 0 0 20px 0; font-size: 16px; line-height: 24px; color: #b3b3b3;"">
-                                Hi <strong style=""color: #ffffff;"">{encodedUsername}</strong>,
-                            </p>
-                            <p style=""margin: 0 0 20px 0; font-size: 16px; line-height: 24px; color: #b3b3b3;"">
-                                We received a request to reset your Mongoose.gg password. Enter the code below to set a new password:
-                            </p>
-                        </td>
-                    </tr>
-                    <!-- Reset Code -->
-                    <tr>
-                        <td align=""center"" style=""padding: 0 40px 30px 40px;"">
-                            <div style=""background-color: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 24px; display: inline-block;"">
-                                <div style=""font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #ffffff; font-family: 'Courier New', monospace;"">
-                                    {encodedCode}
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    <!-- Footer -->
-                    <tr>
-                        <td style=""padding: 0 40px 40px 40px;"">
-                            <p style=""margin: 0 0 10px 0; font-size: 14px; line-height: 20px; color: #808080;"">
-                                This code will expire in 15 minutes.
-                            </p>
-                            <p style=""margin: 0; font-size: 14px; line-height: 20px; color: #808080;"">
-                                If you did not request a password reset, you can safely ignore this email. Your password will not be changed.
-                            </p>
-                        </td>
-                    </tr>
-                    <!-- Branding -->
-                    <tr>
-                        <td align=""center"" style=""padding: 20px 40px 40px 40px; border-top: 1px solid #2a2a2a;"">
-                            <p style=""margin: 0; font-size: 12px; color: #666666;"">
-                                © 2026 Mongoose.gg - League of Legends Performance Tracker
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>";
     }
 
     private static string RedactEmailForLog(string? email)
@@ -321,103 +153,6 @@ public class SmtpEmailService : IEmailService
             : $"{local[0]}***{local[^1]}";
 
         return $"{localRedacted}@{domain}";
-    }
-
-    private string BuildEmailBody(string username, string verificationCode, bool hasLogo)
-    {
-        // HTML-encode user-controlled data to prevent HTML injection
-        var encodedUsername = WebUtility.HtmlEncode(username);
-        var encodedCode = WebUtility.HtmlEncode(verificationCode);
-
-        // Build logo HTML - use CID reference for Gmail compatibility
-        var logoImageHtml = hasLogo
-            ? @"<img src=""cid:logo"" alt=""Mongoose.gg"" width=""128"" height=""64"" style=""display: block; width: 128px; height: 64px; margin: 0 auto;"" />"
-            : "";
-
-        // Adjust margin based on whether logo is present
-        var textMarginTop = hasLogo ? "-4px" : "0";
-
-        return $@"
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset=""utf-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>Verify Your Email</title>
-</head>
-<body style=""margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a; color: #e5e5e5;"">
-    <table role=""presentation"" style=""width: 100%; border-collapse: collapse;"">
-        <tr>
-            <td align=""center"" style=""padding: 40px 0;"">
-                <table role=""presentation"" style=""width: 600px; max-width: 100%; border-collapse: collapse; background-color: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;"">
-                    <!-- Logo -->
-                    <tr>
-                        <td align=""center"" style=""padding: 40px 40px 10px 40px;"">
-                            <div style=""display: inline-block; text-align: center;"">
-                                {logoImageHtml}
-                                <div style=""margin-top: {textMarginTop};"">
-                                    <span style=""font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.025em;"">Mongoose.gg </span><span style=""font-size: 10px; font-weight: 400; color: #808080; vertical-align: top;"">Beta</span>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- Header -->
-                    <tr>
-                        <td align=""center"" style=""padding: 20px 40px 20px 40px;"">
-                            <h1 style=""margin: 0; font-size: 24px; font-weight: 700; color: #ffffff;"">Verify Your Email</h1>
-                        </td>
-                    </tr>
-                    
-                    <!-- Body -->
-                    <tr>
-                        <td style=""padding: 0 40px 20px 40px;"">
-                            <p style=""margin: 0 0 20px 0; font-size: 16px; line-height: 24px; color: #b3b3b3;"">
-                                Hi <strong style=""color: #ffffff;"">{encodedUsername}</strong>,
-                            </p>
-                            <p style=""margin: 0 0 20px 0; font-size: 16px; line-height: 24px; color: #b3b3b3;"">
-                                Thanks for signing up for Mongoose.gg! To complete your registration, please verify your email address by entering the code below:
-                            </p>
-                        </td>
-                    </tr>
-
-                    <!-- Verification Code -->
-                    <tr>
-                        <td align=""center"" style=""padding: 0 40px 30px 40px;"">
-                            <div style=""background-color: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 24px; display: inline-block;"">
-                                <div style=""font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #ffffff; font-family: 'Courier New', monospace;"">
-                                    {encodedCode}
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    
-                    <!-- Footer -->
-                    <tr>
-                        <td style=""padding: 0 40px 40px 40px;"">
-                            <p style=""margin: 0 0 10px 0; font-size: 14px; line-height: 20px; color: #808080;"">
-                                This code will expire in 15 minutes.
-                            </p>
-                            <p style=""margin: 0; font-size: 14px; line-height: 20px; color: #808080;"">
-                                If you didn't create an account with Mongoose.gg, you can safely ignore this email.
-                            </p>
-                        </td>
-                    </tr>
-                    
-                    <!-- Branding -->
-                    <tr>
-                        <td align=""center"" style=""padding: 20px 40px 40px 40px; border-top: 1px solid #2a2a2a;"">
-                            <p style=""margin: 0; font-size: 12px; color: #666666;"">
-                                © 2026 Mongoose.gg - League of Legends Performance Tracker
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>";
     }
 
     /// <summary>
