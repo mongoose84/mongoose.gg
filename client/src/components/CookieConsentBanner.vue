@@ -7,50 +7,42 @@
       aria-label="Cookie consent"
       :aria-describedby="`${uniqueId}-description`"
     >
-      <!-- Semi-transparent backdrop (inert — accidental clicks must not record a consent decision) -->
+      <!-- Dim scrim (inert — accidental clicks must not record a consent decision) -->
       <div class="cookie-consent-backdrop"></div>
 
-      <!-- Banner container -->
       <div class="cookie-consent-container">
         <div class="banner-content">
-          <!-- Header with icon and title -->
-          <div class="banner-header">
-            <span class="cookie-icon">🍪</span>
+          <div class="banner-text">
             <h2 class="banner-title">We use cookies</h2>
+            <p :id="`${uniqueId}-description`" class="banner-description">
+              Mongoose.gg uses an authentication cookie to keep you logged in. Without cookies,
+              login and analytics features won't be available.
+            </p>
+            <p class="banner-links">
+              Learn more in our
+              <router-link to="/cookies" class="policy-link mp-focusable">Cookie Policy</router-link>
+              and
+              <router-link to="/privacy" class="policy-link mp-focusable">Privacy Policy</router-link>.
+            </p>
           </div>
 
-          <!-- Description -->
-          <p :id="`${uniqueId}-description`" class="banner-description">
-            Mongoose.gg uses an authentication cookie to keep you logged in. Without cookies,
-            login and analytics features won't be available.
-          </p>
-
-          <!-- Policy links -->
-          <p class="banner-links">
-            Learn more in our
-            <router-link to="/cookies" class="policy-link">Cookie Policy</router-link>
-            and
-            <router-link to="/privacy" class="policy-link">Privacy Policy</router-link>.
-          </p>
-
-          <!-- Button row -->
           <div class="button-row">
-            <BaseButton
-              variant="secondary"
-              size="md"
-              @click="handleReject"
+            <button
+              type="button"
+              class="mp-btn mp-btn--secondary"
               data-testid="reject-cookies"
+              @click="handleReject"
             >
-              Reject Cookies
-            </BaseButton>
-            <BaseButton
-              variant="primary"
-              size="md"
-              @click="handleAccept"
+              Reject cookies
+            </button>
+            <button
+              type="button"
+              class="mp-btn mp-btn--primary"
               data-testid="accept-cookies"
+              @click="handleAccept"
             >
-              Accept Cookies
-            </BaseButton>
+              Accept cookies
+            </button>
           </div>
         </div>
       </div>
@@ -61,7 +53,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useCookieConsent } from '../composables/useCookieConsent'
-import BaseButton from './base/BaseButton.vue'
 
 const cookieConsent = useCookieConsent()
 
@@ -91,6 +82,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* Mongoose.gg design system: flat surface card on a dim scrim, pill buttons, no shadow or emoji */
 .cookie-consent-banner {
   position: fixed;
   bottom: 0;
@@ -103,123 +95,126 @@ onBeforeUnmount(() => {
 
 .cookie-consent-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  inset: 0;
+  background-color: rgba(10, 8, 16, 0.6);
   z-index: -1;
 }
 
 .cookie-consent-container {
   display: flex;
   justify-content: center;
-  align-items: flex-end;
-  padding: var(--spacing-lg);
-  min-height: auto;
+  padding: 0 1rem 1rem;
 }
 
 .banner-content {
-  background-color: #111111;
-  border: 1px solid rgba(109, 40, 217, 0.3);
-  border-bottom: none;
-  border-radius: var(--radius-lg);
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  padding: var(--spacing-lg) var(--spacing-xl);
-  max-width: 800px;
   width: 100%;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
-}
-
-.banner-header {
+  max-width: 50rem;
+  box-sizing: border-box;
+  padding: 1.25rem;
+  border-radius: 1.5rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-.cookie-icon {
-  font-size: 24px;
-  line-height: 1;
+.banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .banner-title {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--color-text);
   margin: 0;
-  line-height: 1.4;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
 }
 
-.banner-description {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin: 0 0 var(--spacing-md) 0;
-  line-height: 1.6;
+.banner-description,
+.banner-links {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
 }
 
 .banner-links {
-  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  margin: var(--spacing-md) 0;
-  line-height: 1.6;
 }
 
 .policy-link {
-  color: var(--color-primary);
-  text-decoration: none;
-  transition: opacity 0.2s ease;
+  border-radius: 0.25rem;
+  color: var(--color-positive-text);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 150ms ease-out;
 }
 
 .policy-link:hover {
-  opacity: 0.8;
-  text-decoration: underline;
+  color: var(--color-positive-text-strong);
 }
 
+/* Phones: full-width buttons, the main action on top */
 .button-row {
   display: flex;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-lg);
-  justify-content: flex-end;
+  flex-direction: column-reverse;
+  gap: 0.5rem;
 }
 
-/* Responsive: stack buttons on mobile */
-@media (max-width: 640px) {
+.button-row .mp-btn {
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .cookie-consent-container {
+    padding: 0 3.5rem 1.75rem;
+  }
+
   .banner-content {
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: 1.75rem;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 1.75rem;
+  }
+
+  .banner-text {
+    flex: 1;
   }
 
   .button-row {
-    flex-direction: column-reverse;
-    gap: var(--spacing-sm);
+    flex-direction: row;
+    flex-shrink: 0;
+    gap: 0.75rem;
   }
 
-  :deep(.btn) {
-    width: 100%;
+  .button-row .mp-btn {
+    width: auto;
   }
 }
 
-/* Animations */
+/* Entrance: slides up once over 300ms; instant with reduced motion */
 .slide-up-enter-active,
 .slide-up-leave-active {
-  transition: all 0.3s ease-out;
+  transition: transform 300ms ease-out, opacity 300ms ease-out;
 }
 
-.slide-up-enter-from {
-  transform: translateY(100%);
-  opacity: 0;
-}
-
+.slide-up-enter-from,
 .slide-up-leave-to {
-  transform: translateY(100%);
+  transform: translateY(8px);
   opacity: 0;
 }
 
-.slide-up-enter-to,
-.slide-up-leave-from {
-  transform: translateY(0);
-  opacity: 1;
+@media (prefers-reduced-motion: reduce) {
+  .slide-up-enter-active,
+  .slide-up-leave-active,
+  .policy-link {
+    transition: none;
+  }
 }
 </style>

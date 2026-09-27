@@ -30,10 +30,6 @@ function mountBanner() {
     global: {
       stubs: {
         Transition: false, // keep v-if reactive
-        BaseButton: {
-          template: '<button v-bind="$attrs" @click="$emit(\'click\')"><slot /></button>',
-          emits: ['click']
-        },
         RouterLink: {
           template: '<a><slot /></a>'
         }
@@ -64,6 +60,22 @@ describe('CookieConsentBanner.vue', () => {
       const wrapper = mountBanner()
 
       expect(wrapper.find('.cookie-consent-banner').exists()).toBe(false)
+    })
+  })
+
+  // ── design system ──────────────────────────────────────────────────────────
+
+  describe('design system', () => {
+    it('uses real buttons with sentence-case labels and no emoji', () => {
+      const wrapper = mountBanner()
+      const accept = wrapper.find('[data-testid="accept-cookies"]')
+      const reject = wrapper.find('[data-testid="reject-cookies"]')
+
+      expect(accept.element.tagName).toBe('BUTTON')
+      expect(accept.attributes('type')).toBe('button')
+      expect(accept.text()).toBe('Accept cookies')
+      expect(reject.text()).toBe('Reject cookies')
+      expect(wrapper.text()).not.toMatch(/\p{Emoji_Presentation}/u)
     })
   })
 
