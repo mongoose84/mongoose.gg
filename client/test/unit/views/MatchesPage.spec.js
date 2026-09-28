@@ -354,6 +354,66 @@ describe('MatchesPage', () => {
 
       expect(wrapper.findComponent(MatchDetailsStub).props('match')).toEqual({ matchId: 'MATCH_2' })
     })
+
+    it('ignores an older failed request for the same match once it was opened again', async () => {
+      let rejectFirst
+      let resolveSecond
+      mockGetMatchDetails
+        .mockReturnValueOnce(new Promise((_, reject) => { rejectFirst = reject }))
+        .mockResolvedValueOnce({ match: { matchId: 'MATCH_2' }, baseline: null })
+        .mockReturnValueOnce(new Promise((resolve) => { resolveSecond = resolve }))
+      mockGetMatchList.mockResolvedValue(listResponse([makeMatch('MATCH_1'), makeMatch('MATCH_2')]))
+      const wrapper = mountPage()
+      await flushPromises()
+
+      // A → B → A while the first request for A is still running
+      await openMatch('MATCH_1')
+      await openMatch('MATCH_2')
+      await openMatch('MATCH_1')
+
+      rejectFirst(new Error('boom'))
+      await flushPromises()
+      let details = wrapper.findComponent(MatchDetailsStub)
+      expect(details.props('error')).toBeNull()
+      expect(details.props('loading')).toBe(true)
+
+      resolveSecond({ match: { matchId: 'MATCH_1' }, baseline: null })
+      await flushPromises()
+      details = wrapper.findComponent(MatchDetailsStub)
+      expect(details.props('error')).toBeNull()
+      expect(details.props('loading')).toBe(false)
+      expect(details.props('match')).toEqual({ matchId: 'MATCH_1' })
+    })
+
+    it('opens the newest match again on desktop when the URL goes back to the plain list', async () => {
+      setDesktop(true)
+      mockGetMatchDetails.mockResolvedValue({ match: { matchId: 'MATCH_2' }, baseline: null })
+      mockGetMatchList.mockResolvedValue(listResponse([makeMatch('MATCH_1'), makeMatch('MATCH_2')]))
+      mountPage()
+      await flushPromises()
+      await openMatch('MATCH_2')
+      mockReplace.mockClear()
+
+      // The Matches tab links to /app/matches without a match
+      mockRoute.params = {}
+      await flushPromises()
+
+      expect(mockReplace).toHaveBeenCalledWith({ name: 'app-matches', params: { matchId: 'MATCH_1' } })
+      expect(mockGetMatchList).toHaveBeenCalledTimes(1)
+    })
+
+    it('stays on the list on phones when the URL goes back to the plain list', async () => {
+      setDesktop(false)
+      mockGetMatchDetails.mockResolvedValue({ match: { matchId: 'MATCH_1' }, baseline: null })
+      mockGetMatchList.mockResolvedValue(listResponse([makeMatch('MATCH_1')]))
+      mountPage()
+      await flushPromises()
+      await openMatch('MATCH_1')
+
+      mockRoute.params = {}
+      await flushPromises()
+      expect(mockReplace).not.toHaveBeenCalled()
+    })
   })
 
   describe('account resolution in Overall mode', () => {

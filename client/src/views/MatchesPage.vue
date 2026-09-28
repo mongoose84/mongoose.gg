@@ -241,6 +241,7 @@ const queueFilter = ref('all')
 const showLinkModal = ref(false)
 const hasFetched = ref(false)
 let listRequest = 0
+let detailsRequest = 0
 
 const {
   data,
@@ -349,6 +350,8 @@ function getMatchDetailsAccountId(matchId) {
 }
 
 function clearDetails() {
+  // Any request still in flight is now stale
+  detailsRequest++
   matchDetails.value = null
   matchDetailsBaseline.value = null
   matchDetailsAccountId.value = null
@@ -395,15 +398,18 @@ async function fetchMatchDetails(matchId) {
     return
   }
 
+  const request = ++detailsRequest
   matchDetailsAccountId.value = accountId
   detailsLoading.value = true
   detailsError.value = null
 
+  // Only the latest request may touch the state: an older one for the same match
+  // (opened again, or a double retry) must not overwrite or clear what it loaded
+  const isCurrent = () => request === detailsRequest && selectedMatchId.value === matchId
+
   try {
     const result = await getMatchDetails(matchId, accountId)
-
-    // Guard against a race: only apply the answer for the match that is still open
-    if (selectedMatchId.value !== matchId) return
+    if (!isCurrent()) return
 
     if (result === null) {
       clearDetails()
@@ -414,13 +420,13 @@ async function fetchMatchDetails(matchId) {
     matchDetails.value = result.match ?? null
     matchDetailsBaseline.value = result.baseline ?? null
   } catch (err) {
-    if (selectedMatchId.value !== matchId) return
+    if (!isCurrent()) return
 
     console.error('Failed to fetch match details:', err)
     clearDetails()
     detailsError.value = 'failed'
   } finally {
-    if (selectedMatchId.value === matchId) {
+    if (isCurrent()) {
       detailsLoading.value = false
     }
   }
@@ -445,8 +451,14 @@ watch(selectedMatchId, (matchId) => {
   if (matchId && authStore.isOverallMode && !hasFetched.value) return
   if (matchId) {
     fetchMatchDetails(matchId)
-  } else {
-    clearDetails()
+    return
+  }
+  clearDetails()
+  // Back on the plain list URL (e.g. the Matches tab) with the list loaded: desktop opens the
+  // newest match again. While the list reloads, fetchMatches opens it when the answer arrives.
+  const first = matches.value[0]?.matchId
+  if (first && hasFetched.value && !isLoading.value && isDesktop()) {
+    router.replace({ name: 'app-matches', params: { matchId: first } })
   }
 }, { immediate: true })
 
