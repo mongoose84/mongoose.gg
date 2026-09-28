@@ -217,3 +217,47 @@ export function laneBar(diff) {
     ? { result: 'won', behindWidth: '0%', aheadWidth: width, diffText: formatSigned(diff), description: `won lane by ${amount} gold at 10 minutes` }
     : { result: 'lost', behindWidth: width, aheadWidth: '0%', diffText: formatSigned(diff), description: `lost lane by ${amount} gold at 10 minutes` }
 }
+
+/** Signed LP change with a real minus: "+19 LP", "−17 LP", "±0 LP"; null when unknown */
+export function formatLpChange(value) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return null
+  if (value === 0) return '±0 LP'
+  return `${formatSigned(value)} LP`
+}
+
+/** Class for an LP change: purple gain, orange loss, neutral for none */
+export function lpChangeClass(value) {
+  if (typeof value !== 'number' || value === 0) return null
+  return value > 0 ? 'mp-up' : 'mp-down'
+}
+
+const APEX_TIERS = ['MASTER', 'GRANDMASTER', 'CHALLENGER']
+const TIERS = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', ...APEX_TIERS]
+
+/**
+ * Rank after a match for the banner chip: "Emerald II · 64 LP", "Master · 120 LP".
+ * Returns { label, tierKey } (tierKey picks the --color-rank-* colour) or null without a known tier.
+ */
+export function formatRankAfter(tier, division, lp) {
+  if (typeof tier !== 'string' || !TIERS.includes(tier.toUpperCase())) return null
+  const tierKey = tier.toLowerCase()
+  const tierName = tierKey.charAt(0).toUpperCase() + tierKey.slice(1)
+  const rankName = APEX_TIERS.includes(tier.toUpperCase()) || !division ? tierName : `${tierName} ${division}`
+  return {
+    label: typeof lp === 'number' ? `${rankName} · ${lp} LP` : rankName,
+    tierKey
+  }
+}
+
+/** Queue filters whose matches share one LP ladder, so their changes can be added up */
+export const RANKED_QUEUE_FILTERS = ['ranked_solo', 'ranked_flex']
+
+/**
+ * The LP total over the list for the page header ("+86 LP over 20"): { total, matches } over the
+ * matches with a known change, or null with fewer than two of them.
+ */
+export function sumLpChange(matches) {
+  const known = (matches || []).filter((m) => typeof m.lpChange === 'number')
+  if (known.length < 2) return null
+  return { total: known.reduce((sum, m) => sum + m.lpChange, 0), matches: known.length }
+}

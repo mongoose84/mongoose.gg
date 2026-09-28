@@ -81,6 +81,29 @@ describe('MatchHeader', () => {
     expect(wrapper.get('[data-testid="match-header"]').classes()).toContain('match-header--plain')
   })
 
+  it('adds the LP change and the rank after the match as glass chips', () => {
+    const wrapper = mountHeader({ lpChange: 19, lpAfter: 64, tierAfter: 'EMERALD', rankAfter: 'II' })
+    const lp = wrapper.get('[data-testid="match-header-lp"]')
+    expect(lp.text()).toBe('+19 LP')
+    expect(lp.find('.match-header__chip-number--up').exists()).toBe(true)
+
+    const rank = wrapper.get('[data-testid="match-header-rank"]')
+    expect(rank.text()).toBe('Emerald II · 64 LP')
+    expect(rank.get('.match-header__tier-dot').attributes('style')).toContain('var(--color-rank-emerald')
+  })
+
+  it('shows a loss of LP in orange with a real minus', () => {
+    const lp = mountHeader({ win: false, lpChange: -17 }).get('[data-testid="match-header-lp"]')
+    expect(lp.text()).toBe('−17 LP')
+    expect(lp.find('.match-header__chip-number--down').exists()).toBe(true)
+  })
+
+  it('leaves the LP and rank chips out without recorded LP', () => {
+    const wrapper = mountHeader({ lpChange: null, tierAfter: null })
+    expect(wrapper.find('[data-testid="match-header-lp"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="match-header-rank"]').exists()).toBe(false)
+  })
+
   it('has no download button (it lives in All your stats)', () => {
     expect(mountHeader().find('[data-testid="match-download"]').exists()).toBe(false)
   })

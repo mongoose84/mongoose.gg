@@ -141,7 +141,7 @@ Each adds fields to `OverviewResponse` (update `architecture.spec.md`) and its s
 
 Agreed 2026-09-28 after a UX audit: the open match leads with one finding instead of five tallies, and every comparison is drawn rather than written ("show, then say" in the design system). Target: the "visual" artboards on the Mongoose.gg Matches redesign canvas (https://claude.ai/artifact/Ufv95okAfSYgmnaJgniRhL): `MainVisual` (desktop), `PhoneMatchVisual`, `PhoneListVisual`. Components and rules are already in the design system (FormStrip, UsualMeter, LaneBar, ColumnChart, SplitBar, the ChampionHero match banner, time-chart moment markers).
 
-Four PRs, in order; each is shippable alone. **Status: 4a built on branch `implement_phase_4`** (2026-09-28); unit tests (1552) and build green; visual pass at 1440 / 1024 / 390px with a real account. 4b not started.
+Four PRs, in order; each is shippable alone. **Status: 4a built on branch `implement_phase_4`** (2026-09-28); unit tests (1552) and build green; visual pass at 1440 / 1024 / 390px with a real account. 4b built on the same branch (2026-09-28), see its notes.
 
 ### 4a. Visual pass with existing data (frontend only)
 - [x] Port the classes the page needs from `reference/components.css` into `client/src/style.css`: `mp-form`, `mp-columns`, `mp-lane-bar`, `mp-split`, `mp-stat`, `mp-hero--match`, the MatchRow additions. Delete the scoped copies they replace (this covers the "Switch the Matches components to the design system's classes" item below).
@@ -166,9 +166,19 @@ Four PRs, in order; each is shippable alone. **Status: 4a built on branch `imple
 - Leftovers: no E2E beyond the smoke load (the E2E user has no matches); the Step 5 design-system update for the empty SplitBar is still to do.
 
 ### 4b. LP change and rank after each match (backend + frontend)
-- [ ] Add `lpChange` (and `tierAfter` / `rankAfter`) to `MatchListSummaryItem` and `MatchDetailsItem`: from `participants.lp_after`, compared with the same player's previous ranked match in the same queue; null for unranked queues, the first ranked match, and tier or division changes it can't resolve (decide in the PR whether promotions are computed or shown as "Promoted"). Parameterized SQL, update `architecture.spec.md`.
-- [ ] Wire `lpChange` into `BaseMatchRow` (the prop exists), the page header total ("+86 LP over 20", ranked queues only) and the banner chips (LP, rank with its tier colour).
-- [ ] Backend integration tests for the delta, including queue separation and missing `lp_after`.
+- [x] Add `lpChange` (and `tierAfter` / `rankAfter`) to `MatchListSummaryItem` and `MatchDetailsItem`: from `participants.lp_after`, compared with the same player's previous ranked match in the same queue; null for unranked queues, the first ranked match, and tier or division changes it can't resolve (decide in the PR whether promotions are computed or shown as "Promoted"). Parameterized SQL, update `architecture.spec.md`.
+- [x] Wire `lpChange` into `BaseMatchRow` (the prop exists), the page header total ("+86 LP over 20", ranked queues only) and the banner chips (LP, rank with its tier colour).
+- [x] Backend integration tests for the delta, including queue separation and missing `lp_after`.
+
+#### 4b outcome notes
+- Sync writes the current rank onto the newest ranked match only (`MatchHistorySyncJob.UpdateLpForMostRecentRankedMatchAsync`), so the change compares with the match right before in the same queue (SQL `LAG` over `participants` × `matches` per player and queue), never the last match that happens to have LP. Several matches played between two syncs therefore get no change except when each was synced on its own.
+- Promotions and demotions are computed, not shown as "Promoted": one ladder with 100 LP per division from Iron IV to Diamond I, and Master / Grandmaster / Challenger sharing one LP count above it (`LpChangeCalculator` in Core).
+- Guards (null instead of a wrong number): a jump over 100 LP, a win with no gain or a loss, a loss that gained LP (the LP was read before Riot applied the match, or a match is missing), an unknown tier or division.
+- API: `lpChange`, `lpAfter`, `tierAfter`, `rankAfter` on list items and on the open match.
+- Rows show "±0 LP" in neutral for no change; in the narrow list the LP sits above the result.
+- Header total only for one ranked queue (Solo/Duo or Flex are separate ladders), over the matches with a known change ("+23 LP over 3"), hidden with fewer than two.
+- Banner chips: signed LP, and the rank with its `--color-rank-*` dot ("Emerald II · 64 LP"; no division for Master and above). Only known tiers reach the colour variable.
+- The repository integration tests are opt-in (`RUN_DB_INTEGRATION_TESTS` + `Database_test`) like the existing ones.
 
 ### 4c. "What decided it" (spec first, then backend + frontend)
 - [ ] Feature spec (`feature-spec` / `architect`): how the deciding stat is picked (extend `TrendBadgeCalculator`'s biggest-deviation logic across gold at 10, kill participation, CS at 10, deaths before 10, vision), the "usual" baselines it needs (`RoleBaseline` has no gold-at-10 or CS-at-10 averages yet), the finding and fix copy per stat, and what shows when nothing stands out.

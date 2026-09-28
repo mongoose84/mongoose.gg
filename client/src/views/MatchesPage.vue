@@ -37,6 +37,10 @@
             <p v-if="subline" class="matches-header__subline" data-testid="matches-subline">{{ subline }}</p>
           </div>
           <BaseFormStrip v-if="form.length > 1" :results="form" class="matches-header__form" />
+          <p v-if="lpTotal" class="matches-header__lp" data-testid="matches-lp-total">
+            <span class="matches-header__lp-value" :class="lpChangeClass(lpTotal.total)">{{ lpTotalText }}</span>
+            <span class="matches-header__lp-label">LP over {{ lpTotal.matches }}</span>
+          </p>
         </div>
         <BaseSegmentedControl
           v-model="queueFilter"
@@ -128,6 +132,7 @@
                 :duration-seconds="match.gameDurationSec"
                 :timestamp="match.gameStartTime"
                 :riot-id="matchRiotId(match)"
+                :lp-change="match.lpChange ?? null"
                 @click="trackMatchSelect(match.matchId, index, queueFilter)"
               />
             </nav>
@@ -201,7 +206,11 @@ import {
   buildMatchesHeadline,
   buildMatchesSubline,
   buildStartTimeChart,
-  formResults
+  formResults,
+  formatSigned,
+  lpChangeClass,
+  sumLpChange,
+  RANKED_QUEUE_FILTERS
 } from '../utils/matchesSummary'
 import BaseButton from '../components/base/BaseButton.vue'
 import BaseIcon from '../components/base/BaseIcon.vue'
@@ -284,6 +293,16 @@ const queueLabel = computed(() => QUEUE_OPTIONS.find((o) => o.value === queueFil
 const headline = computed(() => buildMatchesHeadline(matches.value) ?? 'Your matches')
 const subline = computed(() => buildMatchesSubline(matches.value))
 const form = computed(() => formResults(matches.value))
+
+// LP over the list, only for one ranked queue (Solo/Duo and Flex are separate ladders)
+const lpTotal = computed(() =>
+  RANKED_QUEUE_FILTERS.includes(queueFilter.value) ? sumLpChange(matches.value) : null
+)
+const lpTotalText = computed(() => {
+  const total = lpTotal.value?.total
+  if (typeof total !== 'number') return ''
+  return total === 0 ? '±0' : formatSigned(total)
+})
 
 // Win rate by start time, from the same list (null when fewer than two groups can be compared)
 const startTimeChart = computed(() => buildStartTimeChart(matches.value))
@@ -512,6 +531,29 @@ watch(() => authStore.isInitialized, (initialized) => {
   flex-direction: column;
   gap: 0.375rem;
   max-width: 40.625rem;
+}
+
+.matches-header__lp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.matches-header__lp-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.matches-header__lp-value.mp-up { color: var(--color-positive-text); }
+.matches-header__lp-value.mp-down { color: var(--color-warn-text); }
+
+.matches-header__lp-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
 }
 
 .matches-header__form {

@@ -246,6 +246,38 @@ describe('MatchesPage', () => {
         .toBe('Win rate by start time: afternoon 100 percent, after 11pm 33 percent.')
     })
 
+    it('passes each match its LP change', async () => {
+      mockGetMatchList.mockResolvedValue(listResponse([
+        makeMatch('MATCH_1', { lpChange: 19 }),
+        makeMatch('MATCH_2', { lpChange: null })
+      ]))
+      const wrapper = mountPage()
+      await flushPromises()
+
+      expect(wrapper.get('[data-testid="match-row-lp"]').text()).toBe('+19 LP')
+      expect(wrapper.findAll('[data-testid="match-row-lp"]')).toHaveLength(1)
+    })
+
+    it('totals the LP over the list for one ranked queue only', async () => {
+      const matches = [
+        makeMatch('MATCH_1', { lpChange: 19 }),
+        makeMatch('MATCH_2', { lpChange: -17, win: false }),
+        makeMatch('MATCH_3', { lpChange: 21 })
+      ]
+      mockGetMatchList.mockResolvedValue(listResponse(matches))
+      const wrapper = mountPage()
+      await flushPromises()
+
+      // All queues mixes Solo/Duo and Flex, which are separate ladders
+      expect(wrapper.find('[data-testid="matches-lp-total"]').exists()).toBe(false)
+
+      await wrapper.get('[data-testid="queue-ranked_solo"]').trigger('click')
+      await flushPromises()
+      const total = wrapper.get('[data-testid="matches-lp-total"]')
+      expect(total.text()).toBe('+23LP over 3')
+      expect(total.get('.matches-header__lp-value').classes()).toContain('mp-up')
+    })
+
     it('leaves the start-time chart out when there is too little to compare', async () => {
       mockGetMatchList.mockResolvedValue(listResponse([makeMatch('MATCH_1'), makeMatch('MATCH_2')]))
       const wrapper = mountPage()

@@ -39,3 +39,5 @@ public record PuuId
     }
 }
 
+/// <summary>A player's rank as recorded after a match: tier ("EMERALD"), division ("II") and LP.</summary>
+public sealed record RankSnapshot(string? Tier, string? Division, int? Lp);

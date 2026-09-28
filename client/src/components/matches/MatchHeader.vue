@@ -27,6 +27,16 @@
         <li class="mp-chip mp-chip--glass" data-testid="match-header-kda">
           <span class="match-header__chip-number">{{ match.kills }} / {{ match.deaths }} / {{ match.assists }}</span> KDA
         </li>
+        <li v-if="lpText" class="mp-chip mp-chip--glass" data-testid="match-header-lp">
+          <span class="match-header__chip-number" :class="lpClass">{{ lpText }}</span> LP
+        </li>
+        <li v-if="rankAfter" class="mp-chip mp-chip--glass" data-testid="match-header-rank">
+          <span
+            class="match-header__tier-dot"
+            :style="{ background: `var(--color-rank-${rankAfter.tierKey}, var(--color-text-secondary))` }"
+            aria-hidden="true"
+          />{{ rankAfter.label }}
+        </li>
         <li
           v-if="badge?.text"
           class="mp-chip"
@@ -45,14 +55,15 @@
 /**
  * The open match's banner (ChampionHero match banner in the design system): the champion's
  * splash art, the result and time as the eyebrow, "Champion, Role" as the title, queue and
- * length, and glass chips (K / D / A; LP and rank follow once the API has them).
+ * length, and glass chips: K / D / A, the signed LP change and the rank after the match with its
+ * tier colour (the last two only for ranked matches with recorded LP).
  * Win → positive text, loss → warn text, remake → neither. Without art it is a plain card.
  */
 import { computed, ref, watch } from 'vue'
 import BaseIcon from '../base/BaseIcon.vue'
 import { formatRole, formatDuration, formatRelativeTime } from '@/utils/formatters'
 import { getChampionSplashUrl } from '@/utils/leagueAssets'
-import { isRemake } from '@/utils/matchesSummary'
+import { isRemake, formatSigned, lpChangeClass, formatRankAfter } from '@/utils/matchesSummary'
 
 const props = defineProps({
   match: {
@@ -94,6 +105,20 @@ const title = computed(() => {
   return role ? `${props.match.championName}, ${role}` : props.match.championName
 })
 
+// LP change and rank after the match (ranked queues with recorded LP only)
+const lpText = computed(() => {
+  const change = props.match.lpChange
+  if (typeof change !== 'number') return null
+  return change === 0 ? '±0' : formatSigned(change)
+})
+const lpClass = computed(() => {
+  const cls = lpChangeClass(props.match.lpChange)
+  return cls ? `match-header__chip-number--${cls === 'mp-up' ? 'up' : 'down'}` : null
+})
+const rankAfter = computed(() =>
+  formatRankAfter(props.match.tierAfter, props.match.rankAfter, props.match.lpAfter)
+)
+
 const metaLine = computed(() => [
   props.match.queueType,
   formatDuration(props.match.gameDurationSec)
@@ -122,6 +147,16 @@ const metaLine = computed(() => [
   align-items: center;
   gap: 0.5rem;
   list-style: none;
+}
+
+.match-header__chip-number--up { color: var(--color-positive-text); }
+.match-header__chip-number--down { color: var(--color-warn-text); }
+
+.match-header__tier-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-right: 0.5rem;
+  border-radius: 999px;
 }
 
 .match-header__chip-number {

@@ -11,7 +11,11 @@ import {
   formResults,
   buildStartTimeChart,
   laneGoldDiffAt10,
-  laneBar
+  laneBar,
+  formatLpChange,
+  lpChangeClass,
+  formatRankAfter,
+  sumLpChange
 } from '@/utils/matchesSummary'
 
 const match = (win, championName = 'Ahri', gameDurationSec = 1800) => ({ win, championName, gameDurationSec })
@@ -232,6 +236,50 @@ describe('matchesSummary', () => {
 
     it('shows a dash without a difference', () => {
       expect(laneBar(null)).toMatchObject({ result: 'unknown', diffText: '—' })
+    })
+  })
+
+  describe('formatLpChange and lpChangeClass', () => {
+    it('signs the change with a real minus and marks no change with ±', () => {
+      expect(formatLpChange(19)).toBe('+19 LP')
+      expect(formatLpChange(-17)).toBe('−17 LP')
+      expect(formatLpChange(0)).toBe('±0 LP')
+      expect(formatLpChange(null)).toBeNull()
+    })
+
+    it('colours gains purple, losses orange and nothing else', () => {
+      expect(lpChangeClass(5)).toBe('mp-up')
+      expect(lpChangeClass(-5)).toBe('mp-down')
+      expect(lpChangeClass(0)).toBeNull()
+      expect(lpChangeClass(undefined)).toBeNull()
+    })
+  })
+
+  describe('formatRankAfter', () => {
+    it('names the tier, division and LP', () => {
+      expect(formatRankAfter('EMERALD', 'II', 64)).toEqual({ label: 'Emerald II · 64 LP', tierKey: 'emerald' })
+    })
+
+    it('leaves the division out for Master and above', () => {
+      expect(formatRankAfter('GRANDMASTER', 'I', 412)).toEqual({ label: 'Grandmaster · 412 LP', tierKey: 'grandmaster' })
+    })
+
+    it('returns null without a known tier', () => {
+      expect(formatRankAfter(null, 'II', 64)).toBeNull()
+      expect(formatRankAfter('UNRANKED', 'I', 0)).toBeNull()
+      expect(formatRankAfter('gold); background: red', 'I', 0)).toBeNull()
+    })
+  })
+
+  describe('sumLpChange', () => {
+    it('adds up the known changes and counts them', () => {
+      const matches = [{ lpChange: 19 }, { lpChange: -17 }, { lpChange: null }, { lpChange: 21 }]
+      expect(sumLpChange(matches)).toEqual({ total: 23, matches: 3 })
+    })
+
+    it('returns null with fewer than two known changes', () => {
+      expect(sumLpChange([{ lpChange: 19 }, { lpChange: null }])).toBeNull()
+      expect(sumLpChange(null)).toBeNull()
     })
   })
 })

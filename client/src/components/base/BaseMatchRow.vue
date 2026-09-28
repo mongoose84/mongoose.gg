@@ -41,7 +41,7 @@
     <span
       v-if="lpChange != null"
       class="mp-lp"
-      :class="lpChange >= 0 ? 'mp-up' : 'mp-down'"
+      :class="lpClass"
       data-testid="match-row-lp"
     >{{ lpDisplay }}</span>
   </router-link>
@@ -57,6 +57,7 @@
 import { computed, ref } from 'vue'
 import { getChampionIconUrl } from '@/utils/leagueAssets'
 import { formatDuration, formatRelativeTime } from '@/utils/formatters'
+import { formatLpChange, lpChangeClass } from '@/utils/matchesSummary'
 
 const props = defineProps({
   /** Where the row leads (router-link target) */
@@ -140,11 +141,9 @@ const resultClass = computed(() => {
   return props.win ? 'mp-up' : 'mp-down'
 })
 
-// Signed LP with a real minus sign
-const lpDisplay = computed(() => {
-  if (props.lpChange == null) return ''
-  return props.lpChange >= 0 ? `+${props.lpChange} LP` : `−${Math.abs(props.lpChange)} LP`
-})
+// Signed LP with a real minus sign; no change is neutral
+const lpDisplay = computed(() => formatLpChange(props.lpChange) ?? '')
+const lpClass = computed(() => lpChangeClass(props.lpChange))
 </script>
 
 <style scoped>
@@ -212,8 +211,24 @@ const lpDisplay = computed(() => {
     white-space: normal;
   }
 
+  /* LP above the result, both in the last column */
   .mp-lp {
     grid-column: 3;
+    grid-row: 1;
+    align-self: end;
+  }
+
+  .match-row__result:has(~ .mp-lp) {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: start;
+    font-size: 0.75rem;
+    text-align: right;
+  }
+
+  .match-row:has(.mp-lp) > .mp-portrait,
+  .match-row:has(.mp-lp) > .match-row__main {
+    grid-row: 1 / span 2;
   }
 }
 
@@ -226,8 +241,24 @@ const lpDisplay = computed(() => {
     white-space: normal;
   }
 
+  /* LP above the result, both in the last column */
   .mp-lp {
     grid-column: 3;
+    grid-row: 1;
+    align-self: end;
+  }
+
+  .match-row__result:has(~ .mp-lp) {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: start;
+    font-size: 0.75rem;
+    text-align: right;
+  }
+
+  .match-row:has(.mp-lp) > .mp-portrait,
+  .match-row:has(.mp-lp) > .match-row__main {
+    grid-row: 1 / span 2;
   }
 }
 </style>

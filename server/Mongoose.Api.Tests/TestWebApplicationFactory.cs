@@ -1259,7 +1259,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         int VisionScore = 0,
         decimal KillParticipation = 0,
         decimal DamageShare = 0,
-        int DeathsPre10 = 0
+        int DeathsPre10 = 0,
+        int? LpChange = null,
+        int? LpAfter = null,
+        string? TierAfter = null,
+        string? RankAfter = null
     );
 
     /// <summary>
@@ -1359,7 +1363,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                         GameStartTime: match.GameStartTime,
                         CsPerMin: csPerMin,
                         GoldPerMin: goldPerMin,
-                        TrendBadge: null
+                        TrendBadge: null,
+                        LpChange: participant.LpChange,
+                        LpAfter: participant.LpAfter,
+                        TierAfter: participant.TierAfter,
+                        RankAfter: participant.RankAfter
                     );
                 })
                 .Where(item => item != null)
@@ -1423,7 +1431,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                         GameStartTime: match.GameStartTime,
                         CsPerMin: csPerMin,
                         GoldPerMin: goldPerMin,
-                        TrendBadge: null
+                        TrendBadge: null,
+                        LpChange: participant.LpChange,
+                        LpAfter: participant.LpAfter,
+                        TierAfter: participant.TierAfter,
+                        RankAfter: participant.RankAfter
                     );
                 })
                 .Where(item => item != null)
@@ -1494,7 +1506,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 EnemyTeamBarons: 0,
                 TeamTowers: 0,
                 EnemyTeamTowers: 0,
-                DragonsParticipated: 0
+                DragonsParticipated: 0,
+                LpChange: participant.LpChange,
+                LpAfter: participant.LpAfter,
+                TierAfter: participant.TierAfter,
+                RankAfter: participant.RankAfter
             );
 
             return Task.FromResult<MatchDetailsItem?>(result);
