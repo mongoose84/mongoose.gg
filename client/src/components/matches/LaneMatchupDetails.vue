@@ -42,8 +42,16 @@ const props = defineProps({
   }
 })
 
-const goldDiff = computed(() => props.matchup.allyParticipant.goldDiffAt10 || 0)
-const csDiff = computed(() => props.matchup.allyParticipant.csDiffAt10 || 0)
+// Your side's difference; like the server's lane winner, fall back to the opponent's, inverted
+function sideDiff(field) {
+  const own = props.matchup.allyParticipant[field]
+  if (own !== null && own !== undefined) return own
+  const theirs = props.matchup.enemyParticipant[field]
+  return theirs !== null && theirs !== undefined ? -theirs : 0
+}
+
+const goldDiff = computed(() => sideDiff('goldDiffAt10'))
+const csDiff = computed(() => sideDiff('csDiffAt10'))
 
 // 300 gold at 10 minutes decides the lane (lower than the 500 used at 15)
 const goldDiffSentiment = computed(() => {

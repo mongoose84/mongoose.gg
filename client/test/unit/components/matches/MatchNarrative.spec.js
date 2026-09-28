@@ -87,6 +87,18 @@ describe('MatchNarrative.vue', () => {
       expect(wrapper.find('.error-state').exists()).toBe(false)
     })
 
+    it('shows the missing-account error even when a request was still loading', async () => {
+      getMatchNarrative.mockReturnValue(new Promise(() => {}))
+      const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: 'acc-1' })
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.loading-state').exists()).toBe(true)
+
+      await wrapper.setProps({ accountId: null })
+      await flushPromises()
+      expect(wrapper.find('.loading-state').exists()).toBe(false)
+      expect(wrapper.find('.error-text').text()).toContain('No linked Riot account')
+    })
+
     it('offers no retry when the match has no linked account', async () => {
       const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: null })
       await flushPromises()

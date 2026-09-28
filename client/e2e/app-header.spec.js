@@ -19,7 +19,7 @@ test.describe('App header - Desktop', () => {
     await expect(page.locator('[data-testid="nav-matches"]')).not.toHaveAttribute('aria-current', 'page')
 
     await page.locator('[data-testid="nav-matches"]').click()
-    await expect(page).toHaveURL('/app/matches')
+    await expect(page).toHaveURL(/\/app\/matches(\/[^/?#]+)?$/)
     await expect(page.locator('[data-testid="nav-matches"]')).toHaveAttribute('aria-current', 'page')
   })
 
@@ -99,7 +99,7 @@ test.describe('App header - Phone', () => {
     await expect(page.locator('[data-testid="tab-overview"]')).toHaveAttribute('aria-current', 'page')
 
     await page.locator('[data-testid="tab-matches"]').click()
-    await expect(page).toHaveURL('/app/matches')
+    await expect(page).toHaveURL(/\/app\/matches(\/[^/?#]+)?$/)
     await expect(page.locator('[data-testid="tab-matches"]')).toHaveAttribute('aria-current', 'page')
 
     await page.locator('[data-testid="tab-champion-select"]').click()

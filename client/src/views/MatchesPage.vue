@@ -322,22 +322,23 @@ async function fetchMatches() {
   if (!authStore.userId || hasNoLinkedAccount.value) return
 
   const request = ++listRequest
+  let result = null
   try {
-    const result = await executeMatchListFetch()
-    if (request !== listRequest) return
-
-    const first = result?.matches?.[0]?.matchId
-    if (!selectedMatchId.value && first && isDesktop()) {
-      // Desktop opens the newest match beside the list
-      router.replace({ name: 'app-matches', params: { matchId: first } })
-    } else if (selectedMatchId.value && authStore.isOverallMode && !matchDetails.value && !detailsLoading.value) {
-      // Overall mode needs the list to know which account played the match
-      fetchMatchDetails(selectedMatchId.value)
-    }
+    result = await executeMatchListFetch()
   } catch {
     // useAsyncData holds the error for the list card
-  } finally {
-    if (request === listRequest) hasFetched.value = true
+  }
+  if (request !== listRequest) return
+  hasFetched.value = true
+
+  const first = result?.matches?.[0]?.matchId
+  if (!selectedMatchId.value && first && isDesktop()) {
+    // Desktop opens the newest match beside the list
+    router.replace({ name: 'app-matches', params: { matchId: first } })
+  } else if (selectedMatchId.value && authStore.isOverallMode && !matchDetails.value && !detailsLoading.value) {
+    // Overall mode waited for the list to know which account played the match. If the list
+    // failed, the account falls back to the active or primary one, so the open match still loads.
+    fetchMatchDetails(selectedMatchId.value)
   }
 }
 

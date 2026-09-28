@@ -150,6 +150,8 @@ async function load() {
   const accountId = props.accountId
   const current = ++request
   expandedRole.value = null
+  // A request still in flight is now stale and won't reset this itself
+  loading.value = false
 
   if (!matchId) {
     narrativeData.value = null

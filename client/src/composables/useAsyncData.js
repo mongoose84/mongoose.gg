@@ -25,21 +25,27 @@ export function useAsyncData(fetcher, options = {}) {
   const hasData = computed(() => data.value !== null)
   const hasError = computed(() => !!error.value)
 
+  // Only the latest call may write state, so a slow earlier response can't overwrite a newer one
+  let latestCall = 0
+
   async function execute(...args) {
+    const call = ++latestCall
     isLoading.value = true
     error.value = null
 
     try {
-      const result = await fetcher(...args)
-      data.value = transform(result)
-      isFetched.value = true
-      return data.value
+      const result = transform(await fetcher(...args))
+      if (call === latestCall) {
+        data.value = result
+        isFetched.value = true
+      }
+      return result
     } catch (err) {
       console.error('useAsyncData request failed:', err)
-      error.value = err?.message || errorMessage
+      if (call === latestCall) error.value = err?.message || errorMessage
       throw err
     } finally {
-      isLoading.value = false
+      if (call === latestCall) isLoading.value = false
     }
   }
 
@@ -48,6 +54,7 @@ export function useAsyncData(fetcher, options = {}) {
   }
 
   function reset() {
+    latestCall++
     data.value = null
     error.value = null
     isLoading.value = false

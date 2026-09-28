@@ -351,6 +351,17 @@ describe('MatchesPage', () => {
       expect(mockGetMatchDetails).toHaveBeenCalledWith('EUW_001', 'acc_faker')
     })
 
+    it('still loads the open match when the list request fails', async () => {
+      mockIsOverallMode.value = true
+      mockRoute.params = { matchId: 'EUW_009' }
+      mockGetMatchList.mockRejectedValueOnce(new Error('list down'))
+      const wrapper = mountPage()
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="matches-list-error"]').exists()).toBe(true)
+      expect(mockGetMatchDetails).toHaveBeenCalledWith('EUW_009', 'acc_primary')
+    })
+
     it('falls back to the primary account when no linked account matches', async () => {
       mockIsOverallMode.value = true
       mockActiveAccount.value = null
@@ -378,6 +389,26 @@ describe('MatchesPage', () => {
       expect(mockTrackFilterChange).toHaveBeenCalledWith('queue', 'ranked_solo')
       expect(mockGetMatchList).toHaveBeenLastCalledWith(1, 'ranked_solo')
       expect(mockReplace).toHaveBeenCalledWith({ name: 'app-matches' })
+    })
+
+    it('shows the newest queue when an older list response arrives last', async () => {
+      mockGetMatchList.mockResolvedValue(listResponse([]))
+      const wrapper = mountPage()
+      await flushPromises()
+
+      let resolveSolo
+      mockGetMatchList
+        .mockReturnValueOnce(new Promise((resolve) => { resolveSolo = resolve }))
+        .mockResolvedValueOnce(listResponse([makeMatch('FLEX_1', { championName: 'Syndra' })]))
+
+      await wrapper.get('[data-testid="queue-ranked_solo"]').trigger('click')
+      await wrapper.get('[data-testid="queue-ranked_flex"]').trigger('click')
+      await flushPromises()
+      resolveSolo(listResponse([makeMatch('SOLO_1'), makeMatch('SOLO_2')]))
+      await flushPromises()
+
+      const champions = wrapper.findAll('[data-testid="match-row-champion"]').map((c) => c.text())
+      expect(champions).toEqual(['Syndra'])
     })
 
     it('reloads the list when the active account changes', async () => {

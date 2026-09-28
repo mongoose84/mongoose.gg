@@ -197,6 +197,25 @@ describe('LaneMatchupDetails.vue copy', () => {
     expect(wrapper.text()).not.toMatch(/\p{Extended_Pictographic}/u)
   })
 
+  it('falls back to the opponent\'s gold difference when yours is missing, like the server', () => {
+    const wrapper = mount(LaneMatchupDetails, {
+      props: {
+        matchup: {
+          role: 'MIDDLE',
+          laneWinner: 'enemy',
+          allyParticipant: { ...ally, goldDiffAt10: null, csDiffAt10: null },
+          enemyParticipant: { ...enemy, goldDiffAt10: 800, csDiffAt10: 14 }
+        }
+      }
+    })
+    const rows = wrapper.findAll('.stat-row')
+    const gold = rows.find((r) => r.find('.stat-label').text() === 'Gold lead')
+    const cs = rows.find((r) => r.find('.stat-label').text() === 'CS lead')
+    expect(gold.find('.stat-value.ally').text()).toBe('−800')
+    expect(cs.find('.stat-value.ally').text()).toBe('−14')
+    expect(wrapper.get('[data-testid="lane-insight"]').text()).toContain('won this lane by 800 gold')
+  })
+
   it('names who won the lane and the fix when you lost it', () => {
     const wrapper = mount(LaneMatchupDetails, {
       props: { matchup: { role: 'MIDDLE', laneWinner: 'enemy', allyParticipant: ally, enemyParticipant: enemy } }
