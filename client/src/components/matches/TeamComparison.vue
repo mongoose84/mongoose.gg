@@ -1,77 +1,54 @@
 <template>
-  <div class="team-comparison">
-    <div class="comparison-grid">
-      <h3 class="section-title">Team Summary</h3>
-      <!-- Total Damage -->
-      <div class="comparison-row damage-row" v-if="hasDamageData">
-        <span class="metric-label">Total Damage</span>
-        <div class="bar-wrapper team-bar">
-          <div class="bar team" :style="{ width: teamDamagePercent + '%' }"></div>
-        </div>
-        <div class="damage-values">
-          <span class="bar-value team-value">{{ formatNumber(match.teamTotalDamage) }}</span>
-          <span class="bar-value enemy-value">{{ formatNumber(match.enemyTeamTotalDamage) }}</span>
-        </div>
-        <div class="bar-wrapper enemy-bar">
-          <div class="bar enemy" :style="{ width: enemyDamagePercent + '%' }"></div>
-        </div>
-      </div>
-      <div class="comparison-row" v-else>
-        <span class="metric-label">Total Damage</span>
-        <div class="value-cell empty">-</div>
-        <div class="value-cell empty">-</div>
-      </div>
+  <section class="mp-card team" aria-labelledby="team-title" data-testid="team-comparison">
+    <header class="team__header">
+      <h3 id="team-title" class="mp-card-title" data-testid="team-title">{{ title }}</h3>
+      <p class="team__caption" data-testid="team-gold-lead">{{ goldLeadLine }}</p>
+    </header>
 
-      <!-- Gold @ 15 -->
-      <div class="comparison-row">
-        <span class="metric-label">Gold @ 15</span>
-        <div class="value-cell" :class="teamHasGoldLead ? 'positive' : 'empty'">
-          <span v-if="teamHasGoldLead">{{ formatGoldLead(match.teamGoldLeadAt15) }}</span>
-        </div>
-        <div class="value-cell" :class="enemyHasGoldLead ? 'positive' : 'empty'">
-          <span v-if="enemyHasGoldLead">{{ formatGoldLead(-match.teamGoldLeadAt15) }}</span>
-        </div>
+    <div v-if="hasDamageData" class="team__damage" data-testid="team-damage">
+      <div class="team__damage-labels">
+        <span><span class="team__key team__key--ally" aria-hidden="true" />Your team {{ formatNumber(match.teamTotalDamage) }}</span>
+        <span>Enemy team {{ formatNumber(match.enemyTeamTotalDamage) }}<span class="team__key team__key--enemy" aria-hidden="true" /></span>
       </div>
-
-      <!-- Objective Control -->
-      <div class="comparison-row">
-        <span class="metric-label">Objectives</span>
-        <div class="objectives-cell">
-          <span class="obj-item" :title="`Dragons killed: ${match.teamDragons}`">
-            <img :src="getObjectiveIconUrl('dragon', 'team')" alt="Dragon" class="obj-icon" />
-            <span class="obj-count">{{ match.teamDragons }}</span>
-          </span>
-          <span class="obj-item" :title="`Barons killed: ${match.teamBarons}`">
-            <img :src="getObjectiveIconUrl('baron', 'team')" alt="Baron" class="obj-icon" />
-            <span class="obj-count">{{ match.teamBarons }}</span>
-          </span>
-          <span class="obj-item" :title="`Towers destroyed: ${match.teamTowers}`">
-            <img :src="getObjectiveIconUrl('tower', 'team')" alt="Tower" class="obj-icon" />
-            <span class="obj-count">{{ match.teamTowers }}</span>
-          </span>
-        </div>
-        <div class="objectives-cell">
-          <span class="obj-item" :title="`Dragons killed: ${match.enemyTeamDragons}`">
-            <img :src="getObjectiveIconUrl('dragon', 'enemy')" alt="Dragon" class="obj-icon" />
-            <span class="obj-count">{{ match.enemyTeamDragons }}</span>
-          </span>
-          <span class="obj-item" :title="`Barons killed: ${match.enemyTeamBarons}`">
-            <img :src="getObjectiveIconUrl('baron', 'enemy')" alt="Baron" class="obj-icon" />
-            <span class="obj-count">{{ match.enemyTeamBarons }}</span>
-          </span>
-          <span class="obj-item" :title="`Towers destroyed: ${match.enemyTeamTowers}`">
-            <img :src="getObjectiveIconUrl('tower', 'enemy')" alt="Tower" class="obj-icon" />
-            <span class="obj-count">{{ match.enemyTeamTowers }}</span>
-          </span>
-        </div>
+      <div
+        class="team__bar"
+        role="img"
+        :aria-label="`Damage: your team ${teamDamagePercent}%, enemy team ${100 - teamDamagePercent}%`"
+      >
+        <span class="team__bar-ally" :style="{ width: `${teamDamagePercent}%` }" />
+        <span class="team__bar-enemy" />
       </div>
     </div>
-  </div>
+
+    <table class="team__table" data-testid="team-objectives">
+      <caption class="visually-hidden">Objectives taken by each team</caption>
+      <thead>
+        <tr>
+          <th scope="col">Objective</th>
+          <th scope="col">Your team</th>
+          <th scope="col">Enemy team</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in objectives" :key="row.key" :data-testid="`team-objective-${row.key}`">
+          <th scope="row">
+            {{ row.label }}
+          </th>
+          <td :class="{ 'team__cell--lead': row.ally > row.enemy }">{{ row.ally }}</td>
+          <td :class="{ 'team__cell--lead': row.enemy > row.ally }">{{ row.enemy }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 </template>
 
 <script setup>
+/**
+ * Team summary for the open match: damage split, gold lead at 15 and objectives.
+ * Your team is purple, the enemy team orange; every number is also written out.
+ */
 import { computed } from 'vue'
-import { formatNumber, formatGoldDiff as formatGoldLead } from '@/utils/formatters'
+import { formatNumber } from '@/utils/formatters'
 
 const props = defineProps({
   match: {
@@ -80,157 +57,139 @@ const props = defineProps({
   }
 })
 
-// Community Dragon CDN for official League objective icons
-const objectiveIconBaseUrl = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default'
-
-function getObjectiveIconUrl(objective, team) {
-  // 100 = blue team (ally), 200 = red team (enemy)
-  const teamSuffix = team === 'team' ? '100' : '200'
-  return `${objectiveIconBaseUrl}/${objective}-${teamSuffix}.png`
-}
-
-// Check if damage data is available
 const hasDamageData = computed(() => {
   const team = props.match.teamTotalDamage
   const enemy = props.match.enemyTeamTotalDamage
   return team != null && enemy != null && (team > 0 || enemy > 0)
 })
 
-// Damage bar percentages
-const totalDamage = computed(() => (props.match.teamTotalDamage || 0) + (props.match.enemyTeamTotalDamage || 0))
-const teamDamagePercent = computed(() =>
-  totalDamage.value > 0 ? ((props.match.teamTotalDamage || 0) / totalDamage.value) * 100 : 50
-)
-const enemyDamagePercent = computed(() =>
-  totalDamage.value > 0 ? ((props.match.enemyTeamTotalDamage || 0) / totalDamage.value) * 100 : 50
+const teamDamagePercent = computed(() => {
+  const team = props.match.teamTotalDamage || 0
+  const total = team + (props.match.enemyTeamTotalDamage || 0)
+  return total > 0 ? Math.round((team / total) * 100) : 50
+})
+
+const title = computed(() =>
+  hasDamageData.value ? `Your team dealt ${teamDamagePercent.value}% of the damage` : 'Team summary'
 )
 
-// Gold lead - only show the positive side
-const teamHasGoldLead = computed(() => {
-  const gold = props.match.teamGoldLeadAt15
-  return gold !== null && gold !== undefined && gold > 0
+const goldLeadLine = computed(() => {
+  const lead = props.match.teamGoldLeadAt15
+  if (lead === null || lead === undefined) return 'No gold lead recorded at 15 minutes.'
+  const amount = Math.abs(lead).toLocaleString('en-US')
+  if (lead > 0) return `Your team led by ${amount} gold at 15 minutes.`
+  if (lead < 0) return `The enemy team led by ${amount} gold at 15 minutes.`
+  return 'Gold was even at 15 minutes.'
 })
-const enemyHasGoldLead = computed(() => {
-  const gold = props.match.teamGoldLeadAt15
-  return gold !== null && gold !== undefined && gold < 0
-})
+
+const objectives = computed(() => [
+  { key: 'dragons', label: 'Dragons', ally: props.match.teamDragons ?? 0, enemy: props.match.enemyTeamDragons ?? 0 },
+  { key: 'barons', label: 'Barons', ally: props.match.teamBarons ?? 0, enemy: props.match.enemyTeamBarons ?? 0 },
+  { key: 'towers', label: 'Towers', ally: props.match.teamTowers ?? 0, enemy: props.match.enemyTeamTowers ?? 0 }
+])
 </script>
 
 <style scoped>
-.team-comparison {
+.team {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 1.25rem;
 }
 
-.section-title {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  margin: 0;
-}
-
-.comparison-grid {
+.team__header {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-sm);
+  gap: 0.25rem;
 }
 
-.comparison-row {
-  display: grid;
-  grid-template-columns: 100px 1fr 1fr;
-  gap: var(--spacing-sm);
-  align-items: center;
+.team__caption {
+  font-size: 0.875rem;
+  color: var(--color-ink-soft);
 }
 
-/* Damage row uses 4-column layout: label | bar | values | bar */
-.comparison-row.damage-row {
-  grid-template-columns: 100px 1fr auto 1fr;
+.team__damage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.metric-label {
-  font-size: var(--font-size-xs);
+.team__damage-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
 }
 
-.bar-wrapper {
-  height: 8px;
-  background: var(--color-border);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.bar-wrapper.team-bar .bar {
-  float: right;
-}
-
-.bar {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.bar.team { background: var(--color-info); }
-.bar.enemy { background: var(--color-error); }
-
-.damage-values {
-  display: flex;
-  gap: var(--spacing-sm);
-  justify-content: center;
+.team__damage-labels > span {
+  display: inline-flex;
   align-items: center;
-  white-space: nowrap;
+  gap: 0.375rem;
 }
 
-.bar-value {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  min-width: 45px;
+.team__key {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
 }
 
-.team-value { color: var(--color-info); text-align: right; }
-.enemy-value { color: var(--color-error); text-align: left; }
+.team__key--ally { background: var(--color-primary-accent); }
+.team__key--enemy { background: var(--color-warn); }
 
-.value-cell {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  text-align: center;
-  padding: var(--spacing-xs);
-  border-radius: var(--radius-sm);
-}
-
-.value-cell.positive { color: var(--color-success); background: var(--color-success-soft); }
-.value-cell.negative { color: var(--color-error); background: var(--color-error-soft); }
-.value-cell.neutral { color: var(--color-text-secondary); }
-.value-cell.empty { background: transparent; }
-
-.objectives-cell {
+.team__bar {
   display: flex;
-  gap: var(--spacing-md);
-  justify-content: center;
-  align-items: center;
+  gap: 0.25rem;
+  height: 0.625rem;
 }
 
-.obj-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: default;
+.team__bar-ally,
+.team__bar-enemy {
+  border-radius: 999px;
 }
 
-.obj-icon {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
+.team__bar-ally { background: var(--color-primary-accent); }
+.team__bar-enemy { flex-grow: 1; background: var(--color-warn); }
+
+.team__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
 }
 
-.obj-count {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+.team__table th,
+.team__table td {
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--color-border);
+  text-align: right;
+}
+
+.team__table thead th {
+  border-top: none;
+  padding-top: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.team__table th:first-child {
+  text-align: left;
+}
+
+.team__table tbody th {
+  font-weight: 500;
+  color: var(--color-ink-soft);
+}
+
+.team__table td {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.team__table td.team__cell--lead {
   color: var(--color-text);
 }
 </style>
-

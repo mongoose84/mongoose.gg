@@ -1,124 +1,106 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import MatchHeader from '@/components/matches/MatchHeader.vue'
 
-vi.mock('@/utils/formatters', () => ({
-  formatRole: (role) => role,
-  formatDuration: (sec) => `${Math.floor(sec / 60)}m`,
-  formatRelativeTime: () => '2h ago'
-}))
+const baseMatch = {
+  matchId: 'EUW1_1',
+  championName: 'Ahri',
+  championIconUrl: 'https://example.com/ahri.png',
+  win: true,
+  kills: 7,
+  deaths: 3,
+  assists: 11,
+  role: 'MIDDLE',
+  queueType: 'Ranked Solo',
+  gameDurationSec: 1800,
+  gameStartTime: Date.parse('2026-09-27T10:00:00Z'),
+  teamKills: 30,
+  enemyTeamKills: 25,
+  creepScore: 210,
+  csPerMin: 7.04
+}
 
-describe('MatchHeader.vue', () => {
-  const baseMatch = {
-    matchId: 'EUW1_123',
-    win: true,
-    championName: 'Ahri',
-    championIconUrl: 'https://example.com/ahri.png',
-    role: 'MIDDLE',
-    queueType: 'Ranked Solo',
-    kills: 10,
-    deaths: 2,
-    assists: 8,
-    gameDurationSec: 1800,
-    gameStartTime: Date.now() - 7200000,
-    teamKills: 30,
-    enemyTeamKills: 25
-  }
+function mountHeader(overrides = {}, badge = null) {
+  return mount(MatchHeader, {
+    props: { match: { ...baseMatch, ...overrides }, badge },
+    global: { stubs: { BaseIcon: true } }
+  })
+}
 
-  const createWrapper = (matchOverrides = {}) =>
-    mount(MatchHeader, { props: { match: { ...baseMatch, ...matchOverrides } } })
-
-  it('renders the match header container', () => {
-    const wrapper = createWrapper()
-    expect(wrapper.find('.match-header').exists()).toBe(true)
+describe('MatchHeader', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-27T12:00:00Z'))
   })
 
-  it('renders champion name', () => {
-    const wrapper = createWrapper()
-    expect(wrapper.find('.champion-name').text()).toBe('Ahri')
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
-  it('displays champion icon when championIconUrl is provided', () => {
-    const wrapper = createWrapper()
-    const img = wrapper.find('.champion-icon')
-    expect(img.exists()).toBe(true)
-    expect(img.attributes('src')).toBe('https://example.com/ahri.png')
+  it('shows the champion as the card title', () => {
+    expect(mountHeader().get('[data-testid="match-header-champion"]').text()).toBe('Ahri')
   })
 
-  it('does not render champion icon when championIconUrl is null', () => {
-    const wrapper = createWrapper({ championIconUrl: null })
-    expect(wrapper.find('.champion-icon').exists()).toBe(false)
+  it('marks a win in purple with the word Victory', () => {
+    const wrapper = mountHeader()
+    const result = wrapper.get('[data-testid="match-header-result"]')
+    expect(result.text()).toBe('Victory')
+    expect(result.classes()).toContain('mp-up')
+    expect(wrapper.get('[data-testid="match-header-portrait"]').classes()).not.toContain('mp-portrait--loss')
   })
 
-  it('shows Victory badge for a win', () => {
-    const wrapper = createWrapper({ win: true })
-    expect(wrapper.find('.result-badge').text()).toBe('Victory')
+  it('marks a loss in orange with the word Defeat', () => {
+    const wrapper = mountHeader({ win: false })
+    const result = wrapper.get('[data-testid="match-header-result"]')
+    expect(result.text()).toBe('Defeat')
+    expect(result.classes()).toContain('mp-down')
+    expect(wrapper.get('[data-testid="match-header-portrait"]').classes()).toContain('mp-portrait--loss')
   })
 
-  it('shows Defeat badge for a loss', () => {
-    const wrapper = createWrapper({ win: false })
-    expect(wrapper.find('.result-badge').text()).toBe('Defeat')
+  it('calls a match under five minutes a remake', () => {
+    const result = mountHeader({ gameDurationSec: 200, win: false }).get('[data-testid="match-header-result"]')
+    expect(result.text()).toBe('Remake')
+    expect(result.classes()).not.toContain('mp-down')
   })
 
-  it('applies win class to header for a win', () => {
-    const wrapper = createWrapper({ win: true })
-    expect(wrapper.find('.match-header').classes()).toContain('win')
+  it('builds the meta line from role, queue, length and time ago', () => {
+    const meta = mountHeader().get('[data-testid="match-header-meta"]').text()
+    expect(meta).toContain('Ranked Solo')
+    expect(meta).toContain('30:00')
+    expect(meta).toContain('2 hours ago')
   })
 
-  it('applies loss class to header for a loss', () => {
-    const wrapper = createWrapper({ win: false })
-    expect(wrapper.find('.match-header').classes()).toContain('loss')
+  it('leaves an unknown role out of the meta line', () => {
+    const meta = mountHeader({ role: 'UNKNOWN' }).get('[data-testid="match-header-meta"]').text()
+    expect(meta.startsWith('Ranked Solo')).toBe(true)
   })
 
-  it('displays kills in the KDA display', () => {
-    const wrapper = createWrapper({ kills: 7 })
-    expect(wrapper.find('.kda-kills').text()).toBe('7')
+  it('shows KDA, team kills and CS', () => {
+    const wrapper = mountHeader()
+    expect(wrapper.get('[data-testid="match-header-kda"]').text()).toBe('7 / 3 / 11')
+    expect(wrapper.get('[data-testid="match-header-score"]').text()).toBe('30 – 25')
+    expect(wrapper.get('[data-testid="match-header-cs"]').text()).toBe('210 · 7.0 per min')
   })
 
-  it('displays deaths in the KDA display', () => {
-    const wrapper = createWrapper({ deaths: 3 })
-    expect(wrapper.find('.kda-deaths').text()).toBe('3')
+  it('falls back to the Data Dragon icon without an API icon', () => {
+    const img = mountHeader({ championIconUrl: null }).get('[data-testid="match-header-portrait"]')
+    expect(img.attributes('src')).toContain('/img/champion/Ahri.png')
   })
 
-  it('displays assists in the KDA display', () => {
-    const wrapper = createWrapper({ assists: 11 })
-    expect(wrapper.find('.kda-assists').text()).toBe('11')
+  it('shows the standout finding as a strength or trend chip', () => {
+    const good = mountHeader({}, { text: 'Strong vision control', type: 'positive' }).get('[data-testid="match-header-badge"]')
+    expect(good.text()).toBe('Strong vision control')
+    expect(good.classes()).toContain('mp-chip--strength')
+
+    const needsWork = mountHeader({}, { text: 'Higher deaths vs trend', type: 'neutral' }).get('[data-testid="match-header-badge"]')
+    expect(needsWork.classes()).toContain('mp-chip--trend')
+
+    expect(mountHeader().find('[data-testid="match-header-badge"]').exists()).toBe(false)
   })
 
-  it('renders queue type in secondary row', () => {
-    const wrapper = createWrapper({ queueType: 'Ranked Solo' })
-    expect(wrapper.find('.queue').text()).toBe('Ranked Solo')
-  })
-
-  it('hides role element when role is UNKNOWN', () => {
-    const wrapper = createWrapper({ role: 'UNKNOWN' })
-    expect(wrapper.find('.role').exists()).toBe(false)
-  })
-
-  it('renders role element when role is known', () => {
-    const wrapper = createWrapper({ role: 'MIDDLE' })
-    expect(wrapper.find('.role').exists()).toBe(true)
-  })
-
-  it('displays formatted game duration', () => {
-    const wrapper = createWrapper({ gameDurationSec: 1800 })
-    expect(wrapper.find('.duration').text()).toBe('30m')
-  })
-
-  it('displays relative timestamp', () => {
-    const wrapper = createWrapper()
-    expect(wrapper.find('.timestamp').text()).toBe('2h ago')
-  })
-
-  it('renders team kill score', () => {
-    const wrapper = createWrapper({ teamKills: 30 })
-    const teamKillEls = wrapper.findAll('.team-kills')
-    expect(teamKillEls[0].text()).toBe('30')
-  })
-
-  it('renders enemy team kill score', () => {
-    const wrapper = createWrapper({ enemyTeamKills: 25 })
-    const teamKillEls = wrapper.findAll('.team-kills')
-    expect(teamKillEls[1].text()).toBe('25')
+  it('emits download from the Download data button', async () => {
+    const wrapper = mountHeader()
+    await wrapper.get('[data-testid="match-download"]').trigger('click')
+    expect(wrapper.emitted('download')).toHaveLength(1)
   })
 })

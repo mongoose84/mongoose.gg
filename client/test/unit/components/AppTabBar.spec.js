@@ -9,7 +9,7 @@ async function createWrapper(initialPath = '/app/overview') {
     routes: [
       { path: '/app/overview', component: { template: '<div>Overview</div>' } },
       { path: '/app/champion-select', component: { template: '<div>Champion Select</div>' } },
-      { path: '/app/matches', component: { template: '<div>Matches</div>' } },
+      { path: '/app/matches/:matchId?', component: { template: '<div>Matches</div>' } },
       { path: '/app/solo', component: { template: '<div>Solo</div>' } }
     ]
   })
@@ -42,5 +42,10 @@ describe('AppTabBar.vue', () => {
     const wrapper = await createWrapper('/app/solo')
     expect(wrapper.get('[data-testid="tab-solo"]').attributes('aria-current')).toBe('page')
     expect(wrapper.get('[data-testid="tab-overview"]').attributes('aria-current')).toBeUndefined()
+  })
+
+  it('keeps the Matches tab current on an open match', async () => {
+    const wrapper = await createWrapper('/app/matches/EUW1_1')
+    expect(wrapper.get('[data-testid="tab-matches"]').attributes('aria-current')).toBe('page')
   })
 })

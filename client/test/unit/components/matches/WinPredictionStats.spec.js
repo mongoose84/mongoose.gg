@@ -51,14 +51,29 @@ describe('WinPredictionStats.vue', () => {
       expect(wrapper.find('[data-testid="win-prediction-stats"]').exists()).toBe(true)
     })
 
-    it('renders section title "Key Performance Indicators"', () => {
-      const wrapper = createWrapper()
-      expect(wrapper.find('.section-title').text()).toBe('Key Performance Indicators')
+    it('states how many match-deciding stats went your way in the title', () => {
+      // deaths 3 vs 4.0 → neutral; gold +500 → positive; dragons 2/3 → positive; CS 7.5 vs 7.0 → neutral
+      const wrapper = createWrapper({}, baseBaseline)
+      expect(wrapper.find('.section-title').text()).toBe('2 of 6 match-deciding stats went your way')
     })
 
-    it('renders subtitle', () => {
-      const wrapper = createWrapper()
-      expect(wrapper.find('.subtitle').text()).toBe('Metrics that most predict winning')
+    it('says none went your way when only needs-work stats remain', () => {
+      const wrapper = createWrapper({ goldDiffAt15: -800, teamDragons: 3, dragonsParticipated: 0, deathsPre10: 3 })
+      expect(wrapper.find('.section-title').text()).toBe('None of the 6 match-deciding stats went your way')
+    })
+
+    it('says the stats were close to usual when nothing stands out', () => {
+      const wrapper = createWrapper({ goldDiffAt15: 100, teamDragons: 0, deathsPre10: 1 })
+      expect(wrapper.find('.section-title').text()).toBe('Your match-deciding stats were close to usual')
+    })
+
+    it('marks good and needs-work descriptions with purple and orange text', () => {
+      const good = createWrapper({ goldDiffAt15: 800 }).find('[data-testid="kpi-tile-gold15"] .kpi-description')
+      const bad = createWrapper({ goldDiffAt15: -800 }).find('[data-testid="kpi-tile-gold15"] .kpi-description')
+      expect(good.classes()).toContain('mp-up')
+      expect(good.text()).toContain('▲')
+      expect(bad.classes()).toContain('mp-down')
+      expect(bad.text()).toContain('▼')
     })
 
     it('renders 6 KPI tiles', () => {
@@ -98,7 +113,7 @@ describe('WinPredictionStats.vue', () => {
 
     it('shows comparison text when baseline provided', () => {
       const wrapper = createWrapper({ deaths: 3 }, baseBaseline)
-      expect(wrapper.find('[data-testid="kpi-tile-deaths"]').find('.kpi-description').text()).toContain('vs avg')
+      expect(wrapper.find('[data-testid="kpi-tile-deaths"]').find('.kpi-description').text()).toContain('vs your average')
     })
 
     it('shows no comparison text without baseline', () => {
@@ -107,15 +122,15 @@ describe('WinPredictionStats.vue', () => {
     })
 
     it('rounds floating-point deaths delta to 1 decimal place', () => {
-      // 7 - 9.9 === -2.9000000000000004 in IEEE 754; must render as -2.9
+      // 7 - 9.9 === -2.9000000000000004 in IEEE 754; must render as −2.9 (real minus)
       const wrapper = createWrapper({ deaths: 7 }, { ...baseBaseline, avgDeaths: 9.9 })
-      expect(wrapper.find('[data-testid="kpi-tile-deaths"]').find('.kpi-description').text()).toBe('-2.9 vs avg')
+      expect(wrapper.find('[data-testid="kpi-tile-deaths"]').find('.kpi-description').text()).toContain('−2.9 vs your average')
     })
 
-    it('renders +0 vs avg instead of -0 vs avg when delta rounds to negative zero', () => {
+    it('renders +0 instead of −0 when delta rounds to negative zero', () => {
       // deaths=4, avgDeaths=4.049 → rawDiff ≈ -0.049 → toFixed(1) → "-0.0" → Number → -0
       const wrapper = createWrapper({ deaths: 4 }, { ...baseBaseline, avgDeaths: 4.049 })
-      expect(wrapper.find('[data-testid="kpi-tile-deaths"]').find('.kpi-description').text()).toBe('+0 vs avg')
+      expect(wrapper.find('[data-testid="kpi-tile-deaths"]').find('.kpi-description').text()).toContain('+0 vs your average')
     })
   })
 
@@ -135,34 +150,34 @@ describe('WinPredictionStats.vue', () => {
       expect(wrapper.find('[data-testid="kpi-tile-gold15"]').classes()).toContain('neutral')
     })
 
-    it('shows N/A value when goldDiffAt15 is null', () => {
+    it('shows a dash when goldDiffAt15 is null', () => {
       const wrapper = createWrapper({ goldDiffAt15: null })
-      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-value').text()).toBe('N/A')
+      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-value').text()).toBe('—')
     })
 
-    it('shows "Game ended early" when goldDiffAt15 is null and game < 15m', () => {
+    it('shows "Ended before 15 minutes" when goldDiffAt15 is null and game < 15m', () => {
       const wrapper = createWrapper({ goldDiffAt15: null, gameDurationSec: 600 })
-      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-description').text()).toBe('Game ended early')
+      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-description').text()).toContain('Ended before 15 minutes')
     })
 
-    it('shows "No data" when goldDiffAt15 is null and game >= 15m', () => {
+    it('shows "Not recorded" when goldDiffAt15 is null and game >= 15m', () => {
       const wrapper = createWrapper({ goldDiffAt15: null, gameDurationSec: 1800 })
-      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-description').text()).toBe('No data')
+      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-description').text()).toContain('Not recorded')
     })
 
     it('shows "Won lane" when goldDiffAt15 >= 500', () => {
       const wrapper = createWrapper({ goldDiffAt15: 800 })
-      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-description').text()).toBe('Won lane')
+      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-description').text()).toContain('Won lane')
     })
 
     it('shows "Lost lane" when goldDiffAt15 <= -500', () => {
       const wrapper = createWrapper({ goldDiffAt15: -800 })
-      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-description').text()).toBe('Lost lane')
+      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-description').text()).toContain('Lost lane')
     })
 
     it('shows "Even lane" when goldDiffAt15 is between -499 and 499', () => {
       const wrapper = createWrapper({ goldDiffAt15: 100 })
-      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-description').text()).toBe('Even lane')
+      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-description').text()).toContain('Even lane')
     })
 
     it('shows + prefix for positive gold diff', () => {
@@ -170,9 +185,9 @@ describe('WinPredictionStats.vue', () => {
       expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-value').text()).toContain('+')
     })
 
-    it('shows - prefix for negative gold diff', () => {
+    it('shows a real minus for negative gold diff', () => {
       const wrapper = createWrapper({ goldDiffAt15: -800 })
-      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-value').text()).toContain('-')
+      expect(wrapper.find('[data-testid="kpi-tile-gold15"]').find('.kpi-value').text()).toBe('−800')
     })
   })
 
@@ -211,12 +226,12 @@ describe('WinPredictionStats.vue', () => {
 
     it('shows "High involvement" description for high participation', () => {
       const wrapper = createWrapper({ teamDragons: 3, dragonsParticipated: 2 })
-      expect(wrapper.find('[data-testid="kpi-tile-dragon"]').find('.kpi-description').text()).toBe('High involvement')
+      expect(wrapper.find('[data-testid="kpi-tile-dragon"]').find('.kpi-description').text()).toContain('High involvement')
     })
 
     it('shows "Low involvement" description when 0 participation and teamDragons > 0', () => {
       const wrapper = createWrapper({ teamDragons: 4, dragonsParticipated: 0 })
-      expect(wrapper.find('[data-testid="kpi-tile-dragon"]').find('.kpi-description').text()).toBe('Low involvement')
+      expect(wrapper.find('[data-testid="kpi-tile-dragon"]').find('.kpi-description').text()).toContain('Low involvement')
     })
   })
 
@@ -248,7 +263,7 @@ describe('WinPredictionStats.vue', () => {
 
     it('shows comparison text for non-support with baseline', () => {
       const wrapper = createWrapper({ csPerMin: 8.0 }, baseBaseline)
-      expect(wrapper.find('[data-testid="kpi-tile-cspm"]').find('.kpi-description').text()).toContain('vs avg')
+      expect(wrapper.find('[data-testid="kpi-tile-cspm"]').find('.kpi-description').text()).toContain('vs your average')
     })
 
     it('shows no comparison without baseline', () => {
@@ -282,7 +297,7 @@ describe('WinPredictionStats.vue', () => {
 
     it('shows comparison text with baseline', () => {
       const wrapper = createWrapper({ visionScore: 30 }, baseBaseline)
-      expect(wrapper.find('[data-testid="kpi-tile-vision"]').find('.kpi-description').text()).toContain('vs avg')
+      expect(wrapper.find('[data-testid="kpi-tile-vision"]').find('.kpi-description').text()).toContain('vs your average')
     })
 
     it('shows no comparison without baseline', () => {
@@ -314,12 +329,12 @@ describe('WinPredictionStats.vue', () => {
 
     it('shows "Safe early game" description when deathsPre10 is 0', () => {
       const wrapper = createWrapper({ deathsPre10: 0 })
-      expect(wrapper.find('[data-testid="kpi-tile-deaths-pre10"]').find('.kpi-description').text()).toBe('Safe early game')
+      expect(wrapper.find('[data-testid="kpi-tile-deaths-pre10"]').find('.kpi-description').text()).toContain('Safe early game')
     })
 
     it('shows "Risky early game" description when deathsPre10 >= 2', () => {
       const wrapper = createWrapper({ deathsPre10: 3 })
-      expect(wrapper.find('[data-testid="kpi-tile-deaths-pre10"]').find('.kpi-description').text()).toBe('Risky early game')
+      expect(wrapper.find('[data-testid="kpi-tile-deaths-pre10"]').find('.kpi-description').text()).toContain('Risky early game')
     })
 
     it('shows no description when deathsPre10 is 1', () => {

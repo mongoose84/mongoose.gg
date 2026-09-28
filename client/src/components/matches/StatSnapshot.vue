@@ -1,31 +1,29 @@
 <template>
-  <div class="stat-snapshot">
-    <div class="section-header">
-      <span class="header-left">
-        <h3 class="section-title">Personal Stats</h3>
-        <span class="stat-count">{{ stats.length }} metrics</span>
-      </span>
-    </div>
-    <div class="stats-grid">
-      <div class="stat-item" v-for="stat in stats" :key="stat.label" :class="stat.trend">
-        <div class="stat-header">
-          <span class="stat-label">{{ stat.label }}</span>
-          <span v-if="stat.trend" class="trend-arrow" :class="stat.trend">
-            {{ stat.trend === 'up' ? '↑' : stat.trend === 'down' ? '↓' : '' }}
-          </span>
-        </div>
+  <section class="mp-card stat-snapshot" aria-labelledby="snapshot-title" data-testid="stat-snapshot">
+    <header class="stat-snapshot__header">
+      <h3 id="snapshot-title" class="mp-card-title section-title" data-testid="snapshot-title">{{ title }}</h3>
+      <p class="stat-snapshot__caption">All {{ stats.length }} of your stats from this match</p>
+    </header>
+    <ul class="stats-grid">
+      <li v-for="stat in stats" :key="stat.label" class="stat-item" :class="stat.trend">
+        <span class="stat-label">{{ stat.label }}</span>
         <span class="stat-value">{{ stat.value }}</span>
         <span v-if="stat.comparison" class="stat-comparison" :class="stat.trend">
-          {{ stat.comparison }}
+          <span v-if="stat.trend" class="trend-arrow" aria-hidden="true">{{ stat.trend === 'up' ? '▲' : '▼' }} </span>{{ stat.comparison }}
         </span>
-      </div>
-    </div>
-  </div>
+      </li>
+    </ul>
+  </section>
 </template>
 
 <script setup>
+/**
+ * Every stat of the open match with how it compares to the player's recent matches in the
+ * role (adjusted for match length where it matters). Up is purple ▲, down orange ▼.
+ */
 import { computed } from 'vue'
 import { formatNumber } from '@/utils/formatters'
+import { formatSigned } from '@/utils/matchesSummary'
 
 const props = defineProps({
   match: {
@@ -78,11 +76,11 @@ const stats = computed(() => {
     const pctDiff = avgValue > 0 ? (diff / avgValue) * 100 : 0
 
     if (format === 'pct' && Math.abs(pctDiff) >= threshold) {
-      return `${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(0)}% vs average`
+      return `${formatSigned(pctDiff)}% vs your average`
     } else if (format === 'diff' && Math.abs(diff) >= threshold) {
-      return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} vs average`
+      return `${formatSigned(diff, 1)} vs your average`
     } else if (format === 'int' && Math.abs(diff) >= threshold) {
-      return `${diff >= 0 ? '+' : ''}${Math.round(diff)} vs average`
+      return `${formatSigned(diff)} vs your average`
     }
     return null
   }
@@ -95,11 +93,11 @@ const stats = computed(() => {
     const pctDiff = expectedValue > 0 ? (diff / expectedValue) * 100 : 0
 
     if (format === 'pct' && Math.abs(pctDiff) >= threshold) {
-      return `${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(0)}% vs average`
+      return `${formatSigned(pctDiff)}% vs your average`
     } else if (format === 'diff' && Math.abs(diff) >= threshold) {
-      return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} vs average`
+      return `${formatSigned(diff, 1)} vs your average`
     } else if (format === 'int' && Math.abs(diff) >= threshold) {
-      return `${diff >= 0 ? '+' : ''}${Math.round(diff)} vs average`
+      return `${formatSigned(diff)} vs your average`
     }
     return null
   }
@@ -116,7 +114,7 @@ const stats = computed(() => {
         const gameMins = m.gameDurationSec / 60
         const visionPerMin = gameMins > 0 ? m.visionScore / gameMins : 0
         return {
-          label: 'Vision/min',
+          label: 'Vision per minute',
           value: visionPerMin.toFixed(1),
           trend: visionPerMin >= 2.5 ? 'up' : visionPerMin < 1.5 ? 'down' : null,
           comparison: visionPerMin >= 2.5 ? 'Great vision' : visionPerMin < 1.5 ? 'Low vision' : 'Average vision'
@@ -125,7 +123,7 @@ const stats = computed(() => {
     : (() => {
         const dmgPerDeath = m.damageDealt / Math.max(1, m.deaths)
         return {
-          label: 'Dmg/Death',
+          label: 'Damage per death',
           value: formatNumber(Math.round(dmgPerDeath)),
           trend: dmgPerDeath >= 8000 ? 'up' : dmgPerDeath < 3000 ? 'down' : null,
           comparison: null
@@ -134,37 +132,37 @@ const stats = computed(() => {
 
   return [
     {
-      label: 'KDA Ratio',
+      label: 'KDA ratio',
       value: kda.toFixed(2),
       trend: b ? getTrend(kda, b.avgKda, 0.15) : null,
       comparison: b ? getComparison(kda, b.avgKda, 0.3, 'diff') : null
     },
     {
-      label: 'Kill Participation',
+      label: 'Kill participation',
       value: `${m.killParticipation.toFixed(0)}%`,
       trend: b ? getTrend(m.killParticipation, b.avgKillParticipation, 0.1) : null,
       comparison: b ? getComparison(m.killParticipation, b.avgKillParticipation, 5, 'int') : null
     },
     {
-      label: 'Dmg/Gold',
+      label: 'Damage per gold',
       value: dmgGoldRatio.toFixed(2),
       trend: dmgGoldTrend,
       comparison: dmgGoldComparison
     },
     {
-      label: 'Damage Dealt',
+      label: 'Damage dealt',
       value: formatNumber(m.damageDealt),
       trend: isSupport ? null : (b ? getTrendDurationAdjusted(m.damageDealt, b.avgDamageDealt, 0.15) : null),
       comparison: isSupport ? null : (b ? getComparisonDurationAdjusted(m.damageDealt, b.avgDamageDealt, 10, 'pct') : null)
     },
     {
-      label: 'Damage Share',
+      label: 'Damage share',
       value: `${m.damageShare.toFixed(0)}%`,
       trend: isSupport ? null : (m.damageShare >= 25 ? 'up' : m.damageShare < 15 ? 'down' : null),
-      comparison: isSupport ? null : (m.damageShare >= 25 ? 'Carry performance' : null)
+      comparison: isSupport ? null : (m.damageShare >= 25 ? 'Carried the damage' : null)
     },
     {
-      label: 'Damage Taken',
+      label: 'Damage taken',
       value: formatNumber(m.damageTaken),
       trend: b ? getTrendDurationAdjusted(m.damageTaken, b.avgDamageTaken, 0.15) : null,
       comparison: b ? getComparisonDurationAdjusted(m.damageTaken, b.avgDamageTaken, 10, 'pct') : null
@@ -182,7 +180,7 @@ const stats = computed(() => {
       comparison: b ? getComparisonDurationAdjusted(m.goldEarned, b.avgGoldEarned, 10, 'pct') : null
     },
     {
-      label: 'Gold/min',
+      label: 'Gold per minute',
       value: m.goldPerMin.toFixed(0),
       trend: b ? getTrend(m.goldPerMin, b.avgGoldPerMin, 0.1) : null,
       comparison: b ? getComparison(m.goldPerMin, b.avgGoldPerMin, 15, 'int') : null
@@ -191,112 +189,83 @@ const stats = computed(() => {
   ]
 })
 
+const title = computed(() => {
+  const up = stats.value.filter((s) => s.trend === 'up').length
+  const down = stats.value.filter((s) => s.trend === 'down').length
+  if (!up && !down) return 'Your stats were close to your average'
+  if (!down) return `${up} of your stats beat your average`
+  if (!up) return `${down} of your stats fell below your average`
+  return `${up} stats above your average, ${down} below`
+})
 </script>
 
 <style scoped>
 .stat-snapshot {
   display: flex;
   flex-direction: column;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  gap: 1.25rem;
 }
 
-.section-header {
+.stat-snapshot__header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.section-title {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  margin: 0;
-}
-
-.stat-count {
-  font-size: var(--font-size-xs);
+.stat-snapshot__caption {
+  font-size: 0.8125rem;
   color: var(--color-text-secondary);
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: var(--spacing-xs);
-  padding: var(--spacing-md);
-  border-top: 1px solid var(--color-border);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+  list-style: none;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--spacing-xs) var(--spacing-sm);
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
   background: var(--color-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.stat-item.up {
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.05);
-}
-
-.stat-item.down {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: rgba(239, 68, 68, 0.05);
-}
-
-.stat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .stat-label {
-  font-size: var(--font-size-xs);
+  font-size: 0.8125rem;
   color: var(--color-text-secondary);
 }
 
-.trend-arrow {
-  font-size: 10px;
-  font-weight: var(--font-weight-bold);
-}
-
-.trend-arrow.up {
-  color: var(--color-success);
-}
-
-.trend-arrow.down {
-  color: var(--color-error);
-}
-
 .stat-value {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text);
 }
 
 .stat-comparison {
-  font-size: 10px;
-  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-ink-soft);
 }
 
-.stat-comparison.up {
-  color: var(--color-success);
+.stat-comparison.up { color: var(--color-positive-text); }
+.stat-comparison.down { color: var(--color-warn-text); }
+
+@media (max-width: 1279px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
-.stat-comparison.down {
-  color: var(--color-error);
+@media (max-width: 599px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>
-

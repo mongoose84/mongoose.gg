@@ -139,7 +139,7 @@
         <template v-if="lastMatch">
           <p class="overview-card__summary" data-testid="today-matches-summary">{{ todaySummary }}</p>
           <BaseMatchRow
-            :to="{ path: '/app/matches', query: { matchId: lastMatch.matchId } }"
+            :to="{ name: 'app-matches', params: { matchId: lastMatch.matchId } }"
             :champion-name="lastMatch.championName"
             :champion-icon-url="lastMatch.championIconUrl"
             :win="isWinResult(lastMatch.result)"

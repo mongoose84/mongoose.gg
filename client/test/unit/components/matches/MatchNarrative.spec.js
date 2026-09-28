@@ -73,11 +73,24 @@ describe('MatchNarrative.vue', () => {
       expect(wrapper.find('.error-state').exists()).toBe(true)
     })
 
-    it('shows the API error message', async () => {
-      getMatchNarrative.mockRejectedValue(new Error('Network error'))
+    it('says the lanes could not load and retries on request', async () => {
+      getMatchNarrative.mockRejectedValueOnce(new Error('Network error'))
       const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: 'acc-1' })
       await flushPromises()
-      expect(wrapper.find('.error-text').text()).toContain('Network error')
+      expect(wrapper.find('.error-text').text()).toContain("We couldn't load the lanes")
+      expect(wrapper.find('.error-text').text()).not.toContain('Network error')
+
+      getMatchNarrative.mockResolvedValueOnce({ userRole: 'MIDDLE', isAram: false, laneMatchups: [] })
+      await wrapper.get('[data-testid="narrative-retry"]').trigger('click')
+      await flushPromises()
+      expect(getMatchNarrative).toHaveBeenCalledTimes(2)
+      expect(wrapper.find('.error-state').exists()).toBe(false)
+    })
+
+    it('offers no retry when the match has no linked account', async () => {
+      const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: null })
+      await flushPromises()
+      expect(wrapper.find('[data-testid="narrative-retry"]').exists()).toBe(false)
     })
   })
 
@@ -149,11 +162,11 @@ describe('MatchNarrative.vue', () => {
       expect(wrapper.findAll('.lane-row')).toHaveLength(1)
     })
 
-    it('shows YOU badge for the user role', async () => {
+    it('shows a You chip for the user role', async () => {
       getMatchNarrative.mockResolvedValue(narrativeData)
       const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: 'acc-1' })
       await flushPromises()
-      expect(wrapper.find('.you-badge').text()).toBe('YOU')
+      expect(wrapper.find('.you-badge').text()).toBe('You')
     })
 
     it('marks the user lane row with user-role class', async () => {
@@ -167,7 +180,7 @@ describe('MatchNarrative.vue', () => {
       getMatchNarrative.mockResolvedValue(narrativeData)
       const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: 'acc-1' })
       await flushPromises()
-      await wrapper.find('.lane-row').trigger('click')
+      await wrapper.find('.lane-header').trigger('click')
       expect(wrapper.find('.lane-details').exists()).toBe(true)
     })
 
@@ -175,10 +188,29 @@ describe('MatchNarrative.vue', () => {
       getMatchNarrative.mockResolvedValue(narrativeData)
       const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: 'acc-1' })
       await flushPromises()
-      const row = wrapper.find('.lane-row')
+      const row = wrapper.find('.lane-header')
       await row.trigger('click')
       await row.trigger('click')
       expect(wrapper.find('.lane-details').exists()).toBe(false)
+    })
+
+    it('opens a lane with a real button that reports its state', async () => {
+      getMatchNarrative.mockResolvedValue(narrativeData)
+      const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: 'acc-1' })
+      await flushPromises()
+      const toggle = wrapper.get('button.lane-header')
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      await toggle.trigger('click')
+      expect(toggle.attributes('aria-expanded')).toBe('true')
+      expect(wrapper.get('.lane-details').attributes('id')).toBe(toggle.attributes('aria-controls'))
+    })
+
+    it('states the lanes won in the title and each lane result in words', async () => {
+      getMatchNarrative.mockResolvedValue(narrativeData)
+      const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: 'acc-1' })
+      await flushPromises()
+      expect(wrapper.get('[data-testid="narrative-title"]').text()).toMatch(/^Your team won [01] of 1 lanes$/)
+      expect(['Won lane', 'Lost lane', 'Even']).toContain(wrapper.get('[data-testid="lane-result"]').text())
     })
 
     it('does not show loading or error after successful fetch', async () => {
@@ -229,18 +261,18 @@ describe('MatchNarrative.vue', () => {
       expect(wrapper.find('.aram-players').exists()).toBe(true)
     })
 
-    it('shows Your Team header for ARAM', async () => {
+    it('shows Your team header for ARAM', async () => {
       getMatchNarrative.mockResolvedValue(aramData)
       const wrapper = createWrapper({ matchId: 'EUW1_2', accountId: 'acc-1' })
       await flushPromises()
-      expect(wrapper.find('.team-header.ally').text()).toBe('Your Team')
+      expect(wrapper.find('.team-header.ally').text()).toBe('Your team')
     })
 
-    it('shows Enemy Team header for ARAM', async () => {
+    it('shows Enemy team header for ARAM', async () => {
       getMatchNarrative.mockResolvedValue(aramData)
       const wrapper = createWrapper({ matchId: 'EUW1_2', accountId: 'acc-1' })
       await flushPromises()
-      expect(wrapper.find('.team-header.enemy').text()).toBe('Enemy Team')
+      expect(wrapper.find('.team-header.enemy').text()).toBe('Enemy team')
     })
 
     it('marks user champion row with user-row class', async () => {

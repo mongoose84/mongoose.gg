@@ -5,7 +5,7 @@ import BaseMatchRow from '@/components/base/BaseMatchRow.vue'
 function mountRow(props = {}) {
   return mount(BaseMatchRow, {
     props: {
-      to: { path: '/app/matches', query: { matchId: 'EUW1_1' } },
+      to: { name: 'app-matches', params: { matchId: 'EUW1_1' } },
       championName: 'Ahri',
       win: true,
       kda: '7/2/9',
@@ -23,7 +23,7 @@ describe('BaseMatchRow', () => {
 
   it('is one link to the match', () => {
     const wrapper = mountRow()
-    expect(wrapper.getComponent(RouterLinkStub).props('to')).toEqual({ path: '/app/matches', query: { matchId: 'EUW1_1' } })
+    expect(wrapper.getComponent(RouterLinkStub).props('to')).toEqual({ name: 'app-matches', params: { matchId: 'EUW1_1' } })
   })
 
   it('shows champion, KDA and a win in positive text', () => {
@@ -58,6 +58,19 @@ describe('BaseMatchRow', () => {
     expect(mountRow({ lpChange: 19 }).get('[data-testid="match-row-lp"]').text()).toBe('+19 LP')
     expect(mountRow({ lpChange: -17 }).get('[data-testid="match-row-lp"]').text()).toBe('−17 LP')
     expect(mountRow().find('[data-testid="match-row-lp"]').exists()).toBe(false)
+  })
+
+  it('shows a remake as neither a win nor a loss', () => {
+    const wrapper = mountRow({ win: false, remake: true })
+    const result = wrapper.get('[data-testid="match-row-result"]')
+    expect(result.text()).toBe('Remake')
+    expect(result.classes()).not.toContain('mp-down')
+    expect(wrapper.get('[data-testid="match-row-portrait"]').classes()).not.toContain('mp-portrait--loss')
+  })
+
+  it('adds the Riot ID to the meta line in Overall mode', () => {
+    const meta = mountRow({ riotId: 'Faker#EUW' }).get('[data-testid="match-row-meta"]').text()
+    expect(meta).toContain('Ranked Solo/Duo · Faker#EUW')
   })
 
   it('falls back to the Data Dragon icon and to a plain circle when the image fails', async () => {

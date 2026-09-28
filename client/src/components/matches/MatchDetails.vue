@@ -1,44 +1,70 @@
 <template>
-  <div class="match-details">
-    <!-- Loading state -->
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner"></div>
-      <span class="loading-text">Loading match details...</span>
-    </div>
-
-    <!-- Error state -->
-    <div v-else-if="error" class="error-state">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="error-icon">
-        <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clip-rule="evenodd" />
-      </svg>
-      <span class="error-text">{{ error }}</span>
-    </div>
-
-    <!-- Empty state when no match selected -->
-    <div v-else-if="!match" class="empty-state">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
-        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 01.67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 11-.671-1.34l.041-.022zM12 9a.75.75 0 100-1.5.75.75 0 000 1.5z" clip-rule="evenodd" />
-      </svg>
-      <span class="empty-text">Select a match to view details</span>
-    </div>
-
-    <!-- Match details content -->
-    <div v-else class="details-content">
-      <MatchHeader :match="match" />
-
-      <div class="details-sections">
-        <WinPredictionStats :match="match" :baseline="baseline" />
-        <TeamComparison :match="match" />
-        <MatchActions :match="match" />
-        <MatchNarrative :matchId="match?.matchId" :account-id="accountId" />
-        <StatSnapshot :match="match" :baseline="baseline" />
+  <div class="match-details" data-testid="match-details">
+    <!-- Loading: the detail frame with skeletons in the layout of the content -->
+    <div v-if="loading" class="loading-state match-details__loading" aria-busy="true" data-testid="match-details-loading">
+      <span class="visually-hidden">Loading the match</span>
+      <div class="mp-card match-details__skeleton-card">
+        <div class="match-details__skeleton-top">
+          <BaseSkeleton variant="portrait" width="4rem" height="4rem" />
+          <div class="match-details__skeleton-text">
+            <BaseSkeleton width="5rem" />
+            <BaseSkeleton variant="title" width="40%" />
+            <BaseSkeleton width="60%" />
+          </div>
+        </div>
       </div>
+      <div class="mp-card match-details__skeleton-grid">
+        <BaseSkeleton v-for="n in 6" :key="n" variant="block" width="100%" height="5.5rem" class="match-details__skeleton-tile" />
+      </div>
+    </div>
+
+    <!-- A failed request: say so and offer a retry -->
+    <div v-else-if="error === 'failed'" class="mp-card error-state" data-testid="match-details-error">
+      <div class="mp-message mp-message--error" role="alert">
+        <BaseIcon name="triangle-alert" :size="20" />
+        <div class="mp-message__body">
+          <p>We couldn't load this match. Try again in a minute.</p>
+          <button type="button" class="mp-message__action" data-testid="match-details-retry" @click="$emit('retry')">Try again</button>
+        </div>
+      </div>
+    </div>
+
+    <BaseEmptyState
+      v-else-if="error"
+      class="error-state"
+      :title="errorCopy.title"
+      :description="errorCopy.description"
+      data-testid="match-details-unavailable"
+    />
+
+    <BaseEmptyState
+      v-else-if="!match"
+      class="empty-state"
+      title="Pick a match to see how it went"
+      description="Choose a match from the list and its stats, lanes and team summary show up here."
+      data-testid="match-details-empty"
+    />
+
+    <div v-else class="details-content">
+      <MatchHeader :match="match" :badge="badge" @download="downloadMatchData" />
+      <WinPredictionStats :match="match" :baseline="baseline" />
+      <MatchNarrative :match-id="match?.matchId" :account-id="accountId" />
+      <TeamComparison :match="match" />
+      <StatSnapshot :match="match" :baseline="baseline" />
+      <MatchActions :match="match" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { watch } from 'vue'
+/**
+ * The open match, in the design-system order: summary card → the stats that decide matches →
+ * lane by lane → team summary → every stat → next step. Owns loading, error and empty states.
+ */
+import { computed, watch } from 'vue'
+import BaseIcon from '../base/BaseIcon.vue'
+import BaseSkeleton from '../base/BaseSkeleton.vue'
+import BaseEmptyState from '../base/BaseEmptyState.vue'
 import MatchHeader from './MatchHeader.vue'
 import TeamComparison from './TeamComparison.vue'
 import WinPredictionStats from './WinPredictionStats.vue'
@@ -65,9 +91,30 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  /** failed (retry offered), not-found or no-account */
   error: {
     type: String,
     default: null
+  },
+  /** The match's standout finding from the list ({ text, type }) */
+  badge: {
+    type: Object,
+    default: null
+  }
+})
+
+defineEmits(['retry'])
+
+const errorCopy = computed(() => {
+  if (props.error === 'no-account') {
+    return {
+      title: 'We can\'t tell which Riot account played this match',
+      description: 'Pick the account in the avatar menu, or link it in Settings, and open the match again.'
+    }
+  }
+  return {
+    title: 'We couldn\'t find this match',
+    description: 'It may belong to a Riot account that is no longer linked. Pick another match from the list.'
   }
 })
 
@@ -221,123 +268,47 @@ function downloadMatchData() {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 }
-
-// Expose download function to parent component
-defineExpose({ downloadMatchData })
 </script>
 
 <style scoped>
-.match-details {
+.match-details,
+.details-content,
+.match-details__loading {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  gap: 1.25rem;
 }
 
-.details-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-  overflow-y: auto;
-  padding-right: var(--spacing-xs);
+/* Skeletons wait 300ms before showing, so fast loads never flash them */
+.match-details__loading {
+  animation: match-details-appear 0s linear 300ms both;
 }
 
-.details-sections {
+.match-details__skeleton-top {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xl);
-}
-
-/* Impact Card */
-.impact-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-}
-
-/* Loading State */
-.loading-state {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--spacing-md);
-  height: 100%;
-  min-height: 300px;
-  text-align: center;
-  padding: var(--spacing-2xl);
+  gap: 1.25rem;
 }
 
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-/* Error State */
-.error-state {
+.match-details__skeleton-text {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-md);
-  height: 100%;
-  min-height: 300px;
-  text-align: center;
-  padding: var(--spacing-2xl);
+  flex-grow: 1;
+  gap: 0.625rem;
 }
 
-.error-icon {
-  width: 48px;
-  height: 48px;
-  color: var(--color-error);
-  opacity: 0.7;
+.match-details__skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
-.error-text {
-  font-size: var(--font-size-sm);
-  color: var(--color-error);
+.match-details__skeleton-tile {
+  border-radius: 0.75rem;
 }
 
-/* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-md);
-  height: 100%;
-  min-height: 300px;
-  text-align: center;
-  padding: var(--spacing-2xl);
-}
-
-.empty-icon {
-  width: 48px;
-  height: 48px;
-  color: var(--color-text-secondary);
-  opacity: 0.3;
-}
-
-.empty-text {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+@keyframes match-details-appear {
+  from { visibility: hidden; }
+  to { visibility: visible; }
 }
 </style>
-

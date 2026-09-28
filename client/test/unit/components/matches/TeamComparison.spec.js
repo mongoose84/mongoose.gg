@@ -1,130 +1,57 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TeamComparison from '@/components/matches/TeamComparison.vue'
 
-vi.mock('@/utils/formatters', () => ({
-  formatNumber: (n) => (n != null ? String(n) : '0'),
-  formatGoldDiff: (n) => (n >= 0 ? `+${n}` : `${n}`)
-}))
+const baseMatch = {
+  teamTotalDamage: 60000,
+  enemyTeamTotalDamage: 40000,
+  teamGoldLeadAt15: 1250,
+  teamDragons: 3,
+  enemyTeamDragons: 1,
+  teamBarons: 1,
+  enemyTeamBarons: 0,
+  teamTowers: 8,
+  enemyTeamTowers: 3
+}
 
-describe('TeamComparison.vue', () => {
-  const baseMatch = {
-    teamKills: 30,
-    enemyTeamKills: 25,
-    teamTotalDamage: 150000,
-    enemyTeamTotalDamage: 120000,
-    teamGoldLeadAt15: 1200,
-    teamDragons: 3,
-    enemyTeamDragons: 1,
-    teamBarons: 1,
-    enemyTeamBarons: 0,
-    teamTowers: 8,
-    enemyTeamTowers: 4
-  }
+function mountTeam(overrides = {}) {
+  return mount(TeamComparison, { props: { match: { ...baseMatch, ...overrides } } })
+}
 
-  const createWrapper = (matchOverrides = {}) =>
-    mount(TeamComparison, { props: { match: { ...baseMatch, ...matchOverrides } } })
-
-  it('renders the team comparison container', () => {
-    const wrapper = createWrapper()
-    expect(wrapper.find('.team-comparison').exists()).toBe(true)
+describe('TeamComparison', () => {
+  it('states the damage share as the title', () => {
+    expect(mountTeam().get('[data-testid="team-title"]').text()).toBe('Your team dealt 60% of the damage')
   })
 
-  it('renders section title "Team Summary"', () => {
-    const wrapper = createWrapper()
-    expect(wrapper.find('.section-title').text()).toBe('Team Summary')
+  it('falls back to a plain title and hides the bar without damage data', () => {
+    const wrapper = mountTeam({ teamTotalDamage: 0, enemyTeamTotalDamage: 0 })
+    expect(wrapper.get('[data-testid="team-title"]').text()).toBe('Team summary')
+    expect(wrapper.find('[data-testid="team-damage"]').exists()).toBe(false)
   })
 
-  it('renders the comparison grid', () => {
-    const wrapper = createWrapper()
-    expect(wrapper.find('.comparison-grid').exists()).toBe(true)
+  it('gives the damage bar a text alternative', () => {
+    const bar = mountTeam().get('[role="img"]')
+    expect(bar.attributes('aria-label')).toBe('Damage: your team 60%, enemy team 40%')
   })
 
-  describe('Damage bar', () => {
-    it('shows damage row when both damage values are positive', () => {
-      const wrapper = createWrapper()
-      expect(wrapper.find('.damage-row').exists()).toBe(true)
-    })
-
-    it('shows damage bar when only team damage is non-zero', () => {
-      const wrapper = createWrapper({ teamTotalDamage: 5000, enemyTeamTotalDamage: 0 })
-      expect(wrapper.find('.damage-row').exists()).toBe(true)
-    })
-
-    it('hides damage row when both damage values are 0', () => {
-      const wrapper = createWrapper({ teamTotalDamage: 0, enemyTeamTotalDamage: 0 })
-      expect(wrapper.find('.damage-row').exists()).toBe(false)
-    })
-
-    it('hides damage row when damage values are null', () => {
-      const wrapper = createWrapper({ teamTotalDamage: null, enemyTeamTotalDamage: null })
-      expect(wrapper.find('.damage-row').exists()).toBe(false)
-    })
+  it('writes out the gold lead at 15 for either side', () => {
+    expect(mountTeam().get('[data-testid="team-gold-lead"]').text()).toBe('Your team led by 1,250 gold at 15 minutes.')
+    expect(mountTeam({ teamGoldLeadAt15: -800 }).get('[data-testid="team-gold-lead"]').text())
+      .toBe('The enemy team led by 800 gold at 15 minutes.')
+    expect(mountTeam({ teamGoldLeadAt15: 0 }).get('[data-testid="team-gold-lead"]').text()).toBe('Gold was even at 15 minutes.')
+    expect(mountTeam({ teamGoldLeadAt15: null }).get('[data-testid="team-gold-lead"]').text())
+      .toBe('No gold lead recorded at 15 minutes.')
   })
 
-  describe('Gold lead at 15', () => {
-    it('shows team gold lead when team is positive', () => {
-      const wrapper = createWrapper({ teamGoldLeadAt15: 800 })
-      const cells = wrapper.findAll('.value-cell')
-      expect(cells[0].classes()).toContain('positive')
-    })
+  it('lists objectives for both teams in a table and marks the leader', () => {
+    const wrapper = mountTeam()
+    const dragons = wrapper.get('[data-testid="team-objective-dragons"]').findAll('td')
+    expect(dragons.map((cell) => cell.text())).toEqual(['3', '1'])
+    expect(dragons[0].classes()).toContain('team__cell--lead')
+    expect(dragons[1].classes()).not.toContain('team__cell--lead')
 
-    it('shows enemy gold lead when team is negative', () => {
-      const wrapper = createWrapper({ teamGoldLeadAt15: -800 })
-      const cells = wrapper.findAll('.value-cell')
-      expect(cells[1].classes()).toContain('positive')
-    })
-
-    it('applies empty class to both gold cells when lead is exactly 0', () => {
-      const wrapper = createWrapper({ teamGoldLeadAt15: 0 })
-      const cells = wrapper.findAll('.value-cell')
-      expect(cells[0].classes()).toContain('empty')
-      expect(cells[1].classes()).toContain('empty')
-    })
-
-    it('applies empty class to both gold cells when gold lead is null', () => {
-      const wrapper = createWrapper({ teamGoldLeadAt15: null })
-      const cells = wrapper.findAll('.value-cell')
-      expect(cells[0].classes()).toContain('empty')
-      expect(cells[1].classes()).toContain('empty')
-    })
-  })
-
-  describe('Objective counts', () => {
-    it('renders correct team dragon count', () => {
-      const wrapper = createWrapper({ teamDragons: 3 })
-      const counts = wrapper.findAll('.obj-count')
-      expect(counts[0].text()).toBe('3')
-    })
-
-    it('renders correct team baron count', () => {
-      const wrapper = createWrapper({ teamBarons: 1 })
-      const counts = wrapper.findAll('.obj-count')
-      expect(counts[1].text()).toBe('1')
-    })
-
-    it('renders correct team tower count', () => {
-      const wrapper = createWrapper({ teamTowers: 8 })
-      const counts = wrapper.findAll('.obj-count')
-      expect(counts[2].text()).toBe('8')
-    })
-
-    it('renders correct enemy dragon count', () => {
-      const wrapper = createWrapper({ enemyTeamDragons: 2 })
-      const counts = wrapper.findAll('.obj-count')
-      expect(counts[3].text()).toBe('2')
-    })
-
-    it('renders correct enemy baron count', () => {
-      const wrapper = createWrapper({ enemyTeamBarons: 1 })
-      const counts = wrapper.findAll('.obj-count')
-      expect(counts[4].text()).toBe('1')
-    })
-
-    it('renders correct enemy tower count', () => {
-      const wrapper = createWrapper({ enemyTeamTowers: 4 })
-      const counts = wrapper.findAll('.obj-count')
-      expect(counts[5].text()).toBe('4')
-    })
+    const towers = wrapper.get('[data-testid="team-objective-towers"]').findAll('td')
+    expect(towers.map((cell) => cell.text())).toEqual(['8', '3'])
+    expect(wrapper.get('[data-testid="team-objective-barons"]').findAll('td').map((c) => c.text())).toEqual(['1', '0'])
   })
 })

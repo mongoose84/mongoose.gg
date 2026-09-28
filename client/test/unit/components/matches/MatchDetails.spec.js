@@ -5,8 +5,9 @@ import MatchDetails from '@/components/matches/MatchDetails.vue'
 vi.mock('@/components/matches/MatchHeader.vue', () => ({
   default: {
     name: 'MatchHeader',
-    props: ['match'],
-    template: '<div data-testid="match-header" />'
+    props: ['match', 'badge'],
+    emits: ['download'],
+    template: `<div data-testid="match-header" @click="$emit('download')" />`
   }
 }))
 
@@ -74,68 +75,64 @@ describe('MatchDetails.vue', () => {
   const createWrapper = (props = {}) => mount(MatchDetails, { props })
 
   describe('Loading state', () => {
-    it('shows loading state when loading is true', () => {
-      const wrapper = createWrapper({ loading: true })
-      expect(wrapper.find('.loading-state').exists()).toBe(true)
-    })
-
-    it('shows loading text', () => {
-      const wrapper = createWrapper({ loading: true })
-      expect(wrapper.text()).toContain('Loading match details...')
-    })
-
-    it('hides details content when loading', () => {
-      const wrapper = createWrapper({ loading: true, match: baseMatch })
+    it('shows the skeleton frame and nothing else while loading', () => {
+      const wrapper = createWrapper({ loading: true, match: baseMatch, error: 'failed' })
+      expect(wrapper.find('[data-testid="match-details-loading"]').attributes('aria-busy')).toBe('true')
+      expect(wrapper.text()).toContain('Loading the match')
       expect(wrapper.find('.details-content').exists()).toBe(false)
-    })
-
-    it('hides error state when loading', () => {
-      const wrapper = createWrapper({ loading: true, error: 'Failed' })
       expect(wrapper.find('.error-state').exists()).toBe(false)
-    })
-
-    it('hides empty state when loading', () => {
-      const wrapper = createWrapper({ loading: true })
-      expect(wrapper.find('.empty-state').exists()).toBe(false)
     })
   })
 
-  describe('Error state', () => {
-    it('shows error state when error prop is set', () => {
-      const wrapper = createWrapper({ error: 'Something went wrong' })
-      expect(wrapper.find('.error-state').exists()).toBe(true)
+  describe('Error states', () => {
+    it('offers a retry when the request failed', async () => {
+      const wrapper = createWrapper({ error: 'failed' })
+      expect(wrapper.get('[role="alert"]').text()).toContain("We couldn't load this match")
+      await wrapper.get('[data-testid="match-details-retry"]').trigger('click')
+      expect(wrapper.emitted('retry')).toHaveLength(1)
     })
 
-    it('displays the error message', () => {
-      const wrapper = createWrapper({ error: 'Something went wrong' })
-      expect(wrapper.find('.error-text').text()).toBe('Something went wrong')
+    it('explains a match that was not found', () => {
+      const wrapper = createWrapper({ error: 'not-found' })
+      expect(wrapper.get('[data-testid="match-details-unavailable"]').text()).toContain("We couldn't find this match")
+      expect(wrapper.find('[data-testid="match-details-retry"]').exists()).toBe(false)
     })
 
-    it('hides details content when error is set', () => {
-      const wrapper = createWrapper({ error: 'Failed', match: baseMatch })
-      expect(wrapper.find('.details-content').exists()).toBe(false)
-    })
-
-    it('hides empty state when error is set', () => {
-      const wrapper = createWrapper({ error: 'Failed' })
-      expect(wrapper.find('.empty-state').exists()).toBe(false)
+    it('explains a match with no linked account to read it from', () => {
+      const wrapper = createWrapper({ error: 'no-account' })
+      expect(wrapper.get('[data-testid="match-details-unavailable"]').text()).toContain('Riot account')
     })
   })
 
   describe('Empty state', () => {
-    it('shows empty state when match is null and not loading', () => {
-      const wrapper = createWrapper({ match: null })
-      expect(wrapper.find('.empty-state').exists()).toBe(true)
-    })
-
-    it('shows empty state when no props are provided', () => {
+    it('asks the player to pick a match when none is open', () => {
       const wrapper = createWrapper()
-      expect(wrapper.find('.empty-state').exists()).toBe(true)
+      expect(wrapper.get('[data-testid="match-details-empty"]').text()).toContain('Pick a match to see how it went')
     })
+  })
 
-    it('shows "Select a match to view details" message', () => {
-      const wrapper = createWrapper()
-      expect(wrapper.text()).toContain('Select a match to view details')
+  describe('Download', () => {
+    it('downloads the match as a JSON file when the header asks for it', async () => {
+      const createObjectURL = vi.fn(() => 'blob:match')
+      const revokeObjectURL = vi.fn()
+      globalThis.URL.createObjectURL = createObjectURL
+      globalThis.URL.revokeObjectURL = revokeObjectURL
+      const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+      const match = {
+        ...baseMatch,
+        championId: 103, lane: 'MIDDLE', queueType: 'Ranked Solo', queueId: 420,
+        gameDurationSec: 1800, gameStartTime: Date.now(), killParticipation: 60, damageDealt: 20000,
+        damageShare: 28, damageTaken: 15000, creepScore: 200, csPerMin: 6.7, goldEarned: 12000,
+        goldPerMin: 400, visionScore: 20, deathsPre10: 0, goldDiffAt15: 300
+      }
+      const wrapper = createWrapper({ match })
+      await wrapper.get('[data-testid="match-header"]').trigger('click')
+
+      expect(createObjectURL).toHaveBeenCalledOnce()
+      expect(click).toHaveBeenCalledOnce()
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:match')
+      click.mockRestore()
     })
   })
 
@@ -206,6 +203,12 @@ describe('MatchDetails.vue', () => {
     it('hides empty state when match data is present', () => {
       const wrapper = createWrapper({ match: baseMatch })
       expect(wrapper.find('.empty-state').exists()).toBe(false)
+    })
+
+    it('passes the standout finding to MatchHeader', () => {
+      const badge = { text: 'Clean game', type: 'positive' }
+      const wrapper = createWrapper({ match: baseMatch, badge })
+      expect(wrapper.findComponent({ name: 'MatchHeader' }).props('badge')).toEqual(badge)
     })
 
     it('passes accountId prop down to MatchNarrative', () => {

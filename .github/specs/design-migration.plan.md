@@ -141,7 +141,14 @@ Each adds fields to `OverviewResponse` (update `architecture.spec.md`) and its s
 
 One PR each, through `/mongoose-design`:
 
-- [ ] Matches page (MatchRow list, `/app/matches/:matchId` detail)
+- [x] Matches page — **built on branch `claude/champion-select-rewrite-im52lv`** (2026-09-28). Frontend only, existing endpoints (`/matches/{userId}`, `/matches/{matchId}/details`, `/matches/{matchId}/narrative`).
+  - Route is now `/app/matches/:matchId?` (one record, so the Matches pill and tab stay current on a match; header and tab bar mark sub-paths current). Overview's last-match row links to `/app/matches/<id>`.
+  - Order: headline from the list ("You won 12 of your last 20 matches") + streak / most-played line + queue SegmentedControl → list card (`BaseMatchRow`s, sticky 420px column on desktop) beside the open match → `MatchHeader` → `WinPredictionStats` → `MatchNarrative` → `TeamComparison` → `StatSnapshot` → `MatchActions`. Desktop opens the newest match on arrival; phones show the list, and a match replaces it with an "All matches" link.
+  - `BaseMatchRow` gained `remake` and `riotId` props, the selected row (`aria-current="page"` on `surface-selected`) and a `match-list` container query; `components/matches/MatchRow.vue` is merged into it. Copy and small rules in `utils/matchesSummary.js` (incl. `formatSigned` with a real minus).
+  - Every card has skeleton / error-with-retry / empty / content; the lanes card retries on its own. Green/red, emoji, uppercase badges, gradients and Heroicons-style inline SVGs are gone; your team purple, enemy orange.
+  - Retired: `MatchList`, `matches/MatchRow`, `TrendBadge` (its finding is now a chip in `MatchHeader`), the unused `ImpactStats`, and their unit tests; the disabled "View Goal Impact" button.
+  - Queue filter: All queues / Solo/Duo / Flex / Normal (four options max); ARAM matches show under All queues.
+  - Leftovers: add the selected MatchRow, the stat tile grid (`kpi-tile` / `stat-item`), the lane-by-lane rows and the damage split bar to the live design system and `reference/` (Step 5); no LP change in the list yet (the API has none); champion names still show Riot's internal ID; no visual pass with real match data yet (the E2E user has no matches); E2E only covers the page loading (smoke).
 - [ ] Solo page
 - [x] Champion Select page — **built on branch `claude/champion-select-rewrite-im52lv`** (from `design_phase3_champion_pool`, 2026-09-27). Frontend only, existing endpoints (`/champion-select`, `/solo/matchups`).
   - Order: filters → ChampionHero for the selected pick → "Your picks" (role SegmentedControl + three selectable ChampionCards) → matchups for the pick beside "Check a matchup".

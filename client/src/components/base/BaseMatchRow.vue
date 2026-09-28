@@ -10,14 +10,14 @@
       :src="portraitUrl"
       alt=""
       class="mp-portrait"
-      :class="{ 'mp-portrait--loss': !win }"
+      :class="portraitClass"
       data-testid="match-row-portrait"
       @error="iconFailed = true"
     />
     <span
       v-else
       class="mp-portrait match-row__portrait-fallback"
-      :class="{ 'mp-portrait--loss': !win }"
+      :class="portraitClass"
       aria-hidden="true"
     />
 
@@ -34,9 +34,9 @@
 
     <span
       class="match-row__result"
-      :class="win ? 'mp-up' : 'mp-down'"
+      :class="resultClass"
       data-testid="match-row-result"
-    >{{ win ? 'Victory' : 'Defeat' }}</span>
+    >{{ resultText }}</span>
 
     <span
       v-if="lpChange != null"
@@ -50,8 +50,9 @@
 <script setup>
 /**
  * MatchRow (design system): one match in a list — portrait, meta, KDA, result and LP change.
- * The whole row is one link. Win → primary portrait border and positive text; loss → warn.
- * Opening a match never animates.
+ * The whole row is one link. Win → primary portrait border and positive text; loss → warn;
+ * a remake is neither. Opening a match never animates. The row of the open match gets
+ * aria-current="page" from router-link and the surface-selected ground.
  */
 import { computed, ref } from 'vue'
 import { getChampionIconUrl } from '@/utils/leagueAssets'
@@ -100,6 +101,16 @@ const props = defineProps({
   lpChange: {
     type: Number,
     default: null
+  },
+  /** Ended early (remake): neither a win nor a loss */
+  remake: {
+    type: Boolean,
+    default: false
+  },
+  /** Riot ID the match was played on, shown in Overall mode */
+  riotId: {
+    type: String,
+    default: null
   }
 })
 
@@ -110,8 +121,24 @@ const portraitUrl = computed(() => props.championIconUrl || getChampionIconUrl(p
 const metaLine = computed(() => [
   props.queue,
   props.durationSeconds ? formatDuration(props.durationSeconds) : null,
-  props.timestamp ? formatRelativeTime(props.timestamp) : null
+  props.timestamp ? formatRelativeTime(props.timestamp) : null,
+  props.riotId
 ].filter(Boolean).join(' · '))
+
+const portraitClass = computed(() => {
+  if (props.remake) return 'match-row__portrait--remake'
+  return props.win ? null : 'mp-portrait--loss'
+})
+
+const resultText = computed(() => {
+  if (props.remake) return 'Remake'
+  return props.win ? 'Victory' : 'Defeat'
+})
+
+const resultClass = computed(() => {
+  if (props.remake) return 'match-row__result--remake'
+  return props.win ? 'mp-up' : 'mp-down'
+})
 
 // Signed LP with a real minus sign
 const lpDisplay = computed(() => {
@@ -128,6 +155,10 @@ const lpDisplay = computed(() => {
 .match-row__portrait-fallback {
   display: block;
   background: var(--color-track);
+}
+
+.match-row__portrait--remake {
+  border-color: var(--color-track-strong);
 }
 
 .match-row__main {
@@ -171,12 +202,53 @@ const lpDisplay = computed(() => {
   font-weight: 700;
 }
 
+.match-row__result--remake {
+  color: var(--color-text-secondary);
+}
+
 .match-row:hover .match-row__champion {
   color: var(--color-positive-text-strong);
 }
 
+/* The open match: the selected ground reaches into the card padding so the columns stay aligned */
+.match-row[aria-current="page"] {
+  margin-inline: -0.75rem;
+  padding-inline: 0.75rem;
+  border-radius: 0.75rem;
+  border-top-color: transparent;
+  background: var(--color-surface-selected);
+}
+
+.match-row[aria-current="page"] + .match-row {
+  border-top-color: transparent;
+}
+
 /* Phones: KDA moves into the meta line */
 @media (max-width: 899px) {
+  .mp-match-row,
+  .match-row--no-lp {
+    grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  }
+
+  .match-row__kda {
+    display: none;
+  }
+
+  .match-row__meta {
+    white-space: normal;
+  }
+
+  .match-row__meta-kda {
+    display: inline;
+  }
+
+  .mp-lp {
+    grid-column: 3;
+  }
+}
+
+/* Same layout in a narrow list column (the Matches page list is a `match-list` container) */
+@container match-list (max-width: 30rem) {
   .mp-match-row,
   .match-row--no-lp {
     grid-template-columns: 3.25rem minmax(0, 1fr) auto;
