@@ -183,7 +183,7 @@ One PR each, through `/mongoose-design`:
   - Retired: `MatchList`, `matches/MatchRow`, `TrendBadge` (its finding is now a chip in `MatchHeader`), the unused `ImpactStats`, and their unit tests; the disabled "View Goal Impact" button.
   - Queue filter: All queues / Solo/Duo / Flex / Normal (four options max); ARAM matches show under All queues.
   - Design system (Step 5, done 2026-09-28): MatchRow gained the selected, remake and narrow-list (`mp-match-list`) states; new StatTile (`mp-stat`), LaneRow (`mp-lane-row`) and SplitBar (`mp-split`); token notes for `surface-raised`, `surface-selected` and `track-strong` extended; "Matches order" in the brand book; `reference/` refreshed; "Current · Matches" artboard added to the mockup canvas. The app's components keep their own scoped styles for now rather than these `mp-*` classes.
-  - Next: the visual redesign, planned as Phase 4 below.
+  - Next: the visual redesign, planned as Phase 4 above.
   - Leftovers: no LP change in the list yet (the API has none); champion names still show Riot's internal ID; no visual pass with real match data yet (the E2E user has no matches); E2E only covers the page loading (smoke).
 - [ ] Solo page
 - [x] Champion Select page — **built on branch `claude/champion-select-rewrite-im52lv`** (from `design_phase3_champion_pool`, 2026-09-27). Frontend only, existing endpoints (`/champion-select`, `/solo/matchups`).
