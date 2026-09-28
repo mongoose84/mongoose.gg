@@ -77,14 +77,14 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
     }
 
     /// <summary>
-    /// Updates LP and rank data for a participant record.
-    /// Used to set LP/rank after syncing a ranked match.
+    /// Sets the rank recorded after a match, only when the match has none yet: a reading attributed
+    /// once is never overwritten (see RankSnapshotService).
     /// </summary>
     public Task UpdateLpDataAsync(string matchId, string puuid, int? lp, string? tier, string? rank)
     {
         const string sql = @"UPDATE participants
             SET lp_after = @lp_after, tier_after = @tier_after, rank_after = @rank_after
-            WHERE match_id = @match_id AND puuid = @puuid";
+            WHERE match_id = @match_id AND puuid = @puuid AND lp_after IS NULL";
 
         return ExecuteNonQueryAsync(sql,
             ("@match_id", matchId),

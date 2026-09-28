@@ -154,7 +154,8 @@ server/
 │       ├── Riot/RiotApiClient.cs           # Riot Games API integration
 │       ├── Email/SmtpEmailService.cs
 │       ├── Jobs/
-│       │   ├── MatchHistorySyncJob.cs      # Background: syncs match history
+│       │   ├── MatchHistorySyncJob.cs      # Background: syncs match history; captures a rank snapshot at the end
+│       │   ├── RankSnapshotJob.cs          # Background: reads ranks of active accounts every 20 min, attributes LP to matches
 │       │   └── MatchCleanupJob.cs          # Background: deletes old matches
 │       ├── WebSocket/
 │       │   ├── SyncProgressHub.cs          # Raw WebSocket hub for real-time sync updates

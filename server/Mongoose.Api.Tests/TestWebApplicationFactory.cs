@@ -46,6 +46,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeEmailService EmailService => _emailService;
     public FakeRiotApiClient RiotApiClient => _riotApiClient;
     public FakeRiotAccountsRepository RiotAccountsRepository => _riotAccountsRepository;
+    public FakeRankSnapshotsRepository RankSnapshotsRepository { get; } = new();
     public FakeUserRiotAccountsRepository UserRiotAccountsRepository => _userRiotAccountsRepository;
     public FakeOverviewStatsRepository OverviewStatsRepository => _overviewStatsRepository;
     public FakeAnalyticsEventsRepository AnalyticsEventsRepository => _analyticsEventsRepository;
@@ -100,6 +101,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["Auth:CookieName"] = "mongoose-auth",
                 ["Jobs:EnableMatchHistorySync"] = "false",
                 ["Jobs:EnableMatchCleanup"] = "false",
+                ["Jobs:EnableRankSnapshots"] = "false",
                 ["Jobs:EnableAnalyticsBackgroundJobs"] = "false",
                 ["RIOT_API_KEY"] = "test-key",
                 ["Database_test"] = "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;",
@@ -153,6 +155,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace RiotAccountsRepository with a fake
             services.RemoveAll<IRiotAccountsRepository>();
             services.AddSingleton<IRiotAccountsRepository>(_riotAccountsRepository);
+
+            // Rank snapshots are recorded at login; keep them in memory
+            services.RemoveAll<IRankSnapshotsRepository>();
+            services.AddSingleton<IRankSnapshotsRepository>(RankSnapshotsRepository);
 
             // Replace UserRiotAccountsRepository with a fake
             services.RemoveAll<IUserRiotAccountsRepository>();
