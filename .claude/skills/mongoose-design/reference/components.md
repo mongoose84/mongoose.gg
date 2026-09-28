@@ -9,6 +9,7 @@ The page opener: the player's main champion splash with one headline about them.
 - Provide: champion name, splash URL, the headline (one sentence, "Your {champion} …"), one supporting sentence, the player line (Riot ID · champion main · rank · LP), a primary action and up to two glass chips.
 - Art is anchored right (`object-position` tuned per champion so the face stays visible), faded into `bg` by `mp-hero-scrim`. Text never sits on the art.
 - When the player picks another champion card, swap the art, headline and chips together.
+- **Match banner** (`mp-hero--match`): on the Matches page the open match gets the hero instead of the page. 240px tall, the eyebrow carries the result and time ("Victory · 2 hours ago", `positive-text` for a win, `warn-text` for a loss), the title is the champion and role ("Ahri, Mid") in a 40px `h2` (the page headline stays the one `h1`), a meta line (queue · length), and up to three glass chips: K / D / A, the signed LP change, and the rank after the match with its tier-colour dot. No primary action. On phones the art fills the banner with a bottom scrim and the text sits at the bottom. Opening another match swaps the art without animation.
 - Don't: put more than one hero on a page, or use it without a champion (fall back to a plain `surface` card with the headline).
 
 ## ScoreRing
@@ -91,6 +92,47 @@ Two sides of one total in a single bar: your team's share against the enemy team
 - Your team is `primary`, the enemy team `warn`, the sides split by a 4px gap, `radius-pill` ends, 10px tall. The card title states the takeaway ("Your team dealt 54% of the damage").
 - The bar is `role="img"` with an `aria-label` that holds both percentages ("Damage: your team 54%, enemy team 46%").
 - Don't: show it without the numbers, split it into more than two sides, or animate it when a match opens.
+
+## FormStrip
+
+The player's recent results at a glance: one bar per match, oldest on the left, newest on the right.
+
+- Provide: the results of the last matches in the list (up to 20, the same range as the list), and the LP change over them when the queue is ranked ("+86 LP over 20").
+- Wins are tall `primary` bars (`is-win`), losses short `warn` bars, remakes a 6px `track-strong` stub (`is-remake`). Height carries the result too, so colour is never the only signal.
+- Label the ends under it with `mp-form-scale` ("20 matches ago", "Latest"). The strip is `role="img"` with an `aria-label` that states the sequence and the totals ("Last 20 matches, oldest to newest: … 12 wins, 8 losses").
+- It sits beside the page headline on the Matches page, which says the takeaway ("12 wins in your last 20"). The range counts matches, never days.
+- Don't: make the bars clickable (the rows below are the links), show more than 20, or animate it on a filter change.
+
+## UsualMeter
+
+One stat of a match against the player's own usual: a bar for this match and a tick for what they normally do.
+
+- Provide: a label in sentence case ("Gold lead at 10"), this match's value, the scale maximum, the player's usual value, and the note under it ("Your usual: +180"; or one "Your usual" key under a group of meters).
+- The fill is `primary` when this match beats the usual and `warn` (`mp-usual__fill--warn`) when it falls short; the `ink` tick marks the usual. For stats where less is better (deaths), flip the comparison, not the direction of the bar.
+- Mark it up as `role="meter"` with `aria-valuemin`, `aria-valuemax`, `aria-valuenow` and an `aria-valuetext` that says both numbers ("+1,240 gold, your usual is +180").
+- Use three side by side (one per row on phones) as the evidence inside the "What decided it" highlight card, under a one-line finding. Track is `track-strong` because it sits on `surface-highlight`.
+- Don't: use it for a 0–100 score (ScoreRing) or the readiness verdict (ReadinessMeter), show more than three in one card, or leave out the usual tick.
+
+## LaneBar
+
+One lane of a match as a picture: your side's gold difference at 10 minutes, growing right when ahead and left when behind.
+
+- Provide: both champions' square icons (36px, `radius-md`), the signed gold difference at 10 ("+1,240", "−650" with a real minus), which lane is the player's, and the lane name for the label.
+- Ahead grows right in `primary` (`mp-lane-bar__ahead`), behind grows left in `warn` (`mp-lane-bar__behind`) from a `track-strong` centre axis; scale the length to a fixed range (±1,500 gold fills the half). Under 300 either way is even: no bar, the number in `ink-muted`. The number carries the colour of its side, so direction, number and colour all say the same thing.
+- The player's own icon gets a 2px `primary` ring (`is-you`). The enemy icon sits on the right.
+- Each row is a `<button class="mp-lane-bar">` that opens the lane's details (like LaneRow), with an `aria-label` that says it in words ("Mid (you): won lane by 1,240 gold at 10 minutes"); the icons are `alt=""` inside it.
+- Rows sit in a card titled with the count ("3 of 5 lanes won") and a "Gold at 10 min" caption. It replaces LaneRow where the layout is visual first; LaneRow stays for text-first lists.
+- Don't: use it for anything but a two-sided difference around zero, or drop the number.
+
+## ColumnChart
+
+A small chart that compares two to four groups on one measure, such as win rate by start time.
+
+- Provide: a takeaway title ("You lose most after 11pm"), the measure and range as the caption ("Win rate by start time, last 20 matches"), and for each group its label, value and share of the scale.
+- Columns are `primary`; the group the finding is about is `warn` (`mp-columns__bar--warn`) when it is the weak spot, with its value in `warn-text`. The value sits on top of each column in Clash Display, the label under it in `ink-muted`. Rounded top (`radius-md`), no axis, no grid lines, no legend.
+- The chart is `role="img"` with an `aria-label` that lists every group and value ("Win rate by start time: afternoon 67 percent, evening 64 percent, after 11pm 25 percent").
+- Groups need enough matches to mean something: leave a group out under 3 matches rather than show a 0% or 100% from one match.
+- Don't: use it for trends over time (that is a line chart), show more than four columns, or colour every column differently.
 
 ## InsightCard
 
