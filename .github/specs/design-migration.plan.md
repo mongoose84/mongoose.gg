@@ -148,7 +148,8 @@ One PR each, through `/mongoose-design`:
   - Every card has skeleton / error-with-retry / empty / content; the lanes card retries on its own. Green/red, emoji, uppercase badges, gradients and Heroicons-style inline SVGs are gone; your team purple, enemy orange.
   - Retired: `MatchList`, `matches/MatchRow`, `TrendBadge` (its finding is now a chip in `MatchHeader`), the unused `ImpactStats`, and their unit tests; the disabled "View Goal Impact" button.
   - Queue filter: All queues / Solo/Duo / Flex / Normal (four options max); ARAM matches show under All queues.
-  - Leftovers: add the selected MatchRow, the stat tile grid (`kpi-tile` / `stat-item`), the lane-by-lane rows and the damage split bar to the live design system and `reference/` (Step 5); no LP change in the list yet (the API has none); champion names still show Riot's internal ID; no visual pass with real match data yet (the E2E user has no matches); E2E only covers the page loading (smoke).
+  - Design system (Step 5, done 2026-09-28): MatchRow gained the selected, remake and narrow-list (`mp-match-list`) states; new StatTile (`mp-stat`), LaneRow (`mp-lane-row`) and SplitBar (`mp-split`); token notes for `surface-raised`, `surface-selected` and `track-strong` extended; "Matches order" in the brand book; `reference/` refreshed; "Current · Matches" artboard added to the mockup canvas. The app's components keep their own scoped styles for now rather than these `mp-*` classes.
+  - Leftovers: no LP change in the list yet (the API has none); champion names still show Riot's internal ID; no visual pass with real match data yet (the E2E user has no matches); E2E only covers the page loading (smoke).
 - [ ] Solo page
 - [x] Champion Select page — **built on branch `claude/champion-select-rewrite-im52lv`** (from `design_phase3_champion_pool`, 2026-09-27). Frontend only, existing endpoints (`/champion-select`, `/solo/matchups`).
   - Order: filters → ChampionHero for the selected pick → "Your picks" (role SegmentedControl + three selectable ChampionCards) → matchups for the pick beside "Check a matchup".
@@ -157,4 +158,11 @@ One PR each, through `/mongoose-design`:
   - Filters are now SegmentedControls: ARAM is gone from the queue options (no lanes), and the time range is This season / Last 3 months / All time (last week, last month and 6 months dropped). The API still counts days, not matches.
   - Leftovers: add the matchup list rows, the "Check a matchup" card and the Strong into / Weak into headings to the live design system and `reference/` (Step 5); champion names still show Riot's internal ID ("TwistedFate"); E2E only covers the page loading (smoke).
 - [ ] Settings and Feedback pages
+- [ ] Switch the Matches components to the design system's classes, so the app and the system share one source of styling. Today they copy the look in their own scoped styles:
+  - `BaseMatchRow` (open-match row, remake, narrow list) → `mp-match-list`, `mp-portrait--remake`, `mp-result--remake`, `mp-match-kda` / `mp-match-meta-kda`
+  - `WinPredictionStats` (`kpi-tile`) and `StatSnapshot` (`stat-item`) → `mp-stat-grid` / `mp-stat`
+  - `MatchNarrative` (`lane-header`) → `mp-lane-row`
+  - `TeamComparison` damage bar → `mp-split`
+
+  Port the classes from `reference/components.css` into `client/src/style.css`, then delete the duplicated scoped rules. Keep the existing `data-testid`s and the class hooks the unit tests rely on (`kpi-tile`, `stat-item`, `lane-row`, the sentiment classes).
 - [ ] Advanced page (Team + Goals combined) back into the navigation

@@ -55,9 +55,42 @@ The one highlight card: should the player keep queueing right now.
 
 One match in a list: champion portrait, meta, KDA, result and LP change.
 
-- Provide: champion icon, champion name, a meta line (queue · length · time ago), K / D / A, result (Victory / Defeat) and the signed LP change.
-- Portrait border and result/LP text: win → `primary` / `positive-text`, loss → `warn` / `warn-text` (`mp-portrait--loss`, `mp-down`).
-- The whole row is one `<a href>` to the match (`/app/matches/<matchId>`), so a match can be shared and the back button works. On desktop the match opens beside the list, which stays in place; below 900px it opens as its own page with a back link. Opening a match never animates. Rows are separated by `divider` hairlines.
+- Provide: champion icon, champion name, a meta line (queue · length · time ago, plus the Riot ID in Overall mode), K / D / A, result (Victory / Defeat / Remake) and the signed LP change when known.
+- Portrait border and result/LP text: win → `primary` / `positive-text`, loss → `warn` / `warn-text` (`mp-portrait--loss`, `mp-down`). A remake (ended before 5 minutes) is neither: `track-strong` border and the word "Remake" in `ink-muted` (`mp-portrait--remake`, `mp-result--remake`).
+- The whole row is one `<a href>` to the match (`/app/matches/<matchId>`), so a match can be shared and the back button works. On desktop the match opens beside the list, which stays in place; below 900px it opens as its own page with an "All matches" link. Opening a match never animates. Rows are separated by `divider` hairlines.
+- The open match's row carries `aria-current="page"` and sits on `surface-selected`, reaching 12px into the card padding so the columns stay aligned; the hairlines around it disappear.
+- In a narrow list column (the Matches page list, 420px on desktop) wrap the rows in `mp-match-list`: below 480px of container width the KDA column moves into the meta line (`mp-match-kda` hides, `mp-match-meta-kda` shows), as on phones.
+- Don't: add badges or chips to a row (a match's finding belongs on the open match), or colour a remake as a loss.
+
+## StatTile
+
+One stat of a match inside a card: label, number and how it compares with the player's own average.
+
+- Provide: a label in sentence case ("Gold lead at 15", "CS per minute"), the value, and optionally one note: the comparison ("+1.2 vs your average") or a verdict word ("Won lane", "Safe early game").
+- Good notes are `positive-text` led by ▲ (`mp-up`), needs-work notes `warn-text` led by ▼ (`mp-down`), neutral notes `ink-soft` with no arrow. The arrow is `aria-hidden`; the words carry the meaning. Never tint the tile itself.
+- Tiles sit in `mp-stat-grid` (3 columns; 2 below 600px) on `surface-raised` with `radius-md`, inside a `surface` card whose title states the takeaway ("2 of 6 match-deciding stats went your way").
+- Numbers use the real minus (−2.9) and `tabular-nums`; a missing value shows "—" with a word why ("Ended before 15 minutes").
+- Don't: use it outside a card, put more than ten in one card, or use it for a 0–100 score (that is a ScoreRing).
+
+## LaneRow
+
+One lane of a match: role, your side against the opponent, who won the lane, and a button that opens the lane's details.
+
+- Provide: the role (Riot role emblem as an image plus its name; a "You" Strength chip on your own lane), each side's square champion icon (36px, `radius-md`, the champion name as alt text since no name is written) and K / D / A, and the lane result in words: "Won lane" (`mp-up`), "Lost lane" (`mp-down`) or "Even" (`ink-muted`). A lane is won at 300 or more gold ahead at 10 minutes.
+- The row is a real `<button class="mp-lane-row">` with `aria-expanded` and `aria-controls` pointing at the details under it; a 20px `chevron-down` turns over when open. Opening never animates.
+- The details under an open row: one sentence on how the lane went (finding first), then early laning (gold lead, CS lead, deaths) and match impact (damage share, kill participation, vision score) as small tables, leads in `positive-text`, deficits in `warn-text`.
+- Rows sit in a `surface` card whose title counts lanes ("Your team won 3 of 5 lanes"); hairlines are `divider`. Below 600px the role takes its own line.
+- ARAM has no lanes: list both teams by damage share instead, "Your team" / "Enemy team" as eyebrows in `positive-text` / `warn-text`.
+- Don't: use ✓ / ✗ or colour alone for the result, or open more than one lane at a time.
+
+## SplitBar
+
+Two sides of one total in a single bar: your team's share against the enemy team's (damage, gold).
+
+- Provide: both totals, written out next to the bar ("Your team 54.2k", "Enemy team 45.8k") with a small key dot each, and the bar with the first side's width as a percentage.
+- Your team is `primary`, the enemy team `warn`, the sides split by a 4px gap, `radius-pill` ends, 10px tall. The card title states the takeaway ("Your team dealt 54% of the damage").
+- The bar is `role="img"` with an `aria-label` that holds both percentages ("Damage: your team 54%, enemy team 46%").
+- Don't: show it without the numbers, split it into more than two sides, or animate it when a match opens.
 
 ## InsightCard
 
