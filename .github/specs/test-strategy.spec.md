@@ -173,9 +173,11 @@ client/test/unit/
 ├── components/
 │   ├── BaseEmptyState.spec.js              # ✅ Exists
 │   ├── BaseMatchRow.spec.js                # ✅ Exists
+│   ├── BaseSegmentedControl.spec.js        # ✅ Exists
 │   ├── BaseSkeleton.spec.js                # ✅ Exists
 │   ├── ChampionCard.spec.js                # ✅ Exists
 │   ├── ChampionHero.spec.js                # ✅ Exists
+│   ├── championSelect/                     # ✅ Matchups + Search
 │   ├── InsightCard.spec.js                 # ✅ Exists
 │   ├── LinkRiotAccountModal.spec.js        # ✅ Exists
 │   ├── NavBar.spec.js                      # ✅ Exists
@@ -209,9 +211,11 @@ client/test/unit/
 ├── utils/
 │   ├── formatters.spec.js                  # ✅ Complete (56 tests)
 │   ├── overviewSummary.spec.js             # ✅ Exists
+│   ├── championSelectSummary.spec.js       # ✅ Exists
 │   └── leagueAssets.spec.js                # Missing
 └── pages/
     ├── AuthPage.spec.js                    # ✅ Exists
+    ├── ChampionSelectPage.spec.js          # ✅ Exists
     ├── LandingPage.spec.js                 # ✅ Exists
     ├── PrivacyPage.spec.js                 # ✅ Exists
     ├── TermsPage.spec.js                   # ✅ Exists

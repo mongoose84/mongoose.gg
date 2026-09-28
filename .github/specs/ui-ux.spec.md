@@ -106,7 +106,7 @@ All visual rules (colour, type, spacing, radius, depth, motion, iconography, cha
 
 **Code mapping**: tokens live as CSS variables in `client/src/style.css` (existing `--color-*` names mapped to design-system values) and are exposed to Tailwind in `client/tailwind.config.js`. Use Tailwind for layout and sizing, CSS variables for themed values. Never hard-code a colour, radius, shadow or duration that is not a design-system token.
 
-**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in `client/tailwind.config.js`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password), the shared `BaseButton` / `BaseInput`, the app header (`AppHeader` / `AppTabBar`, replacing the legacy sidebar) and the Overview (with the data the API has today) are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
+**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in `client/tailwind.config.js`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password), the shared `BaseButton` / `BaseInput`, the app header (`AppHeader` / `AppTabBar`, replacing the legacy sidebar), the Overview (with the data the API has today) and Champion Select are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
 
 ---
 
@@ -271,7 +271,17 @@ States: the skeleton frame shows after 300ms while loading, an error message wit
 6. Support user intent first (show data for hovered/locked pick)
 7. No learning required — icons, short labels, zero required reading
 
-Components: `ChampionMatchupsTable`, `OpponentSearchBar`, `MainChampionCard`
+Layout, top to bottom:
+1. **Filters**: two SegmentedControls, right-aligned — queue (All queues, Solo/Duo, Flex, Normal; ARAM left out, it has no lanes) and time range (This season, Last 3 months, All time). Default All queues · This season.
+2. **Hero** (`ChampionHero`): the selected pick's splash with the one headline ("Ahri is your best pick for Mid", "Syndra is your #2 pick for Mid"), the filter context line (Mid · All queues · This season), one evidence sentence (win rate, matches, KDA, strongest and weakest lane matchup; picks under 5 matches are called "a lean") and two glass chips (win rate, CS per minute).
+3. **Your picks**: a Role SegmentedControl (roles with data, Top → Support; hidden with only one role; defaults to the most-played role) and the role's top three picks (by M-Score from the API) as selectable `ChampionCard`s. The first is tagged "Best pick" and selected by default; picking a card swaps the hero and matchups. Switching role resets to that role's best pick.
+4. **Matchups + Check a matchup** side by side (matchups flexible, search a 420px column; stacked below 900px):
+   - `ChampionSelectMatchups` — "{Champion} in lane": up to four Strong into (purple, best first) and Weak into (orange, worst first) opponents met 3+ times in lane, each with its lane record.
+   - `ChampionSelectSearch` — type the enemy laner (2+ characters) to see your champions in the selected role against them: lane record, overall record and win rate.
+
+States: skeleton frame after 300ms, error with "Try again" if the picks fail, EmptyState "No champions for these filters yet" (with "Show all matches" when the filters are narrowed), and "Link Riot account" without a linked account. The matchups request is separate: if it fails, the picks stay and the matchups card shows its own error with retry (search disabled).
+
+Components: `ChampionHero`, `ChampionCard` (selectable), `BaseSegmentedControl`, `ChampionSelectMatchups`, `ChampionSelectSearch`; copy and matchup logic in `utils/championSelectSummary.js`.
 
 ### Matches (`/app/matches`)
 **Role**: Review what just happened. Match list with quick summaries.
@@ -407,9 +417,10 @@ Built from `.claude/skills/mongoose-design/reference/components.md`; imported di
 | `BaseSkeleton` | `variant` (`text`, `title`, `ring`, `portrait`, `block`), `width`, `height` | One loading shape; the container sets `aria-busy` and a hidden "Loading …" label |
 | `BaseEmptyState` | `title`, `description`, `headingLevel` | Slot `#action` holds the one button that fixes it |
 | `BaseMatchRow` | `to`, `championName`, `championIconUrl`, `win`, `kda`, `queue`, `durationSeconds`, `timestamp`, `lpChange` | Whole row is one link; named `Base…` because `matches/MatchRow` still exists until the Matches phase |
-| `ChampionHero` | `headline`, `text`, `playerLine`, `championName`, `chips` (max 2) | Page `h1`; slot `#action`; plain card without a champion |
+| `ChampionHero` | `headline`, `text`, `playerLine`, `championName`, `chips` (max 2), `chipsLabel` | Page `h1`; slot `#action`; plain card without a champion |
 | `InsightCard` | `kind` (`strength`, `pattern`, `trend`), `title`, `text`, `championName` | |
-| `ChampionCard` | `championName`, `winRate`, `matches`, `avgKda`, `strengthTag` | Static `<article>` (no pick, no spotlight); centred art; 220px tall below 900px |
+| `ChampionCard` | `championName`, `winRate`, `matches`, `avgKda`, `strengthTag`, `selectable`, `selected` | Static `<article>` by default (Overview); with `selectable` a `<button>` with `aria-pressed`, primary border when selected and the spotlight hover, emits `select` (Champion Select); centred art; 220px tall below 900px |
+| `BaseSegmentedControl` | `modelValue`, `options` (`{ value, label }`), `ariaLabel`, `testIdPrefix` | `mp-seg`: `role="group"` of buttons with `aria-pressed`; 2–4 options |
 | `SyncProgress` | `state` (`running`, `waiting`, `done`, `failed`), `current`, `total`, `syncedCount` | Emits `retry`; indeterminate while `total` is 0 |
 | `ScoreRing` | `value`, `label`, `size` | `role="meter"` |
 
@@ -572,14 +583,11 @@ BaseModal with: Game Name, Tag Line (3–5 chars, alphanumeric), Region select (
 ### `DeleteAccountModal`
 BaseModal requiring "DELETE" confirmation text + password. Prevents close during deletion. Uses `destructive` button variant.
 
-### `MainChampionCard`
-Champion detail card with stat bars, M-Score tooltip, matchup tooltips. Responsive breakpoints: 1024px (stat labels), 768px (single column).
+### `ChampionSelectMatchups`
+Champion Select: lane matchups for the selected pick — Strong into / Weak into lists (opponents met 3+ times in lane) with lane records. Props `championName`, `strong`, `weak`, `status` (`loading`, `error`, `ready`); emits `retry`.
 
-### `ChampionMatchupsTable`
-Table of champion matchup data for champion select context.
-
-### `OpponentSearchBar`
-Search input for looking up opponent data in champion select.
+### `ChampionSelectSearch`
+Champion Select: "Check a matchup" — a labelled `BaseInput` for the enemy champion and the matching results for your champions in the selected role. Props `matchups`, `role`, `roleName`, `disabled`.
 
 ### `WinrateChart`
 Root-level winrate chart variant.

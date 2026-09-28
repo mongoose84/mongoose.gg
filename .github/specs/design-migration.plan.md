@@ -143,6 +143,11 @@ One PR each, through `/mongoose-design`:
 
 - [ ] Matches page (MatchRow list, `/app/matches/:matchId` detail)
 - [ ] Solo page
-- [ ] Champion Select page
+- [x] Champion Select page — **built on branch `claude/champion-select-rewrite-im52lv`** (from `design_phase3_champion_pool`, 2026-09-27). Frontend only, existing endpoints (`/champion-select`, `/solo/matchups`).
+  - Order: filters → ChampionHero for the selected pick → "Your picks" (role SegmentedControl + three selectable ChampionCards) → matchups for the pick beside "Check a matchup".
+  - New: `BaseSegmentedControl` (`mp-seg`), the selectable ChampionCard (`aria-pressed`, `mp-spotlight` ported from Vue Bits SpotlightCard, `--color-spotlight`), `ChampionHero` `chipsLabel`, `components/championSelect/ChampionSelectMatchups.vue` and `ChampionSelectSearch.vue`, `utils/championSelectSummary.js`.
+  - Retired: `MainChampionCard`, `OpponentSearchBar` and their unit tests. The matchups request is no longer made twice (page + card).
+  - Filters are now SegmentedControls: ARAM is gone from the queue options (no lanes), and the time range is This season / Last 3 months / All time (last week, last month and 6 months dropped). The API still counts days, not matches.
+  - Leftovers: add the matchup list rows, the "Check a matchup" card and the Strong into / Weak into headings to the live design system and `reference/` (Step 5); champion names still show Riot's internal ID ("TwistedFate"); E2E only covers the page loading (smoke).
 - [ ] Settings and Feedback pages
 - [ ] Advanced page (Team + Goals combined) back into the navigation
