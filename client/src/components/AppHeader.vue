@@ -17,9 +17,18 @@
         <router-link
           v-for="item in navItems"
           :key="item.to"
+          v-slot="{ href, navigate }"
           :to="item.to"
-          :data-testid="item.testId"
-        >{{ item.label }}</router-link>
+          custom
+        >
+          <!-- Current on sub-paths too: /app/matches/<id> keeps Matches current -->
+          <a
+            :href="href"
+            :aria-current="isCurrent(item.to) ? 'page' : undefined"
+            :data-testid="item.testId"
+            @click="navigate"
+          >{{ item.label }}</a>
+        </router-link>
       </nav>
 
       <div class="flex-grow desk:hidden" />
@@ -97,6 +106,10 @@ import { trackAuth } from '../services/analyticsApi';
 
 const authStore = useAuthStore();
 const route = useRoute();
+
+function isCurrent(to) {
+  return route.path === to || route.path.startsWith(`${to}/`);
+}
 const router = useRouter();
 const { userIconUrl } = useUserIcon();
 const userIconError = ref(false);

@@ -1,81 +1,39 @@
 <template>
   <div class="lane-matchup-details">
-    <!-- Phase 1: Early Laning (0-10m) -->
-    <div class="phase-section">
-      <h4 class="phase-title">🏰 Early Laning (0-10m)</h4>
-      <div class="stats-grid">
-        <div class="stat-row">
-          <span class="stat-label">Gold Diff</span>
-          <div class="stat-comparison">
-            <span class="stat-value ally" :class="goldDiffSentiment">
-              {{ formatGoldDiff(matchup.allyParticipant.goldDiffAt10, { useLocale: true }) }}
-            </span>
-            <div class="diff-bar-wrapper">
-              <div class="diff-bar ally" :style="{ width: allyGoldBarWidth + '%' }"></div>
-              <div class="diff-bar enemy" :style="{ width: enemyGoldBarWidth + '%' }"></div>
-            </div>
-          </div>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">CS Diff</span>
-          <div class="stat-comparison">
-            <span class="stat-value" :class="csDiffSentiment">
-              {{ formatCsDiff(matchup.allyParticipant.csDiffAt10) }}
-            </span>
-          </div>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Deaths</span>
-          <div class="stat-comparison">
-            <span class="stat-value ally">{{ matchup.allyParticipant.deathsPre10 ?? 0 }}</span>
-            <span class="vs-separator">vs</span>
-            <span class="stat-value enemy">{{ matchup.enemyParticipant.deathsPre10 ?? 0 }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <p class="insight-text" data-testid="lane-insight">{{ contextualInsight }}</p>
 
-    <!-- Phase 2: Game Impact -->
-    <div class="phase-section">
-      <h4 class="phase-title">⚔️ Game Impact</h4>
-      <div class="stats-grid">
-        <div class="stat-row">
-          <span class="stat-label">Damage Share</span>
-          <div class="stat-comparison">
-            <span class="stat-value ally">{{ formatPercent(matchup.allyParticipant.damageShare) }}</span>
-            <span class="vs-separator">vs</span>
-            <span class="stat-value enemy">{{ formatPercent(matchup.enemyParticipant.damageShare) }}</span>
-          </div>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Kill Part.</span>
-          <div class="stat-comparison">
-            <span class="stat-value ally">{{ formatPercent(matchup.allyParticipant.killParticipation) }}</span>
-            <span class="vs-separator">vs</span>
-            <span class="stat-value enemy">{{ formatPercent(matchup.enemyParticipant.killParticipation) }}</span>
-          </div>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Vision Score</span>
-          <div class="stat-comparison">
-            <span class="stat-value ally">{{ matchup.allyParticipant.visionScore }}</span>
-            <span class="vs-separator">vs</span>
-            <span class="stat-value enemy">{{ matchup.enemyParticipant.visionScore }}</span>
-          </div>
-        </div>
+    <div class="lane-phases">
+      <div v-for="phase in phases" :key="phase.key" class="phase-section">
+        <h4 class="phase-title mp-eyebrow">{{ phase.title }}</h4>
+        <table class="phase-table">
+          <thead class="visually-hidden">
+            <tr>
+              <th scope="col">Stat</th>
+              <th scope="col">{{ matchup.allyParticipant.championName }}</th>
+              <th scope="col">{{ matchup.enemyParticipant.championName }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in phase.rows" :key="row.label" class="stat-row">
+              <th scope="row" class="stat-label">{{ row.label }}</th>
+              <td class="stat-value ally" :class="row.sentiment">{{ row.ally }}</td>
+              <td class="stat-value enemy">{{ row.enemy }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
-
-    <!-- Contextual Insight -->
-    <div class="insight-section">
-      <p class="insight-text">{{ contextualInsight }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
+/**
+ * One lane opened up: a sentence on how the lane went, then early laning and match impact
+ * for you (or your laner) against the opponent. Leads are purple, deficits orange.
+ */
 import { computed } from 'vue'
-import { formatGoldDiff, formatCsDiff, formatPercent } from '@/utils/formatters'
+import { formatPercent } from '@/utils/formatters'
+import { formatSigned } from '@/utils/matchesSummary'
 
 const props = defineProps({
   matchup: {
@@ -84,11 +42,19 @@ const props = defineProps({
   }
 })
 
-const goldDiff = computed(() => props.matchup.allyParticipant.goldDiffAt10 || 0)
-const csDiff = computed(() => props.matchup.allyParticipant.csDiffAt10 || 0)
+// Your side's difference; like the server's lane winner, fall back to the opponent's, inverted
+function sideDiff(field) {
+  const own = props.matchup.allyParticipant[field]
+  if (own !== null && own !== undefined) return own
+  const theirs = props.matchup.enemyParticipant[field]
+  return theirs !== null && theirs !== undefined ? -theirs : 0
+}
 
+const goldDiff = computed(() => sideDiff('goldDiffAt10'))
+const csDiff = computed(() => sideDiff('csDiffAt10'))
+
+// 300 gold at 10 minutes decides the lane (lower than the 500 used at 15)
 const goldDiffSentiment = computed(() => {
-  // Use 300g threshold for 10-minute checkpoint (lower than 15m threshold)
   if (goldDiff.value >= 300) return 'positive'
   if (goldDiff.value <= -300) return 'negative'
   return 'neutral'
@@ -100,140 +66,126 @@ const csDiffSentiment = computed(() => {
   return 'neutral'
 })
 
-// Gold bar percentages (max bar at ±2000 gold)
-const maxGold = 2000
-const allyGoldBarWidth = computed(() => {
-  if (goldDiff.value > 0) return Math.min((goldDiff.value / maxGold) * 100, 100)
-  return 0
-})
-const enemyGoldBarWidth = computed(() => {
-  if (goldDiff.value < 0) return Math.min((Math.abs(goldDiff.value) / maxGold) * 100, 100)
-  return 0
+const phases = computed(() => {
+  const ally = props.matchup.allyParticipant
+  const enemy = props.matchup.enemyParticipant
+  return [
+    {
+      key: 'early',
+      title: 'Early laning (0–10 min)',
+      rows: [
+        { label: 'Gold lead', ally: formatSigned(goldDiff.value), enemy: formatSigned(-goldDiff.value), sentiment: goldDiffSentiment.value },
+        { label: 'CS lead', ally: formatSigned(csDiff.value), enemy: formatSigned(-csDiff.value), sentiment: csDiffSentiment.value },
+        { label: 'Deaths', ally: ally.deathsPre10 ?? 0, enemy: enemy.deathsPre10 ?? 0, sentiment: null }
+      ]
+    },
+    {
+      key: 'impact',
+      title: 'Match impact',
+      rows: [
+        { label: 'Damage share', ally: formatPercent(ally.damageShare), enemy: formatPercent(enemy.damageShare), sentiment: null },
+        { label: 'Kill participation', ally: formatPercent(ally.killParticipation), enemy: formatPercent(enemy.killParticipation), sentiment: null },
+        { label: 'Vision score', ally: ally.visionScore, enemy: enemy.visionScore, sentiment: null }
+      ]
+    }
+  ]
 })
 
-// Generate contextual insight based on matchup data
+// One sentence on how the lane went, finding first
 const contextualInsight = computed(() => {
   const ally = props.matchup.allyParticipant
   const enemy = props.matchup.enemyParticipant
   const winner = props.matchup.laneWinner
+  const lead = Math.abs(goldDiff.value).toLocaleString('en-US')
 
   if (winner === 'ally') {
     if (ally.killParticipation < enemy.killParticipation) {
-      return `Won lane (+${goldDiff.value}g), but ${enemy.championName} had higher team impact with ${formatPercent(enemy.killParticipation)} KP.`
+      return `${ally.championName} won the lane by ${lead} gold, but ${enemy.championName} had more say in fights with ${formatPercent(enemy.killParticipation)} kill participation.`
     }
     if (ally.visionScore < enemy.visionScore - 5) {
-      return `Strong laning phase, but vision control was lacking compared to the opponent.`
+      return `${ally.championName} won the lane by ${lead} gold, but ${enemy.championName} warded more (${enemy.visionScore} to ${ally.visionScore} vision score).`
     }
-    return `Dominated the laning phase with a ${goldDiff.value}g lead. Translated well into game impact.`
-  } else if (winner === 'enemy') {
-    if (ally.killParticipation > enemy.killParticipation) {
-      return `Lost lane, but stayed relevant with ${formatPercent(ally.killParticipation)} kill participation.`
-    }
-    return `Struggled in lane against ${enemy.championName}. Consider adjusting playstyle or itemization.`
+    return `${ally.championName} won the lane by ${lead} gold and turned it into match impact.`
   }
-  return `Even lane matchup. Both players had similar impact on the game.`
+  if (winner === 'enemy') {
+    if (ally.killParticipation > enemy.killParticipation) {
+      return `${ally.championName} lost the lane by ${lead} gold but stayed in the fights with ${formatPercent(ally.killParticipation)} kill participation.`
+    }
+    return `${enemy.championName} won this lane by ${lead} gold at 10 minutes. Fewer early deaths and safer trades close most of that gap.`
+  }
+  return 'An even lane: both players had a similar share of the match.'
 })
-
 </script>
 
 <style scoped>
 .lane-matchup-details {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 1rem;
+}
+
+.insight-text {
+  max-width: 40.625rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.lane-phases {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
 }
 
 .phase-section {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 0.5rem;
+  min-width: 0;
 }
 
+/* Section labels are neutral here: the rows carry the meaning */
 .phase-title {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
-  margin: 0;
 }
 
-.stats-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
+.phase-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
 }
 
-.stat-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--color-elevated);
-  border-radius: var(--radius-sm);
+.phase-table th,
+.phase-table td {
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--color-border);
 }
 
 .stat-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-  min-width: 80px;
-}
-
-.stat-comparison {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  flex: 1;
-  justify-content: flex-end;
+  font-weight: 500;
+  text-align: left;
+  color: var(--color-ink-soft);
 }
 
 .stat-value {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  width: 4.5rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
   color: var(--color-text);
-  min-width: 40px;
-  text-align: center;
 }
 
-.stat-value.ally { color: var(--color-info); }
-.stat-value.enemy { color: var(--color-error); }
-.stat-value.positive { color: var(--color-success); }
-.stat-value.negative { color: var(--color-error); }
-.stat-value.neutral { color: var(--color-text); }
-
-.vs-separator {
-  font-size: 10px;
+.stat-value.enemy {
   color: var(--color-text-secondary);
 }
 
-.diff-bar-wrapper {
-  display: flex;
-  width: 80px;
-  height: 6px;
-  background: var(--color-border);
-  border-radius: 3px;
-  overflow: hidden;
-}
+.stat-value.positive { color: var(--color-positive-text); }
+.stat-value.negative { color: var(--color-warn-text); }
 
-.diff-bar {
-  height: 100%;
-  transition: width 0.3s ease;
-}
-
-.diff-bar.ally { background: var(--color-success); }
-.diff-bar.enemy { background: var(--color-error); }
-
-.insight-section {
-  padding: var(--spacing-sm);
-  background: var(--color-elevated);
-  border-radius: var(--radius-sm);
-  border-left: 3px solid var(--color-primary);
-}
-
-.insight-text {
-  font-size: var(--font-size-xs);
-  color: var(--color-text);
-  margin: 0;
-  line-height: 1.5;
-  font-style: italic;
+@media (max-width: 599px) {
+  .lane-phases {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>
-

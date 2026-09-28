@@ -57,14 +57,14 @@ describe('LaneMatchupDetails.vue', () => {
     expect(wrapper.find('.lane-matchup-details').exists()).toBe(true)
   })
 
-  it('renders Early Laning phase section', () => {
+  it('renders the early laning section', () => {
     const wrapper = createWrapper()
-    expect(wrapper.text()).toContain('Early Laning')
+    expect(wrapper.text()).toContain('Early laning (0–10 min)')
   })
 
-  it('renders Game Impact phase section', () => {
+  it('renders the match impact section', () => {
     const wrapper = createWrapper()
-    expect(wrapper.text()).toContain('Game Impact')
+    expect(wrapper.text()).toContain('Match impact')
   })
 
   it('renders an insight text', () => {
@@ -73,16 +73,16 @@ describe('LaneMatchupDetails.vue', () => {
     expect(wrapper.find('.insight-text').text().length).toBeGreaterThan(0)
   })
 
-  it('shows Gold Diff stat label', () => {
+  it('shows the Gold lead label', () => {
     const wrapper = createWrapper()
     const labels = wrapper.findAll('.stat-label').map(l => l.text())
-    expect(labels).toContain('Gold Diff')
+    expect(labels).toContain('Gold lead')
   })
 
-  it('shows CS Diff stat label', () => {
+  it('shows the CS lead label', () => {
     const wrapper = createWrapper()
     const labels = wrapper.findAll('.stat-label').map(l => l.text())
-    expect(labels).toContain('CS Diff')
+    expect(labels).toContain('CS lead')
   })
 
   it('shows Deaths stat label', () => {
@@ -91,22 +91,22 @@ describe('LaneMatchupDetails.vue', () => {
     expect(labels).toContain('Deaths')
   })
 
-  it('shows Damage Share stat label', () => {
+  it('shows the Damage share label', () => {
     const wrapper = createWrapper()
     const labels = wrapper.findAll('.stat-label').map(l => l.text())
-    expect(labels).toContain('Damage Share')
+    expect(labels).toContain('Damage share')
   })
 
-  it('shows Kill Part. stat label', () => {
+  it('shows the Kill participation label', () => {
     const wrapper = createWrapper()
     const labels = wrapper.findAll('.stat-label').map(l => l.text())
-    expect(labels).toContain('Kill Part.')
+    expect(labels).toContain('Kill participation')
   })
 
-  it('shows Vision Score stat label', () => {
+  it('shows the Vision score label', () => {
     const wrapper = createWrapper()
     const labels = wrapper.findAll('.stat-label').map(l => l.text())
-    expect(labels).toContain('Vision Score')
+    expect(labels).toContain('Vision score')
   })
 
   describe('Gold diff sentiment', () => {
@@ -180,5 +180,47 @@ describe('LaneMatchupDetails.vue', () => {
       )
       expect(deathRows[0].find('.stat-value.ally').text()).toBe('0')
     })
+  })
+})
+
+describe('LaneMatchupDetails.vue copy', () => {
+  const ally = { championName: 'Ahri', goldDiffAt10: -650, csDiffAt10: -12, deathsPre10: 2, damageShare: 20, killParticipation: 30, visionScore: 10 }
+  const enemy = { championName: 'Zed', goldDiffAt10: 650, csDiffAt10: 12, deathsPre10: 0, damageShare: 30, killParticipation: 40, visionScore: 12 }
+
+  it('signs leads with a real minus and uses no emoji', () => {
+    const wrapper = mount(LaneMatchupDetails, {
+      props: { matchup: { role: 'MIDDLE', laneWinner: 'enemy', allyParticipant: ally, enemyParticipant: enemy } }
+    })
+    const goldRow = wrapper.findAll('.stat-row').find((r) => r.find('.stat-label').text() === 'Gold lead')
+    expect(goldRow.find('.stat-value.ally').text()).toBe('−650')
+    expect(goldRow.find('.stat-value.enemy').text()).toBe('+650')
+    expect(wrapper.text()).not.toMatch(/\p{Extended_Pictographic}/u)
+  })
+
+  it('falls back to the opponent\'s gold difference when yours is missing, like the server', () => {
+    const wrapper = mount(LaneMatchupDetails, {
+      props: {
+        matchup: {
+          role: 'MIDDLE',
+          laneWinner: 'enemy',
+          allyParticipant: { ...ally, goldDiffAt10: null, csDiffAt10: null },
+          enemyParticipant: { ...enemy, goldDiffAt10: 800, csDiffAt10: 14 }
+        }
+      }
+    })
+    const rows = wrapper.findAll('.stat-row')
+    const gold = rows.find((r) => r.find('.stat-label').text() === 'Gold lead')
+    const cs = rows.find((r) => r.find('.stat-label').text() === 'CS lead')
+    expect(gold.find('.stat-value.ally').text()).toBe('−800')
+    expect(cs.find('.stat-value.ally').text()).toBe('−14')
+    expect(wrapper.get('[data-testid="lane-insight"]').text()).toContain('won this lane by 800 gold')
+  })
+
+  it('names who won the lane and the fix when you lost it', () => {
+    const wrapper = mount(LaneMatchupDetails, {
+      props: { matchup: { role: 'MIDDLE', laneWinner: 'enemy', allyParticipant: ally, enemyParticipant: enemy } }
+    })
+    expect(wrapper.get('[data-testid="lane-insight"]').text())
+      .toBe('Zed won this lane by 650 gold at 10 minutes. Fewer early deaths and safer trades close most of that gap.')
   })
 })

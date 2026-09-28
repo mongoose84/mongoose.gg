@@ -4,7 +4,8 @@ import { gotoAppPage, expectProtectedRouteRedirectsToAuth } from './helpers/app-
 const coreRoutes = [
   { navTestId: 'nav-overview', path: '/app/overview', locator: '[data-testid="champion-hero"], [data-testid="overview-account-cards"]' },
   { navTestId: 'nav-solo', path: '/app/solo', locator: '[data-testid="solo-dashboard"]' },
-  { navTestId: 'nav-matches', path: '/app/matches', locator: '[data-testid="matches-page"]' },
+  // Desktop opens the newest match once the list loads, so the URL may gain a match ID
+  { navTestId: 'nav-matches', path: '/app/matches', url: /\/app\/matches(\/[^/?#]+)?$/, locator: '[data-testid="matches-page"]' },
   { navTestId: 'nav-champion-select', path: '/app/champion-select', locator: '[data-testid="champion-select-page"]' },
   { navTestId: 'nav-feedback', path: '/app/feedback', heading: /send feedback/i, viaAvatarMenu: true },
 ]
@@ -32,11 +33,11 @@ test.describe('Smoke - Core app journey', () => {
       await expect(link).toBeVisible({ timeout: 5_000 })
 
       await Promise.all([
-        page.waitForURL(`**${route.path}`, { timeout: 10_000 }),
+        page.waitForURL(route.url ?? `**${route.path}`, { timeout: 10_000 }),
         link.click(),
       ])
 
-      await expect(page).toHaveURL(route.path)
+      await expect(page).toHaveURL(route.url ?? route.path)
 
       if (route.locator) {
         await expect(page.locator(route.locator).first()).toBeVisible({ timeout: 10_000 })

@@ -3,18 +3,34 @@
     <router-link
       v-for="item in navItems"
       :key="item.to"
+      v-slot="{ href, navigate }"
       :to="item.to"
-      class="mp-focusable"
-      :data-testid="item.testId"
+      custom
     >
-      <BaseIcon :name="item.icon" :size="24" />
-      <span>{{ item.label }}</span>
+      <!-- Current on sub-paths too: /app/matches/<id> keeps Matches current -->
+      <a
+        :href="href"
+        class="mp-focusable"
+        :aria-current="isCurrent(item.to) ? 'page' : undefined"
+        :data-testid="item.testId"
+        @click="navigate"
+      >
+        <BaseIcon :name="item.icon" :size="24" />
+        <span>{{ item.label }}</span>
+      </a>
     </router-link>
   </nav>
 </template>
 
 <script setup>
+import { useRoute } from 'vue-router';
 import { BaseIcon } from '@/components/base';
+
+const route = useRoute();
+
+function isCurrent(to) {
+  return route.path === to || route.path.startsWith(`${to}/`);
+}
 
 const navItems = [
   { to: '/app/overview', label: 'Overview', icon: 'house', testId: 'tab-overview' },

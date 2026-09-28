@@ -47,11 +47,13 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 
 ## Charts
 
+- Show, then say. When a finding is a comparison (this match vs your usual, your side vs theirs, wins vs losses, one time of day vs another), draw it with the matching component (UsualMeter, SplitBar, LaneBar, FormStrip, ColumnChart) and keep the words to a one-line takeaway title and short labels. Sentences are for the one finding and the one fix.
 - Use a chart only when the shape of the data is the point (a trend, a comparison). A list or table is better for looking things up.
 - The chart title says the takeaway, not the metric: "Up from 61 to 74 in 30 days", with the metric as the subtitle.
 - One or two series at most. More detail comes on demand (a segmented Last 20 / Last 50 / Season control, a tap for a single match), never all at once.
 - Lines use `primary` 2.5–3px with a highlighted last point; grid lines `divider`; axis labels `ink-faint` at 12px; no fills, no 3D, no legends when a label next to the line will do.
 - Time ranges count matches, never days: "Last 20 matches", "Last 50", "Season". Players think in matches and sessions, and a quiet week should not empty a chart.
+- Moments on a time chart are small `surface-selected` circles on the time axis with one letter (D dragon, B Baron, H Herald, T tower), in `positive-text` for your team's and `warn-text` for the enemy's or a lost fight, with a one-line key under the chart. A big swing gets one orange point on the line with its signed change ("▼ −1,500").
 - Every chart has a text alternative: an `aria-label` that states the range and the change ("Performance score, 30 days, from 61 to 74"), and the numbers are available as a table or list for screen readers.
 
 ## Colour
@@ -79,6 +81,7 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 - Cards pad `space-7` (28px); insight cards pad `space-6`. Grids gap `space-5` (20px). Page sections stack with `space-7`.
 - Navigation is one 80px top header on every app page, never a sidebar: logo left, PillNav, the player's avatar right (it opens Settings, Feedback and Log out). On phones the pills move to a bottom tab bar (see PillNav).
 - Standard Overview order: nav → champion hero → three score rings → your champions → readiness + today's matches → insights.
+- Matches order: headline from the list ("12 wins in your last 20") beside a FormStrip and the LP total, with the queue SegmentedControl → the match list (a 420px column that stays in place, a ColumnChart of win rate by start time under it) beside the open match: ChampionHero match banner → "What decided it" highlight card (one-line finding, three UsualMeters, one "Next match" fix) → gold-lead line chart with objective markers → LaneBars beside SplitBars (your team vs theirs) → "All your stats" closed → next step. Below 900px the list is the page and a match replaces it; the same cards stack.
 - Grids: 3 equal columns for score rings and insights; champion cards are 3 equal columns plus a 300px "Also played" list; readiness is a fixed 420px column beside a flexible list.
 - Below 900px everything stacks to one column; the hero art moves behind the text with a full-width scrim.
 
@@ -92,7 +95,7 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 - Source at runtime from Riot Data Dragon, through `client/src/utils/leagueAssets.js`: square icons (`/cdn/<version>/img/champion/<Name>.png`), splash (`/cdn/img/champion/splash/<Name>_0.jpg`), centred (`/cdn/img/champion/centered/<Name>_0.jpg`).
 - Splash art: only in the champion hero, anchored right, faded into `bg` from the left so text sits on solid ground.
 - Centred art: champion cards, faded into `bg` from the bottom.
-- Icons: round 48px portraits in match rows (2px border: `primary` for a win, `warn` for a loss); 44–48px squares with `radius-md` in lists and insight cards; round 28–44px for the player avatar.
+- Icons: round 48px portraits in match rows (2px border: `primary` for a win, `warn` for a loss, `track-strong` for a remake); 44–48px squares with `radius-md` in lists and insight cards; round 28–44px for the player avatar.
 - Every image gets real alt text when it carries meaning ("Ahri splash art") and `alt=""` when a name sits next to it.
 - The assets under Champions in this system are examples for previews only.
 

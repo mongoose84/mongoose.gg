@@ -66,7 +66,8 @@ const router = createRouter({
           component: () => import('../views/ChampionSelectPage.vue')
         },
         {
-          path: 'matches',
+          // One record for the list and a match, so the Matches nav item stays active on both
+          path: 'matches/:matchId?',
           name: 'app-matches',
           component: () => import('../views/MatchesPage.vue')
         },

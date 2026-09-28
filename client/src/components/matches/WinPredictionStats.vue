@@ -1,87 +1,35 @@
 <template>
-  <section class="win-prediction-stats" data-testid="win-prediction-stats">
-    <header class="stats-header">
-      <h3 class="section-title">Key Performance Indicators</h3>
-      <span class="subtitle">Metrics that most predict winning</span>
+  <section class="mp-card kpi" aria-labelledby="kpi-title" data-testid="win-prediction-stats">
+    <header class="kpi__header">
+      <h3 id="kpi-title" class="mp-card-title section-title">{{ title }}</h3>
+      <p class="kpi__caption subtitle">The stats that decide most matches, against your recent matches in this role</p>
     </header>
-    <div class="kpi-grid">
-      <!-- Deaths -->
-      <div class="kpi-tile" :class="deathsSentiment" data-testid="kpi-tile-deaths">
-        <div class="kpi-header">
-          <span class="kpi-label">Deaths</span>
-          <span v-if="deathsSentiment !== 'neutral'" class="sentiment-indicator" :class="deathsSentiment">
-            {{ deathsSentiment === 'positive' ? '↑' : '↓' }}
-          </span>
-        </div>
-        <span class="kpi-value">{{ match.deaths }}</span>
-        <span v-if="deathsComparison" class="kpi-description">{{ deathsComparison }}</span>
-      </div>
 
-      <!-- Gold @15 -->
-      <div class="kpi-tile" :class="goldSentiment" data-testid="kpi-tile-gold15">
-        <div class="kpi-header">
-          <span class="kpi-label">Gold @15</span>
-          <span v-if="goldSentiment !== 'neutral'" class="sentiment-indicator" :class="goldSentiment">
-            {{ goldSentiment === 'positive' ? '↑' : '↓' }}
-          </span>
-        </div>
-        <span class="kpi-value">{{ goldValue }}</span>
-        <span class="kpi-description">{{ goldDescription }}</span>
-      </div>
-
-      <!-- Dragon Participation -->
-      <div class="kpi-tile" :class="dragonSentiment" data-testid="kpi-tile-dragon">
-        <div class="kpi-header">
-          <span class="kpi-label">Dragon Part.</span>
-          <span v-if="dragonSentiment !== 'neutral'" class="sentiment-indicator" :class="dragonSentiment">
-            {{ dragonSentiment === 'positive' ? '↑' : '↓' }}
-          </span>
-        </div>
-        <span class="kpi-value">{{ dragonValue }}</span>
-        <span v-if="dragonDescription" class="kpi-description">{{ dragonDescription }}</span>
-      </div>
-
-      <!-- CS/min -->
-      <div class="kpi-tile" :class="csSentiment" data-testid="kpi-tile-cspm">
-        <div class="kpi-header">
-          <span class="kpi-label">CS/min</span>
-          <span v-if="csSentiment !== 'neutral'" class="sentiment-indicator" :class="csSentiment">
-            {{ csSentiment === 'positive' ? '↑' : '↓' }}
-          </span>
-        </div>
-        <span class="kpi-value">{{ match.csPerMin.toFixed(1) }}</span>
-        <span v-if="csComparison" class="kpi-description">{{ csComparison }}</span>
-      </div>
-
-      <!-- Vision Score -->
-      <div class="kpi-tile" :class="visionSentiment" data-testid="kpi-tile-vision">
-        <div class="kpi-header">
-          <span class="kpi-label">Vision Score</span>
-          <span v-if="visionSentiment !== 'neutral'" class="sentiment-indicator" :class="visionSentiment">
-            {{ visionSentiment === 'positive' ? '↑' : '↓' }}
-          </span>
-        </div>
-        <span class="kpi-value">{{ match.visionScore }}</span>
-        <span v-if="visionComparison" class="kpi-description">{{ visionComparison }}</span>
-      </div>
-
-      <!-- Deaths Before 10m -->
-      <div class="kpi-tile" :class="earlyDeathsSentiment" data-testid="kpi-tile-deaths-pre10">
-        <div class="kpi-header">
-          <span class="kpi-label">Deaths &lt;10m</span>
-          <span v-if="earlyDeathsSentiment !== 'neutral'" class="sentiment-indicator" :class="earlyDeathsSentiment">
-            {{ earlyDeathsSentiment === 'positive' ? '↑' : '↓' }}
-          </span>
-        </div>
-        <span class="kpi-value">{{ match.deathsPre10 }}</span>
-        <span v-if="earlyDeathsDescription" class="kpi-description">{{ earlyDeathsDescription }}</span>
-      </div>
-    </div>
+    <ul class="kpi-grid">
+      <li
+        v-for="tile in tiles"
+        :key="tile.key"
+        class="kpi-tile"
+        :class="tile.sentiment"
+        :data-testid="`kpi-tile-${tile.key}`"
+      >
+        <span class="kpi-label">{{ tile.label }}</span>
+        <span class="kpi-value">{{ tile.value }}</span>
+        <span v-if="tile.description" class="kpi-description" :class="sentimentText(tile.sentiment)">
+          <span v-if="tile.sentiment !== 'neutral'" aria-hidden="true">{{ tile.sentiment === 'positive' ? '▲' : '▼' }} </span>{{ tile.description }}
+        </span>
+      </li>
+    </ul>
   </section>
 </template>
 
 <script setup>
+/**
+ * The six stats that predict a win, each marked good (purple ▲) or needs work (orange ▼)
+ * against the player's own baseline. The title states the takeaway.
+ */
 import { computed } from 'vue'
+import { formatSigned } from '@/utils/matchesSummary'
 
 const props = defineProps({
   match: { type: Object, required: true },
@@ -104,15 +52,12 @@ const deathsSentiment = computed(() => {
 
 const deathsComparison = computed(() => {
   if (!props.baseline) return null
-  const rawDiff = props.match.deaths - props.baseline.avgDeaths
-  const roundedDiff = Number(rawDiff.toFixed(1))
-  const diff = Object.is(roundedDiff, -0) ? 0 : roundedDiff
-  return `${diff >= 0 ? '+' : ''}${diff} vs avg`
+  return `${formatSigned(props.match.deaths - props.baseline.avgDeaths, 1)} vs your average`
 })
 
-// Gold @15
+// Gold lead at 15
 const hasGoldDiff = computed(() => props.match.goldDiffAt15 !== null && props.match.goldDiffAt15 !== undefined)
-const gameEndedEarly = computed(() => props.match.gameDurationSec < 15 * 60)
+const matchEndedEarly = computed(() => props.match.gameDurationSec < 15 * 60)
 
 const goldSentiment = computed(() => {
   if (!hasGoldDiff.value) return 'neutral'
@@ -121,20 +66,16 @@ const goldSentiment = computed(() => {
   return 'neutral'
 })
 
-const goldValue = computed(() => {
-  if (!hasGoldDiff.value) return 'N/A'
-  const diff = props.match.goldDiffAt15
-  return `${diff >= 0 ? '+' : ''}${diff.toLocaleString()}`
-})
+const goldValue = computed(() => (hasGoldDiff.value ? formatSigned(props.match.goldDiffAt15) : '—'))
 
 const goldDescription = computed(() => {
-  if (!hasGoldDiff.value) return gameEndedEarly.value ? 'Game ended early' : 'No data'
+  if (!hasGoldDiff.value) return matchEndedEarly.value ? 'Ended before 15 minutes' : 'Not recorded'
   if (props.match.goldDiffAt15 >= 500) return 'Won lane'
   if (props.match.goldDiffAt15 <= -500) return 'Lost lane'
   return 'Even lane'
 })
 
-// Dragon Participation
+// Dragon participation
 const dragonParticipationRate = computed(() => {
   const { teamDragons, dragonsParticipated } = props.match
   if (!teamDragons) return 0
@@ -142,8 +83,7 @@ const dragonParticipationRate = computed(() => {
 })
 
 const dragonSentiment = computed(() => {
-  const { teamDragons } = props.match
-  if (!teamDragons) return 'neutral'
+  if (!props.match.teamDragons) return 'neutral'
   if (dragonParticipationRate.value >= 2 / 3) return 'positive'
   if (dragonParticipationRate.value === 0) return 'negative'
   return 'neutral'
@@ -157,14 +97,13 @@ const dragonValue = computed(() => {
 })
 
 const dragonDescription = computed(() => {
-  const { teamDragons } = props.match
-  if (!teamDragons) return null
+  if (!props.match.teamDragons) return null
   if (dragonParticipationRate.value >= 2 / 3) return 'High involvement'
   if (dragonParticipationRate.value === 0) return 'Low involvement'
   return null
 })
 
-// CS/min
+// CS per minute
 const csSentiment = computed(() => {
   if (isSupport.value || !props.baseline) return 'neutral'
   const diff = props.match.csPerMin - props.baseline.avgCsPerMin
@@ -175,11 +114,10 @@ const csSentiment = computed(() => {
 
 const csComparison = computed(() => {
   if (isSupport.value || !props.baseline) return null
-  const diff = props.match.csPerMin - props.baseline.avgCsPerMin
-  return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} vs avg`
+  return `${formatSigned(props.match.csPerMin - props.baseline.avgCsPerMin, 1)} vs your average`
 })
 
-// Vision Score (duration-adjusted)
+// Vision score (adjusted for match length)
 const visionExpected = computed(() => {
   if (!props.baseline || !props.baseline.avgGameDurationSec) return null
   return props.baseline.avgVisionScore * (props.match.gameDurationSec / props.baseline.avgGameDurationSec)
@@ -200,11 +138,10 @@ const visionSentiment = computed(() => {
 
 const visionComparison = computed(() => {
   if (!props.baseline || visionExpected.value === null) return null
-  const diff = Math.round(visionDiff.value)
-  return `${diff >= 0 ? '+' : ''}${diff} vs avg`
+  return `${formatSigned(visionDiff.value)} vs your average`
 })
 
-// Deaths Before 10m
+// Deaths before 10 minutes
 const earlyDeathsSentiment = computed(() => {
   const d = props.match.deathsPre10
   if (d === 0) return 'positive'
@@ -218,92 +155,92 @@ const earlyDeathsDescription = computed(() => {
   if (d >= 2) return 'Risky early game'
   return null
 })
+
+const tiles = computed(() => [
+  { key: 'deaths', label: 'Deaths', value: props.match.deaths, sentiment: deathsSentiment.value, description: deathsComparison.value },
+  { key: 'gold15', label: 'Gold lead at 15', value: goldValue.value, sentiment: goldSentiment.value, description: goldDescription.value },
+  { key: 'dragon', label: 'Dragons you joined', value: dragonValue.value, sentiment: dragonSentiment.value, description: dragonDescription.value },
+  { key: 'cspm', label: 'CS per minute', value: props.match.csPerMin.toFixed(1), sentiment: csSentiment.value, description: csComparison.value },
+  { key: 'vision', label: 'Vision score', value: props.match.visionScore, sentiment: visionSentiment.value, description: visionComparison.value },
+  { key: 'deaths-pre10', label: 'Deaths before 10 min', value: props.match.deathsPre10, sentiment: earlyDeathsSentiment.value, description: earlyDeathsDescription.value }
+])
+
+const title = computed(() => {
+  const good = tiles.value.filter((t) => t.sentiment === 'positive').length
+  const bad = tiles.value.filter((t) => t.sentiment === 'negative').length
+  if (good) return `${good} of 6 match-deciding stats went your way`
+  if (bad) return 'None of the 6 match-deciding stats went your way'
+  return 'Your match-deciding stats were close to usual'
+})
+
+function sentimentText(sentiment) {
+  if (sentiment === 'positive') return 'mp-up'
+  if (sentiment === 'negative') return 'mp-down'
+  return null
+}
 </script>
 
 <style scoped>
-.win-prediction-stats {
+.kpi {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 1.25rem;
 }
 
-.stats-header {
+.kpi__header {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.25rem;
 }
 
-.section-title {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  margin: 0;
-}
-
-.subtitle {
-  font-size: 10px;
+.kpi__caption {
+  font-size: 0.8125rem;
   color: var(--color-text-secondary);
 }
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--spacing-xs);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  list-style: none;
 }
 
 .kpi-tile {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--spacing-sm);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.kpi-tile.positive {
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.05);
-}
-
-.kpi-tile.negative {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: rgba(239, 68, 68, 0.05);
-}
-
-.kpi-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: var(--color-elevated);
 }
 
 .kpi-label {
-  font-size: var(--font-size-xs);
+  font-size: 0.8125rem;
   color: var(--color-text-secondary);
 }
 
-.sentiment-indicator {
-  font-size: 10px;
-  font-weight: var(--font-weight-bold);
-}
-
-.sentiment-indicator.positive {
-  color: var(--color-success);
-}
-
-.sentiment-indicator.negative {
-  color: var(--color-error);
-}
-
 .kpi-value {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text);
 }
 
 .kpi-description {
-  font-size: 10px;
-  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-ink-soft);
+}
+
+.kpi-description.mp-up { color: var(--color-positive-text); }
+.kpi-description.mp-down { color: var(--color-warn-text); }
+
+@media (max-width: 599px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>
-

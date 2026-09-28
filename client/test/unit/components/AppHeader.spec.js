@@ -38,7 +38,7 @@ async function createWrapper(initialPath = '/app/overview') {
       { path: '/', component: { template: '<div>Home</div>' } },
       { path: '/app/overview', component: { template: '<div>Overview</div>' } },
       { path: '/app/champion-select', component: { template: '<div>Champion Select</div>' } },
-      { path: '/app/matches', component: { template: '<div>Matches</div>' } },
+      { path: '/app/matches/:matchId?', component: { template: '<div>Matches</div>' } },
       { path: '/app/solo', component: { template: '<div>Solo</div>' } },
       { path: '/app/user', component: { template: '<div>Settings</div>' } },
       { path: '/app/feedback', component: { template: '<div>Feedback</div>' } }
@@ -76,6 +76,12 @@ describe('AppHeader.vue', () => {
     const { wrapper } = await createWrapper('/app/matches')
     expect(wrapper.get('[data-testid="nav-matches"]').attributes('aria-current')).toBe('page')
     expect(wrapper.get('[data-testid="nav-overview"]').attributes('aria-current')).toBeUndefined()
+  })
+
+  it('keeps the Matches pill current on an open match', async () => {
+    const { wrapper } = await createWrapper('/app/matches/EUW1_1')
+    expect(wrapper.get('[data-testid="nav-matches"]').attributes('aria-current')).toBe('page')
+    expect(wrapper.get('[data-testid="nav-matches"]').attributes('href')).toBe('/app/matches')
   })
 
   it('opens and closes the avatar menu', async () => {

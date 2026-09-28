@@ -124,7 +124,7 @@ test.describe('Overview Dashboard - Navigation', () => {
     await expect(matchesLink).toBeVisible({ timeout: 5_000 });
     await matchesLink.click();
 
-    await expect(page).toHaveURL('/app/matches');
+    await expect(page).toHaveURL(/\/app\/matches(\/[^/?#]+)?$/);
   });
 });
 

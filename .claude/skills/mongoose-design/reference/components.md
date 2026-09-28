@@ -9,6 +9,7 @@ The page opener: the player's main champion splash with one headline about them.
 - Provide: champion name, splash URL, the headline (one sentence, "Your {champion} …"), one supporting sentence, the player line (Riot ID · champion main · rank · LP), a primary action and up to two glass chips.
 - Art is anchored right (`object-position` tuned per champion so the face stays visible), faded into `bg` by `mp-hero-scrim`. Text never sits on the art.
 - When the player picks another champion card, swap the art, headline and chips together.
+- **Match banner** (`mp-hero--match`): on the Matches page the open match gets the hero instead of the page. 240px tall, the eyebrow carries the result and time ("Victory · 2 hours ago", `positive-text` for a win, `warn-text` for a loss), the title is the champion and role ("Ahri, Mid") in a 40px `h2` (the page headline stays the one `h1`), a meta line (queue · length), and up to three glass chips: K / D / A, the signed LP change, and the rank after the match with its tier-colour dot. No primary action. On phones the art fills the banner with a bottom scrim and the text sits at the bottom. Opening another match swaps the art without animation.
 - Don't: put more than one hero on a page, or use it without a champion (fall back to a plain `surface` card with the headline).
 
 ## ScoreRing
@@ -55,9 +56,83 @@ The one highlight card: should the player keep queueing right now.
 
 One match in a list: champion portrait, meta, KDA, result and LP change.
 
-- Provide: champion icon, champion name, a meta line (queue · length · time ago), K / D / A, result (Victory / Defeat) and the signed LP change.
-- Portrait border and result/LP text: win → `primary` / `positive-text`, loss → `warn` / `warn-text` (`mp-portrait--loss`, `mp-down`).
-- The whole row is one `<a href>` to the match (`/app/matches/<matchId>`), so a match can be shared and the back button works. On desktop the match opens beside the list, which stays in place; below 900px it opens as its own page with a back link. Opening a match never animates. Rows are separated by `divider` hairlines.
+- Provide: champion icon, champion name, a meta line (queue · length · time ago, plus the Riot ID in Overall mode), K / D / A, result (Victory / Defeat / Remake) and the signed LP change when known.
+- Portrait border and result/LP text: win → `primary` / `positive-text`, loss → `warn` / `warn-text` (`mp-portrait--loss`, `mp-down`). A remake (ended before 5 minutes) is neither: `track-strong` border and the word "Remake" in `ink-muted` (`mp-portrait--remake`, `mp-result--remake`).
+- The whole row is one `<a href>` to the match (`/app/matches/<matchId>`), so a match can be shared and the back button works. On desktop the match opens beside the list, which stays in place; below 900px it opens as its own page with an "All matches" link. Opening a match never animates. Rows are separated by `divider` hairlines.
+- The open match's row carries `aria-current="page"` and sits on `surface-selected`, reaching 12px into the card padding so the columns stay aligned; the hairlines around it disappear.
+- In a narrow list column (the Matches page list, 420px on desktop) wrap the rows in `mp-match-list`: below 480px of container width the KDA column moves into the meta line (`mp-match-kda` hides, `mp-match-meta-kda` shows), as on phones.
+- Don't: add badges or chips to a row (a match's finding belongs on the open match), or colour a remake as a loss.
+
+## StatTile
+
+One stat of a match inside a card: label, number and how it compares with the player's own average.
+
+- Provide: a label in sentence case ("Gold lead at 15", "CS per minute"), the value, and optionally one note: the comparison ("+1.2 vs your average") or a verdict word ("Won lane", "Safe early game").
+- Good notes are `positive-text` led by ▲ (`mp-up`), needs-work notes `warn-text` led by ▼ (`mp-down`), neutral notes `ink-soft` with no arrow. The arrow is `aria-hidden`; the words carry the meaning. Never tint the tile itself.
+- Tiles sit in `mp-stat-grid` (3 columns; 2 below 600px) on `surface-raised` with `radius-md`, inside a `surface` card whose title states the takeaway ("2 of 6 match-deciding stats went your way").
+- Numbers use the real minus (−2.9) and `tabular-nums`; a missing value shows "—" with a word why ("Ended before 15 minutes").
+- Don't: use it outside a card, put more than ten in one card, or use it for a 0–100 score (that is a ScoreRing).
+
+## LaneRow
+
+One lane of a match: role, your side against the opponent, who won the lane, and a button that opens the lane's details.
+
+- Provide: the role (Riot role emblem as an image plus its name; a "You" Strength chip on your own lane), each side's square champion icon (36px, `radius-md`, the champion name as alt text since no name is written) and K / D / A, and the lane result in words: "Won lane" (`mp-up`), "Lost lane" (`mp-down`) or "Even" (`ink-muted`). A lane is won at 300 or more gold ahead at 10 minutes.
+- The row is a real `<button class="mp-lane-row">` with `aria-expanded` and `aria-controls` pointing at the details under it; a 20px `chevron-down` turns over when open. Opening never animates.
+- The details under an open row: one sentence on how the lane went (finding first), then early laning (gold lead, CS lead, deaths) and match impact (damage share, kill participation, vision score) as small tables, leads in `positive-text`, deficits in `warn-text`.
+- Rows sit in a `surface` card whose title counts lanes ("Your team won 3 of 5 lanes"); hairlines are `divider`. Below 600px the role takes its own line.
+- ARAM has no lanes: list both teams by damage share instead, "Your team" / "Enemy team" as eyebrows in `positive-text` / `warn-text`.
+- Don't: use ✓ / ✗ or colour alone for the result, or open more than one lane at a time.
+
+## SplitBar
+
+Two sides of one total in a single bar: your team's share against the enemy team's (damage, gold).
+
+- Provide: both totals, written out next to the bar ("Your team 54.2k", "Enemy team 45.8k") with a small key dot each, and the bar with the first side's width as a percentage.
+- Your team is `primary`, the enemy team `warn`, the sides split by a 4px gap, `radius-pill` ends, 10px tall. The card title states the takeaway ("Your team dealt 54% of the damage").
+- The bar is `role="img"` with an `aria-label` that holds both percentages ("Damage: your team 54%, enemy team 46%").
+- Don't: show it without the numbers, split it into more than two sides, or animate it when a match opens.
+
+## FormStrip
+
+The player's recent results at a glance: one bar per match, oldest on the left, newest on the right.
+
+- Provide: the results of the last matches in the list (up to 20, the same range as the list), and the LP change over them when the queue is ranked ("+86 LP over 20").
+- Wins are tall `primary` bars (`is-win`), losses short `warn` bars, remakes a 6px `track-strong` stub (`is-remake`). Height carries the result too, so colour is never the only signal.
+- Label the ends under it with `mp-form-scale` ("20 matches ago", "Latest"). The strip is `role="img"` with an `aria-label` that states the sequence and the totals ("Last 20 matches, oldest to newest: … 12 wins, 8 losses").
+- It sits beside the page headline on the Matches page, which says the takeaway ("12 wins in your last 20"). The range counts matches, never days.
+- Don't: make the bars clickable (the rows below are the links), show more than 20, or animate it on a filter change.
+
+## UsualMeter
+
+One stat of a match against the player's own usual: a bar for this match and a tick for what they normally do.
+
+- Provide: a label in sentence case ("Gold lead at 10"), this match's value, the scale maximum, the player's usual value, and the note under it ("Your usual: +180"; or one "Your usual" key under a group of meters).
+- The fill is `primary` when this match beats the usual and `warn` (`mp-usual__fill--warn`) when it falls short; the `ink` tick marks the usual. For stats where less is better (deaths), flip the comparison, not the direction of the bar.
+- Mark it up as `role="meter"` with `aria-valuemin`, `aria-valuemax`, `aria-valuenow` and an `aria-valuetext` that says both numbers ("+1,240 gold, your usual is +180").
+- Use three side by side (one per row on phones) as the evidence inside the "What decided it" highlight card, under a one-line finding. Track is `track-strong` because it sits on `surface-highlight`.
+- Don't: use it for a 0–100 score (ScoreRing) or the readiness verdict (ReadinessMeter), show more than three in one card, or leave out the usual tick.
+
+## LaneBar
+
+One lane of a match as a picture: your side's gold difference at 10 minutes, growing right when ahead and left when behind.
+
+- Provide: both champions' square icons (36px, `radius-md`), the signed gold difference at 10 ("+1,240", "−650" with a real minus), which lane is the player's, and the lane name for the label.
+- Ahead grows right in `primary` (`mp-lane-bar__ahead`), behind grows left in `warn` (`mp-lane-bar__behind`) from a `track-strong` centre axis; scale the length to a fixed range (±1,500 gold fills the half). Under 300 either way is even: no bar, the number in `ink-muted`. The number carries the colour of its side, so direction, number and colour all say the same thing.
+- The player's own icon gets a 2px `primary` ring (`is-you`). The enemy icon sits on the right.
+- Each row is a `<button class="mp-lane-bar">` that opens the lane's details (like LaneRow), with an `aria-label` that says it in words ("Mid (you): won lane by 1,240 gold at 10 minutes"); the icons are `alt=""` inside it.
+- Rows sit in a card titled with the count ("3 of 5 lanes won") and a "Gold at 10 min" caption. It replaces LaneRow where the layout is visual first; LaneRow stays for text-first lists.
+- Don't: use it for anything but a two-sided difference around zero, or drop the number.
+
+## ColumnChart
+
+A small chart that compares two to four groups on one measure, such as win rate by start time.
+
+- Provide: a takeaway title ("You lose most after 11pm"), the measure and range as the caption ("Win rate by start time, last 20 matches"), and for each group its label, value and share of the scale.
+- Columns are `primary`; the group the finding is about is `warn` (`mp-columns__bar--warn`) when it is the weak spot, with its value in `warn-text`. The value sits on top of each column in Clash Display, the label under it in `ink-muted`. Rounded top (`radius-md`), no axis, no grid lines, no legend.
+- The chart is `role="img"` with an `aria-label` that lists every group and value ("Win rate by start time: afternoon 67 percent, evening 64 percent, after 11pm 25 percent").
+- Groups need enough matches to mean something: leave a group out under 3 matches rather than show a 0% or 100% from one match.
+- Don't: use it for trends over time (that is a line chart), show more than four columns, or colour every column differently.
 
 ## InsightCard
 

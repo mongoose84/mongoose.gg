@@ -1,97 +1,279 @@
 <template>
-  <section class="matches-page" data-testid="matches-page">
-    <header class="page-header" data-testid="matches-header">
-      <h1 class="sr-only">Matches</h1>
+  <div
+    class="matches-page"
+    :class="{ 'matches-page--open': selectedMatchId }"
+    data-testid="matches-page"
+  >
+    <SyncProgress
+      v-if="syncState"
+      :state="syncState"
+      :current="progressCurrent"
+      :total="progressTotal"
+      :synced-count="syncedCount"
+      @retry="startSync"
+    />
 
-      <!-- Queue Toggle Bar -->
-      <BaseQueueToggle v-model="queueFilter" />
-    </header>
+    <!-- No linked Riot account -->
+    <BaseEmptyState
+      v-if="hasNoLinkedAccount"
+      :heading-level="1"
+      title="Link your Riot account to see your matches"
+      description="We sync your recent matches and they show up here within a few minutes."
+      data-testid="matches-no-account"
+    >
+      <template #action>
+        <BaseButton size="lg" data-testid="matches-link-account" @click="showLinkModal = true">
+          <template #icon-left><BaseIcon name="link" :size="20" /></template>
+          Link Riot account
+        </BaseButton>
+      </template>
+    </BaseEmptyState>
 
-    <!-- Main Content: Two Column Layout -->
-    <div class="main-content">
-      <!-- Left Column: Match List -->
-      <div class="match-list-column">
-        <div class="column-header">
-          <h2 class="column-title">Recent Matches</h2>
-          <span v-if="data" class="match-count">{{ data.totalMatches }} matches</span>
+    <template v-else>
+      <header class="matches-header" data-testid="matches-header">
+        <div class="matches-header__text">
+          <h1 class="matches-header__title" data-testid="matches-headline">{{ headline }}</h1>
+          <p v-if="subline" class="matches-header__subline" data-testid="matches-subline">{{ subline }}</p>
         </div>
-        <div v-if="error" class="error-message">{{ error }}</div>
-        <MatchList
-          v-if="!error"
-          :matches="data?.matches || []"
-          :selectedMatchId="selectedMatchId"
-          :loading="loading"
-          @select="handleMatchSelect"
+        <BaseSegmentedControl
+          v-model="queueFilter"
+          :options="QUEUE_OPTIONS"
+          aria-label="Queue"
+          test-id-prefix="queue"
         />
-      </div>
+      </header>
 
-      <!-- Right Column: Match Details Card -->
-      <div class="match-details-column">
-        <div class="details-card">
-          <div class="details-card-header">
-            <h2 class="column-title">Match Details</h2>
-            <button
-              v-if="matchDetails && !detailsLoading"
-              class="download-btn"
-              title="Download match data"
-              @click="matchDetailsRef?.downloadMatchData()"
+      <div class="matches-layout" :class="{ 'matches-layout--single': !showDetailColumn }">
+        <!-- The list stays in place while a match is open beside it -->
+        <section
+          class="mp-card matches-list"
+          aria-labelledby="matches-list-title"
+          :aria-busy="listIsLoading ? 'true' : undefined"
+          data-testid="matches-list"
+        >
+          <header class="matches-list__header">
+            <h2 id="matches-list-title" class="mp-card-title">{{ listTitle }}</h2>
+            <BaseButton
+              variant="ghost"
+              size="sm"
+              :disabled="isSyncing"
+              data-testid="matches-sync"
+              @click="startSync"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
-                <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
-              </svg>
-            </button>
+              <template #icon-left><BaseIcon name="refresh-cw" :size="16" /></template>
+              Sync matches
+            </BaseButton>
+          </header>
+
+          <!-- Loading: rows in the layout of the content, shown after 300ms -->
+          <div v-if="listIsLoading" class="matches-list__loading" data-testid="matches-list-loading">
+            <span class="visually-hidden">Loading your matches</span>
+            <div v-for="n in 6" :key="n" class="matches-list__skeleton-row">
+              <BaseSkeleton variant="portrait" />
+              <div class="matches-list__skeleton-text">
+                <BaseSkeleton width="40%" />
+                <BaseSkeleton width="75%" />
+              </div>
+            </div>
           </div>
-          <div class="details-card-content">
-            <MatchDetails
-              ref="matchDetailsRef"
-              :match="matchDetails"
-              :baseline="matchDetailsBaseline"
-              :account-id="matchDetailsAccountId"
-              :loading="detailsLoading"
-              :error="detailsError"
+
+          <div v-else-if="error" class="mp-message mp-message--error" role="alert" data-testid="matches-list-error">
+            <BaseIcon name="triangle-alert" :size="20" />
+            <div class="mp-message__body">
+              <p>We couldn't load your matches. Try again in a minute.</p>
+              <button type="button" class="mp-message__action" data-testid="matches-retry" @click="fetchMatches">Try again</button>
+            </div>
+          </div>
+
+          <BaseEmptyState
+            v-else-if="!matches.length"
+            :title="emptyTitle"
+            :description="emptyDescription"
+            data-testid="matches-empty"
+          >
+            <template #action>
+              <BaseButton
+                v-if="queueFilter !== 'all'"
+                variant="secondary"
+                data-testid="matches-show-all"
+                @click="queueFilter = 'all'"
+              >Show all queues</BaseButton>
+              <BaseButton
+                v-else
+                :disabled="isSyncing"
+                data-testid="matches-empty-sync"
+                @click="startSync"
+              >
+                <template #icon-left><BaseIcon name="refresh-cw" :size="20" /></template>
+                Sync matches
+              </BaseButton>
+            </template>
+          </BaseEmptyState>
+
+          <nav v-else aria-labelledby="matches-list-title" class="matches-list__rows">
+            <BaseMatchRow
+              v-for="(match, index) in matches"
+              :key="match.matchId"
+              :to="{ name: 'app-matches', params: { matchId: match.matchId } }"
+              :champion-name="match.championName"
+              :champion-icon-url="match.championIconUrl"
+              :win="match.win"
+              :remake="isRemake(match)"
+              :kda="matchKda(match)"
+              :queue="match.queueType"
+              :duration-seconds="match.gameDurationSec"
+              :timestamp="match.gameStartTime"
+              :riot-id="matchRiotId(match)"
+              @click="trackMatchSelect(match.matchId, index, queueFilter)"
             />
-          </div>
-        </div>
+          </nav>
+        </section>
+
+        <section
+          v-if="showDetailColumn"
+          class="matches-detail"
+          aria-label="Match details"
+          data-testid="matches-detail"
+        >
+          <router-link
+            :to="{ name: 'app-matches' }"
+            class="mp-btn mp-btn--ghost mp-btn--sm matches-detail__back"
+            data-testid="matches-back"
+          >All matches</router-link>
+
+          <MatchDetails
+            :match="matchDetails"
+            :baseline="matchDetailsBaseline"
+            :account-id="matchDetailsAccountId"
+            :loading="detailsLoading || (listIsLoading && !matchDetails)"
+            :error="detailsError"
+            :badge="openMatchBadge"
+            @retry="fetchMatchDetails(selectedMatchId)"
+          />
+        </section>
       </div>
-    </div>
-  </section>
+    </template>
+  </div>
+
+  <LinkRiotAccountModal
+    :is-open="showLinkModal"
+    @close="showLinkModal = false"
+    @success="handleLinkSuccess"
+  />
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useAsyncData } from '../composables/useAsyncData'
+import { useSyncMatches } from '../composables/useSyncMatches'
 import { getMatchList, getMatchDetails } from '../services/matchesApi'
 import { trackFilterChange, trackMatchSelect } from '../services/analyticsApi'
-import MatchList from '../components/matches/MatchList.vue'
+import {
+  isRemake,
+  matchKda,
+  matchRiotId,
+  buildMatchesHeadline,
+  buildMatchesSubline
+} from '../utils/matchesSummary'
+import BaseButton from '../components/base/BaseButton.vue'
+import BaseIcon from '../components/base/BaseIcon.vue'
+import BaseSkeleton from '../components/base/BaseSkeleton.vue'
+import BaseEmptyState from '../components/base/BaseEmptyState.vue'
+import BaseSegmentedControl from '../components/base/BaseSegmentedControl.vue'
+import BaseMatchRow from '../components/base/BaseMatchRow.vue'
+import SyncProgress from '../components/base/SyncProgress.vue'
 import MatchDetails from '../components/matches/MatchDetails.vue'
-import { BaseQueueToggle } from '../components/base'
+import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
+
+// Four options at most (SegmentedControl); ARAM matches show under All queues
+const QUEUE_OPTIONS = [
+  { value: 'all', label: 'All queues' },
+  { value: 'ranked_solo', label: 'Solo/Duo' },
+  { value: 'ranked_flex', label: 'Flex' },
+  { value: 'normal', label: 'Normal' }
+]
+
+const DESKTOP_QUERY = '(min-width: 900px)'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
+const {
+  syncState,
+  isSyncing,
+  progressCurrent,
+  progressTotal,
+  syncedCount,
+  startSync
+} = useSyncMatches()
 
-// State
 const queueFilter = ref('all')
-const selectedMatchId = ref(null)
-const matchDetailsRef = ref(null)
+const showLinkModal = ref(false)
+const hasFetched = ref(false)
+let listRequest = 0
 
 const {
   data,
   error,
-  isLoading: loading,
+  isLoading,
   execute: executeMatchListFetch
-} = useAsyncData(async () => {
-  return await getMatchList(authStore.userId, queueFilter.value)
-}, { immediate: false, errorMessage: 'Failed to load matches' })
+} = useAsyncData(
+  () => getMatchList(authStore.userId, queueFilter.value),
+  { immediate: false, errorMessage: 'Failed to load matches' }
+)
 
-// Match details state (fetched on-demand)
+// Match details state (fetched on demand for the open match)
 const matchDetails = ref(null)
 const matchDetailsBaseline = ref(null)
 const matchDetailsAccountId = ref(null)
 const detailsLoading = ref(false)
 const detailsError = ref(null)
+
+const hasNoLinkedAccount = computed(() => authStore.isInitialized && authStore.hasLinkedAccount === false)
+const matches = computed(() => data.value?.matches ?? [])
+const listIsLoading = computed(() => (isLoading.value || !hasFetched.value) && !data.value && !error.value)
+
+/** The open match comes from the URL, so a match can be shared and Back works */
+const selectedMatchId = computed(() => {
+  const id = route.params.matchId
+  return typeof id === 'string' && id ? id : null
+})
+
+// The detail column shows once a match is open, or on desktop while the list has matches
+const showDetailColumn = computed(() => Boolean(selectedMatchId.value) || matches.value.length > 0 || listIsLoading.value)
+
+// The list row's standout finding for the open match (none for a remake)
+const openMatchBadge = computed(() => {
+  const item = matches.value.find((m) => m.matchId === selectedMatchId.value)
+  return item && !isRemake(item) ? item.trendBadge ?? null : null
+})
+
+const queueLabel = computed(() => QUEUE_OPTIONS.find((o) => o.value === queueFilter.value)?.label ?? '')
+
+const headline = computed(() => buildMatchesHeadline(matches.value) ?? 'Your matches')
+const subline = computed(() => buildMatchesSubline(matches.value))
+
+const listTitle = computed(() => {
+  if (!matches.value.length) return 'Recent matches'
+  return `Last ${matches.value.length} ${matches.value.length === 1 ? 'match' : 'matches'}`
+})
+
+const emptyTitle = computed(() =>
+  queueFilter.value === 'all' ? 'No matches yet' : `No ${queueLabel.value} matches yet`
+)
+const emptyDescription = computed(() =>
+  queueFilter.value === 'all'
+    ? 'Play a match or sync now, and your matches show up here within a few minutes.'
+    : `Your ${queueLabel.value} matches show up here after you play one and sync.`
+)
+
+function isDesktop() {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia(DESKTOP_QUERY).matches
+}
 
 function normalizeAccountField(value) {
   return String(value ?? '').trim().toLowerCase()
@@ -107,13 +289,13 @@ function getMatchDetailsAccountId(matchId) {
     return getSafeAccountId(authStore.activeAccount)
   }
 
-  const selectedMatch = data.value?.matches?.find(match => match.matchId === matchId)
+  const selectedMatch = matches.value.find((match) => match.matchId === matchId)
   if (selectedMatch) {
     const selectedGameName = normalizeAccountField(selectedMatch.accountGameName)
     const selectedTagLine = normalizeAccountField(selectedMatch.accountTagLine)
     const selectedRegion = normalizeAccountField(selectedMatch.accountRegion)
 
-    const matchedAccount = authStore.riotAccounts.find(account => {
+    const matchedAccount = authStore.riotAccounts.find((account) => {
       return normalizeAccountField(account.gameName) === selectedGameName &&
         normalizeAccountField(account.tagLine) === selectedTagLine &&
         normalizeAccountField(account.region) === selectedRegion
@@ -127,281 +309,287 @@ function getMatchDetailsAccountId(matchId) {
   return getSafeAccountId(authStore.activeAccount) ?? getSafeAccountId(authStore.primaryRiotAccount)
 }
 
-// Fetch match list (lightweight summary data)
+function clearDetails() {
+  matchDetails.value = null
+  matchDetailsBaseline.value = null
+  matchDetailsAccountId.value = null
+  detailsError.value = null
+  detailsLoading.value = false
+}
+
+// Fetch the list (summary rows only)
 async function fetchMatches() {
-  if (!authStore.userId) return
+  if (!authStore.userId || hasNoLinkedAccount.value) return
 
+  const request = ++listRequest
+  let result = null
   try {
-    const result = await executeMatchListFetch()
-
-    // Use matchId from query param if provided, otherwise auto-select first match
-    const queryMatchId = route.query.matchId
-    if (queryMatchId && result?.matches?.some(m => m.matchId === queryMatchId)) {
-      selectedMatchId.value = queryMatchId
-    } else if (result?.matches?.length > 0 && !selectedMatchId.value) {
-      selectedMatchId.value = result.matches[0].matchId
-    }
+    result = await executeMatchListFetch()
   } catch {
-    selectedMatchId.value = null
+    // useAsyncData holds the error for the list card
+  }
+  if (request !== listRequest) return
+  hasFetched.value = true
+
+  const first = result?.matches?.[0]?.matchId
+  if (!selectedMatchId.value && first && isDesktop()) {
+    // Desktop opens the newest match beside the list
+    router.replace({ name: 'app-matches', params: { matchId: first } })
+  } else if (selectedMatchId.value && authStore.isOverallMode && !matchDetails.value && !detailsLoading.value) {
+    // Overall mode waited for the list to know which account played the match. If the list
+    // failed, the account falls back to the active or primary one, so the open match still loads.
+    fetchMatchDetails(selectedMatchId.value)
   }
 }
 
-// Fetch full match details on-demand
+// Fetch full match details on demand
 async function fetchMatchDetails(matchId) {
+  if (!matchId) {
+    clearDetails()
+    return
+  }
+
   const accountId = getMatchDetailsAccountId(matchId)
-  if (!matchId || !accountId) {
-    detailsError.value = 'No linked Riot account'
-    matchDetails.value = null
-    matchDetailsBaseline.value = null
-    matchDetailsAccountId.value = null
+  if (!accountId) {
+    clearDetails()
+    detailsError.value = 'no-account'
     return
   }
 
   matchDetailsAccountId.value = accountId
-
   detailsLoading.value = true
   detailsError.value = null
 
   try {
     const result = await getMatchDetails(matchId, accountId)
 
-    // Guard against race condition: only update if this is still the selected match
-    if (selectedMatchId.value !== matchId) {
-      return // User selected a different match while we were fetching
-    }
+    // Guard against a race: only apply the answer for the match that is still open
+    if (selectedMatchId.value !== matchId) return
 
-    // Handle 404 (match not found)
     if (result === null) {
-      detailsError.value = 'Match not found'
-      matchDetails.value = null
-      matchDetailsBaseline.value = null
-      matchDetailsAccountId.value = null
+      clearDetails()
+      detailsError.value = 'not-found'
       return
     }
 
     matchDetails.value = result.match ?? null
     matchDetailsBaseline.value = result.baseline ?? null
   } catch (err) {
-    // Guard against race condition for error state too
-    if (selectedMatchId.value !== matchId) {
-      return
-    }
+    if (selectedMatchId.value !== matchId) return
 
     console.error('Failed to fetch match details:', err)
-    detailsError.value = err.message || 'Failed to load match details'
-    matchDetails.value = null
-    matchDetailsBaseline.value = null
-    matchDetailsAccountId.value = null
+    clearDetails()
+    detailsError.value = 'failed'
   } finally {
-    // Only clear loading if this is still the selected match
     if (selectedMatchId.value === matchId) {
       detailsLoading.value = false
     }
   }
 }
 
-// Handlers
-function handleMatchSelect(matchId) {
-  selectedMatchId.value = matchId
-
-  // Track match selection with position in list
-  const matchIndex = data.value?.matches?.findIndex(m => m.matchId === matchId) ?? -1
-  trackMatchSelect(matchId, matchIndex, queueFilter.value)
+/** Back to the plain list URL, then reload: used when the filter or account changes */
+function resetAndFetch() {
+  clearDetails()
+  if (selectedMatchId.value) {
+    router.replace({ name: 'app-matches' })
+  }
+  fetchMatches()
 }
 
-// Initial load
-onMounted(() => {
+async function handleLinkSuccess() {
+  await authStore.refreshUser()
   fetchMatches()
-})
+}
 
-// Watch selectedMatchId to fetch full details on-demand
-watch(selectedMatchId, (newMatchId) => {
-  if (newMatchId) {
-    fetchMatchDetails(newMatchId)
+watch(selectedMatchId, (matchId) => {
+  // Overall mode waits for the list to resolve the account (fetchMatches loads it then)
+  if (matchId && authStore.isOverallMode && !hasFetched.value) return
+  if (matchId) {
+    fetchMatchDetails(matchId)
   } else {
-    matchDetails.value = null
-    matchDetailsBaseline.value = null
-    matchDetailsAccountId.value = null
-    detailsError.value = null
+    clearDetails()
   }
-})
+}, { immediate: true })
 
-// Watch queue filter changes - reset selection, track, and refetch
-watch(queueFilter, (newValue) => {
-  selectedMatchId.value = null
-  matchDetails.value = null
-  matchDetailsBaseline.value = null
-  matchDetailsAccountId.value = null
-  detailsError.value = null
-  trackFilterChange('queue', newValue)
-  fetchMatches()
+watch(queueFilter, (value) => {
+  trackFilterChange('queue', value)
+  resetAndFetch()
 })
 
 watch(() => authStore.activeAccountPuuid, () => {
-  selectedMatchId.value = null
-  matchDetails.value = null
-  matchDetailsBaseline.value = null
-  matchDetailsAccountId.value = null
-  detailsError.value = null
-  fetchMatches()
+  if (!authStore.isInitialized) return
+  resetAndFetch()
 })
 
-// Watch for changes to matchId in the route query and sync selection
-watch(
-  () => route.query.matchId,
-  (newMatchId) => {
-    if (!data.value?.matches) return
-    if (newMatchId && data.value.matches.some(m => m.matchId === newMatchId)) {
-      selectedMatchId.value = newMatchId
-    }
-  }
-)
+// A finished sync that brought in matches refreshes the list
+watch(syncState, (state, previous) => {
+  if (state === 'done' && previous === 'running') fetchMatches()
+})
+
+// Wait for auth so the active account is settled before the first request
+watch(() => authStore.isInitialized, (initialized) => {
+  if (initialized) fetchMatches()
+}, { immediate: true })
 </script>
 
 <style scoped>
-.error-message {
-  color: var(--color-danger, #ef4444);
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid var(--color-danger, #ef4444);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
-  font-size: var(--font-size-sm);
-}
 .matches-page {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
-  /* Fill the viewport between AppLayout's paddings: 56px header + bottom tab bar below 900px */
-  height: calc(100dvh - 7.5rem - env(safe-area-inset-bottom));
-  overflow: hidden;
+  gap: 1.75rem;
+  padding: 1.75rem 0 3.5rem;
 }
 
-@media (min-width: 900px) {
-  .matches-page {
-    /* 80px header, no tab bar */
-    height: calc(100dvh - 5rem);
-  }
-}
-
-.page-header {
+.matches-header {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-/* Main Content Layout */
-.main-content {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: var(--spacing-xl);
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.match-list-column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  min-height: 0;
-  overflow: hidden;
-}
-
-.match-details-column {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.column-header {
-  display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-end;
   justify-content: space-between;
-  flex-shrink: 0;
+  gap: 1rem 1.5rem;
 }
 
-.column-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+.matches-header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 40.625rem;
+}
+
+.matches-header__title {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   color: var(--color-text);
-  margin: 0;
 }
 
-.match-count {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+.matches-header__subline {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
 }
 
-/* Details Card */
-.details-card {
+.matches-layout {
+  display: grid;
+  grid-template-columns: 26.25rem minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.matches-layout--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* The list stays in place under the 80px header while the open match scrolls */
+.matches-list {
+  container: match-list / inline-size;
+  position: sticky;
+  top: 6.25rem;
   display: flex;
   flex-direction: column;
-  flex: 1;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  gap: 1rem;
+  max-height: calc(100dvh - 7.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-.details-card-header {
+.matches-layout--single .matches-list {
+  position: static;
+  max-height: none;
+}
+
+.matches-list__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-elevated);
+  gap: 0.75rem;
 }
 
-.download-btn {
-  flex-shrink: 0;
+.matches-list__rows {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Skeletons wait 300ms before showing, so fast loads never flash them */
+.matches-list__loading {
+  display: flex;
+  flex-direction: column;
+  animation: matches-loading-appear 0s linear 300ms both;
+}
+
+.matches-list__skeleton-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.15s ease;
+  gap: 1rem;
+  min-height: 4.25rem;
+  border-top: 1px solid var(--color-border);
 }
 
-.download-btn:hover {
-  background: var(--color-elevated);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+.matches-list__skeleton-text {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 0.5rem;
 }
 
-.download-btn svg {
-  width: 16px;
-  height: 16px;
+@keyframes matches-loading-appear {
+  from { visibility: hidden; }
+  to { visibility: visible; }
 }
 
-.details-card-content {
-  flex: 1;
-  padding: var(--spacing-lg);
-  overflow-y: auto;
+.matches-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
 }
 
-/* Responsive: Stack on mobile */
-@media (max-width: 1024px) {
-  .main-content {
-    grid-template-columns: 1fr;
+/* The back link is for phones, where a match is its own page */
+.matches-detail__back {
+  display: none;
+  align-self: flex-start;
+}
+
+@media (max-width: 1099px) {
+  .matches-layout {
+    grid-template-columns: 22.5rem minmax(0, 1fr);
   }
+}
 
-  .match-details-column {
-    display: none; /* Hide details on mobile for now */
-  }
-
+/* Phones: the list is the page; an open match replaces it with a back link */
+@media (max-width: 899px) {
   .matches-page {
+    gap: 1.25rem;
+    padding: 1rem 0 1.75rem;
+  }
+
+  .matches-header__title {
+    font-size: 1.75rem;
+  }
+
+  .matches-layout,
+  .matches-layout--single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .matches-list {
+    position: static;
     max-height: none;
+    overflow: visible;
+  }
+
+  .matches-page:not(.matches-page--open) .matches-detail {
+    display: none;
+  }
+
+  .matches-page--open .matches-header,
+  .matches-page--open .matches-list {
+    display: none;
+  }
+
+  .matches-detail__back {
+    display: inline-flex;
   }
 }
 </style>
-

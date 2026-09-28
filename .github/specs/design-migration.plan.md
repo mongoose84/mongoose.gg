@@ -137,11 +137,54 @@ Each adds fields to `OverviewResponse` (update `architecture.spec.md`) and its s
 
 ---
 
+## Phase 4: Matches visual redesign
+
+Agreed 2026-09-28 after a UX audit: the open match leads with one finding instead of five tallies, and every comparison is drawn rather than written ("show, then say" in the design system). Target: the "visual" artboards on the Mongoose.gg Matches redesign canvas (https://claude.ai/artifact/Ufv95okAfSYgmnaJgniRhL): `MainVisual` (desktop), `PhoneMatchVisual`, `PhoneListVisual`. Components and rules are already in the design system (FormStrip, UsualMeter, LaneBar, ColumnChart, SplitBar, the ChampionHero match banner, time-chart moment markers).
+
+Four PRs, in order; each is shippable alone. **Status: 4a not started.**
+
+### 4a. Visual pass with existing data (frontend only)
+- [ ] Port the classes the page needs from `reference/components.css` into `client/src/style.css`: `mp-form`, `mp-columns`, `mp-lane-bar`, `mp-split`, `mp-stat`, `mp-hero--match`, the MatchRow additions. Delete the scoped copies they replace (this covers the "Switch the Matches components to the design system's classes" item below).
+- [ ] Page header: short headline ("12 wins in your last 20") + `FormStrip` of the list (win / loss / remake from `matchesSummary.isRemake`). New base component `BaseFormStrip.vue`.
+- [ ] Under the list: `ColumnChart` "win rate by start time" from `gameStartTime` in the player's local time (afternoon / evening / after 11pm, groups under 3 matches left out); title states the weak spot or is omitted when nothing stands out. New `BaseColumnChart.vue`; grouping logic in `matchesSummary.js`.
+- [ ] Open match: `MatchHeader` becomes the ChampionHero match banner (splash via `getChampionSplashUrl`, glass chips K / D / A; LP and rank chips come in 4b). "Download data" moves off the banner into the "All your stats" section.
+- [ ] Lanes: `MatchNarrative` rows become `LaneBar`s from `allyParticipant.goldDiffAt10` (±1,500 fills a half, under 300 is even); same button, `aria-expanded` and `LaneMatchupDetails` underneath. ARAM keeps the two team lists.
+- [ ] Team: `TeamComparison` becomes `SplitBar`s for damage, dragons, barons and towers beside the lanes (team gold totals aren't in the API, so no gold bar; the gold lead at 15 stays as the caption).
+- [ ] `WinPredictionStats` stays in the "What decided it" slot until 4c replaces it; `StatSnapshot` moves behind a closed "All your stats" disclosure with "▲ n above usual ▼ n below" in its summary row. `MatchActions` stays.
+- [ ] Tests: unit tests for the new base components and the grouping logic; update `MatchesPage`, `MatchHeader`, `MatchNarrative`, `TeamComparison` specs. Visual pass at 1440 / 1024 / 390px with a real account.
+
+### 4b. LP change and rank after each match (backend + frontend)
+- [ ] Add `lpChange` (and `tierAfter` / `rankAfter`) to `MatchListSummaryItem` and `MatchDetailsItem`: from `participants.lp_after`, compared with the same player's previous ranked match in the same queue; null for unranked queues, the first ranked match, and tier or division changes it can't resolve (decide in the PR whether promotions are computed or shown as "Promoted"). Parameterized SQL, update `architecture.spec.md`.
+- [ ] Wire `lpChange` into `BaseMatchRow` (the prop exists), the page header total ("+86 LP over 20", ranked queues only) and the banner chips (LP, rank with its tier colour).
+- [ ] Backend integration tests for the delta, including queue separation and missing `lp_after`.
+
+### 4c. "What decided it" (spec first, then backend + frontend)
+- [ ] Feature spec (`feature-spec` / `architect`): how the deciding stat is picked (extend `TrendBadgeCalculator`'s biggest-deviation logic across gold at 10, kill participation, CS at 10, deaths before 10, vision), the "usual" baselines it needs (`RoleBaseline` has no gold-at-10 or CS-at-10 averages yet), the finding and fix copy per stat, and what shows when nothing stands out.
+- [ ] Build: one `surface-highlight` card with a one-line finding, three `UsualMeter`s, one "Next match" fix (Lucide `eye` for vision fixes; other fix icons from the vocabulary). Retire `WinPredictionStats` and the list-row trend badge chip.
+
+### 4d. Gold over time (data first)
+- [ ] Sync already downloads the match-v5 timeline for `participant_checkpoints`; persist per-minute team gold and the objective events (dragon, Baron, Herald, towers) from the same payload. Schema change + `database-schema.spec.md`; backfill is optional (older matches fall back to the 10/15/20/25 checkpoints or hide the chart).
+- [ ] Endpoint field + the line chart per the design system (takeaway title, `primary` line, moment markers on the axis, orange point for the biggest swing, text alternative).
+
+### Afterwards
+- Overview and Champion Select visual passes (artboards `OverviewVisual`, `ChampionSelectVisual` on the same canvas; desktop only for now, phone versions deferred). Champion Select works with existing data. The Overview needs per-match results for its week and today strips, LP from 4b, and a high-deaths win rate next to `winRateLowDeaths` for its deaths chart.
+
+---
+
 ## Later phases
 
 One PR each, through `/mongoose-design`:
 
-- [ ] Matches page (MatchRow list, `/app/matches/:matchId` detail)
+- [x] Matches page — **built on branch `claude/champion-select-rewrite-im52lv`** (2026-09-28). Frontend only, existing endpoints (`/matches/{userId}`, `/matches/{matchId}/details`, `/matches/{matchId}/narrative`).
+  - Route is now `/app/matches/:matchId?` (one record, so the Matches pill and tab stay current on a match; header and tab bar mark sub-paths current). Overview's last-match row links to `/app/matches/<id>`.
+  - Order: headline from the list ("You won 12 of your last 20 matches") + streak / most-played line + queue SegmentedControl → list card (`BaseMatchRow`s, sticky 420px column on desktop) beside the open match → `MatchHeader` → `WinPredictionStats` → `MatchNarrative` → `TeamComparison` → `StatSnapshot` → `MatchActions`. Desktop opens the newest match on arrival; phones show the list, and a match replaces it with an "All matches" link.
+  - `BaseMatchRow` gained `remake` and `riotId` props, the selected row (`aria-current="page"` on `surface-selected`) and a `match-list` container query; `components/matches/MatchRow.vue` is merged into it. Copy and small rules in `utils/matchesSummary.js` (incl. `formatSigned` with a real minus).
+  - Every card has skeleton / error-with-retry / empty / content; the lanes card retries on its own. Green/red, emoji, uppercase badges, gradients and Heroicons-style inline SVGs are gone; your team purple, enemy orange.
+  - Retired: `MatchList`, `matches/MatchRow`, `TrendBadge` (its finding is now a chip in `MatchHeader`), the unused `ImpactStats`, and their unit tests; the disabled "View Goal Impact" button.
+  - Queue filter: All queues / Solo/Duo / Flex / Normal (four options max); ARAM matches show under All queues.
+  - Design system (Step 5, done 2026-09-28): MatchRow gained the selected, remake and narrow-list (`mp-match-list`) states; new StatTile (`mp-stat`), LaneRow (`mp-lane-row`) and SplitBar (`mp-split`); token notes for `surface-raised`, `surface-selected` and `track-strong` extended; "Matches order" in the brand book; `reference/` refreshed; "Current · Matches" artboard added to the mockup canvas. The app's components keep their own scoped styles for now rather than these `mp-*` classes.
+  - Next: the visual redesign, planned as Phase 4 above.
+  - Leftovers: no LP change in the list yet (the API has none); champion names still show Riot's internal ID; no visual pass with real match data yet (the E2E user has no matches); E2E only covers the page loading (smoke).
 - [ ] Solo page
 - [x] Champion Select page — **built on branch `claude/champion-select-rewrite-im52lv`** (from `design_phase3_champion_pool`, 2026-09-27). Frontend only, existing endpoints (`/champion-select`, `/solo/matchups`).
   - Order: filters → ChampionHero for the selected pick → "Your picks" (role SegmentedControl + three selectable ChampionCards) → matchups for the pick beside "Check a matchup".
@@ -150,4 +193,11 @@ One PR each, through `/mongoose-design`:
   - Filters are now SegmentedControls: ARAM is gone from the queue options (no lanes), and the time range is This season / Last 3 months / All time (last week, last month and 6 months dropped). The API still counts days, not matches.
   - Leftovers: add the matchup list rows, the "Check a matchup" card and the Strong into / Weak into headings to the live design system and `reference/` (Step 5); champion names still show Riot's internal ID ("TwistedFate"); E2E only covers the page loading (smoke).
 - [ ] Settings and Feedback pages
+- [ ] Switch the Matches components to the design system's classes, so the app and the system share one source of styling. Today they copy the look in their own scoped styles:
+  - `BaseMatchRow` (open-match row, remake, narrow list) → `mp-match-list`, `mp-portrait--remake`, `mp-result--remake`, `mp-match-kda` / `mp-match-meta-kda`
+  - `WinPredictionStats` (`kpi-tile`) and `StatSnapshot` (`stat-item`) → `mp-stat-grid` / `mp-stat`
+  - `MatchNarrative` (`lane-header`) → `mp-lane-row`
+  - `TeamComparison` damage bar → `mp-split`
+
+  Port the classes from `reference/components.css` into `client/src/style.css`, then delete the duplicated scoped rules. Keep the existing `data-testid`s and the class hooks the unit tests rely on (`kpi-tile`, `stat-item`, `lane-row`, the sentiment classes).
 - [ ] Advanced page (Team + Goals combined) back into the navigation
