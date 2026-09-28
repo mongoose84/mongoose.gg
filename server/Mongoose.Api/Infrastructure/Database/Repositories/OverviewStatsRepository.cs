@@ -7,168 +7,30 @@ namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
 /// <summary>
 /// Repository for overview page statistics.
-/// Provides primary queue detection, last 20 games metrics, and last match data.
+/// Provides the last match, most-played champion, champion pool, session and survival stats.
 /// </summary>
 public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
 {
     private readonly ILogger<OverviewStatsRepository> _logger;
 
-    // Queue priority order for tie-breaking: Ranked Solo/Duo → Ranked Flex → Normal Draft → ARAM → other
-    private static readonly Dictionary<int, int> QueuePriority = new()
-    {
-        { 420, 1 },  // Ranked Solo/Duo (highest priority)
-        { 440, 2 },  // Ranked Flex
-        { 400, 3 },  // Normal Draft
-        { 430, 3 },  // Normal Blind (same priority as Draft)
-        { 450, 4 },  // ARAM
-        { 1700, 4 }, // ARAM: Mayhem (same priority as regular ARAM)
-    };
+    // The current season is the latest season_code that has matches.
+    private const string CurrentSeasonSubquery = @"
+        SELECT ranked.season_code
+        FROM (
+            SELECT m2.season_code, MAX(m2.game_start_time) AS last_game_start
+            FROM matches m2
+            WHERE m2.season_code IS NOT NULL
+            GROUP BY m2.season_code
+            ORDER BY last_game_start DESC
+            LIMIT 1
+        ) ranked";
+
+    // Ranked Solo/Duo and Ranked Flex
+    private const string RankedQueueIds = "420, 440";
 
     public OverviewStatsRepository(IDbConnectionFactory factory, ILogger<OverviewStatsRepository> logger) : base(factory)
     {
         _logger = logger;
-    }
-
-    /// <summary>
-    /// Determines the primary queue based on match count in recent window (last 50 matches or 30 days).
-    /// Returns the queue_id with highest match count, using tie-breaker order if counts are equal.
-    /// </summary>
-    public virtual async Task<(int QueueId, string QueueLabel, int MatchCount)> GetPrimaryQueueAsync(string puuid)
-        => await GetPrimaryQueueAsync([puuid]);
-
-    public virtual async Task<(int QueueId, string QueueLabel, int MatchCount)> GetPrimaryQueueAsync(IReadOnlyList<string> puuids)
-    {
-        if (puuids.Count == 0)
-        {
-            return (420, "Ranked Solo/Duo", 0);
-        }
-
-        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
-        var (subqueryPuuidPredicate, subqueryPuuidParams) = BuildStringInClause("p2.puuid", puuids, "puuid_sub");
-        // Get match counts per queue for last 50 matches OR last 30 days (whichever gives more games)
-        var thirtyDaysAgo = DateTimeOffset.UtcNow.AddDays(-30).ToUnixTimeMilliseconds();
-
-        var sql = $@"
-            SELECT 
-                m.queue_id,
-                COUNT(*) as match_count
-            FROM participants p
-            INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate}
-              AND m.game_duration_sec >= {MinValidGameDurationSec}
-              AND (
-                  m.game_start_time >= @thirty_days_ago
-                  OR p.match_id IN (
-                      SELECT match_id FROM (
-                          SELECT p2.match_id 
-                          FROM participants p2
-                          INNER JOIN matches m2 ON m2.match_id = p2.match_id
-                          WHERE {subqueryPuuidPredicate}
-                          AND m2.game_duration_sec >= {MinValidGameDurationSec}
-                          ORDER BY m2.game_start_time DESC
-                          LIMIT 50
-                      ) recent_matches
-                  )
-              )
-            GROUP BY m.queue_id
-            ORDER BY match_count DESC";
-
-        var queueCounts = new List<QueueMatchCount>();
-
-        await ExecuteWithConnectionAsync(async conn =>
-        {
-            await using var cmd = new MySqlCommand(sql, conn);
-            foreach (var (name, value) in puuidParams)
-            {
-                cmd.Parameters.AddWithValue(name, value);
-            }
-            foreach (var (name, value) in subqueryPuuidParams)
-            {
-                cmd.Parameters.AddWithValue(name, value);
-            }
-            cmd.Parameters.AddWithValue("@thirty_days_ago", thirtyDaysAgo);
-
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                queueCounts.Add(new QueueMatchCount(
-                    QueueId: reader.GetInt32(0),
-                    MatchCount: reader.GetInt32(1)
-                ));
-            }
-            return 0;
-        });
-
-        if (queueCounts.Count == 0)
-        {
-            // Default to Ranked Solo/Duo if no matches found
-            return (420, "Ranked Solo/Duo", 0);
-        }
-
-        // Find queue with highest count, using priority for tie-breaking
-        var primaryQueue = queueCounts
-            .OrderByDescending(q => q.MatchCount)
-            .ThenBy(q => QueuePriority.GetValueOrDefault(q.QueueId, 99))
-            .First();
-
-        var label = LeagueDataHelper.GetQueueLabel(primaryQueue.QueueId);
-        return (primaryQueue.QueueId, label, primaryQueue.MatchCount);
-    }
-
-    /// <summary>
-    /// Gets the last 20 matches for the specified queue with win/loss and LP data.
-    /// Returns newest first (index 0 = most recent).
-    /// </summary>
-    public virtual async Task<List<MatchResultData>> GetLast20MatchesAsync(string puuid, int queueId)
-        => await GetLast20MatchesAsync([puuid], queueId);
-
-    public virtual async Task<List<MatchResultData>> GetLast20MatchesAsync(IReadOnlyList<string> puuids, int queueId)
-    {
-        if (puuids.Count == 0)
-        {
-            return new List<MatchResultData>();
-        }
-
-        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
-        var sql = $@"
-            SELECT 
-                p.match_id,
-                p.win,
-                p.lp_after,
-                m.game_start_time
-            FROM participants p
-            INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE {puuidPredicate}
-              AND m.game_duration_sec >= {MinValidGameDurationSec}
-              AND m.queue_id = @queue_id
-            ORDER BY m.game_start_time DESC
-            LIMIT 20";
-
-        var matches = new List<MatchResultData>();
-
-        await ExecuteWithConnectionAsync(async conn =>
-        {
-            await using var cmd = new MySqlCommand(sql, conn);
-            foreach (var (name, value) in puuidParams)
-            {
-                cmd.Parameters.AddWithValue(name, value);
-            }
-            cmd.Parameters.AddWithValue("@queue_id", queueId);
-
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                matches.Add(new MatchResultData(
-                    MatchId: reader.GetString(0),
-                    Win: reader.GetBoolean(1),
-                    LpAfter: reader.IsDBNull(2) ? null : reader.GetInt32(2),
-                    GameStartTime: reader.GetInt64(3)
-                ));
-            }
-            return 0;
-        });
-
-        return matches;
     }
 
     /// <summary>
@@ -257,17 +119,7 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE {puuidPredicate}
               AND m.game_duration_sec >= {MinValidGameDurationSec}
-                            AND m.season_code = (
-                                    SELECT ranked.season_code
-                                    FROM (
-                                            SELECT m2.season_code, MAX(m2.game_start_time) AS last_game_start
-                                            FROM matches m2
-                                            WHERE m2.season_code IS NOT NULL
-                                            GROUP BY m2.season_code
-                                            ORDER BY last_game_start DESC
-                                            LIMIT 1
-                                    ) ranked
-                            )
+              AND m.season_code = ({CurrentSeasonSubquery})
             GROUP BY p.champion_name
             ORDER BY games_played DESC, MAX(m.game_start_time) DESC
             LIMIT 1";
@@ -298,31 +150,118 @@ public class OverviewStatsRepository : RepositoryBase, IOverviewStatsRepository
     }
 
     /// <summary>
-    /// Gets the current LP for the player in the specified ranked queue.
-    /// Returns null if no LP data is available.
+    /// Per-champion ranked aggregates (Solo/Duo + Flex, current season) for the Overview champion pool,
+    /// plus matches per champion and role so the caller can find each champion's primary role.
     /// </summary>
-    public virtual async Task<int?> GetCurrentLpAsync(string puuid, int queueId)
+    public virtual async Task<ChampionPoolData> GetChampionPoolStatsAsync(IReadOnlyList<string> puuids)
     {
-        // Get the most recent LP from a ranked match
-        const string sql = @"
-            SELECT p.lp_after
+        if (puuids.Count == 0)
+        {
+            return new ChampionPoolData([], []);
+        }
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        var matchFilter = $@"
+            WHERE {puuidPredicate}
+              AND m.game_duration_sec >= {MinValidGameDurationSec}
+              AND m.queue_id IN ({RankedQueueIds})
+              AND m.season_code = ({CurrentSeasonSubquery})";
+
+        var championSql = $@"
+            SELECT
+                p.champion_id,
+                MAX(p.champion_name) AS champion_name,
+                COUNT(*) AS games,
+                SUM(CASE WHEN p.win = 1 THEN 1 ELSE 0 END) AS wins,
+                AVG(p.kills) AS avg_kills,
+                AVG(p.deaths) AS avg_deaths,
+                AVG(p.assists) AS avg_assists,
+                AVG(p.creep_score / (m.game_duration_sec / 60.0)) AS avg_cs_per_min,
+                AVG(cp15.gold_diff_vs_lane) AS avg_gold_diff_15,
+                COUNT(cp15.gold_diff_vs_lane) AS gold_diff_15_samples,
+                AVG(pm.deaths_pre_10) AS avg_deaths_pre_10,
+                AVG(pm.vision_per_min) AS avg_vision_per_min,
+                AVG(pm.damage_share_pct) AS avg_damage_share_pct,
+                AVG(pm.kill_participation_pct) AS avg_kill_participation_pct,
+                COUNT(pm.participant_id) AS metric_samples,
+                MAX(m.game_start_time) AS last_played
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
-            WHERE p.puuid = @puuid
-              AND m.queue_id = @queue_id
-              AND p.lp_after IS NOT NULL
-            ORDER BY m.game_start_time DESC
-            LIMIT 1";
+            LEFT JOIN participant_checkpoints cp15 ON cp15.participant_id = p.id AND cp15.minute_mark = 15
+            LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
+            {matchFilter}
+            GROUP BY p.champion_id";
 
-        return await ExecuteWithConnectionAsync(async conn =>
+        var roleSql = $@"
+            SELECT
+                p.champion_id,
+                COALESCE(NULLIF(p.role, ''), 'UNKNOWN') AS role,
+                COUNT(*) AS games,
+                MAX(m.game_start_time) AS last_played
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            {matchFilter}
+            GROUP BY p.champion_id, COALESCE(NULLIF(p.role, ''), 'UNKNOWN')";
+
+        var champions = new List<ChampionPoolStatsData>();
+        var roleCounts = new List<ChampionRoleCountData>();
+
+        await ExecuteWithConnectionAsync(async conn =>
         {
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@puuid", puuid);
-            cmd.Parameters.AddWithValue("@queue_id", queueId);
+            await using (var cmd = new MySqlCommand(championSql, conn))
+            {
+                foreach (var (name, value) in puuidParams)
+                {
+                    cmd.Parameters.AddWithValue(name, value);
+                }
 
-            var result = await cmd.ExecuteScalarAsync();
-            return result == null || result == DBNull.Value ? (int?)null : Convert.ToInt32(result);
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    champions.Add(new ChampionPoolStatsData(
+                        ChampionId: reader.GetInt32(0),
+                        ChampionName: reader.GetString(1),
+                        Games: reader.GetInt32(2),
+                        Wins: reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
+                        AvgKills: reader.IsDBNull(4) ? 0 : reader.GetDouble(4),
+                        AvgDeaths: reader.IsDBNull(5) ? 0 : reader.GetDouble(5),
+                        AvgAssists: reader.IsDBNull(6) ? 0 : reader.GetDouble(6),
+                        AvgCsPerMin: reader.IsDBNull(7) ? 0 : reader.GetDouble(7),
+                        AvgGoldDiff15: reader.IsDBNull(8) ? null : reader.GetDouble(8),
+                        GoldDiff15Samples: reader.GetInt32(9),
+                        AvgDeathsPre10: reader.IsDBNull(10) ? null : reader.GetDouble(10),
+                        AvgVisionPerMin: reader.IsDBNull(11) ? null : reader.GetDouble(11),
+                        AvgDamageSharePct: reader.IsDBNull(12) ? null : reader.GetDouble(12),
+                        AvgKillParticipationPct: reader.IsDBNull(13) ? null : reader.GetDouble(13),
+                        MetricSamples: reader.GetInt32(14),
+                        LastPlayed: reader.GetInt64(15)
+                    ));
+                }
+            }
+
+            await using (var cmd = new MySqlCommand(roleSql, conn))
+            {
+                foreach (var (name, value) in puuidParams)
+                {
+                    cmd.Parameters.AddWithValue(name, value);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    roleCounts.Add(new ChampionRoleCountData(
+                        ChampionId: reader.GetInt32(0),
+                        Role: reader.GetString(1),
+                        Games: reader.GetInt32(2),
+                        LastPlayed: reader.GetInt64(3)
+                    ));
+                }
+            }
+
+            return 0;
         });
+
+        return new ChampionPoolData(champions, roleCounts);
     }
 
     /// <summary>

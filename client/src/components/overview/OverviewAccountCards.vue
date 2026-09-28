@@ -1,7 +1,7 @@
 <template>
   <section class="overview-account-cards" data-testid="overview-account-cards">
     <div class="header-row">
-      <h2 class="section-title">Your Accounts</h2>
+      <h1 class="section-title">Your accounts</h1>
     </div>
     <div class="account-cards-container">
       <div
@@ -23,20 +23,9 @@
               class="account-avatar-image"
               @error="handleIconError(account.accountId)"
             />
-            <svg
-              v-else
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              class="account-avatar-fallback"
-              aria-hidden="true"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
-                clip-rule="evenodd"
-              />
-            </svg>
+            <span v-else class="account-avatar-fallback" aria-hidden="true">
+              <BaseIcon name="user" :size="24" />
+            </span>
             <span
               v-if="account.summonerLevel"
               class="level-badge"
@@ -53,14 +42,14 @@
             <!-- Flex Rank -->
             <div class="rank-line">
               <span class="rank-label">Flex</span>
-              <span class="rank-separator">-</span>
+              <span class="rank-separator" aria-hidden="true">·</span>
               <span class="rank-value">{{ account.flexRankDisplay }}</span>
             </div>
 
             <!-- Solo Rank -->
             <div class="rank-line">
               <span class="rank-label">Solo</span>
-              <span class="rank-separator">-</span>
+              <span class="rank-separator" aria-hidden="true">·</span>
               <span class="rank-value">{{ account.soloRankDisplay }}</span>
             </div>
           </div>
@@ -74,6 +63,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { getProfileIconUrl } from '@/utils/leagueAssets'
+import BaseIcon from '@/components/base/BaseIcon.vue'
 
 const props = defineProps({
   accounts: {
@@ -126,7 +116,7 @@ function formatRankDisplay(tier, rank, lp) {
   }
   
   const formattedTier = tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase()
-  const lpDisplay = (lp !== null && lp !== undefined) ? ` - ${lp} LP` : ''
+  const lpDisplay = (lp !== null && lp !== undefined) ? ` · ${lp} LP` : ''
   return `${formattedTier} ${rank}${lpDisplay}`
 }
 
@@ -173,177 +163,122 @@ const normalizedAccounts = computed(() => {
 </script>
 
 <style scoped>
+/* Overall mode: one card per linked account, in place of the champion hero */
 .overview-account-cards {
   width: 100%;
 }
 
 .header-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 1.25rem;
 }
 
 .section-title {
   margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
 }
 
 .account-cards-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--spacing-md);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
   width: 100%;
 }
 
 .account-card {
   position: relative;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: var(--spacing-sm);
-  min-height: 132px;
-  padding: var(--spacing-lg);
+  gap: 0.75rem;
+  min-height: 8.25rem;
+  padding: 1.75rem;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  border-radius: 1.5rem;
   text-align: left;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.account-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.8;
-  transition: opacity 0.2s ease;
-}
-
-.account-card:hover {
-  transform: translateY(-2px);
-}
-
-.account-card {
-  background: linear-gradient(160deg,
-    rgba(255, 255, 255, 0.045) 0%,
-    var(--color-surface) 65%);
-}
-
-.account-card::before {
-  background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0) 45%);
-}
-
-.account-card:hover {
-  border-color: rgba(109, 40, 217, 0.28);
 }
 
 .account-card.account-card--active {
-  border-color: rgba(109, 40, 217, 0.45);
-  box-shadow: var(--shadow-md);
-}
-
-.account-card.account-card--active::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--color-primary-light);
+  border-color: var(--color-primary-accent);
 }
 
 .card-top-meta {
   position: absolute;
-  top: var(--spacing-sm);
-  right: var(--spacing-sm);
-  z-index: 2;
+  top: 1rem;
+  right: 1rem;
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-xs);
+  gap: 0.5rem;
 }
 
 .primary-chip {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  padding: 2px 8px;
-  font-size: 11px;
-  line-height: 1.2;
-  letter-spacing: 0.02em;
-}
-
-.primary-chip {
-  color: #d8b4fe;
-  border: 1px solid rgba(168, 85, 247, 0.4);
-  background: rgba(168, 85, 247, 0.14);
+  height: 1.5rem;
+  padding: 0 0.625rem;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-positive-text-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .account-main-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 1rem;
   min-width: 0;
 }
 
 .account-avatar {
   position: relative;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  overflow: visible;
-  background: var(--color-surface);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 2px solid var(--color-primary);
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 999px;
+  background: var(--color-surface-selected);
 }
 
 .account-avatar-image {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: 999px;
   object-fit: cover;
 }
 
 .account-avatar-fallback {
-  width: 32px;
-  height: 32px;
+  display: inline-flex;
   color: var(--color-text-secondary);
-  z-index: 1;
 }
 
 .level-badge {
   position: absolute;
-  bottom: -2px;
-  right: -2px;
-  background: var(--color-primary);
-  color: white;
-  font-weight: var(--font-weight-bold);
-  font-size: 12px;
+  bottom: -0.25rem;
+  right: -0.375rem;
+  min-width: 1.75rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: 999px;
+  background: var(--color-surface-selected);
+  color: var(--color-text);
+  font-size: 0.75rem;
+  font-weight: 700;
   line-height: 1;
-  padding: 4px 7px;
-  min-width: 28px;
   text-align: center;
-  border-radius: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .account-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.25rem;
   min-width: 0;
 }
 
@@ -351,68 +286,51 @@ const normalizedAccounts = computed(() => {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: var(--spacing-xs);
+  gap: 0.25rem;
   min-width: 0;
 }
 
 .game-name {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
 }
 
 .tag-line {
-  font-size: var(--font-size-xs);
+  font-size: 0.875rem;
   color: var(--color-text-secondary);
 }
 
 .rank-line {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--font-size-xs);
-  line-height: 1.4;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
-.rank-label {
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-}
-
+.rank-label,
 .rank-separator {
   color: var(--color-text-secondary);
 }
 
 .rank-value {
-  color: var(--color-text);
+  color: var(--color-ink-soft);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Mobile responsive */
-@media (max-width: 640px) {
-  .header-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-xs);
+@media (max-width: 899px) {
+  .account-cards-container {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .account-card {
-    padding: var(--spacing-md);
-  }
-
-  .account-card:hover {
-    transform: none;
-  }
-
-  .account-avatar {
-    width: 56px;
-    height: 56px;
-  }
-
-  .game-name {
-    font-size: var(--font-size-xs);
+  .section-title {
+    font-size: 2rem;
   }
 }
 </style>

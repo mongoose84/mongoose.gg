@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
-import { ref, computed } from 'vue'
+import { mount } from '@vue/test-utils'
+import { ref } from 'vue'
 import { setupPinia } from '@test/helpers/testUtils'
 import AppLayout from '@/layouts/AppLayout.vue'
 
@@ -16,16 +16,17 @@ vi.mock('@/stores/authStore', () => ({
   })
 }))
 
-vi.mock('@/stores/uiStore', () => ({
-  useUiStore: () => ({
-    sidebarWidth: 256
-  })
+vi.mock('@/components/AppHeader.vue', () => ({
+  default: {
+    name: 'AppHeader',
+    template: '<header data-testid="app-header"></header>'
+  }
 }))
 
-vi.mock('@/components/AppSidebar.vue', () => ({
+vi.mock('@/components/AppTabBar.vue', () => ({
   default: {
-    name: 'AppSidebar',
-    template: '<aside data-testid="app-sidebar"></aside>'
+    name: 'AppTabBar',
+    template: '<nav data-testid="app-tabbar"></nav>'
   }
 }))
 
@@ -61,9 +62,10 @@ describe('AppLayout', () => {
     })
   }
 
-  it('renders the AppSidebar', () => {
+  it('renders the AppHeader and AppTabBar', () => {
     const wrapper = mountLayout()
-    expect(wrapper.find('[data-testid="app-sidebar"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="app-header"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="app-tabbar"]').exists()).toBe(true)
   })
 
   it('renders a main element with the router-view slot', () => {
@@ -72,10 +74,9 @@ describe('AppLayout', () => {
     expect(wrapper.find('[data-testid="router-view"]').exists()).toBe(true)
   })
 
-  it('applies sidebarWidth as margin-left on the main element', () => {
+  it('does not render a sidebar', () => {
     const wrapper = mountLayout()
-    const main = wrapper.find('main')
-    expect(main.attributes('style')).toContain('margin-left: 256px')
+    expect(wrapper.find('[data-testid="app-sidebar"]').exists()).toBe(false)
   })
 
   it('registers visibilitychange listener on mount', () => {

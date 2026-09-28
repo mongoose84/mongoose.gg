@@ -1,20 +1,18 @@
 <template>
-  <div class="min-h-screen flex">
-    <AppSidebar />
-    <main class="flex-1 transition-[margin-left] duration-300 ease-out min-h-screen" :style="{ marginLeft: sidebarWidth + 'px' }">
+  <div class="min-h-screen">
+    <AppHeader />
+    <main class="min-h-screen mx-auto w-full max-w-[1328px] px-4 desk:px-14 pt-14 desk:pt-20 pb-[calc(4rem+env(safe-area-inset-bottom))] desk:pb-0">
       <router-view />
     </main>
+    <AppTabBar />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue';
-import AppSidebar from '../components/AppSidebar.vue';
+import { onMounted, onUnmounted } from 'vue';
+import AppHeader from '../components/AppHeader.vue';
+import AppTabBar from '../components/AppTabBar.vue';
 import { useAuthStore } from '../stores/authStore';
-import { useUiStore } from '../stores/uiStore';
-
-const uiStore = useUiStore();
-const sidebarWidth = computed(() => uiStore.sidebarWidth);
 
 const authStore = useAuthStore();
 
@@ -100,5 +98,5 @@ onUnmounted(() => {
 });
 </script>
 
-<!-- Tailwind utilities used: min-h-screen, flex, flex-1, transition-[margin-left], duration-300, ease-out -->
+<!-- Tailwind utilities used: min-h-screen, mx-auto, max-w-[1328px], px-4, desk:px-14, pt-14, desk:pt-20, pb-[...], desk:pb-0 -->
 

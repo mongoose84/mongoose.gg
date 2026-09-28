@@ -384,14 +384,15 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 ### 6.9 Overview Dashboard
 **Route**: `GET /api/v2/overview/{userId}`  
 **Auth**: Yes  
-**Query params**: None  
-**Response**: `OverviewResponse(playerHeader, lastMatch, activeGoals[], suggestedActions[])`  
+**Query params**: `?accountId=` (omitted = primary, `all` = every linked account, or one account ID)  
+**Response**: `OverviewResponse(playerHeader, lastMatch, mostPlayedChampion, accountSummaries[]?, sessionStats, survivalStats, championPool)`  
 **Logic**:
-1. Get primary Riot account
-2. Build player header (name, level, region, icon, contexts)
-3. Build rank metadata in player header
-4. Get latest match and overview cards
-**Tables**: `users`, `user_riot_accounts`, `riot_accounts`  
+1. Resolve the requested accounts server-side
+2. Build player header (Riot ID, level, region, rank, LP)
+3. In parallel: latest match, most-played champion, session stats, survival stats, champion pool
+4. In `all` mode: per-account summaries
+**Champion pool** (`championPool: { champions[], alsoPlayed[] }`, each `PoolChampion(championId, championName, role, matches, wins, winRate, avgKda, mScore, strengthTag?)`): ranked Solo/Duo + Flex matches in the current season, one entry per champion ordered by M-Score; top 3 as `champions` with a unique strength tag each, next 3 as `alsoPlayed`. Rules in `Core/Services/ChampionPoolBuilder.cs` and [overview-champion-pool.spec.md](features/overview-champion-pool.spec.md). Both arrays are empty without ranked matches this season.  
+**Tables**: `users`, `user_riot_accounts`, `riot_accounts`, `matches`, `participants`, `participant_checkpoints`, `participant_metrics`  
 **Repos**: `IOverviewStatsRepository`, `IUserRiotAccountsRepository`
 
 ### 6.10 Solo Dashboard
@@ -537,24 +538,19 @@ public record FeedbackResponse(bool Success, string Message);
 public record OverviewResponse(
     PlayerHeader PlayerHeader,
     LastMatch? LastMatch,
-    GoalPreview[] ActiveGoals,
-    SuggestedAction[] SuggestedActions
+    MostPlayedChampion? MostPlayedChampion,
+    AccountSummary[]? AccountSummaries,   // Overall mode only
+    SessionStats? SessionStats,
+    SurvivalStats? SurvivalStats,
+    ChampionPool? ChampionPool
 );
 
-public record PlayerHeader(
-    string SummonerName,
-    int Level,
-    string Region,
-    string ProfileIconUrl,
-    string[] ActiveContexts,
-    string? Rank,
-    int? Lp,
-    string? PrimaryQueueLabel
-);
+public record PlayerHeader(string SummonerName, int Level, string Region, string? Rank, int? Lp);
 
 public record LastMatch(string MatchId, string ChampionIconUrl, string ChampionName, string Result, string Kda, long Timestamp, string QueueType);
-public record GoalPreview(string GoalId, string Title, string Context, double Progress);
-public record SuggestedAction(string ActionId, string Text, string DeepLink, int Priority);
+public record ChampionPool(PoolChampion[] Champions, PoolChampion[] AlsoPlayed);
+public record PoolChampion(int ChampionId, string ChampionName, string Role, int Matches, int Wins, double WinRate, double AvgKda, double MScore, string? StrengthTag);
+// MostPlayedChampion, AccountSummary, SessionStats, SurvivalStats: see OverviewDto.cs
 ```
 
 ### Solo Performance DTOs
@@ -904,10 +900,12 @@ public interface IMatchesRepository
 // Overview stats
 public interface IOverviewStatsRepository
 {
-    Task<(int QueueId, string QueueLabel, int MatchCount)> GetPrimaryQueueAsync(string puuid);
-    Task<List<MatchResultData>> GetLast20MatchesAsync(string puuid, int queueId);
-    Task<LastMatchData?> GetLastMatchAsync(string puuid);
-    Task<int?> GetCurrentLpAsync(string puuid, int queueId);
+    Task<LastMatchData?> GetLastMatchAsync(IReadOnlyList<string> puuids);
+    Task<MostPlayedChampionData?> GetMostPlayedChampionAsync(IReadOnlyList<string> puuids);
+    Task<ChampionPoolData> GetChampionPoolStatsAsync(IReadOnlyList<string> puuids);
+    Task<SessionStatsData> GetSessionStatsAsync(IReadOnlyList<string> puuids, DateTime todayUtc);
+    Task<SurvivalStatsData> GetSurvivalStatsAsync(IReadOnlyList<string> puuids, int lowDeathThreshold, int highDeathThreshold, int lastNGames = 20);
+    // plus single-PUUID overloads of GetLastMatchAsync / GetMostPlayedChampionAsync
 }
 
 // Solo performance (returns full dashboard DTO)

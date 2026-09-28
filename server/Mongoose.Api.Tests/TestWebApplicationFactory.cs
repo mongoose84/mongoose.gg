@@ -883,54 +883,13 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     /// </summary>
     internal sealed class FakeOverviewStatsRepository : OverviewStatsRepository
     {
-        private readonly ConcurrentDictionary<string, List<MatchResultData>> _matchesByPuuid = new();
         private readonly ConcurrentDictionary<string, LastMatchData> _lastMatchByPuuid = new();
         private readonly ConcurrentDictionary<string, MostPlayedChampionData> _mostPlayedChampionByPuuid = new();
         private readonly ConcurrentDictionary<string, (int GamesToday, int WinsToday, int LossesToday, int GamesThisWeek, int WinsThisWeek, int LossesThisWeek)> _sessionDataByPuuid = new();
         private SurvivalStatsData _survivalStats = new SurvivalStatsData(0, null, null, 0, 0, 0);
-        private int _defaultQueueId = 420;
-        private string _defaultQueueLabel = "Ranked Solo/Duo";
+        private ChampionPoolData _championPool = new ChampionPoolData([], []);
 
         public FakeOverviewStatsRepository() : base(null!, null!) { }
-
-        public override Task<(int QueueId, string QueueLabel, int MatchCount)> GetPrimaryQueueAsync(string puuid)
-        {
-            if (_matchesByPuuid.TryGetValue(puuid, out var matches))
-            {
-                return Task.FromResult((_defaultQueueId, _defaultQueueLabel, matches.Count));
-            }
-            return Task.FromResult((_defaultQueueId, _defaultQueueLabel, 0));
-        }
-
-        public override Task<(int QueueId, string QueueLabel, int MatchCount)> GetPrimaryQueueAsync(IReadOnlyList<string> puuids)
-        {
-            var matchCount = puuids
-                .Where(puuid => _matchesByPuuid.TryGetValue(puuid, out _))
-                .Sum(puuid => _matchesByPuuid[puuid].Count);
-
-            return Task.FromResult((_defaultQueueId, _defaultQueueLabel, matchCount));
-        }
-
-        public override Task<List<MatchResultData>> GetLast20MatchesAsync(string puuid, int queueId)
-        {
-            if (_matchesByPuuid.TryGetValue(puuid, out var matches))
-            {
-                return Task.FromResult(matches.Take(20).ToList());
-            }
-            return Task.FromResult(new List<MatchResultData>());
-        }
-
-        public override Task<List<MatchResultData>> GetLast20MatchesAsync(IReadOnlyList<string> puuids, int queueId)
-        {
-            var matches = puuids
-                .Where(puuid => _matchesByPuuid.TryGetValue(puuid, out _))
-                .SelectMany(puuid => _matchesByPuuid[puuid])
-                .OrderByDescending(match => match.GameStartTime)
-                .Take(20)
-                .ToList();
-
-            return Task.FromResult(matches);
-        }
 
         public override Task<LastMatchData?> GetLastMatchAsync(string puuid)
         {
@@ -966,37 +925,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             }
 
             return Task.FromResult<MostPlayedChampionData?>(null);
-        }
-
-        public override Task<int?> GetCurrentLpAsync(string puuid, int queueId)
-        {
-            if (_matchesByPuuid.TryGetValue(puuid, out var matches) && matches.Count > 0)
-            {
-                return Task.FromResult(matches.First().LpAfter);
-            }
-            return Task.FromResult<int?>(null);
-        }
-
-        /// <summary>
-        /// Sets the default queue for the fake repository.
-        /// </summary>
-        public void SetDefaultQueue(int queueId, string queueLabel)
-        {
-            _defaultQueueId = queueId;
-            _defaultQueueLabel = queueLabel;
-        }
-
-        /// <summary>
-        /// Adds match result data for a player.
-        /// </summary>
-        public void AddMatchResult(string puuid, string matchId, bool win, int? lpAfter, long gameStartTime)
-        {
-            if (!_matchesByPuuid.TryGetValue(puuid, out var matches))
-            {
-                matches = new List<MatchResultData>();
-                _matchesByPuuid[puuid] = matches;
-            }
-            matches.Add(new MatchResultData(matchId, win, lpAfter, gameStartTime));
         }
 
         /// <summary>
@@ -1064,6 +992,19 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         public void SetSurvivalStats(SurvivalStatsData survivalStats)
         {
             _survivalStats = survivalStats;
+        }
+
+        public override Task<ChampionPoolData> GetChampionPoolStatsAsync(IReadOnlyList<string> puuids)
+        {
+            return Task.FromResult(_championPool);
+        }
+
+        /// <summary>
+        /// Overrides the champion pool data returned by the fake.
+        /// </summary>
+        public void SetChampionPool(ChampionPoolData championPool)
+        {
+            _championPool = championPool;
         }
     }
 

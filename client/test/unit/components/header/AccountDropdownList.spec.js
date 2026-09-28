@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import AccountDropdownList from '@/components/sidebar/AccountDropdownList.vue'
+import AccountDropdownList from '@/components/header/AccountDropdownList.vue'
 
 const mockAccounts = [
   { puuid: 'puuid-1', accountId: 'id-1', gameName: 'FakerMain', tagLine: 'EUW', region: 'euw1', profileIconId: 1234 },
@@ -13,7 +13,6 @@ function mountComponent(props = {}) {
       accounts: mockAccounts,
       activeAccountPuuid: 'overall',
       showOverall: true,
-      focusedIndex: -1,
       ddVersion: '16.1.1',
       ...props
     }
@@ -54,58 +53,45 @@ describe('AccountDropdownList.vue', () => {
     it('marks overall option as active when activeAccountPuuid is "overall"', () => {
       const wrapper = mountComponent({ activeAccountPuuid: 'overall' })
       const overall = wrapper.find('[data-testid="account-option-overall"]')
-      expect(overall.attributes('aria-selected')).toBe('true')
+      expect(overall.attributes('aria-current')).toBe('true')
     })
 
     it('does not mark overall as active when a specific account is active', () => {
       const wrapper = mountComponent({ activeAccountPuuid: 'id-1' })
       const overall = wrapper.find('[data-testid="account-option-overall"]')
-      expect(overall.attributes('aria-selected')).toBe('false')
+      expect(overall.attributes('aria-current')).toBeUndefined()
     })
 
     it('marks account as active when its accountId matches activeAccountPuuid', () => {
       const wrapper = mountComponent({ activeAccountPuuid: 'id-1' })
       const option = wrapper.find('[data-testid="account-option-FakerMain"]')
-      expect(option.attributes('aria-selected')).toBe('true')
+      expect(option.attributes('aria-current')).toBe('true')
     })
 
     it('marks account as active when its puuid matches activeAccountPuuid', () => {
       const accounts = [{ puuid: 'puuid-only', gameName: 'PuuidAccount', tagLine: 'KR', region: 'kr' }]
       const wrapper = mountComponent({ accounts, activeAccountPuuid: 'puuid-only', showOverall: false })
       const option = wrapper.find('[data-testid="account-option-PuuidAccount"]')
-      expect(option.attributes('aria-selected')).toBe('true')
+      expect(option.attributes('aria-current')).toBe('true')
     })
 
     it('does not mark other accounts as active when one is selected', () => {
       const wrapper = mountComponent({ activeAccountPuuid: 'id-1' })
       const inactive = wrapper.find('[data-testid="account-option-FakerSmurf"]')
-      expect(inactive.attributes('aria-selected')).toBe('false')
+      expect(inactive.attributes('aria-current')).toBeUndefined()
     })
   })
 
-  describe('Focus indication', () => {
-    it('marks the Overall option with data-focused when focusedIndex is 0 and showOverall is true', () => {
-      const wrapper = mountComponent({ focusedIndex: 0 })
-      const overall = wrapper.find('[data-testid="account-option-overall"]')
-      expect(overall.attributes('data-focused')).toBe('true')
-    })
-
-    it('marks the first account with data-focused when focusedIndex is 1 and showOverall is true', () => {
-      const wrapper = mountComponent({ focusedIndex: 1 })
-      const option = wrapper.find('[data-testid="account-option-FakerMain"]')
-      expect(option.attributes('data-focused')).toBe('true')
-    })
-
-    it('marks the first account with data-focused when focusedIndex is 0 and showOverall is false', () => {
-      const wrapper = mountComponent({ showOverall: false, focusedIndex: 0 })
-      const option = wrapper.find('[data-testid="account-option-FakerMain"]')
-      expect(option.attributes('data-focused')).toBe('true')
-    })
-
-    it('does not mark any option when focusedIndex is -1', () => {
-      const wrapper = mountComponent({ focusedIndex: -1 })
-      const overall = wrapper.find('[data-testid="account-option-overall"]')
-      expect(overall.attributes('data-focused')).toBe('false')
+  describe('Keyboard access', () => {
+    it('renders every option as a tabbable button', () => {
+      const wrapper = mountComponent()
+      const options = wrapper.findAll('[data-testid^="account-option-"]')
+      expect(options).toHaveLength(3)
+      for (const option of options) {
+        expect(option.element.tagName).toBe('BUTTON')
+        expect(option.attributes('type')).toBe('button')
+        expect(option.attributes('tabindex')).toBeUndefined()
+      }
     })
   })
 

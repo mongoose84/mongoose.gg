@@ -2,11 +2,11 @@ import { test, expect } from '@playwright/test'
 import { gotoAppPage, expectProtectedRouteRedirectsToAuth } from './helpers/app-shell.js'
 
 const coreRoutes = [
-  { navTestId: 'nav-overview', path: '/app/overview', locator: '.overview-player-header, [data-testid="overview-account-cards"]' },
+  { navTestId: 'nav-overview', path: '/app/overview', locator: '[data-testid="champion-hero"], [data-testid="overview-account-cards"]' },
   { navTestId: 'nav-solo', path: '/app/solo', locator: '[data-testid="solo-dashboard"]' },
   { navTestId: 'nav-matches', path: '/app/matches', locator: '[data-testid="matches-page"]' },
   { navTestId: 'nav-champion-select', path: '/app/champion-select', locator: '[data-testid="champion-select-page"]' },
-  { navTestId: 'nav-feedback', path: '/app/feedback', heading: /send feedback/i },
+  { navTestId: 'nav-feedback', path: '/app/feedback', heading: /send feedback/i, viaAvatarMenu: true },
 ]
 
 test.describe('Smoke - Core app journey', () => {
@@ -16,14 +16,18 @@ test.describe('Smoke - Core app journey', () => {
 
   test('@smoke loads the authenticated overview shell', async ({ page }) => {
     await gotoAppPage(page, '/app/overview')
-    await expect(page.locator('.overview-player-header, [data-testid="overview-account-cards"]')).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByRole('heading', { name: /at a glance/i })).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-testid="champion-hero"], [data-testid="overview-account-cards"]')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-testid="today-matches-card"]')).toBeVisible({ timeout: 10_000 })
   })
 
-  test('@smoke navigates across core pages from the sidebar', async ({ page }) => {
+  test('@smoke navigates across core pages from the header nav', async ({ page }) => {
     await gotoAppPage(page, '/app/overview')
 
     for (const route of coreRoutes) {
+      if (route.viaAvatarMenu) {
+        await page.locator('[data-testid="app-header-avatar"]').click()
+      }
+
       const link = page.locator(`[data-testid="${route.navTestId}"]`)
       await expect(link).toBeVisible({ timeout: 5_000 })
 

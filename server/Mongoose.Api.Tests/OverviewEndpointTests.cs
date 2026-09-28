@@ -96,7 +96,6 @@ public class OverviewEndpointTests
         body.PlayerHeader.SummonerName.Should().Be("TestPlayer#NA1");
         body.PlayerHeader.Level.Should().Be(100);
         body.PlayerHeader.Region.Should().Be("NA1");
-        body.PlayerHeader.ActiveContexts.Should().Contain("Solo");
     }
 
     [Fact]
@@ -132,11 +131,10 @@ public class OverviewEndpointTests
         body.Should().NotBeNull();
         body!.PlayerHeader.Rank.Should().Be("GOLD II");
         body.PlayerHeader.Lp.Should().Be(75);
-        body.PlayerHeader.PrimaryQueueLabel.Should().Be("Ranked Solo/Duo");
     }
 
     [Fact]
-    public async Task Overview_returns_empty_goals_and_actions()
+    public async Task Overview_omits_retired_fields()
     {
         using var factory = new TestWebApplicationFactory();
         var authCookie = await LoginAndGetAuthCookieAsync(factory);
@@ -152,10 +150,11 @@ public class OverviewEndpointTests
         var response = await client.SendAsync(req);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
-        body.Should().NotBeNull();
-        body!.ActiveGoals.Should().BeEmpty();
-        body.SuggestedActions.Should().BeEmpty();
+        var raw = await response.Content.ReadAsStringAsync();
+        foreach (var field in new[] { "activeGoals", "suggestedActions", "combinedStats", "activeContexts", "primaryQueueLabel", "profileIconUrl" })
+        {
+            raw.Should().NotContain($"\"{field}\"");
+        }
     }
 
     [Fact]
@@ -420,26 +419,96 @@ public class OverviewEndpointTests
         raw.Should().Contain("highDeathThreshold");
     }
 
+    [Fact]
+    public async Task Overview_returns_empty_champion_pool_without_ranked_matches()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        body!.ChampionPool.Should().NotBeNull();
+        body.ChampionPool!.Champions.Should().BeEmpty();
+        body.ChampionPool.AlsoPlayed.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Overview_returns_champion_pool_cards_and_also_played()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+
+        static Mongoose.Api.Core.QueryModels.ChampionPoolStatsData Champ(int id, string name, int games, int wins, double goldDiff15 = 0)
+            => new(id, name, games, wins, 5, 4, 7, 7, goldDiff15, games, 1, 1, 25, 50, games, 1_000);
+
+        factory.OverviewStatsRepository.SetChampionPool(new Mongoose.Api.Core.QueryModels.ChampionPoolData(
+            Champions:
+            [
+                Champ(103, "Ahri", 22, 14, goldDiff15: 600),
+                Champ(134, "Syndra", 18, 11),
+                Champ(112, "Viktor", 13, 8),
+                Champ(61, "Orianna", 11, 5),
+            ],
+            RoleCounts:
+            [
+                new(103, "MIDDLE", 22, 1_000),
+            ]));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var raw = await response.Content.ReadAsStringAsync();
+        raw.Should().Contain("\"championPool\"").And.Contain("\"alsoPlayed\"").And.Contain("\"strengthTag\"");
+
+        var body = await response.Content.ReadFromJsonAsync<OverviewResponse>();
+        var pool = body!.ChampionPool!;
+        pool.Champions.Should().HaveCount(3);
+        pool.AlsoPlayed.Select(c => c.ChampionName).Should().Equal("Orianna");
+
+        var ahri = pool.Champions.First();
+        ahri.ChampionName.Should().Be("Ahri");
+        ahri.ChampionId.Should().Be(103);
+        ahri.Role.Should().Be("MIDDLE");
+        ahri.Matches.Should().Be(22);
+        ahri.Wins.Should().Be(14);
+        ahri.WinRate.Should().Be(63.6);
+        ahri.StrengthTag.Should().Be("Best laning");
+    }
+
     // Response DTOs for deserialization
     private record OverviewResponse(
         PlayerHeader PlayerHeader,
         LastMatch? LastMatch,
         MostPlayedChampion? MostPlayedChampion,
-        GoalPreview[] ActiveGoals,
-        SuggestedAction[] SuggestedActions,
         AccountSummary[]? AccountSummaries = null,
-        CombinedStats? CombinedStats = null,
         SessionStats? SessionStats = null,
-        SurvivalStats? SurvivalStats = null
+        SurvivalStats? SurvivalStats = null,
+        ChampionPool? ChampionPool = null
     );
 
-    private record PlayerHeader(string SummonerName, int Level, string Region, string ProfileIconUrl, string[] ActiveContexts, string? Rank, int? Lp, string? PrimaryQueueLabel);
+    private record ChampionPool(PoolChampion[] Champions, PoolChampion[] AlsoPlayed);
+    private record PoolChampion(int ChampionId, string ChampionName, string Role, int Matches, int Wins, double WinRate, double AvgKda, double MScore, string? StrengthTag);
+
+    private record PlayerHeader(string SummonerName, int Level, string Region, string? Rank, int? Lp);
     private record LastMatch(string MatchId, string ChampionIconUrl, string ChampionName, string Result, string Kda, long Timestamp);
     private record MostPlayedChampion(string ChampionName, int GamesPlayed, string Source);
-    private record GoalPreview(string GoalId, string Title, string Context, double Progress);
-    private record SuggestedAction(string ActionId, string Text, string DeepLink, int Priority);
     private record AccountSummary(string AccountId, string GameName, string TagLine, string Region, string? Rank, int? Lp, int GamesToday, int GamesThisWeek);
-    private record CombinedStats(int TotalGames, double WinRate, double AvgKda);
     private record SessionStats(int GamesToday, int WinsToday, int LossesToday, double? AvgKdaToday, SessionChampion? BestChampionToday, int GamesThisWeek, int WinsThisWeek, int LossesThisWeek, double? AvgKdaThisWeek);
     private record SessionChampion(string ChampionName, int Wins, int Losses, double AvgKda);
     private record SurvivalStats(double AvgDeathsPerGame, double? WinRateLowDeaths, double? WinRateHighDeaths, int GamesLowDeaths, int GamesHighDeaths, int LowDeathThreshold, int HighDeathThreshold, int TotalGames);

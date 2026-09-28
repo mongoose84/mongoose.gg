@@ -105,6 +105,24 @@ public static class MainChampionRecommender
         return (entry, score);
     }
 
+    /// <summary>
+    /// The M-Score (0–100, one decimal) for one champion's aggregated stats in a role.
+    /// Same scoring as the role recommendations, for callers that aggregate champions differently.
+    /// </summary>
+    public static double ComputeMScore(
+        double winRatePercent, int games,
+        double avgKills, double avgDeaths, double avgAssists,
+        double? avgGoldDiff15, double? avgDeathsPre10, double? avgVisionPerMin,
+        string role)
+    {
+        var score = ComputeRecommendedScore(
+            winRatePercent, games,
+            avgKills, avgDeaths, avgAssists,
+            avgGoldDiff15, avgDeathsPre10, avgVisionPerMin,
+            NormalizeRole(role));
+        return Math.Round(score * 100, 1);
+    }
+
     private static string NormalizeRole(string role, bool isAram = false)
     {
         // For ARAM, all champions are treated as a single "ARAM" role group

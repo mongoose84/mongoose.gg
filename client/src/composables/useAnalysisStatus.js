@@ -5,7 +5,7 @@ import { triggerAnalysisAll, getRiotAccountSyncStatus } from '../services/authAp
 
 /**
  * Composable for managing analysis/sync status across the application.
- * Provides a unified interface for the AnalysisStatusCard and other components.
+ * Provides a unified interface for useSyncMatches (SyncProgress and the Sync matches button).
  * Uses "analysis" language in the UI instead of "sync".
  */
 export function useAnalysisStatus() {
@@ -183,6 +183,7 @@ export function useAnalysisStatus() {
   return {
     // State
     status,
+    hasAggregate,
     isRunning,
     isRateLimited,
     hasFailed,

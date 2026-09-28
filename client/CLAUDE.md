@@ -50,7 +50,7 @@ Unit tests live in `test/unit/`. Playwright specs live in `e2e/`. For full E2E w
 - `src/views/` — route-level pages.
 - `src/components/` — feature UI grouped by domain plus shared/base primitives.
 - `src/services/apiClient.js` and `src/services/authApi.js` — API transport and app-facing API surface.
-- `src/stores/` — auth and UI Pinia stores.
+- `src/stores/` — auth Pinia store.
 - `src/composables/useSyncWebSocket.js` — real-time sync progress.
 - `test/helpers/testUtils.js` and `test/helpers/apiMocks.js` — unit test helpers.
 - `e2e/global-setup.js` and `e2e/global-teardown.js` — Playwright test user lifecycle.
@@ -60,7 +60,7 @@ Unit tests live in `test/unit/`. Playwright specs live in `e2e/`. For full E2E w
 - Vite serves the app on `http://localhost:5174` and proxies `/api` to `http://localhost:5164`.
 - `services/apiClient.js` uses cookie auth and handles global 401 session-expiry behavior.
 - `services/authApi.js` is the main frontend API surface for auth, dashboards, matches, trends, and sync.
-- `authStore` manages session and Riot account state; `uiStore` persists sidebar state to `localStorage`.
+- `authStore` manages session and Riot account state.
 - `useSyncWebSocket()` connects to `/ws/sync` for real-time match sync progress.
 - `@` points to `src/` and `@test` points to `test/` in both Vite and Vitest.
 - Playwright global setup stores auth state in `e2e/.auth/user.json` and reuses it across browser projects.

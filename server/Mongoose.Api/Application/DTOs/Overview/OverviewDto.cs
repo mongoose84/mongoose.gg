@@ -9,12 +9,31 @@ public record OverviewResponse(
     [property: JsonPropertyName("playerHeader")] PlayerHeader PlayerHeader,
     [property: JsonPropertyName("lastMatch")] LastMatch? LastMatch,
     [property: JsonPropertyName("mostPlayedChampion")] MostPlayedChampion? MostPlayedChampion,
-    [property: JsonPropertyName("activeGoals")] GoalPreview[] ActiveGoals,
-    [property: JsonPropertyName("suggestedActions")] SuggestedAction[] SuggestedActions,
     [property: JsonPropertyName("accountSummaries")] AccountSummary[]? AccountSummaries = null,
-    [property: JsonPropertyName("combinedStats")] CombinedStats? CombinedStats = null,
     [property: JsonPropertyName("sessionStats")] SessionStats? SessionStats = null,
-    [property: JsonPropertyName("survivalStats")] SurvivalStats? SurvivalStats = null
+    [property: JsonPropertyName("survivalStats")] SurvivalStats? SurvivalStats = null,
+    [property: JsonPropertyName("championPool")] ChampionPool? ChampionPool = null
+);
+
+/// <summary>
+/// "Your champions": ranked champions this season ordered by M-Score.
+/// Top three as cards (with a unique strength tag), the next three as "Also played".
+/// </summary>
+public record ChampionPool(
+    [property: JsonPropertyName("champions")] PoolChampion[] Champions,
+    [property: JsonPropertyName("alsoPlayed")] PoolChampion[] AlsoPlayed
+);
+
+public record PoolChampion(
+    [property: JsonPropertyName("championId")] int ChampionId,
+    [property: JsonPropertyName("championName")] string ChampionName,
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("matches")] int Matches,
+    [property: JsonPropertyName("wins")] int Wins,
+    [property: JsonPropertyName("winRate")] double WinRate,
+    [property: JsonPropertyName("avgKda")] double AvgKda,
+    [property: JsonPropertyName("mScore")] double MScore,
+    [property: JsonPropertyName("strengthTag")] string? StrengthTag
 );
 
 public record AccountSummary(
@@ -28,24 +47,15 @@ public record AccountSummary(
     [property: JsonPropertyName("gamesThisWeek")] int GamesThisWeek
 );
 
-public record CombinedStats(
-    [property: JsonPropertyName("totalGames")] int TotalGames,
-    [property: JsonPropertyName("winRate")] double WinRate,
-    [property: JsonPropertyName("avgKda")] double AvgKda
-);
-
 /// <summary>
-/// Player header data: profile info and active contexts
+/// Player header data for the hero's player line
 /// </summary>
 public record PlayerHeader(
     [property: JsonPropertyName("summonerName")] string SummonerName,
     [property: JsonPropertyName("level")] int Level,
     [property: JsonPropertyName("region")] string Region,
-    [property: JsonPropertyName("profileIconUrl")] string ProfileIconUrl,
-    [property: JsonPropertyName("activeContexts")] string[] ActiveContexts,
     [property: JsonPropertyName("rank")] string? Rank = null,
-    [property: JsonPropertyName("lp")] int? Lp = null,
-    [property: JsonPropertyName("primaryQueueLabel")] string? PrimaryQueueLabel = null
+    [property: JsonPropertyName("lp")] int? Lp = null
 );
 
 /// <summary>
@@ -68,26 +78,6 @@ public record MostPlayedChampion(
     [property: JsonPropertyName("championName")] string ChampionName,
     [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
     [property: JsonPropertyName("source")] string Source
-);
-
-/// <summary>
-/// Goal preview for the overview page (max 3)
-/// </summary>
-public record GoalPreview(
-    [property: JsonPropertyName("goalId")] string GoalId,
-    [property: JsonPropertyName("title")] string Title,
-    [property: JsonPropertyName("context")] string Context,
-    [property: JsonPropertyName("progress")] double Progress
-);
-
-/// <summary>
-/// Suggested action for the overview page (max 3)
-/// </summary>
-public record SuggestedAction(
-    [property: JsonPropertyName("actionId")] string ActionId,
-    [property: JsonPropertyName("text")] string Text,
-    [property: JsonPropertyName("deepLink")] string DeepLink,
-    [property: JsonPropertyName("priority")] int Priority
 );
 
 /// <summary>

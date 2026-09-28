@@ -1,14 +1,6 @@
 namespace Mongoose.Api.Core.QueryModels;
 
 /// <summary>
-/// Internal DTO for queue count data
-/// </summary>
-public record QueueMatchCount(
-    int QueueId,
-    int MatchCount
-);
-
-/// <summary>
 /// Internal DTO for last match data from DB
 /// </summary>
 public record LastMatchData(
@@ -24,21 +16,53 @@ public record LastMatchData(
 );
 
 /// <summary>
-/// Internal DTO for match result in last 20
-/// </summary>
-public record MatchResultData(
-    string MatchId,
-    bool Win,
-    int? LpAfter,
-    long GameStartTime
-);
-
-/// <summary>
 /// Internal DTO for most played champion aggregation.
 /// </summary>
 public record MostPlayedChampionData(
     string ChampionName,
     int GamesPlayed
+);
+
+/// <summary>
+/// Per-champion ranked aggregate for the Overview champion pool (current season).
+/// Nullable averages are null when no match of the champion has that metric;
+/// the sample counts say how many matches each average is based on.
+/// </summary>
+public record ChampionPoolStatsData(
+    int ChampionId,
+    string ChampionName,
+    int Games,
+    int Wins,
+    double AvgKills,
+    double AvgDeaths,
+    double AvgAssists,
+    double AvgCsPerMin,
+    double? AvgGoldDiff15,
+    int GoldDiff15Samples,
+    double? AvgDeathsPre10,
+    double? AvgVisionPerMin,
+    double? AvgDamageSharePct,
+    double? AvgKillParticipationPct,
+    int MetricSamples,
+    long LastPlayed
+);
+
+/// <summary>
+/// Matches per champion and role, used to find each champion's primary role.
+/// </summary>
+public record ChampionRoleCountData(
+    int ChampionId,
+    string Role,
+    int Games,
+    long LastPlayed
+);
+
+/// <summary>
+/// Raw champion pool data: per-champion aggregates and per-role match counts.
+/// </summary>
+public record ChampionPoolData(
+    IReadOnlyList<ChampionPoolStatsData> Champions,
+    IReadOnlyList<ChampionRoleCountData> RoleCounts
 );
 
 /// <summary>

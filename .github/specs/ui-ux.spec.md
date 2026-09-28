@@ -106,7 +106,7 @@ All visual rules (colour, type, spacing, radius, depth, motion, iconography, cha
 
 **Code mapping**: tokens live as CSS variables in `client/src/style.css` (existing `--color-*` names mapped to design-system values) and are exposed to Tailwind in `client/tailwind.config.js`. Use Tailwind for layout and sizing, CSS variables for themed values. Never hard-code a colour, radius, shadow or duration that is not a design-system token.
 
-**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in `client/tailwind.config.js`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password) and the shared `BaseButton` / `BaseInput` are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
+**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in `client/tailwind.config.js`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password), the shared `BaseButton` / `BaseInput`, the app header (`AppHeader` / `AppTabBar`, replacing the legacy sidebar) and the Overview (with the data the API has today) are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
 
 ---
 
@@ -140,9 +140,7 @@ Solo             → /app/solo
 Advanced         → (planned)      Team and Goals combined; not implemented yet
 ```
 
-Advanced (working name) combines Team and Goals into one page, which keeps the navigation at five items. It is not implemented for now: until then the existing Team and Goals pages stay hidden behind their feature flags (`VITE_FEATURE_TEAM_ANALYTICS`, `VITE_FEATURE_GOALS`). How Pro-only pages are marked is decided when Pro is implemented (no badges on pills).
-
-> **Implementation note**: the app still renders the legacy `AppSidebar.vue` (with the feature flags on its `<router-link>` elements). It is replaced by the top header during the design-system migration.
+Advanced (working name) combines Team and Goals into one page, which keeps the navigation at five items. It is not implemented for now: until then the existing Team and Goals pages stay hidden behind their feature flags (`VITE_FEATURE_TEAM_ANALYTICS`, `VITE_FEATURE_GOALS`) and are not reachable from `AppHeader` / `AppTabBar`. How Pro-only pages are marked is decided when Pro is implemented (no badges on pills).
 
 **Architecture decision**: Solo and Team are **separate top-level pages** (not tabs) for:
 1. Better upgrade perceived value
@@ -201,15 +199,9 @@ All routes defined in `client/src/router/index.js`.
 ## 5. Layout Architecture
 
 ### `AppLayout.vue` (authenticated shell)
-- **Structure**: top header (logo, PillNav, avatar menu; Section 3) above `<router-view>`. Content max width 1328px, 56px side gutters on desktop, 16px on phones.
-- **Legacy**: the current code still uses `AppSidebar` with `uiStore.sidebarWidth`; removed in the migration.
+- **Structure**: `AppHeader` (logo, PillNav, avatar menu; Section 3) above a centered content wrapper (max width 1328px, 56px side gutters on desktop, 16px on phones) around `<router-view>`, with `AppTabBar` fixed to the bottom on phones.
 - **Idle detection**: 30-minute threshold; on tab return, refreshes user data + triggers sync check
 - **Activity tracking**: Throttled to 30s intervals (mousemove, keydown, click, scroll)
-
-### `OverviewLayout.vue` (overview page container)
-- Named slots: `#header`, `#glance-left`, `#glance-right`, `#recent-left`, `#recent-right`, `#latest-match`, `#empty-action`
-- Handles loading (Skeleton), error (retry), empty (link account CTA) states
-- Single-column layout, one-scroll max
 
 ### `AnalysisLayout.vue` (shared by Solo/Team)
 - Zone-based layout with named slots:
@@ -247,7 +239,7 @@ Top to bottom:
 Layout (design system, top to bottom):
 1. **ChampionHero**: the player's main champion splash, one headline about them ("Your Ahri laning is elite. Your late-game discipline is not."), one supporting sentence, the player line (Riot ID · main champion · rank · LP), a primary action ("See today's matches") and up to two glass stat chips.
 2. **Three ScoreRings**: Laning, Teamfighting, Discipline (0–100, change over the last matches, three contributors each).
-3. **Your champions**: three ChampionCards plus an "Also played" list. Choosing a card swaps the hero's art, headline and chips.
+3. **Your champions**: three ChampionCards plus an "Also played" list. The cards are static on the Overview (decided 2026-09-27): champion-focused analysis lives on Champion Select.
 4. **Queue readiness** (ReadinessMeter, the one highlight card) beside **Today's matches** (MatchRows linking to each match).
 5. **Insights**: InsightCards, three per row, strongest first, six at most.
 
@@ -255,7 +247,15 @@ Sync progress (SyncProgress) sits at the top of the content while matches come i
 
 Data sources: `getOverview()` today; scores, readiness and insights need new backend data, built when the Overview is implemented (Section 1).
 
-Current code (legacy, replaced in the migration): `OverviewPlayerHeader`, `TodaySessionCard`, `DeathInsightsCard`, `ChampionSelectCTA`, `AnalysisStatusCard`, `SoloAnalyticsCTA`, `LastMatchCard`.
+Built today (design migration Phases 2–3; sections without data are left out until Phase 3 adds scores, readiness and insights):
+1. `SyncProgress` at the top while a sync runs (`useSyncMatches`).
+2. `ChampionHero` with the most-played champion's splash (plain card without one). Headline, supporting sentence and chips come from `sessionStats` and `survivalStats` (`client/src/utils/overviewSummary.js`); primary action "See your matches". In Overall mode `OverviewAccountCards` replaces the hero and holds the page headline.
+3. **Your champions** (`OverviewChampionPool`): `championPool` from the API — up to three static `ChampionCard`s (ranked this season, by M-Score, with a strength tag) and up to three "Also played" rows; EmptyState "No ranked matches this season" otherwise. Shown in Overall mode too, aggregated across accounts.
+4. **Today's matches**: today's count and wins/losses, the last match as a `BaseMatchRow` (links to `/app/matches?matchId=…` until `/app/matches/:matchId` exists), "All matches", and the "Sync matches" button.
+5. **Insights**: the deaths finding from `survivalStats` as one `InsightCard` (Strength or Pattern), or an EmptyState.
+6. **Next steps**: Champion Select and Solo as two plain cards with secondary buttons.
+
+States: the skeleton frame shows after 300ms while loading, an error message with "Try again" when the request fails, and an EmptyState with "Link Riot account" when no Riot account is linked.
 
 **Non-goals**: Deep graphs, champion matrices, filters.
 
@@ -398,50 +398,38 @@ Time range dropdown (Last 20, Last 50, Season, etc.).
 |------|------|---------|-------------|
 | `modelValue` | `String` | — | v-model binding for selected range |
 
+### Design-system components
+
+Built from `.claude/skills/mongoose-design/reference/components.md`; imported directly (not through the barrel).
+
+| Component | Props | Notes |
+|------|------|------|
+| `BaseSkeleton` | `variant` (`text`, `title`, `ring`, `portrait`, `block`), `width`, `height` | One loading shape; the container sets `aria-busy` and a hidden "Loading …" label |
+| `BaseEmptyState` | `title`, `description`, `headingLevel` | Slot `#action` holds the one button that fixes it |
+| `BaseMatchRow` | `to`, `championName`, `championIconUrl`, `win`, `kda`, `queue`, `durationSeconds`, `timestamp`, `lpChange` | Whole row is one link; named `Base…` because `matches/MatchRow` still exists until the Matches phase |
+| `ChampionHero` | `headline`, `text`, `playerLine`, `championName`, `chips` (max 2) | Page `h1`; slot `#action`; plain card without a champion |
+| `InsightCard` | `kind` (`strength`, `pattern`, `trend`), `title`, `text`, `championName` | |
+| `ChampionCard` | `championName`, `winRate`, `matches`, `avgKda`, `strengthTag` | Static `<article>` (no pick, no spotlight); centred art; 220px tall below 900px |
+| `SyncProgress` | `state` (`running`, `waiting`, `done`, `failed`), `current`, `total`, `syncedCount` | Emits `retry`; indeterminate while `total` is 0 |
+| `ScoreRing` | `value`, `label`, `size` | `role="meter"` |
+
 ---
 
 ## 8. Overview Components
 
 Located in `client/src/components/overview/`.
 
-### `OverviewLayout`
-Page-level container with named slots and state management.
+### `OverviewChampionPool`
+"Your champions": props `champions` (cards, max 3) and `alsoPlayed` (max 3). Grid of three cards plus a 300px "Also played" card; below 1200px the list moves under the cards, below 900px everything is one column. "Also played" win rates under 50% use `warn-text`. EmptyState without champions.
+
+### `OverviewAccountCards`
+Overall mode only, in place of the ChampionHero: one card per linked account (at most three) with Riot ID, level, Flex and Solo rank. Holds the page `h1` ("Your accounts").
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `isLoading` | `Boolean` | Shows loading spinner |
-| `error` | `String` | Shows error with retry button |
-| `isEmpty` | `Boolean` | Shows empty state with link-account CTA |
-
-Events: `@retry`  
-Slots: `#header`, `#glance-left`, `#glance-right`, `#recent-left`, `#recent-right`, `#latest-match`, `#empty-action`
-
-### `OverviewPlayerHeader`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `summonerName` | `String` | Display name |
-| `level` | `Number` | Summoner level |
-| `region` | `String` | Server region |
-| `profileIconUrl` | `String` | Profile icon URL |
-| `activeContexts` | `Array` | Context badges (Solo/Team) |
-
-### `LastMatchCard`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `matchId` | `String` | Match identifier |
-| `championIconUrl` | `String` | Champion icon |
-| `championName` | `String` | Champion name |
-| `result` | `String` | Win/Loss |
-| `kda` | `String` | KDA string |
-| `timestamp` | `String` | Match time |
-| `queueType` | `String` | Queue type label |
-
-Click navigates to `/app/matches/:matchId`.
-
-### `ChampionSelectCTA`
-Static call-to-action linking to champion select page. No props.
+| `accounts` | `Array` | `accountSummaries` from the Overview response |
+| `linkedAccounts` | `Array` | Linked Riot accounts from `authStore` (icons, levels, ranks) |
+| `activeAccountPuuid` | `String` | Marks the active account |
 
 ### `MatchActivityHeatmap`
 
@@ -451,9 +439,6 @@ Static call-to-action linking to champion select page. No props.
 | `startDate` | `String` | Heatmap start date |
 | `endDate` | `String` | Heatmap end date |
 | `totalMatches` | `Number` | Total match count in period |
-
-### `AnalysisStatusCard`
-Shows current sync/analysis status. No props (reads from store/composable internally).
 
 ---
 
@@ -572,11 +557,11 @@ Slots: `#context-bar`, `#summary`, `#trend-charts`
 
 Located in `client/src/components/`.
 
-### `AppSidebar`
-*(Legacy — replaced by the top header, Section 3.)* Vertical navigation sidebar. Reads collapsed state from `uiStore`. Shows lock icons for Pro-tier pages (Duo, Team) when user is free tier.
-
 ### `AppHeader`
-Header component (used within app layout context).
+80px top header on every `/app/*` page (56px below 900px), used by `AppLayout`. Logo left (→ `/app/overview`); PillNav centre (Overview, Champion Select, Matches, Solo; `router-link` with `aria-current="page"`), hidden below 900px; avatar right opens a menu of plain buttons and links, all reachable with Tab, with the Riot account switcher (when more than one account is linked or the overall view is available; reuses `components/header/AccountDropdownList.vue`), Settings (`/app/user`), Feedback (`/app/feedback`) and Log out. Closes on Escape, outside click and route change.
+
+### `AppTabBar`
+Fixed bottom tab bar shown only below 900px, `<nav aria-label="Main" class="mp-tabbar">`. One tab per nav item with icon above label (`house` Overview, `shield` "Champ Select", `swords` Matches, `chart-line` Solo); active tab uses `aria-current="page"`.
 
 ### `SessionExpiredBanner`
 Fixed top banner (z-index 400) with slide-down transition. Appears on 401 detection. Preserves current route for redirect after re-login.
@@ -620,7 +605,10 @@ SignalR WebSocket connection to `/ws/sync`. Provides:
 Used by `OverviewPage` and `SoloPage` to reactively update after match sync completes.
 
 ### `useAnalysisStatus()`
-Tracks analysis/sync status for display in `AnalysisStatusCard`.
+Tracks analysis/sync status (stored status plus the live aggregate run).
+
+### `useSyncMatches()`
+Built on `useAnalysisStatus()`. Drives `SyncProgress` and the "Sync matches" button: `syncState` (`null`, `running`, `waiting`, `done`, `failed`), `isSyncing`, `progressCurrent`, `progressTotal` (0 while a multi-account run is still counting), `syncedCount`, `lastSyncAt`, `startSync()`.
 
 ---
 
@@ -632,10 +620,6 @@ Located in `client/src/stores/`. Using **Pinia**.
 - **State**: user object, session expiry tracking (`wasAuthenticated` pattern)
 - **Actions**: `initialize()`, `login()`, `register()`, `verify()`, `logout()`, `changePassword()`, `linkRiotAccount()`, `unlinkRiotAccount()`, `triggerSync()`, `refreshUser()`
 - **Computed**: `isAuthenticated`, `isVerified`, `isInitialized`, `username`, `email`, `tier`, `primaryRiotAccount`
-
-### `uiStore`
-- **State** *(legacy, goes with the sidebar)*: sidebar collapsed (persisted to `localStorage`), mobile breakpoint (1024px)
-- **Computed**: `sidebarWidth` — auto-collapse on small screens
 
 ---
 

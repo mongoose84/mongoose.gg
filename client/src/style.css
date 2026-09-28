@@ -205,7 +205,9 @@ body {
 /* Design-system component classes (reference/components.css) */
 @layer components {
   .mp-focusable:focus-visible,
-  .mp-btn:focus-visible {
+  .mp-btn:focus-visible,
+  .mp-nav a:focus-visible,
+  .mp-tabbar a:focus-visible {
     outline: none;
     box-shadow: var(--shadow-focus);
   }
@@ -236,6 +238,92 @@ body {
   .mp-btn--ghost:hover { color: var(--color-positive-text-strong); }
   .mp-btn--sm { height: 2.75rem; padding: 0 1.25rem; font-size: 0.875rem; }
 
+  /* Card */
+  .mp-card { background: var(--color-surface); border-radius: 1.5rem; padding: 1.75rem; }
+  .mp-card--highlight { background: var(--color-surface-highlight); border: 1px solid var(--color-border-highlight); }
+  .mp-card-title { font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; line-height: 1.3; margin: 0; color: var(--color-text); }
+
+  /* Pill navigation (desktop header) */
+  .mp-nav { display: inline-flex; gap: 0.25rem; padding: 0.25rem; border-radius: 999px; background: var(--color-elevated); }
+  .mp-nav a { display: flex; align-items: center; height: 2.25rem; padding: 0 1.125rem; border-radius: 999px; color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 500; text-decoration: none; transition: background-color 150ms ease-out, color 150ms ease-out; }
+  .mp-nav a:hover { color: var(--color-text); }
+  .mp-nav a[aria-current="page"] { background: var(--color-surface-selected); color: var(--color-text); font-weight: 700; }
+
+  /* Bottom tab bar (phones only, below 900px) */
+  .mp-tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; height: calc(4rem + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--color-elevated); border-top: 1px solid var(--color-border); }
+  .mp-tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; color: var(--color-text-secondary); font-size: 0.6875rem; font-weight: 500; text-decoration: none; }
+  .mp-tabbar a[aria-current="page"] { color: var(--color-positive-text); }
+
+  /* Eyebrow label (the only uppercase text) */
+  .mp-eyebrow { font-size: 0.8125rem; font-weight: 700; line-height: 1.3; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-positive-text); }
+
+  /* Delta and result text: purple for good, orange for needs work */
+  .mp-up { color: var(--color-positive-text); }
+  .mp-down { color: var(--color-warn-text); }
+
+  /* Chip */
+  .mp-chip { display: inline-flex; align-items: center; gap: 0.25rem; height: 1.5rem; padding: 0 0.625rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; line-height: 1; white-space: nowrap; }
+  .mp-chip--strength { background: var(--color-primary-soft); color: var(--color-positive-text-strong); }
+  .mp-chip--pattern, .mp-chip--trend { background: var(--color-warn-soft); color: var(--color-warn-text); }
+  .mp-chip--glass { background: var(--color-glass); color: var(--color-text); height: 2.25rem; padding: 0 0.875rem; font-size: 0.8125rem; }
+
+  /* Champion hero: splash anchored right, faded into bg from the left */
+  .mp-hero { position: relative; overflow: hidden; border-radius: 1.75rem; background: var(--color-surface); min-height: 25rem; }
+  .mp-hero-art { position: absolute; top: 0; right: 0; height: 100%; width: 68%; object-fit: cover; object-position: 70% 30%; }
+  .mp-hero-scrim { position: absolute; inset: 0 auto 0 0; width: 76%; background: linear-gradient(90deg, var(--color-bg) 0%, var(--color-bg) 42%, rgba(10, 8, 16, 0.75) 62%, rgba(10, 8, 16, 0) 100%); }
+  .mp-hero-body { position: relative; min-height: 25rem; max-width: 43.75rem; padding: 2.75rem 3rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1.75rem; }
+  .mp-hero-body h1 { margin: 0; font-family: var(--font-display); font-size: 2.75rem; font-weight: 600; line-height: 1.12; letter-spacing: -0.01em; color: var(--color-text); }
+  .mp-hero-body p { margin: 0; font-size: 1rem; line-height: 1.55; color: var(--color-ink-soft); max-width: 35rem; }
+
+  /* Match row: portrait, meta, KDA, result, LP */
+  .mp-match-row { display: grid; grid-template-columns: 3.25rem minmax(0, 1fr) 6.875rem 5.625rem 5rem; gap: 1rem; align-items: center; min-height: 4.25rem; border-top: 1px solid var(--color-border); color: var(--color-text); text-decoration: none; }
+  .mp-portrait { width: 3rem; height: 3rem; border-radius: 999px; border: 2px solid var(--color-primary-accent); object-fit: cover; }
+  .mp-portrait--loss { border-color: var(--color-warn); }
+  .mp-match-row .mp-lp { font-family: var(--font-display); font-size: 1rem; font-weight: 600; line-height: 1; text-align: right; }
+
+  /* Insight card */
+  .mp-insight { display: flex; gap: 1rem; padding: 1.5rem; border-radius: 1.25rem; background: var(--color-surface); }
+  .mp-insight img { width: 3rem; height: 3rem; border-radius: 0.875rem; flex-shrink: 0; }
+  .mp-insight h3 { margin: 0; font-family: var(--font-display); font-size: 1rem; font-weight: 600; line-height: 1.4; color: var(--color-text); }
+  .mp-insight p { margin: 0; font-size: 0.875rem; line-height: 1.5; color: var(--color-text-secondary); }
+
+  /* Champion card: centred art faded into bg from the bottom. Static on the Overview (no pick, no spotlight). */
+  .mp-champ-card { position: relative; display: block; height: 18.75rem; padding: 0; overflow: hidden; border-radius: 1.5rem; border: 2px solid transparent; background: var(--color-surface); color: var(--color-text); text-align: left; }
+  .mp-champ-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 55% 30%; }
+  .mp-champ-card-scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 11.875rem; background: linear-gradient(180deg, rgba(10, 8, 16, 0) 0%, rgba(10, 8, 16, 0.85) 45%, var(--color-bg) 100%); }
+  .mp-champ-card-body { z-index: 1; position: absolute; left: 1.375rem; right: 1.375rem; bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.625rem; }
+  .mp-champ-name { font-family: var(--font-display); font-size: 1.625rem; font-weight: 700; line-height: 1.2; }
+  .mp-bar { position: relative; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); }
+  .mp-bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--color-primary-accent); }
+
+  /* Skeleton loading: track-coloured shapes in the layout of the coming content */
+  .mp-skeleton { display: block; border-radius: 3px; background: var(--color-track); }
+  .mp-skeleton--text { height: 0.875rem; }
+  .mp-skeleton--title { height: 1.375rem; width: 40%; }
+  .mp-skeleton--ring { width: 8.75rem; height: 8.75rem; border-radius: 999px; background: transparent; border: 11px solid var(--color-track); }
+  .mp-skeleton--portrait { width: 3rem; height: 3rem; border-radius: 999px; }
+
+  /* Empty state: the next step, in the slot the content would fill */
+  .mp-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem; padding: 1.75rem; border-radius: 1.5rem; background: var(--color-surface); border: 1px dashed var(--color-border-highlight); }
+  .mp-empty h3 { margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; line-height: 1.3; color: var(--color-text); }
+  .mp-empty p { margin: 0; max-width: 52ch; font-size: 0.9375rem; line-height: 1.55; color: var(--color-ink-soft); }
+
+  /* Message box: system errors and notices */
+  .mp-message { display: flex; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid; font-size: 0.875rem; font-weight: 400; line-height: 1.5; }
+  .mp-message__body { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+  .mp-message__body p { margin: 0; }
+  .mp-message--error { background: var(--color-error-soft); border-color: var(--color-error-border); color: var(--color-text); }
+  .mp-message--error .base-icon { color: var(--color-error); }
+  .mp-message--notice { background: var(--color-elevated); border-color: var(--color-border); color: var(--color-ink-soft); }
+  .mp-message--notice .base-icon { color: var(--color-text-secondary); }
+  .mp-message__action { padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--color-positive-text); font-size: 0.875rem; font-weight: 700; line-height: 1.5; cursor: pointer; }
+  .mp-message__action:hover { color: var(--color-positive-text-strong); }
+  .mp-message__action:focus-visible, .mp-match-row:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .mp-skeleton { animation: mp-skeleton-pulse 1.6s ease-in-out infinite; }
+  }
+
   /* Section entrance: fades in from 8px below, once (see useRevealOnView) */
   .mp-reveal {
     opacity: 0;
@@ -248,8 +336,13 @@ body {
   }
 }
 
+@keyframes mp-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .mp-btn { transition: none; }
+  .mp-btn, .mp-nav a { transition: none; }
   .mp-reveal { opacity: 1; transform: none; transition: none; }
 }
 

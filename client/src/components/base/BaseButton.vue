@@ -1,12 +1,8 @@
 <template>
   <component
     :is="componentType"
-    :to="to"
-    :href="href"
-    :type="isButton ? type : undefined"
-    :disabled="isButton ? (disabled || loading) : undefined"
+    v-bind="{ ...elementAttrs, ...$attrs }"
     :class="buttonClasses"
-    v-bind="$attrs"
   >
     <!-- Loading spinner -->
     <span v-if="loading" class="btn-spinner" aria-hidden="true"></span>
@@ -78,6 +74,14 @@ const componentType = computed(() => {
 })
 
 const isButton = computed(() => componentType.value === 'button')
+
+// Only pass the attributes the rendered element uses: a null href falling through to
+// router-link would replace its generated href and leave the link unfocusable
+const elementAttrs = computed(() => {
+  if (componentType.value === 'router-link') return { to: props.to }
+  if (componentType.value === 'a') return { href: props.href }
+  return { type: props.type, disabled: props.disabled || props.loading }
+})
 
 // Build class list
 const buttonClasses = computed(() => {
