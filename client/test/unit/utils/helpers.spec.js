@@ -98,11 +98,11 @@ describe('API Mock Helpers', () => {
       expect(mock.unlinkRiotAccount).toBeDefined();
     });
 
-    it('mocks are callable and can be configured', () => {
+    it('mocks are callable and can be configured', async () => {
       const mock = createAuthApiMock();
       mock.login.mockResolvedValue({ success: true });
 
-      expect(mock.login()).resolves.toEqual({ success: true });
+      await expect(mock.login()).resolves.toEqual({ success: true });
     });
   });
 
