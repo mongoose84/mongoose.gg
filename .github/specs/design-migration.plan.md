@@ -141,17 +141,29 @@ Each adds fields to `OverviewResponse` (update `architecture.spec.md`) and its s
 
 Agreed 2026-09-28 after a UX audit: the open match leads with one finding instead of five tallies, and every comparison is drawn rather than written ("show, then say" in the design system). Target: the "visual" artboards on the Mongoose.gg Matches redesign canvas (https://claude.ai/artifact/Ufv95okAfSYgmnaJgniRhL): `MainVisual` (desktop), `PhoneMatchVisual`, `PhoneListVisual`. Components and rules are already in the design system (FormStrip, UsualMeter, LaneBar, ColumnChart, SplitBar, the ChampionHero match banner, time-chart moment markers).
 
-Four PRs, in order; each is shippable alone. **Status: 4a not started.**
+Four PRs, in order; each is shippable alone. **Status: 4a built on branch `implement_phase_4`** (2026-09-28); unit tests (1552) and build green; visual pass at 1440 / 1024 / 390px with a real account. 4b not started.
 
 ### 4a. Visual pass with existing data (frontend only)
-- [ ] Port the classes the page needs from `reference/components.css` into `client/src/style.css`: `mp-form`, `mp-columns`, `mp-lane-bar`, `mp-split`, `mp-stat`, `mp-hero--match`, the MatchRow additions. Delete the scoped copies they replace (this covers the "Switch the Matches components to the design system's classes" item below).
-- [ ] Page header: short headline ("12 wins in your last 20") + `FormStrip` of the list (win / loss / remake from `matchesSummary.isRemake`). New base component `BaseFormStrip.vue`.
-- [ ] Under the list: `ColumnChart` "win rate by start time" from `gameStartTime` in the player's local time (afternoon / evening / after 11pm, groups under 3 matches left out); title states the weak spot or is omitted when nothing stands out. New `BaseColumnChart.vue`; grouping logic in `matchesSummary.js`.
-- [ ] Open match: `MatchHeader` becomes the ChampionHero match banner (splash via `getChampionSplashUrl`, glass chips K / D / A; LP and rank chips come in 4b). "Download data" moves off the banner into the "All your stats" section.
-- [ ] Lanes: `MatchNarrative` rows become `LaneBar`s from `allyParticipant.goldDiffAt10` (±1,500 fills a half, under 300 is even); same button, `aria-expanded` and `LaneMatchupDetails` underneath. ARAM keeps the two team lists.
-- [ ] Team: `TeamComparison` becomes `SplitBar`s for damage, dragons, barons and towers beside the lanes (team gold totals aren't in the API, so no gold bar; the gold lead at 15 stays as the caption).
-- [ ] `WinPredictionStats` stays in the "What decided it" slot until 4c replaces it; `StatSnapshot` moves behind a closed "All your stats" disclosure with "▲ n above usual ▼ n below" in its summary row. `MatchActions` stays.
-- [ ] Tests: unit tests for the new base components and the grouping logic; update `MatchesPage`, `MatchHeader`, `MatchNarrative`, `TeamComparison` specs. Visual pass at 1440 / 1024 / 390px with a real account.
+- [x] Port the classes the page needs from `reference/components.css` into `client/src/style.css`: `mp-form`, `mp-columns`, `mp-lane-bar`, `mp-split`, `mp-stat`, `mp-hero--match`, the MatchRow additions. Delete the scoped copies they replace (this covers the "Switch the Matches components to the design system's classes" item below).
+- [x] Page header: short headline ("12 wins in your last 20") + `FormStrip` of the list (win / loss / remake from `matchesSummary.isRemake`). New base component `BaseFormStrip.vue`.
+- [x] Under the list: `ColumnChart` "win rate by start time" from `gameStartTime` in the player's local time (afternoon / evening / after 11pm, groups under 3 matches left out); title states the weak spot or is omitted when nothing stands out. New `BaseColumnChart.vue`; grouping logic in `matchesSummary.js`.
+- [x] Open match: `MatchHeader` becomes the ChampionHero match banner (splash via `getChampionSplashUrl`, glass chips K / D / A; LP and rank chips come in 4b). "Download data" moves off the banner into the "All your stats" section.
+- [x] Lanes: `MatchNarrative` rows become `LaneBar`s from `allyParticipant.goldDiffAt10` (±1,500 fills a half, under 300 is even); same button, `aria-expanded` and `LaneMatchupDetails` underneath. ARAM keeps the two team lists.
+- [x] Team: `TeamComparison` becomes `SplitBar`s for damage, dragons, barons and towers beside the lanes (team gold totals aren't in the API, so no gold bar; the gold lead at 15 stays as the caption).
+- [x] `WinPredictionStats` stays in the "What decided it" slot until 4c replaces it; `StatSnapshot` moves behind a closed "All your stats" disclosure with "▲ n above usual ▼ n below" in its summary row. `MatchActions` stays.
+- [x] Tests: unit tests for the new base components and the grouping logic; update `MatchesPage`, `MatchHeader`, `MatchNarrative`, `TeamComparison` specs. Visual pass at 1440 / 1024 / 390px with a real account.
+
+#### 4a outcome notes
+- The headline keeps leaving remakes out ("10 wins in your last 20" counts non-remakes); the FormStrip shows remakes as stubs. No wins reads "No wins in your last n".
+- Start-time groups: morning 5–12, afternoon 12–18, evening 18–23, after 11pm 23–5, local time. The chart shows only when two groups have 3+ matches; the weak spot is the single lowest group at least 15 points below the other groups together (`START_TIME_WEAK_GAP`). Without a weak spot the caption becomes the title. The account used for the visual pass plays almost only in the evening, so the chart stayed hidden there; it is covered by unit tests.
+- The list column (`matches-side`) is now the sticky part: the list scrolls inside it and the chart stays under it.
+- Lanes sit beside the team card through a `match-detail` container query at 760px (1440px desktop); at 1024px and on phones they stack.
+- The lane title counts lanes from the drawn gold difference ("2 of 5 lanes won"), no longer the server's `laneWinner`; both use 300 gold at 10.
+- TeamComparison: an objective neither team took (0–0) shows an empty `track-strong` bar and "none taken" rather than a 50/50 split. This is a new state for SplitBar; add it to the live design system (Step 5).
+- `StatSnapshot` gained `defaultOpen` (closed on the page) and closes again when another match opens. There is no `download` icon in the vocabulary, so "Download data" has none.
+- The MatchHeader banner is built in `MatchHeader.vue` on the `mp-hero` / `mp-hero--match` classes rather than through `ChampionHero` (which owns the page `h1`).
+- Ported to `style.css`: `mp-form`, `mp-columns`, `mp-lane-bar`, `mp-split`, `mp-stat` / `mp-stat-grid`, `mp-hero--match`, and the MatchRow additions (`mp-match-list`, `mp-portrait--remake`, `mp-result--remake`, `mp-match-kda`, `mp-match-meta-kda`, the selected row). `mp-lane-row` was not ported: LaneBar replaced LaneRow on this page.
+- Leftovers: no E2E beyond the smoke load (the E2E user has no matches); the Step 5 design-system update for the empty SplitBar is still to do.
 
 ### 4b. LP change and rank after each match (backend + frontend)
 - [ ] Add `lpChange` (and `tierAfter` / `rankAfter`) to `MatchListSummaryItem` and `MatchDetailsItem`: from `participants.lp_after`, compared with the same player's previous ranked match in the same queue; null for unranked queues, the first ranked match, and tier or division changes it can't resolve (decide in the PR whether promotions are computed or shown as "Promoted"). Parameterized SQL, update `architecture.spec.md`.
@@ -193,7 +205,7 @@ One PR each, through `/mongoose-design`:
   - Filters are now SegmentedControls: ARAM is gone from the queue options (no lanes), and the time range is This season / Last 3 months / All time (last week, last month and 6 months dropped). The API still counts days, not matches.
   - Leftovers: add the matchup list rows, the "Check a matchup" card and the Strong into / Weak into headings to the live design system and `reference/` (Step 5); champion names still show Riot's internal ID ("TwistedFate"); E2E only covers the page loading (smoke).
 - [ ] Settings and Feedback pages
-- [ ] Switch the Matches components to the design system's classes, so the app and the system share one source of styling. Today they copy the look in their own scoped styles:
+- [x] Switch the Matches components to the design system's classes, so the app and the system share one source of styling. Today they copy the look in their own scoped styles:
   - `BaseMatchRow` (open-match row, remake, narrow list) → `mp-match-list`, `mp-portrait--remake`, `mp-result--remake`, `mp-match-kda` / `mp-match-meta-kda`
   - `WinPredictionStats` (`kpi-tile`) and `StatSnapshot` (`stat-item`) → `mp-stat-grid` / `mp-stat`
   - `MatchNarrative` (`lane-header`) → `mp-lane-row`

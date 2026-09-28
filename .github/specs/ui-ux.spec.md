@@ -290,9 +290,10 @@ Every match has its own address, `/app/matches/:matchId`, so it can be shared an
 Order (design system: summary → list → evidence):
 
 1. `SyncProgress` at the top while a sync runs; "Sync matches" sits in the list card header.
-2. Headline built from the list ("You won 12 of your last 20 matches"), a line on the current streak (3 or more) and the most played champion, and the queue `BaseSegmentedControl` (All queues / Solo/Duo / Flex / Normal; ARAM shows under All queues). Copy lives in `client/src/utils/matchesSummary.js`.
+2. Headline built from the list ("12 wins in your last 20", remakes left out), a line on the current streak (3 or more) and the most played champion, the list as a `BaseFormStrip` beside it, and the queue `BaseSegmentedControl` (All queues / Solo/Duo / Flex / Normal; ARAM shows under All queues). Copy lives in `client/src/utils/matchesSummary.js`.
 3. List card ("Last 20 matches"): `BaseMatchRow` per match (remakes under 5 minutes say "Remake", Overall mode adds the Riot ID to the meta line). On desktop it is a 420px column (360px below 1100px) that stays in place while the match scrolls, and the newest match opens on arrival; the open row is `aria-current="page"` on `surface-selected`.
-4. The open match (`MatchDetails`): `MatchHeader` (result, champion, meta, KDA / team kills / CS, the list's trend badge as a chip, "Download data") → `WinPredictionStats` (the six stats that decide matches, title states how many went your way) → `MatchNarrative` (lane by lane, rows are buttons opening `LaneMatchupDetails`; ARAM lists both teams by damage) → `TeamComparison` (damage split, gold lead at 15, objectives table) → `StatSnapshot` (all ten stats against your average) → `MatchActions` ("See your trends" on Solo).
+   Under it, "Win rate by start time" as a `BaseColumnChart` (morning / afternoon / evening / after 11pm in the player's local time; groups under 3 matches left out; shown only when two groups can be compared; the title names the weak spot, 15 or more points below the rest, or is the caption when nothing stands out).
+4. The open match (`MatchDetails`): `MatchHeader` (the ChampionHero match banner: splash, result and time, "Champion, Role", queue and length, a K / D / A glass chip, the list's trend badge as a chip) → `WinPredictionStats` (the six stats that decide matches, title states how many went your way) → `MatchNarrative` ("n of 5 lanes won", a LaneBar per role from the gold difference at 10 opening `LaneMatchupDetails`; ARAM lists both teams by damage) beside `TeamComparison` (SplitBars for damage, dragons, barons and towers, gold lead at 15 as the caption) when the column is 760px or wider → `StatSnapshot` (closed "All your stats" disclosure with the above / below counts; open, all ten stats and "Download data") → `MatchActions` ("See your trends" on Solo).
 
 States: skeleton rows and a skeleton match after 300ms, inline error with "Try again" for the list, the match and the lanes separately, EmptyState "No matches yet" with "Sync matches" (or "Show all queues" when filtered), "We couldn't find this match" for an unknown match ID, and "Link Riot account" without a linked account. Your team is purple and the enemy orange; good stats purple ▲, needs-work orange ▼.
 
@@ -418,6 +419,8 @@ Built from `.claude/skills/mongoose-design/reference/components.md`; imported di
 | `InsightCard` | `kind` (`strength`, `pattern`, `trend`), `title`, `text`, `championName` | |
 | `ChampionCard` | `championName`, `winRate`, `matches`, `avgKda`, `strengthTag`, `selectable`, `selected` | Static `<article>` by default (Overview); with `selectable` a `<button>` with `aria-pressed`, primary border when selected and the spotlight hover, emits `select` (Champion Select); centred art; 220px tall below 900px |
 | `BaseSegmentedControl` | `modelValue`, `options` (`{ value, label }`), `ariaLabel`, `testIdPrefix` | `mp-seg`: `role="group"` of buttons with `aria-pressed`; 2–4 options |
+| `BaseFormStrip` | `results` (`win` / `loss` / `remake`, oldest first) | `mp-form`: up to 20 bars, `role="img"` with the sequence and totals; not clickable |
+| `BaseColumnChart` | `groups` (`{ key, label, value }`), `max`, `unit`, `weakKey`, `measure` | `mp-columns`: 2–4 columns, the weak spot in warn, `role="img"` listing every value |
 | `SyncProgress` | `state` (`running`, `waiting`, `done`, `failed`), `current`, `total`, `syncedCount` | Emits `retry`; indeterminate while `total` is 0 |
 | `ScoreRing` | `value`, `label`, `size` | `role="meter"` |
 
@@ -455,25 +458,25 @@ Overall mode only, in place of the ChampionHero: one card per linked account (at
 Located in `client/src/components/matches/`.
 
 ### `MatchDetails`
-The open match: loading skeleton, `error` (`failed` with retry, `not-found`, `no-account`), empty and content states. Props `match`, `baseline`, `accountId`, `loading`, `error`, `badge`; emits `retry`. Builds the "Download data" JSON.
+The open match: loading skeleton, `error` (`failed` with retry, `not-found`, `no-account`), empty and content states. Props `match`, `baseline`, `accountId`, `loading`, `error`, `badge`; emits `retry`. Builds the "Download data" JSON when `StatSnapshot` asks for it. Lanes sit beside the team summary when the column is 760px or wider (container query).
 
 ### `MatchHeader`
-Summary card: portrait, result eyebrow (Victory purple / Defeat orange / Remake neutral), champion title, meta line (role · queue · length · time ago), KDA, team kills and CS, and the list's trend badge as a strength or trend chip. Emits `download`.
+The open match's banner (ChampionHero match banner): splash art (plain card when it fails), result eyebrow with the time (Victory purple / Defeat orange / Remake neutral), "Champion, Role" as an `h2`, queue · length, a K / D / A glass chip and the trend badge as a strength or trend chip. LP and rank chips come with the LP data.
 
 ### `WinPredictionStats`
 Six tiles (deaths, gold lead at 15, dragons joined, CS per minute, vision score, deaths before 10 min) marked good (purple ▲) or needs work (orange ▼) against the role baseline. The title states how many went your way.
 
 ### `MatchNarrative`
-Lane by lane, fetched via `getMatchNarrative()`: one button per role (`aria-expanded`) with both champions' KDA and "Won lane" / "Lost lane" / "Even" (300 gold at 10 minutes); ARAM lists both teams by damage share. Own loading, error with retry, and empty states.
+Lane by lane, fetched via `getMatchNarrative()`: one LaneBar button per role (`aria-expanded`, `aria-label` in words) growing right in purple when ahead and left in orange when behind at 10 minutes (±1,500 fills a half, under 300 is even), the player's icon ringed; the title counts lanes won. ARAM lists both teams by damage share. Own loading, error with retry, and empty states.
 
 ### `LaneMatchupDetails`
 One sentence on how the lane went, then early laning (gold lead, CS lead, deaths) and match impact (damage share, kill participation, vision score) as tables.
 
 ### `TeamComparison`
-Damage split bar (your team purple, enemy orange) with a text alternative, the gold lead at 15 as a sentence, and an objectives table (dragons, barons, towers).
+SplitBars (your team purple, enemy orange, numbers on both ends, `role="img"` text alternatives) for damage, dragons, barons and towers; an empty track when neither team took an objective. The title states the damage share; the gold lead at 15 is the caption.
 
 ### `StatSnapshot`
-All ten stats with the comparison to your average (adjusted for match length where it matters); the title counts stats above and below.
+"All your stats": a closed disclosure whose summary row counts the stats above and below usual. Open, all ten stats as StatTiles with the comparison to your average (adjusted for match length where it matters) and "Download data". Emits `download`.
 
 ### `MatchActions`
 Next-step card linking to Solo ("See your trends").
@@ -779,25 +782,25 @@ When creating new UI components:
 | Services / API | `client/src/services/` |
 | Utilities | `client/src/utils/` |
 | App Entry | `client/src/App.vue`, `client/src/main.js` |### `MatchDetails`
-The open match: loading skeleton, `error` (`failed` with retry, `not-found`, `no-account`), empty and content states. Props `match`, `baseline`, `accountId`, `loading`, `error`, `badge`; emits `retry`. Builds the "Download data" JSON.
+The open match: loading skeleton, `error` (`failed` with retry, `not-found`, `no-account`), empty and content states. Props `match`, `baseline`, `accountId`, `loading`, `error`, `badge`; emits `retry`. Builds the "Download data" JSON when `StatSnapshot` asks for it. Lanes sit beside the team summary when the column is 760px or wider (container query).
 
 ### `MatchHeader`
-Summary card: portrait, result eyebrow (Victory purple / Defeat orange / Remake neutral), champion title, meta line (role · queue · length · time ago), KDA, team kills and CS, the trend badge as a strength or trend chip. Emits `download`.
+The open match's banner (ChampionHero match banner): splash art (plain card when it fails), result eyebrow with the time (Victory purple / Defeat orange / Remake neutral), "Champion, Role" as an `h2`, queue · length, a K / D / A glass chip and the trend badge as a strength or trend chip. LP and rank chips come with the LP data.
 
 ### `WinPredictionStats`
 Six tiles (deaths, gold lead at 15, dragons joined, CS per minute, vision score, deaths before 10 min) marked good / needs work against the role baseline. The title states how many went your way.
 
 ### `MatchNarrative`
-Lane by lane, fetched via `getMatchNarrative()`: one button per role (`aria-expanded`) with both champions' KDA and "Won lane" / "Lost lane" / "Even" (300 gold at 10 minutes); ARAM lists both teams by damage share. Own loading, error with retry, and empty states.
+Lane by lane, fetched via `getMatchNarrative()`: one LaneBar button per role (`aria-expanded`, `aria-label` in words) growing right in purple when ahead and left in orange when behind at 10 minutes (±1,500 fills a half, under 300 is even), the player's icon ringed; the title counts lanes won. ARAM lists both teams by damage share. Own loading, error with retry, and empty states.
 
 ### `LaneMatchupDetails`
 One sentence on how the lane went, then early laning (gold lead, CS lead, deaths) and match impact (damage share, kill participation, vision score) as tables.
 
 ### `TeamComparison`
-Damage split bar with a text alternative, the gold lead at 15 as a sentence, and an objectives table (dragons, barons, towers).
+SplitBars (your team purple, enemy orange, numbers on both ends, `role="img"` text alternatives) for damage, dragons, barons and towers; an empty track when neither team took an objective. The title states the damage share; the gold lead at 15 is the caption.
 
 ### `StatSnapshot`
-All ten stats with the comparison to your average (adjusted for match length where it matters); the title counts stats above and below.
+"All your stats": a closed disclosure whose summary row counts the stats above and below usual. Open, all ten stats as StatTiles with the comparison to your average (adjusted for match length where it matters) and "Download data". Emits `download`.
 
 ### `MatchActions`
 Next-step card linking to Solo ("See your trends").

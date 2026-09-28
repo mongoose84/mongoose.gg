@@ -215,8 +215,43 @@ describe('MatchesPage', () => {
       await flushPromises()
 
       expect(wrapper.findAll('[data-testid="match-row"]')).toHaveLength(3)
-      expect(wrapper.get('[data-testid="matches-headline"]').text()).toBe('You won 1 of your last 2 matches')
+      expect(wrapper.get('[data-testid="matches-headline"]').text()).toBe('1 win in your last 2')
       expect(wrapper.findAll('[data-testid="match-row-result"]').map((r) => r.text())).toEqual(['Victory', 'Defeat', 'Remake'])
+    })
+
+    it('shows the list as a FormStrip beside the headline, oldest first', async () => {
+      mockGetMatchList.mockResolvedValue(listResponse([
+        makeMatch('MATCH_1', { win: true }),
+        makeMatch('MATCH_2', { win: false }),
+        makeMatch('MATCH_3', { win: true, gameDurationSec: 200 })
+      ]))
+      const wrapper = mountPage()
+      await flushPromises()
+
+      const bars = wrapper.findAll('[data-testid="form-strip-bar"]')
+      expect(bars.map((b) => b.attributes('data-result'))).toEqual(['remake', 'loss', 'win'])
+    })
+
+    it('adds the win rate by start time under the list when two groups can be compared', async () => {
+      const at = (id, hour, win) => makeMatch(id, { win, gameStartTime: new Date(2026, 8, 27, hour, 30).getTime() })
+      mockGetMatchList.mockResolvedValue(listResponse([
+        at('M1', 14, true), at('M2', 15, true), at('M3', 16, true),
+        at('M4', 23, false), at('M5', 0, false), at('M6', 1, true)
+      ]))
+      const wrapper = mountPage()
+      await flushPromises()
+
+      expect(wrapper.get('[data-testid="matches-hours-title"]').text()).toBe('You lose most after 11pm')
+      expect(wrapper.get('[data-testid="column-chart"]').attributes('aria-label'))
+        .toBe('Win rate by start time: afternoon 100 percent, after 11pm 33 percent.')
+    })
+
+    it('leaves the start-time chart out when there is too little to compare', async () => {
+      mockGetMatchList.mockResolvedValue(listResponse([makeMatch('MATCH_1'), makeMatch('MATCH_2')]))
+      const wrapper = mountPage()
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="matches-hours"]').exists()).toBe(false)
     })
 
     it('links each row to its match URL and tracks the pick', async () => {

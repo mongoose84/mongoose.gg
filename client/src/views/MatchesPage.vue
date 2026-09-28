@@ -31,9 +31,12 @@
 
     <template v-else>
       <header class="matches-header" data-testid="matches-header">
-        <div class="matches-header__text">
-          <h1 class="matches-header__title" data-testid="matches-headline">{{ headline }}</h1>
-          <p v-if="subline" class="matches-header__subline" data-testid="matches-subline">{{ subline }}</p>
+        <div class="matches-header__summary">
+          <div class="matches-header__text">
+            <h1 class="matches-header__title" data-testid="matches-headline">{{ headline }}</h1>
+            <p v-if="subline" class="matches-header__subline" data-testid="matches-subline">{{ subline }}</p>
+          </div>
+          <BaseFormStrip v-if="form.length > 1" :results="form" class="matches-header__form" />
         </div>
         <BaseSegmentedControl
           v-model="queueFilter"
@@ -44,90 +47,111 @@
       </header>
 
       <div class="matches-layout" :class="{ 'matches-layout--single': !showDetailColumn }">
-        <!-- The list stays in place while a match is open beside it -->
-        <section
-          class="mp-card matches-list"
-          aria-labelledby="matches-list-title"
-          :aria-busy="listIsLoading ? 'true' : undefined"
-          data-testid="matches-list"
-        >
-          <header class="matches-list__header">
-            <h2 id="matches-list-title" class="mp-card-title">{{ listTitle }}</h2>
-            <BaseButton
-              variant="ghost"
-              size="sm"
-              :disabled="isSyncing"
-              data-testid="matches-sync"
-              @click="startSync"
-            >
-              <template #icon-left><BaseIcon name="refresh-cw" :size="16" /></template>
-              Sync matches
-            </BaseButton>
-          </header>
-
-          <!-- Loading: rows in the layout of the content, shown after 300ms -->
-          <div v-if="listIsLoading" class="matches-list__loading" data-testid="matches-list-loading">
-            <span class="visually-hidden">Loading your matches</span>
-            <div v-for="n in 6" :key="n" class="matches-list__skeleton-row">
-              <BaseSkeleton variant="portrait" />
-              <div class="matches-list__skeleton-text">
-                <BaseSkeleton width="40%" />
-                <BaseSkeleton width="75%" />
-              </div>
-            </div>
-          </div>
-
-          <div v-else-if="error" class="mp-message mp-message--error" role="alert" data-testid="matches-list-error">
-            <BaseIcon name="triangle-alert" :size="20" />
-            <div class="mp-message__body">
-              <p>We couldn't load your matches. Try again in a minute.</p>
-              <button type="button" class="mp-message__action" data-testid="matches-retry" @click="fetchMatches">Try again</button>
-            </div>
-          </div>
-
-          <BaseEmptyState
-            v-else-if="!matches.length"
-            :title="emptyTitle"
-            :description="emptyDescription"
-            data-testid="matches-empty"
+        <!-- The list (and the start-time chart under it) stays in place while a match is open beside it -->
+        <div class="matches-side">
+          <section
+            class="mp-card matches-list"
+            aria-labelledby="matches-list-title"
+            :aria-busy="listIsLoading ? 'true' : undefined"
+            data-testid="matches-list"
           >
-            <template #action>
+            <header class="matches-list__header">
+              <h2 id="matches-list-title" class="mp-card-title">{{ listTitle }}</h2>
               <BaseButton
-                v-if="queueFilter !== 'all'"
-                variant="secondary"
-                data-testid="matches-show-all"
-                @click="queueFilter = 'all'"
-              >Show all queues</BaseButton>
-              <BaseButton
-                v-else
+                variant="ghost"
+                size="sm"
                 :disabled="isSyncing"
-                data-testid="matches-empty-sync"
+                data-testid="matches-sync"
                 @click="startSync"
               >
-                <template #icon-left><BaseIcon name="refresh-cw" :size="20" /></template>
+                <template #icon-left><BaseIcon name="refresh-cw" :size="16" /></template>
                 Sync matches
               </BaseButton>
-            </template>
-          </BaseEmptyState>
+            </header>
 
-          <nav v-else aria-labelledby="matches-list-title" class="matches-list__rows">
-            <BaseMatchRow
-              v-for="(match, index) in matches"
-              :key="match.matchId"
-              :to="{ name: 'app-matches', params: { matchId: match.matchId } }"
-              :champion-name="match.championName"
-              :champion-icon-url="match.championIconUrl"
-              :win="match.win"
-              :remake="isRemake(match)"
-              :kda="matchKda(match)"
-              :queue="match.queueType"
-              :duration-seconds="match.gameDurationSec"
-              :timestamp="match.gameStartTime"
-              :riot-id="matchRiotId(match)"
-              @click="trackMatchSelect(match.matchId, index, queueFilter)"
+            <!-- Loading: rows in the layout of the content, shown after 300ms -->
+            <div v-if="listIsLoading" class="matches-list__loading" data-testid="matches-list-loading">
+              <span class="visually-hidden">Loading your matches</span>
+              <div v-for="n in 6" :key="n" class="matches-list__skeleton-row">
+                <BaseSkeleton variant="portrait" />
+                <div class="matches-list__skeleton-text">
+                  <BaseSkeleton width="40%" />
+                  <BaseSkeleton width="75%" />
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="error" class="mp-message mp-message--error" role="alert" data-testid="matches-list-error">
+              <BaseIcon name="triangle-alert" :size="20" />
+              <div class="mp-message__body">
+                <p>We couldn't load your matches. Try again in a minute.</p>
+                <button type="button" class="mp-message__action" data-testid="matches-retry" @click="fetchMatches">Try again</button>
+              </div>
+            </div>
+
+            <BaseEmptyState
+              v-else-if="!matches.length"
+              :title="emptyTitle"
+              :description="emptyDescription"
+              data-testid="matches-empty"
+            >
+              <template #action>
+                <BaseButton
+                  v-if="queueFilter !== 'all'"
+                  variant="secondary"
+                  data-testid="matches-show-all"
+                  @click="queueFilter = 'all'"
+                >Show all queues</BaseButton>
+                <BaseButton
+                  v-else
+                  :disabled="isSyncing"
+                  data-testid="matches-empty-sync"
+                  @click="startSync"
+                >
+                  <template #icon-left><BaseIcon name="refresh-cw" :size="20" /></template>
+                  Sync matches
+                </BaseButton>
+              </template>
+            </BaseEmptyState>
+
+            <nav v-else aria-labelledby="matches-list-title" class="mp-match-list matches-list__rows">
+              <BaseMatchRow
+                v-for="(match, index) in matches"
+                :key="match.matchId"
+                :to="{ name: 'app-matches', params: { matchId: match.matchId } }"
+                :champion-name="match.championName"
+                :champion-icon-url="match.championIconUrl"
+                :win="match.win"
+                :remake="isRemake(match)"
+                :kda="matchKda(match)"
+                :queue="match.queueType"
+                :duration-seconds="match.gameDurationSec"
+                :timestamp="match.gameStartTime"
+                :riot-id="matchRiotId(match)"
+                @click="trackMatchSelect(match.matchId, index, queueFilter)"
+              />
+            </nav>
+          </section>
+
+          <section
+            v-if="startTimeChart"
+            class="mp-card matches-hours"
+            aria-labelledby="matches-hours-title"
+            data-testid="matches-hours"
+          >
+            <header class="matches-hours__header">
+              <h2 id="matches-hours-title" class="mp-card-title matches-hours__title" data-testid="matches-hours-title">
+                {{ startTimeChart.title ?? startTimeCaption }}
+              </h2>
+              <p v-if="startTimeChart.title" class="matches-hours__caption">{{ startTimeCaption }}</p>
+            </header>
+            <BaseColumnChart
+              :groups="startTimeColumns"
+              :weak-key="startTimeChart.weakKey"
+              measure="Win rate by start time"
             />
-          </nav>
-        </section>
+          </section>
+        </div>
 
         <section
           v-if="showDetailColumn"
@@ -175,7 +199,9 @@ import {
   matchKda,
   matchRiotId,
   buildMatchesHeadline,
-  buildMatchesSubline
+  buildMatchesSubline,
+  buildStartTimeChart,
+  formResults
 } from '../utils/matchesSummary'
 import BaseButton from '../components/base/BaseButton.vue'
 import BaseIcon from '../components/base/BaseIcon.vue'
@@ -183,6 +209,8 @@ import BaseSkeleton from '../components/base/BaseSkeleton.vue'
 import BaseEmptyState from '../components/base/BaseEmptyState.vue'
 import BaseSegmentedControl from '../components/base/BaseSegmentedControl.vue'
 import BaseMatchRow from '../components/base/BaseMatchRow.vue'
+import BaseFormStrip from '../components/base/BaseFormStrip.vue'
+import BaseColumnChart from '../components/base/BaseColumnChart.vue'
 import SyncProgress from '../components/base/SyncProgress.vue'
 import MatchDetails from '../components/matches/MatchDetails.vue'
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
@@ -254,6 +282,17 @@ const queueLabel = computed(() => QUEUE_OPTIONS.find((o) => o.value === queueFil
 
 const headline = computed(() => buildMatchesHeadline(matches.value) ?? 'Your matches')
 const subline = computed(() => buildMatchesSubline(matches.value))
+const form = computed(() => formResults(matches.value))
+
+// Win rate by start time, from the same list (null when fewer than two groups can be compared)
+const startTimeChart = computed(() => buildStartTimeChart(matches.value))
+const startTimeColumns = computed(() =>
+  (startTimeChart.value?.groups ?? []).map((g) => ({ key: g.key, label: g.label, value: g.winRate }))
+)
+const startTimeCaption = computed(() => {
+  const counted = matches.value.filter((m) => !isRemake(m)).length
+  return `Win rate by start time, last ${counted} ${counted === 1 ? 'match' : 'matches'}`
+})
 
 const listTitle = computed(() => {
   if (!matches.value.length) return 'Recent matches'
@@ -448,11 +487,24 @@ watch(() => authStore.isInitialized, (initialized) => {
   gap: 1rem 1.5rem;
 }
 
+/* Headline and FormStrip side by side; the strip drops under the headline when space runs out */
+.matches-header__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem 2.5rem;
+}
+
 .matches-header__text {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.375rem;
   max-width: 40.625rem;
+}
+
+.matches-header__form {
+  width: 22.5rem;
+  max-width: 100%;
 }
 
 .matches-header__title {
@@ -481,22 +533,53 @@ watch(() => authStore.isInitialized, (initialized) => {
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* The list stays in place under the 80px header while the open match scrolls */
-.matches-list {
-  container: match-list / inline-size;
+/* The list column stays in place under the 80px header while the open match scrolls;
+   the list scrolls inside it and the start-time chart stays under it */
+.matches-side {
   position: sticky;
   top: 6.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
   max-height: calc(100dvh - 7.5rem);
+}
+
+.matches-list {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  gap: 1rem;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-.matches-layout--single .matches-list {
+.matches-layout--single .matches-side {
   position: static;
   max-height: none;
+}
+
+.matches-hours {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 1rem;
+  padding-block: 1.5rem;
+}
+
+.matches-hours__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.matches-hours__title {
+  font-size: 1.125rem;
+}
+
+.matches-hours__caption {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
 }
 
 .matches-list__header {
@@ -573,9 +656,16 @@ watch(() => authStore.isInitialized, (initialized) => {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .matches-list {
+  .matches-header__form {
+    width: 100%;
+  }
+
+  .matches-side {
     position: static;
     max-height: none;
+  }
+
+  .matches-list {
     overflow: visible;
   }
 
@@ -584,7 +674,7 @@ watch(() => authStore.isInitialized, (initialized) => {
   }
 
   .matches-page--open .matches-header,
-  .matches-page--open .matches-list {
+  .matches-page--open .matches-side {
     display: none;
   }
 

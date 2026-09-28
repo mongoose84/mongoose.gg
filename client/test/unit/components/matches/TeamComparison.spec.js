@@ -23,15 +23,21 @@ describe('TeamComparison', () => {
     expect(mountTeam().get('[data-testid="team-title"]').text()).toBe('Your team dealt 60% of the damage')
   })
 
-  it('falls back to a plain title and hides the bar without damage data', () => {
+  it('falls back to a plain title and leaves the damage bar out without damage data', () => {
     const wrapper = mountTeam({ teamTotalDamage: 0, enemyTeamTotalDamage: 0 })
-    expect(wrapper.get('[data-testid="team-title"]').text()).toBe('Team summary')
-    expect(wrapper.find('[data-testid="team-damage"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="team-title"]').text()).toBe('Your team vs theirs')
+    expect(wrapper.find('[data-testid="team-split-damage"]').exists()).toBe(false)
   })
 
-  it('gives the damage bar a text alternative', () => {
-    const bar = mountTeam().get('[role="img"]')
+  it('draws damage as a split bar with compact totals and a text alternative', () => {
+    const damage = mountTeam().get('[data-testid="team-split-damage"]')
+    expect(damage.get('[data-testid="team-split-ally"]').text()).toBe('60.0k')
+    expect(damage.get('[data-testid="team-split-enemy"]').text()).toBe('40.0k')
+    const bar = damage.get('[data-testid="team-split-bar"]')
+    expect(bar.classes()).toContain('mp-split')
+    expect(bar.attributes('role')).toBe('img')
     expect(bar.attributes('aria-label')).toBe('Damage: your team 60%, enemy team 40%')
+    expect(bar.findAll('span')[0].attributes('style')).toContain('width: 60%')
   })
 
   it('writes out the gold lead at 15 for either side', () => {
@@ -43,15 +49,27 @@ describe('TeamComparison', () => {
       .toBe('No gold lead recorded at 15 minutes.')
   })
 
-  it('lists objectives for both teams in a table and marks the leader', () => {
+  it('draws dragons, barons and towers as split bars and marks the leader', () => {
     const wrapper = mountTeam()
-    const dragons = wrapper.get('[data-testid="team-objective-dragons"]').findAll('td')
-    expect(dragons.map((cell) => cell.text())).toEqual(['3', '1'])
-    expect(dragons[0].classes()).toContain('team__cell--lead')
-    expect(dragons[1].classes()).not.toContain('team__cell--lead')
+    const dragons = wrapper.get('[data-testid="team-split-dragons"]')
+    expect(dragons.get('[data-testid="team-split-ally"]').text()).toBe('3')
+    expect(dragons.get('[data-testid="team-split-enemy"]').text()).toBe('1')
+    expect(dragons.get('[data-testid="team-split-ally"]').classes()).toContain('team__number--lead')
+    expect(dragons.get('[data-testid="team-split-enemy"]').classes()).not.toContain('team__number--lead')
+    const dragonBar = dragons.get('[data-testid="team-split-bar"]')
+    expect(dragonBar.attributes('aria-label')).toBe('Dragons: your team 3, enemy team 1')
+    expect(dragonBar.findAll('span')[0].attributes('style')).toContain('width: 75%')
 
-    const towers = wrapper.get('[data-testid="team-objective-towers"]').findAll('td')
-    expect(towers.map((cell) => cell.text())).toEqual(['8', '3'])
-    expect(wrapper.get('[data-testid="team-objective-barons"]').findAll('td').map((c) => c.text())).toEqual(['1', '0'])
+    const towers = wrapper.get('[data-testid="team-split-towers"]')
+    expect(towers.get('[data-testid="team-split-ally"]').text()).toBe('8')
+    expect(towers.get('[data-testid="team-split-enemy"]').text()).toBe('3')
+    expect(wrapper.get('[data-testid="team-split-barons"]').get('[data-testid="team-split-ally"]').text()).toBe('1')
+  })
+
+  it('shows an empty track, not a made-up split, when neither team took an objective', () => {
+    const barons = mountTeam({ teamBarons: 0, enemyTeamBarons: 0 }).get('[data-testid="team-split-barons"]')
+    const bar = barons.get('[data-testid="team-split-bar"]')
+    expect(bar.classes()).not.toContain('mp-split')
+    expect(bar.attributes('aria-label')).toBe('Barons: none taken')
   })
 })

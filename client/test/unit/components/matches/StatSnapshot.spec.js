@@ -26,21 +26,60 @@ describe('StatSnapshot.vue', () => {
     gameDurationSec: 1800
   }
 
-  const createWrapper = (matchOverrides = {}, baseline = null) =>
-    mount(StatSnapshot, { props: { match: { ...baseMatch, ...matchOverrides }, baseline } })
+  const createWrapper = (matchOverrides = {}, baseline = null, defaultOpen = true) =>
+    mount(StatSnapshot, {
+      props: { match: { ...baseMatch, ...matchOverrides }, baseline, defaultOpen },
+      global: { stubs: { BaseIcon: true } }
+    })
+
+  describe('disclosure', () => {
+    it('starts closed with the counts in its summary row', async () => {
+      // damage per gold 20000 / 12000 = 1.67 → up; damage share 25 → up; damage per death 10,000 → up
+      const wrapper = createWrapper({ damageShare: 25 }, null, false)
+      const toggle = wrapper.get('[data-testid="stat-snapshot-toggle"]')
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      expect(wrapper.find('[data-testid="stat-snapshot-body"]').exists()).toBe(false)
+      expect(wrapper.get('.section-title').text()).toBe('All your stats')
+      expect(wrapper.get('[data-testid="snapshot-up"]').text()).toBe('▲ 3 above usual')
+      expect(wrapper.find('[data-testid="snapshot-down"]').exists()).toBe(false)
+
+      await toggle.trigger('click')
+      expect(toggle.attributes('aria-expanded')).toBe('true')
+      expect(wrapper.get('[data-testid="stat-snapshot-body"]').attributes('id')).toBe(toggle.attributes('aria-controls'))
+    })
+
+    it('shows the below count when stats fell short', () => {
+      const mixed = createWrapper({ damageDealt: 8000, goldEarned: 12000, damageShare: 10 }, null, false)
+      expect(mixed.get('[data-testid="snapshot-down"]').text()).toBe('▼ 2 below')
+    })
+
+    it('closes again when another match opens', async () => {
+      const wrapper = createWrapper({ matchId: 'EUW1_1' })
+      expect(wrapper.find('[data-testid="stat-snapshot-body"]').exists()).toBe(true)
+      await wrapper.get('[data-testid="stat-snapshot-toggle"]').trigger('click')
+      await wrapper.get('[data-testid="stat-snapshot-toggle"]').trigger('click')
+      await wrapper.setProps({ defaultOpen: false, match: { ...baseMatch, matchId: 'EUW1_2' } })
+      expect(wrapper.find('[data-testid="stat-snapshot-body"]').exists()).toBe(false)
+    })
+
+    it('emits download from the Download data button', async () => {
+      const wrapper = createWrapper()
+      await wrapper.get('[data-testid="match-download"]').trigger('click')
+      expect(wrapper.emitted('download')).toHaveLength(1)
+    })
+  })
 
   it('says the stats were close to average when nothing stands out', () => {
     // damage per gold 1.0, damage share 20%, damage per death 6,000: all in the normal band
     const wrapper = createWrapper({ damageDealt: 12000, damageShare: 20 })
-    expect(wrapper.find('.section-title').text()).toBe('Your stats were close to your average')
+    expect(wrapper.get('[data-testid="snapshot-summary"]').text()).toBe('Your stats were close to your average')
   })
 
-  it('counts stats above and below the average in the title', () => {
-    // damage per gold 20000 / 12000 = 1.67 → up; damage share 25 → up; nothing down
+  it('counts stats above and below the average in the summary', () => {
     const wrapper = createWrapper({ damageShare: 25 })
-    expect(wrapper.find('.section-title').text()).toBe('3 of your stats beat your average')
+    expect(wrapper.get('[data-testid="snapshot-summary"]').text()).toBe('3 of your stats beat your average')
     const mixed = createWrapper({ damageDealt: 8000, goldEarned: 12000, damageShare: 10 })
-    expect(mixed.find('.section-title').text()).toMatch(/below/)
+    expect(mixed.get('[data-testid="snapshot-summary"]').text()).toMatch(/below/)
   })
 
   it('renders the stats grid', () => {

@@ -22,13 +22,13 @@
     />
 
     <span class="match-row__main">
-      <span class="match-row__champion" data-testid="match-row-champion">{{ championName }}</span>
+      <span class="mp-match-name match-row__champion" data-testid="match-row-champion">{{ championName }}</span>
       <span class="match-row__meta" data-testid="match-row-meta">
-        {{ metaLine }}<span v-if="kda" class="match-row__meta-kda"> · {{ kda }}</span>
+        {{ metaLine }}<span v-if="kda" class="mp-match-meta-kda"> · {{ kda }}</span>
       </span>
     </span>
 
-    <span class="match-row__kda" data-testid="match-row-kda">
+    <span class="mp-match-kda match-row__kda" data-testid="match-row-kda">
       <template v-if="kda">{{ kda }}</template>
     </span>
 
@@ -126,7 +126,7 @@ const metaLine = computed(() => [
 ].filter(Boolean).join(' · '))
 
 const portraitClass = computed(() => {
-  if (props.remake) return 'match-row__portrait--remake'
+  if (props.remake) return 'mp-portrait--remake'
   return props.win ? null : 'mp-portrait--loss'
 })
 
@@ -136,7 +136,7 @@ const resultText = computed(() => {
 })
 
 const resultClass = computed(() => {
-  if (props.remake) return 'match-row__result--remake'
+  if (props.remake) return 'mp-result--remake'
   return props.win ? 'mp-up' : 'mp-down'
 })
 
@@ -157,10 +157,6 @@ const lpDisplay = computed(() => {
   background: var(--color-track);
 }
 
-.match-row__portrait--remake {
-  border-color: var(--color-track-strong);
-}
-
 .match-row__main {
   display: flex;
   flex-direction: column;
@@ -173,7 +169,6 @@ const lpDisplay = computed(() => {
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.3;
-  color: var(--color-text);
 }
 
 .match-row__meta {
@@ -183,10 +178,6 @@ const lpDisplay = computed(() => {
   font-size: 0.8125rem;
   line-height: 1.4;
   color: var(--color-text-secondary);
-}
-
-.match-row__meta-kda {
-  display: none;
 }
 
 .match-row__kda {
@@ -202,44 +193,23 @@ const lpDisplay = computed(() => {
   font-weight: 700;
 }
 
-.match-row__result--remake {
-  color: var(--color-text-secondary);
-}
-
-.match-row:hover .match-row__champion {
-  color: var(--color-positive-text-strong);
-}
-
-/* The open match: the selected ground reaches into the card padding so the columns stay aligned */
-.match-row[aria-current="page"] {
-  margin-inline: -0.75rem;
-  padding-inline: 0.75rem;
-  border-radius: 0.75rem;
-  border-top-color: transparent;
-  background: var(--color-surface-selected);
-}
-
-.match-row[aria-current="page"] + .match-row {
-  border-top-color: transparent;
-}
-
-/* Phones: KDA moves into the meta line */
+/* Phones: KDA moves into the meta line. A narrow list column does the same through mp-match-list. */
 @media (max-width: 899px) {
   .mp-match-row,
   .match-row--no-lp {
     grid-template-columns: 3.25rem minmax(0, 1fr) auto;
   }
 
-  .match-row__kda {
+  .mp-match-kda {
     display: none;
+  }
+
+  .mp-match-meta-kda {
+    display: inline;
   }
 
   .match-row__meta {
     white-space: normal;
-  }
-
-  .match-row__meta-kda {
-    display: inline;
   }
 
   .mp-lp {
@@ -247,23 +217,13 @@ const lpDisplay = computed(() => {
   }
 }
 
-/* Same layout in a narrow list column (the Matches page list is a `match-list` container) */
 @container match-list (max-width: 30rem) {
-  .mp-match-row,
   .match-row--no-lp {
     grid-template-columns: 3.25rem minmax(0, 1fr) auto;
   }
 
-  .match-row__kda {
-    display: none;
-  }
-
   .match-row__meta {
     white-space: normal;
-  }
-
-  .match-row__meta-kda {
-    display: inline;
   }
 
   .mp-lp {

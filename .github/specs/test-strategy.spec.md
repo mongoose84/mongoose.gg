@@ -171,7 +171,9 @@ public class MyEndpointTests : IClassFixture<TestWebApplicationFactory>
 ```
 client/test/unit/
 ├── components/
+│   ├── BaseColumnChart.spec.js             # ✅ Exists
 │   ├── BaseEmptyState.spec.js              # ✅ Exists
+│   ├── BaseFormStrip.spec.js               # ✅ Exists
 │   ├── BaseMatchRow.spec.js                # ✅ Exists
 │   ├── BaseSegmentedControl.spec.js        # ✅ Exists
 │   ├── BaseSkeleton.spec.js                # ✅ Exists

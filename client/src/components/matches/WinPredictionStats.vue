@@ -5,17 +5,17 @@
       <p class="kpi__caption subtitle">The stats that decide most matches, against your recent matches in this role</p>
     </header>
 
-    <ul class="kpi-grid">
+    <ul class="mp-stat-grid kpi-grid">
       <li
         v-for="tile in tiles"
         :key="tile.key"
-        class="kpi-tile"
+        class="mp-stat kpi-tile"
         :class="tile.sentiment"
         :data-testid="`kpi-tile-${tile.key}`"
       >
-        <span class="kpi-label">{{ tile.label }}</span>
-        <span class="kpi-value">{{ tile.value }}</span>
-        <span v-if="tile.description" class="kpi-description" :class="sentimentText(tile.sentiment)">
+        <span class="mp-stat__label kpi-label">{{ tile.label }}</span>
+        <span class="mp-stat__value kpi-value">{{ tile.value }}</span>
+        <span v-if="tile.description" class="mp-stat__note kpi-description" :class="sentimentText(tile.sentiment)">
           <span v-if="tile.sentiment !== 'neutral'" aria-hidden="true">{{ tile.sentiment === 'positive' ? '▲' : '▼' }} </span>{{ tile.description }}
         </span>
       </li>
@@ -198,49 +198,7 @@ function sentimentText(sentiment) {
   color: var(--color-text-secondary);
 }
 
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  list-style: none;
-}
-
-.kpi-tile {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  background: var(--color-elevated);
-}
-
-.kpi-label {
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-}
-
-.kpi-value {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 600;
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text);
-}
-
-.kpi-description {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-ink-soft);
-}
-
+/* Good notes purple, needs-work notes orange (over the StatTile's neutral note colour) */
 .kpi-description.mp-up { color: var(--color-positive-text); }
 .kpi-description.mp-down { color: var(--color-warn-text); }
-
-@media (max-width: 599px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 </style>

@@ -1,81 +1,57 @@
 <template>
-  <section class="mp-card match-header" aria-labelledby="match-header-title" data-testid="match-header">
-    <div class="match-header__top">
+  <section
+    class="mp-hero mp-hero--match match-header"
+    :class="{ 'match-header--plain': !hasArt }"
+    aria-labelledby="match-header-title"
+    data-testid="match-header"
+  >
+    <template v-if="hasArt">
       <img
-        v-if="portraitUrl && !iconFailed"
-        :src="portraitUrl"
-        alt=""
-        class="mp-portrait match-header__portrait"
-        :class="portraitClass"
-        data-testid="match-header-portrait"
-        @error="iconFailed = true"
+        :src="splashUrl"
+        :alt="`${match.championName} splash art`"
+        class="mp-hero-art match-header__art"
+        data-testid="match-header-art"
+        @error="artFailed = true"
       />
-      <span
-        v-else
-        class="mp-portrait match-header__portrait match-header__portrait--fallback"
-        :class="portraitClass"
-        aria-hidden="true"
-      />
+      <div class="mp-hero-scrim match-header__scrim" aria-hidden="true" />
+    </template>
 
+    <div class="mp-hero-body match-header__body">
       <div class="match-header__heading">
-        <p class="mp-eyebrow" :class="resultClass" data-testid="match-header-result">{{ resultText }}</p>
-        <h2 id="match-header-title" class="match-header__title" data-testid="match-header-champion">{{ match.championName }}</h2>
+        <p class="mp-eyebrow" :class="resultClass" data-testid="match-header-result">{{ eyebrow }}</p>
+        <h2 id="match-header-title" data-testid="match-header-champion">{{ title }}</h2>
         <p class="match-header__meta" data-testid="match-header-meta">{{ metaLine }}</p>
       </div>
 
-      <BaseButton
-        variant="secondary"
-        size="sm"
-        class="match-header__download"
-        data-testid="match-download"
-        @click="$emit('download')"
-      >Download data</BaseButton>
+      <ul class="match-header__chips" aria-label="This match">
+        <li class="mp-chip mp-chip--glass" data-testid="match-header-kda">
+          <span class="match-header__chip-number">{{ match.kills }} / {{ match.deaths }} / {{ match.assists }}</span> KDA
+        </li>
+        <li
+          v-if="badge?.text"
+          class="mp-chip"
+          :class="badge.type === 'positive' ? 'mp-chip--strength' : 'mp-chip--trend'"
+          data-testid="match-header-badge"
+        >
+          <BaseIcon :name="badge.type === 'positive' ? 'trending-up' : 'trending-down'" :size="16" />
+          {{ badge.text }}
+        </li>
+      </ul>
     </div>
-
-    <dl class="match-header__stats">
-      <div class="match-header__stat">
-        <dt>Your KDA</dt>
-        <dd class="match-header__number" data-testid="match-header-kda">
-          {{ match.kills }} / {{ match.deaths }} / {{ match.assists }}
-        </dd>
-      </div>
-      <div class="match-header__stat">
-        <dt>Team kills</dt>
-        <dd class="match-header__number" data-testid="match-header-score">
-          {{ match.teamKills }} – {{ match.enemyTeamKills }}
-        </dd>
-      </div>
-      <div class="match-header__stat">
-        <dt>CS</dt>
-        <dd class="match-header__number" data-testid="match-header-cs">
-          {{ match.creepScore }}<span class="match-header__unit"> · {{ csPerMinute }} per min</span>
-        </dd>
-      </div>
-    </dl>
-
-    <p v-if="badge?.text" class="match-header__badge">
-      <span
-        class="mp-chip"
-        :class="badge.type === 'positive' ? 'mp-chip--strength' : 'mp-chip--trend'"
-        data-testid="match-header-badge"
-      >
-        <BaseIcon :name="badge.type === 'positive' ? 'trending-up' : 'trending-down'" :size="16" />
-        {{ badge.text }}
-      </span>
-    </p>
   </section>
 </template>
 
 <script setup>
 /**
- * The open match's summary card: result, champion, meta line and the three numbers players
- * check first (KDA, team kills, CS). Win → purple, loss → orange, remake → neither.
+ * The open match's banner (ChampionHero match banner in the design system): the champion's
+ * splash art, the result and time as the eyebrow, "Champion, Role" as the title, queue and
+ * length, and glass chips (K / D / A; LP and rank follow once the API has them).
+ * Win → positive text, loss → warn text, remake → neither. Without art it is a plain card.
  */
 import { computed, ref, watch } from 'vue'
-import BaseButton from '../base/BaseButton.vue'
 import BaseIcon from '../base/BaseIcon.vue'
 import { formatRole, formatDuration, formatRelativeTime } from '@/utils/formatters'
-import { getChampionIconUrl } from '@/utils/leagueAssets'
+import { getChampionSplashUrl } from '@/utils/leagueAssets'
 import { isRemake } from '@/utils/matchesSummary'
 
 const props = defineProps({
@@ -90,23 +66,22 @@ const props = defineProps({
   }
 })
 
-defineEmits(['download'])
+const artFailed = ref(false)
+watch(() => props.match.matchId, () => { artFailed.value = false })
 
-const iconFailed = ref(false)
-watch(() => props.match.matchId, () => { iconFailed.value = false })
+const splashUrl = computed(() => getChampionSplashUrl(props.match.championName))
+const hasArt = computed(() => Boolean(splashUrl.value) && !artFailed.value)
 
 const remake = computed(() => isRemake(props.match))
-
-const portraitUrl = computed(() => props.match.championIconUrl || getChampionIconUrl(props.match.championName))
-
-const portraitClass = computed(() => {
-  if (remake.value) return 'match-header__portrait--remake'
-  return props.match.win ? null : 'mp-portrait--loss'
-})
 
 const resultText = computed(() => {
   if (remake.value) return 'Remake'
   return props.match.win ? 'Victory' : 'Defeat'
+})
+
+const eyebrow = computed(() => {
+  const when = props.match.gameStartTime ? formatRelativeTime(props.match.gameStartTime) : null
+  return [resultText.value, when].filter(Boolean).join(' · ')
 })
 
 const resultClass = computed(() => {
@@ -114,124 +89,93 @@ const resultClass = computed(() => {
   return props.match.win ? 'mp-up' : 'mp-down'
 })
 
-const metaLine = computed(() => {
+const title = computed(() => {
   const role = props.match.role && props.match.role !== 'UNKNOWN' ? formatRole(props.match.role) : null
-  return [
-    role,
-    props.match.queueType,
-    formatDuration(props.match.gameDurationSec),
-    formatRelativeTime(props.match.gameStartTime)
-  ].filter(Boolean).join(' · ')
+  return role ? `${props.match.championName}, ${role}` : props.match.championName
 })
 
-const csPerMinute = computed(() => (props.match.csPerMin ?? 0).toFixed(1))
+const metaLine = computed(() => [
+  props.match.queueType,
+  formatDuration(props.match.gameDurationSec)
+].filter(Boolean).join(' · '))
 </script>
 
 <style scoped>
-.match-header {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.match-header__top {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-.match-header__portrait {
-  width: 4rem;
-  height: 4rem;
-  flex-shrink: 0;
-}
-
-.match-header__portrait--fallback {
-  display: block;
-  background: var(--color-track);
-}
-
-.match-header__portrait--remake {
-  border-color: var(--color-track-strong);
-}
-
 .match-header__heading {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  flex-grow: 1;
-  min-width: 0;
+  gap: 0.375rem;
 }
 
-.match-header__result--remake {
-  color: var(--color-text-secondary);
-}
-
-.match-header__title {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 600;
-  line-height: 1.15;
-  color: var(--color-text);
-}
+/* mp-eyebrow sets the purple; the result classes must win over it */
+.match-header__heading .mp-up { color: var(--color-positive-text); }
+.match-header__heading .mp-down { color: var(--color-warn-text); }
+.match-header__heading .match-header__result--remake { color: var(--color-text-secondary); }
 
 .match-header__meta {
   font-size: 0.875rem;
-  color: var(--color-text-secondary);
 }
 
-.match-header__download {
-  flex-shrink: 0;
-  align-self: flex-start;
-}
-
-.match-header__stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--color-border);
-}
-
-.match-header__stat {
+.match-header__chips {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  list-style: none;
 }
 
-.match-header__stat dt {
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-}
-
-.match-header__number {
+.match-header__chip-number {
+  margin-right: 0.125rem;
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  line-height: 1.2;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text);
 }
 
-.match-header__unit {
-  font-family: var(--font-body);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
+.match-header__art {
+  width: 70%;
+  object-position: 70% 25%;
 }
 
-@media (max-width: 599px) {
-  .match-header__top {
-    flex-wrap: wrap;
+/* No art: a plain surface card with the same text, no fixed height */
+.match-header--plain,
+.match-header--plain .match-header__body {
+  min-height: 0;
+}
+
+/* Phones: the art fills the banner with a bottom scrim, the text sits at the bottom */
+@media (max-width: 899px) {
+  .match-header,
+  .match-header .match-header__body {
+    min-height: 14.375rem;
   }
 
-  .match-header__download {
-    order: 3;
+  .match-header--plain,
+  .match-header--plain .match-header__body {
+    min-height: 0;
   }
 
-  .match-header__stats {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  .match-header__art {
+    width: 100%;
+  }
+
+  .match-header__scrim {
+    width: 100%;
+    background: linear-gradient(180deg, rgba(10, 8, 16, 0.2) 0%, rgba(10, 8, 16, 0.8) 55%, var(--color-bg) 100%);
+  }
+
+  .match-header .match-header__body {
+    justify-content: flex-end;
+    gap: 0.625rem;
+    padding: 1.125rem;
+  }
+
+  .match-header .match-header__body h2 {
+    font-size: 1.875rem;
+  }
+
+  .match-header__heading {
+    gap: 0.125rem;
   }
 }
 </style>

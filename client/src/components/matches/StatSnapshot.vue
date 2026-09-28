@@ -1,27 +1,58 @@
 <template>
-  <section class="mp-card stat-snapshot" aria-labelledby="snapshot-title" data-testid="stat-snapshot">
-    <header class="stat-snapshot__header">
-      <h3 id="snapshot-title" class="mp-card-title section-title" data-testid="snapshot-title">{{ title }}</h3>
-      <p class="stat-snapshot__caption">All {{ stats.length }} of your stats from this match</p>
-    </header>
-    <ul class="stats-grid">
-      <li v-for="stat in stats" :key="stat.label" class="stat-item" :class="stat.trend">
-        <span class="stat-label">{{ stat.label }}</span>
-        <span class="stat-value">{{ stat.value }}</span>
-        <span v-if="stat.comparison" class="stat-comparison" :class="stat.trend">
-          <span v-if="stat.trend" class="trend-arrow" aria-hidden="true">{{ stat.trend === 'up' ? '▲' : '▼' }} </span>{{ stat.comparison }}
+  <section class="mp-card stat-snapshot" :class="{ 'stat-snapshot--open': open }" data-testid="stat-snapshot">
+    <h3 class="stat-snapshot__heading">
+      <button
+        type="button"
+        class="stat-snapshot__toggle"
+        :aria-expanded="open ? 'true' : 'false'"
+        aria-controls="stat-snapshot-body"
+        data-testid="stat-snapshot-toggle"
+        @click="open = !open"
+      >
+        <span class="section-title stat-snapshot__title" data-testid="snapshot-title">All your stats</span>
+        <span v-if="upCount" class="stat-snapshot__count mp-up" data-testid="snapshot-up">
+          <span aria-hidden="true">▲ </span>{{ upCount }} above usual
         </span>
-      </li>
-    </ul>
+        <span v-if="downCount" class="stat-snapshot__count mp-down" data-testid="snapshot-down">
+          <span aria-hidden="true">▼ </span>{{ downCount }} below
+        </span>
+        <BaseIcon name="chevron-down" :size="20" class="stat-snapshot__chevron" />
+      </button>
+    </h3>
+
+    <div v-if="open" id="stat-snapshot-body" class="stat-snapshot__body" data-testid="stat-snapshot-body">
+      <p class="stat-snapshot__caption" data-testid="snapshot-summary">{{ summary }}</p>
+      <ul class="mp-stat-grid stats-grid">
+        <li v-for="stat in stats" :key="stat.label" class="mp-stat stat-item" :class="stat.trend">
+          <span class="mp-stat__label stat-label">{{ stat.label }}</span>
+          <span class="mp-stat__value stat-value">{{ stat.value }}</span>
+          <span v-if="stat.comparison" class="mp-stat__note stat-comparison" :class="stat.trend">
+            <span v-if="stat.trend" class="trend-arrow" aria-hidden="true">{{ stat.trend === 'up' ? '▲' : '▼' }} </span>{{ stat.comparison }}
+          </span>
+        </li>
+      </ul>
+      <BaseButton
+        variant="secondary"
+        size="sm"
+        class="stat-snapshot__download"
+        data-testid="match-download"
+        @click="$emit('download')"
+      >
+        Download data
+      </BaseButton>
+    </div>
   </section>
 </template>
 
 <script setup>
 /**
- * Every stat of the open match with how it compares to the player's recent matches in the
- * role (adjusted for match length where it matters). Up is purple ▲, down orange ▼.
+ * "All your stats": a closed disclosure whose summary row counts the stats above and below
+ * the player's recent matches in the role (adjusted for match length where it matters). Open,
+ * it lists every stat (up purple ▲, down orange ▼) and offers the match data as a download.
  */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import BaseButton from '../base/BaseButton.vue'
+import BaseIcon from '../base/BaseIcon.vue'
 import { formatNumber } from '@/utils/formatters'
 import { formatSigned } from '@/utils/matchesSummary'
 
@@ -33,8 +64,19 @@ const props = defineProps({
   baseline: {
     type: Object,
     default: null
+  },
+  /** Start open (closed on the Matches page) */
+  defaultOpen: {
+    type: Boolean,
+    default: false
   }
 })
+
+defineEmits(['download'])
+
+// Closed by default; a newly opened match starts closed again
+const open = ref(props.defaultOpen)
+watch(() => props.match.matchId, () => { open.value = props.defaultOpen })
 
 const stats = computed(() => {
   const m = props.match
@@ -189,9 +231,12 @@ const stats = computed(() => {
   ]
 })
 
-const title = computed(() => {
-  const up = stats.value.filter((s) => s.trend === 'up').length
-  const down = stats.value.filter((s) => s.trend === 'down').length
+const upCount = computed(() => stats.value.filter((s) => s.trend === 'up').length)
+const downCount = computed(() => stats.value.filter((s) => s.trend === 'down').length)
+
+const summary = computed(() => {
+  const up = upCount.value
+  const down = downCount.value
   if (!up && !down) return 'Your stats were close to your average'
   if (!down) return `${up} of your stats beat your average`
   if (!up) return `${down} of your stats fell below your average`
@@ -203,13 +248,62 @@ const title = computed(() => {
 .stat-snapshot {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  padding-block: 0;
 }
 
-.stat-snapshot__header {
+.stat-snapshot__toggle {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  min-height: 4rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stat-snapshot__toggle:focus-visible {
+  outline: none;
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-focus);
+}
+
+.stat-snapshot__title {
+  flex-grow: 1;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.stat-snapshot__toggle:hover .stat-snapshot__title {
+  color: var(--color-positive-text-strong);
+}
+
+.stat-snapshot__count {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.stat-snapshot__chevron {
+  color: var(--color-text-secondary);
+}
+
+.stat-snapshot--open .stat-snapshot__chevron {
+  transform: rotate(180deg);
+  color: var(--color-text);
+}
+
+.stat-snapshot__body {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 1rem;
+  padding-bottom: 1.75rem;
 }
 
 .stat-snapshot__caption {
@@ -217,55 +311,23 @@ const title = computed(() => {
   color: var(--color-text-secondary);
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.75rem;
-  list-style: none;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-  padding: 0.875rem 1rem;
-  border-radius: 0.75rem;
-  background: var(--color-elevated);
-}
-
-.stat-label {
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-}
-
-.stat-value {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text);
-}
-
-.stat-comparison {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-ink-soft);
-}
-
+/* Up and down notes: purple for good, orange for needs work */
 .stat-comparison.up { color: var(--color-positive-text); }
 .stat-comparison.down { color: var(--color-warn-text); }
 
-@media (max-width: 1279px) {
+.stat-snapshot__download {
+  align-self: flex-start;
+}
+
+@media (min-width: 1280px) {
   .stats-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 599px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .stat-snapshot__toggle {
+    gap: 0.625rem;
   }
 }
 </style>

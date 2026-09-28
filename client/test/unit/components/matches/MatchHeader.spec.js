@@ -37,54 +37,52 @@ describe('MatchHeader', () => {
     vi.useRealTimers()
   })
 
-  it('shows the champion as the card title', () => {
-    expect(mountHeader().get('[data-testid="match-header-champion"]').text()).toBe('Ahri')
+  it('titles the banner with the champion and role', () => {
+    expect(mountHeader().get('[data-testid="match-header-champion"]').text()).toBe('Ahri, Mid')
+    expect(mountHeader({ role: 'UNKNOWN' }).get('[data-testid="match-header-champion"]').text()).toBe('Ahri')
   })
 
-  it('marks a win in purple with the word Victory', () => {
-    const wrapper = mountHeader()
-    const result = wrapper.get('[data-testid="match-header-result"]')
-    expect(result.text()).toBe('Victory')
+  it('marks a win in purple with the word Victory and the time', () => {
+    const result = mountHeader().get('[data-testid="match-header-result"]')
+    expect(result.text()).toBe('Victory · 2 hours ago')
     expect(result.classes()).toContain('mp-up')
-    expect(wrapper.get('[data-testid="match-header-portrait"]').classes()).not.toContain('mp-portrait--loss')
   })
 
   it('marks a loss in orange with the word Defeat', () => {
-    const wrapper = mountHeader({ win: false })
-    const result = wrapper.get('[data-testid="match-header-result"]')
-    expect(result.text()).toBe('Defeat')
+    const result = mountHeader({ win: false }).get('[data-testid="match-header-result"]')
+    expect(result.text()).toMatch(/^Defeat/)
     expect(result.classes()).toContain('mp-down')
-    expect(wrapper.get('[data-testid="match-header-portrait"]').classes()).toContain('mp-portrait--loss')
   })
 
   it('calls a match under five minutes a remake', () => {
     const result = mountHeader({ gameDurationSec: 200, win: false }).get('[data-testid="match-header-result"]')
-    expect(result.text()).toBe('Remake')
+    expect(result.text()).toMatch(/^Remake/)
     expect(result.classes()).not.toContain('mp-down')
   })
 
-  it('builds the meta line from role, queue, length and time ago', () => {
-    const meta = mountHeader().get('[data-testid="match-header-meta"]').text()
-    expect(meta).toContain('Ranked Solo')
-    expect(meta).toContain('30:00')
-    expect(meta).toContain('2 hours ago')
+  it('builds the meta line from queue and length', () => {
+    expect(mountHeader().get('[data-testid="match-header-meta"]').text()).toBe('Ranked Solo · 30:00')
   })
 
-  it('leaves an unknown role out of the meta line', () => {
-    const meta = mountHeader({ role: 'UNKNOWN' }).get('[data-testid="match-header-meta"]').text()
-    expect(meta.startsWith('Ranked Solo')).toBe(true)
+  it('shows K / D / A as a glass chip', () => {
+    const chip = mountHeader().get('[data-testid="match-header-kda"]')
+    expect(chip.text()).toBe('7 / 3 / 11 KDA')
+    expect(chip.classes()).toContain('mp-chip--glass')
   })
 
-  it('shows KDA, team kills and CS', () => {
+  it('shows the champion splash art and falls back to a plain card when it fails', async () => {
     const wrapper = mountHeader()
-    expect(wrapper.get('[data-testid="match-header-kda"]').text()).toBe('7 / 3 / 11')
-    expect(wrapper.get('[data-testid="match-header-score"]').text()).toBe('30 – 25')
-    expect(wrapper.get('[data-testid="match-header-cs"]').text()).toBe('210 · 7.0 per min')
+    const art = wrapper.get('[data-testid="match-header-art"]')
+    expect(art.attributes('src')).toContain('/img/champion/splash/Ahri_0.jpg')
+    expect(art.attributes('alt')).toBe('Ahri splash art')
+
+    await art.trigger('error')
+    expect(wrapper.find('[data-testid="match-header-art"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="match-header"]').classes()).toContain('match-header--plain')
   })
 
-  it('falls back to the Data Dragon icon without an API icon', () => {
-    const img = mountHeader({ championIconUrl: null }).get('[data-testid="match-header-portrait"]')
-    expect(img.attributes('src')).toContain('/img/champion/Ahri.png')
+  it('has no download button (it lives in All your stats)', () => {
+    expect(mountHeader().find('[data-testid="match-download"]').exists()).toBe(false)
   })
 
   it('shows the standout finding as a strength or trend chip', () => {
@@ -96,11 +94,5 @@ describe('MatchHeader', () => {
     expect(needsWork.classes()).toContain('mp-chip--trend')
 
     expect(mountHeader().find('[data-testid="match-header-badge"]').exists()).toBe(false)
-  })
-
-  it('emits download from the Download data button', async () => {
-    const wrapper = mountHeader()
-    await wrapper.get('[data-testid="match-download"]').trigger('click')
-    expect(wrapper.emitted('download')).toHaveLength(1)
   })
 })
