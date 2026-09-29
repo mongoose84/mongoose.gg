@@ -1,326 +1,265 @@
 <template>
-  <AnalysisLayout page-title="Solo Dashboard" data-testid="solo-dashboard">
-    <!-- Zone 1: Context Bar -->
-    <template #context-bar>
-      <!-- Queue Toggle Bar (centered) -->
-      <BaseQueueToggle v-model="queueFilter" />
+  <div class="solo-page" data-testid="solo-dashboard">
+    <SyncProgress
+      v-if="syncState"
+      :state="syncState"
+      :current="progressCurrent"
+      :total="progressTotal"
+      :synced-count="syncedCount"
+      @retry="startSync"
+    />
 
-      <!-- Time Range Filter (positioned right) -->
-      <div class="absolute right-0">
-        <BaseTimeRangeSelect v-model="timeRange" />
+    <BaseEmptyState
+      v-if="hasNoLinkedAccount"
+      :heading-level="1"
+      title="Link your Riot account to see your trends"
+      description="We sync your recent matches and your trends show up here within a few minutes."
+      data-testid="solo-no-account"
+    >
+      <template #action>
+        <BaseButton size="lg" data-testid="solo-link-account" @click="showLinkModal = true">
+          <template #icon-left><BaseIcon name="link" :size="20" /></template>
+          Link Riot account
+        </BaseButton>
+      </template>
+    </BaseEmptyState>
+
+    <template v-else>
+      <header class="solo-header" data-testid="solo-header">
+        <div class="solo-header__text">
+          <h1 class="solo-header__title" data-testid="solo-headline">{{ headline }}</h1>
+          <p v-if="secondLine" class="solo-header__subline" data-testid="solo-subline">{{ secondLine }}</p>
+        </div>
+        <div class="solo-header__controls">
+          <BaseSegmentedControl
+            :model-value="selectedQueue"
+            :options="QUEUE_OPTIONS"
+            aria-label="Queue"
+            test-id-prefix="queue"
+            @update:model-value="setQueue"
+          />
+          <BaseSegmentedControl
+            :model-value="range"
+            :options="RANGE_OPTIONS"
+            aria-label="Range"
+            test-id-prefix="range"
+            @update:model-value="setRange"
+          />
+        </div>
+      </header>
+
+      <div v-reveal-on-view>
+        <SoloStatTrends
+          :data="statTrends"
+          :loading="statTrendsLoading"
+          :error="statTrendsError"
+          :queue="selectedQueue"
+          :syncing="isSyncing"
+          @retry="fetchStatTrends"
+          @show-all-queues="setQueue('all')"
+          @sync="startSync"
+        />
+      </div>
+
+      <!-- Until the death-zones card (5f): where deaths happen this season -->
+      <section
+        v-reveal-on-view
+        class="mp-card solo-deaths"
+        aria-labelledby="solo-deaths-title"
+        data-testid="danger-zones-card"
+      >
+        <header class="solo-deaths__header">
+          <h2 id="solo-deaths-title" class="mp-card-title">Where you die most</h2>
+          <p class="solo-deaths__caption">Deaths on the map, this season</p>
+        </header>
+        <DangerZonesMap
+          :deaths="deathPositions?.deaths ?? []"
+          :total-deaths="deathPositions?.totalDeaths ?? 0"
+          :matches-analyzed="deathPositions?.matchesAnalyzed ?? 0"
+          :phase-summary="deathPositions?.phaseSummary ?? { early: 0, mid: 0, late: 0, veryLate: 0 }"
+          :loading="deathPositionsLoading"
+          :error="deathPositionsError"
+          :queue-type="selectedQueue ?? 'all'"
+          time-range="current_season"
+          @update:side="setSide"
+        />
+      </section>
+
+      <div v-reveal-on-view>
+        <SoloWinFactors
+          :data="winFactors"
+          :loading="winFactorsLoading"
+          :error="winFactorsError"
+          :queue="selectedQueue"
+          :syncing="isSyncing"
+          @retry="fetchWinFactors"
+          @show-all-queues="setQueue('all')"
+          @sync="startSync"
+        />
+      </div>
+
+      <div v-reveal-on-view>
+        <SoloPatterns
+          :data="winFactors"
+          :loading="winFactorsLoading"
+          :error="winFactorsError"
+          @retry="fetchWinFactors"
+        />
       </div>
     </template>
+  </div>
 
-    <!-- Zone 2: Summary Stats -->
-    <template #summary>
-      <SummaryStatsCard
-        :games-played="dashboardData?.gamesPlayed ?? 0"
-        :win-rate="dashboardData?.winRate ?? null"
-        :overall-win-rate="dashboardData?.overallWinRate ?? null"
-        :avg-kda="dashboardData?.avgKda ?? null"
-        :avg-kills="dashboardData?.avgKills ?? null"
-        :avg-deaths="dashboardData?.avgDeaths ?? null"
-        :avg-assists="dashboardData?.avgAssists ?? null"
-        :overall-avg-kills="dashboardData?.overallAvgKills ?? null"
-        :overall-avg-deaths="dashboardData?.overallAvgDeaths ?? null"
-        :overall-avg-assists="dashboardData?.overallAvgAssists ?? null"
-        :overall-avg-kda="dashboardData?.overallAvgKda ?? null"
-        :solo-duo-rank="dashboardData?.rankInfo?.soloDuoRank ?? null"
-        :flex-rank="dashboardData?.rankInfo?.flexRank ?? null"
-        :queue-filter="queueFilter"
-        :loading="isLoading"
-        :account-count="summaryAccountCount"
-        :ranks="dashboardData?.allAccountRanks ?? null"
-      />
-    </template>
-
-    <!-- Zone 3: Trend Charts -->
-    <template #trend-charts>
-      <!-- Winrate Trend Chart — "How am I doing overall?" -->
-      <TrendChartCard
-        title="Winrate Over Time"
-        subtitle="Rolling 20-game average"
-        :loading="winrateLoading"
-        test-id="winrate-trend-card"
-        @toggle-expand="handleWinrateExpand"
-      >
-        <template #default>
-          <WinrateChart
-            :data="winrateTrendData"
-            :overall-win-rate="dashboardData?.overallWinRate ?? null"
-            :chart-mode="chartMode"
-            :accounts="chartAccounts"
-          />
-        </template>
-      </TrendChartCard>
-
-      <!-- Deaths Over Time Chart — "What's the #1 thing I can fix?" -->
-      <TrendChartCard
-        title="Deaths Over Time"
-        subtitle="Most actionable metric for improvement"
-        :loading="deathsLoading"
-        test-id="deaths-trend-card"
-        @toggle-expand="handleDeathsExpand"
-      >
-        <template #default>
-          <DeathsChart
-            :data="deathsTrendData"
-            :overall-average="deathsSummary.overallAverage"
-            :trend="deathsSummary.trend"
-            :chart-mode="chartMode"
-            :accounts="chartAccounts"
-          />
-        </template>
-      </TrendChartCard>
-
-      <!-- Dragon Participation Trend Chart — "Am I showing up for objectives?" -->
-      <TrendChartCard
-        title="Dragon Participation"
-        subtitle="First Dragon = 70.69% win rate correlation"
-        :loading="dragonParticipationLoading"
-        test-id="dragon-participation-trend-card"
-        @toggle-expand="handleDragonParticipationExpand"
-      >
-        <template #default>
-          <DragonParticipationChart
-            :data="dragonParticipationTrendData"
-            :overall-average="dragonParticipationSummary.overallAverage"
-            :trend="dragonParticipationSummary.trend"
-            :chart-mode="chartMode"
-            :accounts="chartAccounts"
-          />
-        </template>
-      </TrendChartCard>
-
-      <!-- Vision Score Trend Chart — "Am I giving myself information?" -->
-      <TrendChartCard
-        title="Vision Score Over Time"
-        subtitle="Key metric for map awareness and objective control"
-        :loading="visionScoreLoading"
-        test-id="vision-score-trend-card"
-        @toggle-expand="handleVisionScoreExpand"
-      >
-        <template #default>
-          <VisionChart
-            :data="visionScoreTrendData"
-            :overall-average="visionScoreSummary.overallAverage"
-            :role-target="visionScoreSummary.roleTarget"
-            :trend="visionScoreSummary.trend"
-            :chart-mode="chartMode"
-            :accounts="chartAccounts"
-          />
-        </template>
-      </TrendChartCard>
-
-      <!-- Gold at 15 Trend Chart — "Am I winning my lane?" -->
-      <TrendChartCard
-        title="Gold at 15 Minutes"
-        subtitle="Most predictive metric for winning"
-        :loading="goldAt15Loading"
-        test-id="gold-at-15-trend-card"
-        @toggle-expand="handleGoldAt15Expand"
-      >
-        <template #default>
-          <GoldAt15Chart
-            :data="goldAt15TrendData"
-            :chart-mode="chartMode"
-            :accounts="chartAccounts"
-          />
-        </template>
-      </TrendChartCard>
-
-      <!-- CS Per Minute Trend Chart — "Am I farming efficiently?" -->
-      <TrendChartCard
-        title="CS Per Minute"
-        subtitle="Farming efficiency over time"
-        :loading="csPerMinuteLoading"
-        test-id="cs-per-minute-trend-card"
-        @toggle-expand="handleCsPerMinuteExpand"
-      >
-        <template #default>
-          <CsPerMinuteChart
-            :data="csPerMinuteTrendData"
-            :chart-mode="chartMode"
-            :accounts="chartAccounts"
-          />
-        </template>
-      </TrendChartCard>
-    </template>
-
-    <!-- Zone 4: Deep Analysis -->
-    <template #deep-analysis>
-      <div class="deep-analysis-grid" data-testid="deep-analysis-grid">
-        <BaseCard
-          title="Performance Profile"
-          subtitle="Your strengths and weaknesses across 6 dimensions"
-          data-testid="radar-chart-card"
-        >
-          <RadarChart
-            :axes="radarChartData?.axes ?? []"
-            :games-analyzed="radarChartData?.gamesAnalyzed ?? 0"
-            :loading="radarChartLoading"
-          />
-        </BaseCard>
-
-        <BaseCard title="Danger Zones" subtitle="Where you die most on the map" data-testid="danger-zones-card">
-          <DangerZonesMap
-            :deaths="deathPositionsData?.deaths ?? []"
-            :total-deaths="deathPositionsData?.totalDeaths ?? 0"
-            :matches-analyzed="deathPositionsData?.matchesAnalyzed ?? 0"
-            :phase-summary="deathPositionsData?.phaseSummary ?? { early: 0, mid: 0, late: 0, veryLate: 0 }"
-            :loading="deathPositionsLoading"
-            :error="deathPositionsError"
-            :queue-type="queueFilter"
-            :time-range="timeRange"
-            @update:side="onSideFilterChange"
-          />
-        </BaseCard>
-
-        <BaseCard title="Match Activity" data-testid="match-activity-card">
-          <MatchActivityHeatmap
-            v-if="matchActivityData"
-            :daily-match-counts="matchActivityData.dailyMatchCounts"
-            :start-date="matchActivityData.startDate"
-            :end-date="matchActivityData.endDate"
-            :total-matches="matchActivityData.totalMatches"
-          />
-          <div v-else-if="!matchActivityLoading" class="empty-state">No match activity data</div>
-        </BaseCard>
-      </div>
-    </template>
-
-    <!-- Zone 5: Not rendered in v1 -->
-  </AnalysisLayout>
+  <LinkRiotAccountModal
+    :is-open="showLinkModal"
+    @close="showLinkModal = false"
+    @success="handleLinkSuccess"
+  />
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+/**
+ * Solo: "am I improving?" (features/solo-trends.spec.md). Headline and the queue and range
+ * controls, then stat trends, the death map, win factors and patterns. Each card loads on its own.
+ */
+import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useSoloDashboardData } from '../composables/useSoloDashboardData'
-import { useChartDisplayMode } from '../composables/useChartDisplayMode'
-import { ACCOUNT_COLORS } from '../utils/chartConfigs.js'
-import { BaseQueueToggle, BaseTimeRangeSelect, BaseCard } from '../components/base'
-import AnalysisLayout from '../components/shared/AnalysisLayout.vue'
-import SummaryStatsCard from '../components/solo/SummaryStatsCard.vue'
-import TrendChartCard from '../components/solo/TrendChartCard.vue'
-import WinrateChart from '../components/solo/WinrateChart.vue'
-import GoldAt15Chart from '../components/solo/GoldAt15Chart.vue'
-import CsPerMinuteChart from '../components/solo/CsPerMinuteChart.vue'
-import DeathsChart from '../components/solo/DeathsChart.vue'
-import DragonParticipationChart from '../components/solo/DragonParticipationChart.vue'
-import VisionChart from '../components/solo/VisionChart.vue'
+import { useSyncMatches } from '../composables/useSyncMatches'
+import { vRevealOnView } from '../composables/useRevealOnView'
+import { QUEUE_OPTIONS, RANGE_OPTIONS, buildSecondLine, buildSoloHeadline } from '../utils/soloSummary'
+import BaseButton from '../components/base/BaseButton.vue'
+import BaseIcon from '../components/base/BaseIcon.vue'
+import BaseEmptyState from '../components/base/BaseEmptyState.vue'
+import BaseSegmentedControl from '../components/base/BaseSegmentedControl.vue'
+import SyncProgress from '../components/base/SyncProgress.vue'
+import SoloStatTrends from '../components/solo/SoloStatTrends.vue'
+import SoloWinFactors from '../components/solo/SoloWinFactors.vue'
+import SoloPatterns from '../components/solo/SoloPatterns.vue'
 import DangerZonesMap from '../components/solo/DangerZonesMap.vue'
-import RadarChart from '../components/solo/RadarChart.vue'
-import MatchActivityHeatmap from '../components/overview/MatchActivityHeatmap.vue'
+import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
 
 const authStore = useAuthStore()
-const { chartMode } = useChartDisplayMode()
+const showLinkModal = ref(false)
 
 const {
-  queueFilter,
-  timeRange,
-  dashboardData,
-  isLoading,
-  error,
-  winrateTrendData,
-  winrateLoading,
-  goldAt15TrendData,
-  goldAt15Loading,
-  csPerMinuteTrendData,
-  csPerMinuteLoading,
-  deathsTrendData,
-  deathsLoading,
-  deathsSummary,
-  dragonParticipationTrendData,
-  dragonParticipationLoading,
-  dragonParticipationSummary,
-  visionScoreTrendData,
-  visionScoreLoading,
-  visionScoreSummary,
-  radarChartData,
-  radarChartLoading,
-  deathPositionsData,
-  deathPositionsLoading,
+  selectedQueue,
+  range,
+  hasNoLinkedAccount,
+  statTrends,
+  statTrendsError,
+  statTrendsLoading,
+  winFactors,
+  winFactorsError,
+  winFactorsLoading,
+  deathPositions,
   deathPositionsError,
-  matchActivityData,
-  matchActivityLoading,
-  handleWinrateExpand,
-  handleGoldAt15Expand,
-  handleCsPerMinuteExpand,
-  handleDeathsExpand,
-  handleDragonParticipationExpand,
-  handleVisionScoreExpand,
-  onSideFilterChange,
-  fetchAllData
+  deathPositionsLoading,
+  setQueue,
+  setRange,
+  setSide,
+  fetchAll,
+  fetchStatTrends,
+  fetchWinFactors
 } = useSoloDashboardData()
 
-// Derived account list for per-account chart mode
-const chartAccounts = computed(() =>
-  authStore.riotAccounts.map((account, index) => ({
-    gameName: `${account.gameName}#${account.tagLine}`,
-    color: ACCOUNT_COLORS[index % ACCOUNT_COLORS.length]
-  }))
+const {
+  syncState,
+  isSyncing,
+  progressCurrent,
+  progressTotal,
+  syncedCount,
+  startSync
+} = useSyncMatches()
+
+const headline = computed(() =>
+  buildSoloHeadline(statTrends.value?.range, statTrends.value?.matches) ?? 'Your trends'
 )
+const secondLine = computed(() => buildSecondLine(statTrends.value?.stats))
 
-// Account count for SummaryStatsCard label — sourced from the API response so it
-// stays in sync with the server's visibility/tier logic, not the client-side store filter.
-const summaryAccountCount = computed(() => dashboardData.value?.accountCount ?? 1)
+async function handleLinkSuccess() {
+  await authStore.refreshUser()
+  fetchAll()
+}
 
-onMounted(() => { fetchAllData() })
-
+// A finished sync that brought in matches refreshes every card
+watch(syncState, (state, previous) => {
+  if (state === 'done' && previous === 'running') fetchAll()
+})
 </script>
 
 <style scoped>
-.deep-analysis-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto;
-  gap: var(--spacing-lg);
+.solo-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding: 1.75rem 0 3.5rem;
 }
 
-/* Performance Profile: top-left */
-.deep-analysis-grid > :nth-child(1) {
-  grid-column: 1;
-  grid-row: 1;
+.solo-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
 }
 
-/* Danger Zones: spans full right column */
-.deep-analysis-grid > :nth-child(2) {
-  grid-column: 2;
-  grid-row: 1 / -1;
+.solo-header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
-/* Match Activity: bottom-left, sizes to content */
-.deep-analysis-grid > :nth-child(3) {
-  grid-column: 1;
-  grid-row: 2;
-  align-self: start;
+.solo-header__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--color-text);
 }
 
-@media (max-width: 768px) {
-  .deep-analysis-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
+.solo-header__subline {
+  margin: 0;
+  max-width: 65ch;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--color-ink-soft);
+}
+
+.solo-header__controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.solo-deaths {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.solo-deaths__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.solo-deaths__caption {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 899px) {
+  .solo-header__title {
+    font-size: 1.75rem;
   }
 
-  /* On mobile, reset all explicit placement so items stack in order:
-     Performance Profile → Match Activity → Danger Zones */
-  .deep-analysis-grid > :nth-child(1),
-  .deep-analysis-grid > :nth-child(2),
-  .deep-analysis-grid > :nth-child(3) {
-    grid-column: 1;
-    grid-row: auto;
-  }
-
-  /* Danger Zones last on mobile */
-  .deep-analysis-grid > :nth-child(2) {
-    order: 3;
-  }
-
-  .deep-analysis-grid > :nth-child(3) {
-    order: 2;
+  .solo-header__controls {
+    align-items: flex-start;
   }
 }
 </style>
-
-

@@ -98,30 +98,51 @@ export async function getMatchActivity(userId) {
 }
 
 /**
- * Get radar chart performance profile data
- * @param {number} userId - User ID
- * @param {string} [queueType] - Optional queue filter
- * @param {string} [timeRange] - Optional time range
- * @returns {Promise<Object|null>} Radar profile data or null if no data found
+ * Query string shared by the Solo trend endpoints (features/solo-trends.spec.md).
+ * A missing queue lets the server pick the default (Solo/Duo, else Flex, else all queues).
  */
-export async function getRadarChart(userId, queueType = 'all', timeRange) {
+function soloTrendsQuery(queueType, range) {
   const params = new URLSearchParams()
-  if (queueType && queueType !== 'all') {
-    params.append('queueType', queueType)
-  }
-  if (timeRange) {
-    params.append('timeRange', timeRange)
-  }
+  if (queueType) params.append('queueType', queueType)
+  if (range) params.append('range', range)
   appendAccountParam(params)
+  return params.toString()
+}
 
-  const endpoint = `/solo/radar-chart/${userId}${params.toString() ? '?' + params.toString() : ''}`
-  const response = await apiRequest(endpoint, { method: 'GET' })
+/**
+ * Get the six match-deciding stat trends and the "Your focus" pick
+ * @param {number} userId - User ID
+ * @param {string|null} [queueType] - ranked_solo, ranked_flex or all; null for the server's default
+ * @param {string} [range] - last20, last50 or season
+ * @returns {Promise<{ matches: number, queueType: string, range: string, stats: Array, focus: Object|null }|null>}
+ *   null when no Riot account is linked
+ */
+export async function getSoloStatTrends(userId, queueType = null, range = 'last20') {
+  const response = await apiRequest(`/solo/stat-trends/${userId}?${soloTrendsQuery(queueType, range)}`, { method: 'GET' })
 
   if (response.status === 404) {
     return null
   }
 
-  return parseResponse(response, 'Failed to get radar chart')
+  return parseResponse(response, 'Failed to get stat trends')
+}
+
+/**
+ * Get win factors (hit vs missed win rates) and the session, after-a-loss and match-length patterns
+ * @param {number} userId - User ID
+ * @param {string|null} [queueType] - ranked_solo, ranked_flex or all; null for the server's default
+ * @param {string} [range] - last20, last50 or season
+ * @returns {Promise<{ matches: number, queueType: string, range: string, factors: Array, patterns: Object }|null>}
+ *   null when no Riot account is linked
+ */
+export async function getSoloWinFactors(userId, queueType = null, range = 'last20') {
+  const response = await apiRequest(`/solo/win-factors/${userId}?${soloTrendsQuery(queueType, range)}`, { method: 'GET' })
+
+  if (response.status === 404) {
+    return null
+  }
+
+  return parseResponse(response, 'Failed to get win factors')
 }
 
 /**

@@ -104,4 +104,26 @@ describe('soloApi', () => {
       expect(result).toBeNull()
     })
   })
+  describe.each([
+    ['getSoloStatTrends', '/solo/stat-trends/7'],
+    ['getSoloWinFactors', '/solo/win-factors/7']
+  ])('%s', (name, path) => {
+    it('sends the queue, range and account', async () => {
+      await soloApi[name](7, 'ranked_flex', 'last50')
+      expect(mockApiRequest).toHaveBeenCalledWith(
+        `${path}?queueType=ranked_flex&range=last50&accountId=all`,
+        { method: 'GET' }
+      )
+    })
+
+    it('leaves the queue to the server when none is chosen', async () => {
+      await soloApi[name](7)
+      expect(mockApiRequest.mock.calls[0][0]).toBe(`${path}?range=last20&accountId=all`)
+    })
+
+    it('returns null on 404', async () => {
+      mockApiRequest.mockResolvedValue({ status: 404 })
+      expect(await soloApi[name](7)).toBeNull()
+    })
+  })
 })

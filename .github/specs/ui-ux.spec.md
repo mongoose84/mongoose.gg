@@ -202,14 +202,6 @@ All routes defined in `client/src/router/index.js`.
 - **Idle detection**: 30-minute threshold; on tab return, refreshes user data + triggers sync check
 - **Activity tracking**: Throttled to 30s intervals (mousemove, keydown, click, scroll)
 
-### `AnalysisLayout.vue` (shared by Solo/Team)
-- Zone-based layout with named slots:
-  - `#context-bar` — Zone 1: Filters (queue toggle, time range)
-  - `#summary` — Zone 2: Summary stats row
-  - `#trend-charts` — Zone 3: 2-column chart grid
-  - Zone 4 (deep analysis) and Zone 5 (goals) — not rendered in v1
-- Prop: `pageTitle`
-
 ### `NavBar.vue` (public pages)
 - Fixed top header for public pages: 80px on desktop, 56px below 900px (pages offset their content by the same height)
 - Logo, "Features" and "How it works" anchors, "Log in", and "Create free account" as the one filled button (no Pricing while we focus on the free version)
@@ -298,16 +290,17 @@ Order (design system: summary → list → evidence):
 States: skeleton rows and a skeleton match after 300ms, inline error with "Try again" for the list, the match and the lanes separately, EmptyState "No matches yet" with "Sync matches" (or "Show all queues" when filtered), "We couldn't find this match" for an unknown match ID, and "Link Riot account" without a linked account. Your team is purple and the enemy orange; good stats purple ▲, needs-work orange ▼.
 
 ### Solo (`/app/solo`)
-**Role**: Long-term personal improvement tracking. Free tier.
+**Role**: "Am I improving?": the player's matches against their own past. Free tier. Rules and copy in [features/solo-trends.spec.md](features/solo-trends.spec.md); built so far through 5b of the design migration.
 
-Zone layout via `AnalysisLayout`:
-- Zone 1: `BaseQueueToggle` (centered) + `BaseTimeRangeSelect` (right-aligned)
-- Zone 2: `SummaryStatsCard` — matches played, win rate, average KDA (with overall comparisons)
-- Zone 3: `TrendChartCard` — Win rate trend (rolling 20-match)
+1. Header: one `h1` ("Your last 20 matches" / "Your 64 matches this season" until the climb card brings wins and LP in 5c) and the second line from `stat-trends` (the Improving stat with the largest normalised change, else the Slipping one). Right: two `BaseSegmentedControl`s, Queue (Solo/Duo, Flex, All queues; the server picks the default and the control shows it) and Range (Last 20, Last 50, Season; ranges count matches).
+2. `SoloStatTrends`: "n of 6 match-deciding stats improved" with six `BaseTrendTile`s (3 columns; rows below 900px) and a key (Your average, One match, Your season average).
+3. "Where you die most": the legacy `DangerZonesMap` (this season) until the death-zones card replaces it (5f).
+4. `SoloWinFactors`: "Your {factor} decides your matches most" with a `BaseWinFactorRow` per mark (needs 20 matches and 2 rows).
+5. `SoloPatterns`: "Your patterns", up to three InsightCard-style cards with a chip and a `BaseColumnChart` (session, after a loss, match length); hidden when none qualify.
 
-Time ranges count matches, never days: each chart card has a segmented control (Last 20 / Last 50 / Season), default Last 20, switching in place (no modal).
+Each card loads on its own (skeleton after 300ms, inline error with "Try again" for that card only, EmptyState, content) and keeps its old content while a filter change loads. EmptyStates: "Link your Riot account to see your trends"; "No {queue} matches yet" with "Show all queues" (or "Sync matches"); "Play {n} more matches to see what decides your matches". A finished sync reloads every card. Sections fade in once (`vRevealOnView`).
 
-Data sources: `getSoloDashboard()`, `getWinrateTrend()` from `authApi`
+Data sources: `getSoloStatTrends()`, `getSoloWinFactors()`, `getDeathPositions()` from `soloApi`, through `useSoloDashboardData`.
 
 > **Advanced** (planned, not implemented): Team and Goals below will be combined into one page called Advanced (working name).
 
@@ -421,6 +414,8 @@ Built from `.claude/skills/mongoose-design/reference/components.md`; imported di
 | `BaseSegmentedControl` | `modelValue`, `options` (`{ value, label }`), `ariaLabel`, `testIdPrefix` | `mp-seg`: `role="group"` of buttons with `aria-pressed`; 2–4 options |
 | `BaseFormStrip` | `results` (`win` / `loss` / `remake`, oldest first) | `mp-form`: up to 20 bars, `role="img"` with the sequence and totals; not clickable |
 | `BaseColumnChart` | `groups` (`{ key, label, value }`), `max`, `unit`, `weakKey`, `measure` | `mp-columns`: 2–4 columns, the weak spot in warn, `role="img"` listing every value |
+| `BaseTrendTile` | `label`, `value`, `unit`, `was`, `verdict`, `tone` (`up`, `down`, `neutral`), `arrow`, `values`, `rolling`, `length`, `benchmark`, `description` | `mp-stat` tile with an SVG sparkline: a dot per match, the rolling line in primary, the benchmark dashed; `role="group"` labelled by `description`; a row below 900px (Solo) |
+| `BaseWinFactorRow` | `label`, `hitWinRate`, `missWinRate`, `description` | Two dots on a 0–100% track (hit: filled primary, missed: warn ring), both rates above; the track is `role="img"` (Solo) |
 | `SyncProgress` | `state` (`running`, `waiting`, `done`, `failed`), `current`, `total`, `syncedCount` | Emits `retry`; indeterminate while `total` is 0 |
 | `ScoreRing` | `value`, `label`, `size` | `role="meter"` |
 
@@ -485,59 +480,21 @@ Next-step card linking to Solo ("See your trends").
 
 ## 10. Solo Analysis Components
 
-Located in `client/src/components/solo/`.
+Located in `client/src/components/solo/`. Copy and number formats in `utils/soloSummary.js`.
 
-### `SummaryStatsCard`
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `gamesPlayed` | `Number` | Total games in filter window |
-| `winRate` | `Number\|null` | Filtered win rate |
-| `overallWinRate` | `Number\|null` | Season-wide win rate (comparison) |
-| `avgKda` | `Number\|null` | Filtered average KDA ratio |
-| `avgKills` / `avgDeaths` / `avgAssists` | `Number\|null` | Filtered averages |
-| `overallAvgKills` / `overallAvgDeaths` / `overallAvgAssists` | `Number\|null` | Season-wide averages |
-| `overallAvgKda` | `Number\|null` | Season-wide KDA |
-| `loading` | `Boolean` | Loading state |
-
-### `TrendChartCard`
-Wrapper for trend charts with expand/collapse.
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `title` | `String` | Chart title |
-| `subtitle` | `String` | Optional subtitle |
-| `loading` | `Boolean` | Loading state |
-| `testId` | `String` | data-testid for testing |
-
-Events: `@toggle-expand`  
-Slots: `#default` with `{ dataLimit }` slot prop
-
-### `WinrateChart`
-Chart.js line chart for rolling win rate. Prop: `data` (array of win rate data points). Subtitle: "Rolling 20-game average".
+| Component | Props | Notes |
+|------|------|------|
+| `SoloCard` | `testId`, `titleId`, `title`, `caption`, `errorTitle`, `loadingLabel`, `loading`, `error`, `empty` | Shell with the four states; slots `#skeleton`, `#empty-action`, `#aside` (key), default; emits `retry` |
+| `SoloStatTrends` | `data` (stat-trends response), `loading`, `error`, `queue`, `syncing` | Six `BaseTrendTile`s; title per FR 17 (the caption when no stat has a verdict); emits `retry`, `show-all-queues`, `sync` |
+| `SoloWinFactors` | `data` (win-factors response), `loading`, `error`, `queue`, `syncing` | `BaseWinFactorRow`s in server order; EmptyState under 20 matches or 2 rows; same emits |
+| `SoloPatterns` | `data` (win-factors response), `loading`, `error` | Session, after-a-loss and match-length cards; the section is hidden when none qualify; emits `retry` |
+| `DangerZonesMap` | `deaths`, `totalDeaths`, `matchesAnalyzed`, `phaseSummary`, `loading`, `error`, `queueType`, `timeRange` | Legacy death heatmap, emits `update:side`; replaced by the death-zones card (5f) |
 
 ---
 
 ## 11. Shared Components
 
-### `AnalysisLayout` (`client/src/components/shared/`)
-Zone-based layout used by Solo and Team pages.
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `pageTitle` | `String` | Page heading |
-
-Slots: `#context-bar`, `#summary`, `#trend-charts`
-
-**Zone model**:
-
-| Zone | Slot | Purpose | v1 | v2 |
-|------|------|---------|-----|-----|
-| 1 | `#context-bar` | Filters (queue + time) | Queue toggle + time range | Same |
-| 2 | `#summary` | Summary stats row | Games, Winrate, KDA | Per-context stats |
-| 3 | `#trend-charts` | 2-column chart grid | LP + Winrate charts | Same |
-| 4 | — | Deep analysis | Not rendered | Danger Zones, Champion Matrix |
-| 5 | — | Goals | Not rendered | Active goals with progress |
+None at present. `AnalysisLayout` was retired with the Solo redesign (5b); pages compose design-system cards directly.
 
 ---
 
@@ -565,9 +522,6 @@ Champion Select: lane matchups for the selected pick — Strong into / Weak into
 
 ### `ChampionSelectSearch`
 Champion Select: "Check a matchup" — a labelled `BaseInput` for the enemy champion and the matching results for your champions in the selected role. Props `matchups`, `role`, `roleName`, `disabled`.
-
-### `WinrateChart`
-Root-level winrate chart variant.
 
 ### `VersionBadge`
 Fixed bottom-left badge: "Mongoose.gg Beta • v{version}". Hidden inside `/app` routes.
@@ -627,7 +581,7 @@ Centralized fetch wrapper with:
 ### `authApi.js` (main API surface — 505 lines)
 - **Auth**: register, login, logout, deleteAccount, verifyEmail, resendVerification, forgotPassword, resetPassword, changePassword
 - **Riot account**: link, unlink, triggerSync, getSyncStatus
-- **Dashboards**: `getOverview()`, `getSoloDashboard()`, `getChampionSelectData()`, `getMatchActivity()`
+- **Dashboards**: `getOverview()`, `getSoloDashboard()`, `getChampionSelectData()`, `getMatchActivity()`, `getSoloStatTrends()`, `getSoloWinFactors()`
 - **Trends**: `getWinrateTrend()`
 - **Matchups**: `getChampionMatchups()`
 - **Matches**: `getMatchList()`, `getMatchDetails()`, `getMatchNarrative()`
@@ -772,7 +726,6 @@ When creating new UI components:
 | Overview Components | `client/src/components/overview/` |
 | Match Components | `client/src/components/matches/` |
 | Solo Components | `client/src/components/solo/` |
-| Shared Layout | `client/src/components/shared/AnalysisLayout.vue` |
 | Root Components | `client/src/components/` |
 | Views | `client/src/views/` |
 | Layouts | `client/src/layouts/AppLayout.vue` |

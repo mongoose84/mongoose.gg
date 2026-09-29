@@ -233,10 +233,15 @@ Proposed 2026-09-29 through `/mongoose-design`: Solo becomes the "am I improving
 - [x] Open questions answered (see Decisions below).
 
 ### 5b. Page shell, ranges, trends and win factors (backend + frontend)
-- [ ] Backend: `range` parameter (match counts) on the new Solo endpoints; keep `timeRange` on the old ones until they are removed. New `GET /api/v2/solo/stat-trends/{userId}` (six series + start/end/benchmark per stat) and `GET /api/v2/solo/win-factors/{userId}` (factor rows, patterns). Ownership check, resolve the Riot account server-side, parameterized SQL, `LogSanitizer` on logged values. Rules (rolling average, verdicts, session grouping) in Core services with unit tests. Update `architecture.spec.md`.
-- [ ] Frontend: rebuild `SoloStatsPage.vue` without `AnalysisLayout`: headline, SegmentedControls, `TrendTile` grid, win-factor card, pattern cards (`BaseColumnChart`). Every card has its own skeleton / error-with-retry / empty / content. The benchmark line shows "Your season average" until 5g.
+- [x] Backend: `range` parameter (match counts) on the new Solo endpoints; keep `timeRange` on the old ones until they are removed. New `GET /api/v2/solo/stat-trends/{userId}` (six series + start/end/benchmark per stat) and `GET /api/v2/solo/win-factors/{userId}` (factor rows, patterns). Ownership check, resolve the Riot account server-side, parameterized SQL, `LogSanitizer` on logged values. Rules (rolling average, verdicts, session grouping) in Core services with unit tests. Update `architecture.spec.md`.
+- [x] Frontend: rebuild `SoloStatsPage.vue` without `AnalysisLayout`: headline, SegmentedControls, `TrendTile` grid, win-factor card, pattern cards (`BaseColumnChart`). Every card has its own skeleton / error-with-retry / empty / content. The benchmark line shows "Your season average" until 5g.
 - [ ] Retire `SummaryStatsCard`, `TrendChartCard`, `TrendLineChart`, the six Chart.js trend charts, `RadarChart` and `RadarChartEndpoint`, and the match-activity card on this page, with their tests; remove the old `Trends/*` endpoints once nothing calls them.
 - [ ] Tests: Core rule tests, endpoint integration tests (ownership, range, empty), unit tests for the new components and copy helpers; E2E smoke for the page.
+- 5b notes (2026-09-29):
+  - Retired on the frontend: `SummaryStatsCard`, `TrendChartCard`, `TrendLineChart`, the six Chart.js trend charts, `RadarChart`, `AnalysisLayout`, `trendsApi.js`, `chartConfigs.js` and the match-activity card on this page, with their tests. Still to remove: the `Trends/*` and `RadarChartEndpoint` backend endpoints (nothing in the client calls them now), and the unused Chart.js dependency and plugin.
+  - Until 5c the headline counts matches ("Your last 20 matches"); the rank line waits for the climb card. The legacy `DangerZonesMap` stays until 5f, fed with this season.
+  - `useChartDisplayMode` stays: the Settings display preference still uses it, though no chart reads it any more.
+  - The E2E smoke is updated but not yet run against a backend.
 
 ### 5c. Climb and LP per champion
 - [ ] Can ship before the rank-snapshot coverage result (2026-10-06) thanks to the win-rate fallback (decision 1); the result tells how often the fallback shows.

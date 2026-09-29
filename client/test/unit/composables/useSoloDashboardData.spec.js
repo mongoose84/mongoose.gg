@@ -1,34 +1,22 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ref, nextTick } from 'vue'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { effectScope, reactive, nextTick } from 'vue'
+import { flushPromises } from '@vue/test-utils'
+import { statTrendsResponse, winFactorsResponse } from '@test/helpers/soloFixtures'
 
-const mockGetSoloDashboard = vi.fn()
-const mockGetWinrateTrend = vi.fn()
-const mockGetGoldAt15Trend = vi.fn()
-const mockGetCsPerMinuteTrend = vi.fn()
-const mockGetDeathsTrend = vi.fn()
-const mockGetDragonParticipationTrend = vi.fn()
-const mockGetVisionScoreTrend = vi.fn()
+const mockGetSoloStatTrends = vi.fn()
+const mockGetSoloWinFactors = vi.fn()
 const mockGetDeathPositions = vi.fn()
-const mockGetRadarChart = vi.fn()
 const mockTrackFilterChange = vi.fn()
-const mockRefreshUser = vi.fn()
-const mockResetProgress = vi.fn()
 
-const syncProgress = ref(new Map())
+const authStore = reactive({
+  userId: 1,
+  isInitialized: true,
+  hasLinkedAccount: true,
+  activeAccountPuuid: 'acc-1'
+})
 
 vi.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({
-    userId: 1,
-    activeAccountPuuid: null,
-    refreshUser: mockRefreshUser
-  })
-}))
-
-vi.mock('@/composables/useSyncWebSocket', () => ({
-  useSyncWebSocket: () => ({
-    syncProgress,
-    resetProgress: mockResetProgress
-  })
+  useAuthStore: () => authStore
 }))
 
 vi.mock('@/services/analyticsApi', () => ({
@@ -36,151 +24,135 @@ vi.mock('@/services/analyticsApi', () => ({
 }))
 
 vi.mock('@/services/soloApi', () => ({
-  getSoloDashboard: (...args) => mockGetSoloDashboard(...args),
-  getDeathPositions: (...args) => mockGetDeathPositions(...args),
-  getRadarChart: (...args) => mockGetRadarChart(...args)
+  getSoloStatTrends: (...args) => mockGetSoloStatTrends(...args),
+  getSoloWinFactors: (...args) => mockGetSoloWinFactors(...args),
+  getDeathPositions: (...args) => mockGetDeathPositions(...args)
 }))
 
-vi.mock('@/services/trendsApi', () => ({
-  getWinrateTrend: (...args) => mockGetWinrateTrend(...args),
-  getGoldAt15Trend: (...args) => mockGetGoldAt15Trend(...args),
-  getCsPerMinuteTrend: (...args) => mockGetCsPerMinuteTrend(...args),
-  getDeathsTrend: (...args) => mockGetDeathsTrend(...args),
-  getDragonParticipationTrend: (...args) => mockGetDragonParticipationTrend(...args),
-  getVisionScoreTrend: (...args) => mockGetVisionScoreTrend(...args)
-}))
+const { useSoloDashboardData: createSoloDashboardData } = await import('@/composables/useSoloDashboardData')
 
-import { useSoloDashboardData } from '@/composables/useSoloDashboardData'
+// Each instance lives in its own scope, stopped after the test, so no watcher outlives it
+let scope = null
+function useSoloDashboardData() {
+  scope = effectScope()
+  return scope.run(createSoloDashboardData)
+}
 
 describe('useSoloDashboardData', () => {
+  afterEach(() => {
+    scope?.stop()
+    scope = null
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
-    syncProgress.value = new Map()
-    mockGetSoloDashboard.mockResolvedValue({ gamesPlayed: 10, accountCount: 1 })
-    mockGetWinrateTrend.mockResolvedValue({ winrateTrend: [{ value: 0.5 }] })
-    mockGetGoldAt15Trend.mockResolvedValue({ goldAt15Trend: [] })
-    mockGetCsPerMinuteTrend.mockResolvedValue({ csPerMinuteTrend: [] })
-    mockGetDeathsTrend.mockResolvedValue({ deathsTrend: [], averageDeaths: 2, overallAverage: 3, trend: 'improving' })
-    mockGetDragonParticipationTrend.mockResolvedValue({ dragonParticipationTrend: [], averageParticipation: 0.5, overallAverage: 0.6, trend: 'neutral' })
-    mockGetVisionScoreTrend.mockResolvedValue({ visionScoreTrend: [], averageVisionPerMinute: 1.2, overallAverage: 1.0, roleTarget: 1.5, trend: 'improving' })
-    mockGetDeathPositions.mockResolvedValue({ deaths: [], totalDeaths: 0, matchesAnalyzed: 0, phaseSummary: { early: 0, mid: 0, late: 0, veryLate: 0 } })
-    mockGetRadarChart.mockResolvedValue({ axes: [], gamesAnalyzed: 5 })
+    Object.assign(authStore, { userId: 1, isInitialized: true, hasLinkedAccount: true, activeAccountPuuid: 'acc-1' })
+    mockGetSoloStatTrends.mockResolvedValue(statTrendsResponse())
+    mockGetSoloWinFactors.mockResolvedValue(winFactorsResponse())
+    mockGetDeathPositions.mockResolvedValue({ deaths: [], totalDeaths: 0, matchesAnalyzed: 0 })
   })
 
-  it('starts with default filter values', () => {
-    const { queueFilter, timeRange } = useSoloDashboardData()
+  it('loads both cards in parallel and lets the server pick the queue', async () => {
+    const data = useSoloDashboardData()
+    await flushPromises()
 
-    expect(queueFilter.value).toBe('all')
-    expect(timeRange.value).toBe('current_season')
+    expect(mockGetSoloStatTrends).toHaveBeenCalledWith(1, null, 'last20')
+    expect(mockGetSoloWinFactors).toHaveBeenCalledWith(1, null, 'last20')
+    expect(data.statTrends.value.matches).toBe(20)
+    expect(data.winFactors.value.factors).toHaveLength(3)
+    expect(data.selectedQueue.value).toBe('ranked_solo')
   })
 
-  it('fetchAllData calls all 9 endpoints', async () => {
-    const { fetchAllData } = useSoloDashboardData()
-
-    await fetchAllData()
-
-    expect(mockGetSoloDashboard).toHaveBeenCalled()
-    expect(mockGetWinrateTrend).toHaveBeenCalled()
-    expect(mockGetGoldAt15Trend).toHaveBeenCalled()
-    expect(mockGetCsPerMinuteTrend).toHaveBeenCalled()
-    expect(mockGetDeathsTrend).toHaveBeenCalled()
-    expect(mockGetDragonParticipationTrend).toHaveBeenCalled()
-    expect(mockGetVisionScoreTrend).toHaveBeenCalled()
-    expect(mockGetRadarChart).toHaveBeenCalled()
-    expect(mockGetDeathPositions).toHaveBeenCalled()
-  })
-
-  it('populates winrateTrendData from API response', async () => {
-    const { fetchAllData, winrateTrendData } = useSoloDashboardData()
-
-    await fetchAllData()
-
-    expect(winrateTrendData.value).toEqual([{ value: 0.5 }])
-  })
-
-  it('populates deathsSummary from deaths trend response', async () => {
-    const { fetchAllData, deathsSummary } = useSoloDashboardData()
-
-    await fetchAllData()
-
-    expect(deathsSummary.value).toEqual({
-      averageDeaths: 2,
-      overallAverage: 3,
-      trend: 'improving'
-    })
-  })
-
-  it('populates visionScoreSummary from vision score response', async () => {
-    const { fetchAllData, visionScoreSummary } = useSoloDashboardData()
-
-    await fetchAllData()
-
-    expect(visionScoreSummary.value).toEqual({
-      averageVisionPerMinute: 1.2,
-      overallAverage: 1.0,
-      roleTarget: 1.5,
-      trend: 'improving'
-    })
-  })
-
-  it('handleWinrateExpand re-fetches with null limit when expanded', async () => {
-    const { handleWinrateExpand } = useSoloDashboardData()
-
-    await handleWinrateExpand(true)
-
-    const lastCall = mockGetWinrateTrend.mock.calls[mockGetWinrateTrend.mock.calls.length - 1]
-    expect(lastCall[3]).toBeNull()
-  })
-
-  it('handleWinrateExpand re-fetches with limit 20 when collapsed', async () => {
-    const { handleWinrateExpand } = useSoloDashboardData()
-
-    await handleWinrateExpand(false)
-
-    const lastCall = mockGetWinrateTrend.mock.calls[mockGetWinrateTrend.mock.calls.length - 1]
-    expect(lastCall[3]).toBe(20)
-  })
-
-  it('onSideFilterChange updates sideFilter and re-fetches death positions', async () => {
-    const { onSideFilterChange, sideFilter } = useSoloDashboardData()
-
-    const callsBefore = mockGetDeathPositions.mock.calls.length
-    onSideFilterChange('blue')
-    await nextTick()
-    await Promise.resolve()
-
-    expect(sideFilter.value).toBe('blue')
-    expect(mockGetDeathPositions.mock.calls.length).toBeGreaterThan(callsBefore)
-  })
-
-  it('gracefully resets winrateTrendData to [] on fetch failure', async () => {
-    mockGetWinrateTrend.mockRejectedValue(new Error('Network error'))
-    const { fetchAllData, winrateTrendData } = useSoloDashboardData()
-
-    await fetchAllData()
-
-    expect(winrateTrendData.value).toEqual([])
-  })
-
-  it('calls refreshUser and resetProgress when sync completes', async () => {
+  it('loads the death map in the queue the server picked', async () => {
     useSoloDashboardData()
+    await flushPromises()
+
+    expect(mockGetDeathPositions).toHaveBeenCalledWith(1, 'ranked_solo', 'current_season', 'all')
+  })
+
+  it('reloads with the chosen queue and range, and tracks the change', async () => {
+    const data = useSoloDashboardData()
+    await flushPromises()
+    vi.clearAllMocks()
+
+    data.setQueue('ranked_flex')
+    await flushPromises()
+    data.setRange('season')
+    await flushPromises()
+
+    expect(mockGetSoloStatTrends).toHaveBeenLastCalledWith(1, 'ranked_flex', 'season')
+    expect(mockGetSoloWinFactors).toHaveBeenLastCalledWith(1, 'ranked_flex', 'season')
+    expect(mockTrackFilterChange).toHaveBeenCalledWith('queue', 'ranked_flex')
+    expect(mockTrackFilterChange).toHaveBeenCalledWith('range', 'season')
+  })
+
+  it('does nothing when the chosen queue is already shown', async () => {
+    const data = useSoloDashboardData()
+    await flushPromises()
+    vi.clearAllMocks()
+
+    data.setQueue('ranked_solo')
+    await flushPromises()
+
+    expect(mockGetSoloStatTrends).not.toHaveBeenCalled()
+    expect(mockTrackFilterChange).not.toHaveBeenCalled()
+  })
+
+  it('keeps the old content while new data loads', async () => {
+    const data = useSoloDashboardData()
+    await flushPromises()
+
+    mockGetSoloStatTrends.mockReturnValue(new Promise(() => {}))
+    data.setRange('last50')
+    await nextTick()
+
+    expect(data.statTrendsLoading.value).toBe(false)
+    expect(data.statTrends.value.range).toBe('last20')
+  })
+
+  it('shows loading before the first answer', () => {
+    mockGetSoloStatTrends.mockReturnValue(new Promise(() => {}))
+    const data = useSoloDashboardData()
+
+    expect(data.statTrendsLoading.value).toBe(true)
+  })
+
+  it('keeps each card’s error to itself and retries only that card', async () => {
+    mockGetSoloWinFactors.mockRejectedValueOnce(new Error('boom'))
+    const data = useSoloDashboardData()
+    await flushPromises()
+
+    expect(data.winFactorsError.value).toBe(true)
+    expect(data.statTrendsError.value).toBe(false)
 
     vi.clearAllMocks()
-    mockGetSoloDashboard.mockResolvedValue({ gamesPlayed: 0 })
-    mockGetWinrateTrend.mockResolvedValue({ winrateTrend: [] })
-    mockGetGoldAt15Trend.mockResolvedValue({ goldAt15Trend: [] })
-    mockGetCsPerMinuteTrend.mockResolvedValue({ csPerMinuteTrend: [] })
-    mockGetDeathsTrend.mockResolvedValue({ deathsTrend: [], averageDeaths: 0, overallAverage: 0, trend: 'neutral' })
-    mockGetDragonParticipationTrend.mockResolvedValue({ dragonParticipationTrend: [], overallAverage: 0, trend: 'neutral' })
-    mockGetVisionScoreTrend.mockResolvedValue({ visionScoreTrend: [], overallAverage: 0, trend: 'neutral' })
-    mockGetDeathPositions.mockResolvedValue({ deaths: [] })
-    mockGetRadarChart.mockResolvedValue({ axes: [] })
+    await data.fetchWinFactors()
 
-    syncProgress.value = new Map([['puuid-1', { status: 'completed' }]])
-    await nextTick()
-    await nextTick()
+    expect(mockGetSoloWinFactors).toHaveBeenCalledTimes(1)
+    expect(mockGetSoloStatTrends).not.toHaveBeenCalled()
+    expect(data.winFactorsError.value).toBe(false)
+  })
 
-    expect(mockRefreshUser).toHaveBeenCalled()
-    expect(mockResetProgress).toHaveBeenCalledWith('puuid-1')
+  it('reloads when the active account changes', async () => {
+    useSoloDashboardData()
+    await flushPromises()
+    vi.clearAllMocks()
+
+    authStore.activeAccountPuuid = 'acc-2'
+    await flushPromises()
+
+    expect(mockGetSoloStatTrends).toHaveBeenCalledTimes(1)
+    expect(mockGetSoloWinFactors).toHaveBeenCalledTimes(1)
+  })
+
+  it('waits for auth, and loads nothing without a linked account', async () => {
+    Object.assign(authStore, { isInitialized: false })
+    useSoloDashboardData()
+    await flushPromises()
+    expect(mockGetSoloStatTrends).not.toHaveBeenCalled()
+
+    Object.assign(authStore, { hasLinkedAccount: false, isInitialized: true })
+    await flushPromises()
+    expect(mockGetSoloStatTrends).not.toHaveBeenCalled()
   })
 })

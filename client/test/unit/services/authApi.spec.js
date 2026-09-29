@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as authApi from '@/services/authApi'
 import * as soloApi from '@/services/soloApi'
 import * as matchesApi from '@/services/matchesApi'
-import * as trendsApi from '@/services/trendsApi'
 import { apiRequest, parseResponse } from '@/services/apiClient'
 
 vi.mock('@/services/apiConfig', () => ({
@@ -120,7 +119,7 @@ describe('API service account parameter handling', () => {
     localStorage.setItem('mongoose_active_account', 'overall')
     apiRequest.mockResolvedValueOnce({ status: 404, ok: false })
 
-    const result = await trendsApi.getWinrateTrend(42, 'all', '1m', 20)
+    const result = await soloApi.getSoloStatTrends(42, null, 'last20')
 
     expect(result).toBeNull()
     expect(parseResponse).not.toHaveBeenCalled()
