@@ -39,7 +39,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeMatchupRepository _matchupRepository;
     private readonly FakeChampionSelectRepository _championSelectRepository;
     private readonly FakeTrendRepository _trendRepository;
-    private readonly FakeRadarChartRepository _radarChartRepository;
     private readonly FakeDeathPositionsRepository _deathPositionsRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
@@ -58,7 +57,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeMatchupRepository MatchupRepository => _matchupRepository;
     public FakeChampionSelectRepository ChampionSelectRepository => _championSelectRepository;
     public FakeTrendRepository TrendRepository => _trendRepository;
-    public FakeRadarChartRepository RadarChartRepository => _radarChartRepository;
     public FakeDeathPositionsRepository DeathPositionsRepository => _deathPositionsRepository;
     public FakeSoloTrendsRepository SoloTrendsRepository { get; } = new();
 
@@ -80,7 +78,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _matchupRepository = new FakeMatchupRepository();
         _championSelectRepository = new FakeChampionSelectRepository();
         _trendRepository = new FakeTrendRepository();
-        _radarChartRepository = new FakeRadarChartRepository();
         _deathPositionsRepository = new FakeDeathPositionsRepository();
     }
 
@@ -202,10 +199,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace ITrendRepository with a fake
             services.RemoveAll<ITrendRepository>();
             services.AddSingleton<ITrendRepository>(_trendRepository);
-
-            // Replace IRadarChartRepository with a fake
-            services.RemoveAll<IRadarChartRepository>();
-            services.AddSingleton<IRadarChartRepository>(_radarChartRepository);
 
             // Replace IDeathPositionsRepository with a fake
             services.RemoveAll<IDeathPositionsRepository>();
@@ -1762,298 +1755,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     /// </summary>
     internal sealed class FakeTrendRepository : ITrendRepository
     {
-        private readonly ConcurrentDictionary<string, (DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> _dragonParticipationData = new();
-        private readonly ConcurrentDictionary<string, (VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> _visionScoreData = new();
-        private readonly ConcurrentDictionary<string, WinrateTrendPoint[]> _winrateData = new();
-        private readonly ConcurrentDictionary<string, GoldAt15TrendPoint[]> _goldAt15Data = new();
-        private readonly ConcurrentDictionary<string, CsPerMinuteTrendPoint[]> _csPerMinuteData = new();
-        private readonly ConcurrentDictionary<string, (DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> _deathsData = new();
-
-        public void SetDragonParticipationData(string puuid, DragonParticipationTrendPoint[] dataPoints, double averageParticipation, double overallAverage, string trend)
-        {
-            _dragonParticipationData[puuid] = (dataPoints, averageParticipation, overallAverage, trend);
-        }
-
-        public void SetVisionScoreData(string puuid, VisionScoreTrendPoint[] dataPoints, double averageVisionPerMinute, double overallAverage, double roleTarget, string trend)
-        {
-            _visionScoreData[puuid] = (dataPoints, averageVisionPerMinute, overallAverage, roleTarget, trend);
-        }
-
-        public void SetWinrateData(string puuid, WinrateTrendPoint[] dataPoints)
-        {
-            _winrateData[puuid] = dataPoints;
-        }
-
-        public void SetGoldAt15Data(string puuid, GoldAt15TrendPoint[] dataPoints)
-        {
-            _goldAt15Data[puuid] = dataPoints;
-        }
-
-        public void SetCsPerMinuteData(string puuid, CsPerMinuteTrendPoint[] dataPoints)
-        {
-            _csPerMinuteData[puuid] = dataPoints;
-        }
-
-        public void SetDeathsData(string puuid, DeathsTrendPoint[] dataPoints, double averageDeaths, double overallAverage, string trend)
-        {
-            _deathsData[puuid] = (dataPoints, averageDeaths, overallAverage, trend);
-        }
-
-        public void Clear()
-        {
-            _dragonParticipationData.Clear();
-            _visionScoreData.Clear();
-            _winrateData.Clear();
-            _goldAt15Data.Clear();
-            _csPerMinuteData.Clear();
-            _deathsData.Clear();
-        }
-
-        public Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
-        {
-            if (_dragonParticipationData.TryGetValue(puuid, out var data))
-                return Task.FromResult(data);
-
-            // Return empty result if no data
-            return Task.FromResult<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)>(
-                (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral"));
-        }
-
-        public Task<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)> GetDragonParticipationTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
-        {
-            var combinedPoints = new List<DragonParticipationTrendPoint>();
-            (double AverageParticipation, double OverallAverage, string Trend)? summary = null;
-
-            foreach (var puuid in puuids)
-            {
-                if (_dragonParticipationData.TryGetValue(puuid, out var data))
-                {
-                    if (summary == null)
-                    {
-                        summary = (data.AverageParticipation, data.OverallAverage, data.Trend);
-                    }
-
-                    string? accountGameName = null;
-                    if (puuidToGameName != null)
-                    {
-                        puuidToGameName.TryGetValue(puuid, out accountGameName);
-                    }
-
-                    var labeledPoints = data.DataPoints
-                        .Select(point => point with { AccountGameName = point.AccountGameName ?? accountGameName });
-
-                    combinedPoints.AddRange(labeledPoints);
-                }
-            }
-
-            if (summary != null)
-            {
-                return Task.FromResult((
-                    combinedPoints.ToArray(),
-                    summary.Value.AverageParticipation,
-                    summary.Value.OverallAverage,
-                    summary.Value.Trend));
-            }
-
-            return Task.FromResult<(DragonParticipationTrendPoint[] DataPoints, double AverageParticipation, double OverallAverage, string Trend)>(
-                (Array.Empty<DragonParticipationTrendPoint>(), 0, 0, "neutral"));
-        }
-
-        public Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
-        {
-            if (_winrateData.TryGetValue(puuid, out var data))
-                return Task.FromResult(data);
-
-            return Task.FromResult(Array.Empty<WinrateTrendPoint>());
-        }
-
-        public Task<WinrateTrendPoint[]> GetWinrateTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
-        {
-            var combinedPoints = new List<WinrateTrendPoint>();
-
-            foreach (var puuid in puuids)
-            {
-                if (_winrateData.TryGetValue(puuid, out var data))
-                {
-                    string? accountGameName = null;
-                    if (puuidToGameName != null)
-                    {
-                        puuidToGameName.TryGetValue(puuid, out accountGameName);
-                    }
-
-                    var labeledPoints = data
-                        .Select(point => point with { AccountGameName = point.AccountGameName ?? accountGameName });
-
-                    combinedPoints.AddRange(labeledPoints);
-                }
-            }
-
-            return Task.FromResult(combinedPoints.ToArray());
-        }
-
-        public Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
-        {
-            if (_goldAt15Data.TryGetValue(puuid, out var data))
-                return Task.FromResult(data);
-
-            return Task.FromResult(Array.Empty<GoldAt15TrendPoint>());
-        }
-
-        public Task<GoldAt15TrendPoint[]> GetGoldAt15TrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
-        {
-            var combinedPoints = new List<GoldAt15TrendPoint>();
-
-            foreach (var puuid in puuids)
-            {
-                if (_goldAt15Data.TryGetValue(puuid, out var data))
-                {
-                    string? accountGameName = null;
-                    if (puuidToGameName != null)
-                    {
-                        puuidToGameName.TryGetValue(puuid, out accountGameName);
-                    }
-
-                    var labeledPoints = data
-                        .Select(point => point with { AccountGameName = point.AccountGameName ?? accountGameName });
-
-                    combinedPoints.AddRange(labeledPoints);
-                }
-            }
-
-            return Task.FromResult(combinedPoints.ToArray());
-        }
-
-        public Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
-        {
-            if (_csPerMinuteData.TryGetValue(puuid, out var data))
-                return Task.FromResult(data);
-
-            return Task.FromResult(Array.Empty<CsPerMinuteTrendPoint>());
-        }
-
-        public Task<CsPerMinuteTrendPoint[]> GetCsPerMinuteTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
-        {
-            var combinedPoints = new List<CsPerMinuteTrendPoint>();
-
-            foreach (var puuid in puuids)
-            {
-                if (_csPerMinuteData.TryGetValue(puuid, out var data))
-                {
-                    string? accountGameName = null;
-                    if (puuidToGameName != null)
-                    {
-                        puuidToGameName.TryGetValue(puuid, out accountGameName);
-                    }
-
-                    var labeledPoints = data
-                        .Select(point => point with { AccountGameName = point.AccountGameName ?? accountGameName });
-
-                    combinedPoints.AddRange(labeledPoints);
-                }
-            }
-
-            return Task.FromResult(combinedPoints.ToArray());
-        }
-
-        public Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
-        {
-            if (_deathsData.TryGetValue(puuid, out var data))
-                return Task.FromResult(data);
-
-            return Task.FromResult<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)>(
-                (Array.Empty<DeathsTrendPoint>(), 0, 0, "neutral"));
-        }
-
-        public Task<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)> GetDeathsTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
-        {
-            var combinedPoints = new List<DeathsTrendPoint>();
-            (double AverageDeaths, double OverallAverage, string Trend)? summary = null;
-
-            foreach (var puuid in puuids)
-            {
-                if (_deathsData.TryGetValue(puuid, out var data))
-                {
-                    if (summary == null)
-                    {
-                        summary = (data.AverageDeaths, data.OverallAverage, data.Trend);
-                    }
-
-                    string? accountGameName = null;
-                    if (puuidToGameName != null)
-                    {
-                        puuidToGameName.TryGetValue(puuid, out accountGameName);
-                    }
-
-                    var labeledPoints = data.DataPoints
-                        .Select(point => point with { AccountGameName = point.AccountGameName ?? accountGameName });
-
-                    combinedPoints.AddRange(labeledPoints);
-                }
-            }
-
-            if (summary != null)
-            {
-                return Task.FromResult((
-                    combinedPoints.ToArray(),
-                    summary.Value.AverageDeaths,
-                    summary.Value.OverallAverage,
-                    summary.Value.Trend));
-            }
-
-            return Task.FromResult<(DeathsTrendPoint[] DataPoints, double AverageDeaths, double OverallAverage, string Trend)>(
-                (Array.Empty<DeathsTrendPoint>(), 0, 0, "neutral"));
-        }
-
-        public Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null)
-        {
-            if (_visionScoreData.TryGetValue(puuid, out var data))
-                return Task.FromResult(data);
-
-            // Return empty result if no data
-            return Task.FromResult<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)>(
-                (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral"));
-        }
-
-        public Task<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)> GetVisionScoreTrendAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null, int? limit = null, IReadOnlyDictionary<string, string>? puuidToGameName = null)
-        {
-            var combinedPoints = new List<VisionScoreTrendPoint>();
-            (double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)? summary = null;
-
-            foreach (var puuid in puuids)
-            {
-                if (_visionScoreData.TryGetValue(puuid, out var data))
-                {
-                    if (summary == null)
-                    {
-                        summary = (data.AverageVisionPerMinute, data.OverallAverage, data.RoleTarget, data.Trend);
-                    }
-
-                    string? accountGameName = null;
-                    if (puuidToGameName != null)
-                    {
-                        puuidToGameName.TryGetValue(puuid, out accountGameName);
-                    }
-                    var labeledPoints = data.DataPoints
-                        .Select(point => point with { AccountGameName = point.AccountGameName ?? accountGameName });
-
-                    combinedPoints.AddRange(labeledPoints);
-                }
-            }
-
-            if (summary != null)
-            {
-                return Task.FromResult((
-                    combinedPoints.ToArray(),
-                    summary.Value.AverageVisionPerMinute,
-                    summary.Value.OverallAverage,
-                    summary.Value.RoleTarget,
-                    summary.Value.Trend));
-            }
-
-            return Task.FromResult<(VisionScoreTrendPoint[] DataPoints, double AverageVisionPerMinute, double OverallAverage, double RoleTarget, string Trend)>(
-                (Array.Empty<VisionScoreTrendPoint>(), 0, 0, 1.0, "neutral"));
-        }
-
         private readonly ConcurrentDictionary<string, Dictionary<string, int>> _dailyCounts = new();
 
         public void SetDailyMatchCounts(string puuid, Dictionary<string, int> counts)
@@ -2081,41 +1782,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 }
             }
             return Task.FromResult(merged);
-        }
-    }
-
-    /// <summary>
-    /// Fake implementation of IRadarChartRepository for testing.
-    /// </summary>
-    internal sealed class FakeRadarChartRepository : IRadarChartRepository
-    {
-        private readonly ConcurrentDictionary<string, RadarChartResponse> _radarData = new();
-
-        public void SetRadarData(string puuid, RadarChartResponse response)
-        {
-            _radarData[puuid] = response;
-        }
-
-        public void Clear()
-        {
-            _radarData.Clear();
-        }
-
-        public Task<RadarChartResponse?> GetRadarChartAsync(string puuid, string? queueType = null, string? timeRange = null)
-        {
-            _radarData.TryGetValue(puuid, out var data);
-            return Task.FromResult(data);
-        }
-
-        public Task<RadarChartResponse?> GetRadarChartAsync(IReadOnlyList<string> puuids, string? queueType = null, string? timeRange = null)
-        {
-            foreach (var puuid in puuids)
-            {
-                if (_radarData.TryGetValue(puuid, out var data))
-                    return Task.FromResult<RadarChartResponse?>(data);
-            }
-
-            return Task.FromResult<RadarChartResponse?>(null);
         }
     }
 

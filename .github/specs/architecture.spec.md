@@ -137,7 +137,8 @@ server/
 │   │   │   ├── Solo/SoloPerformanceEndpoint.cs
 │   │   │   ├── Solo/SoloMatchupsEndpoint.cs
 │   │   │   ├── Solo/MatchActivityEndpoint.cs
-│   │   │   └── Trends/WinrateTrendEndpoint.cs
+│   │   │   ├── Solo/SoloStatTrendsEndpoint.cs
+│   │   │   └── Solo/SoloWinFactorsEndpoint.cs
 │   │   └── Services/
 │   │       ├── LoginSyncService.cs         # Post-login Riot data refresh
 │   │       └── MainChampionRecommender.cs  # Champion scoring algorithm (MScore)
@@ -297,7 +298,6 @@ Credentials: allowed. Methods & Headers: any.
 | `GET` | `/api/v2/matches/{userId}` | Yes | No | `Matches/MatchListEndpoint.cs` | `MatchListResponse` |
 | `GET` | `/api/v2/matches/{matchId}/details` | Yes | No | `Matches/MatchDetailsEndpoint.cs` | `MatchDetailsResponse` |
 | `GET` | `/api/v2/matches/{matchId}/narrative` | Yes | No | `Matches/MatchNarrativeEndpoint.cs` | `MatchNarrativeResponse` |
-| `GET` | `/api/v2/trends/winrate/{userId}` | Yes | No | `Trends/WinrateTrendEndpoint.cs` | `WinrateTrendResponse` |
 | `GET` | `/api/v2/champion-select/{userId}` | Yes | No | `ChampionSelect/ChampionSelectEndpoint.cs` | `ChampionSelectResponse` |
 | `POST` | `/api/v2/analytics` | No | No | `Analytics/AnalyticsEndpoint.cs` | `TrackEventResponse` |
 | `POST` | `/api/v2/analytics/batch` | No | No | `Analytics/AnalyticsEndpoint.cs` | `TrackBatchResponse` |
@@ -469,13 +469,6 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Logic**: Gets all 10 participants, creates 5 lane matchups (by role). Lane winner determined by gold diff at 10 min (±300g threshold). ARAM: pairs by damage share rank.  
 **Tables**: `matches`, `participants`, `participant_metrics`, `participant_checkpoints`  
 **Repos**: `IMatchesRepository`
-
-### 6.16 Winrate Trend
-**Route**: `GET /api/v2/trends/winrate/{userId}`  
-**Auth**: Yes  
-**Query params**: `?queueType=`, `?timeRange=`, `?limit=` (max 500)  
-**Response**: `WinrateTrendResponse(winrateTrend[])`  
-**Repos**: `ITrendRepository`
 
 ### 6.18 Champion Select
 **Route**: `GET /api/v2/champion-select/{userId}`  
@@ -653,14 +646,6 @@ public record MatchActivityResponse(Dictionary<string, int> DailyMatchCounts, st
 ```csharp
 // ChampionSelectDto.cs
 public record ChampionSelectResponse(MainChampionRoleGroup[] MainChampions, int GamesPlayed, double WinRate);
-```
-
-### Trend DTOs
-
-```csharp
-// TrendDto.cs
-public record WinrateTrendPoint(int GameIndex, double WinRate, DateTime Timestamp);
-public record WinrateTrendResponse(WinrateTrendPoint[] WinrateTrend);
 ```
 
 > **Note**: All DTOs use `[JsonPropertyName("camelCase")]` attributes. Shown without for readability.
@@ -949,10 +934,9 @@ public interface IMatchupRepository
     Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(string puuid, string? queueType = null, string? timeRange = null);
 }
 
-// Trend data
+// Match activity (heatmap)
 public interface ITrendRepository
 {
-    Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
     Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91);
 }
 

@@ -17,12 +17,6 @@ vi.mock('@/composables/useDefaultView', () => ({
   useDefaultView: () => ({ defaultView: mockDefaultView, setDefaultView: mockSetDefaultView })
 }))
 
-const mockSetChartMode = vi.fn()
-const mockChartMode = ref('merged')
-vi.mock('@/composables/useChartDisplayMode', () => ({
-  useChartDisplayMode: () => ({ chartMode: mockChartMode, setChartMode: mockSetChartMode })
-}))
-
 describe('DisplayPreferencesSection.vue', () => {
   const accounts = [
     { puuid: 'acc-1', accountId: 'aid-1', gameName: 'Main', tagLine: 'EUW', isPrimary: true },
@@ -34,9 +28,7 @@ describe('DisplayPreferencesSection.vue', () => {
   beforeEach(() => {
     mockAuthStore.riotAccounts = []
     mockDefaultView.value = 'overall'
-    mockChartMode.value = 'merged'
     mockSetDefaultView.mockReset()
-    mockSetChartMode.mockReset()
   })
 
   it('is hidden when only 1 account is linked', () => {
@@ -85,29 +77,6 @@ describe('DisplayPreferencesSection.vue', () => {
     await select.setValue('aid-1')
 
     expect(mockSetDefaultView).toHaveBeenCalledWith('aid-1')
-  })
-
-  it('chart mode dropdown lists both options', () => {
-    mockAuthStore.riotAccounts = accounts
-
-    const wrapper = createWrapper()
-    const select = wrapper.find('[data-testid="chart-mode-select"]')
-    const options = select.findAll('option')
-
-    expect(options.length).toBe(2)
-    expect(options[0].text()).toBe('Merged (single line)')
-    expect(options[1].text()).toBe('Per-Account Lines')
-  })
-
-  it('selecting a chart mode calls setChartMode', async () => {
-    mockAuthStore.riotAccounts = accounts
-
-    const wrapper = createWrapper()
-    const select = wrapper.find('[data-testid="chart-mode-select"]')
-
-    await select.setValue('per-account')
-
-    expect(mockSetChartMode).toHaveBeenCalledWith('per-account')
   })
 
   it('omits accounts without accountId from default view dropdown', () => {

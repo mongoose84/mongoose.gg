@@ -87,7 +87,6 @@ builder.Services.AddScoped<IDuoMetricsRepository, DuoMetricsRepository>();
 builder.Services.AddScoped<ISoloPerformanceRepository, SoloPerformanceRepository>();
 builder.Services.AddScoped<IChampionSelectRepository, ChampionSelectRepository>();
 builder.Services.AddScoped<ITrendRepository, TrendRepository>();
-builder.Services.AddScoped<IRadarChartRepository, RadarChartRepository>();
 builder.Services.AddScoped<IMatchupRepository, MatchupRepository>();
 builder.Services.AddScoped<IOverviewStatsRepository, OverviewStatsRepository>();
 builder.Services.AddScoped<ISeasonsRepository, SeasonsRepository>();

@@ -2,7 +2,7 @@
 
 > **Purpose**: Single-source-of-truth for AI agents and developers building frontend features. Contains UX contracts (navigation, page responsibilities, bias rules), and the complete component inventory with props/slots.
 
-**Stack**: Vue 3 (Composition API, `<script setup>`) · Tailwind CSS · Headless UI · Lucide (via `BaseIcon`) · Chart.js + vue-chartjs · TanStack Vue Query · Pinia  
+**Stack**: Vue 3 (Composition API, `<script setup>`) · Tailwind CSS · Headless UI · Lucide (via `BaseIcon`) · TanStack Vue Query · Pinia  
 **Design system**: Mongoose.gg design system — see Section 2 (visual rules live in `.claude/skills/mongoose-design/reference/`)  
 **Platform**: Desktop-first, responsive to phones (grids stack below 900px); future Windows native app  
 **Last verified**: September 27, 2026
@@ -582,7 +582,6 @@ Centralized fetch wrapper with:
 - **Auth**: register, login, logout, deleteAccount, verifyEmail, resendVerification, forgotPassword, resetPassword, changePassword
 - **Riot account**: link, unlink, triggerSync, getSyncStatus
 - **Dashboards**: `getOverview()`, `getSoloDashboard()`, `getChampionSelectData()`, `getMatchActivity()`, `getSoloStatTrends()`, `getSoloWinFactors()`
-- **Trends**: `getWinrateTrend()`
 - **Matchups**: `getChampionMatchups()`
 - **Matches**: `getMatchList()`, `getMatchDetails()`, `getMatchNarrative()`
 - **Public**: `getPublicStats()`

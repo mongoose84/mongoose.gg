@@ -32,6 +32,5 @@ Load [component.spec.md](../../.github/specs/component.spec.md) only when you ne
 
 ## Feature-Specific Rules
 
-- Register only the Chart.js pieces you need and avoid rendering charts when there is no data.
-- Use responsive chart configuration and keep chart containers explicitly sized.
+- Build charts from design-system components (`BaseColumnChart`, `BaseTrendTile`, `BaseFormStrip`, …) or inline SVG; there is no chart library. Don't render a chart without data, and keep chart containers explicitly sized.
 - Add or update unit tests — see [client/test/unit/CLAUDE.md](../test/unit/CLAUDE.md) — when frontend logic changes.
