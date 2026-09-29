@@ -37,15 +37,6 @@
             aria-hidden="true"
           />{{ rankAfter.label }}
         </li>
-        <li
-          v-if="badge?.text"
-          class="mp-chip"
-          :class="badge.type === 'positive' ? 'mp-chip--strength' : 'mp-chip--trend'"
-          data-testid="match-header-badge"
-        >
-          <BaseIcon :name="badge.type === 'positive' ? 'trending-up' : 'trending-down'" :size="16" />
-          {{ badge.text }}
-        </li>
       </ul>
     </div>
   </section>
@@ -60,7 +51,6 @@
  * Win → positive text, loss → warn text, remake → neither. Without art it is a plain card.
  */
 import { computed, ref, watch } from 'vue'
-import BaseIcon from '../base/BaseIcon.vue'
 import { formatRole, formatDuration, formatRelativeTime } from '@/utils/formatters'
 import { getChampionSplashUrl } from '@/utils/leagueAssets'
 import { isRemake, formatSigned, lpChangeClass, formatRankAfter } from '@/utils/matchesSummary'
@@ -69,11 +59,6 @@ const props = defineProps({
   match: {
     type: Object,
     required: true
-  },
-  /** The match's standout finding from the list ({ text, type }), if any */
-  badge: {
-    type: Object,
-    default: null
   }
 })
 

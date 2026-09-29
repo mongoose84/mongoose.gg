@@ -5,7 +5,7 @@ import MatchDetails from '@/components/matches/MatchDetails.vue'
 vi.mock('@/components/matches/MatchHeader.vue', () => ({
   default: {
     name: 'MatchHeader',
-    props: ['match', 'badge'],
+    props: ['match'],
     template: '<div data-testid="match-header" />'
   }
 }))
@@ -18,11 +18,11 @@ vi.mock('@/components/matches/TeamComparison.vue', () => ({
   }
 }))
 
-vi.mock('@/components/matches/WinPredictionStats.vue', () => ({
+vi.mock('@/components/matches/DecidingStatCard.vue', () => ({
   default: {
-    name: 'WinPredictionStats',
-    props: ['match', 'baseline'],
-    template: '<div data-testid="win-prediction-stats" />'
+    name: 'DecidingStatCard',
+    props: ['decidingStat', 'role'],
+    template: '<div data-testid="deciding-stat-card" />'
   }
 }))
 
@@ -152,32 +152,34 @@ describe('MatchDetails.vue', () => {
       expect(wrapper.find('[data-testid="impact-stats"]').exists()).toBe(false)
     })
 
-    it('renders WinPredictionStats', () => {
-      const wrapper = createWrapper({ match: baseMatch })
-      expect(wrapper.find('[data-testid="win-prediction-stats"]').exists()).toBe(true)
+    it('renders DecidingStatCard when decidingStat is present', () => {
+      const decidingStat = { outcome: 'none', stat: null, meters: [], fix: null, usualMatches: 20 }
+      const wrapper = createWrapper({ match: baseMatch, decidingStat })
+      expect(wrapper.find('[data-testid="deciding-stat-card"]').exists()).toBe(true)
     })
 
-    it('WinPredictionStats appears before TeamComparison in DOM', () => {
-      const wrapper = createWrapper({ match: baseMatch })
+    it('does not render DecidingStatCard when decidingStat is null', () => {
+      const wrapper = createWrapper({ match: baseMatch, decidingStat: null })
+      expect(wrapper.find('[data-testid="deciding-stat-card"]').exists()).toBe(false)
+    })
+
+    it('DecidingStatCard appears before TeamComparison in DOM', () => {
+      const decidingStat = { outcome: 'none', stat: null, meters: [], fix: null, usualMatches: 20 }
+      const wrapper = createWrapper({ match: baseMatch, decidingStat })
       const testIds = wrapper.findAll('[data-testid]').map(el => el.attributes('data-testid'))
-      const wpIndex = testIds.indexOf('win-prediction-stats')
+      const cardIndex = testIds.indexOf('deciding-stat-card')
       const tcIndex = testIds.indexOf('team-comparison')
-      expect(wpIndex).toBeGreaterThanOrEqual(0)
+      expect(cardIndex).toBeGreaterThanOrEqual(0)
       expect(tcIndex).toBeGreaterThanOrEqual(0)
-      expect(wpIndex).toBeLessThan(tcIndex)
+      expect(cardIndex).toBeLessThan(tcIndex)
     })
 
-    it('passes match to WinPredictionStats', () => {
-      const wrapper = createWrapper({ match: baseMatch })
-      const winPred = wrapper.findComponent({ name: 'WinPredictionStats' })
-      expect(winPred.props('match')).toEqual(baseMatch)
-    })
-
-    it('passes baseline to WinPredictionStats', () => {
-      const baseline = { gamesCount: 10, avgKda: 3.0 }
-      const wrapper = createWrapper({ match: baseMatch, baseline })
-      const winPred = wrapper.findComponent({ name: 'WinPredictionStats' })
-      expect(winPred.props('baseline')).toEqual(baseline)
+    it('passes decidingStat and the match role to DecidingStatCard', () => {
+      const decidingStat = { outcome: 'strength', stat: 'goldLeadAt10', meters: [], fix: null, usualMatches: 20 }
+      const wrapper = createWrapper({ match: baseMatch, decidingStat })
+      const card = wrapper.findComponent({ name: 'DecidingStatCard' })
+      expect(card.props('decidingStat')).toEqual(decidingStat)
+      expect(card.props('role')).toBe(baseMatch.role)
     })
 
     it('renders StatSnapshot', () => {
@@ -203,12 +205,6 @@ describe('MatchDetails.vue', () => {
     it('hides empty state when match data is present', () => {
       const wrapper = createWrapper({ match: baseMatch })
       expect(wrapper.find('.empty-state').exists()).toBe(false)
-    })
-
-    it('passes the standout finding to MatchHeader', () => {
-      const badge = { text: 'Clean game', type: 'positive' }
-      const wrapper = createWrapper({ match: baseMatch, badge })
-      expect(wrapper.findComponent({ name: 'MatchHeader' }).props('badge')).toEqual(badge)
     })
 
     it('passes accountId prop down to MatchNarrative', () => {

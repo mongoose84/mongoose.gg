@@ -164,21 +164,21 @@ No UI changes. One behaviour users will notice: new ranked matches appear on the
 
 ## Validation Criteria
 Feature is considered complete when:
-- [ ] All functional requirements are implemented behind `Jobs:EnableRankSnapshots`.
-- [ ] Unit and integration tests pass; E2E unaffected (job disabled in E2E mode).
-- [ ] `database-schema.spec.md`, `architecture.spec.md` (jobs section) and `design-migration.plan.md` are updated.
+- [x] All functional requirements are implemented behind `Jobs:EnableRankSnapshots`.
+- [x] Unit and integration tests pass; E2E unaffected (job disabled in E2E mode).
+- [x] `database-schema.spec.md`, `architecture.spec.md` (jobs section) and `design-migration.plan.md` are updated.
 - [ ] Code review and a security review of the new job are done.
 - [ ] Riot call volume stays under the configured cap (log the calls per minute at Debug).
 - [ ] No match gets an `lp_after` from a reading that belongs to a different match (manual scenario 3).
 
 ## Dependencies
 ### Internal Dependencies
-- [ ] Phase 4b (`LpChangeCalculator`, the `LAG` query, the API fields): done, commit `b4d72f2`.
-- [ ] `MatchHistorySyncJob` queue signal (`_queueSignal`) and `sync_status` handling.
-- [ ] `RiotLimitHandler` shared buckets.
+- [x] Phase 4b (`LpChangeCalculator`, the `LAG` query, the API fields): done, commit `b4d72f2`.
+- [x] `MatchHistorySyncJob` queue signal (`_queueSignal`) and `sync_status` handling.
+- [x] `RiotLimitHandler` shared buckets.
 
 ### External Dependencies
-- [ ] Riot League-v4 `entries/by-puuid` (tier, rank, leaguePoints, wins, losses per queue).
+- [x] Riot League-v4 `entries/by-puuid` (tier, rank, leaguePoints, wins, losses per queue).
 - [ ] A production Riot API key before the number of active accounts grows past what the development key allows.
 
 ## Risks and Mitigations
@@ -194,9 +194,9 @@ Feature is considered complete when:
 
 ## Timeline and Milestones
 - [x] **Phase 1**: Spec review, open questions answered
-- [ ] **Phase 2**: Schema, repository, Core rules and service with tests
-- [ ] **Phase 3**: `RankSnapshotJob`, sync-job and login/link wiring, retention
-- [ ] **Phase 4**: Run on the dev database for a week; measure coverage (manual scenario 4)
+- [x] **Phase 2**: Schema, repository, Core rules and service with tests
+- [x] **Phase 3**: `RankSnapshotJob`, sync-job and login/link wiring, retention
+- [ ] **Phase 4**: Run on the dev database for a week; measure coverage (manual scenario 4). Started 2026-09-29 (migration applied), ends 2026-10-06.
 - [ ] **Phase 5**: Docs, production key and config
 
 ## Decisions (2026-09-28)
@@ -210,10 +210,10 @@ Feature is considered complete when:
 ## Handoff Checklist
 Before implementation begins:
 - [x] Open questions answered (see Decisions)
-- [ ] Schema and migration reviewed
+- [x] Schema and migration reviewed
 - [ ] Rate-limit budget agreed for dev and production keys
 - [ ] Security considerations addressed (no new endpoints; logging rules)
-- [ ] Implementation ready for assignment (backend only)
+- [x] Implementation ready for assignment (backend only)
 
 ## References
 - `server/Mongoose.Api/Infrastructure/Jobs/MatchHistorySyncJob.cs` (`UpdateLpForMostRecentRankedMatchAsync`, queue signal)

@@ -70,7 +70,7 @@ vi.mock('@/stores/authStore', () => ({
 // ── Component stubs ────────────────────────────────────────────────────────────
 const MatchDetailsStub = {
   name: 'MatchDetails',
-  props: ['match', 'baseline', 'accountId', 'loading', 'error', 'badge'],
+  props: ['match', 'baseline', 'decidingStat', 'accountId', 'loading', 'error'],
   emits: ['retry'],
   template: '<div data-testid="match-details-stub" />'
 }
@@ -99,7 +99,6 @@ function makeMatch(matchId, overrides = {}) {
     accountGameName: null,
     accountTagLine: null,
     accountRegion: null,
-    trendBadge: null,
     ...overrides
   }
 }
@@ -326,11 +325,11 @@ describe('MatchesPage', () => {
       expect(wrapper.get('[data-testid="matches-page"]').classes()).not.toContain('matches-page--open')
     })
 
-    it('loads the match in the URL and passes its standout finding', async () => {
-      const badge = { text: 'Clean game', type: 'positive' }
-      mockGetMatchList.mockResolvedValue(listResponse([makeMatch('MATCH_1', { trendBadge: badge })]))
+    it('loads the match in the URL and passes its baseline and deciding stat', async () => {
+      const decidingStat = { outcome: 'strength', stat: 'goldLeadAt10', meters: [], fix: null, usualMatches: 20 }
+      mockGetMatchList.mockResolvedValue(listResponse([makeMatch('MATCH_1')]))
       mockRoute.params = { matchId: 'MATCH_1' }
-      mockGetMatchDetails.mockResolvedValue({ match: { matchId: 'MATCH_1' }, baseline: { role: 'MIDDLE' } })
+      mockGetMatchDetails.mockResolvedValue({ match: { matchId: 'MATCH_1' }, baseline: { role: 'MIDDLE' }, decidingStat })
       const wrapper = mountPage()
       await flushPromises()
 
@@ -338,7 +337,7 @@ describe('MatchesPage', () => {
       expect(mockGetMatchDetails).toHaveBeenCalledWith('MATCH_1', 'acc_primary')
       expect(details.props('match')).toEqual({ matchId: 'MATCH_1' })
       expect(details.props('baseline')).toEqual({ role: 'MIDDLE' })
-      expect(details.props('badge')).toEqual(badge)
+      expect(details.props('decidingStat')).toEqual(decidingStat)
       expect(wrapper.get('[data-testid="matches-page"]').classes()).toContain('matches-page--open')
       expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(true)
       expect(wrapper.find('[data-testid="matches-back"]').exists()).toBe(true)

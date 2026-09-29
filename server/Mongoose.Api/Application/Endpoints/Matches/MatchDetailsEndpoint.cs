@@ -2,7 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using Mongoose.Api.Application.DTOs;
 using Mongoose.Api.Application.Endpoints.Shared;
 using Mongoose.Api.Application.Services;
+using Mongoose.Api.Core;
 using Mongoose.Api.Core.Interfaces;
+using Mongoose.Api.Core.QueryModels;
+using Mongoose.Api.Core.Services;
 
 namespace Mongoose.Api.Application.Endpoints.Matches;
 
@@ -77,9 +80,13 @@ public sealed class MatchDetailsEndpoint : IEndpoint
                 var baselines = await matchesRepo.GetRoleBaselinesAsync(selectedPuuid, queueFilter);
                 baselines.TryGetValue(matchDetails.Role, out var baseline);
 
+                // "What decided it": skip the extra usual query for the cases FR9 always excludes
+                var decidingStat = await ComputeDecidingStatAsync(matchesRepo, selectedPuuid, matchDetails);
+
                 var response = new MatchDetailsResponse(
                     Match: matchDetails,
-                    Baseline: baseline
+                    Baseline: baseline,
+                    DecidingStat: decidingStat
                 );
 
                 return Results.Ok(response);
@@ -92,6 +99,45 @@ public sealed class MatchDetailsEndpoint : IEndpoint
         });
 
         endpoint.RequireAuthorization();
+    }
+
+    /// <summary>
+    /// FR9: the card is left out for a remake, a non-Summoner's-Rift queue or an unknown role, so
+    /// those cases skip the "usual" query entirely rather than run it only to discard the result.
+    /// </summary>
+    private static async Task<DecidingStat?> ComputeDecidingStatAsync(
+        IMatchesRepository matchesRepo,
+        string puuid,
+        MatchDetailsItem matchDetails)
+    {
+        var isRemake = matchDetails.GameDurationSec < GameConstants.MinValidGameDurationSec;
+        var isSummonersRift = GameConstants.SummonersRiftQueueIds.Contains(matchDetails.QueueId);
+        if (isRemake || !isSummonersRift || matchDetails.Role == "UNKNOWN")
+        {
+            return null;
+        }
+
+        var usuals = await matchesRepo.GetStatUsualsAsync(puuid, matchDetails.Role, matchDetails.GameStartTime);
+
+        var visionPerMin = matchDetails.GameDurationSec > 0
+            ? matchDetails.VisionScore / (matchDetails.GameDurationSec / 60.0)
+            : (double?)null;
+
+        var input = new DecidingStatInput(
+            GoldLeadAt10: matchDetails.GoldDiffAt10,
+            CsAt10: matchDetails.CsAt10,
+            DeathsBefore10: matchDetails.DeathsPre10,
+            KillParticipation: matchDetails.KillParticipation,
+            VisionPerMin: visionPerMin,
+            Role: matchDetails.Role,
+            QueueId: matchDetails.QueueId,
+            GameDurationSec: matchDetails.GameDurationSec,
+            Win: matchDetails.Win,
+            TeamKills: matchDetails.TeamKills,
+            IsRemake: isRemake
+        );
+
+        return DecidingStatCalculator.Compute(input, usuals);
     }
 }
 

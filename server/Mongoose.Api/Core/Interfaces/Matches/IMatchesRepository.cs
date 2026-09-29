@@ -11,7 +11,7 @@ public interface IMatchesRepository
 
     /// <summary>
     /// Get lightweight match summaries for the list view.
-    /// Only fetches data needed to render match rows (champion, KDA, result, timestamp, trend badge).
+    /// Only fetches data needed to render match rows (champion, KDA, result, timestamp).
     /// </summary>
     Task<IList<MatchListSummaryItem>> GetMatchListSummaryAsync(string puuid, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null);
     Task<IList<MatchListSummaryItem>> GetMatchListSummaryAsync(IReadOnlyList<string> puuids, string queueFilter, int limit = 20, Dictionary<string, RoleBaseline>? baselines = null);
@@ -31,6 +31,13 @@ public interface IMatchesRepository
     Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(string puuid, string queueFilter);
     Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(IReadOnlyList<string> puuids, string queueFilter);
     Task<IList<MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId);
+
+    /// <summary>
+    /// Gets the player's "usual" (average, sample stddev, sample size) for each deciding-stat
+    /// candidate, from up to their 20 most recent Summoner's Rift matches in this role strictly
+    /// before <paramref name="beforeGameStartTime"/>. Used by <see cref="Core.Services.DecidingStatCalculator"/>.
+    /// </summary>
+    Task<Dictionary<string, StatUsual>> GetStatUsualsAsync(string puuid, string role, long beforeGameStartTime);
 
     /// <summary>
     /// Deletes matches older than the specified cutoff date in batches.

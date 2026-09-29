@@ -20,9 +20,9 @@ const baseMatch = {
   csPerMin: 7.04
 }
 
-function mountHeader(overrides = {}, badge = null) {
+function mountHeader(overrides = {}) {
   return mount(MatchHeader, {
-    props: { match: { ...baseMatch, ...overrides }, badge },
+    props: { match: { ...baseMatch, ...overrides } },
     global: { stubs: { BaseIcon: true } }
   })
 }
@@ -108,14 +108,7 @@ describe('MatchHeader', () => {
     expect(mountHeader().find('[data-testid="match-download"]').exists()).toBe(false)
   })
 
-  it('shows the standout finding as a strength or trend chip', () => {
-    const good = mountHeader({}, { text: 'Strong vision control', type: 'positive' }).get('[data-testid="match-header-badge"]')
-    expect(good.text()).toBe('Strong vision control')
-    expect(good.classes()).toContain('mp-chip--strength')
-
-    const needsWork = mountHeader({}, { text: 'Higher deaths vs trend', type: 'neutral' }).get('[data-testid="match-header-badge"]')
-    expect(needsWork.classes()).toContain('mp-chip--trend')
-
+  it('has no trend-badge chip (retired in favour of the "What decided it" card)', () => {
     expect(mountHeader().find('[data-testid="match-header-badge"]').exists()).toBe(false)
   })
 })

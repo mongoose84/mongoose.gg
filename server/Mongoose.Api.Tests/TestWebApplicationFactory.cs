@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Mongoose.Api.Core;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
@@ -1369,7 +1370,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                         GameStartTime: match.GameStartTime,
                         CsPerMin: csPerMin,
                         GoldPerMin: goldPerMin,
-                        TrendBadge: null,
                         LpChange: participant.LpChange,
                         LpAfter: participant.LpAfter,
                         TierAfter: participant.TierAfter,
@@ -1437,7 +1437,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                         GameStartTime: match.GameStartTime,
                         CsPerMin: csPerMin,
                         GoldPerMin: goldPerMin,
-                        TrendBadge: null,
                         LpChange: participant.LpChange,
                         LpAfter: participant.LpAfter,
                         TierAfter: participant.TierAfter,
@@ -1513,6 +1512,8 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 TeamTowers: 0,
                 EnemyTeamTowers: 0,
                 DragonsParticipated: 0,
+                GoldDiffAt10: participant.GoldDiffAt10,
+                CsAt10: participant.CsAt10,
                 LpChange: participant.LpChange,
                 LpAfter: participant.LpAfter,
                 TierAfter: participant.TierAfter,
@@ -1570,6 +1571,56 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             )).ToList();
 
             return Task.FromResult<IList<MatchupParticipantRaw>>(result);
+        }
+
+        /// <summary>
+        /// Mirrors <see cref="MatchesRepository.GetStatUsualsAsync"/>: up to 20 most recent matches
+        /// strictly before <paramref name="beforeGameStartTime"/>, same puuid + role, Summoner's
+        /// Rift queue, at least the minimum valid duration.
+        /// </summary>
+        public Task<Dictionary<string, StatUsual>> GetStatUsualsAsync(string puuid, string role, long beforeGameStartTime)
+        {
+            var rows = _matches.Values
+                .Where(m => m.GameStartTime < beforeGameStartTime
+                    && m.GameDurationSec >= GameConstants.MinValidGameDurationSec
+                    && GameConstants.SummonersRiftQueueIds.Contains(m.QueueId))
+                .OrderByDescending(m => m.GameStartTime)
+                .SelectMany(m => _participants.TryGetValue(m.MatchId, out var participants)
+                    ? participants.Where(p => p.Puuid == puuid && p.Role == role).Select(p => (Match: m, Participant: p))
+                    : Enumerable.Empty<(FakeMatchData Match, FakeParticipantData Participant)>())
+                .Take(20)
+                .ToList();
+
+            var usuals = new Dictionary<string, StatUsual>();
+            AddUsual(usuals, "goldLeadAt10", rows.Select(r => (double?)r.Participant.GoldDiffAt10));
+            AddUsual(usuals, "csAt10", rows.Select(r => (double?)r.Participant.CsAt10));
+            AddUsual(usuals, "deathsBefore10", rows.Select(r => (double?)r.Participant.DeathsPre10));
+            AddUsual(usuals, "killParticipation", rows.Select(r => (double?)(double)r.Participant.KillParticipation));
+            AddUsual(usuals, "visionPerMin", rows.Select(r => r.Match.GameDurationSec > 0
+                ? (double?)(r.Participant.VisionScore / (r.Match.GameDurationSec / 60.0))
+                : null));
+
+            return Task.FromResult(usuals);
+        }
+
+        private static void AddUsual(Dictionary<string, StatUsual> usuals, string stat, IEnumerable<double?> values)
+        {
+            var nonNull = values.Where(v => v.HasValue).Select(v => v!.Value).ToList();
+            if (nonNull.Count == 0)
+            {
+                usuals[stat] = new StatUsual(0, 0, 0);
+                return;
+            }
+
+            var average = nonNull.Average();
+            var stdDev = 0.0;
+            if (nonNull.Count > 1)
+            {
+                var variance = nonNull.Sum(v => (v - average) * (v - average)) / (nonNull.Count - 1);
+                stdDev = Math.Sqrt(variance);
+            }
+
+            usuals[stat] = new StatUsual(average, stdDev, nonNull.Count);
         }
 
         // Required interface methods with minimal implementation

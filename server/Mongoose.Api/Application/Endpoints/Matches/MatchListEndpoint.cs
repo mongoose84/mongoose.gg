@@ -11,7 +11,7 @@ namespace Mongoose.Api.Application.Endpoints.Matches;
 /// Match List Endpoint
 /// Returns lightweight match summaries for fast list rendering.
 /// Full match details are fetched on-demand via GET /matches/{matchId}/details.
-/// Includes role baselines for trend badge computation.
+/// Includes role baselines (baselinesByRole feeds StatSnapshot on the details view).
 /// Supports optional queue filtering (ranked_solo, ranked_flex, normal, aram, all).
 /// </summary>
 public sealed class MatchListEndpoint : IEndpoint
@@ -57,7 +57,7 @@ public sealed class MatchListEndpoint : IEndpoint
                 logger.LogInformation("Match list request: userId={UserId}, accountCount={AccountCount}, queueType={Queue}, account={Account}",
                     LogSanitizer.Sanitize(authorizedUser.UserId.ToString()), puuids.Count, LogSanitizer.Sanitize(validatedQueueType) ?? "all", LogSanitizer.HashForLog(accountId, "primary"));
 
-                // Fetch role baselines first (for trend badge computation)
+                // Fetch role baselines first (returned as baselinesByRole; feeds StatSnapshot on the details view)
                 var baselines = await matchesRepo.GetRoleBaselinesAsync(puuids, queueFilter);
 
                 // Fetch lightweight match summaries (no expensive team stat queries)

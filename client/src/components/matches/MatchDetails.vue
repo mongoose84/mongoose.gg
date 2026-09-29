@@ -44,8 +44,8 @@
     />
 
     <div v-else class="details-content">
-      <MatchHeader :match="match" :badge="badge" />
-      <WinPredictionStats :match="match" :baseline="baseline" />
+      <MatchHeader :match="match" />
+      <DecidingStatCard v-if="decidingStat" :deciding-stat="decidingStat" :role="match.role" />
       <!-- Lanes beside the team summary when the column is wide enough -->
       <div class="match-details__pair">
         <MatchNarrative :match-id="match?.matchId" :account-id="accountId" />
@@ -69,7 +69,7 @@ import BaseSkeleton from '../base/BaseSkeleton.vue'
 import BaseEmptyState from '../base/BaseEmptyState.vue'
 import MatchHeader from './MatchHeader.vue'
 import TeamComparison from './TeamComparison.vue'
-import WinPredictionStats from './WinPredictionStats.vue'
+import DecidingStatCard from './DecidingStatCard.vue'
 import StatSnapshot from './StatSnapshot.vue'
 import MatchNarrative from './MatchNarrative.vue'
 import MatchActions from './MatchActions.vue'
@@ -98,8 +98,8 @@ const props = defineProps({
     type: String,
     default: null
   },
-  /** The match's standout finding from the list ({ text, type }) */
-  badge: {
+  /** "What decided it": the deciding stat, meters and fix from the details response */
+  decidingStat: {
     type: Object,
     default: null
   }

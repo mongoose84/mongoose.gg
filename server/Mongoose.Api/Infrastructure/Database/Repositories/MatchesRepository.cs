@@ -1,4 +1,5 @@
 using MySqlConnector;
+using Mongoose.Api.Core;
 using Mongoose.Api.Core.Services;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
@@ -65,7 +66,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
 
     /// <summary>
     /// Gets the last 20 matches with full participant stats for the match list view.
-    /// Includes trend badge computation based on role baselines.
+    /// @deprecated Use GetMatchListSummaryAsync instead.
     /// </summary>
     public async Task<IList<MatchListItem>> GetMatchListAsync(
         string puuid,
@@ -151,13 +152,6 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             var csPerMin = durationMin > 0 ? Math.Round(raw.CreepScore / durationMin, 1) : 0;
             var goldPerMin = durationMin > 0 ? Math.Round(raw.GoldEarned / durationMin, 0) : 0;
 
-            // Compute trend badge if baselines available
-            TrendBadge? trendBadge = null;
-            if (baselines != null && baselines.TryGetValue(raw.Role, out var baseline))
-            {
-                trendBadge = TrendBadgeCalculator.ComputeTrendBadge(raw, baseline);
-            }
-
             items.Add(new MatchListItem(
                 MatchId: raw.MatchId,
                 QueueId: raw.QueueId,
@@ -194,8 +188,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 TeamBarons: raw.TeamBarons,
                 EnemyTeamBarons: raw.EnemyTeamBarons,
                 TeamTowers: raw.TeamTowers,
-                EnemyTeamTowers: raw.EnemyTeamTowers,
-                TrendBadge: trendBadge
+                EnemyTeamTowers: raw.EnemyTeamTowers
             ));
         }
 
@@ -277,13 +270,6 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             var csPerMin = durationMin > 0 ? Math.Round(raw.CreepScore / durationMin, 1) : 0;
             var goldPerMin = durationMin > 0 ? Math.Round(raw.GoldEarned / durationMin, 0) : 0;
 
-            // Compute trend badge if baselines available
-            TrendBadge? trendBadge = null;
-            if (baselines != null && baselines.TryGetValue(raw.Role, out var baseline))
-            {
-                trendBadge = TrendBadgeCalculator.ComputeTrendBadgeSummary(raw, baseline);
-            }
-
             items.Add(new MatchListSummaryItem(
                 MatchId: raw.MatchId,
                 AccountGameName: raw.AccountGameName,
@@ -306,7 +292,6 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 GameStartTime: raw.GameStartTime,
                 CsPerMin: csPerMin,
                 GoldPerMin: goldPerMin,
-                TrendBadge: trendBadge,
                 LpChange: LpChangeCalculator.Compute(raw.PreviousRankAfter, raw.RankAfter, raw.Win),
                 LpAfter: raw.RankAfter?.Lp,
                 TierAfter: raw.RankAfter?.Tier,
@@ -367,6 +352,8 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 COALESCE(pm.deaths_pre_10, 0) as deaths_pre_10,
                 p.team_id,
                 pc15.gold_diff_vs_lane as gold_diff_at_15,
+                pc10.gold_diff_vs_lane as gold_diff_at_10,
+                pc10.cs as cs_at_10,
                 COALESCE(tk.team_kills, 0) as team_kills,
                 COALESCE(tk_enemy.team_kills, 0) as enemy_team_kills,
                 COALESCE(td.team_damage, 0) as team_total_damage,
@@ -389,6 +376,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
             LEFT JOIN participant_checkpoints pc15 ON pc15.participant_id = p.id AND pc15.minute_mark = 15
+            LEFT JOIN participant_checkpoints pc10 ON pc10.participant_id = p.id AND pc10.minute_mark = 10
             LEFT JOIN team_match_metrics tmm ON tmm.match_id = p.match_id AND tmm.team_id = p.team_id
             LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
             LEFT JOIN team_objectives tobj_enemy ON tobj_enemy.match_id = p.match_id AND tobj_enemy.team_id != p.team_id
@@ -449,6 +437,8 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             TeamTowers: rawData.TeamTowers,
             EnemyTeamTowers: rawData.EnemyTeamTowers,
             DragonsParticipated: rawData.DragonsParticipated,
+            GoldDiffAt10: rawData.GoldDiffAt10,
+            CsAt10: rawData.CsAt10,
             LpChange: LpChangeCalculator.Compute(rawData.PreviousRankAfter, rawData.RankAfter, rawData.Win),
             LpAfter: rawData.RankAfter?.Lp,
             TierAfter: rawData.RankAfter?.Tier,
@@ -573,6 +563,91 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         });
 
         return baselines;
+    }
+
+    /// <summary>
+    /// Gets the player's "usual" for each deciding-stat candidate: average, sample standard
+    /// deviation and sample size over their up to 20 most recent Summoner's Rift matches in this
+    /// role, strictly before <paramref name="beforeGameStartTime"/> so the opened match never
+    /// compares against itself or a later match. Uses the same ROW_NUMBER pattern as
+    /// <see cref="GetRoleBaselinesAsync(string, string)"/>.
+    /// </summary>
+    public async Task<Dictionary<string, StatUsual>> GetStatUsualsAsync(string puuid, string role, long beforeGameStartTime)
+    {
+        var queueIds = GameConstants.SummonersRiftQueueIds;
+        var queueParams = queueIds.Select((id, i) => ($"@queue{i}", (object?)id)).ToArray();
+        var queuePlaceholders = string.Join(", ", queueParams.Select(p => p.Item1));
+
+        var sql = $@"
+            WITH RecentMatches AS (
+                SELECT
+                    pc10.gold_diff_vs_lane as gold_lead_at_10,
+                    pc10.cs as cs_at_10,
+                    pm.deaths_pre_10 as deaths_before_10,
+                    pm.kill_participation_pct as kill_participation,
+                    pm.vision_per_min as vision_per_min,
+                    ROW_NUMBER() OVER (ORDER BY m.game_start_time DESC) as rn
+                FROM participants p
+                INNER JOIN matches m ON m.match_id = p.match_id
+                LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
+                LEFT JOIN participant_checkpoints pc10 ON pc10.participant_id = p.id AND pc10.minute_mark = 10
+                WHERE p.puuid = @puuid
+                AND COALESCE(p.role, 'UNKNOWN') = @role
+                AND m.game_duration_sec >= {MinValidGameDurationSec}
+                AND m.game_start_time < @before
+                AND m.queue_id IN ({queuePlaceholders})
+            )
+            SELECT
+                AVG(gold_lead_at_10), STDDEV_SAMP(gold_lead_at_10), COUNT(gold_lead_at_10),
+                AVG(cs_at_10), STDDEV_SAMP(cs_at_10), COUNT(cs_at_10),
+                AVG(deaths_before_10), STDDEV_SAMP(deaths_before_10), COUNT(deaths_before_10),
+                AVG(kill_participation), STDDEV_SAMP(kill_participation), COUNT(kill_participation),
+                AVG(vision_per_min), STDDEV_SAMP(vision_per_min), COUNT(vision_per_min)
+            FROM RecentMatches
+            WHERE rn <= 20";
+
+        var usuals = new Dictionary<string, StatUsual>();
+
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@puuid", puuid);
+            cmd.Parameters.AddWithValue("@role", role);
+            cmd.Parameters.AddWithValue("@before", beforeGameStartTime);
+            foreach (var (name, value) in queueParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                AddStatUsual(usuals, "goldLeadAt10", reader, 0);
+                AddStatUsual(usuals, "csAt10", reader, 3);
+                AddStatUsual(usuals, "deathsBefore10", reader, 6);
+                AddStatUsual(usuals, "killParticipation", reader, 9);
+                AddStatUsual(usuals, "visionPerMin", reader, 12);
+            }
+            return 0;
+        });
+
+        return usuals;
+    }
+
+    /// <summary>Reads one stat's AVG/STDDEV_SAMP/COUNT triple starting at <paramref name="baseOrdinal"/>.</summary>
+    private static void AddStatUsual(Dictionary<string, StatUsual> usuals, string stat, MySqlDataReader reader, int baseOrdinal)
+    {
+        var matches = reader.IsDBNull(baseOrdinal + 2) ? 0 : reader.GetInt32(baseOrdinal + 2);
+        if (matches == 0)
+        {
+            usuals[stat] = new StatUsual(0, 0, 0);
+            return;
+        }
+
+        var average = reader.GetDouble(baseOrdinal);
+        // STDDEV_SAMP needs at least 2 rows; a single-match sample reports 0 spread instead of null.
+        var stdDev = reader.IsDBNull(baseOrdinal + 1) ? 0 : reader.GetDouble(baseOrdinal + 1);
+        usuals[stat] = new StatUsual(average, stdDev, matches);
     }
 
     /// <summary>

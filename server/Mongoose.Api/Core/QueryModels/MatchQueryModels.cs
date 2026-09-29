@@ -29,7 +29,6 @@ public record MatchListSummaryItem(
     [property: JsonPropertyName("gameStartTime")] long GameStartTime,
     [property: JsonPropertyName("csPerMin")] double CsPerMin,
     [property: JsonPropertyName("goldPerMin")] double GoldPerMin,
-    [property: JsonPropertyName("trendBadge")] TrendBadge? TrendBadge,
     [property: JsonPropertyName("lpChange")] int? LpChange = null,
     [property: JsonPropertyName("lpAfter")] int? LpAfter = null,
     [property: JsonPropertyName("tierAfter")] string? TierAfter = null,
@@ -103,6 +102,8 @@ public record MatchDetailsItem(
     [property: JsonPropertyName("teamTowers")] int TeamTowers,
     [property: JsonPropertyName("enemyTeamTowers")] int EnemyTeamTowers,
     [property: JsonPropertyName("dragonsParticipated")] int DragonsParticipated,
+    [property: JsonPropertyName("goldDiffAt10")] int? GoldDiffAt10,
+    [property: JsonPropertyName("csAt10")] int? CsAt10,
     [property: JsonPropertyName("lpChange")] int? LpChange = null,
     [property: JsonPropertyName("lpAfter")] int? LpAfter = null,
     [property: JsonPropertyName("tierAfter")] string? TierAfter = null,
@@ -147,6 +148,8 @@ public record MatchDetailsRawData(
     int TeamTowers,
     int EnemyTeamTowers,
     int DragonsParticipated,
+    int? GoldDiffAt10,
+    int? CsAt10,
     RankSnapshot? RankAfter = null,
     RankSnapshot? PreviousRankAfter = null
 );
@@ -193,18 +196,7 @@ public record MatchListItem(
     [property: JsonPropertyName("teamBarons")] int TeamBarons,
     [property: JsonPropertyName("enemyTeamBarons")] int EnemyTeamBarons,
     [property: JsonPropertyName("teamTowers")] int TeamTowers,
-    [property: JsonPropertyName("enemyTeamTowers")] int EnemyTeamTowers,
-    [property: JsonPropertyName("trendBadge")] TrendBadge? TrendBadge
-);
-
-/// <summary>
-/// Trend badge showing the most notable insight for a match.
-/// Pre-computed on the backend by comparing match stats to role baseline.
-/// </summary>
-public record TrendBadge(
-    [property: JsonPropertyName("text")] string Text,
-    [property: JsonPropertyName("type")] string Type,  // "positive", "neutral", "negative"
-    [property: JsonPropertyName("stat")] string Stat   // Which stat this badge refers to
+    [property: JsonPropertyName("enemyTeamTowers")] int EnemyTeamTowers
 );
 
 /// <summary>
@@ -297,5 +289,66 @@ public record MatchupParticipantRaw(
     int? CsAt10,
     int? GoldDiffAt10,
     int? CsDiffAt10
+);
+
+/// <summary>
+/// The player's own usual for one deciding-stat candidate: average and sample standard deviation
+/// over their most recent matches in this role (see <see cref="DecidingStatCalculator"/> FR2), and
+/// how many of those matches had a non-null value for this stat.
+/// </summary>
+public record StatUsual(double Average, double StdDev, int Matches);
+
+/// <summary>
+/// This match's five deciding-stat candidate values (null when the stat has no data for this
+/// match, e.g. no minute-10 checkpoint) plus the match context <see cref="DecidingStatCalculator"/>
+/// needs to score and gate them.
+/// </summary>
+public record DecidingStatInput(
+    double? GoldLeadAt10,
+    double? CsAt10,
+    double? DeathsBefore10,
+    double? KillParticipation,
+    double? VisionPerMin,
+    string Role,
+    int QueueId,
+    int GameDurationSec,
+    bool Win,
+    int TeamKills,
+    bool IsRemake
+);
+
+/// <summary>
+/// One meter on the "What decided it" card: a candidate stat, this match's value, the player's
+/// usual and the score they were judged on.
+/// </summary>
+public record DecidingStatMeter(
+    [property: JsonPropertyName("stat")] string Stat,
+    [property: JsonPropertyName("value")] double Value,
+    [property: JsonPropertyName("usual")] double Usual,
+    [property: JsonPropertyName("score")] double Score
+);
+
+/// <summary>
+/// The stat to work on next match: the lowest-scoring eligible stat, when it fell far enough
+/// short of usual (score &lt;= -0.5) to be worth an honest fix.
+/// </summary>
+public record DecidingStatFix(
+    [property: JsonPropertyName("stat")] string Stat,
+    [property: JsonPropertyName("value")] double Value,
+    [property: JsonPropertyName("usual")] double Usual,
+    [property: JsonPropertyName("score")] double Score
+);
+
+/// <summary>
+/// The match-details "What decided it" result: which stat (if any) decided the match, up to three
+/// meters as evidence, and the one stat to fix next match. Null on the response when the match is
+/// a remake, not Summoner's Rift, has an unknown role, or no stat is eligible (see FR9).
+/// </summary>
+public record DecidingStat(
+    [property: JsonPropertyName("outcome")] string Outcome, // "strength" | "shortfall" | "none"
+    [property: JsonPropertyName("stat")] string? Stat,
+    [property: JsonPropertyName("meters")] IReadOnlyList<DecidingStatMeter> Meters,
+    [property: JsonPropertyName("fix")] DecidingStatFix? Fix,
+    [property: JsonPropertyName("usualMatches")] int UsualMatches
 );
 

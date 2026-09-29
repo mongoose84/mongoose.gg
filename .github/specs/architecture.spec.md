@@ -45,7 +45,7 @@
 ├──────────────────────────────────────────────────────────────────┤
 │  Core Layer — server/Mongoose.Api/Core/                            │
 │  Entities · Interfaces · Enums · QueryModels                      │
-│  Domain Services: TrendBadgeCalculator, MainChampionRecommender   │
+│  Domain Services: DecidingStatCalculator, MainChampionRecommender  │
 ├──────────────────────────────────────────────────────────────────┤
 │  Infrastructure — server/Mongoose.Api/Infrastructure/              │
 │  Database/Repositories · Riot API client · Email · Jobs · WebSocket│
@@ -64,7 +64,7 @@
 
 **DDD conventions**:
 - Keep business invariants in domain entities/value objects inside Core.
-- Domain services (pure calculation logic like `TrendBadgeCalculator`, `MainChampionRecommender`) live in `Core/Services/`.
+- Domain services (pure calculation logic like `DecidingStatCalculator`, `MainChampionRecommender`) live in `Core/Services/`.
 - Query result types shared across layers live in `Core/QueryModels/`.
 - Maintain ubiquitous language consistency across endpoint names, DTOs, services, and repositories.
 - Respect bounded contexts when adding features to avoid cross-domain leakage.
@@ -426,8 +426,8 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Route**: `GET /api/v2/matches/{userId}`  
 **Auth**: Yes  
 **Query params**: `?queueType=`  
-**Response**: `MatchListResponse(matches[], baselinesByRole, queueType, totalMatches)` (limit 20)  
-**Logic**: Gets role baselines first, then match summaries with baseline comparisons  
+**Response**: `MatchListResponse(matches[], baselinesByRole, queueType, totalMatches)` (limit 20). List items no longer carry a `trendBadge` — retired in favor of the details endpoint's `decidingStat` (6.14).  
+**Logic**: Gets role baselines first, then match summaries (`baselinesByRole` still feeds `StatSnapshot`'s baseline comparisons on the details view; the list itself no longer computes anything from it)  
 **LP fields** (each item): `lpChange` (int?), `lpAfter` (int?), `tierAfter` (string?, e.g. `EMERALD`), `rankAfter` (string?, e.g. `II`). `lpChange` compares `participants.lp_after` with the same player's immediately previous match in the same ranked queue (420 or 440, SQL `LAG` window); it is null for unranked queues, the first ranked match, when either match has no recorded LP, and when `LpChangeCalculator` (Core) rejects it (a jump over 100 LP, or a sign that contradicts the result). Promotions and demotions are computed on one ladder (100 LP per division, Master and above share one LP count).  
 **Tables**: `matches`, `participants`, `participant_metrics`, `participant_checkpoints`  
 **Repos**: `IMatchesRepository`
@@ -437,7 +437,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Auth**: Yes  
 **Query params**: `?puuid=`  
 **Validation**: Verifies puuid ownership via junction table  
-**Response**: `MatchDetailsResponse(match, baseline)`; `match` carries the same LP fields as the list (6.13)  
+**Response**: `MatchDetailsResponse(match, baseline, decidingStat)`; `match` carries the same LP fields as the list (6.13), plus `goldDiffAt10` and `csAt10` (int?, from the minute-10 checkpoint). `decidingStat` is `DecidingStatCalculator`'s "What decided it" result — `outcome` (`strength`\|`shortfall`\|`none`), `stat`, up to three `meters[]` (`stat`, `value`, `usual`, `score`), an optional `fix` and `usualMatches`; null for a remake, a non-Summoner's-Rift queue, an unknown role, or when no candidate stat is eligible. The usual comes from `IMatchesRepository.GetStatUsualsAsync`: up to the player's 20 most recent Summoner's Rift matches (queues 400/420/430/440/490) in the same role, strictly before the opened match's `game_start_time`.  
 **Tables**: `matches`, `participants`, `participant_metrics`, `participant_checkpoints`  
 **Repos**: `IMatchesRepository`
 
@@ -605,7 +605,13 @@ public record MainChampionEntry(string ChampionName, int ChampionId, string Role
 ```csharp
 // MatchListDto.cs
 public record MatchListResponse(MatchListSummaryItem[] Matches, Dictionary<string, RoleBaseline> BaselinesByRole, string QueueType, int TotalMatches);
-public record MatchDetailsResponse(MatchDetailsItem Match, RoleBaseline? Baseline);
+public record MatchDetailsResponse(MatchDetailsItem Match, RoleBaseline? Baseline, DecidingStat? DecidingStat = null);
+
+// MatchQueryModels.cs — "What decided it" (Core, see DecidingStatCalculator)
+public record StatUsual(double Average, double StdDev, int Matches);
+public record DecidingStat(string Outcome, string? Stat, IReadOnlyList<DecidingStatMeter> Meters, DecidingStatFix? Fix, int UsualMatches);
+public record DecidingStatMeter(string Stat, double Value, double Usual, double Score);
+public record DecidingStatFix(string Stat, double Value, double Usual, double Score);
 
 // MatchNarrativeDto.cs
 public record MatchNarrativeResponse(string MatchId, string UserRole, LaneMatchup[] LaneMatchups, bool IsAram = false);
@@ -896,6 +902,7 @@ public interface IMatchesRepository
     Task<MatchDetailsItem?> GetMatchDetailsAsync(string matchId, string puuid);
     Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(string puuid, string queueFilter);
     Task<IList<MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId);
+    Task<Dictionary<string, StatUsual>> GetStatUsualsAsync(string puuid, string role, long beforeGameStartTime);
     Task<int> DeleteOldMatchesAsync(long cutoffTimestamp, int batchSize);
 }
 
