@@ -143,7 +143,7 @@ Agreed 2026-09-28 after a UX audit: the open match leads with one finding instea
 
 Four PRs, in order; each is shippable alone. **Status: 4a built on branch `implement_phase_4`** (2026-09-28); unit tests (1552) and build green; visual pass at 1440 / 1024 / 390px with a real account. 4b built on the same branch (2026-09-28), see its notes.
 
-> **Before you continue (next session):** update the dev database first. Apply `server/Mongoose.Api/Infrastructure/Database/Migrations/003_AddRankSnapshots.sql` (new `rank_snapshots` table + `riot_accounts.rank_checked_at`), then restart the API. Until then the new `RankSnapshotJob` and the login/sync rank readings fail against the old schema (they log a warning; syncs still work). The rank-snapshot work (4b follow-up below) is built but not committed yet.
+> **Rank snapshots:** merged in PR #514 (`885c6e8`); migration `003_AddRankSnapshots.sql` applied to the dev database on 2026-09-29. The coverage measurement week runs until 2026-10-06.
 
 ### 4a. Visual pass with existing data (frontend only)
 - [x] Port the classes the page needs from `reference/components.css` into `client/src/style.css`: `mp-form`, `mp-columns`, `mp-lane-bar`, `mp-split`, `mp-stat`, `mp-hero--match`, the MatchRow additions. Delete the scoped copies they replace (this covers the "Switch the Matches components to the design system's classes" item below).
@@ -186,7 +186,8 @@ Four PRs, in order; each is shippable alone. **Status: 4a built on branch `imple
 #### 4b follow-up: rank snapshots
 - [x] Spec: `features/rank-snapshots.spec.md` (2026-09-28). A `RankSnapshotJob` reads League-v4 every 20 minutes for active accounts, stores snapshots with wins and losses, and attributes a snapshot to a match only when exactly one ranked match ended in its window (by end time, never "the newest match"). Replaces `UpdateLpForMostRecentRankedMatchAsync`. Backend only; keeps the 4b contract. Decided: all linked accounts of users active in the last 7 days, every 20 minutes, a detected match always syncs.
 - [x] Built (2026-09-28): `RankSnapshotRules` (Core), `RankSnapshotService` (the only writer of `lp_after`, write-once), `RankSnapshotsRepository`, `RankSnapshotJob` (`Jobs:EnableRankSnapshots`, off in tests), login and end-of-sync readings; migration `003_AddRankSnapshots.sql` (new table + `riot_accounts.rank_checked_at`). Backend tests 668 green.
-- [ ] Apply the migration to the dev database, run the job for a week, and measure coverage (spec, manual scenario 4).
+- [x] Migration applied to the dev database (2026-09-29).
+- [ ] Run the job for a week (until 2026-10-06) and measure coverage (spec, manual scenario 4).
 
 ### 4c. "What decided it" (spec first, then backend + frontend)
 - [ ] Feature spec (`feature-spec` / `architect`): how the deciding stat is picked (extend `TrendBadgeCalculator`'s biggest-deviation logic across gold at 10, kill participation, CS at 10, deaths before 10, vision), the "usual" baselines it needs (`RoleBaseline` has no gold-at-10 or CS-at-10 averages yet), the finding and fix copy per stat, and what shows when nothing stands out.

@@ -20,6 +20,7 @@ public sealed class RankSnapshotJobTests
     private readonly InMemoryRiotAccountsRepository _accounts = new();
     private readonly CountingQueueSignal _signal = new();
     private readonly LeagueOnlyRiotApiClient _riot = new();
+    private readonly RecordingLogger<RankSnapshotJob> _logger = new();
     private readonly RankSnapshotJob _sut;
 
     public RankSnapshotJobTests()
@@ -42,7 +43,7 @@ public sealed class RankSnapshotJobTests
         services.AddSingleton<IRiotApiClient>(_riot);
         services.AddScoped<RankSnapshotService>();
 
-        _sut = new RankSnapshotJob(services.BuildServiceProvider(), NullLogger<RankSnapshotJob>.Instance, config);
+        _sut = new RankSnapshotJob(services.BuildServiceProvider(), _logger, config);
     }
 
     [Fact]
@@ -100,6 +101,39 @@ public sealed class RankSnapshotJobTests
 
         delay.Should().Be(TimeSpan.FromMinutes(2));
         _riot.LeagueCalls.Should().Equal("a");
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_LogsItsLeagueCallsAgainstTheCapAtDebug()
+    {
+        _accounts.Add("a");
+        _accounts.Add("b");
+        _snapshots.DuePuuids.AddRange(new[] { "a", "b" });
+
+        await _sut.RunOnceAsync(Now, CancellationToken.None);
+
+        _logger.Entries.Should().ContainSingle(e => e.Level == LogLevel.Debug)
+            .Which.Message.Should().Be("RankSnapshotJob made 2 of 2 League-v4 calls this minute (2 due, 0 syncs queued)");
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_LogsTheCallThatHitTheRateLimit()
+    {
+        _accounts.Add("a");
+        _snapshots.DuePuuids.Add("a");
+        _riot.FailuresByPuuid["a"] = new HttpRequestException("slow down", null, HttpStatusCode.TooManyRequests);
+
+        await _sut.RunOnceAsync(Now, CancellationToken.None);
+
+        _logger.Entries.Should().Contain(e => e.Level == LogLevel.Debug && e.Message.StartsWith("RankSnapshotJob made 1 of 2"));
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_LogsNoCallCountWhenNothingIsDue()
+    {
+        await _sut.RunOnceAsync(Now, CancellationToken.None);
+
+        _logger.Entries.Should().NotContain(e => e.Level == LogLevel.Debug);
     }
 
     [Fact]

@@ -85,31 +85,47 @@ public class RankSnapshotJob : BackgroundService
         await rankSnapshots.AttributePendingAsync(null, nowUtc, queueSyncWhenMissing: true);
 
         var due = await snapshotsRepo.GetDueAccountPuuidsAsync(nowUtc - _activeWindow, nowUtc - _interval, _maxCallsPerTick);
-        foreach (var puuid in due)
+        var leagueCalls = 0;
+        var syncsQueued = 0;
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            var account = await riotAccountsRepo.GetByPuuidAsync(puuid);
-            if (account is null) continue;
-
-            try
+            foreach (var puuid in due)
             {
-                var matchPlayed = await rankSnapshots.CaptureAsync(account, RankSnapshotSource.Poll, riotApiClient, ct);
-                if (matchPlayed && await rankSnapshots.QueueSyncAsync(puuid))
+                ct.ThrowIfCancellationRequested();
+                var account = await riotAccountsRepo.GetByPuuidAsync(puuid);
+                if (account is null) continue;
+
+                try
                 {
-                    _logger.LogInformation("Queued sync for {Puuid}: a ranked match ended since the last rank reading",
-                        LogSanitizer.HashForLog(puuid));
+                    leagueCalls++;
+                    var matchPlayed = await rankSnapshots.CaptureAsync(account, RankSnapshotSource.Poll, riotApiClient, ct);
+                    if (matchPlayed && await rankSnapshots.QueueSyncAsync(puuid))
+                    {
+                        syncsQueued++;
+                        _logger.LogInformation("Queued sync for {Puuid}: a ranked match ended since the last rank reading",
+                            LogSanitizer.HashForLog(puuid));
+                    }
+                }
+                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    _logger.LogWarning("Riot rate limit reached while reading ranks; pausing for {Backoff}", RateLimitBackoff);
+                    return RateLimitBackoff;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Mark it read anyway so one failing account doesn't block the rest every tick
+                    _logger.LogWarning(ex, "Failed to read rank for {Puuid}", LogSanitizer.HashForLog(puuid));
+                    await snapshotsRepo.MarkRankCheckedAsync(puuid, nowUtc);
                 }
             }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        }
+        finally
+        {
+            // One tick a minute, so this is the job's League-v4 calls per minute (spec: stay under the cap)
+            if (leagueCalls > 0)
             {
-                _logger.LogWarning("Riot rate limit reached while reading ranks; pausing for {Backoff}", RateLimitBackoff);
-                return RateLimitBackoff;
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                // Mark it read anyway so one failing account doesn't block the rest every tick
-                _logger.LogWarning(ex, "Failed to read rank for {Puuid}", LogSanitizer.HashForLog(puuid));
-                await snapshotsRepo.MarkRankCheckedAsync(puuid, nowUtc);
+                _logger.LogDebug("RankSnapshotJob made {Calls} of {MaxCalls} League-v4 calls this minute ({Due} due, {Queued} syncs queued)",
+                    leagueCalls, _maxCallsPerTick, due.Count, syncsQueued);
             }
         }
 
