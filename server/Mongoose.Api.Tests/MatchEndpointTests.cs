@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
@@ -174,6 +175,61 @@ public class MatchEndpointTests
         body.Matches[0].Kills.Should().Be(10);
         body.Matches[0].Deaths.Should().Be(2);
         body.Matches[0].Assists.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task MatchList_returns_lp_change_and_rank_after_each_match()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        factory.MatchesRepository.AddMatch("NA1_12345", queueId: 420);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_12345", Puuid: "test-puuid-123", ChampionId: 103, ChampionName: "Ahri",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: false, Kills: 3, Deaths: 6, Assists: 4,
+            CreepScore: 180, GoldEarned: 10000, TeamId: 100,
+            LpChange: -17, LpAfter: 47, TierAfter: "EMERALD", RankAfter: "II"));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var match = json.RootElement.GetProperty("matches")[0];
+        match.GetProperty("lpChange").GetInt32().Should().Be(-17);
+        match.GetProperty("lpAfter").GetInt32().Should().Be(47);
+        match.GetProperty("tierAfter").GetString().Should().Be("EMERALD");
+        match.GetProperty("rankAfter").GetString().Should().Be("II");
+    }
+
+    [Fact]
+    public async Task MatchList_returns_null_lp_change_when_unknown()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        factory.MatchesRepository.AddMatch("NA1_12345", queueId: 400);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_12345", Puuid: "test-puuid-123", ChampionId: 103, ChampionName: "Ahri",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true, Kills: 3, Deaths: 1, Assists: 4,
+            CreepScore: 180, GoldEarned: 10000, TeamId: 100));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("matches")[0].GetProperty("lpChange").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     // ============================================================================
@@ -358,6 +414,38 @@ public class MatchEndpointTests
         body.Match.DamageDealt.Should().Be(25000);
         body.Match.VisionScore.Should().Be(25);
         body.Match.DragonsParticipated.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task MatchDetails_returns_lp_change_and_rank_after()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        var accountId = BuildAccountId(1, "test-puuid-123");
+
+        factory.MatchesRepository.AddMatch("NA1_12345", queueId: 420);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_12345", Puuid: "test-puuid-123", ChampionId: 103, ChampionName: "Ahri",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true, Kills: 9, Deaths: 2, Assists: 11,
+            CreepScore: 220, GoldEarned: 14000, TeamId: 100,
+            LpChange: 19, LpAfter: 64, TierAfter: "EMERALD", RankAfter: "II"));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_12345/details?accountId={accountId}");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var match = json.RootElement.GetProperty("match");
+        match.GetProperty("lpChange").GetInt32().Should().Be(19);
+        match.GetProperty("lpAfter").GetInt32().Should().Be(64);
+        match.GetProperty("tierAfter").GetString().Should().Be("EMERALD");
+        match.GetProperty("rankAfter").GetString().Should().Be("II");
     }
 
     [Fact]

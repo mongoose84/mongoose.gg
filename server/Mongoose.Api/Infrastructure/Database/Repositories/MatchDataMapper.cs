@@ -1,6 +1,7 @@
 using MySqlConnector;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.QueryModels;
+using Mongoose.Api.Core.ValueObjects;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
@@ -75,6 +76,12 @@ internal static class MatchDataMapper
         var goldEarnedOrdinal = r.GetOrdinal("gold_earned");
         var gameDurationSecOrdinal = r.GetOrdinal("game_duration_sec");
         var gameStartTimeOrdinal = r.GetOrdinal("game_start_time");
+        var lpAfterOrdinal = r.GetOrdinal("lp_after");
+        var tierAfterOrdinal = r.GetOrdinal("tier_after");
+        var rankAfterOrdinal = r.GetOrdinal("rank_after");
+        var prevLpAfterOrdinal = r.GetOrdinal("prev_lp_after");
+        var prevTierAfterOrdinal = r.GetOrdinal("prev_tier_after");
+        var prevRankAfterOrdinal = r.GetOrdinal("prev_rank_after");
 
         return new MatchListSummaryRawData(
             MatchId: r.GetString(matchIdOrdinal),
@@ -93,8 +100,20 @@ internal static class MatchDataMapper
             CreepScore: r.GetInt32(creepScoreOrdinal),
             GoldEarned: r.GetInt32(goldEarnedOrdinal),
             GameDurationSec: r.GetInt32(gameDurationSecOrdinal),
-            GameStartTime: r.GetInt64(gameStartTimeOrdinal)
+            GameStartTime: r.GetInt64(gameStartTimeOrdinal),
+            RankAfter: ReadRank(r, tierAfterOrdinal, rankAfterOrdinal, lpAfterOrdinal),
+            PreviousRankAfter: ReadRank(r, prevTierAfterOrdinal, prevRankAfterOrdinal, prevLpAfterOrdinal)
         );
+    }
+
+    /// <summary>A recorded rank, or null when no LP was recorded for that match.</summary>
+    private static RankSnapshot? ReadRank(MySqlDataReader r, int tierOrdinal, int divisionOrdinal, int lpOrdinal)
+    {
+        if (r.IsDBNull(lpOrdinal)) return null;
+        return new RankSnapshot(
+            Tier: r.IsDBNull(tierOrdinal) ? null : r.GetString(tierOrdinal),
+            Division: r.IsDBNull(divisionOrdinal) ? null : r.GetString(divisionOrdinal),
+            Lp: Convert.ToInt32(r.GetValue(lpOrdinal)));
     }
 
     internal static MatchDetailsRawData MapMatchDetailsRaw(MySqlDataReader r) => new(
@@ -131,7 +150,9 @@ internal static class MatchDataMapper
         EnemyTeamBarons: r.GetInt32(30),
         TeamTowers: r.GetInt32(31),
         EnemyTeamTowers: r.GetInt32(32),
-        DragonsParticipated: r.GetInt32(33)
+        DragonsParticipated: r.GetInt32(33),
+        RankAfter: ReadRank(r, 35, 36, 34),
+        PreviousRankAfter: ReadRank(r, 38, 39, 37)
     );
 
     internal static MatchupParticipantRaw MapMatchupParticipantRaw(MySqlDataReader r) => new(

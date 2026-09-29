@@ -3,15 +3,13 @@
     <!-- Loading: the detail frame with skeletons in the layout of the content -->
     <div v-if="loading" class="loading-state match-details__loading" aria-busy="true" data-testid="match-details-loading">
       <span class="visually-hidden">Loading the match</span>
-      <div class="mp-card match-details__skeleton-card">
-        <div class="match-details__skeleton-top">
-          <BaseSkeleton variant="portrait" width="4rem" height="4rem" />
-          <div class="match-details__skeleton-text">
-            <BaseSkeleton width="5rem" />
-            <BaseSkeleton variant="title" width="40%" />
-            <BaseSkeleton width="60%" />
-          </div>
+      <div class="mp-card match-details__skeleton-banner">
+        <div class="match-details__skeleton-text">
+          <BaseSkeleton width="9rem" />
+          <BaseSkeleton variant="title" width="40%" />
+          <BaseSkeleton width="30%" />
         </div>
+        <BaseSkeleton variant="block" width="8rem" height="2.25rem" class="match-details__skeleton-chip" />
       </div>
       <div class="mp-card match-details__skeleton-grid">
         <BaseSkeleton v-for="n in 6" :key="n" variant="block" width="100%" height="5.5rem" class="match-details__skeleton-tile" />
@@ -46,11 +44,14 @@
     />
 
     <div v-else class="details-content">
-      <MatchHeader :match="match" :badge="badge" @download="downloadMatchData" />
+      <MatchHeader :match="match" :badge="badge" />
       <WinPredictionStats :match="match" :baseline="baseline" />
-      <MatchNarrative :match-id="match?.matchId" :account-id="accountId" />
-      <TeamComparison :match="match" />
-      <StatSnapshot :match="match" :baseline="baseline" />
+      <!-- Lanes beside the team summary when the column is wide enough -->
+      <div class="match-details__pair">
+        <MatchNarrative :match-id="match?.matchId" :account-id="accountId" />
+        <TeamComparison :match="match" />
+      </div>
+      <StatSnapshot :match="match" :baseline="baseline" @download="downloadMatchData" />
       <MatchActions :match="match" />
     </div>
   </div>
@@ -58,8 +59,9 @@
 
 <script setup>
 /**
- * The open match, in the design-system order: summary card → the stats that decide matches →
- * lane by lane → team summary → every stat → next step. Owns loading, error and empty states.
+ * The open match, in the design-system order: the match banner → the stats that decide matches →
+ * lane by lane beside the team summary → every stat (with the data download) → next step.
+ * Owns loading, error and empty states.
  */
 import { computed, watch } from 'vue'
 import BaseIcon from '../base/BaseIcon.vue'
@@ -279,15 +281,38 @@ function downloadMatchData() {
   gap: 1.25rem;
 }
 
+/* The detail column is a container so lanes and team sit side by side only when it is wide */
+.details-content {
+  container: match-detail / inline-size;
+}
+
+.match-details__pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@container match-detail (min-width: 47.5rem) {
+  .match-details__pair {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
 /* Skeletons wait 300ms before showing, so fast loads never flash them */
 .match-details__loading {
   animation: match-details-appear 0s linear 300ms both;
 }
 
-.match-details__skeleton-top {
+.match-details__skeleton-banner {
   display: flex;
-  align-items: center;
-  gap: 1.25rem;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 15rem;
+}
+
+.match-details__skeleton-chip {
+  border-radius: 999px;
 }
 
 .match-details__skeleton-text {

@@ -63,12 +63,14 @@ CREATE TABLE IF NOT EXISTS riot_accounts (
     flex_rank VARCHAR(10) NULL,
     flex_lp INT NULL,
     last_sync_at TIMESTAMP NULL,
+    rank_checked_at DATETIME(3) NULL COMMENT 'UTC; last rank read (rank snapshots)',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     KEY idx_game_name_tag (game_name, tag_line),
     KEY idx_summoner_name (summoner_name),
     KEY idx_region (region),
-    KEY idx_sync_status_updated (sync_status, updated_at)
+    KEY idx_sync_status_updated (sync_status, updated_at),
+    KEY idx_rank_checked_at (rank_checked_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Junction table for M:M relationship between users and riot_accounts
@@ -186,6 +188,25 @@ CREATE TABLE IF NOT EXISTS participants (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- TIMELINE-DERIVED CHECKPOINTS
+CREATE TABLE IF NOT EXISTS rank_snapshots (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    puuid VARCHAR(78) NOT NULL,
+    queue_id INT NOT NULL COMMENT '420 Ranked Solo/Duo, 440 Ranked Flex',
+    tier VARCHAR(20) NOT NULL,
+    division VARCHAR(10) NULL,
+    lp INT NOT NULL,
+    wins INT NOT NULL,
+    losses INT NOT NULL,
+    captured_at DATETIME(3) NOT NULL COMMENT 'UTC',
+    window_start_at DATETIME(3) NULL COMMENT 'UTC; pending only: the previous reading, where the match window starts',
+    source ENUM('poll', 'sync', 'login') NOT NULL,
+    status ENUM('baseline', 'pending', 'attributed', 'skipped', 'no_match') NOT NULL,
+    match_id VARCHAR(50) NULL COMMENT 'Set when attributed',
+    KEY idx_rank_snapshots_account_queue_time (puuid, queue_id, captured_at),
+    KEY idx_rank_snapshots_status (status, captured_at),
+    CONSTRAINT fk_rank_snapshots_account FOREIGN KEY (puuid) REFERENCES riot_accounts(puuid) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS participant_checkpoints (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     participant_id BIGINT UNSIGNED NOT NULL,

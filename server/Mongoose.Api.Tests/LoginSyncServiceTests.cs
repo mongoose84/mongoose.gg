@@ -25,6 +25,7 @@ public class LoginSyncServiceTests
     // Records the relative order of key calls across the fakes so tests can assert sequencing.
     private readonly List<string> _callLog = new();
     private readonly LoginSyncService _sut;
+    private FakeRankSnapshotsRepository RankSnapshots { get; } = new();
 
     public LoginSyncServiceTests()
     {
@@ -42,6 +43,13 @@ public class LoginSyncServiceTests
             _broadcaster,
             _aggregator,
             _queueSignal,
+            new RankSnapshotService(
+                RankSnapshots,
+                new RecordingParticipantsRepository(),
+                _riotAccountsRepo,
+                _queueSignal,
+                new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build(),
+                NullLogger<RankSnapshotService>.Instance),
             NullLogger<LoginSyncService>.Instance);
     }
 
@@ -73,6 +81,25 @@ public class LoginSyncServiceTests
 
         // Assert
         _riotAccountsRepo.UpdateProfileCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CheckAccountsOnLogin_StoresTheRankReadingAsASnapshot()
+    {
+        var account = CreateAccount("puuid-1", profileIconId: 10, summonerLevel: 100);
+        _riotAccountsRepo.AddAccount(account);
+        _userRiotAccountsRepo.Link(1, "puuid-1");
+        _riotApiClient.SetSummonerResponse("puuid-1", profileIconId: 10, summonerLevel: 100);
+        _riotApiClient.SetLeagueEntriesResponse("puuid-1",
+            "[" + LeagueOnlyRiotApiClient.Entry("RANKED_SOLO_5x5", "EMERALD", "II", 64, 30, 28) + "]");
+
+        await _sut.CheckAccountsOnLoginAsync(1);
+
+        var snapshot = RankSnapshots.Snapshots.Should().ContainSingle().Subject;
+        snapshot.Puuid.Should().Be("puuid-1");
+        snapshot.QueueId.Should().Be(420);
+        snapshot.Lp.Should().Be(64);
+        snapshot.Source.Should().Be(RankSnapshotSource.Login);
     }
 
     [Fact]

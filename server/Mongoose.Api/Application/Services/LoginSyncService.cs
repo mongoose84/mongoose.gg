@@ -18,6 +18,7 @@ public class LoginSyncService
     private readonly ISyncProgressBroadcaster _syncBroadcaster;
     private readonly ISyncProgressAggregator _syncAggregator;
     private readonly ISyncQueueSignal _queueSignal;
+    private readonly RankSnapshotService _rankSnapshots;
     private readonly ILogger<LoginSyncService> _logger;
 
     /// <summary>
@@ -32,6 +33,7 @@ public class LoginSyncService
         ISyncProgressBroadcaster syncBroadcaster,
         ISyncProgressAggregator syncAggregator,
         ISyncQueueSignal queueSignal,
+        RankSnapshotService rankSnapshots,
         ILogger<LoginSyncService> logger)
     {
         _riotAccountsRepo = riotAccountsRepo;
@@ -40,6 +42,7 @@ public class LoginSyncService
         _syncBroadcaster = syncBroadcaster;
         _syncAggregator = syncAggregator;
         _queueSignal = queueSignal;
+        _rankSnapshots = rankSnapshots;
         _logger = logger;
     }
 
@@ -228,6 +231,10 @@ public class LoginSyncService
                 _logger.LogInformation("Updated rank data for {Puuid}: solo={SoloTier} {SoloRank}, flex={FlexTier} {FlexRank}",
                     LogSanitizer.HashForLog(account.Puuid), LogSanitizer.Sanitize(soloTier), LogSanitizer.Sanitize(soloRank), LogSanitizer.Sanitize(flexTier), LogSanitizer.Sanitize(flexRank));
             }
+
+            // The same reading is a rank snapshot: it may complete the LP of a match played since the last one
+            await _rankSnapshots.RecordAsync(
+                account.Puuid, RankSnapshotService.ParseLeagueEntries(leagueDoc), RankSnapshotSource.Login, DateTime.UtcNow);
         }
         catch (Exception ex)
         {

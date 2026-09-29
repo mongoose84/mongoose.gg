@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Mongoose.Api.Application.Endpoints.Shared;
+using Mongoose.Api.Application.Services;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure.Services;
@@ -215,9 +216,14 @@ public class MatchHistorySyncJob : BackgroundService
 
         try
         {
-            return await SyncAccountMatchesInternalAsync(
+            var processed = await SyncAccountMatchesInternalAsync(
                 riotApiClient, riotAccountsRepo, matchesRepo, participantsRepo, duoMetricsRepo,
                 persistenceService, broadcaster, account, ct);
+
+            // Read the rank now and attribute any waiting reading to the match it belongs to
+            await CaptureRankAsync(services, riotApiClient, account, ct);
+
+            return processed;
         }
         finally
         {
@@ -359,96 +365,32 @@ public class MatchHistorySyncJob : BackgroundService
 
         _logger.LogInformation("Synced {Processed}/{Total} matches for {Puuid}", processed, total, LogSanitizer.HashForLog(account.Puuid));
 
-        // Update LP on most recent ranked match
-        if (processed > 0)
-        {
-            await UpdateLpForMostRecentRankedMatchAsync(
-                riotApiClient,
-                participantsRepo,
-                matchesRepo,
-                account,
-                ct);
-        }
-
         return processed;
     }
 
     /// <summary>
-    /// Fetches current LP from League API and updates the most recent ranked match's participant record.
-    /// Only works accurately for the most recent match; historical LP cannot be determined.
+    /// Stores the rank after a sync as a snapshot and attributes pending snapshots of this account to
+    /// the matches the sync just stored (see RankSnapshotService). Never fails the sync.
     /// </summary>
-    private async Task UpdateLpForMostRecentRankedMatchAsync(
+    private async Task CaptureRankAsync(
+        IServiceProvider services,
         IRiotApiClient riotApiClient,
-        IParticipantsRepository participantsRepo,
-        IMatchesRepository matchesRepo,
         RiotAccount account,
         CancellationToken ct)
     {
         try
         {
-            // Find the most recent ranked match for this player
-            // Queue IDs: 420 = Ranked Solo/Duo, 440 = Ranked Flex
-            var recentRankedMatches = await matchesRepo.GetRecentMatchHeadersAsync(account.Puuid, null, 1);
-
-            // Filter to ranked matches - we need to check if any recent matches are ranked
-            var rankedSoloMatches = await matchesRepo.GetRecentMatchHeadersAsync(account.Puuid, 420, 1);
-            var rankedFlexMatches = await matchesRepo.GetRecentMatchHeadersAsync(account.Puuid, 440, 1);
-
-            // Determine which ranked match is more recent
-            var mostRecentRankedMatch = rankedSoloMatches.Count > 0 && rankedFlexMatches.Count > 0
-                ? (rankedSoloMatches[0].GameStartTime > rankedFlexMatches[0].GameStartTime
-                    ? rankedSoloMatches[0]
-                    : rankedFlexMatches[0])
-                : rankedSoloMatches.Count > 0
-                    ? rankedSoloMatches[0]
-                    : rankedFlexMatches.FirstOrDefault();
-
-            if (mostRecentRankedMatch == null)
-            {
-                _logger.LogDebug("No ranked matches found for {Puuid}, skipping LP update", LogSanitizer.HashForLog(account.Puuid));
-                return;
-            }
-
-            // Fetch current LP from League API
-            using var leagueDoc = await riotApiClient.GetLeagueEntriesByPuuidAsync(account.Region, account.Puuid, ct);
-
-            string? tier = null, rank = null;
-            int? lp = null;
-            string queueType = mostRecentRankedMatch.QueueId == 420 ? "RANKED_SOLO_5x5" : "RANKED_FLEX_SR";
-
-            foreach (var entry in leagueDoc.RootElement.EnumerateArray())
-            {
-                var entryQueueType = entry.GetProperty("queueType").GetString();
-                if (entryQueueType == queueType)
-                {
-                    tier = entry.GetProperty("tier").GetString();
-                    rank = entry.GetProperty("rank").GetString();
-                    lp = entry.GetProperty("leaguePoints").GetInt32();
-                    break;
-                }
-            }
-
-            if (tier != null && lp.HasValue)
-            {
-                await participantsRepo.UpdateLpDataAsync(
-                    mostRecentRankedMatch.MatchId,
-                    account.Puuid,
-                    lp.Value,
-                    tier,
-                    rank);
-
-                _logger.LogDebug("Updated LP for {Puuid} on match {MatchId}: {Tier} {Rank} {LP} LP",
-                    LogSanitizer.HashForLog(account.Puuid), LogSanitizer.Sanitize(mostRecentRankedMatch.MatchId), LogSanitizer.Sanitize(tier), LogSanitizer.Sanitize(rank), lp);
-            }
-            else
-            {
-                _logger.LogDebug("No ranked data found for {Puuid} in queue {QueueType}", LogSanitizer.HashForLog(account.Puuid), LogSanitizer.Sanitize(queueType));
-            }
+            var rankSnapshots = services.GetRequiredService<RankSnapshotService>();
+            await rankSnapshots.CaptureAsync(account, RankSnapshotSource.Sync, riotApiClient, ct);
+            await rankSnapshots.AttributePendingAsync(account.Puuid, DateTime.UtcNow, queueSyncWhenMissing: false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            // Don't fail the sync if LP update fails
-            _logger.LogWarning(ex, "Failed to update LP data for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
+            _logger.LogWarning(ex, "Failed to capture rank for {Puuid}", LogSanitizer.HashForLog(account.Puuid));
         }
     }
 

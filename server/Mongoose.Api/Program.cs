@@ -73,6 +73,7 @@ builder.Services.AddScoped<IRiotAccountsRepository, RiotAccountsRepository>();
 builder.Services.AddScoped<IUserRiotAccountsRepository, UserRiotAccountsRepository>();
 builder.Services.AddScoped<IMatchesRepository, MatchesRepository>();
 builder.Services.AddScoped<IParticipantsRepository, ParticipantsRepository>();
+builder.Services.AddScoped<IRankSnapshotsRepository, RankSnapshotsRepository>();
 builder.Services.AddScoped<IParticipantCheckpointsRepository, ParticipantCheckpointsRepository>();
 builder.Services.AddScoped<IParticipantMetricsRepository, ParticipantMetricsRepository>();
 builder.Services.AddScoped<ITeamObjectivesRepository, TeamObjectivesRepository>();
@@ -101,6 +102,7 @@ builder.Services.AddScoped<AggregationService>();
 builder.Services.AddScoped<DimensionExtractionService>();
 
 // Application services
+builder.Services.AddScoped<RankSnapshotService>();
 builder.Services.AddScoped<LoginSyncService>();
 builder.Services.AddScoped<PuuidResolutionService>();
 builder.Services.AddScoped<IMatchDataPersistenceService, MatchDataPersistenceService>();
@@ -152,6 +154,13 @@ var enableMatchHistorySync = builder.Configuration.GetValue<bool>("Jobs:EnableMa
 if (enableMatchHistorySync)
 {
     builder.Services.AddHostedService<MatchHistorySyncJob>();
+}
+
+// Rank Snapshot Job (reads ranks of active accounts so each ranked match gets its LP change)
+var enableRankSnapshots = builder.Configuration.GetValue<bool>("Jobs:EnableRankSnapshots", true);
+if (enableRankSnapshots)
+{
+    builder.Services.AddHostedService<RankSnapshotJob>();
 }
 
 // Match Cleanup Job (deletes matches older than retention period)

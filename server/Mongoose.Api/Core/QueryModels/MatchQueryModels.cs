@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Mongoose.Api.Core.ValueObjects;
 
 namespace Mongoose.Api.Core.QueryModels;
 
@@ -28,7 +29,11 @@ public record MatchListSummaryItem(
     [property: JsonPropertyName("gameStartTime")] long GameStartTime,
     [property: JsonPropertyName("csPerMin")] double CsPerMin,
     [property: JsonPropertyName("goldPerMin")] double GoldPerMin,
-    [property: JsonPropertyName("trendBadge")] TrendBadge? TrendBadge
+    [property: JsonPropertyName("trendBadge")] TrendBadge? TrendBadge,
+    [property: JsonPropertyName("lpChange")] int? LpChange = null,
+    [property: JsonPropertyName("lpAfter")] int? LpAfter = null,
+    [property: JsonPropertyName("tierAfter")] string? TierAfter = null,
+    [property: JsonPropertyName("rankAfter")] string? RankAfter = null
 );
 
 /// <summary>
@@ -51,7 +56,9 @@ public record MatchListSummaryRawData(
     int CreepScore,
     int GoldEarned,
     int GameDurationSec,
-    long GameStartTime
+    long GameStartTime,
+    RankSnapshot? RankAfter = null,
+    RankSnapshot? PreviousRankAfter = null
 );
 
 /// <summary>
@@ -95,7 +102,11 @@ public record MatchDetailsItem(
     [property: JsonPropertyName("enemyTeamBarons")] int EnemyTeamBarons,
     [property: JsonPropertyName("teamTowers")] int TeamTowers,
     [property: JsonPropertyName("enemyTeamTowers")] int EnemyTeamTowers,
-    [property: JsonPropertyName("dragonsParticipated")] int DragonsParticipated
+    [property: JsonPropertyName("dragonsParticipated")] int DragonsParticipated,
+    [property: JsonPropertyName("lpChange")] int? LpChange = null,
+    [property: JsonPropertyName("lpAfter")] int? LpAfter = null,
+    [property: JsonPropertyName("tierAfter")] string? TierAfter = null,
+    [property: JsonPropertyName("rankAfter")] string? RankAfter = null
 );
 
 /// <summary>
@@ -135,7 +146,9 @@ public record MatchDetailsRawData(
     int EnemyTeamBarons,
     int TeamTowers,
     int EnemyTeamTowers,
-    int DragonsParticipated
+    int DragonsParticipated,
+    RankSnapshot? RankAfter = null,
+    RankSnapshot? PreviousRankAfter = null
 );
 
 /// <summary>

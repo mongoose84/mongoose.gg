@@ -154,7 +154,8 @@ server/
 │       ├── Riot/RiotApiClient.cs           # Riot Games API integration
 │       ├── Email/SmtpEmailService.cs
 │       ├── Jobs/
-│       │   ├── MatchHistorySyncJob.cs      # Background: syncs match history
+│       │   ├── MatchHistorySyncJob.cs      # Background: syncs match history; captures a rank snapshot at the end
+│       │   ├── RankSnapshotJob.cs          # Background: reads ranks of active accounts every 20 min, attributes LP to matches
 │       │   └── MatchCleanupJob.cs          # Background: deletes old matches
 │       ├── WebSocket/
 │       │   ├── SyncProgressHub.cs          # Raw WebSocket hub for real-time sync updates
@@ -427,6 +428,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Query params**: `?queueType=`  
 **Response**: `MatchListResponse(matches[], baselinesByRole, queueType, totalMatches)` (limit 20)  
 **Logic**: Gets role baselines first, then match summaries with baseline comparisons  
+**LP fields** (each item): `lpChange` (int?), `lpAfter` (int?), `tierAfter` (string?, e.g. `EMERALD`), `rankAfter` (string?, e.g. `II`). `lpChange` compares `participants.lp_after` with the same player's immediately previous match in the same ranked queue (420 or 440, SQL `LAG` window); it is null for unranked queues, the first ranked match, when either match has no recorded LP, and when `LpChangeCalculator` (Core) rejects it (a jump over 100 LP, or a sign that contradicts the result). Promotions and demotions are computed on one ladder (100 LP per division, Master and above share one LP count).  
 **Tables**: `matches`, `participants`, `participant_metrics`, `participant_checkpoints`  
 **Repos**: `IMatchesRepository`
 
@@ -435,7 +437,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Auth**: Yes  
 **Query params**: `?puuid=`  
 **Validation**: Verifies puuid ownership via junction table  
-**Response**: `MatchDetailsResponse(match, baseline)`  
+**Response**: `MatchDetailsResponse(match, baseline)`; `match` carries the same LP fields as the list (6.13)  
 **Tables**: `matches`, `participants`, `participant_metrics`, `participant_checkpoints`  
 **Repos**: `IMatchesRepository`
 

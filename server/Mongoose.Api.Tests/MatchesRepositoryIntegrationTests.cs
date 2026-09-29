@@ -180,6 +180,150 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task GetMatchListSummaryAsync_ComputesLpChange_FromThePreviousMatchInTheSameQueue()
+    {
+        if (!IsIntegrationDbOptInEnabled()) return;
+        var connectionString = GetTestConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var factory = new DirectDbConnectionFactory(connectionString);
+        await EnsureSchemaAsync(factory);
+        var repository = new MatchesRepository(factory);
+
+        var testKey = Guid.NewGuid().ToString("N")[..12];
+        var puuid = $"integration-puuid-{testKey}";
+        var start = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+        var hour = 3_600_000L;
+        var matchIds = new List<string>();
+
+        async Task AddAsync(string suffix, int queueId, long startTime, bool win, int? lp, string? tier = "EMERALD", string? rank = "II")
+        {
+            var matchId = $"LP_{suffix}_{testKey}";
+            matchIds.Add(matchId);
+            await InsertRankedMatchAsync(factory, matchId, puuid, queueId, startTime, win, lp, tier, rank);
+        }
+
+        try
+        {
+            await InsertRiotAccountAsync(factory, puuid, $"Player{testKey}", "NA1", "na1");
+            await AddAsync("SOLO1", 420, start, win: true, lp: 40);                        // first ranked match: no change
+            await AddAsync("FLEX1", 440, start + hour, win: false, lp: 10, "GOLD", "I");  // other queue, in between
+            await AddAsync("SOLO2", 420, start + 2 * hour, win: true, lp: 61);            // +21 from SOLO1, not from FLEX1
+            await AddAsync("SOLO3", 420, start + 3 * hour, win: false, lp: null);         // no LP recorded
+            await AddAsync("SOLO4", 420, start + 4 * hour, win: false, lp: 44);           // previous has no LP: no change
+            await AddAsync("SOLO5", 420, start + 5 * hour, win: false, lp: 27);           // −17
+            await AddAsync("NORM1", 400, start + 6 * hour, win: true, lp: null);          // unranked
+
+            var result = await repository.GetMatchListSummaryAsync([puuid], string.Empty, 20, null);
+            var byId = result.ToDictionary(m => m.MatchId);
+
+            byId[$"LP_SOLO1_{testKey}"].LpChange.Should().BeNull();
+            byId[$"LP_FLEX1_{testKey}"].LpChange.Should().BeNull();
+            byId[$"LP_SOLO2_{testKey}"].LpChange.Should().Be(21);
+            byId[$"LP_SOLO3_{testKey}"].LpChange.Should().BeNull();
+            byId[$"LP_SOLO4_{testKey}"].LpChange.Should().BeNull();
+            byId[$"LP_SOLO5_{testKey}"].LpChange.Should().Be(-17);
+            byId[$"LP_NORM1_{testKey}"].LpChange.Should().BeNull();
+
+            var latestSolo = byId[$"LP_SOLO5_{testKey}"];
+            latestSolo.LpAfter.Should().Be(27);
+            latestSolo.TierAfter.Should().Be("EMERALD");
+            latestSolo.RankAfter.Should().Be("II");
+            byId[$"LP_NORM1_{testKey}"].TierAfter.Should().BeNull();
+
+            // A queue filter narrows the list but not the window the change is computed over
+            var soloOnly = await repository.GetMatchListSummaryAsync([puuid], "AND m.queue_id = 420", 1, null);
+            soloOnly.Should().ContainSingle().Which.LpChange.Should().Be(-17);
+        }
+        finally
+        {
+            foreach (var matchId in matchIds)
+            {
+                await CleanupAsync(factory, matchId, puuid);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GetMatchDetailsAsync_ReturnsLpChangeAndRankAfter()
+    {
+        if (!IsIntegrationDbOptInEnabled()) return;
+        var connectionString = GetTestConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var factory = new DirectDbConnectionFactory(connectionString);
+        await EnsureSchemaAsync(factory);
+        var repository = new MatchesRepository(factory);
+
+        var testKey = Guid.NewGuid().ToString("N")[..12];
+        var puuid = $"integration-puuid-{testKey}";
+        var firstId = $"LPD_1_{testKey}";
+        var secondId = $"LPD_2_{testKey}";
+        var start = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+
+        try
+        {
+            await InsertRiotAccountAsync(factory, puuid, $"Player{testKey}", "NA1", "na1");
+            await InsertRankedMatchAsync(factory, firstId, puuid, 420, start, true, 90, "GOLD", "I");
+            await InsertRankedMatchAsync(factory, secondId, puuid, 420, start + 3_600_000L, true, 12, "PLATINUM", "IV");
+
+            var details = await repository.GetMatchDetailsAsync(secondId, puuid);
+
+            details.Should().NotBeNull();
+            details!.LpChange.Should().Be(22);
+            details.LpAfter.Should().Be(12);
+            details.TierAfter.Should().Be("PLATINUM");
+            details.RankAfter.Should().Be("IV");
+            (await repository.GetMatchDetailsAsync(firstId, puuid))!.LpChange.Should().BeNull();
+        }
+        finally
+        {
+            await CleanupAsync(factory, firstId, puuid);
+            await CleanupAsync(factory, secondId, puuid);
+        }
+    }
+
+    private static async Task InsertRankedMatchAsync(
+        IDbConnectionFactory factory,
+        string matchId,
+        string puuid,
+        int queueId,
+        long gameStartTime,
+        bool win,
+        int? lpAfter,
+        string? tierAfter,
+        string? rankAfter)
+    {
+        const string sql = @"
+            INSERT INTO matches (
+                match_id, queue_id, game_duration_sec, game_start_time, patch_version, season_code
+            ) VALUES (
+                @matchId, @queueId, 1800, @gameStartTime, '15.1.1', NULL
+            );
+            INSERT INTO participants (
+                match_id, puuid, team_id, role, lane, champion_id, champion_name,
+                win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec,
+                lp_after, tier_after, rank_after
+            ) VALUES (
+                @matchId, @puuid, 100, 'MIDDLE', 'MIDDLE', 103, 'Ahri',
+                @win, 7, 2, 6, 210, 14500, 50,
+                @lpAfter, @tierAfter, @rankAfter
+            );";
+
+        await using var connection = await factory.CreateOpenConnectionAsync();
+        await using var cmd = new MySqlCommand(sql, connection);
+        cmd.Parameters.AddWithValue("@matchId", matchId);
+        cmd.Parameters.AddWithValue("@queueId", queueId);
+        cmd.Parameters.AddWithValue("@gameStartTime", gameStartTime);
+        cmd.Parameters.AddWithValue("@puuid", puuid);
+        cmd.Parameters.AddWithValue("@win", win);
+        cmd.Parameters.AddWithValue("@lpAfter", lpAfter.HasValue ? lpAfter.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("@tierAfter", lpAfter.HasValue ? tierAfter : DBNull.Value);
+        cmd.Parameters.AddWithValue("@rankAfter", lpAfter.HasValue ? rankAfter : DBNull.Value);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     private static string? GetTestConnectionString()
     {
         return Environment.GetEnvironmentVariable("Database_test")

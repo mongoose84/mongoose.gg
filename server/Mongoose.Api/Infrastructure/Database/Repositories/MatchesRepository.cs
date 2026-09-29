@@ -225,6 +225,8 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         }
 
         var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        // Same placeholders on the window's alias; the parameters are already in puuidParams
+        var (previousRankPuuidPredicate, _) = BuildStringInClause("p2.puuid", puuids, "puuid");
         var sql = $@"
             SELECT
                 m.match_id as match_id,
@@ -243,10 +245,17 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 p.creep_score as creep_score,
                 p.gold_earned as gold_earned,
                 m.game_duration_sec as game_duration_sec,
-                m.game_start_time as game_start_time
+                m.game_start_time as game_start_time,
+                p.lp_after as lp_after,
+                p.tier_after as tier_after,
+                p.rank_after as rank_after,
+                prev_rank.prev_lp_after as prev_lp_after,
+                prev_rank.prev_tier_after as prev_tier_after,
+                prev_rank.prev_rank_after as prev_rank_after
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN riot_accounts ra ON ra.puuid = p.puuid
+            LEFT JOIN ({PreviousRankSql(previousRankPuuidPredicate)}) prev_rank ON prev_rank.participant_id = p.id
             WHERE {puuidPredicate}
             AND m.game_duration_sec >= {MinValidGameDurationSec}
             {queueFilter}
@@ -297,7 +306,11 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 GameStartTime: raw.GameStartTime,
                 CsPerMin: csPerMin,
                 GoldPerMin: goldPerMin,
-                TrendBadge: trendBadge
+                TrendBadge: trendBadge,
+                LpChange: LpChangeCalculator.Compute(raw.PreviousRankAfter, raw.RankAfter, raw.Win),
+                LpAfter: raw.RankAfter?.Lp,
+                TierAfter: raw.RankAfter?.Tier,
+                RankAfter: raw.RankAfter?.Division
             ));
         }
 
@@ -310,7 +323,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
     /// </summary>
     public async Task<MatchDetailsItem?> GetMatchDetailsAsync(string matchId, string puuid)
     {
-        const string sql = @"
+        var sql = @"
             WITH TeamKills AS (
                 SELECT
                     match_id,
@@ -329,7 +342,8 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
                 WHERE p.match_id = @matchId
                 GROUP BY p.match_id, p.team_id
-            )
+            ),
+            PreviousRank AS (" + PreviousRankSql("p2.puuid = @puuid") + @")
             SELECT
                 m.match_id,
                 m.queue_id,
@@ -364,7 +378,13 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 COALESCE(tobj_enemy.barons_taken, 0) as enemy_team_barons,
                 COALESCE(tobj.towers_taken, 0) as team_towers,
                 COALESCE(tobj_enemy.towers_taken, 0) as enemy_team_towers,
-                COALESCE(po.dragons_participated, 0) as dragons_participated
+                COALESCE(po.dragons_participated, 0) as dragons_participated,
+                p.lp_after,
+                p.tier_after,
+                p.rank_after,
+                pr.prev_lp_after,
+                pr.prev_tier_after,
+                pr.prev_rank_after
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
@@ -377,6 +397,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             LEFT JOIN TeamKills tk_enemy ON tk_enemy.match_id = p.match_id AND tk_enemy.team_id != p.team_id
             LEFT JOIN TeamDamage td ON td.match_id = p.match_id AND td.team_id = p.team_id
             LEFT JOIN TeamDamage td_enemy ON td_enemy.match_id = p.match_id AND td_enemy.team_id != p.team_id
+            LEFT JOIN PreviousRank pr ON pr.participant_id = p.id
             WHERE p.match_id = @matchId AND p.puuid = @puuid
             LIMIT 1";
 
@@ -427,9 +448,34 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             EnemyTeamBarons: rawData.EnemyTeamBarons,
             TeamTowers: rawData.TeamTowers,
             EnemyTeamTowers: rawData.EnemyTeamTowers,
-            DragonsParticipated: rawData.DragonsParticipated
+            DragonsParticipated: rawData.DragonsParticipated,
+            LpChange: LpChangeCalculator.Compute(rawData.PreviousRankAfter, rawData.RankAfter, rawData.Win),
+            LpAfter: rawData.RankAfter?.Lp,
+            TierAfter: rawData.RankAfter?.Tier,
+            RankAfter: rawData.RankAfter?.Division
         );
     }
+
+    /// <summary>
+    /// Each ranked participant row (Solo/Duo and Flex) with the rank recorded after the same
+    /// player's previous match in the same queue. LAG takes the match right before, never the last
+    /// one that happens to have LP, so a gap in the recorded LP gives no change instead of a wrong one.
+    /// The predicate filters <c>p2.puuid</c> with parameters the caller supplies.
+    /// </summary>
+    private static string PreviousRankSql(string puuidPredicate) => $@"
+                SELECT
+                    p2.id AS participant_id,
+                    LAG(p2.lp_after) OVER previous_match AS prev_lp_after,
+                    LAG(p2.tier_after) OVER previous_match AS prev_tier_after,
+                    LAG(p2.rank_after) OVER previous_match AS prev_rank_after
+                FROM participants p2
+                INNER JOIN matches m2 ON m2.match_id = p2.match_id
+                WHERE {puuidPredicate}
+                AND m2.queue_id IN ({RankedQueueIds})
+                WINDOW previous_match AS (PARTITION BY p2.puuid, m2.queue_id ORDER BY m2.game_start_time, m2.match_id)";
+
+    // Ranked Solo/Duo and Ranked Flex: the queues that record LP
+    private const string RankedQueueIds = "420, 440";
 
     /// <summary>
     /// Gets baseline averages per role from the last 10 games in each role.

@@ -141,22 +141,52 @@ Each adds fields to `OverviewResponse` (update `architecture.spec.md`) and its s
 
 Agreed 2026-09-28 after a UX audit: the open match leads with one finding instead of five tallies, and every comparison is drawn rather than written ("show, then say" in the design system). Target: the "visual" artboards on the Mongoose.gg Matches redesign canvas (https://claude.ai/artifact/Ufv95okAfSYgmnaJgniRhL): `MainVisual` (desktop), `PhoneMatchVisual`, `PhoneListVisual`. Components and rules are already in the design system (FormStrip, UsualMeter, LaneBar, ColumnChart, SplitBar, the ChampionHero match banner, time-chart moment markers).
 
-Four PRs, in order; each is shippable alone. **Status: 4a not started.**
+Four PRs, in order; each is shippable alone. **Status: 4a built on branch `implement_phase_4`** (2026-09-28); unit tests (1552) and build green; visual pass at 1440 / 1024 / 390px with a real account. 4b built on the same branch (2026-09-28), see its notes.
+
+> **Before you continue (next session):** update the dev database first. Apply `server/Mongoose.Api/Infrastructure/Database/Migrations/003_AddRankSnapshots.sql` (new `rank_snapshots` table + `riot_accounts.rank_checked_at`), then restart the API. Until then the new `RankSnapshotJob` and the login/sync rank readings fail against the old schema (they log a warning; syncs still work). The rank-snapshot work (4b follow-up below) is built but not committed yet.
 
 ### 4a. Visual pass with existing data (frontend only)
-- [ ] Port the classes the page needs from `reference/components.css` into `client/src/style.css`: `mp-form`, `mp-columns`, `mp-lane-bar`, `mp-split`, `mp-stat`, `mp-hero--match`, the MatchRow additions. Delete the scoped copies they replace (this covers the "Switch the Matches components to the design system's classes" item below).
-- [ ] Page header: short headline ("12 wins in your last 20") + `FormStrip` of the list (win / loss / remake from `matchesSummary.isRemake`). New base component `BaseFormStrip.vue`.
-- [ ] Under the list: `ColumnChart` "win rate by start time" from `gameStartTime` in the player's local time (afternoon / evening / after 11pm, groups under 3 matches left out); title states the weak spot or is omitted when nothing stands out. New `BaseColumnChart.vue`; grouping logic in `matchesSummary.js`.
-- [ ] Open match: `MatchHeader` becomes the ChampionHero match banner (splash via `getChampionSplashUrl`, glass chips K / D / A; LP and rank chips come in 4b). "Download data" moves off the banner into the "All your stats" section.
-- [ ] Lanes: `MatchNarrative` rows become `LaneBar`s from `allyParticipant.goldDiffAt10` (±1,500 fills a half, under 300 is even); same button, `aria-expanded` and `LaneMatchupDetails` underneath. ARAM keeps the two team lists.
-- [ ] Team: `TeamComparison` becomes `SplitBar`s for damage, dragons, barons and towers beside the lanes (team gold totals aren't in the API, so no gold bar; the gold lead at 15 stays as the caption).
-- [ ] `WinPredictionStats` stays in the "What decided it" slot until 4c replaces it; `StatSnapshot` moves behind a closed "All your stats" disclosure with "▲ n above usual ▼ n below" in its summary row. `MatchActions` stays.
-- [ ] Tests: unit tests for the new base components and the grouping logic; update `MatchesPage`, `MatchHeader`, `MatchNarrative`, `TeamComparison` specs. Visual pass at 1440 / 1024 / 390px with a real account.
+- [x] Port the classes the page needs from `reference/components.css` into `client/src/style.css`: `mp-form`, `mp-columns`, `mp-lane-bar`, `mp-split`, `mp-stat`, `mp-hero--match`, the MatchRow additions. Delete the scoped copies they replace (this covers the "Switch the Matches components to the design system's classes" item below).
+- [x] Page header: short headline ("12 wins in your last 20") + `FormStrip` of the list (win / loss / remake from `matchesSummary.isRemake`). New base component `BaseFormStrip.vue`.
+- [x] Under the list: `ColumnChart` "win rate by start time" from `gameStartTime` in the player's local time (afternoon / evening / after 11pm, groups under 3 matches left out); title states the weak spot or is omitted when nothing stands out. New `BaseColumnChart.vue`; grouping logic in `matchesSummary.js`.
+- [x] Open match: `MatchHeader` becomes the ChampionHero match banner (splash via `getChampionSplashUrl`, glass chips K / D / A; LP and rank chips come in 4b). "Download data" moves off the banner into the "All your stats" section.
+- [x] Lanes: `MatchNarrative` rows become `LaneBar`s from `allyParticipant.goldDiffAt10` (±1,500 fills a half, under 300 is even); same button, `aria-expanded` and `LaneMatchupDetails` underneath. ARAM keeps the two team lists.
+- [x] Team: `TeamComparison` becomes `SplitBar`s for damage, dragons, barons and towers beside the lanes (team gold totals aren't in the API, so no gold bar; the gold lead at 15 stays as the caption).
+- [x] `WinPredictionStats` stays in the "What decided it" slot until 4c replaces it; `StatSnapshot` moves behind a closed "All your stats" disclosure with "▲ n above usual ▼ n below" in its summary row. `MatchActions` stays.
+- [x] Tests: unit tests for the new base components and the grouping logic; update `MatchesPage`, `MatchHeader`, `MatchNarrative`, `TeamComparison` specs. Visual pass at 1440 / 1024 / 390px with a real account.
+
+#### 4a outcome notes
+- The headline keeps leaving remakes out ("10 wins in your last 20" counts non-remakes); the FormStrip shows remakes as stubs. No wins reads "No wins in your last n".
+- Start-time groups: morning 5–12, afternoon 12–18, evening 18–23, after 11pm 23–5, local time. The chart shows only when two groups have 3+ matches; the weak spot is the single lowest group at least 15 points below the other groups together (`START_TIME_WEAK_GAP`). Without a weak spot the caption becomes the title. The account used for the visual pass plays almost only in the evening, so the chart stayed hidden there; it is covered by unit tests.
+- The list column (`matches-side`) is now the sticky part: the list scrolls inside it and the chart stays under it.
+- Lanes sit beside the team card through a `match-detail` container query at 760px (1440px desktop); at 1024px and on phones they stack.
+- The lane title counts lanes from the drawn gold difference ("2 of 5 lanes won"), no longer the server's `laneWinner`; both use 300 gold at 10.
+- TeamComparison: an objective neither team took (0–0) shows an empty `track-strong` bar and "none taken" rather than a 50/50 split. This is a new state for SplitBar; add it to the live design system (Step 5).
+- `StatSnapshot` gained `defaultOpen` (closed on the page) and closes again when another match opens. There is no `download` icon in the vocabulary, so "Download data" has none.
+- The MatchHeader banner is built in `MatchHeader.vue` on the `mp-hero` / `mp-hero--match` classes rather than through `ChampionHero` (which owns the page `h1`).
+- Ported to `style.css`: `mp-form`, `mp-columns`, `mp-lane-bar`, `mp-split`, `mp-stat` / `mp-stat-grid`, `mp-hero--match`, and the MatchRow additions (`mp-match-list`, `mp-portrait--remake`, `mp-result--remake`, `mp-match-kda`, `mp-match-meta-kda`, the selected row). `mp-lane-row` was not ported: LaneBar replaced LaneRow on this page.
+- Leftovers: no E2E beyond the smoke load (the E2E user has no matches); the Step 5 design-system update for the empty SplitBar is still to do.
 
 ### 4b. LP change and rank after each match (backend + frontend)
-- [ ] Add `lpChange` (and `tierAfter` / `rankAfter`) to `MatchListSummaryItem` and `MatchDetailsItem`: from `participants.lp_after`, compared with the same player's previous ranked match in the same queue; null for unranked queues, the first ranked match, and tier or division changes it can't resolve (decide in the PR whether promotions are computed or shown as "Promoted"). Parameterized SQL, update `architecture.spec.md`.
-- [ ] Wire `lpChange` into `BaseMatchRow` (the prop exists), the page header total ("+86 LP over 20", ranked queues only) and the banner chips (LP, rank with its tier colour).
-- [ ] Backend integration tests for the delta, including queue separation and missing `lp_after`.
+- [x] Add `lpChange` (and `tierAfter` / `rankAfter`) to `MatchListSummaryItem` and `MatchDetailsItem`: from `participants.lp_after`, compared with the same player's previous ranked match in the same queue; null for unranked queues, the first ranked match, and tier or division changes it can't resolve (decide in the PR whether promotions are computed or shown as "Promoted"). Parameterized SQL, update `architecture.spec.md`.
+- [x] Wire `lpChange` into `BaseMatchRow` (the prop exists), the page header total ("+86 LP over 20", ranked queues only) and the banner chips (LP, rank with its tier colour).
+- [x] Backend integration tests for the delta, including queue separation and missing `lp_after`.
+
+#### 4b outcome notes
+- Sync writes the current rank onto the newest ranked match only (`MatchHistorySyncJob.UpdateLpForMostRecentRankedMatchAsync`), so the change compares with the match right before in the same queue (SQL `LAG` over `participants` × `matches` per player and queue), never the last match that happens to have LP. Several matches played between two syncs therefore get no change except when each was synced on its own.
+- Promotions and demotions are computed, not shown as "Promoted": one ladder with 100 LP per division from Iron IV to Diamond I, and Master / Grandmaster / Challenger sharing one LP count above it (`LpChangeCalculator` in Core).
+- Guards (null instead of a wrong number): a jump over 100 LP, a win with no gain or a loss, a loss that gained LP (the LP was read before Riot applied the match, or a match is missing), an unknown tier or division.
+- API: `lpChange`, `lpAfter`, `tierAfter`, `rankAfter` on list items and on the open match.
+- Rows show "±0 LP" in neutral for no change; in the narrow list the LP sits above the result.
+- Header total only for one ranked queue (Solo/Duo or Flex are separate ladders), over the matches with a known change ("+23 LP over 3"), hidden with fewer than two.
+- Banner chips: signed LP, and the rank with its `--color-rank-*` dot ("Emerald II · 64 LP"; no division for Master and above). Only known tiers reach the colour variable.
+- The repository integration tests are opt-in (`RUN_DB_INTEGRATION_TESTS` + `Database_test`) like the existing ones.
+- Checked against real data on 2026-09-28: correct values (+20, −21, Bronze III · 17 LP), but coverage is thin (2 of 20 Flex matches) because sync reads LP only at login or "Sync matches".
+
+#### 4b follow-up: rank snapshots
+- [x] Spec: `features/rank-snapshots.spec.md` (2026-09-28). A `RankSnapshotJob` reads League-v4 every 20 minutes for active accounts, stores snapshots with wins and losses, and attributes a snapshot to a match only when exactly one ranked match ended in its window (by end time, never "the newest match"). Replaces `UpdateLpForMostRecentRankedMatchAsync`. Backend only; keeps the 4b contract. Decided: all linked accounts of users active in the last 7 days, every 20 minutes, a detected match always syncs.
+- [x] Built (2026-09-28): `RankSnapshotRules` (Core), `RankSnapshotService` (the only writer of `lp_after`, write-once), `RankSnapshotsRepository`, `RankSnapshotJob` (`Jobs:EnableRankSnapshots`, off in tests), login and end-of-sync readings; migration `003_AddRankSnapshots.sql` (new table + `riot_accounts.rank_checked_at`). Backend tests 668 green.
+- [ ] Apply the migration to the dev database, run the job for a week, and measure coverage (spec, manual scenario 4).
 
 ### 4c. "What decided it" (spec first, then backend + frontend)
 - [ ] Feature spec (`feature-spec` / `architect`): how the deciding stat is picked (extend `TrendBadgeCalculator`'s biggest-deviation logic across gold at 10, kill participation, CS at 10, deaths before 10, vision), the "usual" baselines it needs (`RoleBaseline` has no gold-at-10 or CS-at-10 averages yet), the finding and fix copy per stat, and what shows when nothing stands out.
@@ -193,7 +223,7 @@ One PR each, through `/mongoose-design`:
   - Filters are now SegmentedControls: ARAM is gone from the queue options (no lanes), and the time range is This season / Last 3 months / All time (last week, last month and 6 months dropped). The API still counts days, not matches.
   - Leftovers: add the matchup list rows, the "Check a matchup" card and the Strong into / Weak into headings to the live design system and `reference/` (Step 5); champion names still show Riot's internal ID ("TwistedFate"); E2E only covers the page loading (smoke).
 - [ ] Settings and Feedback pages
-- [ ] Switch the Matches components to the design system's classes, so the app and the system share one source of styling. Today they copy the look in their own scoped styles:
+- [x] Switch the Matches components to the design system's classes, so the app and the system share one source of styling. Today they copy the look in their own scoped styles:
   - `BaseMatchRow` (open-match row, remake, narrow list) → `mp-match-list`, `mp-portrait--remake`, `mp-result--remake`, `mp-match-kda` / `mp-match-meta-kda`
   - `WinPredictionStats` (`kpi-tile`) and `StatSnapshot` (`stat-item`) → `mp-stat-grid` / `mp-stat`
   - `MatchNarrative` (`lane-header`) → `mp-lane-row`

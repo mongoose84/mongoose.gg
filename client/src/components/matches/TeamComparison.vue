@@ -5,50 +5,52 @@
       <p class="team__caption" data-testid="team-gold-lead">{{ goldLeadLine }}</p>
     </header>
 
-    <div v-if="hasDamageData" class="team__damage" data-testid="team-damage">
-      <div class="team__damage-labels">
-        <span><span class="team__key team__key--ally" aria-hidden="true" />Your team {{ formatNumber(match.teamTotalDamage) }}</span>
-        <span>Enemy team {{ formatNumber(match.enemyTeamTotalDamage) }}<span class="team__key team__key--enemy" aria-hidden="true" /></span>
-      </div>
-      <div
-        class="team__bar"
-        role="img"
-        :aria-label="`Damage: your team ${teamDamagePercent}%, enemy team ${100 - teamDamagePercent}%`"
+    <ul class="team__splits">
+      <li
+        v-for="row in rows"
+        :key="row.key"
+        class="team__split"
+        :data-testid="`team-split-${row.key}`"
       >
-        <span class="team__bar-ally" :style="{ width: `${teamDamagePercent}%` }" />
-        <span class="team__bar-enemy" />
-      </div>
-    </div>
+        <div class="team__split-labels">
+          <span class="team__number" :class="{ 'team__number--lead': row.ally > row.enemy }" data-testid="team-split-ally">{{ row.allyText }}</span>
+          <span class="team__label">{{ row.label }}</span>
+          <span class="team__number" :class="{ 'team__number--lead': row.enemy > row.ally }" data-testid="team-split-enemy">{{ row.enemyText }}</span>
+        </div>
+        <div
+          v-if="row.total > 0"
+          class="mp-split"
+          role="img"
+          :aria-label="row.ariaLabel"
+          data-testid="team-split-bar"
+        >
+          <span :style="{ width: `${row.allyPercent}%` }" />
+          <span />
+        </div>
+        <div
+          v-else
+          class="team__split-empty"
+          role="img"
+          :aria-label="row.ariaLabel"
+          data-testid="team-split-bar"
+        />
+      </li>
+    </ul>
 
-    <table class="team__table" data-testid="team-objectives">
-      <caption class="visually-hidden">Objectives taken by each team</caption>
-      <thead>
-        <tr>
-          <th scope="col">Objective</th>
-          <th scope="col">Your team</th>
-          <th scope="col">Enemy team</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="row in objectives" :key="row.key" :data-testid="`team-objective-${row.key}`">
-          <th scope="row">
-            {{ row.label }}
-          </th>
-          <td :class="{ 'team__cell--lead': row.ally > row.enemy }">{{ row.ally }}</td>
-          <td :class="{ 'team__cell--lead': row.enemy > row.ally }">{{ row.enemy }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <p class="team__key" aria-hidden="true">
+      <span><span class="team__dot team__dot--ally" />Your team</span>
+      <span>Enemy team<span class="team__dot team__dot--enemy" /></span>
+    </p>
   </section>
 </template>
 
 <script setup>
 /**
- * Team summary for the open match: damage split, gold lead at 15 and objectives.
- * Your team is purple, the enemy team orange; every number is also written out.
+ * Team summary for the open match: SplitBars for damage, dragons, barons and towers, your team
+ * (purple, left) against the enemy team (orange, right), with every number written out. The
+ * gold lead at 15 is the caption (team gold totals aren't in the API).
  */
 import { computed } from 'vue'
-import { formatNumber } from '@/utils/formatters'
 
 const props = defineProps({
   match: {
@@ -63,14 +65,23 @@ const hasDamageData = computed(() => {
   return team != null && enemy != null && (team > 0 || enemy > 0)
 })
 
-const teamDamagePercent = computed(() => {
-  const team = props.match.teamTotalDamage || 0
-  const total = team + (props.match.enemyTeamTotalDamage || 0)
-  return total > 0 ? Math.round((team / total) * 100) : 50
-})
+function share(ally, enemy) {
+  const total = ally + enemy
+  return total > 0 ? Math.round((ally / total) * 100) : 50
+}
+
+/** 54,200 → "54.2k"; small counts stay whole */
+function compact(value) {
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`
+  return String(value)
+}
+
+const teamDamagePercent = computed(() =>
+  share(props.match.teamTotalDamage || 0, props.match.enemyTeamTotalDamage || 0)
+)
 
 const title = computed(() =>
-  hasDamageData.value ? `Your team dealt ${teamDamagePercent.value}% of the damage` : 'Team summary'
+  hasDamageData.value ? `Your team dealt ${teamDamagePercent.value}% of the damage` : 'Your team vs theirs'
 )
 
 const goldLeadLine = computed(() => {
@@ -82,18 +93,46 @@ const goldLeadLine = computed(() => {
   return 'Gold was even at 15 minutes.'
 })
 
-const objectives = computed(() => [
-  { key: 'dragons', label: 'Dragons', ally: props.match.teamDragons ?? 0, enemy: props.match.enemyTeamDragons ?? 0 },
-  { key: 'barons', label: 'Barons', ally: props.match.teamBarons ?? 0, enemy: props.match.enemyTeamBarons ?? 0 },
-  { key: 'towers', label: 'Towers', ally: props.match.teamTowers ?? 0, enemy: props.match.enemyTeamTowers ?? 0 }
-])
+function buildRow(key, label, ally, enemy, { percentInLabel = false } = {}) {
+  const total = ally + enemy
+  const allyPercent = share(ally, enemy)
+  let ariaLabel
+  if (!total) ariaLabel = `${label}: none taken`
+  else if (percentInLabel) ariaLabel = `${label}: your team ${allyPercent}%, enemy team ${100 - allyPercent}%`
+  else ariaLabel = `${label}: your team ${ally}, enemy team ${enemy}`
+  return {
+    key,
+    label,
+    ally,
+    enemy,
+    total,
+    allyPercent,
+    allyText: percentInLabel ? compact(ally) : String(ally),
+    enemyText: percentInLabel ? compact(enemy) : String(enemy),
+    ariaLabel
+  }
+}
+
+const rows = computed(() => {
+  const m = props.match
+  const list = []
+  if (hasDamageData.value) {
+    list.push(buildRow('damage', 'Damage', m.teamTotalDamage || 0, m.enemyTeamTotalDamage || 0, { percentInLabel: true }))
+  }
+  list.push(
+    buildRow('dragons', 'Dragons', m.teamDragons ?? 0, m.enemyTeamDragons ?? 0),
+    buildRow('barons', 'Barons', m.teamBarons ?? 0, m.enemyTeamBarons ?? 0),
+    buildRow('towers', 'Towers', m.teamTowers ?? 0, m.enemyTeamTowers ?? 0)
+  )
+  return list
+})
 </script>
 
 <style scoped>
 .team {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.125rem;
 }
 
 .team__header {
@@ -107,89 +146,70 @@ const objectives = computed(() => [
   color: var(--color-ink-soft);
 }
 
-.team__damage {
+.team__splits {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-}
-
-.team__damage-labels {
-  display: flex;
-  justify-content: space-between;
   gap: 1rem;
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-secondary);
+  list-style: none;
 }
 
-.team__damage-labels > span {
-  display: inline-flex;
-  align-items: center;
+.team__split {
+  display: flex;
+  flex-direction: column;
   gap: 0.375rem;
 }
 
-.team__key {
-  width: 0.625rem;
-  height: 0.625rem;
-  border-radius: 999px;
-}
-
-.team__key--ally { background: var(--color-primary-accent); }
-.team__key--enemy { background: var(--color-warn); }
-
-.team__bar {
+.team__split-labels {
   display: flex;
-  gap: 0.25rem;
-  height: 0.625rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.team__bar-ally,
-.team__bar-enemy {
-  border-radius: 999px;
-}
-
-.team__bar-ally { background: var(--color-primary-accent); }
-.team__bar-enemy { flex-grow: 1; background: var(--color-warn); }
-
-.team__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.team__table th,
-.team__table td {
-  padding: 0.75rem 0;
-  border-top: 1px solid var(--color-border);
-  text-align: right;
-}
-
-.team__table thead th {
-  border-top: none;
-  padding-top: 0;
+.team__label {
   font-size: 0.8125rem;
-  font-weight: 500;
   color: var(--color-text-secondary);
 }
 
-.team__table th:first-child {
-  text-align: left;
-}
-
-.team__table tbody th {
-  font-weight: 500;
-  color: var(--color-ink-soft);
-}
-
-.team__table td {
+.team__number {
   font-family: var(--font-display);
-  font-size: 1.0625rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
 }
 
-.team__table td.team__cell--lead {
+.team__number--lead {
   color: var(--color-text);
 }
+
+/* Nothing taken by either team: an empty track, never a made-up split */
+.team__split-empty {
+  height: 0.625rem;
+  border-radius: 999px;
+  background: var(--color-track-strong);
+}
+
+.team__key {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.team__key > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.team__dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+}
+
+.team__dot--ally { background: var(--color-primary-accent); }
+.team__dot--enemy { background: var(--color-warn); }
 </style>

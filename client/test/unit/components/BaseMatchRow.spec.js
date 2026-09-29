@@ -60,6 +60,15 @@ describe('BaseMatchRow', () => {
     expect(mountRow().find('[data-testid="match-row-lp"]').exists()).toBe(false)
   })
 
+  it('colours a gain purple, a loss orange and no change neither', () => {
+    expect(mountRow({ lpChange: 19 }).get('[data-testid="match-row-lp"]').classes()).toContain('mp-up')
+    expect(mountRow({ lpChange: -17 }).get('[data-testid="match-row-lp"]').classes()).toContain('mp-down')
+    const none = mountRow({ lpChange: 0, win: false }).get('[data-testid="match-row-lp"]')
+    expect(none.text()).toBe('±0 LP')
+    expect(none.classes()).not.toContain('mp-up')
+    expect(none.classes()).not.toContain('mp-down')
+  })
+
   it('shows a remake as neither a win nor a loss', () => {
     const wrapper = mountRow({ win: false, remake: true })
     const result = wrapper.get('[data-testid="match-row-result"]')

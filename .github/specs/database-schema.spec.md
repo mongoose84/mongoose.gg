@@ -80,6 +80,7 @@ Stores Riot account identity information. Linked to users via the `user_riot_acc
 | `flex_rank` | VARCHAR(10) | NULL | Flex queue rank |
 | `flex_lp` | INT | NULL | Flex queue LP |
 | `last_sync_at` | TIMESTAMP | NULL | Last successful match sync time |
+| `rank_checked_at` | DATETIME(3) | NULL | Last rank read (poll, sync or login), UTC; `RankSnapshotJob` polls by it |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update time |
 
@@ -323,7 +324,36 @@ Per-player, per-match base statistics.
 - `creep_score` = `totalMinionsKilled` + `neutralMinionsKilled` from Riot API
 - `role` comes from `teamPosition` (preferred)
 - `lane` comes from `lane` (may differ due to lane swaps)
-- `lp_after`, `tier_after`, `rank_after` are only populated for ranked matches (queue_id 420 or 440) when synced via MatchHistorySyncJob.
+- `lp_after`, `tier_after`, `rank_after` are only populated for ranked matches (queue_id 420 or 440), by `RankSnapshotService` when a rank snapshot is attributed to the match (see `rank_snapshots`). They are written once and never overwritten. A match played together with another between two readings has none. The Matches API's `lpChange` compares a match only with the match right before it in the same queue (see architecture.spec.md 6.13).
+
+### `rank_snapshots`
+
+One League-v4 reading of a player's rank in one ranked queue, stored to attribute the LP after a match to that match. Spec: `features/rank-snapshots.spec.md`.
+
+| Column | Type | Null | Description |
+|--------|------|------|-------------|
+| `id` | BIGINT UNSIGNED | NO | Primary key |
+| `puuid` | VARCHAR(78) | NO | Riot account |
+| `queue_id` | INT | NO | 420 Ranked Solo/Duo, 440 Ranked Flex |
+| `tier` | VARCHAR(20) | NO | `EMERALD`, `MASTER`, … |
+| `division` | VARCHAR(10) | YES | `I`–`IV` |
+| `lp` | INT | NO | League points |
+| `wins`, `losses` | INT | NO | Season totals in the queue; a rise of exactly one means one match ended |
+| `captured_at` | DATETIME(3) | NO | Reading time, UTC |
+| `window_start_at` | DATETIME(3) | YES | Pending only: the previous reading's time, where the match window starts |
+| `source` | ENUM | NO | `poll` (RankSnapshotJob), `sync` (end of a match sync), `login` |
+| `status` | ENUM | NO | `baseline`, `pending`, `attributed`, `skipped`, `no_match` |
+| `match_id` | VARCHAR(50) | YES | The match the reading was attributed to |
+
+**Indexes:** `(puuid, queue_id, captured_at)`, `(status, captured_at)`.
+
+**Foreign Keys:** `puuid` → `riot_accounts(puuid)` ON DELETE CASCADE.
+
+**Notes:**
+- A row is only stored when the reading differs from the previous one in the queue (`Unchanged` readings only update `riot_accounts.rank_checked_at`).
+- A `pending` row is attributed to the one stored match in the queue whose end (`game_start_time + game_duration_sec`) falls between `window_start_at` and `captured_at` (±`Jobs:RankSnapshotClockSkewSeconds`); two candidates → `skipped`; none after `Jobs:RankSnapshotPendingTimeoutMinutes` → `skipped`.
+- `RankSnapshotJob` deletes rows older than `Jobs:RankSnapshotRetentionDays` (30) once a day, keeping the newest row per account and queue.
+- Migration: `Infrastructure/Database/Migrations/003_AddRankSnapshots.sql` (also adds `riot_accounts.rank_checked_at`).
 
 ---
 

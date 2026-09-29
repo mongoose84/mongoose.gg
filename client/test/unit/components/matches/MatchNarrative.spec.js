@@ -174,11 +174,38 @@ describe('MatchNarrative.vue', () => {
       expect(wrapper.findAll('.lane-row')).toHaveLength(1)
     })
 
-    it('shows a You chip for the user role', async () => {
+    it('rings your own champion and says it is your lane in the button label', async () => {
       getMatchNarrative.mockResolvedValue(narrativeData)
       const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: 'acc-1' })
       await flushPromises()
-      expect(wrapper.find('.you-badge').text()).toBe('You')
+      const toggle = wrapper.get('[data-testid="lane-toggle-MIDDLE"]')
+      expect(toggle.classes()).toContain('mp-lane-bar')
+      expect(toggle.findAll('img')[0].classes()).toContain('is-you')
+      expect(toggle.attributes('aria-label')).toBe('MIDDLE (you): won lane by 400 gold at 10 minutes')
+    })
+
+    it('grows the bar right in purple when ahead and left in orange when behind', async () => {
+      const behind = {
+        ...narrativeData,
+        userRole: 'TOP',
+        laneMatchups: [{
+          ...narrativeData.laneMatchups[0],
+          role: 'MIDDLE',
+          laneWinner: 'enemy',
+          allyParticipant: { ...narrativeData.laneMatchups[0].allyParticipant, goldDiffAt10: -1800 },
+          enemyParticipant: { ...narrativeData.laneMatchups[0].enemyParticipant, goldDiffAt10: 1800 }
+        }]
+      }
+      getMatchNarrative.mockResolvedValue(behind)
+      const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: 'acc-1' })
+      await flushPromises()
+      const toggle = wrapper.get('[data-testid="lane-toggle-MIDDLE"]')
+      expect(toggle.get('.mp-lane-bar__behind > span').attributes('style')).toContain('width: 100%')
+      expect(toggle.get('.mp-lane-bar__ahead > span').attributes('style')).toContain('width: 0%')
+      const diff = wrapper.get('[data-testid="lane-result"]')
+      expect(diff.text()).toBe('−1,800')
+      expect(diff.classes()).toContain('mp-down')
+      expect(toggle.findAll('img')[0].classes()).not.toContain('is-you')
     })
 
     it('marks the user lane row with user-role class', async () => {
@@ -217,12 +244,14 @@ describe('MatchNarrative.vue', () => {
       expect(wrapper.get('.lane-details').attributes('id')).toBe(toggle.attributes('aria-controls'))
     })
 
-    it('states the lanes won in the title and each lane result in words', async () => {
+    it('counts the lanes won in the title and writes each gold difference', async () => {
       getMatchNarrative.mockResolvedValue(narrativeData)
       const wrapper = createWrapper({ matchId: 'EUW1_1', accountId: 'acc-1' })
       await flushPromises()
-      expect(wrapper.get('[data-testid="narrative-title"]').text()).toMatch(/^Your team won [01] of 1 lanes$/)
-      expect(['Won lane', 'Lost lane', 'Even']).toContain(wrapper.get('[data-testid="lane-result"]').text())
+      expect(wrapper.get('[data-testid="narrative-title"]').text()).toBe('1 of 1 lanes won')
+      const diff = wrapper.get('[data-testid="lane-result"]')
+      expect(diff.text()).toBe('+400')
+      expect(diff.classes()).toContain('mp-up')
     })
 
     it('does not show loading or error after successful fetch', async () => {

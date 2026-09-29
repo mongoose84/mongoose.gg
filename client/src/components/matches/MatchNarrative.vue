@@ -13,10 +13,10 @@
     <div v-if="loading" class="loading-state" data-testid="narrative-loading">
       <span class="loading-text visually-hidden">Loading the lanes</span>
       <div v-for="n in 5" :key="n" class="narrative__skeleton-row">
-        <BaseSkeleton width="4.5rem" />
+        <BaseSkeleton variant="block" width="2.25rem" height="2.25rem" />
+        <BaseSkeleton width="100%" />
         <BaseSkeleton variant="block" width="2.25rem" height="2.25rem" />
         <BaseSkeleton width="3rem" />
-        <BaseSkeleton variant="block" width="2.25rem" height="2.25rem" />
       </div>
     </div>
 
@@ -61,52 +61,52 @@
       </div>
     </div>
 
-    <!-- Lanes: one row per role, opens to the lane details -->
+    <!-- Lanes: one LaneBar per role (gold difference at 10), opens to the lane details -->
     <ul v-else class="lane-matchups narrative__list">
       <li
-        v-for="matchup in narrativeData.laneMatchups"
-        :key="matchup.role"
+        v-for="lane in lanes"
+        :key="lane.role"
         class="lane-row"
-        :class="{ expanded: expandedRole === matchup.role, 'user-role': isUserRole(matchup.role) }"
+        :class="{ expanded: expandedRole === lane.role, 'user-role': lane.isYou }"
         data-testid="lane-row"
       >
         <button
           type="button"
-          class="lane-header"
-          :aria-expanded="expandedRole === matchup.role ? 'true' : 'false'"
-          :aria-controls="`lane-details-${matchup.role}`"
-          :data-testid="`lane-toggle-${matchup.role}`"
-          @click="toggleExpand(matchup.role)"
+          class="mp-lane-bar lane-header"
+          :aria-expanded="expandedRole === lane.role ? 'true' : 'false'"
+          :aria-controls="`lane-details-${lane.role}`"
+          :aria-label="lane.ariaLabel"
+          :data-testid="`lane-toggle-${lane.role}`"
+          @click="toggleExpand(lane.role)"
         >
-          <span class="lane-role">
-            <img :src="getRoleIconUrl(matchup.role)" alt="" class="role-icon" />
-            {{ formatRole(matchup.role) }}
-            <span v-if="isUserRole(matchup.role)" class="you-badge mp-chip mp-chip--strength">You</span>
+          <img
+            :src="lane.matchup.allyParticipant.championIconUrl"
+            alt=""
+            :class="{ 'is-you': lane.isYou }"
+          />
+          <span class="mp-lane-bar__track" aria-hidden="true">
+            <span class="mp-lane-bar__behind"><span :style="{ width: lane.behindWidth }" /></span>
+            <span class="mp-lane-bar__axis" />
+            <span class="mp-lane-bar__ahead"><span :style="{ width: lane.aheadWidth }" /></span>
           </span>
-
-          <span class="lane-champion">
-            <img :src="matchup.allyParticipant.championIconUrl" :alt="matchup.allyParticipant.championName" class="narrative__icon" />
-            <span class="narrative__kda">{{ formatKda(matchup.allyParticipant) }}</span>
-          </span>
-          <span class="lane-vs" aria-hidden="true">vs</span>
-          <span class="lane-champion lane-champion--enemy">
-            <span class="visually-hidden">versus</span>
-            <span class="narrative__kda">{{ formatKda(matchup.enemyParticipant) }}</span>
-            <img :src="matchup.enemyParticipant.championIconUrl" :alt="matchup.enemyParticipant.championName" class="narrative__icon" />
-          </span>
-
-          <span class="winner-badge" :class="winnerClass(matchup.laneWinner)" data-testid="lane-result">
-            {{ winnerText(matchup.laneWinner) }}
-          </span>
-          <BaseIcon name="chevron-down" :size="20" class="lane-chevron" />
+          <img
+            :src="lane.matchup.enemyParticipant.championIconUrl"
+            alt=""
+            class="lane-bar__enemy"
+          />
+          <span
+            class="mp-lane-bar__diff"
+            :class="lane.diffClass"
+            data-testid="lane-result"
+          >{{ lane.diffText }}</span>
         </button>
 
         <div
-          v-if="expandedRole === matchup.role"
-          :id="`lane-details-${matchup.role}`"
+          v-if="expandedRole === lane.role"
+          :id="`lane-details-${lane.role}`"
           class="lane-details"
         >
-          <LaneMatchupDetails :matchup="matchup" />
+          <LaneMatchupDetails :matchup="lane.matchup" />
         </div>
       </li>
     </ul>
@@ -115,7 +115,7 @@
 
 <script setup>
 /**
- * Lane by lane for the open match: each role's matchup with who won the lane (gold at 10),
+ * Lane by lane for the open match: one LaneBar per role with the gold difference at 10 minutes,
  * opening to the lane details. ARAM lists both teams by damage share instead.
  */
 import { ref, watch, computed } from 'vue'
@@ -125,7 +125,7 @@ import LaneMatchupDetails from './LaneMatchupDetails.vue'
 import { getMatchNarrative } from '../../services/matchesApi'
 import { trackLaneExpand } from '../../services/analyticsApi'
 import { formatRole, formatKdaFromParticipant as formatKda, formatPercent } from '@/utils/formatters'
-import { getRoleIconUrl } from '@/utils/leagueAssets'
+import { laneGoldDiffAt10, laneBar } from '@/utils/matchesSummary'
 
 const props = defineProps({
   matchId: {
@@ -185,19 +185,33 @@ async function load() {
 
 watch([() => props.matchId, () => props.accountId], load, { immediate: true })
 
-const lanesWon = computed(() => (narrativeData.value?.laneMatchups || []).filter((m) => m.laneWinner === 'ally').length)
+const lanes = computed(() => (narrativeData.value?.laneMatchups || []).map((matchup) => {
+  const isYou = isUserRole(matchup.role)
+  const bar = laneBar(laneGoldDiffAt10(matchup))
+  const roleName = formatRole(matchup.role)
+  return {
+    role: matchup.role,
+    matchup,
+    isYou,
+    ...bar,
+    diffClass: bar.result === 'won' ? 'mp-up' : bar.result === 'lost' ? 'mp-down' : 'lane-bar__diff--even',
+    ariaLabel: `${roleName}${isYou ? ' (you)' : ''}: ${bar.description}`
+  }
+}))
+
+const lanesWon = computed(() => lanes.value.filter((lane) => lane.result === 'won').length)
 
 const title = computed(() => {
   const data = narrativeData.value
   if (!data || !data.laneMatchups?.length) return 'Lane by lane'
   if (data.isAram) return 'Both teams by damage'
-  return `Your team won ${lanesWon.value} of ${data.laneMatchups.length} lanes`
+  return `${lanesWon.value} of ${data.laneMatchups.length} lanes won`
 })
 
 const caption = computed(() =>
   narrativeData.value?.isAram
     ? 'Each player with their share of their team\'s damage.'
-    : 'The lane goes to whoever is 300 or more gold ahead at 10 minutes. Open a lane for the details.'
+    : 'Gold at 10 min'
 )
 
 function toggleExpand(role) {
@@ -222,18 +236,6 @@ function isUserChampion(participant) {
   return participant?.isUserParticipant === true
 }
 
-function winnerText(winner) {
-  if (winner === 'ally') return 'Won lane'
-  if (winner === 'enemy') return 'Lost lane'
-  return 'Even'
-}
-
-function winnerClass(winner) {
-  if (winner === 'ally') return 'mp-up'
-  if (winner === 'enemy') return 'mp-down'
-  return 'winner-badge--even'
-}
-
 const aramTeams = computed(() => {
   const matchups = narrativeData.value?.isAram ? narrativeData.value.laneMatchups || [] : []
   const byShare = (a, b) => b.damageShare - a.damageShare
@@ -253,8 +255,10 @@ const aramTeams = computed(() => {
 
 .narrative__header {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
 }
 
 .narrative__caption {
@@ -279,60 +283,6 @@ const aramTeams = computed(() => {
   color: var(--color-text-secondary);
 }
 
-.lane-row {
-  border-top: 1px solid var(--color-border);
-}
-
-.lane-header {
-  display: grid;
-  grid-template-columns: minmax(6.5rem, 1fr) auto auto auto 5.5rem 1.25rem;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  min-height: 3.75rem;
-  padding: 0.5rem 0;
-  border: none;
-  background: transparent;
-  font: inherit;
-  color: var(--color-text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.lane-header:focus-visible {
-  outline: none;
-  border-radius: 0.75rem;
-  box-shadow: var(--shadow-focus);
-}
-
-.lane-role {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.role-icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  object-fit: contain;
-  filter: brightness(0) invert(1);
-  opacity: 0.7;
-}
-
-.lane-champion {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.lane-vs {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-}
-
 .narrative__icon {
   width: 2.25rem;
   height: 2.25rem;
@@ -349,32 +299,19 @@ const aramTeams = computed(() => {
   font-variant-numeric: tabular-nums;
 }
 
-.lane-champion--enemy .narrative__kda {
-  text-align: right;
+/* LaneBar: icons sit on track until they load; the enemy side is quieter */
+.mp-lane-bar img {
+  background: var(--color-track);
 }
 
-.winner-badge {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-align: right;
+.lane-bar__enemy {
+  opacity: 0.85;
 }
 
-.winner-badge--even {
+.lane-bar__diff--even {
   color: var(--color-text-secondary);
 }
 
-.lane-chevron {
-  color: var(--color-text-secondary);
-}
-
-.expanded .lane-chevron {
-  transform: rotate(180deg);
-  color: var(--color-text);
-}
-
-.lane-header:hover .lane-role {
-  color: var(--color-positive-text-strong);
-}
 
 .lane-details {
   padding: 0.25rem 0 1.25rem;
@@ -423,21 +360,16 @@ const aramTeams = computed(() => {
 }
 
 @media (max-width: 599px) {
-  .lane-header {
-    grid-template-columns: minmax(0, 1fr) auto auto 1.25rem;
-    row-gap: 0.25rem;
+  .mp-lane-bar {
+    grid-template-columns: 2rem minmax(0, 1fr) 2rem 3.25rem;
+    gap: 0.625rem;
+    min-height: 3.25rem;
   }
 
-  .lane-role {
-    grid-column: 1 / -1;
-  }
-
-  .lane-vs {
-    display: none;
-  }
-
-  .winner-badge {
-    grid-column: 3;
+  .mp-lane-bar img {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.75rem;
   }
 
   .aram-players {

@@ -6,8 +6,7 @@ vi.mock('@/components/matches/MatchHeader.vue', () => ({
   default: {
     name: 'MatchHeader',
     props: ['match', 'badge'],
-    emits: ['download'],
-    template: `<div data-testid="match-header" @click="$emit('download')" />`
+    template: '<div data-testid="match-header" />'
   }
 }))
 
@@ -31,7 +30,8 @@ vi.mock('@/components/matches/StatSnapshot.vue', () => ({
   default: {
     name: 'StatSnapshot',
     props: ['match', 'baseline'],
-    template: '<div data-testid="stat-snapshot" />'
+    emits: ['download'],
+    template: `<div data-testid="stat-snapshot" @click="$emit('download')" />`
   }
 }))
 
@@ -112,7 +112,7 @@ describe('MatchDetails.vue', () => {
   })
 
   describe('Download', () => {
-    it('downloads the match as a JSON file when the header asks for it', async () => {
+    it('downloads the match as a JSON file when All your stats asks for it', async () => {
       const createObjectURL = vi.fn(() => 'blob:match')
       const revokeObjectURL = vi.fn()
       globalThis.URL.createObjectURL = createObjectURL
@@ -127,7 +127,7 @@ describe('MatchDetails.vue', () => {
         goldPerMin: 400, visionScore: 20, deathsPre10: 0, goldDiffAt15: 300
       }
       const wrapper = createWrapper({ match })
-      await wrapper.get('[data-testid="match-header"]').trigger('click')
+      await wrapper.get('[data-testid="stat-snapshot"]').trigger('click')
 
       expect(createObjectURL).toHaveBeenCalledOnce()
       expect(click).toHaveBeenCalledOnce()

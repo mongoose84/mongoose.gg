@@ -46,6 +46,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeEmailService EmailService => _emailService;
     public FakeRiotApiClient RiotApiClient => _riotApiClient;
     public FakeRiotAccountsRepository RiotAccountsRepository => _riotAccountsRepository;
+    public FakeRankSnapshotsRepository RankSnapshotsRepository { get; } = new();
     public FakeUserRiotAccountsRepository UserRiotAccountsRepository => _userRiotAccountsRepository;
     public FakeOverviewStatsRepository OverviewStatsRepository => _overviewStatsRepository;
     public FakeAnalyticsEventsRepository AnalyticsEventsRepository => _analyticsEventsRepository;
@@ -100,6 +101,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["Auth:CookieName"] = "mongoose-auth",
                 ["Jobs:EnableMatchHistorySync"] = "false",
                 ["Jobs:EnableMatchCleanup"] = "false",
+                ["Jobs:EnableRankSnapshots"] = "false",
                 ["Jobs:EnableAnalyticsBackgroundJobs"] = "false",
                 ["RIOT_API_KEY"] = "test-key",
                 ["Database_test"] = "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;",
@@ -153,6 +155,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace RiotAccountsRepository with a fake
             services.RemoveAll<IRiotAccountsRepository>();
             services.AddSingleton<IRiotAccountsRepository>(_riotAccountsRepository);
+
+            // Rank snapshots are recorded at login; keep them in memory
+            services.RemoveAll<IRankSnapshotsRepository>();
+            services.AddSingleton<IRankSnapshotsRepository>(RankSnapshotsRepository);
 
             // Replace UserRiotAccountsRepository with a fake
             services.RemoveAll<IUserRiotAccountsRepository>();
@@ -1259,7 +1265,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         int VisionScore = 0,
         decimal KillParticipation = 0,
         decimal DamageShare = 0,
-        int DeathsPre10 = 0
+        int DeathsPre10 = 0,
+        int? LpChange = null,
+        int? LpAfter = null,
+        string? TierAfter = null,
+        string? RankAfter = null
     );
 
     /// <summary>
@@ -1359,7 +1369,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                         GameStartTime: match.GameStartTime,
                         CsPerMin: csPerMin,
                         GoldPerMin: goldPerMin,
-                        TrendBadge: null
+                        TrendBadge: null,
+                        LpChange: participant.LpChange,
+                        LpAfter: participant.LpAfter,
+                        TierAfter: participant.TierAfter,
+                        RankAfter: participant.RankAfter
                     );
                 })
                 .Where(item => item != null)
@@ -1423,7 +1437,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                         GameStartTime: match.GameStartTime,
                         CsPerMin: csPerMin,
                         GoldPerMin: goldPerMin,
-                        TrendBadge: null
+                        TrendBadge: null,
+                        LpChange: participant.LpChange,
+                        LpAfter: participant.LpAfter,
+                        TierAfter: participant.TierAfter,
+                        RankAfter: participant.RankAfter
                     );
                 })
                 .Where(item => item != null)
@@ -1494,7 +1512,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 EnemyTeamBarons: 0,
                 TeamTowers: 0,
                 EnemyTeamTowers: 0,
-                DragonsParticipated: 0
+                DragonsParticipated: 0,
+                LpChange: participant.LpChange,
+                LpAfter: participant.LpAfter,
+                TierAfter: participant.TierAfter,
+                RankAfter: participant.RankAfter
             );
 
             return Task.FromResult<MatchDetailsItem?>(result);
