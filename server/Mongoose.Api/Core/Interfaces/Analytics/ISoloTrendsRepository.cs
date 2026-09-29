@@ -22,4 +22,10 @@ public interface ISoloTrendsRepository
 
     /// <summary>Ranked Solo/Duo and Flex match counts in the current season.</summary>
     Task<SoloQueueCounts> GetSeasonQueueCountsAsync(IReadOnlyList<string> puuids);
+
+    /// <summary>
+    /// The accounts among <paramref name="puuids"/> whose death detail backfill isn't done yet
+    /// (<c>riot_accounts.death_detail_backfilled_at</c> is null).
+    /// </summary>
+    Task<IReadOnlyList<string>> GetDeathDetailPendingAccountsAsync(IReadOnlyList<string> puuids);
 }

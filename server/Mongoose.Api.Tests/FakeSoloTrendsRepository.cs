@@ -60,6 +60,12 @@ public sealed class FakeSoloTrendsRepository : ISoloTrendsRepository
             Objectives.Where(o => matches.Contains(o.MatchId)).ToList()));
     }
 
+    /// <summary>Accounts whose death detail backfill is done; every other account is pending.</summary>
+    public HashSet<string> BackfilledAccounts { get; } = new();
+
+    public Task<IReadOnlyList<string>> GetDeathDetailPendingAccountsAsync(IReadOnlyList<string> puuids) =>
+        Task.FromResult<IReadOnlyList<string>>(puuids.Where(p => !BackfilledAccounts.Contains(p)).ToList());
+
     public Task<SoloQueueCounts> GetSeasonQueueCountsAsync(IReadOnlyList<string> puuids)
     {
         var season = Matches.Where(m => puuids.Contains(m.Puuid) && m.InSeason).ToList();

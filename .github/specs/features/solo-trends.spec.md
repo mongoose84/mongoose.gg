@@ -563,7 +563,7 @@ Feature is considered complete when:
 - [ ] Unit and integration tests pass; the frontend build is green.
 - [ ] `architecture.spec.md`, `database-schema.spec.md` and `ui-ux.spec.md` (Solo section and §10 component list) are updated.
 - [x] The new patterns are in the design system, `reference/` and the canvas "Current" row (Step 5).
-- [ ] Code review and a security review of the new endpoints are done.
+- [x] Code review and a security review of the new endpoints are done (2026-09-29: ownership, account resolution and parameterized SQL shared by all four endpoints; backfill progress only reaches the account's linked users; fixed a `backfill` that stayed "queued" after the job had finished the account).
 - [ ] A visual pass at 1440 / 1024 / 390px is done with a real account.
 
 ## Dependencies
@@ -604,7 +604,7 @@ Before implementation begins:
 - [ ] Rules in this spec reviewed
 - [ ] Database changes reviewed (migration 004)
 - [ ] API contracts reviewed
-- [ ] Security considerations addressed (ownership, no PUUID input, sanitized logging)
+- [x] Security considerations addressed (ownership, no PUUID input, sanitized logging)
 - [x] Open question answered (backfill)
 
 ## References

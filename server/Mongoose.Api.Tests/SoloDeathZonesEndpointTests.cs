@@ -185,6 +185,23 @@ public class SoloDeathZonesEndpointTests
     }
 
     [Fact]
+    public async Task GetDeathZones_HasNoBackfill_WhenTheAccountsBackfillIsDone()
+    {
+        // Older matches than the job's last 50, or timelines Riot no longer serves, stay without detail
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        LinkPrimaryAccount(factory);
+        Seed(factory, matches: 10, deathsPerMatch: 3, detailed: false);
+        factory.SoloTrendsRepository.BackfilledAccounts.Add(Puuid);
+
+        var root = await ReadJsonAsync(await GetAsync(factory, authCookie, $"{Route}/1?queueType=ranked_solo"));
+
+        root.GetProperty("ready").GetBoolean().Should().BeFalse();
+        root.GetProperty("backfill").ValueKind.Should().Be(JsonValueKind.Null);
+        factory.Services.GetRequiredService<DeathDetailBackfillState>().Prioritized().Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task GetDeathZones_ReportsTheJobsProgress()
     {
         using var factory = new TestWebApplicationFactory();

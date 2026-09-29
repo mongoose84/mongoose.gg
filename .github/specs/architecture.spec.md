@@ -459,7 +459,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Route**: `GET /api/v2/solo/death-zones/{userId}`  
 **Auth**: Yes  
 **Query params**: same as 6.12a  
-**Response**: `DeathZonesResponse(matches, queueType, range, deaths, ready, zones[], breakdowns, backfill?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#death-zones). `ready` needs 30 counted deaths; `backfill` (`status`, `done`, `total`, `retryAt?`) is set only while matches in range still lack death detail.  
+**Response**: `DeathZonesResponse(matches, queueType, range, deaths, ready, zones[], breakdowns, backfill?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#death-zones). `ready` needs 30 counted deaths; `backfill` (`status`, `done`, `total`, `retryAt?`) is set only while deaths in range lack their detail and an account in scope still has backfill work (`riot_accounts.death_detail_backfilled_at` null); deaths older than the job's last 50 matches can stay without detail for good.  
 **Logic**: Deaths with a time and an allies count are counted (executes, with no killer, count too). Positions are mirrored for the red side and classified into 16 regions (`MapRegions`); each death gets a phase, a how (teamfight, ganked, alone, other) and a cost (first enemy dragon, tower, baron or herald within 60 s) (`DeathClassifier`). Zones with 5+ deaths, most objectives lost first, top 5, costly at 30% (`DeathZonesCalculator`). Matches missing detail are moved to the front of the backfill queue (`DeathDetailBackfillJob`).  
 **Tables**: `matches`, `participants`, `participant_death_events`, `match_objective_events`  
 **Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`

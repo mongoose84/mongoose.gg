@@ -188,6 +188,20 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
                 .Select(int.Parse).ToList();
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> GetDeathDetailPendingAccountsAsync(IReadOnlyList<string> puuids)
+    {
+        if (puuids.Count == 0) return [];
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("ra.puuid", puuids, "puuid");
+        var sql = $@"SELECT ra.puuid FROM riot_accounts ra
+            WHERE {puuidPredicate}
+            AND ra.death_detail_backfilled_at IS NULL";
+
+        var pending = await ExecuteListAsync(sql, r => r.GetString(0), puuidParams.ToArray());
+        return pending.ToList();
+    }
+
+    /// <inheritdoc />
     public async Task<SoloQueueCounts> GetSeasonQueueCountsAsync(IReadOnlyList<string> puuids)
     {
         if (puuids.Count == 0) return new SoloQueueCounts(0, 0);

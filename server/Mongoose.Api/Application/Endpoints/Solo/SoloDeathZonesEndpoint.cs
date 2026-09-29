@@ -49,8 +49,11 @@ public sealed class SoloDeathZonesEndpoint : IEndpoint
                 var data = await soloTrendsRepo.GetDeathDataAsync(scope.Puuids, rows.Select(r => r.MatchId).ToList());
                 var zones = DeathZonesCalculator.Calculate(data.Deaths, data.Participants, data.Objectives);
 
-                return Results.Ok(SoloTrendsDto.ToDto(zones, rows.Count, scope.QueueType, scope.RangeKey,
-                    Backfill(backfillState, scope.Puuids, zones.MissingDetail)));
+                var backfill = zones.MissingDetail == 0
+                    ? null
+                    : Backfill(backfillState, await soloTrendsRepo.GetDeathDetailPendingAccountsAsync(scope.Puuids));
+
+                return Results.Ok(SoloTrendsDto.ToDto(zones, rows.Count, scope.QueueType, scope.RangeKey, backfill));
             }
             catch (Exception ex)
             {
@@ -63,17 +66,19 @@ public sealed class SoloDeathZonesEndpoint : IEndpoint
     }
 
     /// <summary>
-    /// FR 39: the job's progress for an account in scope; "queued" when deaths in range still lack
-    /// their detail but the job hasn't reached the account; null when nothing is missing. Asking
-    /// for the zones moves the accounts to the front of the backfill (FR 38).
+    /// FR 39, called when deaths in range lack their detail: the job's progress for an account in
+    /// scope whose backfill isn't done, or "queued" when the job hasn't reached it yet. Null when
+    /// every account is done: the job only reads the last 50 matches and skips timelines Riot no
+    /// longer serves, so older deaths can stay without detail for good. Asking for the zones moves
+    /// the pending accounts to the front of the backfill (FR 38).
     /// </summary>
-    private static SoloTrendsDto.BackfillDto? Backfill(IDeathDetailBackfillState state, IReadOnlyList<string> puuids, int missingDetail)
+    private static SoloTrendsDto.BackfillDto? Backfill(IDeathDetailBackfillState state, IReadOnlyList<string> pendingPuuids)
     {
-        if (missingDetail == 0) return null;
+        if (pendingPuuids.Count == 0) return null;
 
-        foreach (var puuid in puuids) state.Prioritize(puuid);
+        foreach (var puuid in pendingPuuids) state.Prioritize(puuid);
 
-        var progress = puuids.Select(state.Get).FirstOrDefault(p => p != null)
+        var progress = pendingPuuids.Select(state.Get).FirstOrDefault(p => p != null)
             ?? new DeathDetailBackfillProgress(DeathDetailBackfillProgress.Queued, 0, 0);
         return new SoloTrendsDto.BackfillDto(progress.Status, progress.Done, progress.Total, progress.RetryAt);
     }
