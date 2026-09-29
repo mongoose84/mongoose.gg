@@ -202,6 +202,77 @@ Four PRs, in order; each is shippable alone. **Status: 4a built on branch `imple
 
 ---
 
+## Phase 5: Solo page redesign
+
+Proposed 2026-09-29 through `/mongoose-design`: Solo becomes the "am I improving?" page. Every card compares the player with their own past, draws the comparison ("show, then say"), and leads to one fix. Target: the "Solo" row on the redesign canvas (https://claude.ai/artifact/Ufv95okAfSYgmnaJgniRhL): `SoloVisual` (desktop), `PhoneSoloVisual`. Metric choice follows `docs/win-prediction-metrics-research.md` (deaths, gold lead at 15, dragon participation, vision, CS, then kill participation; session fatigue).
+
+**Page order:** headline ("+148 LP over your last 50 matches" + the one reason) with queue and range SegmentedControls → climb card (LP line, promotions, biggest drop) beside the "Your focus" highlight card → "n of 6 match-deciding stats improved" (six trend tiles) → "Where your deaths cost you" (death zones) → win factors (hit vs miss win rate) beside LP per champion → three pattern cards (session length, after a loss, match length). Below 900px everything stacks; trend tiles become compact rows.
+
+### What exists and what is missing
+
+| Card | Data today | Gap |
+|---|---|---|
+| Range control | Solo endpoints take `timeRange` in days (7d … all) | Ranges must count matches: `range=last20\|last50\|season` |
+| Climb | `participants.lp_after` / `lpChange` (4b), rank snapshots | Coverage is thin until the rank-snapshot week ends (2026-10-06); decide the fallback |
+| Stat trends | Per-stat trend endpoints under `Endpoints/Trends` (deaths, CS, vision, gold at 15, dragons, win rate); kill participation per match | One endpoint returning all six rolling series with start/end values; "Emerald average" benchmark has no source |
+| Your focus | Nothing | Rule that picks the stat (see 5a); goal action depends on Goals (flagged off) |
+| Win factors | Checkpoints (gold diff at 15), deaths, `participant_objectives`, `vision_per_min`, CS per minute | Aggregation only |
+| LP per champion | `lpChange` per match | Same coverage caveat as the climb |
+| Patterns | `game_start_time`, results, match length | Session grouping rule (gap between matches) |
+| Death zones | `participant_death_events`: minute, x/y, killer champion, assist count (table missing from `database-schema.spec.md`) | Death time in seconds, killer's role, allies near the victim, victim's side, objective events with timestamps (shared with 4d) |
+
+### 5a. Spec (first)
+- [x] `features/solo-trends.spec.md` drafted (2026-09-29); its open question is answered (backfill with visible progress). It covers:
+  - Ranges: Last 20 / Last 50 / Season, counted in matches for the selected queue; Summoner's Rift only (ARAM left out).
+  - Trend tiles: 10-match rolling average, "now" = last point, "was" = first point; verdict thresholds for Improving / Slipping / Steady; "less is better" stats (deaths) flip the verdict, not the chart.
+  - Win-factor marks (ahead at 15, 4 or fewer deaths, 2+ dragons, 0.9+ vision per minute, 7+ CS per minute) and the minimum matches per side (hide a row under 5).
+  - Focus rule: among Slipping stats, the one with the largest hit/miss win-rate gap; with none slipping, the lowest-hit stat among the top three win factors; with fewer than 20 matches, no focus card. Finding, evidence and fix copy per stat (reuse the fixes in `utils/decidingStat.js` where they fit).
+  - Sessions: matches less than 30 minutes apart (end to next start) form a session; patterns need 3+ matches per group.
+  - Death zones: see 5e/5f for the classification rules; decide them here.
+  - Copy for every title (takeaway form) and every empty state.
+- [x] Open questions answered (see Decisions below).
+
+### 5b. Page shell, ranges, trends and win factors (backend + frontend)
+- [ ] Backend: `range` parameter (match counts) on the new Solo endpoints; keep `timeRange` on the old ones until they are removed. New `GET /api/v2/solo/stat-trends/{userId}` (six series + start/end/benchmark per stat) and `GET /api/v2/solo/win-factors/{userId}` (factor rows, patterns). Ownership check, resolve the Riot account server-side, parameterized SQL, `LogSanitizer` on logged values. Rules (rolling average, verdicts, session grouping) in Core services with unit tests. Update `architecture.spec.md`.
+- [ ] Frontend: rebuild `SoloStatsPage.vue` without `AnalysisLayout`: headline, SegmentedControls, `TrendTile` grid, win-factor card, pattern cards (`BaseColumnChart`). Every card has its own skeleton / error-with-retry / empty / content. The benchmark line shows "Your season average" until 5g.
+- [ ] Retire `SummaryStatsCard`, `TrendChartCard`, `TrendLineChart`, the six Chart.js trend charts, `RadarChart` and `RadarChartEndpoint`, and the match-activity card on this page, with their tests; remove the old `Trends/*` endpoints once nothing calls them.
+- [ ] Tests: Core rule tests, endpoint integration tests (ownership, range, empty), unit tests for the new components and copy helpers; E2E smoke for the page.
+
+### 5c. Climb and LP per champion
+- [ ] Can ship before the rank-snapshot coverage result (2026-10-06) thanks to the win-rate fallback (decision 1); the result tells how often the fallback shows.
+- [ ] Core rule for LP coverage (80% of ranked matches in range, at least 10) deciding LP vs win-rate mode for the headline, climb card and champion card; returned as a `mode` field.
+- [ ] `GET /api/v2/solo/climb/{userId}`: the LP ladder per ranked match (100 LP per division, Master+ shared, as `LpChangeCalculator`), promotions, biggest drop, LP per champion (champions under 3 matches left out). Ranked queues only.
+- [ ] Climb card (line chart per the design system: takeaway title, labelled divisions, promotion labels, one orange point for the biggest drop, text alternative) and the LP-per-champion card (LaneBar-style bars around zero).
+
+### 5d. Your focus
+- [ ] Core `SoloFocusPicker` per the 5a rule; returned with `stat-trends` (or its own field on the Solo summary).
+- [ ] Focus card (`surface-highlight`, the page's one highlight): finding, evidence, the 20-match hit/miss strip, and one "Next match" fix. No goal button until Goals ship (decision 2).
+
+### 5e. Death data (backend first)
+- [ ] Extend `participant_death_events`: `timestamp_sec`, `killer_participant_id` (gives role and whether it was the lane opponent), `allies_nearby` (allies within ~1,500 units in the nearest participant frame; per-minute positions, so approximate), and `participants.riot_participant_id` so timeline IDs map to rows (the victim's side for mirroring comes from `participants.team_id`). Migration `004_SoloTrendsDeathDetail.sql` + `database-schema.spec.md` (add the missing table).
+- [ ] Persist objective events from the same timeline payload (`ELITE_MONSTER_KILL`, `BUILDING_KILL`: type, team, timestamp). Shared with 4d; build it once.
+- [ ] Backfill (decided 2026-09-29): raw timelines are not kept, so `DeathDetailBackfillJob` re-fetches them for the last 50 Summoner's Rift matches of active accounts. It runs at the lowest priority through `RiotLimitHandler` (at most 20 of the 50 requests per 2 minutes, yielding to user syncs) and reports progress and "Waiting on Riot's servers" in the death-zones card. The same line replaces the temporary `sync_rate_limited` copy (spec FR 38–40).
+
+### 5f. Death zones card
+- [ ] Core: map every death to one of a fixed set of named regions (lanes split at the river, top and bottom river, dragon pit, Baron pit, the four jungle quadrants, both bases), mirrored so the player's base is bottom left. Named regions over clustering: stable between visits and easy to label. Classify each death: ganked in lane (before 14 min, in own lane, killer not the lane opponent), caught alone (no allies nearby), in a teamfight (3+ per side involved); "cost an objective" = the enemy took a dragon, Baron, Herald or tower within 60 seconds.
+- [ ] `GET /api/v2/solo/death-zones/{userId}`: top 5 zones (deaths, lost objectives, the timing note), totals and the three breakdowns, filterable by zone. Zones under 5 deaths left out.
+- [ ] Frontend: `DeathMap` (outline map, zone circles sized by deaths, orange when 30%+ cost an objective, `role="img"` with every zone in the label), zone list (`aria-pressed` rows that filter the breakdowns), breakdown bars. Retire `DangerZonesMap` and the heatmap canvas; replace or remove `DeathPositionsEndpoint`.
+
+### 5g. Rank averages (optional, later)
+- [ ] Source the "Emerald average" benchmark: aggregate Mongoose.gg matches per tier and role once there are enough (minimum sample in 5a), else keep "Your season average". No third-party stats sites without checking their terms.
+
+### Design system (Step 5, alongside the PRs that first use each piece)
+- [ ] Add TrendTile, the win-factor row (two dots, hit vs missed), the goal strip, DeathMap and the zone list to the live system, `reference/`, and the canvas "Current" row. Record LaneBar's reuse for LP per champion.
+
+### Decisions (2026-09-29)
+1. **Climb fallback:** the climb card always shows. When fewer than 80% of the ranked matches in the range have a known LP change (or fewer than 10 have one), it draws the 10-match rolling win rate instead, titled with the takeaway ("Win rate up from 52% to 58%"), with one caption line saying LP appears as matches sync. The headline falls back to wins ("28 wins in your last 50"). LP per champion falls back to net wins per champion (wins minus losses, same bars around zero). Same threshold everywhere, one Core rule.
+2. **Goal button:** hidden until Goals ship inside Advanced. The focus card ends with the "Next match" fix.
+3. **Death zones:** always visible on the page (as drawn); the Deaths tile does not open it.
+4. **Arrows:** as drawn. The arrow shows the direction of the number, the colour and the verdict word show whether that is good (fewer deaths: ▼ in purple, "Improving").
+5. **Highlight:** the focus card is the Solo page's one highlight card (Readiness keeps that role on the Overview).
+
+---
+
 ## Later phases
 
 One PR each, through `/mongoose-design`:
@@ -216,7 +287,7 @@ One PR each, through `/mongoose-design`:
   - Design system (Step 5, done 2026-09-28): MatchRow gained the selected, remake and narrow-list (`mp-match-list`) states; new StatTile (`mp-stat`), LaneRow (`mp-lane-row`) and SplitBar (`mp-split`); token notes for `surface-raised`, `surface-selected` and `track-strong` extended; "Matches order" in the brand book; `reference/` refreshed; "Current · Matches" artboard added to the mockup canvas. The app's components keep their own scoped styles for now rather than these `mp-*` classes.
   - Next: the visual redesign, planned as Phase 4 above.
   - Leftovers: no LP change in the list yet (the API has none); champion names still show Riot's internal ID; no visual pass with real match data yet (the E2E user has no matches); E2E only covers the page loading (smoke).
-- [ ] Solo page
+- [ ] Solo page — planned as Phase 5 above.
 - [x] Champion Select page — **built on branch `claude/champion-select-rewrite-im52lv`** (from `design_phase3_champion_pool`, 2026-09-27). Frontend only, existing endpoints (`/champion-select`, `/solo/matchups`).
   - Order: filters → ChampionHero for the selected pick → "Your picks" (role SegmentedControl + three selectable ChampionCards) → matchups for the pick beside "Check a matchup".
   - New: `BaseSegmentedControl` (`mp-seg`), the selectable ChampionCard (`aria-pressed`, `mp-spotlight` ported from Vue Bits SpotlightCard, `--color-spotlight`), `ChampionHero` `chipsLabel`, `components/championSelect/ChampionSelectMatchups.vue` and `ChampionSelectSearch.vue`, `utils/championSelectSummary.js`.
