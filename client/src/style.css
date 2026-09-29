@@ -398,6 +398,17 @@ body {
   .mp-message__action:hover { color: var(--color-positive-text-strong); }
   .mp-message__action:focus-visible, .mp-match-row:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 
+  /* Usual meter: this match's value as a bar, a tick for the player's own usual */
+  .mp-usual { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+  .mp-usual__head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+  .mp-usual__label { font-size: 0.8125rem; line-height: 1.4; color: var(--color-text-secondary); }
+  .mp-usual__value { font-family: var(--font-display); font-size: 1.625rem; font-weight: 700; line-height: 1; color: var(--color-text); font-variant-numeric: tabular-nums; }
+  .mp-usual__track { position: relative; height: 0.625rem; border-radius: 999px; background: var(--color-track-strong); }
+  .mp-usual__fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 999px; background: var(--color-primary-accent); }
+  .mp-usual__fill--warn { background: var(--color-warn); }
+  .mp-usual__tick { position: absolute; top: -0.3125rem; width: 3px; height: 1.25rem; margin-left: -1px; border-radius: 1px; background: var(--color-text); }
+  .mp-usual__note { font-size: 0.75rem; line-height: 1.4; color: var(--color-text-secondary); }
+
   @media (prefers-reduced-motion: no-preference) {
     .mp-skeleton { animation: mp-skeleton-pulse 1.6s ease-in-out infinite; }
   }

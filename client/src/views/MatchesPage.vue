@@ -173,10 +173,10 @@
           <MatchDetails
             :match="matchDetails"
             :baseline="matchDetailsBaseline"
+            :deciding-stat="matchDetailsDecidingStat"
             :account-id="matchDetailsAccountId"
             :loading="detailsLoading || (listIsLoading && !matchDetails)"
             :error="detailsError"
-            :badge="openMatchBadge"
             @retry="fetchMatchDetails(selectedMatchId)"
           />
         </section>
@@ -265,6 +265,7 @@ const {
 // Match details state (fetched on demand for the open match)
 const matchDetails = ref(null)
 const matchDetailsBaseline = ref(null)
+const matchDetailsDecidingStat = ref(null)
 const matchDetailsAccountId = ref(null)
 const detailsLoading = ref(false)
 const detailsError = ref(null)
@@ -281,12 +282,6 @@ const selectedMatchId = computed(() => {
 
 // The detail column shows once a match is open, or on desktop while the list has matches
 const showDetailColumn = computed(() => Boolean(selectedMatchId.value) || matches.value.length > 0 || listIsLoading.value)
-
-// The list row's standout finding for the open match (none for a remake)
-const openMatchBadge = computed(() => {
-  const item = matches.value.find((m) => m.matchId === selectedMatchId.value)
-  return item && !isRemake(item) ? item.trendBadge ?? null : null
-})
 
 const queueLabel = computed(() => QUEUE_OPTIONS.find((o) => o.value === queueFilter.value)?.label ?? '')
 
@@ -373,6 +368,7 @@ function clearDetails() {
   detailsRequest++
   matchDetails.value = null
   matchDetailsBaseline.value = null
+  matchDetailsDecidingStat.value = null
   matchDetailsAccountId.value = null
   detailsError.value = null
   detailsLoading.value = false
@@ -438,6 +434,7 @@ async function fetchMatchDetails(matchId) {
 
     matchDetails.value = result.match ?? null
     matchDetailsBaseline.value = result.baseline ?? null
+    matchDetailsDecidingStat.value = result.decidingStat ?? null
   } catch (err) {
     if (!isCurrent()) return
 

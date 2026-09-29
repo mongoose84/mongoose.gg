@@ -233,6 +233,7 @@ internal sealed class FakeMatchesRepoForPersistence : IMatchesRepository
     public Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(string puuid, string queueFilter) => Task.FromResult(new Dictionary<string, RoleBaseline>());
     public Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(IReadOnlyList<string> puuids, string queueFilter) => Task.FromResult(new Dictionary<string, RoleBaseline>());
     public Task<IList<MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId) => Task.FromResult<IList<MatchupParticipantRaw>>(new List<MatchupParticipantRaw>());
+    public Task<Dictionary<string, StatUsual>> GetStatUsualsAsync(string puuid, string role, long beforeGameStartTime) => Task.FromResult(new Dictionary<string, StatUsual>());
     public Task<int> DeleteOldMatchesAsync(long cutoffTimestamp, int batchSize) => Task.FromResult(0);
 }
 

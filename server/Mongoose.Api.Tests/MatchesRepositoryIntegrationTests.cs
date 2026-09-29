@@ -284,6 +284,157 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task GetStatUsualsAsync_ComputesAverageAndCount_FromRecentMatchesInRole()
+    {
+        if (!IsIntegrationDbOptInEnabled()) return;
+        var connectionString = GetTestConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var factory = new DirectDbConnectionFactory(connectionString);
+        await EnsureSchemaAsync(factory);
+        var repository = new MatchesRepository(factory);
+
+        var testKey = Guid.NewGuid().ToString("N")[..12];
+        var puuid = $"integration-puuid-{testKey}";
+        var start = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+        var hour = 3_600_000L;
+        var matchIds = new List<string>();
+
+        try
+        {
+            var goldDiffs = new[] { 100, 200, 300 };
+            for (var i = 0; i < goldDiffs.Length; i++)
+            {
+                var matchId = $"USUAL_{testKey}_{i}";
+                matchIds.Add(matchId);
+                await InsertMatchWithQueueAsync(factory, matchId, 420, start + i * hour, gameDurationSec: 1800);
+                await InsertParticipantWithGoldLeadAsync(factory, matchId, puuid, "TOP", goldDiffs[i]);
+            }
+
+            var usuals = await repository.GetStatUsualsAsync(puuid, "TOP", beforeGameStartTime: start + goldDiffs.Length * hour);
+
+            usuals.Should().ContainKey("goldLeadAt10");
+            usuals["goldLeadAt10"].Matches.Should().Be(3);
+            usuals["goldLeadAt10"].Average.Should().Be(200);
+        }
+        finally
+        {
+            foreach (var matchId in matchIds)
+            {
+                await CleanupAsync(factory, matchId, puuid);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GetStatUsualsAsync_ExcludesTheOpenedMatch_AndEveryLaterMatch()
+    {
+        if (!IsIntegrationDbOptInEnabled()) return;
+        var connectionString = GetTestConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var factory = new DirectDbConnectionFactory(connectionString);
+        await EnsureSchemaAsync(factory);
+        var repository = new MatchesRepository(factory);
+
+        var testKey = Guid.NewGuid().ToString("N")[..12];
+        var puuid = $"integration-puuid-{testKey}";
+        var start = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+        var hour = 3_600_000L;
+        var matchIds = new List<string>();
+
+        try
+        {
+            // Five earlier matches averaging 200
+            for (var i = 0; i < 5; i++)
+            {
+                var matchId = $"EARLY_{testKey}_{i}";
+                matchIds.Add(matchId);
+                await InsertMatchWithQueueAsync(factory, matchId, 420, start + i * hour, gameDurationSec: 1800);
+                await InsertParticipantWithGoldLeadAsync(factory, matchId, puuid, "TOP", 200);
+            }
+
+            // The opened match itself, at "before"
+            var openedId = $"OPEN_{testKey}";
+            matchIds.Add(openedId);
+            var beforeGameStartTime = start + 5 * hour;
+            await InsertMatchWithQueueAsync(factory, openedId, 420, beforeGameStartTime, gameDurationSec: 1800);
+            await InsertParticipantWithGoldLeadAsync(factory, openedId, puuid, "TOP", 999999);
+
+            // A later match with an extreme value
+            var laterId = $"LATER_{testKey}";
+            matchIds.Add(laterId);
+            await InsertMatchWithQueueAsync(factory, laterId, 420, start + 6 * hour, gameDurationSec: 1800);
+            await InsertParticipantWithGoldLeadAsync(factory, laterId, puuid, "TOP", -999999);
+
+            var usuals = await repository.GetStatUsualsAsync(puuid, "TOP", beforeGameStartTime);
+
+            usuals["goldLeadAt10"].Matches.Should().Be(5);
+            usuals["goldLeadAt10"].Average.Should().Be(200);
+        }
+        finally
+        {
+            foreach (var matchId in matchIds)
+            {
+                await CleanupAsync(factory, matchId, puuid);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GetStatUsualsAsync_ExcludesOtherRoles_AndAram()
+    {
+        if (!IsIntegrationDbOptInEnabled()) return;
+        var connectionString = GetTestConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var factory = new DirectDbConnectionFactory(connectionString);
+        await EnsureSchemaAsync(factory);
+        var repository = new MatchesRepository(factory);
+
+        var testKey = Guid.NewGuid().ToString("N")[..12];
+        var puuid = $"integration-puuid-{testKey}";
+        var start = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+        var hour = 3_600_000L;
+        var matchIds = new List<string>();
+
+        try
+        {
+            for (var i = 0; i < 5; i++)
+            {
+                var matchId = $"ROLE_{testKey}_{i}";
+                matchIds.Add(matchId);
+                await InsertMatchWithQueueAsync(factory, matchId, 420, start + i * hour, gameDurationSec: 1800);
+                await InsertParticipantWithGoldLeadAsync(factory, matchId, puuid, "TOP", 200);
+            }
+
+            // A JUNGLE match must not count toward the TOP usual
+            var offRoleId = $"OFFROLE_{testKey}";
+            matchIds.Add(offRoleId);
+            await InsertMatchWithQueueAsync(factory, offRoleId, 420, start + 5 * hour, gameDurationSec: 1800);
+            await InsertParticipantWithGoldLeadAsync(factory, offRoleId, puuid, "JUNGLE", 999999);
+
+            // An ARAM match must not count either, even in the right role
+            var aramId = $"ARAM_{testKey}";
+            matchIds.Add(aramId);
+            await InsertMatchWithQueueAsync(factory, aramId, 450, start + 6 * hour, gameDurationSec: 1800);
+            await InsertParticipantWithGoldLeadAsync(factory, aramId, puuid, "TOP", 999999);
+
+            var usuals = await repository.GetStatUsualsAsync(puuid, "TOP", beforeGameStartTime: start + 7 * hour);
+
+            usuals["goldLeadAt10"].Matches.Should().Be(5);
+            usuals["goldLeadAt10"].Average.Should().Be(200);
+        }
+        finally
+        {
+            foreach (var matchId in matchIds)
+            {
+                await CleanupAsync(factory, matchId, puuid);
+            }
+        }
+    }
+
     private static async Task InsertRankedMatchAsync(
         IDbConnectionFactory factory,
         string matchId,
@@ -495,6 +646,65 @@ public sealed class MatchesRepositoryIntegrationTests
         cmd.Parameters.AddWithValue("@puuid", puuid);
         cmd.Parameters.AddWithValue("@role", role);
         await cmd.ExecuteNonQueryAsync();
+    }
+
+    private static async Task InsertMatchWithQueueAsync(IDbConnectionFactory factory, string matchId, int queueId, long gameStartTime, int gameDurationSec)
+    {
+        const string sql = @"
+            INSERT INTO matches (
+                match_id, queue_id, game_duration_sec, game_start_time, patch_version, season_code
+            ) VALUES (
+                @matchId, @queueId, @gameDurationSec, @gameStartTime, '15.1.1', NULL
+            );";
+
+        await using var connection = await factory.CreateOpenConnectionAsync();
+        await using var cmd = new MySqlCommand(sql, connection);
+        cmd.Parameters.AddWithValue("@matchId", matchId);
+        cmd.Parameters.AddWithValue("@queueId", queueId);
+        cmd.Parameters.AddWithValue("@gameDurationSec", gameDurationSec);
+        cmd.Parameters.AddWithValue("@gameStartTime", gameStartTime);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// A participant with a minute-10 checkpoint's gold lead, for <see cref="MatchesRepository.GetStatUsualsAsync"/>.
+    /// </summary>
+    private static async Task InsertParticipantWithGoldLeadAsync(IDbConnectionFactory factory, string matchId, string puuid, string role, int goldDiffAt10)
+    {
+        const string participantSql = @"
+            INSERT INTO participants (
+                match_id, puuid, team_id, role, lane, champion_id, champion_name,
+                win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec,
+                lp_after, tier_after, rank_after
+            ) VALUES (
+                @matchId, @puuid, 100, @role, @role, 266, 'Aatrox',
+                TRUE, 7, 2, 6, 210, 14500, 50,
+                NULL, NULL, NULL
+            );
+            SELECT LAST_INSERT_ID();";
+
+        await using var connection = await factory.CreateOpenConnectionAsync();
+
+        long participantId;
+        await using (var participantCmd = new MySqlCommand(participantSql, connection))
+        {
+            participantCmd.Parameters.AddWithValue("@matchId", matchId);
+            participantCmd.Parameters.AddWithValue("@puuid", puuid);
+            participantCmd.Parameters.AddWithValue("@role", role);
+            participantId = Convert.ToInt64(await participantCmd.ExecuteScalarAsync());
+        }
+
+        const string checkpointSql = @"
+            INSERT INTO participant_checkpoints (
+                participant_id, minute_mark, gold, cs, xp, gold_diff_vs_lane, cs_diff_vs_lane
+            ) VALUES (
+                @participantId, 10, 3000, 80, 4000, @goldDiffAt10, NULL
+            );";
+
+        await using var checkpointCmd = new MySqlCommand(checkpointSql, connection);
+        checkpointCmd.Parameters.AddWithValue("@participantId", participantId);
+        checkpointCmd.Parameters.AddWithValue("@goldDiffAt10", goldDiffAt10);
+        await checkpointCmd.ExecuteNonQueryAsync();
     }
 
     private static async Task CleanupAsync(IDbConnectionFactory factory, string matchId, string puuid)    {

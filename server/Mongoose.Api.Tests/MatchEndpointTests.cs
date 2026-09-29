@@ -232,6 +232,31 @@ public class MatchEndpointTests
         json.RootElement.GetProperty("matches")[0].GetProperty("lpChange").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
+    [Fact]
+    public async Task MatchList_no_longer_returns_trendBadge()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
+        factory.MatchesRepository.AddMatch("NA1_12345", queueId: 420);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_12345", Puuid: "test-puuid-123", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true, Kills: 10, Deaths: 2, Assists: 5,
+            CreepScore: 200, GoldEarned: 12000, TeamId: 100));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var rawJson = await response.Content.ReadAsStringAsync();
+        rawJson.Should().NotContain("trendBadge");
+    }
+
     // ============================================================================
     // MatchDetailsEndpoint Tests
     // ============================================================================
@@ -525,6 +550,218 @@ public class MatchEndpointTests
         var body = await response.Content.ReadFromJsonAsync<MatchDetailsResponse>();
         body.Should().NotBeNull();
         body!.Match.DragonsParticipated.Should().Be(0);
+    }
+
+    // ============================================================================
+    // MatchDetailsEndpoint Tests — "What decided it" (decidingStat)
+    // ============================================================================
+
+    private static void AddDecidingStatHistory(TestWebApplicationFactory factory, string puuid, long now, long hour, int[] goldDiffAt10, string role = "MIDDLE", int queueId = 420)
+    {
+        for (var i = 0; i < goldDiffAt10.Length; i++)
+        {
+            var matchId = $"NA1_HIST_{role}_{queueId}_{i}";
+            factory.MatchesRepository.AddMatch(matchId, queueId: queueId, gameStartTime: now - (goldDiffAt10.Length - i) * hour);
+            factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+                MatchId: matchId, Puuid: puuid, ChampionId: 1, ChampionName: "Annie",
+                Role: role, Lane: "MIDDLE", Win: true, Kills: 5, Deaths: 2, Assists: 4,
+                CreepScore: 80, GoldEarned: 4000, TeamId: 100,
+                GoldDiffAt10: goldDiffAt10[i]));
+        }
+    }
+
+    [Fact]
+    public async Task MatchDetails_returns_decidingStat_for_seeded_match_with_enough_usual_history()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-decide", "Decider", "NA1", "Decider#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-decide", isPrimary: true);
+        var accountId = BuildAccountId(1, "puuid-decide");
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var hour = 3_600_000L;
+
+        // Five earlier ranked matches in the role, a steady ~140 gold lead at 10
+        AddDecidingStatHistory(factory, "puuid-decide", now, hour, new[] { 100, 150, 200, 150, 100 });
+
+        // The opened match: a much bigger gold lead than usual
+        factory.MatchesRepository.AddMatch("NA1_OPEN", queueId: 420, gameStartTime: now);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_OPEN", Puuid: "puuid-decide", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true, Kills: 8, Deaths: 1, Assists: 6,
+            CreepScore: 90, GoldEarned: 6000, TeamId: 100,
+            GoldDiffAt10: 1240));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_OPEN/details?accountId={accountId}");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var decidingStat = json.RootElement.GetProperty("decidingStat");
+        decidingStat.ValueKind.Should().NotBe(JsonValueKind.Null);
+        decidingStat.GetProperty("outcome").GetString().Should().Be("strength");
+        decidingStat.GetProperty("stat").GetString().Should().Be("goldLeadAt10");
+        decidingStat.GetProperty("usualMatches").GetInt32().Should().Be(5);
+
+        var goldMeter = decidingStat.GetProperty("meters").EnumerateArray()
+            .First(m => m.GetProperty("stat").GetString() == "goldLeadAt10");
+        goldMeter.GetProperty("usual").GetDouble().Should().Be(140);
+        goldMeter.GetProperty("score").GetDouble().Should().Be(2.75);
+    }
+
+    [Fact]
+    public async Task MatchDetails_decidingStat_excludes_laterMatches_and_the_openedMatch_itself()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-decide", "Decider", "NA1", "Decider#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-decide", isPrimary: true);
+        var accountId = BuildAccountId(1, "puuid-decide");
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var hour = 3_600_000L;
+
+        AddDecidingStatHistory(factory, "puuid-decide", now, hour, new[] { 100, 150, 200, 150, 100 });
+
+        factory.MatchesRepository.AddMatch("NA1_OPEN", queueId: 420, gameStartTime: now);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_OPEN", Puuid: "puuid-decide", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true, Kills: 8, Deaths: 1, Assists: 6,
+            CreepScore: 90, GoldEarned: 6000, TeamId: 100,
+            GoldDiffAt10: 1240));
+
+        // A later match with an extreme value must not move the usual
+        factory.MatchesRepository.AddMatch("NA1_LATER", queueId: 420, gameStartTime: now + hour);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_LATER", Puuid: "puuid-decide", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true, Kills: 10, Deaths: 0, Assists: 10,
+            CreepScore: 100, GoldEarned: 9000, TeamId: 100,
+            GoldDiffAt10: 99999));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_OPEN/details?accountId={accountId}");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var decidingStat = json.RootElement.GetProperty("decidingStat");
+        decidingStat.GetProperty("usualMatches").GetInt32().Should().Be(5);
+
+        var goldMeter = decidingStat.GetProperty("meters").EnumerateArray()
+            .First(m => m.GetProperty("stat").GetString() == "goldLeadAt10");
+        goldMeter.GetProperty("usual").GetDouble().Should().Be(140);
+        goldMeter.GetProperty("score").GetDouble().Should().Be(2.75);
+    }
+
+    [Fact]
+    public async Task MatchDetails_decidingStat_excludes_otherRoles_and_aram()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-decide", "Decider", "NA1", "Decider#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-decide", isPrimary: true);
+        var accountId = BuildAccountId(1, "puuid-decide");
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var hour = 3_600_000L;
+
+        AddDecidingStatHistory(factory, "puuid-decide", now, hour, new[] { 100, 150, 200, 150, 100 });
+        // Off-role history (TOP) with an extreme value must not count toward the Mid usual
+        AddDecidingStatHistory(factory, "puuid-decide", now, hour, new[] { 99999 }, role: "TOP");
+        // ARAM history (queue 450) with an extreme value must not count either
+        AddDecidingStatHistory(factory, "puuid-decide", now, hour, new[] { 99999 }, queueId: 450);
+
+        factory.MatchesRepository.AddMatch("NA1_OPEN", queueId: 420, gameStartTime: now);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_OPEN", Puuid: "puuid-decide", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true, Kills: 8, Deaths: 1, Assists: 6,
+            CreepScore: 90, GoldEarned: 6000, TeamId: 100,
+            GoldDiffAt10: 1240));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_OPEN/details?accountId={accountId}");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var decidingStat = json.RootElement.GetProperty("decidingStat");
+        decidingStat.GetProperty("usualMatches").GetInt32().Should().Be(5);
+
+        var goldMeter = decidingStat.GetProperty("meters").EnumerateArray()
+            .First(m => m.GetProperty("stat").GetString() == "goldLeadAt10");
+        goldMeter.GetProperty("usual").GetDouble().Should().Be(140);
+    }
+
+    [Fact]
+    public async Task MatchDetails_decidingStat_isNull_forAramMatch()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-aram", "Aram", "NA1", "Aram#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-aram", isPrimary: true);
+        var accountId = BuildAccountId(1, "puuid-aram");
+
+        factory.MatchesRepository.AddMatch("NA1_ARAM", queueId: 450);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_ARAM", Puuid: "puuid-aram", ChampionId: 1, ChampionName: "Annie",
+            Role: "UNKNOWN", Lane: null, Win: true, Kills: 8, Deaths: 4, Assists: 10,
+            CreepScore: 60, GoldEarned: 9000, TeamId: 100));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_ARAM/details?accountId={accountId}");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("decidingStat").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task MatchDetails_decidingStat_isNull_whenFewerThanFiveEarlierMatches()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-new", "Newer", "NA1", "Newer#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-new", isPrimary: true);
+        var accountId = BuildAccountId(1, "puuid-new");
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var hour = 3_600_000L;
+
+        // Only three earlier matches — below the minimum usual sample of five
+        AddDecidingStatHistory(factory, "puuid-new", now, hour, new[] { 100, 150, 200 });
+
+        factory.MatchesRepository.AddMatch("NA1_OPEN", queueId: 420, gameStartTime: now);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: "NA1_OPEN", Puuid: "puuid-new", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: true, Kills: 8, Deaths: 1, Assists: 6,
+            CreepScore: 90, GoldEarned: 6000, TeamId: 100,
+            GoldDiffAt10: 1240));
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/NA1_OPEN/details?accountId={accountId}");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("decidingStat").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     // ============================================================================

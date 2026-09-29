@@ -6,7 +6,7 @@ import { apiRequest, parseResponse } from './apiClient'
 import { appendAccountParam, getAccountParam } from './accountContext'
 
 /**
- * Get match list with trend badges and role baselines
+ * Get match list with role baselines
  * @param {number} userId - The user ID
  * @param {string} queueType - Queue filter (ranked_solo, ranked_flex, normal, aram, all)
  * @returns {Promise<{ matches: Array, baselinesByRole: Object, queueType: string, totalMatches: number } | null>}
@@ -32,7 +32,7 @@ export async function getMatchList(userId, queueType = 'all') {
  * Get full match details for a single match (on-demand)
  * @param {string} matchId - The match ID
  * @param {string} [accountId] - Opaque account identifier (acc_...). Defaults to active account context.
- * @returns {Promise<{ match: Object, baseline: Object | null } | null>}
+ * @returns {Promise<{ match: Object, baseline: Object | null, decidingStat: Object | null } | null>}
  */
 export async function getMatchDetails(matchId, accountId = getAccountParam()) {
   const params = new URLSearchParams()

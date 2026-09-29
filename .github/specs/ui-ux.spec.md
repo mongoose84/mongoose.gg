@@ -293,7 +293,7 @@ Order (design system: summary → list → evidence):
 2. Headline built from the list ("12 wins in your last 20", remakes left out), a line on the current streak (3 or more) and the most played champion, the list as a `BaseFormStrip` beside it, and the queue `BaseSegmentedControl` (All queues / Solo/Duo / Flex / Normal; ARAM shows under All queues). Copy lives in `client/src/utils/matchesSummary.js`.
 3. List card ("Last 20 matches"): `BaseMatchRow` per match (remakes under 5 minutes say "Remake", Overall mode adds the Riot ID to the meta line). On desktop it is a 420px column (360px below 1100px) that stays in place while the match scrolls, and the newest match opens on arrival; the open row is `aria-current="page"` on `surface-selected`.
    Under it, "Win rate by start time" as a `BaseColumnChart` (morning / afternoon / evening / after 11pm in the player's local time; groups under 3 matches left out; shown only when two groups can be compared; the title names the weak spot, 15 or more points below the rest, or is the caption when nothing stands out).
-4. The open match (`MatchDetails`): `MatchHeader` (the ChampionHero match banner: splash, result and time, "Champion, Role", queue and length, a K / D / A glass chip, the list's trend badge as a chip) → `WinPredictionStats` (the six stats that decide matches, title states how many went your way) → `MatchNarrative` ("n of 5 lanes won", a LaneBar per role from the gold difference at 10 opening `LaneMatchupDetails`; ARAM lists both teams by damage) beside `TeamComparison` (SplitBars for damage, dragons, barons and towers, gold lead at 15 as the caption) when the column is 760px or wider → `StatSnapshot` (closed "All your stats" disclosure with the above / below counts; open, all ten stats and "Download data") → `MatchActions` ("See your trends" on Solo).
+4. The open match (`MatchDetails`): `MatchHeader` (the ChampionHero match banner: splash, result and time, "Champion, Role", queue and length, a K / D / A glass chip; the trend-badge chip is retired) → `DecidingStatCard` ("What decided it": one `surface-highlight` card with a one-line finding, up to three UsualMeters as evidence, the usual key and a "Next match" fix; left out when `decidingStat` is null) → `MatchNarrative` ("n of 5 lanes won", a LaneBar per role from the gold difference at 10 opening `LaneMatchupDetails`; ARAM lists both teams by damage) beside `TeamComparison` (SplitBars for damage, dragons, barons and towers, gold lead at 15 as the caption) when the column is 760px or wider → `StatSnapshot` (closed "All your stats" disclosure with the above / below counts; open, all ten stats and "Download data") → `MatchActions` ("See your trends" on Solo).
 
 States: skeleton rows and a skeleton match after 300ms, inline error with "Try again" for the list, the match and the lanes separately, EmptyState "No matches yet" with "Sync matches" (or "Show all queues" when filtered), "We couldn't find this match" for an unknown match ID, and "Link Riot account" without a linked account. Your team is purple and the enemy orange; good stats purple ▲, needs-work orange ▼.
 
@@ -458,13 +458,13 @@ Overall mode only, in place of the ChampionHero: one card per linked account (at
 Located in `client/src/components/matches/`.
 
 ### `MatchDetails`
-The open match: loading skeleton, `error` (`failed` with retry, `not-found`, `no-account`), empty and content states. Props `match`, `baseline`, `accountId`, `loading`, `error`, `badge`; emits `retry`. Builds the "Download data" JSON when `StatSnapshot` asks for it. Lanes sit beside the team summary when the column is 760px or wider (container query).
+The open match: loading skeleton, `error` (`failed` with retry, `not-found`, `no-account`), empty and content states. Props `match`, `baseline`, `decidingStat`, `accountId`, `loading`, `error`; emits `retry`. Builds the "Download data" JSON when `StatSnapshot` asks for it. Lanes sit beside the team summary when the column is 760px or wider (container query).
 
 ### `MatchHeader`
-The open match's banner (ChampionHero match banner): splash art (plain card when it fails), result eyebrow with the time (Victory purple / Defeat orange / Remake neutral), "Champion, Role" as an `h2`, queue · length, a K / D / A glass chip and the trend badge as a strength or trend chip. LP and rank chips come with the LP data.
+The open match's banner (ChampionHero match banner): splash art (plain card when it fails), result eyebrow with the time (Victory purple / Defeat orange / Remake neutral), "Champion, Role" as an `h2`, queue · length and a K / D / A glass chip. LP and rank chips come with the LP data. The trend-badge chip is retired (Phase 4c) in favor of `DecidingStatCard`.
 
-### `WinPredictionStats`
-Six tiles (deaths, gold lead at 15, dragons joined, CS per minute, vision score, deaths before 10 min) marked good (purple ▲) or needs work (orange ▼) against the role baseline. The title states how many went your way.
+### `DecidingStatCard`
+"What decided it" (Phase 4c): one `mp-card mp-card--highlight` card between the banner and `MatchNarrative`. An eyebrow, a one-line finding (`h2`, the deciding stat's strength/shortfall line, or "A match like your usual: nothing stood out"), up to three `BaseUsualMeter`s (the deciding stat first, the rest by \|score\| descending), the usual key ("Your usual · last {n} matches as {Role}") and an optional "Next match" fix row with a Lucide icon. Copy and formatting in `utils/decidingStat.js`; left out entirely when `decidingStat` is null (remake, non-Summoner's-Rift queue, unknown role, or no eligible stat).
 
 ### `MatchNarrative`
 Lane by lane, fetched via `getMatchNarrative()`: one LaneBar button per role (`aria-expanded`, `aria-label` in words) growing right in purple when ahead and left in orange when behind at 10 minutes (±1,500 fills a half, under 300 is even), the player's icon ringed; the title counts lanes won. ARAM lists both teams by damage share. Own loading, error with retry, and empty states.
@@ -781,14 +781,16 @@ When creating new UI components:
 | Composables | `client/src/composables/` |
 | Services / API | `client/src/services/` |
 | Utilities | `client/src/utils/` |
-| App Entry | `client/src/App.vue`, `client/src/main.js` |### `MatchDetails`
-The open match: loading skeleton, `error` (`failed` with retry, `not-found`, `no-account`), empty and content states. Props `match`, `baseline`, `accountId`, `loading`, `error`, `badge`; emits `retry`. Builds the "Download data" JSON when `StatSnapshot` asks for it. Lanes sit beside the team summary when the column is 760px or wider (container query).
+| App Entry | `client/src/App.vue`, `client/src/main.js` |
+
+### `MatchDetails`
+The open match: loading skeleton, `error` (`failed` with retry, `not-found`, `no-account`), empty and content states. Props `match`, `baseline`, `decidingStat`, `accountId`, `loading`, `error`; emits `retry`. Builds the "Download data" JSON when `StatSnapshot` asks for it. Lanes sit beside the team summary when the column is 760px or wider (container query).
 
 ### `MatchHeader`
-The open match's banner (ChampionHero match banner): splash art (plain card when it fails), result eyebrow with the time (Victory purple / Defeat orange / Remake neutral), "Champion, Role" as an `h2`, queue · length, a K / D / A glass chip and the trend badge as a strength or trend chip. LP and rank chips come with the LP data.
+The open match's banner (ChampionHero match banner): splash art (plain card when it fails), result eyebrow with the time (Victory purple / Defeat orange / Remake neutral), "Champion, Role" as an `h2`, queue · length and a K / D / A glass chip. LP and rank chips come with the LP data. The trend-badge chip is retired (Phase 4c) in favor of `DecidingStatCard`.
 
-### `WinPredictionStats`
-Six tiles (deaths, gold lead at 15, dragons joined, CS per minute, vision score, deaths before 10 min) marked good / needs work against the role baseline. The title states how many went your way.
+### `DecidingStatCard`
+"What decided it" (Phase 4c): one `mp-card mp-card--highlight` card between the banner and `MatchNarrative`. An eyebrow, a one-line finding, up to three `BaseUsualMeter`s (the deciding stat first, the rest by |score| descending), the usual key and an optional "Next match" fix row. Copy and formatting in `utils/decidingStat.js`; left out entirely when `decidingStat` is null.
 
 ### `MatchNarrative`
 Lane by lane, fetched via `getMatchNarrative()`: one LaneBar button per role (`aria-expanded`, `aria-label` in words) growing right in purple when ahead and left in orange when behind at 10 minutes (±1,500 fills a half, under 300 is even), the player's icon ringed; the title counts lanes won. ARAM lists both teams by damage share. Own loading, error with retry, and empty states.

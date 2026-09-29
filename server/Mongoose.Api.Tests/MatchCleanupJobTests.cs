@@ -295,5 +295,6 @@ internal sealed class FakeMatchesRepository : IMatchesRepository
     public Task<Dictionary<string, Core.QueryModels.RoleBaseline>> GetRoleBaselinesAsync(string puuid, string queueFilter) => Task.FromResult(new Dictionary<string, Core.QueryModels.RoleBaseline>());
     public Task<Dictionary<string, Core.QueryModels.RoleBaseline>> GetRoleBaselinesAsync(IReadOnlyList<string> puuids, string queueFilter) => Task.FromResult(new Dictionary<string, Core.QueryModels.RoleBaseline>());
     public Task<IList<Core.QueryModels.MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId) => Task.FromResult<IList<Core.QueryModels.MatchupParticipantRaw>>(new List<Core.QueryModels.MatchupParticipantRaw>());
+    public Task<Dictionary<string, Core.QueryModels.StatUsual>> GetStatUsualsAsync(string puuid, string role, long beforeGameStartTime) => Task.FromResult(new Dictionary<string, Core.QueryModels.StatUsual>());
 }
 
