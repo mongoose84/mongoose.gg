@@ -60,3 +60,49 @@ export function winFactorsResponse(overrides = {}) {
     ...overrides
   }
 }
+
+export function climbResponse(overrides = {}) {
+  return {
+    matches: 20,
+    queueType: 'ranked_solo',
+    range: 'last20',
+    mode: 'lp',
+    wins: 12,
+    losses: 8,
+    lp: {
+      net: 64,
+      start: { tier: 'EMERALD', division: 'III', lp: 70 },
+      end: { tier: 'EMERALD', division: 'II', lp: 34 },
+      points: [{ index: 0, ladder: 2190 }, { index: 1, ladder: 2210 }, { index: 3, ladder: 2150 }, { index: 19, ladder: 2234 }],
+      events: [
+        { index: 1, kind: 'promotion', tier: 'EMERALD', division: 'II' },
+        { index: 3, kind: 'demotion', tier: 'EMERALD', division: 'III' },
+        { index: 19, kind: 'promotion', tier: 'EMERALD', division: 'II' }
+      ],
+      biggestDrop: { index: 3, lp: -60, losses: 3 }
+    },
+    winRate: null,
+    champions: [
+      { championId: 103, championName: 'Ahri', matches: 9, wins: 6, value: 58 },
+      { championId: 134, championName: 'Syndra', matches: 5, wins: 2, value: -18 }
+    ],
+    championsLeftOut: ['Orianna'],
+    rank: { tier: 'EMERALD', division: 'II', lp: 34 },
+    ...overrides
+  }
+}
+
+export function winRateClimbResponse(overrides = {}) {
+  return climbResponse({
+    queueType: 'all',
+    mode: 'winRate',
+    lp: null,
+    winRate: { was: 50, now: 70, points: [{ index: 9, rate: 50 }, { index: 19, rate: 70 }] },
+    champions: [
+      { championId: 103, championName: 'Ahri', matches: 9, wins: 6, value: 3 },
+      { championId: 134, championName: 'Syndra', matches: 5, wins: 1, value: -3 }
+    ],
+    rank: null,
+    ...overrides
+  })
+}

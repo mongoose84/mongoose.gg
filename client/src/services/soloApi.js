@@ -146,6 +146,24 @@ export async function getSoloWinFactors(userId, queueType = null, range = 'last2
 }
 
 /**
+ * Get the climb: LP or win-rate mode, the ladder or rolling win rate, promotions, the biggest drop,
+ * LP per champion and the current rank
+ * @param {number} userId - User ID
+ * @param {string|null} [queueType] - ranked_solo, ranked_flex or all; null for the server's default
+ * @param {string} [range] - last20, last50 or season
+ * @returns {Promise<Object|null>} null when no Riot account is linked
+ */
+export async function getSoloClimb(userId, queueType = null, range = 'last20') {
+  const response = await apiRequest(`/solo/climb/${userId}?${soloTrendsQuery(queueType, range)}`, { method: 'GET' })
+
+  if (response.status === 404) {
+    return null
+  }
+
+  return parseResponse(response, 'Failed to get climb')
+}
+
+/**
  * Get death position data for the danger zone heatmap
  * @param {number} userId - User ID
  * @param {string} [queueType] - Optional queue filter

@@ -79,15 +79,21 @@ internal static class SoloRows
         double? killParticipationPct = 50,
         int teamKills = 20,
         int queueId = 420,
-        long? startMs = null)
+        long? startMs = null,
+        int championId = 103,
+        string championName = "Ahri",
+        string? tierAfter = null,
+        string? rankAfter = null,
+        int? lpAfter = null,
+        int? lpChange = null)
         => new(
             MatchId: $"EUW1_{index}",
             GameStartTime: startMs ?? BaseStartMs + index * TwoHoursMs,
             DurationSec: durationSec,
             QueueId: queueId,
             Role: role,
-            ChampionId: 103,
-            ChampionName: "Ahri",
+            ChampionId: championId,
+            ChampionName: championName,
             Win: win,
             Deaths: deaths,
             CreepScore: creepScore,
@@ -96,7 +102,11 @@ internal static class SoloRows
             TeamDragons: teamDragons,
             VisionPerMin: visionPerMin,
             KillParticipationPct: killParticipationPct,
-            TeamKills: teamKills);
+            TeamKills: teamKills,
+            LpAfter: lpAfter,
+            TierAfter: tierAfter,
+            RankAfter: rankAfter,
+            LpChange: lpChange);
 
     /// <summary><paramref name="count"/> rows built by <paramref name="build"/> from their index.</summary>
     public static List<SoloMatchRow> Many(int count, Func<int, SoloMatchRow>? build = null)

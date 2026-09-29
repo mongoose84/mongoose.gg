@@ -355,6 +355,8 @@ GET /api/v2/solo/climb/{userId}
 ```json
 {
   "matches": 50,
+  "queueType": "ranked_solo",
+  "range": "last50",
   "mode": "lp",
   "wins": 28,
   "losses": 22,
@@ -370,10 +372,11 @@ GET /api/v2/solo/climb/{userId}
   "champions": [
     { "championId": 103, "championName": "Ahri", "matches": 22, "wins": 14, "value": 134 }
   ],
-  "championsLeftOut": ["Orianna"]
+  "championsLeftOut": ["Orianna"],
+  "rank": { "tier": "EMERALD", "division": "II", "lp": 58 }
 }
 ```
-In win-rate mode `lp` is null and `winRate` is `{ "was": 52, "now": 58, "points": [ { "index": 9, "rate": 50 } ] }`; `champions[].value` is net wins.
+In win-rate mode `lp` is null and `winRate` is `{ "was": 52, "now": 58, "points": [ { "index": 9, "rate": 50 } ] }` (null under 20 matches); `champions[].value` is net wins. `rank` is the rank after the latest match that has one, for the rank line (FR 8); null unless the scope is one ranked queue of one account. `division` is null from Master up. `championsLeftOut` lists every name, most played first; the page shows three.
 
 #### Stat trends
 ```
@@ -514,8 +517,8 @@ All views follow the Mongoose.gg design system ([UI/UX Spec §2](../ui-ux.spec.m
 ### Unit Tests
 **Frameworks**: xUnit (backend), Vitest (frontend)
 
-- [ ] `LpCoverageRule`: 80% and 10-match boundaries, `all` queue, multi-account.
-- [ ] `LpLadder`: division crossings, Master+ shared count, demotion, net LP with an unknown first change.
+- [x] `LpCoverageRule`: 80% and 10-match boundaries, `all` queue, multi-account.
+- [x] `LpLadder`: division crossings, Master+ shared count, demotion, net LP with an unknown first change (in `LpLadderTests` and `ClimbCalculatorTests`).
 - [x] `StatTrendCalculator`: nulls skipped, was/now on non-null values, verdicts at thresholds, "lower is better", fewer than 20 values, sampling above 100.
 - [x] `SoloFocusPicker`: Slipping preferred, the lowest-hit fallback, ties, no candidate, under 20 matches.
 - [x] `WinFactorCalculator`: role marks (support vision, jungle CS), the 5-per-side minimum, sorting, negative gaps.

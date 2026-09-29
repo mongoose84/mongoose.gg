@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { reactive, ref } from 'vue'
 import SoloPage from '@/views/SoloStatsPage.vue'
-import { statTrendsResponse, winFactorsResponse } from '@test/helpers/soloFixtures'
+import { climbResponse, statTrendsResponse, winFactorsResponse, winRateClimbResponse } from '@test/helpers/soloFixtures'
 
+const mockGetSoloClimb = vi.fn()
 const mockGetSoloStatTrends = vi.fn()
 const mockGetSoloWinFactors = vi.fn()
 const mockGetDeathPositions = vi.fn()
@@ -15,6 +16,10 @@ const authStore = reactive({
   isInitialized: true,
   hasLinkedAccount: true,
   activeAccountPuuid: 'acc-1',
+  isOverallMode: false,
+  activeAccount: { gameName: 'Mongoose', tagLine: 'EUW' },
+  primaryRiotAccount: { gameName: 'Mongoose', tagLine: 'EUW' },
+  riotAccounts: [{ gameName: 'Mongoose', tagLine: 'EUW' }],
   refreshUser: vi.fn()
 })
 
@@ -27,6 +32,7 @@ vi.mock('@/services/analyticsApi', () => ({
 }))
 
 vi.mock('@/services/soloApi', () => ({
+  getSoloClimb: (...args) => mockGetSoloClimb(...args),
   getSoloStatTrends: (...args) => mockGetSoloStatTrends(...args),
   getSoloWinFactors: (...args) => mockGetSoloWinFactors(...args),
   getDeathPositions: (...args) => mockGetDeathPositions(...args)
@@ -64,17 +70,36 @@ describe('SoloStatsPage', () => {
     vi.clearAllMocks()
     syncState.value = null
     Object.assign(authStore, { isInitialized: true, hasLinkedAccount: true, activeAccountPuuid: 'acc-1' })
+    mockGetSoloClimb.mockResolvedValue(climbResponse())
     mockGetSoloStatTrends.mockResolvedValue(statTrendsResponse())
     mockGetSoloWinFactors.mockResolvedValue(winFactorsResponse())
     mockGetDeathPositions.mockResolvedValue(null)
   })
 
-  it('opens with the headline and the stat that moved most', async () => {
+  it('opens with the rank line, the LP headline and the stat that moved most', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="solo-rank-line"]').text()).toBe('Mongoose#EUW · Emerald II · 34 LP · Solo/Duo')
+    expect(wrapper.get('[data-testid="solo-headline"]').text()).toBe('+64 LP over your last 20 matches')
+    expect(wrapper.get('[data-testid="solo-subline"]').text()).toBe('Fewer deaths did most of it: 4.1 per match, down from 5.6.')
+  })
+
+  it('counts wins in win-rate mode, without a rank line', async () => {
+    mockGetSoloClimb.mockResolvedValue(winRateClimbResponse())
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="solo-headline"]').text()).toBe('12 wins in your last 20')
+    expect(wrapper.find('[data-testid="solo-rank-line"]').exists()).toBe(false)
+  })
+
+  it('counts matches until the climb answers', async () => {
+    mockGetSoloClimb.mockReturnValue(new Promise(() => {}))
     const wrapper = mountPage()
     await flushPromises()
 
     expect(wrapper.get('[data-testid="solo-headline"]').text()).toBe('Your last 20 matches')
-    expect(wrapper.get('[data-testid="solo-subline"]').text()).toBe('Fewer deaths did most of it: 4.1 per match, down from 5.6.')
   })
 
   it('shows the queue the server picked and the range', async () => {
@@ -89,7 +114,9 @@ describe('SoloStatsPage', () => {
     const wrapper = mountPage()
     await flushPromises()
 
+    expect(wrapper.find('[data-testid="solo-climb"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-stat-trends"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="solo-champion-lp"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="danger-zones-card"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-win-factors"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-patterns"]').exists()).toBe(true)

@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest'
 import {
+  buildChampionLpCaption,
+  buildChampionLpTitle,
+  buildClimbEmpty,
+  buildClimbHeadline,
+  buildClimbStats,
+  buildClimbTitle,
+  buildLeftOutNote,
+  buildRankLine,
+  describeChampionLp,
+  describeClimb,
+  formatChampionValue,
+  formatLp,
+  ladderDivision,
+  rankName,
   buildNoMatchesEmpty,
   buildPatternCards,
   buildSecondLine,
@@ -16,7 +30,7 @@ import {
   formatStatValue,
   statVerdict
 } from '@/utils/soloSummary'
-import { statTrendsResponse, winFactorsResponse } from '@test/helpers/soloFixtures'
+import { climbResponse, statTrendsResponse, winFactorsResponse, winRateClimbResponse } from '@test/helpers/soloFixtures'
 
 const MINUS = '−'
 
@@ -190,6 +204,115 @@ describe('soloSummary', () => {
     it('is empty without patterns', () => {
       expect(buildPatternCards({ session: null, afterLoss: null, length: null }, 'last20', 20)).toEqual([])
       expect(buildPatternCards(null, 'last20', 20)).toEqual([])
+    })
+  })
+})
+
+describe('soloSummary climb', () => {
+  it('writes LP with a real minus and ±0', () => {
+    expect(formatLp(148)).toBe('+148 LP')
+    expect(formatLp(-20)).toBe(`${MINUS}20 LP`)
+    expect(formatLp(0)).toBe('±0 LP')
+  })
+
+  it('names divisions on the ladder', () => {
+    expect(rankName('EMERALD', 'II')).toBe('Emerald II')
+    expect(rankName('GRANDMASTER', null)).toBe('Grandmaster')
+    expect(ladderDivision(2200)).toBe('Emerald II')
+    expect(ladderDivision(0)).toBe('Iron IV')
+    expect(ladderDivision(3100)).toBe('Master')
+  })
+
+  describe('buildClimbHeadline (FR 5–6)', () => {
+    it('counts LP in LP mode', () => {
+      expect(buildClimbHeadline(climbResponse())).toBe('+64 LP over your last 20 matches')
+      expect(buildClimbHeadline(climbResponse({ range: 'season' }))).toBe('+64 LP this season')
+    })
+
+    it('counts wins in win-rate mode', () => {
+      expect(buildClimbHeadline(winRateClimbResponse())).toBe('12 wins in your last 20')
+      expect(buildClimbHeadline(winRateClimbResponse({ range: 'season', matches: 64 }))).toBe('12 wins in 64 matches this season')
+      expect(buildClimbHeadline(winRateClimbResponse({ wins: 1 }))).toBe('1 win in your last 20')
+    })
+
+    it('says when there are no wins', () => {
+      expect(buildClimbHeadline(winRateClimbResponse({ wins: 0 }))).toBe('No wins in your last 20')
+    })
+
+    it('is null without matches', () => {
+      expect(buildClimbHeadline(climbResponse({ matches: 0 }))).toBeNull()
+      expect(buildClimbHeadline(null)).toBeNull()
+    })
+  })
+
+  it('builds the rank line for one ranked queue (FR 8)', () => {
+    expect(buildRankLine(climbResponse())).toEqual({ text: 'Emerald II · 34 LP · Solo/Duo', tierKey: 'emerald' })
+    expect(buildRankLine(winRateClimbResponse())).toBeNull()
+  })
+
+  describe('buildClimbTitle (FR 11–12)', () => {
+    it('names the divisions in LP mode', () => {
+      expect(buildClimbTitle(climbResponse())).toBe('From Emerald III to Emerald II')
+      const held = climbResponse()
+      held.lp = { ...held.lp, start: { tier: 'EMERALD', division: 'II', lp: 10 } }
+      expect(buildClimbTitle(held)).toBe('Holding Emerald II')
+    })
+
+    it('compares win rates in win-rate mode, holding under 3 points', () => {
+      expect(buildClimbTitle(winRateClimbResponse())).toBe('Win rate up from 50% to 70%')
+      expect(buildClimbTitle(winRateClimbResponse({ winRate: { was: 60, now: 52, points: [] } }))).toBe('Win rate down from 60% to 52%')
+      expect(buildClimbTitle(winRateClimbResponse({ winRate: { was: 52, now: 54, points: [] } }))).toBe('Win rate held at 54%')
+      expect(buildClimbTitle(winRateClimbResponse({ winRate: null }))).toBeNull()
+    })
+  })
+
+  it('lists win rate, LP per match and the record', () => {
+    expect(buildClimbStats(climbResponse()).map((s) => s.value)).toEqual(['60%', '+3.2', '12–8'])
+    expect(buildClimbStats(winRateClimbResponse()).map((s) => s.key)).toEqual(['winRate', 'record'])
+  })
+
+  it('asks for 20 matches before the win-rate line', () => {
+    expect(buildClimbEmpty(winRateClimbResponse({ matches: 14, winRate: null })).title).toBe('Play 6 more matches to see your climb')
+    expect(buildClimbEmpty(climbResponse())).toBeNull()
+  })
+
+  it('describes the climb in words', () => {
+    expect(describeClimb(climbResponse())).toBe(
+      'LP, last 20 matches: from Emerald III 70 LP to Emerald II 34 LP, +64 LP. '
+        + 'Promoted to Emerald II at match 2. Demoted to Emerald III at match 4. Promoted to Emerald II at match 20. '
+        + `Biggest drop ${MINUS}60 LP over 3 losses, ending at match 4.`
+    )
+    expect(describeClimb(winRateClimbResponse())).toBe('Win rate over 10 matches, last 20 matches: from 50% to 70%.')
+  })
+
+  describe('LP per champion (FR 24–25)', () => {
+    it('titles the card after the top champion, or the lowest when none gained', () => {
+      expect(buildChampionLpTitle(climbResponse())).toBe('Ahri earned most of your climb')
+      const losing = climbResponse({ champions: [{ championName: 'Ahri', value: -5 }, { championName: 'Zed', value: -30 }] })
+      expect(buildChampionLpTitle(losing)).toBe('Zed cost you the most LP')
+      expect(buildChampionLpTitle(winRateClimbResponse())).toBe('Ahri won you the most matches')
+      const losingWins = winRateClimbResponse({ champions: [{ championName: 'Ahri', value: 0 }, { championName: 'Zed', value: -2 }] })
+      expect(buildChampionLpTitle(losingWins)).toBe('Zed cost you the most matches')
+    })
+
+    it('captions and formats by mode', () => {
+      expect(buildChampionLpCaption(climbResponse())).toBe('LP won or lost per champion')
+      expect(buildChampionLpCaption(winRateClimbResponse())).toBe('Wins minus losses per champion')
+      expect(formatChampionValue(58, 'lp')).toBe('+58 LP')
+      expect(formatChampionValue(-3, 'winRate')).toBe(`${MINUS}3`)
+      expect(formatChampionValue(0, 'winRate')).toBe('±0')
+    })
+
+    it('names up to three champions left out', () => {
+      expect(buildLeftOutNote(['Orianna'])).toBe('Left out with fewer than 3 matches: Orianna.')
+      expect(buildLeftOutNote(['Orianna', 'Zed', 'Lux'])).toBe('Left out with fewer than 3 matches: Orianna, Zed and Lux.')
+      expect(buildLeftOutNote(['Orianna', 'Zed', 'Lux', 'Akali', 'Viktor'])).toBe('Left out with fewer than 3 matches: Orianna, Zed, Lux and 2 more.')
+      expect(buildLeftOutNote([])).toBeNull()
+    })
+
+    it('describes a row in words', () => {
+      expect(describeChampionLp(climbResponse().champions[0], 'lp')).toBe('Ahri: 9 matches, 6 wins, +58 LP.')
+      expect(describeChampionLp(winRateClimbResponse().champions[1], 'winRate')).toBe(`Syndra: 5 matches, 1 win, ${MINUS}3 net wins.`)
     })
   })
 })

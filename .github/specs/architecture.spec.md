@@ -138,7 +138,8 @@ server/
 │   │   │   ├── Solo/SoloMatchupsEndpoint.cs
 │   │   │   ├── Solo/MatchActivityEndpoint.cs
 │   │   │   ├── Solo/SoloStatTrendsEndpoint.cs
-│   │   │   └── Solo/SoloWinFactorsEndpoint.cs
+│   │   │   ├── Solo/SoloWinFactorsEndpoint.cs
+│   │   │   └── Solo/SoloClimbEndpoint.cs
 │   │   └── Services/
 │   │       ├── LoginSyncService.cs         # Post-login Riot data refresh
 │   │       └── MainChampionRecommender.cs  # Champion scoring algorithm (MScore)
@@ -295,6 +296,7 @@ Credentials: allowed. Methods & Headers: any.
 | `GET` | `/api/v2/solo/activity/{userId}` | Yes | No | `Solo/MatchActivityEndpoint.cs` | `MatchActivityResponse` |
 | `GET` | `/api/v2/solo/stat-trends/{userId}` | Yes | No | `Solo/SoloStatTrendsEndpoint.cs` | `StatTrendsResponse` |
 | `GET` | `/api/v2/solo/win-factors/{userId}` | Yes | No | `Solo/SoloWinFactorsEndpoint.cs` | `WinFactorsResponse` |
+| `GET` | `/api/v2/solo/climb/{userId}` | Yes | No | `Solo/SoloClimbEndpoint.cs` | `ClimbResponse` |
 | `GET` | `/api/v2/matches/{userId}` | Yes | No | `Matches/MatchListEndpoint.cs` | `MatchListResponse` |
 | `GET` | `/api/v2/matches/{matchId}/details` | Yes | No | `Matches/MatchDetailsEndpoint.cs` | `MatchDetailsResponse` |
 | `GET` | `/api/v2/matches/{matchId}/narrative` | Yes | No | `Matches/MatchNarrativeEndpoint.cs` | `MatchNarrativeResponse` |
@@ -439,6 +441,15 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Query params**: same as 6.12a  
 **Response**: `WinFactorsResponse(matches, queueType, range, factors[], patterns)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#win-factors). Factor `mark` is set only when every match in range is one role.  
 **Logic**: Win rate when the player hits each mark vs misses it (5 matches per side, sorted by gap), and the session, after-a-loss and match-length patterns (`WinFactorCalculator`, `PatternCalculator`).  
+**Tables**: as 6.12a  
+**Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
+
+### 6.12c Solo Climb
+**Route**: `GET /api/v2/solo/climb/{userId}`  
+**Auth**: Yes  
+**Query params**: same as 6.12a  
+**Response**: `ClimbResponse(matches, queueType, range, mode, wins, losses, lp?, winRate?, champions[], championsLeftOut[], rank?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#climb).  
+**Logic**: `LpCoverageRule` picks LP mode (one ranked queue, one account, 80% and at least 10 matches with a known LP change) or win-rate mode. LP mode: the ladder per match (`LpLadder`), net LP, promotions and demotions, the biggest drop over 2+ losses (40 LP or more). Win-rate mode: the 10-match rolling win rate (needs 20 matches). LP or net wins per champion with 3+ matches (top 5), and the latest rank for the rank line (`ClimbCalculator`). LP changes use the same previous-rank window as the match list (`PreviousRankSql`).  
 **Tables**: as 6.12a  
 **Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
 

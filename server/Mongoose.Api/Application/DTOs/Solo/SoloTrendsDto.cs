@@ -83,6 +83,87 @@ public static class SoloTrendsDto
         [property: JsonPropertyName("factors")] IReadOnlyList<WinFactorDto> Factors,
         [property: JsonPropertyName("patterns")] PatternsDto Patterns);
 
+    public record RankDto(
+        [property: JsonPropertyName("tier")] string Tier,
+        [property: JsonPropertyName("division")] string? Division,
+        [property: JsonPropertyName("lp")] int Lp);
+
+    public record LadderPointDto(
+        [property: JsonPropertyName("index")] int Index,
+        [property: JsonPropertyName("ladder")] int Ladder);
+
+    public record LadderEventDto(
+        [property: JsonPropertyName("index")] int Index,
+        [property: JsonPropertyName("kind")] string Kind,
+        [property: JsonPropertyName("tier")] string Tier,
+        [property: JsonPropertyName("division")] string? Division);
+
+    public record LpDropDto(
+        [property: JsonPropertyName("index")] int Index,
+        [property: JsonPropertyName("lp")] int Lp,
+        [property: JsonPropertyName("losses")] int Losses);
+
+    public record LpClimbDto(
+        [property: JsonPropertyName("net")] int Net,
+        [property: JsonPropertyName("start")] RankDto Start,
+        [property: JsonPropertyName("end")] RankDto End,
+        [property: JsonPropertyName("points")] IReadOnlyList<LadderPointDto> Points,
+        [property: JsonPropertyName("events")] IReadOnlyList<LadderEventDto> Events,
+        [property: JsonPropertyName("biggestDrop")] LpDropDto? BiggestDrop);
+
+    public record WinRatePointDto(
+        [property: JsonPropertyName("index")] int Index,
+        [property: JsonPropertyName("rate")] int Rate);
+
+    public record WinRateClimbDto(
+        [property: JsonPropertyName("was")] int Was,
+        [property: JsonPropertyName("now")] int Now,
+        [property: JsonPropertyName("points")] IReadOnlyList<WinRatePointDto> Points);
+
+    public record ChampionClimbDto(
+        [property: JsonPropertyName("championId")] int ChampionId,
+        [property: JsonPropertyName("championName")] string ChampionName,
+        [property: JsonPropertyName("matches")] int Matches,
+        [property: JsonPropertyName("wins")] int Wins,
+        [property: JsonPropertyName("value")] int Value);
+
+    public record ClimbResponse(
+        [property: JsonPropertyName("matches")] int Matches,
+        [property: JsonPropertyName("queueType")] string QueueType,
+        [property: JsonPropertyName("range")] string Range,
+        [property: JsonPropertyName("mode")] string Mode,
+        [property: JsonPropertyName("wins")] int Wins,
+        [property: JsonPropertyName("losses")] int Losses,
+        [property: JsonPropertyName("lp")] LpClimbDto? Lp,
+        [property: JsonPropertyName("winRate")] WinRateClimbDto? WinRate,
+        [property: JsonPropertyName("champions")] IReadOnlyList<ChampionClimbDto> Champions,
+        [property: JsonPropertyName("championsLeftOut")] IReadOnlyList<string> ChampionsLeftOut,
+        [property: JsonPropertyName("rank")] RankDto? Rank);
+
+    public static ClimbResponse ToDto(SoloClimb c, int matches, string queueType, string range) => new(
+        matches,
+        queueType,
+        range,
+        c.Mode,
+        c.Wins,
+        c.Losses,
+        c.Lp == null ? null : new LpClimbDto(
+            c.Lp.Net,
+            ToDto(c.Lp.Start),
+            ToDto(c.Lp.End),
+            c.Lp.Points.Select(p => new LadderPointDto(p.Index, p.Ladder)).ToList(),
+            c.Lp.Events.Select(e => new LadderEventDto(e.Index, e.Kind, e.Tier, e.Division)).ToList(),
+            c.Lp.BiggestDrop == null ? null : new LpDropDto(c.Lp.BiggestDrop.Index, c.Lp.BiggestDrop.Lp, c.Lp.BiggestDrop.Losses)),
+        c.WinRate == null ? null : new WinRateClimbDto(
+            c.WinRate.Was,
+            c.WinRate.Now,
+            c.WinRate.Points.Select(p => new WinRatePointDto(p.Index, p.Rate)).ToList()),
+        c.Champions.Select(ch => new ChampionClimbDto(ch.ChampionId, ch.ChampionName, ch.Matches, ch.Wins, ch.Value)).ToList(),
+        c.ChampionsLeftOut,
+        c.Rank == null ? null : ToDto(c.Rank));
+
+    private static RankDto ToDto(LadderRank r) => new(r.Tier, r.Division, r.Lp);
+
     public static StatTrendDto ToDto(StatTrend t) => new(
         t.Key,
         t.Values,

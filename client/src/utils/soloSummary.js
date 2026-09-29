@@ -339,3 +339,158 @@ export function buildPatternCards(patterns, range, matches) {
     patterns.length ? lengthCard(patterns.length, range, matches) : null
   ].filter(Boolean)
 }
+
+// ───────────────────────── Climb (FR 5, 6, 8–12) ─────────────────────────
+
+const LP_MODE = 'lp'
+const TIERS_WITH_DIVISIONS = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND']
+const DIVISIONS = ['IV', 'III', 'II', 'I']
+const APEX_FLOOR = 2800
+
+/** FR 12: a win-rate change under 3 points "held". */
+const HELD_POINTS = 3
+
+function titleCase(word) {
+  return word.charAt(0) + word.slice(1).toLowerCase()
+}
+
+/** "Emerald II", "Master": the rank without LP. */
+export function rankName(tier, division) {
+  if (!tier) return ''
+  return division ? `${titleCase(tier)} ${division}` : titleCase(tier)
+}
+
+/** The division at a ladder score (Iron IV 0 = 0, Master and above share one count). */
+export function ladderDivision(score) {
+  if (score >= APEX_FLOOR) return 'Master'
+  const number = Math.floor(Math.max(score, 0) / 100)
+  return rankName(TIERS_WITH_DIVISIONS[Math.floor(number / 4)], DIVISIONS[number % 4])
+}
+
+/** "+148 LP", "−20 LP", "±0 LP". */
+export function formatLp(value) {
+  return `${Math.round(value) === 0 ? '±0' : formatSigned(value)} LP`
+}
+
+/**
+ * FR 5–6: the page headline from the climb. LP mode "+148 LP over your last 50 matches";
+ * win-rate mode "28 wins in your last 50". Null without matches.
+ */
+export function buildClimbHeadline(climb) {
+  if (!climb?.matches) return null
+  const { matches, range, wins } = climb
+  const season = range === 'season'
+
+  if (climb.mode === LP_MODE && climb.lp) {
+    return season ? `${formatLp(climb.lp.net)} this season` : `${formatLp(climb.lp.net)} over your last ${matches} ${matchWord(matches)}`
+  }
+  if (!wins) return season ? `No wins in ${matches} ${matchWord(matches)} this season` : `No wins in your last ${matches}`
+  const winWord = wins === 1 ? 'win' : 'wins'
+  return season ? `${wins} ${winWord} in ${matches} ${matchWord(matches)} this season` : `${wins} ${winWord} in your last ${matches}`
+}
+
+/** FR 8: "Emerald II · 58 LP · Solo/Duo" with the tier key for the colour dot; null without a rank. */
+export function buildRankLine(climb) {
+  const rank = climb?.rank
+  if (!rank) return null
+  return {
+    text: `${rankName(rank.tier, rank.division)} · ${rank.lp} LP · ${queueLabel(climb.queueType)}`,
+    tierKey: rank.tier.toLowerCase()
+  }
+}
+
+/** FR 11–12: the climb card title; null when the card has nothing to show. */
+export function buildClimbTitle(climb) {
+  if (climb?.mode === LP_MODE && climb.lp) {
+    const start = rankName(climb.lp.start.tier, climb.lp.start.division)
+    const end = rankName(climb.lp.end.tier, climb.lp.end.division)
+    return start === end ? `Holding ${end}` : `From ${start} to ${end}`
+  }
+  const winRate = climb?.winRate
+  if (!winRate) return null
+  if (Math.abs(winRate.now - winRate.was) < HELD_POINTS) return `Win rate held at ${winRate.now}%`
+  return `Win rate ${winRate.now > winRate.was ? 'up' : 'down'} from ${winRate.was}% to ${winRate.now}%`
+}
+
+export function buildClimbCaption(climb) {
+  const range = rangeText(climb.range, climb.matches)
+  return climb.mode === LP_MODE ? `LP after each ranked match, ${range}` : `10-match win rate, ${range}`
+}
+
+/** Win rate, LP per match (LP mode) and the record, beside the title. */
+export function buildClimbStats(climb) {
+  const stats = [{ key: 'winRate', label: 'Win rate', value: `${Math.round((climb.wins / climb.matches) * 100)}%` }]
+  if (climb.mode === LP_MODE && climb.lp) {
+    const perMatch = climb.lp.net / climb.matches
+    stats.push({ key: 'lpPerMatch', label: 'LP per match', value: perMatch === 0 ? '±0' : `${perMatch > 0 ? '+' : MINUS}${Math.abs(perMatch).toFixed(1)}` })
+  }
+  stats.push({ key: 'record', label: 'Wins–losses', value: `${climb.wins}–${climb.losses}` })
+  return stats
+}
+
+/** The climb card below its minimum (FR 12: the win-rate line needs 20 matches); null when it can show. */
+export function buildClimbEmpty(climb) {
+  if (climb.mode === LP_MODE && climb.lp) return null
+  if (climb.winRate) return null
+  const more = MIN_MATCHES - climb.matches
+  return {
+    title: `Play ${more} more ${matchWord(more)} to see your climb`,
+    description: 'Your win rate line starts once there are 20 matches to compare.'
+  }
+}
+
+/** The climb chart's text alternative. */
+export function describeClimb(climb) {
+  const range = rangeText(climb.range, climb.matches)
+  if (climb.mode === LP_MODE && climb.lp) {
+    const { start, end, net, events, biggestDrop } = climb.lp
+    const parts = [`LP, ${range}: from ${rankName(start.tier, start.division)} ${start.lp} LP to ${rankName(end.tier, end.division)} ${end.lp} LP, ${formatLp(net)}.`]
+    for (const event of events) {
+      parts.push(`${event.kind === 'promotion' ? 'Promoted' : 'Demoted'} to ${rankName(event.tier, event.division)} at match ${event.index + 1}.`)
+    }
+    if (biggestDrop) parts.push(`Biggest drop ${formatLp(biggestDrop.lp)} over ${biggestDrop.losses} losses, ending at match ${biggestDrop.index + 1}.`)
+    return parts.join(' ')
+  }
+  const { was, now } = climb.winRate
+  return `Win rate over 10 matches, ${range}: from ${was}% to ${now}%.`
+}
+
+// ───────────────────────── LP per champion (FR 24–25) ─────────────────────────
+
+/** FR 25: "{Champion} earned most of your climb" and its variants; null without rows. */
+export function buildChampionLpTitle(climb) {
+  const champions = climb?.champions ?? []
+  if (!champions.length) return null
+  const top = champions[0]
+  const lowest = champions[champions.length - 1]
+  if (climb.mode === LP_MODE) {
+    return top.value > 0 ? `${top.championName} earned most of your climb` : `${lowest.championName} cost you the most LP`
+  }
+  return top.value > 0 ? `${top.championName} won you the most matches` : `${lowest.championName} cost you the most matches`
+}
+
+export function buildChampionLpCaption(climb) {
+  return climb.mode === LP_MODE ? 'LP won or lost per champion' : 'Wins minus losses per champion'
+}
+
+/** A row's value: "+134 LP" in LP mode, "+5" net wins otherwise. */
+export function formatChampionValue(value, mode) {
+  return mode === LP_MODE ? formatLp(value) : (Math.round(value) === 0 ? '±0' : formatSigned(value))
+}
+
+/** FR 24 footnote: up to three names left out for having under 3 matches, then "and n more". */
+export function buildLeftOutNote(names) {
+  if (!names?.length) return null
+  const shown = names.slice(0, 3)
+  const more = names.length - shown.length
+  const list = more > 0
+    ? `${shown.join(', ')} and ${more} more`
+    : shown.length > 1 ? `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}` : shown[0]
+  return `Left out with fewer than 3 matches: ${list}.`
+}
+
+export function describeChampionLp(champion, mode) {
+  const value = formatChampionValue(champion.value, mode)
+  const what = mode === LP_MODE ? value : `${value} net wins`
+  return `${champion.championName}: ${champion.matches} ${matchWord(champion.matches)}, ${champion.wins} ${champion.wins === 1 ? 'win' : 'wins'}, ${what}.`
+}

@@ -13,6 +13,7 @@ public enum SoloRange
 /// <summary>
 /// One match of the player on the Solo page, with everything the Solo trend rules read.
 /// Nullable fields are missing when the source row doesn't exist (no checkpoint at 15, no metrics row).
+/// <see cref="LpChange"/> is known only when this match and the previous one in its queue both have a rank.
 /// </summary>
 public sealed record SoloMatchRow(
     string MatchId,
@@ -33,7 +34,8 @@ public sealed record SoloMatchRow(
     int TeamKills,
     int? LpAfter = null,
     string? TierAfter = null,
-    string? RankAfter = null);
+    string? RankAfter = null,
+    int? LpChange = null);
 
 /// <summary>
 /// Matches this season per ranked queue, used to pick the page's default queue (FR2).

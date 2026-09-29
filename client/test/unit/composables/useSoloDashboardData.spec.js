@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { effectScope, reactive, nextTick } from 'vue'
 import { flushPromises } from '@vue/test-utils'
-import { statTrendsResponse, winFactorsResponse } from '@test/helpers/soloFixtures'
+import { climbResponse, statTrendsResponse, winFactorsResponse } from '@test/helpers/soloFixtures'
 
+const mockGetSoloClimb = vi.fn()
 const mockGetSoloStatTrends = vi.fn()
 const mockGetSoloWinFactors = vi.fn()
 const mockGetDeathPositions = vi.fn()
@@ -24,6 +25,7 @@ vi.mock('@/services/analyticsApi', () => ({
 }))
 
 vi.mock('@/services/soloApi', () => ({
+  getSoloClimb: (...args) => mockGetSoloClimb(...args),
   getSoloStatTrends: (...args) => mockGetSoloStatTrends(...args),
   getSoloWinFactors: (...args) => mockGetSoloWinFactors(...args),
   getDeathPositions: (...args) => mockGetDeathPositions(...args)
@@ -47,6 +49,7 @@ describe('useSoloDashboardData', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     Object.assign(authStore, { userId: 1, isInitialized: true, hasLinkedAccount: true, activeAccountPuuid: 'acc-1' })
+    mockGetSoloClimb.mockResolvedValue(climbResponse())
     mockGetSoloStatTrends.mockResolvedValue(statTrendsResponse())
     mockGetSoloWinFactors.mockResolvedValue(winFactorsResponse())
     mockGetDeathPositions.mockResolvedValue({ deaths: [], totalDeaths: 0, matchesAnalyzed: 0 })
@@ -58,6 +61,8 @@ describe('useSoloDashboardData', () => {
 
     expect(mockGetSoloStatTrends).toHaveBeenCalledWith(1, null, 'last20')
     expect(mockGetSoloWinFactors).toHaveBeenCalledWith(1, null, 'last20')
+    expect(mockGetSoloClimb).toHaveBeenCalledWith(1, null, 'last20')
+    expect(data.climb.value.mode).toBe('lp')
     expect(data.statTrends.value.matches).toBe(20)
     expect(data.winFactors.value.factors).toHaveLength(3)
     expect(data.selectedQueue.value).toBe('ranked_solo')
@@ -82,6 +87,7 @@ describe('useSoloDashboardData', () => {
 
     expect(mockGetSoloStatTrends).toHaveBeenLastCalledWith(1, 'ranked_flex', 'season')
     expect(mockGetSoloWinFactors).toHaveBeenLastCalledWith(1, 'ranked_flex', 'season')
+    expect(mockGetSoloClimb).toHaveBeenLastCalledWith(1, 'ranked_flex', 'season')
     expect(mockTrackFilterChange).toHaveBeenCalledWith('queue', 'ranked_flex')
     expect(mockTrackFilterChange).toHaveBeenCalledWith('range', 'season')
   })
@@ -130,6 +136,7 @@ describe('useSoloDashboardData', () => {
 
     expect(mockGetSoloWinFactors).toHaveBeenCalledTimes(1)
     expect(mockGetSoloStatTrends).not.toHaveBeenCalled()
+    expect(mockGetSoloClimb).not.toHaveBeenCalled()
     expect(data.winFactorsError.value).toBe(false)
   })
 
@@ -143,6 +150,7 @@ describe('useSoloDashboardData', () => {
 
     expect(mockGetSoloStatTrends).toHaveBeenCalledTimes(1)
     expect(mockGetSoloWinFactors).toHaveBeenCalledTimes(1)
+    expect(mockGetSoloClimb).toHaveBeenCalledTimes(1)
   })
 
   it('waits for auth, and loads nothing without a linked account', async () => {

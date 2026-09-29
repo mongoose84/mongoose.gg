@@ -290,17 +290,18 @@ Order (design system: summary → list → evidence):
 States: skeleton rows and a skeleton match after 300ms, inline error with "Try again" for the list, the match and the lanes separately, EmptyState "No matches yet" with "Sync matches" (or "Show all queues" when filtered), "We couldn't find this match" for an unknown match ID, and "Link Riot account" without a linked account. Your team is purple and the enemy orange; good stats purple ▲, needs-work orange ▼.
 
 ### Solo (`/app/solo`)
-**Role**: "Am I improving?": the player's matches against their own past. Free tier. Rules and copy in [features/solo-trends.spec.md](features/solo-trends.spec.md); built so far through 5b of the design migration.
+**Role**: "Am I improving?": the player's matches against their own past. Free tier. Rules and copy in [features/solo-trends.spec.md](features/solo-trends.spec.md); built so far through 5c of the design migration.
 
-1. Header: one `h1` ("Your last 20 matches" / "Your 64 matches this season" until the climb card brings wins and LP in 5c) and the second line from `stat-trends` (the Improving stat with the largest normalised change, else the Slipping one). Right: two `BaseSegmentedControl`s, Queue (Solo/Duo, Flex, All queues; the server picks the default and the control shows it) and Range (Last 20, Last 50, Season; ranges count matches).
-2. `SoloStatTrends`: "n of 6 match-deciding stats improved" with six `BaseTrendTile`s (3 columns; rows below 900px) and a key (Your average, One match, Your season average).
-3. "Where you die most": the legacy `DangerZonesMap` (this season) until the death-zones card replaces it (5f).
-4. `SoloWinFactors`: "Your {factor} decides your matches most" with a `BaseWinFactorRow` per mark (needs 20 matches and 2 rows).
-5. `SoloPatterns`: "Your patterns", up to three InsightCard-style cards with a chip and a `BaseColumnChart` (session, after a loss, match length); hidden when none qualify.
+1. Header: the rank line for one ranked queue of one account (Riot ID · tier-colour dot, "Emerald II · 58 LP · Solo/Duo"), one `h1` from the climb ("+148 LP over your last 50 matches" in LP mode, "28 wins in your last 50" otherwise; the match count until the climb answers) and the second line from `stat-trends` (the Improving stat with the largest normalised change, else the Slipping one). Right: two `BaseSegmentedControl`s, Queue (Solo/Duo, Flex, All queues; the server picks the default and the control shows it) and Range (Last 20, Last 50, Season; ranges count matches).
+2. `SoloClimbCard` (full width until the focus card sits beside it in 5d): "From Emerald III to Emerald II" / "Holding Emerald II" with win rate, LP per match and wins–losses beside it, and a `BaseLineChart` of the LP ladder (division guides, promotion labels, the biggest drop as one orange point). In win-rate mode, "Win rate up from 52% to 58%" over the 10-match win rate (needs 20 matches), with "LP appears here as your ranked matches sync." for one ranked queue of one account.
+3. `SoloStatTrends`: "n of 6 match-deciding stats improved" with six `BaseTrendTile`s (3 columns; rows below 900px) and a key (Your average, One match, Your season average).
+4. "Where you die most": the legacy `DangerZonesMap` (this season) until the death-zones card replaces it (5f).
+5. `SoloWinFactors`: "Your {factor} decides your matches most" with a `BaseWinFactorRow` per mark (needs 20 matches and 2 rows), beside `SoloChampionLp`: "Ahri earned most of your climb" with up to five champions (36px icon, matches and win rate, a `BaseDivergingBar`, signed LP or net wins) and the champions left out for having under 3 matches. One column below 900px.
+6. `SoloPatterns`: "Your patterns", up to three InsightCard-style cards with a chip and a `BaseColumnChart` (session, after a loss, match length); hidden when none qualify.
 
 Each card loads on its own (skeleton after 300ms, inline error with "Try again" for that card only, EmptyState, content) and keeps its old content while a filter change loads. EmptyStates: "Link your Riot account to see your trends"; "No {queue} matches yet" with "Show all queues" (or "Sync matches"); "Play {n} more matches to see what decides your matches". A finished sync reloads every card. Sections fade in once (`vRevealOnView`).
 
-Data sources: `getSoloStatTrends()`, `getSoloWinFactors()`, `getDeathPositions()` from `soloApi`, through `useSoloDashboardData`.
+Data sources: `getSoloClimb()`, `getSoloStatTrends()`, `getSoloWinFactors()`, `getDeathPositions()` from `soloApi`, through `useSoloDashboardData`.
 
 > **Advanced** (planned, not implemented): Team and Goals below will be combined into one page called Advanced (working name).
 
@@ -416,6 +417,8 @@ Built from `.claude/skills/mongoose-design/reference/components.md`; imported di
 | `BaseColumnChart` | `groups` (`{ key, label, value }`), `max`, `unit`, `weakKey`, `measure` | `mp-columns`: 2–4 columns, the weak spot in warn, `role="img"` listing every value |
 | `BaseTrendTile` | `label`, `value`, `unit`, `was`, `verdict`, `tone` (`up`, `down`, `neutral`), `arrow`, `values`, `rolling`, `length`, `benchmark`, `description` | `mp-stat` tile with an SVG sparkline: a dot per match, the rolling line in primary, the benchmark dashed; `role="group"` labelled by `description`; a row below 900px (Solo) |
 | `BaseWinFactorRow` | `label`, `hitWinRate`, `missWinRate`, `description` | Two dots on a 0–100% track (hit: filled primary, missed: warn ring), both rates above; the track is `role="img"` (Solo) |
+| `BaseLineChart` | `points` (`{ x, y }`, x = match index), `length`, `yMin`, `yMax`, `guides` (`{ y, label }`), `markers` (`{ x, y, label, tone }`), `ariaLabel`, `height` | One primary line with the last point highlighted, divider guides labelled in ink-faint, moments as dots with labels (warn for a drop; an empty label draws only the dot); `role="img"` (Solo climb) |
+| `BaseDivergingBar` | `value`, `max`, `description` | LaneBar shape without icons: primary right for a gain, warn left for a loss, scaled to `max`; `role="img"` (Solo LP per champion) |
 | `SyncProgress` | `state` (`running`, `waiting`, `done`, `failed`), `current`, `total`, `syncedCount` | Emits `retry`; indeterminate while `total` is 0 |
 | `ScoreRing` | `value`, `label`, `size` | `role="meter"` |
 
@@ -487,6 +490,8 @@ Located in `client/src/components/solo/`. Copy and number formats in `utils/solo
 | `SoloCard` | `testId`, `titleId`, `title`, `caption`, `errorTitle`, `loadingLabel`, `loading`, `error`, `empty` | Shell with the four states; slots `#skeleton`, `#empty-action`, `#aside` (key), default; emits `retry` |
 | `SoloStatTrends` | `data` (stat-trends response), `loading`, `error`, `queue`, `syncing` | Six `BaseTrendTile`s; title per FR 17 (the caption when no stat has a verdict); emits `retry`, `show-all-queues`, `sync` |
 | `SoloWinFactors` | `data` (win-factors response), `loading`, `error`, `queue`, `syncing` | `BaseWinFactorRow`s in server order; EmptyState under 20 matches or 2 rows; same emits |
+| `SoloClimbCard` | `data` (climb response), `loading`, `error`, `queue`, `syncing`, `singleAccount` | LP ladder or rolling win rate in a `BaseLineChart`; promotions closer than 5 matches keep the dot, only the last is labelled; same emits |
+| `SoloChampionLp` | `data` (climb response), `loading`, `error`, `queue`, `syncing` | Up to five `BaseDivergingBar` rows and the left-out note; emits `retry`, `sync` |
 | `SoloPatterns` | `data` (win-factors response), `loading`, `error` | Session, after-a-loss and match-length cards; the section is hidden when none qualify; emits `retry` |
 | `DangerZonesMap` | `deaths`, `totalDeaths`, `matchesAnalyzed`, `phaseSummary`, `loading`, `error`, `queueType`, `timeRange` | Legacy death heatmap, emits `update:side`; replaced by the death-zones card (5f) |
 

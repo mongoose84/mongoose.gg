@@ -2,7 +2,9 @@ using MySqlConnector;
 using Mongoose.Api.Core;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Core.QueryModels;
+using Mongoose.Api.Core.Services;
 using Mongoose.Api.Core.Services.Solo;
+using Mongoose.Api.Core.ValueObjects;
 
 namespace Mongoose.Api.Infrastructure.Database.Repositories;
 
@@ -25,6 +27,8 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
         if (puuids.Count == 0) return Array.Empty<SoloMatchRow>();
 
         var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        // Same placeholders on the window's alias; the parameters are already in puuidParams
+        var (previousRankPuuidPredicate, _) = BuildStringInClause("p2.puuid", puuids, "puuid");
         var (queuePredicate, queueParams) = BuildQueuePredicate(queueType);
 
         var seasonFilter = string.Empty;
@@ -61,13 +65,17 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
                  WHERE t.match_id = p.match_id AND t.team_id = p.team_id) AS team_kills,
                 p.lp_after,
                 p.tier_after,
-                p.rank_after
+                p.rank_after,
+                prev_rank.prev_lp_after,
+                prev_rank.prev_tier_after,
+                prev_rank.prev_rank_after
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN participant_checkpoints pc15 ON pc15.participant_id = p.id AND pc15.minute_mark = 15
             LEFT JOIN participant_objectives po ON po.participant_id = p.id
             LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
             LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
+            LEFT JOIN ({PreviousRankSql.For(previousRankPuuidPredicate)}) prev_rank ON prev_rank.participant_id = p.id
             WHERE {puuidPredicate}
             AND m.game_duration_sec >= {MinValidGameDurationSec}
             AND {queuePredicate}
@@ -89,6 +97,8 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
+                var win = reader.GetBoolean(7);
+                var rankAfter = ReadRank(reader, 16);
                 rows.Add(new SoloMatchRow(
                     MatchId: reader.GetString(0),
                     GameStartTime: reader.GetInt64(1),
@@ -97,7 +107,7 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
                     Role: reader.GetString(4),
                     ChampionId: reader.GetInt32(5),
                     ChampionName: reader.GetString(6),
-                    Win: reader.GetBoolean(7),
+                    Win: win,
                     Deaths: reader.GetInt32(8),
                     CreepScore: reader.GetInt32(9),
                     GoldDiffAt15: reader.IsDBNull(10) ? null : reader.GetInt32(10),
@@ -106,9 +116,10 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
                     VisionPerMin: reader.IsDBNull(13) ? null : (double)reader.GetDecimal(13),
                     KillParticipationPct: reader.IsDBNull(14) ? null : (double)reader.GetDecimal(14),
                     TeamKills: Convert.ToInt32(reader.GetValue(15)),
-                    LpAfter: reader.IsDBNull(16) ? null : reader.GetInt32(16),
-                    TierAfter: reader.IsDBNull(17) ? null : reader.GetString(17),
-                    RankAfter: reader.IsDBNull(18) ? null : reader.GetString(18)));
+                    LpAfter: rankAfter.Lp,
+                    TierAfter: rankAfter.Tier,
+                    RankAfter: rankAfter.Division,
+                    LpChange: LpChangeCalculator.Compute(ReadRank(reader, 19), rankAfter, win)));
             }
             return 0;
         });
@@ -152,6 +163,12 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
             return new SoloQueueCounts(Convert.ToInt32(reader.GetValue(0)), Convert.ToInt32(reader.GetValue(1)));
         });
     }
+
+    /// <summary>Reads lp_after, tier_after and rank_after starting at <paramref name="lpOrdinal"/>.</summary>
+    private static RankSnapshot ReadRank(MySqlDataReader reader, int lpOrdinal) => new(
+        reader.IsDBNull(lpOrdinal + 1) ? null : reader.GetString(lpOrdinal + 1),
+        reader.IsDBNull(lpOrdinal + 2) ? null : reader.GetString(lpOrdinal + 2),
+        reader.IsDBNull(lpOrdinal) ? null : reader.GetInt32(lpOrdinal));
 
     /// <summary>
     /// The Solo queue scope as a parameterized predicate. "all" means the Summoner's Rift set here, not

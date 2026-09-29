@@ -243,10 +243,15 @@ Proposed 2026-09-29 through `/mongoose-design`: Solo becomes the "am I improving
   - The E2E smoke is updated but not yet run against a backend.
 
 ### 5c. Climb and LP per champion
-- [ ] Can ship before the rank-snapshot coverage result (2026-10-06) thanks to the win-rate fallback (decision 1); the result tells how often the fallback shows.
-- [ ] Core rule for LP coverage (80% of ranked matches in range, at least 10) deciding LP vs win-rate mode for the headline, climb card and champion card; returned as a `mode` field.
-- [ ] `GET /api/v2/solo/climb/{userId}`: the LP ladder per ranked match (100 LP per division, Master+ shared, as `LpChangeCalculator`), promotions, biggest drop, LP per champion (champions under 3 matches left out). Ranked queues only.
-- [ ] Climb card (line chart per the design system: takeaway title, labelled divisions, promotion labels, one orange point for the biggest drop, text alternative) and the LP-per-champion card (LaneBar-style bars around zero).
+- [x] Can ship before the rank-snapshot coverage result (2026-10-06) thanks to the win-rate fallback (decision 1); the result tells how often the fallback shows.
+- [x] Core rule for LP coverage (80% of ranked matches in range, at least 10) deciding LP vs win-rate mode for the headline, climb card and champion card; returned as a `mode` field.
+- [x] `GET /api/v2/solo/climb/{userId}`: the LP ladder per ranked match (100 LP per division, Master+ shared, as `LpChangeCalculator`), promotions, biggest drop, LP per champion (champions under 3 matches left out). Ranked queues only.
+- [x] Climb card (line chart per the design system: takeaway title, labelled divisions, promotion labels, one orange point for the biggest drop, text alternative) and the LP-per-champion card (LaneBar-style bars around zero).
+- 5c notes (2026-09-29):
+  - `LpLadder` (Core/Services/Solo) now owns the ladder; `LpChangeCalculator` calls it. The previous-rank window moved to `PreviousRankSql`, shared by the Matches and Solo repositories, so both pages read LP the same way.
+  - The climb response also carries `queueType`, `range` and `rank` (the rank line, FR 8). The headline and rank line come from it; until it answers, the headline counts matches.
+  - New patterns: `BaseLineChart` (primary line, labelled guides and moments, HTML labels over a stretched SVG) and `BaseDivergingBar` (LaneBar without icons). Promotions closer than 5 matches keep their dot but only the last is labelled, so bouncing on a boundary stays readable.
+  - The climb card is full width until the focus card (5d) sits beside it; LP per champion sits beside win factors.
 
 ### 5d. Your focus
 - [ ] Core `SoloFocusPicker` per the 5a rule; returned with `stat-trends` (or its own field on the Solo summary).

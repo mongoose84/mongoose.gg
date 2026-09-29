@@ -27,6 +27,14 @@
     <template v-else>
       <header class="solo-header" data-testid="solo-header">
         <div class="solo-header__text">
+          <p v-if="rankLine" class="solo-header__rank" data-testid="solo-rank-line">
+            <span v-if="riotId">{{ riotId }} · </span>
+            <span
+              class="solo-header__tier-dot"
+              :style="{ background: `var(--color-rank-${rankLine.tierKey}, var(--color-text-secondary))` }"
+              aria-hidden="true"
+            />{{ rankLine.text }}
+          </p>
           <h1 class="solo-header__title" data-testid="solo-headline">{{ headline }}</h1>
           <p v-if="secondLine" class="solo-header__subline" data-testid="solo-subline">{{ secondLine }}</p>
         </div>
@@ -47,6 +55,20 @@
           />
         </div>
       </header>
+
+      <div v-reveal-on-view>
+        <SoloClimbCard
+          :data="climb"
+          :loading="climbLoading"
+          :error="climbError"
+          :queue="selectedQueue"
+          :syncing="isSyncing"
+          :single-account="singleAccount"
+          @retry="fetchClimb"
+          @show-all-queues="setQueue('all')"
+          @sync="startSync"
+        />
+      </div>
 
       <div v-reveal-on-view>
         <SoloStatTrends
@@ -85,7 +107,7 @@
         />
       </section>
 
-      <div v-reveal-on-view>
+      <div v-reveal-on-view class="solo-pair">
         <SoloWinFactors
           :data="winFactors"
           :loading="winFactorsLoading"
@@ -94,6 +116,15 @@
           :syncing="isSyncing"
           @retry="fetchWinFactors"
           @show-all-queues="setQueue('all')"
+          @sync="startSync"
+        />
+        <SoloChampionLp
+          :data="climb"
+          :loading="climbLoading"
+          :error="climbError"
+          :queue="selectedQueue"
+          :syncing="isSyncing"
+          @retry="fetchClimb"
           @sync="startSync"
         />
       </div>
@@ -126,12 +157,21 @@ import { useAuthStore } from '../stores/authStore'
 import { useSoloDashboardData } from '../composables/useSoloDashboardData'
 import { useSyncMatches } from '../composables/useSyncMatches'
 import { vRevealOnView } from '../composables/useRevealOnView'
-import { QUEUE_OPTIONS, RANGE_OPTIONS, buildSecondLine, buildSoloHeadline } from '../utils/soloSummary'
+import {
+  QUEUE_OPTIONS,
+  RANGE_OPTIONS,
+  buildClimbHeadline,
+  buildRankLine,
+  buildSecondLine,
+  buildSoloHeadline
+} from '../utils/soloSummary'
 import BaseButton from '../components/base/BaseButton.vue'
 import BaseIcon from '../components/base/BaseIcon.vue'
 import BaseEmptyState from '../components/base/BaseEmptyState.vue'
 import BaseSegmentedControl from '../components/base/BaseSegmentedControl.vue'
 import SyncProgress from '../components/base/SyncProgress.vue'
+import SoloClimbCard from '../components/solo/SoloClimbCard.vue'
+import SoloChampionLp from '../components/solo/SoloChampionLp.vue'
 import SoloStatTrends from '../components/solo/SoloStatTrends.vue'
 import SoloWinFactors from '../components/solo/SoloWinFactors.vue'
 import SoloPatterns from '../components/solo/SoloPatterns.vue'
@@ -145,6 +185,9 @@ const {
   selectedQueue,
   range,
   hasNoLinkedAccount,
+  climb,
+  climbError,
+  climbLoading,
   statTrends,
   statTrendsError,
   statTrendsLoading,
@@ -158,6 +201,7 @@ const {
   setRange,
   setSide,
   fetchAll,
+  fetchClimb,
   fetchStatTrends,
   fetchWinFactors
 } = useSoloDashboardData()
@@ -171,9 +215,20 @@ const {
   startSync
 } = useSyncMatches()
 
+// FR 5–6 from the climb; until it answers, the match count from stat trends
 const headline = computed(() =>
-  buildSoloHeadline(statTrends.value?.range, statTrends.value?.matches) ?? 'Your trends'
+  buildClimbHeadline(climb.value)
+    ?? buildSoloHeadline(statTrends.value?.range, statTrends.value?.matches)
+    ?? 'Your trends'
 )
+const rankLine = computed(() => buildRankLine(climb.value))
+
+// The rank belongs to one account: the active one, or the only one linked
+const rankAccount = computed(() => authStore.activeAccount ?? authStore.primaryRiotAccount)
+const riotId = computed(() =>
+  rankAccount.value?.gameName ? `${rankAccount.value.gameName}#${rankAccount.value.tagLine}` : null
+)
+const singleAccount = computed(() => !authStore.isOverallMode || (authStore.riotAccounts?.length ?? 0) <= 1)
 const secondLine = computed(() => buildSecondLine(statTrends.value?.stats))
 
 async function handleLinkSuccess() {
@@ -219,6 +274,29 @@ watch(syncState, (state, previous) => {
   color: var(--color-text);
 }
 
+.solo-header__rank {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-ink-soft);
+}
+
+.solo-header__tier-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+.solo-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
 .solo-header__subline {
   margin: 0;
   max-width: 65ch;
@@ -254,6 +332,10 @@ watch(syncState, (state, previous) => {
 }
 
 @media (max-width: 899px) {
+  .solo-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .solo-header__title {
     font-size: 1.75rem;
   }

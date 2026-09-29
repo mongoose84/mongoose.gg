@@ -106,7 +106,8 @@ describe('soloApi', () => {
   })
   describe.each([
     ['getSoloStatTrends', '/solo/stat-trends/7'],
-    ['getSoloWinFactors', '/solo/win-factors/7']
+    ['getSoloWinFactors', '/solo/win-factors/7'],
+    ['getSoloClimb', '/solo/climb/7']
   ])('%s', (name, path) => {
     it('sends the queue, range and account', async () => {
       await soloApi[name](7, 'ranked_flex', 'last50')

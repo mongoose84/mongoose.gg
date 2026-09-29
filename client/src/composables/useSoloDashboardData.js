@@ -2,7 +2,7 @@ import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useAsyncData } from './useAsyncData'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloStatTrends, getSoloWinFactors, getDeathPositions } from '../services/soloApi'
+import { getSoloClimb, getSoloStatTrends, getSoloWinFactors, getDeathPositions } from '../services/soloApi'
 
 // The death map (DangerZonesMap) still reads days until the death-zones card replaces it (5f)
 const DEATH_MAP_TIME_RANGE = 'current_season'
@@ -22,6 +22,10 @@ export function useSoloDashboardData() {
   const range = ref('last20')
   const sideFilter = ref('all')
 
+  const climb = useAsyncData(
+    () => getSoloClimb(authStore.userId, queue.value, range.value),
+    { errorMessage: 'Failed to load climb' }
+  )
   const statTrends = useAsyncData(
     () => getSoloStatTrends(authStore.userId, queue.value, range.value),
     { errorMessage: 'Failed to load stat trends' }
@@ -39,12 +43,13 @@ export function useSoloDashboardData() {
 
   /** The queue the page shows: the player's choice, else the server's default */
   const selectedQueue = computed(() =>
-    queue.value ?? statTrends.data.value?.queueType ?? winFactors.data.value?.queueType ?? null
+    queue.value ?? statTrends.data.value?.queueType ?? winFactors.data.value?.queueType ?? climb.data.value?.queueType ?? null
   )
 
   // Skeletons only before a card has anything to show
   const statTrendsLoading = computed(() => statTrends.isLoading.value && !statTrends.data.value)
   const winFactorsLoading = computed(() => winFactors.isLoading.value && !winFactors.data.value)
+  const climbLoading = computed(() => climb.isLoading.value && !climb.data.value)
 
   function run(resource) {
     // useAsyncData keeps the error for the card; nothing to do here
@@ -53,12 +58,13 @@ export function useSoloDashboardData() {
 
   const fetchStatTrends = () => run(statTrends)
   const fetchWinFactors = () => run(winFactors)
+  const fetchClimb = () => run(climb)
   const fetchDeathPositions = () => run(deathPositions)
 
   function fetchAll() {
     if (!authStore.userId || hasNoLinkedAccount.value) return Promise.resolve()
     // The death map waits for stat trends, which settles the default queue
-    return Promise.all([fetchStatTrends().then(fetchDeathPositions), fetchWinFactors()])
+    return Promise.all([fetchClimb(), fetchStatTrends().then(fetchDeathPositions), fetchWinFactors()])
   }
 
   function setQueue(value) {
@@ -93,6 +99,9 @@ export function useSoloDashboardData() {
     selectedQueue,
     range,
     hasNoLinkedAccount,
+    climb: climb.data,
+    climbError: climb.hasError,
+    climbLoading,
     statTrends: statTrends.data,
     statTrendsError: statTrends.hasError,
     statTrendsLoading,
@@ -106,6 +115,7 @@ export function useSoloDashboardData() {
     setRange,
     setSide,
     fetchAll,
+    fetchClimb,
     fetchStatTrends,
     fetchWinFactors
   }
