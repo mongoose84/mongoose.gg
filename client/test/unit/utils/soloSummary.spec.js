@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
+  buildFocusEvidence,
+  buildFocusFinding,
+  buildFocusFix,
+  buildFocusStripCaption,
+  focusMarkLabel,
   buildChampionLpCaption,
   buildChampionLpTitle,
   buildClimbEmpty,
@@ -30,7 +35,7 @@ import {
   formatStatValue,
   statVerdict
 } from '@/utils/soloSummary'
-import { climbResponse, statTrendsResponse, winFactorsResponse, winRateClimbResponse } from '@test/helpers/soloFixtures'
+import { climbResponse, focusFixture, statTrendsResponse, winFactorsResponse, winRateClimbResponse } from '@test/helpers/soloFixtures'
 
 const MINUS = '−'
 
@@ -314,5 +319,44 @@ describe('soloSummary climb', () => {
       expect(describeChampionLp(climbResponse().champions[0], 'lp')).toBe('Ahri: 9 matches, 6 wins, +58 LP.')
       expect(describeChampionLp(winRateClimbResponse().champions[1], 'winRate')).toBe(`Syndra: 5 matches, 1 win, ${MINUS}3 net wins.`)
     })
+  })
+})
+
+describe('soloSummary focus (FR 19–20, FR 29)', () => {
+  it('finds the one stat slipping, or the biggest lever', () => {
+    expect(buildFocusFinding(focusFixture(), 'slipping')).toBe('Vision is the one stat slipping')
+    expect(buildFocusFinding(focusFixture({ stat: 'deaths', factor: 'lowDeaths' }), 'steady')).toBe('Deaths is your biggest lever')
+  })
+
+  it('gives the evidence from the player’s own matches', () => {
+    expect(buildFocusEvidence(focusFixture()))
+      .toBe('Down from 0.9 to 0.7 per minute. You win 63% of matches at 0.9+ vision per minute, and 44% below it.')
+    expect(buildFocusEvidence(focusFixture({ stat: 'goldLeadAt15', factor: 'aheadAt15', mark: null, was: 120, now: 340 })))
+      .toBe("Up from +120 to +340 gold. You win 63% of matches at ahead at 15 minutes, and 44% when you're behind.")
+    expect(buildFocusEvidence(focusFixture({ stat: 'deaths', factor: 'lowDeaths', mark: null, was: 5, now: 5 })))
+      .toBe('Holding at 5.0 per match. You win 63% of matches at 4 or fewer deaths, and 44% with more.')
+  })
+
+  it('skips the change without a was', () => {
+    expect(buildFocusEvidence(focusFixture({ was: null }))).toBe('You win 63% of matches at 0.9+ vision per minute, and 44% below it.')
+  })
+
+  it('picks the fix, with the support and jungle variants from the mark', () => {
+    expect(buildFocusFix(focusFixture())).toEqual({ icon: 'eye', text: 'Buy a control ward on every back.' })
+    expect(buildFocusFix(focusFixture({ mark: 2 })).text).toBe('Place a control ward before every dragon.')
+    expect(buildFocusFix(focusFixture({ stat: 'csPerMin', factor: 'cs', mark: 7 })).text).toBe('Last-hit every cannon minion.')
+    expect(buildFocusFix(focusFixture({ stat: 'csPerMin', factor: 'cs', mark: 5.5 })).text).toBe('Finish your full first clear before the first gank.')
+    expect(buildFocusFix(focusFixture({ stat: 'dragonParticipation', factor: 'dragons' })))
+      .toEqual({ icon: 'castle', text: 'Move to the river 30 seconds before dragon spawns.' })
+    expect(buildFocusFix(null)).toBeNull()
+  })
+
+  it('counts hits against the matches where the mark applied', () => {
+    expect(buildFocusStripCaption(focusFixture())).toBe('Hit the mark in 4 of 19 matches')
+  })
+
+  it('names the mark in sentence case', () => {
+    expect(focusMarkLabel(focusFixture({ factor: 'aheadAt15' }))).toBe('Ahead at 15 minutes')
+    expect(focusMarkLabel(focusFixture({ factor: 'cs', mark: 5.5 }))).toBe('5.5+ CS per minute')
   })
 })

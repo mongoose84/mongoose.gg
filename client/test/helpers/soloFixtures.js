@@ -106,3 +106,18 @@ export function winRateClimbResponse(overrides = {}) {
     ...overrides
   })
 }
+
+export function focusFixture(overrides = {}) {
+  return {
+    stat: 'visionPerMin',
+    factor: 'vision',
+    mark: 0.9,
+    was: 0.9,
+    now: 0.7,
+    hitWinRate: 63,
+    missWinRate: 44,
+    last20: ['hit', 'miss', null, ...Array(17).fill('miss')].map((r, i) => (i >= 17 ? 'hit' : r)),
+    hits: 4,
+    ...overrides
+  }
+}

@@ -494,3 +494,80 @@ export function describeChampionLp(champion, mode) {
   const what = mode === LP_MODE ? value : `${value} net wins`
   return `${champion.championName}: ${champion.matches} ${matchWord(champion.matches)}, ${champion.wins} ${champion.wins === 1 ? 'win' : 'wins'}, ${what}.`
 }
+
+// ───────────────────────── Your focus (FR 19–20, FR 29) ─────────────────────────
+
+/**
+ * Per factor: how the mark is said after "at", and how a miss is said (FR 20's "below it" reads
+ * wrong for deaths and gold, so each factor names its own miss).
+ */
+const FOCUS_MARKS = {
+  aheadAt15: { at: () => 'ahead at 15 minutes', miss: "when you're behind" },
+  lowDeaths: { at: () => '4 or fewer deaths', miss: 'with more' },
+  dragons: { at: () => '2 or more dragons', miss: 'with fewer' },
+  vision: { at: (mark) => `${(mark ?? 0.9).toFixed(1)}+ vision per minute`, miss: 'below it' },
+  cs: { at: (mark) => `${mark && mark % 1 ? mark.toFixed(1) : mark ?? 7}+ CS per minute`, miss: 'below it' }
+}
+
+const SUPPORT_VISION_MARK = 2
+const JUNGLE_CS_MARK = 5.5
+
+/** FR 29: one fix per stat, with the Support vision and Jungle CS variants (read from the mark). */
+const FOCUS_FIXES = {
+  deaths: { icon: 'skull', text: () => "Back off when you can't see their jungler." },
+  goldLeadAt15: { icon: 'coins', text: () => 'Trade when your wave is pushing into them, not before.' },
+  dragonParticipation: { icon: 'castle', text: () => 'Move to the river 30 seconds before dragon spawns.' },
+  visionPerMin: {
+    icon: 'eye',
+    text: (mark) => (mark === SUPPORT_VISION_MARK ? 'Place a control ward before every dragon.' : 'Buy a control ward on every back.')
+  },
+  csPerMin: {
+    icon: 'wheat',
+    text: (mark) => (mark === JUNGLE_CS_MARK ? 'Finish your full first clear before the first gank.' : 'Last-hit every cannon minion.')
+  }
+}
+
+/** FR 20: "Vision is the one stat slipping" / "Vision is your biggest lever". */
+export function buildFocusFinding(focus, verdict) {
+  const label = statLabel(focus.stat)
+  return verdict === 'slipping' ? `${label} is the one stat slipping` : `${label} is your biggest lever`
+}
+
+/**
+ * FR 20: "Down from 0.9 to 0.7 per minute. You win 63% of matches at 0.9+ vision per minute,
+ * and 44% below it."
+ */
+export function buildFocusEvidence(focus) {
+  const parts = []
+  if (typeof focus.was === 'number' && typeof focus.now === 'number') {
+    const unit = STATS[focus.stat]?.unit
+    const now = formatStatNumber(focus.stat, focus.now)
+    const was = formatStatNumber(focus.stat, focus.was)
+    const tail = unit ? ` ${unit}` : ''
+    if (focus.now === focus.was) parts.push(`Holding at ${now}${tail}.`)
+    else parts.push(`${focus.now < focus.was ? 'Down' : 'Up'} from ${was} to ${now}${tail}.`)
+  }
+  const mark = FOCUS_MARKS[focus.factor]
+  if (mark) {
+    parts.push(`You win ${focus.hitWinRate}% of matches at ${mark.at(focus.mark)}, and ${focus.missWinRate}% ${mark.miss}.`)
+  }
+  return parts.join(' ')
+}
+
+/** FR 29: the "Next match" row's icon and text; null for a stat without a fix. */
+export function buildFocusFix(focus) {
+  const fix = FOCUS_FIXES[focus?.stat]
+  return fix ? { icon: fix.icon, text: fix.text(focus.mark) } : null
+}
+
+/** The strip's caption: "Hit the mark in 7 of 20 matches" (matches where it applied). */
+export function buildFocusStripCaption(focus) {
+  const counted = focus.last20.filter((s) => s !== null).length
+  return `Hit the mark in ${focus.hits} of ${counted} ${matchWord(counted)}`
+}
+
+/** The mark in words, sentence case: "0.9+ vision per minute", "Ahead at 15 minutes". */
+export function focusMarkLabel(focus) {
+  const text = FOCUS_MARKS[focus?.factor]?.at(focus.mark) ?? ''
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}

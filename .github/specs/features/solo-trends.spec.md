@@ -127,7 +127,7 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
     - the last 20 matches as `hit | miss | null` (null where the stat doesn't apply), oldest first, and the hit count.
 20. **Focus card copy.** Owned by the frontend.
     - Finding: `{Stat} is the one stat slipping` when Slipping, otherwise `{Stat} is your biggest lever`.
-    - Evidence: `{Down|Up} from {was} to {now} {unit}. You win {hit}% of matches at {mark}, and {miss}% below it.`
+    - Evidence: `{Down|Up} from {was} to {now} {unit}. You win {hit}% of matches at {mark}, and {miss}% below it.` Where "below it" reads wrong, the factor names its miss: "when you're behind" (ahead at 15), "with more" (deaths), "with fewer" (dragons).
     - Fix: one per stat (FR 29).
     - There is no goal button until Goals ship inside Advanced (decision 2).
 

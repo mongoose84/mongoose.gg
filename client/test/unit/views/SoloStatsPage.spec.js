@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { reactive, ref } from 'vue'
 import SoloPage from '@/views/SoloStatsPage.vue'
-import { climbResponse, statTrendsResponse, winFactorsResponse, winRateClimbResponse } from '@test/helpers/soloFixtures'
+import { climbResponse, focusFixture, statTrendsResponse, winFactorsResponse, winRateClimbResponse } from '@test/helpers/soloFixtures'
 
 const mockGetSoloClimb = vi.fn()
 const mockGetSoloStatTrends = vi.fn()
@@ -120,6 +120,23 @@ describe('SoloStatsPage', () => {
     expect(wrapper.find('[data-testid="danger-zones-card"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-win-factors"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-patterns"]').exists()).toBe(true)
+  })
+
+  it('shows the focus beside the climb, with its verdict', async () => {
+    mockGetSoloStatTrends.mockResolvedValue(statTrendsResponse({ focus: focusFixture() }))
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="solo-focus-finding"]').text()).toBe('Vision is the one stat slipping')
+    expect(wrapper.find('.solo-top--with-focus').exists()).toBe(true)
+  })
+
+  it('leaves out the focus card and widens the climb without a focus', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="solo-focus"]').exists()).toBe(false)
+    expect(wrapper.find('.solo-top--with-focus').exists()).toBe(false)
   })
 
   it('reloads the cards when the range changes', async () => {

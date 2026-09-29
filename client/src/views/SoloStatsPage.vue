@@ -56,7 +56,7 @@
         </div>
       </header>
 
-      <div v-reveal-on-view>
+      <div v-reveal-on-view class="solo-top" :class="{ 'solo-top--with-focus': showFocus }">
         <SoloClimbCard
           :data="climb"
           :loading="climbLoading"
@@ -67,6 +67,12 @@
           @retry="fetchClimb"
           @show-all-queues="setQueue('all')"
           @sync="startSync"
+        />
+        <SoloFocusCard
+          v-if="showFocus"
+          :focus="statTrends?.focus ?? null"
+          :verdict="focusVerdict"
+          :loading="statTrendsLoading"
         />
       </div>
 
@@ -172,6 +178,7 @@ import BaseSegmentedControl from '../components/base/BaseSegmentedControl.vue'
 import SyncProgress from '../components/base/SyncProgress.vue'
 import SoloClimbCard from '../components/solo/SoloClimbCard.vue'
 import SoloChampionLp from '../components/solo/SoloChampionLp.vue'
+import SoloFocusCard from '../components/solo/SoloFocusCard.vue'
 import SoloStatTrends from '../components/solo/SoloStatTrends.vue'
 import SoloWinFactors from '../components/solo/SoloWinFactors.vue'
 import SoloPatterns from '../components/solo/SoloPatterns.vue'
@@ -222,6 +229,13 @@ const headline = computed(() =>
     ?? 'Your trends'
 )
 const rankLine = computed(() => buildRankLine(climb.value))
+
+// FR 18: the focus card is left out when the server picks no focus (stat-trends errors show on its own card)
+const showFocus = computed(() => statTrendsLoading.value || Boolean(statTrends.value?.focus))
+const focusVerdict = computed(() => {
+  const focus = statTrends.value?.focus
+  return focus ? statTrends.value.stats.find((s) => s.key === focus.stat)?.verdict ?? null : null
+})
 
 // The rank belongs to one account: the active one, or the only one linked
 const rankAccount = computed(() => authStore.activeAccount ?? authStore.primaryRiotAccount)
@@ -290,6 +304,17 @@ watch(syncState, (state, previous) => {
   border-radius: 999px;
 }
 
+.solo-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.solo-top--with-focus {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
 .solo-pair {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -332,6 +357,7 @@ watch(syncState, (state, previous) => {
 }
 
 @media (max-width: 899px) {
+  .solo-top--with-focus,
   .solo-pair {
     grid-template-columns: minmax(0, 1fr);
   }

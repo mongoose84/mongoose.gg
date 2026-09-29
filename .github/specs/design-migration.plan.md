@@ -254,8 +254,9 @@ Proposed 2026-09-29 through `/mongoose-design`: Solo becomes the "am I improving
   - The climb card is full width until the focus card (5d) sits beside it; LP per champion sits beside win factors.
 
 ### 5d. Your focus
-- [ ] Core `SoloFocusPicker` per the 5a rule; returned with `stat-trends` (or its own field on the Solo summary).
-- [ ] Focus card (`surface-highlight`, the page's one highlight): finding, evidence, the 20-match hit/miss strip, and one "Next match" fix. No goal button until Goals ship (decision 2).
+- [x] Core `SoloFocusPicker` per the 5a rule; returned with `stat-trends` (or its own field on the Solo summary).
+- [x] Focus card (`surface-highlight`, the page's one highlight): finding, evidence, the 20-match hit/miss strip, and one "Next match" fix. No goal button until Goals ship (decision 2).
+- 5d notes (2026-09-29): `SoloFocusCard` sits beside the climb card (2:1, stacked below 900px) and is left out when `focus` is null, with the climb card taking the full width. New pattern `BaseGoalStrip` (20 cells: hit filled primary, missed a warn ring, not applicable a track stub, the same language as the win-factor dots). The evidence names each factor's miss ("when you're behind", "with more") where FR 20's "below it" reads wrong; the Support vision and Jungle CS fixes are chosen from the mark.
 
 ### 5e. Death data (backend first)
 - [ ] Extend `participant_death_events`: `timestamp_sec`, `killer_participant_id` (gives role and whether it was the lane opponent), `allies_nearby` (allies within ~1,500 units in the nearest participant frame; per-minute positions, so approximate), and `participants.riot_participant_id` so timeline IDs map to rows (the victim's side for mirroring comes from `participants.team_id`). Migration `004_SoloTrendsDeathDetail.sql` + `database-schema.spec.md` (add the missing table).
