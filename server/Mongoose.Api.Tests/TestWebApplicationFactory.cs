@@ -101,6 +101,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jobs:EnableMatchHistorySync"] = "false",
                 ["Jobs:EnableMatchCleanup"] = "false",
                 ["Jobs:EnableRankSnapshots"] = "false",
+                ["Jobs:EnableDeathDetailBackfill"] = "false",
                 ["Jobs:EnableAnalyticsBackgroundJobs"] = "false",
                 ["RIOT_API_KEY"] = "test-key",
                 ["Database_test"] = "Server=localhost;Port=3306;Database=test;User Id=test;Password=test;",

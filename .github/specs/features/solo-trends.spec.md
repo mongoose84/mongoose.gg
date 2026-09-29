@@ -285,7 +285,7 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
 - [ ] Query models: `Core/QueryModels/SoloTrendQueryModels.cs` (per-match rows: result, duration, start time, role, champion, LP fields, the six stat inputs; death rows; objective rows).
 - [ ] Repositories: `ISoloTrendsRepository` (Core/Interfaces) + `Infrastructure/Database/Repositories/SoloTrendsRepository.cs` (one query for match rows in range, one for deaths with their objective windows).
 - [ ] Endpoints: `Application/Endpoints/Solo/SoloClimbEndpoint.cs`, `SoloStatTrendsEndpoint.cs`, `SoloWinFactorsEndpoint.cs`, `SoloDeathZonesEndpoint.cs`; DTOs in `Application/DTOs/Solo/SoloTrendsDto.cs`. Shared parameter parsing (`queueType`, `range`) in one helper; unknown values return `400` with `INVALID_QUEUE` / `INVALID_RANGE`.
-- [ ] Sync: `RiotTimelineMapper.ExtractDeathPositions` also returns the death time in seconds, the killer and assisting participant IDs, and allies within 2,000 units of the death position in the participant frame closest in time. A new extractor returns objective events (`ELITE_MONSTER_KILL`, `BUILDING_KILL`). Persist both in `MatchDataPersistenceService`.
+- [x] Sync: `RiotTimelineMapper.ExtractDeathPositions` also returns the death time in seconds, the killer and assisting participant IDs, and allies within 2,000 units of the death position in the participant frame closest in time. A new extractor returns objective events (`ELITE_MONSTER_KILL`, `BUILDING_KILL`). Persist both in `MatchDataPersistenceService`.
 - [ ] Retire when the page no longer calls them:
   - `Endpoints/Trends/*` (six endpoints) and `RadarChartEndpoint`;
   - `DeathPositionsEndpoint` / `IDeathPositionsRepository`, replaced by `death-zones`;
@@ -525,8 +525,8 @@ All views follow the Mongoose.gg design system ([UI/UX Spec §2](../ui-ux.spec.m
 - [x] `SessionGrouper` / `PatternCalculator`: the 30-minute gap using end time, same-session pairs, weak-spot rule, minimums.
 - [ ] `MapRegions`: each region's rule and precedence (pits before river, bases before lanes), red-side mirroring.
 - [ ] `DeathClassifier`: the order of classes, lane opponent vs ganker, allies thresholds, cost window at 60s exactly, first objective only, grubs and inhibitors ignored.
-- [ ] `RiotTimelineMapper`: new death fields and objective events from a fixture timeline.
-- [ ] `DeathDetailBackfillJob`:
+- [x] `RiotTimelineMapper`: new death fields and objective events from a fixture timeline.
+- [x] `DeathDetailBackfillJob`:
   - order (newest first, most recently active account first, the Solo page bump);
   - yields while a user sync is queued or running;
   - budget cap of 20 per 2 minutes;
@@ -534,7 +534,7 @@ All views follow the Mongoose.gg design system ([UI/UX Spec §2](../ui-ux.spec.m
   - `404` → skip, `429` → back off;
   - `death_detail_backfilled_at` set at the end;
   - progress messages throttled to every 5 matches, plus every status change.
-- [ ] `IRiotThrottleState`: reports waiting after 2 seconds with the next refill time, and clears when a token is granted.
+- [x] `IRiotThrottleState`: reports waiting after 2 seconds with the next refill time, and clears when a token is granted.
 - [ ] Frontend: the death-zones card's running / waiting / queued states, WebSocket updates and the 30-second polling fallback; the SyncProgress "Waiting on Riot's servers" line replaces `isRateLimited`'s temporary copy.
 - [ ] Frontend:
   - `soloSummary.js` copy (headline modes, titles, verdict words, fixes, formats with a real minus);

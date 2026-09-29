@@ -20,11 +20,6 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster, IUserSyncBroadca
     // Maximum message size in bytes (4KB should be plenty for JSON messages)
     private const int MaxMessageSize = 4096;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     // Connected clients: ConnectionId -> ClientConnection
     private readonly ConcurrentDictionary<string, ClientConnection> _connections = new();
 
@@ -272,8 +267,8 @@ public sealed class SyncProgressHub : ISyncProgressBroadcaster, IUserSyncBroadca
         await SendToConnectionsAsync(openConnections, bytes);
     }
 
-    private static byte[] Serialize<T>(T message) =>
-        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, JsonOptions));
+    // By the runtime type: messages passed as their base type keep their own fields
+    private static byte[] Serialize<T>(T message) where T : notnull => SyncMessageSerializer.Serialize(message);
 
     private async Task SendToConnectionsAsync(IEnumerable<ClientConnection> connections, byte[] bytes)
     {

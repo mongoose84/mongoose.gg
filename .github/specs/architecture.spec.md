@@ -158,6 +158,7 @@ server/
 │       ├── Jobs/
 │       │   ├── MatchHistorySyncJob.cs      # Background: syncs match history; captures a rank snapshot at the end
 │       │   ├── RankSnapshotJob.cs          # Background: reads ranks of active accounts every 20 min, attributes LP to matches
+│       │   ├── DeathDetailBackfillJob.cs   # Background, lowest priority: re-reads timelines of older matches for death detail (Solo death zones)
 │       │   └── MatchCleanupJob.cs          # Background: deletes old matches
 │       ├── WebSocket/
 │       │   ├── SyncProgressHub.cs          # Raw WebSocket hub for real-time sync updates

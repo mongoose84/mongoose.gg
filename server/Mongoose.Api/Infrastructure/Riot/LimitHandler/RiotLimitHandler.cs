@@ -2,11 +2,12 @@ using Mongoose.Api.Core.Interfaces;
 
 namespace Mongoose.Api.Infrastructure.Riot.LimitHandler;
 
-public class RiotLimitHandler : IRiotLimitHandler
+public class RiotLimitHandler : IRiotLimitHandler, IRiotThrottleState
 {
     private bool _disposed = false;
-    private readonly TokenBucket _perSecondBucket = new(10, TimeSpan.FromSeconds(1));
-    private readonly TokenBucket _perTwoMinuteBucket = new(50, TimeSpan.FromMinutes(2));
+    private readonly TimeProvider _timeProvider;
+    private readonly TokenBucket _perSecondBucket;
+    private readonly TokenBucket _perTwoMinuteBucket;
 
     /// <summary>
     /// TEMPORARY: AsyncLocal to track the current PUUID context during rate limit waits.
@@ -21,8 +22,16 @@ public class RiotLimitHandler : IRiotLimitHandler
     /// </summary>
     public event EventHandler<RateLimitWaitEventArgs>? RateLimitWaitStarted;
 
-    public RiotLimitHandler()
+    public RiotLimitHandler() : this(TimeProvider.System)
     {
+    }
+
+    public RiotLimitHandler(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+        _perSecondBucket = new TokenBucket(10, TimeSpan.FromSeconds(1), timeProvider);
+        _perTwoMinuteBucket = new TokenBucket(50, TimeSpan.FromMinutes(2), timeProvider);
+
         _perSecondBucket.WaitingStartedEvent += OnWaitingStarted;
         _perTwoMinuteBucket.WaitingStartedEvent += OnWaitingStarted;
     }
@@ -51,6 +60,25 @@ public class RiotLimitHandler : IRiotLimitHandler
         finally
         {
             _currentPuuid.Value = null;
+        }
+    }
+
+    /// <inheritdoc />
+    public DateTime? WaitingUntilUtc
+    {
+        get
+        {
+            var now = _timeProvider.GetUtcNow();
+            DateTimeOffset? until = null;
+            foreach (var bucket in new[] { _perSecondBucket, _perTwoMinuteBucket })
+            {
+                if (bucket.OldestWaitStartedAt is { } started && now - started > IRiotThrottleState.WaitThreshold)
+                {
+                    var refill = bucket.NextRefillAt;
+                    if (until is null || refill > until) until = refill;
+                }
+            }
+            return until?.UtcDateTime;
         }
     }
 
