@@ -130,6 +130,64 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
     }
 
     /// <inheritdoc />
+    public async Task<SoloDeathData> GetDeathDataAsync(IReadOnlyList<string> puuids, IReadOnlyList<string> matchIds)
+    {
+        if (puuids.Count == 0 || matchIds.Count == 0) return new SoloDeathData([], [], []);
+
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        var (matchPredicate, matchParams) = BuildStringInClause("p.match_id", matchIds, "match");
+        var (objectiveMatchPredicate, _) = BuildStringInClause("o.match_id", matchIds, "match");
+
+        var deathsSql = $@"
+            SELECT p.match_id, p.team_id, COALESCE(p.role, 'UNKNOWN'), p.riot_participant_id,
+                d.position_x, d.position_y, d.timestamp_sec, d.killer_participant_id,
+                d.assisting_participant_ids, d.allies_nearby
+            FROM participant_death_events d
+            INNER JOIN participants p ON p.id = d.participant_id
+            WHERE {puuidPredicate} AND {matchPredicate}";
+
+        var participantsSql = $@"
+            SELECT p.match_id, p.riot_participant_id, p.team_id, COALESCE(p.role, 'UNKNOWN')
+            FROM participants p
+            WHERE {matchPredicate} AND p.riot_participant_id IS NOT NULL";
+
+        var objectivesSql = $@"
+            SELECT o.match_id, o.team_id, o.type, o.timestamp_sec
+            FROM match_objective_events o
+            WHERE {objectiveMatchPredicate}";
+
+        var deaths = await ExecuteListAsync(deathsSql, r => new SoloDeathRow(
+                r.GetString(0),
+                r.GetInt32(1),
+                r.GetString(2),
+                r.IsDBNull(3) ? null : r.GetInt32(3),
+                r.GetInt32(4),
+                r.GetInt32(5),
+                r.IsDBNull(6) ? null : r.GetInt32(6),
+                r.IsDBNull(7) ? null : r.GetInt32(7),
+                ParseIds(r.IsDBNull(8) ? null : r.GetString(8)),
+                r.IsDBNull(9) ? null : r.GetInt32(9)),
+            puuidParams.Concat(matchParams).ToArray());
+
+        var participants = await ExecuteListAsync(participantsSql,
+            r => new MatchParticipantRole(r.GetString(0), r.GetInt32(1), r.GetInt32(2), r.GetString(3)),
+            matchParams.ToArray());
+
+        var objectives = await ExecuteListAsync(objectivesSql,
+            r => new SoloObjectiveRow(r.GetString(0), r.GetInt32(1), r.GetString(2), r.GetInt32(3)),
+            matchParams.ToArray());
+
+        return new SoloDeathData(deaths.ToList(), participants.ToList(), objectives.ToList());
+    }
+
+    /// <summary>"8,9" to [8, 9]; empty for null or blank.</summary>
+    private static IReadOnlyList<int> ParseIds(string? csv) =>
+        string.IsNullOrWhiteSpace(csv)
+            ? []
+            : csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(int.Parse).ToList();
+
+    /// <inheritdoc />
     public async Task<SoloQueueCounts> GetSeasonQueueCountsAsync(IReadOnlyList<string> puuids)
     {
         if (puuids.Count == 0) return new SoloQueueCounts(0, 0);

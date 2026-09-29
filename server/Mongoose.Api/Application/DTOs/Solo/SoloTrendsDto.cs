@@ -164,6 +164,65 @@ public static class SoloTrendsDto
 
     private static RankDto ToDto(LadderRank r) => new(r.Tier, r.Division, r.Lp);
 
+    public record AnchorDto(
+        [property: JsonPropertyName("u")] double U,
+        [property: JsonPropertyName("v")] double V);
+
+    public record ZoneTimingDto(
+        [property: JsonPropertyName("phase")] string? Phase,
+        [property: JsonPropertyName("count")] int Count);
+
+    public record DeathZoneDto(
+        [property: JsonPropertyName("key")] string Key,
+        [property: JsonPropertyName("deaths")] int Deaths,
+        [property: JsonPropertyName("lostObjectives")] int LostObjectives,
+        [property: JsonPropertyName("costly")] bool Costly,
+        [property: JsonPropertyName("anchor")] AnchorDto Anchor,
+        [property: JsonPropertyName("timing")] ZoneTimingDto Timing);
+
+    public record DeathBreakdownDto(
+        [property: JsonPropertyName("phase")] IReadOnlyDictionary<string, int> Phase,
+        [property: JsonPropertyName("how")] IReadOnlyDictionary<string, int> How,
+        [property: JsonPropertyName("cost")] IReadOnlyDictionary<string, int> Cost);
+
+    public record DeathBreakdownsDto(
+        [property: JsonPropertyName("all")] DeathBreakdownDto All,
+        [property: JsonPropertyName("byZone")] IReadOnlyDictionary<string, DeathBreakdownDto> ByZone);
+
+    public record BackfillDto(
+        [property: JsonPropertyName("status")] string Status,
+        [property: JsonPropertyName("done")] int Done,
+        [property: JsonPropertyName("total")] int Total,
+        [property: JsonPropertyName("retryAt")] DateTime? RetryAt);
+
+    public record DeathZonesResponse(
+        [property: JsonPropertyName("matches")] int Matches,
+        [property: JsonPropertyName("queueType")] string QueueType,
+        [property: JsonPropertyName("range")] string Range,
+        [property: JsonPropertyName("deaths")] int Deaths,
+        [property: JsonPropertyName("ready")] bool Ready,
+        [property: JsonPropertyName("zones")] IReadOnlyList<DeathZoneDto> Zones,
+        [property: JsonPropertyName("breakdowns")] DeathBreakdownsDto Breakdowns,
+        [property: JsonPropertyName("backfill")] BackfillDto? Backfill);
+
+    public static DeathZonesResponse ToDto(SoloDeathZones z, int matches, string queueType, string range, BackfillDto? backfill) => new(
+        matches,
+        queueType,
+        range,
+        z.Deaths,
+        z.Ready,
+        z.Zones.Select(zone => new DeathZoneDto(
+            zone.Key,
+            zone.Deaths,
+            zone.LostObjectives,
+            zone.Costly,
+            new AnchorDto(zone.Anchor.U, zone.Anchor.V),
+            new ZoneTimingDto(zone.Timing.Phase, zone.Timing.Count))).ToList(),
+        new DeathBreakdownsDto(ToDto(z.All), z.ByZone.ToDictionary(kv => kv.Key, kv => ToDto(kv.Value))),
+        backfill);
+
+    private static DeathBreakdownDto ToDto(DeathBreakdown b) => new(b.Phase, b.How, b.Cost);
+
     public static StatTrendDto ToDto(StatTrend t) => new(
         t.Key,
         t.Values,

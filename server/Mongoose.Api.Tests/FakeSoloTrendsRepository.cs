@@ -46,6 +46,20 @@ public sealed class FakeSoloTrendsRepository : ISoloTrendsRepository
         return Task.FromResult<IReadOnlyList<SoloMatchRow>>(rows);
     }
 
+    /// <summary>Deaths per player, and the participants and objectives of any match.</summary>
+    public List<(string Puuid, SoloDeathRow Death)> Deaths { get; } = new();
+    public List<MatchParticipantRole> MatchParticipants { get; } = new();
+    public List<SoloObjectiveRow> Objectives { get; } = new();
+
+    public Task<SoloDeathData> GetDeathDataAsync(IReadOnlyList<string> puuids, IReadOnlyList<string> matchIds)
+    {
+        var matches = matchIds.ToHashSet();
+        return Task.FromResult(new SoloDeathData(
+            Deaths.Where(d => puuids.Contains(d.Puuid) && matches.Contains(d.Death.MatchId)).Select(d => d.Death).ToList(),
+            MatchParticipants.Where(p => matches.Contains(p.MatchId)).ToList(),
+            Objectives.Where(o => matches.Contains(o.MatchId)).ToList()));
+    }
+
     public Task<SoloQueueCounts> GetSeasonQueueCountsAsync(IReadOnlyList<string> puuids)
     {
         var season = Matches.Where(m => puuids.Contains(m.Puuid) && m.InSeason).ToList();

@@ -41,3 +41,31 @@ public sealed record SoloMatchRow(
 /// Matches this season per ranked queue, used to pick the page's default queue (FR2).
 /// </summary>
 public sealed record SoloQueueCounts(int RankedSolo, int RankedFlex);
+
+/// <summary>
+/// One death of the player (features/solo-trends.spec.md FR 31-36). Detail fields are null for
+/// deaths synced before migration 004 until the backfill reaches them.
+/// </summary>
+public sealed record SoloDeathRow(
+    string MatchId,
+    int VictimTeamId,
+    string VictimRole,
+    int? VictimParticipantId,
+    int PositionX,
+    int PositionY,
+    int? TimestampSec,
+    int? KillerParticipantId,
+    IReadOnlyList<int> AssistingParticipantIds,
+    int? AlliesNearby);
+
+/// <summary>A participant of a match by Riot participantId, for "was it the lane opponent" (FR 35).</summary>
+public sealed record MatchParticipantRole(string MatchId, int ParticipantId, int TeamId, string Role);
+
+/// <summary>An objective a team took, for "did the death cost an objective" (FR 36).</summary>
+public sealed record SoloObjectiveRow(string MatchId, int TeamId, string Type, int TimestampSec);
+
+/// <summary>The player's deaths in a set of matches, with those matches' participants and objectives.</summary>
+public sealed record SoloDeathData(
+    IReadOnlyList<SoloDeathRow> Deaths,
+    IReadOnlyList<MatchParticipantRole> Participants,
+    IReadOnlyList<SoloObjectiveRow> Objectives);

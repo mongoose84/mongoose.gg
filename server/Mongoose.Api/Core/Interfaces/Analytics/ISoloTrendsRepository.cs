@@ -14,6 +14,12 @@ public interface ISoloTrendsRepository
     /// </summary>
     Task<IReadOnlyList<SoloMatchRow>> GetMatchRowsAsync(IReadOnlyList<string> puuids, string queueType, SoloRange range);
 
+    /// <summary>
+    /// The players' deaths in <paramref name="matchIds"/> (FR 31-36), those matches' participants by
+    /// Riot participantId, and the objectives each team took.
+    /// </summary>
+    Task<SoloDeathData> GetDeathDataAsync(IReadOnlyList<string> puuids, IReadOnlyList<string> matchIds);
+
     /// <summary>Ranked Solo/Duo and Flex match counts in the current season.</summary>
     Task<SoloQueueCounts> GetSeasonQueueCountsAsync(IReadOnlyList<string> puuids);
 }
