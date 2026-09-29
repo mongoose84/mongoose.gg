@@ -292,6 +292,8 @@ Credentials: allowed. Methods & Headers: any.
 | `GET` | `/api/v2/solo/dashboard/{userId}` | Yes | No | `Solo/SoloPerformanceEndpoint.cs` | `SoloPerformanceResponse` |
 | `GET` | `/api/v2/solo/matchups/{userId}` | Yes | No | `Solo/SoloMatchupsEndpoint.cs` | `ChampionMatchupsResponse` |
 | `GET` | `/api/v2/solo/activity/{userId}` | Yes | No | `Solo/MatchActivityEndpoint.cs` | `MatchActivityResponse` |
+| `GET` | `/api/v2/solo/stat-trends/{userId}` | Yes | No | `Solo/SoloStatTrendsEndpoint.cs` | `StatTrendsResponse` |
+| `GET` | `/api/v2/solo/win-factors/{userId}` | Yes | No | `Solo/SoloWinFactorsEndpoint.cs` | `WinFactorsResponse` |
 | `GET` | `/api/v2/matches/{userId}` | Yes | No | `Matches/MatchListEndpoint.cs` | `MatchListResponse` |
 | `GET` | `/api/v2/matches/{matchId}/details` | Yes | No | `Matches/MatchDetailsEndpoint.cs` | `MatchDetailsResponse` |
 | `GET` | `/api/v2/matches/{matchId}/narrative` | Yes | No | `Matches/MatchNarrativeEndpoint.cs` | `MatchNarrativeResponse` |
@@ -421,6 +423,24 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Logic**: Returns daily match counts for past 182 days  
 **Tables**: `matches`, `participants`  
 **Repos**: `ITrendRepository`
+
+### 6.12a Solo Stat Trends
+**Route**: `GET /api/v2/solo/stat-trends/{userId}`  
+**Auth**: Yes  
+**Query params**: `?queueType=` (ranked_solo|ranked_flex|all; missing = Solo/Duo if played this season, else Flex, else all), `?range=` (last20|last50|season; default last20), `?accountId=`  
+**Response**: `StatTrendsResponse(matches, queueType, range, stats[], focus?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#stat-trends). `200` with `matches: 0` when nothing is in scope; `400` `INVALID_QUEUE` / `INVALID_RANGE`.  
+**Logic**: Per-match rows oldest first (ranges count matches); six stats with 10-match rolling averages, was/now and verdicts, season-average benchmark (a second read in Season scope unless `range=season`), and the "Your focus" pick. Rules in `Core/Services/Solo/` (`StatTrendCalculator`, `WinFactorCalculator`, `SoloFocusPicker`, `SoloScope`).  
+**Tables**: `matches`, `participants`, `participant_checkpoints`, `participant_objectives`, `team_objectives`, `participant_metrics`  
+**Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
+
+### 6.12b Solo Win Factors
+**Route**: `GET /api/v2/solo/win-factors/{userId}`  
+**Auth**: Yes  
+**Query params**: same as 6.12a  
+**Response**: `WinFactorsResponse(matches, queueType, range, factors[], patterns)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#win-factors). Factor `mark` is set only when every match in range is one role.  
+**Logic**: Win rate when the player hits each mark vs misses it (5 matches per side, sorted by gap), and the session, after-a-loss and match-length patterns (`WinFactorCalculator`, `PatternCalculator`).  
+**Tables**: as 6.12a  
+**Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
 
 ### 6.13 Match List
 **Route**: `GET /api/v2/matches/{userId}`  

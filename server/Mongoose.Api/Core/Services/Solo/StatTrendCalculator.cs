@@ -69,7 +69,8 @@ public static class StatTrendCalculator
         if (was.HasValue && now.HasValue)
         {
             var sign = stat.Direction == StatDirection.LowerIsBetter ? -1 : 1;
-            var change = (now.Value - was.Value) * sign;
+            // was and now carry 2 decimals; rounding the change keeps 1.0 − 0.9 at the 0.1 threshold.
+            var change = Round((now.Value - was.Value) * sign);
             normalizedChange = Math.Round(change / stat.SteadyThreshold, 2);
             verdict = Math.Abs(change) < stat.SteadyThreshold ? Steady : change > 0 ? Improving : Slipping;
         }

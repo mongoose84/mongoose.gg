@@ -516,10 +516,10 @@ All views follow the Mongoose.gg design system ([UI/UX Spec §2](../ui-ux.spec.m
 
 - [ ] `LpCoverageRule`: 80% and 10-match boundaries, `all` queue, multi-account.
 - [ ] `LpLadder`: division crossings, Master+ shared count, demotion, net LP with an unknown first change.
-- [ ] `StatTrendCalculator`: nulls skipped, was/now on non-null values, verdicts at thresholds, "lower is better", fewer than 20 values, sampling above 100.
-- [ ] `SoloFocusPicker`: Slipping preferred, the lowest-hit fallback, ties, no candidate, under 20 matches.
-- [ ] `WinFactorCalculator`: role marks (support vision, jungle CS), the 5-per-side minimum, sorting, negative gaps.
-- [ ] `SessionGrouper` / `PatternCalculator`: the 30-minute gap using end time, same-session pairs, weak-spot rule, minimums.
+- [x] `StatTrendCalculator`: nulls skipped, was/now on non-null values, verdicts at thresholds, "lower is better", fewer than 20 values, sampling above 100.
+- [x] `SoloFocusPicker`: Slipping preferred, the lowest-hit fallback, ties, no candidate, under 20 matches.
+- [x] `WinFactorCalculator`: role marks (support vision, jungle CS), the 5-per-side minimum, sorting, negative gaps.
+- [x] `SessionGrouper` / `PatternCalculator`: the 30-minute gap using end time, same-session pairs, weak-spot rule, minimums.
 - [ ] `MapRegions`: each region's rule and precedence (pits before river, bases before lanes), red-side mirroring.
 - [ ] `DeathClassifier`: the order of classes, lane opponent vs ganker, allies thresholds, cost window at 60s exactly, first objective only, grubs and inhibitors ignored.
 - [ ] `RiotTimelineMapper`: new death fields and objective events from a fixture timeline.

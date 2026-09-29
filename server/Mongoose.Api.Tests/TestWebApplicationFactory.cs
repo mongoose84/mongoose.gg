@@ -60,6 +60,7 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeTrendRepository TrendRepository => _trendRepository;
     public FakeRadarChartRepository RadarChartRepository => _radarChartRepository;
     public FakeDeathPositionsRepository DeathPositionsRepository => _deathPositionsRepository;
+    public FakeSoloTrendsRepository SoloTrendsRepository { get; } = new();
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
     {
@@ -209,6 +210,10 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace IDeathPositionsRepository with a fake
             services.RemoveAll<IDeathPositionsRepository>();
             services.AddSingleton<IDeathPositionsRepository>(_deathPositionsRepository);
+
+            // Replace ISoloTrendsRepository with a fake
+            services.RemoveAll<ISoloTrendsRepository>();
+            services.AddSingleton<ISoloTrendsRepository>(SoloTrendsRepository);
 
             // Use ephemeral (in-memory) Data Protection so tests never write key files to disk
             services.AddDataProtection().UseEphemeralDataProtectionProvider();
