@@ -39,7 +39,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly FakeMatchupRepository _matchupRepository;
     private readonly FakeChampionSelectRepository _championSelectRepository;
     private readonly FakeTrendRepository _trendRepository;
-    private readonly FakeDeathPositionsRepository _deathPositionsRepository;
 
     public FakeUsersRepository UsersRepository => _usersRepository;
     public FakeVerificationTokensRepository TokensRepository => _tokensRepository;
@@ -57,7 +56,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     public FakeMatchupRepository MatchupRepository => _matchupRepository;
     public FakeChampionSelectRepository ChampionSelectRepository => _championSelectRepository;
     public FakeTrendRepository TrendRepository => _trendRepository;
-    public FakeDeathPositionsRepository DeathPositionsRepository => _deathPositionsRepository;
     public FakeSoloTrendsRepository SoloTrendsRepository { get; } = new();
 
     public TestWebApplicationFactory(IDictionary<string, string?>? overrides = null)
@@ -78,7 +76,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         _matchupRepository = new FakeMatchupRepository();
         _championSelectRepository = new FakeChampionSelectRepository();
         _trendRepository = new FakeTrendRepository();
-        _deathPositionsRepository = new FakeDeathPositionsRepository();
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -200,10 +197,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             // Replace ITrendRepository with a fake
             services.RemoveAll<ITrendRepository>();
             services.AddSingleton<ITrendRepository>(_trendRepository);
-
-            // Replace IDeathPositionsRepository with a fake
-            services.RemoveAll<IDeathPositionsRepository>();
-            services.AddSingleton<IDeathPositionsRepository>(_deathPositionsRepository);
 
             // Replace ISoloTrendsRepository with a fake
             services.RemoveAll<ISoloTrendsRepository>();
@@ -1783,49 +1776,6 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 }
             }
             return Task.FromResult(merged);
-        }
-    }
-
-    /// <summary>
-    /// Fake implementation of IDeathPositionsRepository for testing.
-    /// </summary>
-    internal sealed class FakeDeathPositionsRepository : IDeathPositionsRepository
-    {
-        private readonly ConcurrentDictionary<string, Core.QueryModels.DeathPositionsResult> _deathPositionsData = new();
-
-        public void SetDeathPositionsData(string puuid, Core.QueryModels.DeathPositionsResult data)
-        {
-            _deathPositionsData[puuid] = data;
-        }
-
-        public void Clear()
-        {
-            _deathPositionsData.Clear();
-        }
-
-        public Task<Core.QueryModels.DeathPositionsResult?> GetDeathPositionsAsync(
-            string puuid, 
-            string? queueType = null, 
-            string? timeRange = null, 
-            string? side = null)
-        {
-            _deathPositionsData.TryGetValue(puuid, out var data);
-            return Task.FromResult(data);
-        }
-
-        public Task<Core.QueryModels.DeathPositionsResult?> GetDeathPositionsAsync(
-            IReadOnlyList<string> puuids,
-            string? queueType = null,
-            string? timeRange = null,
-            string? side = null)
-        {
-            foreach (var puuid in puuids)
-            {
-                if (_deathPositionsData.TryGetValue(puuid, out var data))
-                    return Task.FromResult<Core.QueryModels.DeathPositionsResult?>(data);
-            }
-
-            return Task.FromResult<Core.QueryModels.DeathPositionsResult?>(null);
         }
     }
 }

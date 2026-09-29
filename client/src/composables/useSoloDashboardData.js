@@ -1,11 +1,12 @@
-import { computed, ref, watch } from 'vue'
+import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useAsyncData } from './useAsyncData'
+import { useSyncWebSocket } from './useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloClimb, getSoloStatTrends, getSoloWinFactors, getDeathPositions } from '../services/soloApi'
+import { getSoloClimb, getSoloStatTrends, getSoloWinFactors, getSoloDeathZones } from '../services/soloApi'
 
-// The death map (DangerZonesMap) still reads days until the death-zones card replaces it (5f)
-const DEATH_MAP_TIME_RANGE = 'current_season'
+// FR 39: without a socket, the death-zones card refetches this often while the backfill runs
+const BACKFILL_POLL_MS = 30_000
 
 /**
  * Data for the Solo page (features/solo-trends.spec.md): each card loads on its own, in
@@ -20,7 +21,7 @@ export function useSoloDashboardData() {
 
   const queue = ref(null)
   const range = ref('last20')
-  const sideFilter = ref('all')
+  const { detailBackfill, isConnected } = useSyncWebSocket()
 
   const climb = useAsyncData(
     () => getSoloClimb(authStore.userId, queue.value, range.value),
@@ -34,9 +35,9 @@ export function useSoloDashboardData() {
     () => getSoloWinFactors(authStore.userId, queue.value, range.value),
     { errorMessage: 'Failed to load win factors' }
   )
-  const deathPositions = useAsyncData(
-    () => getDeathPositions(authStore.userId, selectedQueue.value ?? 'all', DEATH_MAP_TIME_RANGE, sideFilter.value),
-    { errorMessage: 'Failed to load death positions' }
+  const deathZones = useAsyncData(
+    () => getSoloDeathZones(authStore.userId, queue.value, range.value),
+    { errorMessage: 'Failed to load death zones' }
   )
 
   const hasNoLinkedAccount = computed(() => authStore.isInitialized && authStore.hasLinkedAccount === false)
@@ -50,6 +51,7 @@ export function useSoloDashboardData() {
   const statTrendsLoading = computed(() => statTrends.isLoading.value && !statTrends.data.value)
   const winFactorsLoading = computed(() => winFactors.isLoading.value && !winFactors.data.value)
   const climbLoading = computed(() => climb.isLoading.value && !climb.data.value)
+  const deathZonesLoading = computed(() => deathZones.isLoading.value && !deathZones.data.value)
 
   function run(resource) {
     // useAsyncData keeps the error for the card; nothing to do here
@@ -59,12 +61,11 @@ export function useSoloDashboardData() {
   const fetchStatTrends = () => run(statTrends)
   const fetchWinFactors = () => run(winFactors)
   const fetchClimb = () => run(climb)
-  const fetchDeathPositions = () => run(deathPositions)
+  const fetchDeathZones = () => run(deathZones)
 
   function fetchAll() {
     if (!authStore.userId || hasNoLinkedAccount.value) return Promise.resolve()
-    // The death map waits for stat trends, which settles the default queue
-    return Promise.all([fetchClimb(), fetchStatTrends().then(fetchDeathPositions), fetchWinFactors()])
+    return Promise.all([fetchClimb(), fetchStatTrends(), fetchWinFactors(), fetchDeathZones()])
   }
 
   function setQueue(value) {
@@ -79,12 +80,33 @@ export function useSoloDashboardData() {
     trackFilterChange('range', value)
   }
 
-  function setSide(value) {
-    sideFilter.value = value
-    fetchDeathPositions()
-  }
-
   watch([queue, range], fetchAll)
+
+  // FR 39: backfill progress over the socket; a finished account refetches the zones once
+  watch(detailBackfill, (message) => {
+    const current = deathZones.data.value
+    if (!message || !current?.backfill) return
+    if (message.status === 'done') {
+      fetchDeathZones()
+      return
+    }
+    deathZones.data.value = { ...current, backfill: { ...message } }
+  })
+
+  // Without a socket, refetch every 30 seconds while the backfill runs
+  let pollTimer = null
+  function stopPolling() {
+    if (pollTimer !== null) clearInterval(pollTimer)
+    pollTimer = null
+  }
+  watch(
+    () => Boolean(deathZones.data.value?.backfill) && !isConnected.value,
+    (poll) => {
+      stopPolling()
+      if (poll) pollTimer = setInterval(fetchDeathZones, BACKFILL_POLL_MS)
+    }
+  )
+  onScopeDispose(stopPolling)
 
   watch(() => authStore.activeAccountPuuid, () => {
     if (authStore.isInitialized) fetchAll()
@@ -108,14 +130,14 @@ export function useSoloDashboardData() {
     winFactors: winFactors.data,
     winFactorsError: winFactors.hasError,
     winFactorsLoading,
-    deathPositions: deathPositions.data,
-    deathPositionsError: deathPositions.error,
-    deathPositionsLoading: deathPositions.isLoading,
+    deathZones: deathZones.data,
+    deathZonesError: deathZones.hasError,
+    deathZonesLoading,
     setQueue,
     setRange,
-    setSide,
     fetchAll,
     fetchClimb,
+    fetchDeathZones,
     fetchStatTrends,
     fetchWinFactors
   }

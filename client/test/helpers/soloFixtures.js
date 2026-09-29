@@ -121,3 +121,28 @@ export function focusFixture(overrides = {}) {
     ...overrides
   }
 }
+
+const breakdown = (phase, how, cost) => ({ phase, how, cost })
+
+export function deathZonesResponse(overrides = {}) {
+  return {
+    matches: 50,
+    queueType: 'ranked_solo',
+    range: 'last50',
+    deaths: 236,
+    ready: true,
+    zones: [
+      { key: 'jungleEnemyBot', deaths: 38, lostObjectives: 14, costly: true, anchor: { u: 0.74, v: 0.39 }, timing: { phase: 'late', count: 27 } },
+      { key: 'midLaneYours', deaths: 44, lostObjectives: 2, costly: false, anchor: { u: 0.4, v: 0.4 }, timing: { phase: null, count: 20 } }
+    ],
+    breakdowns: {
+      all: breakdown({ early: 88, mid: 84, late: 64 }, { ganked: 71, alone: 97, teamfight: 68, other: 0 }, { dragon: 26, tower: 23, baron: 9, herald: 0 }),
+      byZone: {
+        jungleEnemyBot: breakdown({ early: 4, mid: 7, late: 27 }, { ganked: 0, alone: 22, teamfight: 14, other: 2 }, { dragon: 9, tower: 2, baron: 3, herald: 0 }),
+        midLaneYours: breakdown({ early: 30, mid: 10, late: 4 }, { ganked: 20, alone: 10, teamfight: 4, other: 10 }, { dragon: 1, tower: 1, baron: 0, herald: 0 })
+      }
+    },
+    backfill: null,
+    ...overrides
+  }
+}

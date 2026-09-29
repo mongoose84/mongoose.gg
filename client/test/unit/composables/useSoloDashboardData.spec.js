@@ -1,12 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { effectScope, reactive, nextTick } from 'vue'
+import { effectScope, reactive, nextTick, ref } from 'vue'
 import { flushPromises } from '@vue/test-utils'
-import { climbResponse, statTrendsResponse, winFactorsResponse } from '@test/helpers/soloFixtures'
+import { climbResponse, deathZonesResponse, statTrendsResponse, winFactorsResponse } from '@test/helpers/soloFixtures'
 
 const mockGetSoloClimb = vi.fn()
 const mockGetSoloStatTrends = vi.fn()
 const mockGetSoloWinFactors = vi.fn()
-const mockGetDeathPositions = vi.fn()
+const mockGetSoloDeathZones = vi.fn()
+const detailBackfill = ref(null)
+const isConnected = ref(true)
+
+vi.mock('@/composables/useSyncWebSocket', () => ({
+  useSyncWebSocket: () => ({ detailBackfill, isConnected })
+}))
 const mockTrackFilterChange = vi.fn()
 
 const authStore = reactive({
@@ -28,7 +34,7 @@ vi.mock('@/services/soloApi', () => ({
   getSoloClimb: (...args) => mockGetSoloClimb(...args),
   getSoloStatTrends: (...args) => mockGetSoloStatTrends(...args),
   getSoloWinFactors: (...args) => mockGetSoloWinFactors(...args),
-  getDeathPositions: (...args) => mockGetDeathPositions(...args)
+  getSoloDeathZones: (...args) => mockGetSoloDeathZones(...args)
 }))
 
 const { useSoloDashboardData: createSoloDashboardData } = await import('@/composables/useSoloDashboardData')
@@ -52,7 +58,9 @@ describe('useSoloDashboardData', () => {
     mockGetSoloClimb.mockResolvedValue(climbResponse())
     mockGetSoloStatTrends.mockResolvedValue(statTrendsResponse())
     mockGetSoloWinFactors.mockResolvedValue(winFactorsResponse())
-    mockGetDeathPositions.mockResolvedValue({ deaths: [], totalDeaths: 0, matchesAnalyzed: 0 })
+    mockGetSoloDeathZones.mockResolvedValue(deathZonesResponse())
+    detailBackfill.value = null
+    isConnected.value = true
   })
 
   it('loads both cards in parallel and lets the server pick the queue', async () => {
@@ -68,11 +76,52 @@ describe('useSoloDashboardData', () => {
     expect(data.selectedQueue.value).toBe('ranked_solo')
   })
 
-  it('loads the death map in the queue the server picked', async () => {
-    useSoloDashboardData()
+  it('loads the death zones with the other cards', async () => {
+    const data = useSoloDashboardData()
     await flushPromises()
 
-    expect(mockGetDeathPositions).toHaveBeenCalledWith(1, 'ranked_solo', 'current_season', 'all')
+    expect(mockGetSoloDeathZones).toHaveBeenCalledWith(1, null, 'last20')
+    expect(data.deathZones.value.ready).toBe(true)
+  })
+
+  it('applies backfill progress from the socket, and refetches when it is done', async () => {
+    mockGetSoloDeathZones.mockResolvedValue(deathZonesResponse({ ready: false, backfill: { status: 'queued', done: 0, total: 0 } }))
+    const data = useSoloDashboardData()
+    await flushPromises()
+    mockGetSoloDeathZones.mockClear()
+
+    detailBackfill.value = { status: 'running', done: 12, total: 50, retryAt: null }
+    await nextTick()
+    expect(data.deathZones.value.backfill).toEqual({ status: 'running', done: 12, total: 50, retryAt: null })
+    expect(mockGetSoloDeathZones).not.toHaveBeenCalled()
+
+    detailBackfill.value = { status: 'done', done: 50, total: 50, retryAt: null }
+    await flushPromises()
+    expect(mockGetSoloDeathZones).toHaveBeenCalledTimes(1)
+  })
+
+  it('polls every 30 seconds while the backfill runs without a socket', async () => {
+    vi.useFakeTimers()
+    try {
+      isConnected.value = false
+      mockGetSoloDeathZones.mockResolvedValue(deathZonesResponse({ ready: false, backfill: { status: 'running', done: 3, total: 50 } }))
+      useSoloDashboardData()
+      await flushPromises()
+      mockGetSoloDeathZones.mockClear()
+
+      await vi.advanceTimersByTimeAsync(30_000)
+      expect(mockGetSoloDeathZones).toHaveBeenCalledTimes(1)
+
+      // Once the backfill is over, polling stops
+      mockGetSoloDeathZones.mockResolvedValue(deathZonesResponse())
+      await vi.advanceTimersByTimeAsync(30_000)
+      await flushPromises()
+      mockGetSoloDeathZones.mockClear()
+      await vi.advanceTimersByTimeAsync(60_000)
+      expect(mockGetSoloDeathZones).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('reloads with the chosen queue and range, and tracks the change', async () => {

@@ -196,7 +196,7 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
 
 **Death zones (`death-zones` endpoint)**
 
-31. **Data readiness.** A death counts when its event has `timestamp_sec`, `killer_participant_id` and `allies_nearby`. The card needs 30 such deaths in range.
+31. **Data readiness.** A death counts when its event has `timestamp_sec` and `allies_nearby` (changed in 5f: `killer_participant_id` is not required, because executions by towers and minions have no killer and still are deaths). The card needs 30 such deaths in range.
     - While the backfill (FR 38) is running for the account, the card shows the backfill progress in its slot (FR 39).
     - When the backfill is done or not needed and there are still fewer than 30 deaths, it shows the EmptyState "Play a few more matches to see where your deaths cost you" with "Sync matches".
 32. **Mirroring.** Positions are normalised to `u = x / 14870` and `v = y / 14870`. For deaths on the red team (`participants.team_id = 200`), `(u, v)` becomes `(1 − u, 1 − v)`, so the player's base is always bottom left.
@@ -272,7 +272,7 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
 ### Backend Changes
 **Language**: C#
 **Components**:
-- [ ] Core rules, all pure and unit-tested:
+- [x] Core rules, all pure and unit-tested:
   - `Core/Services/Solo/LpCoverageRule.cs`
   - `Core/Services/Solo/LpLadder.cs` (shared with `LpChangeCalculator`: extract, don't duplicate)
   - `Core/Services/Solo/StatTrendCalculator.cs` (series, was/now, verdict)
@@ -282,11 +282,11 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
   - `Core/Services/Solo/PatternCalculator.cs`
   - `Core/Services/Solo/MapRegions.cs`
   - `Core/Services/Solo/DeathClassifier.cs`
-- [ ] Query models: `Core/QueryModels/SoloTrendQueryModels.cs` (per-match rows: result, duration, start time, role, champion, LP fields, the six stat inputs; death rows; objective rows).
-- [ ] Repositories: `ISoloTrendsRepository` (Core/Interfaces) + `Infrastructure/Database/Repositories/SoloTrendsRepository.cs` (one query for match rows in range, one for deaths with their objective windows).
-- [ ] Endpoints: `Application/Endpoints/Solo/SoloClimbEndpoint.cs`, `SoloStatTrendsEndpoint.cs`, `SoloWinFactorsEndpoint.cs`, `SoloDeathZonesEndpoint.cs`; DTOs in `Application/DTOs/Solo/SoloTrendsDto.cs`. Shared parameter parsing (`queueType`, `range`) in one helper; unknown values return `400` with `INVALID_QUEUE` / `INVALID_RANGE`.
+- [x] Query models: `Core/QueryModels/SoloTrendQueryModels.cs` (per-match rows: result, duration, start time, role, champion, LP fields, the six stat inputs; death rows; objective rows).
+- [x] Repositories: `ISoloTrendsRepository` (Core/Interfaces) + `Infrastructure/Database/Repositories/SoloTrendsRepository.cs` (one query for match rows in range, one for deaths with their objective windows).
+- [x] Endpoints: `Application/Endpoints/Solo/SoloClimbEndpoint.cs`, `SoloStatTrendsEndpoint.cs`, `SoloWinFactorsEndpoint.cs`, `SoloDeathZonesEndpoint.cs`; DTOs in `Application/DTOs/Solo/SoloTrendsDto.cs`. Shared parameter parsing (`queueType`, `range`) in one helper; unknown values return `400` with `INVALID_QUEUE` / `INVALID_RANGE`.
 - [x] Sync: `RiotTimelineMapper.ExtractDeathPositions` also returns the death time in seconds, the killer and assisting participant IDs, and allies within 2,000 units of the death position in the participant frame closest in time. A new extractor returns objective events (`ELITE_MONSTER_KILL`, `BUILDING_KILL`). Persist both in `MatchDataPersistenceService`.
-- [ ] Retire when the page no longer calls them:
+- [x] Retire when the page no longer calls them:
   - `Endpoints/Trends/*` (six endpoints) and `RadarChartEndpoint`;
   - `DeathPositionsEndpoint` / `IDeathPositionsRepository`, replaced by `death-zones`;
   - their tests, and their entries in `architecture.spec.md`.
@@ -297,18 +297,18 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
 **Framework**: Vue
 
 **Components**:
-- [ ] Page: `client/src/views/SoloStatsPage.vue` rebuilt. Headline, rank line and the two SegmentedControls (queue, range) at the top, and the cards in the order of the artboards. `AnalysisLayout` is no longer used here.
-- [ ] Base components (design-system patterns):
+- [x] Page: `client/src/views/SoloStatsPage.vue` rebuilt. Headline, rank line and the two SegmentedControls (queue, range) at the top, and the cards in the order of the artboards. `AnalysisLayout` is no longer used here.
+- [x] Base components (design-system patterns):
   - `components/base/BaseTrendTile.vue` (sparkline with dots, benchmark line, verdict)
   - `BaseWinFactorRow.vue` (hit vs missed dots)
   - `BaseGoalStrip.vue` (hit/miss cells)
   - `BaseDeathMap.vue` (outline, zone circles)
   - `BaseDivergingBar.vue` (LaneBar shape without icons, for LP per champion)
   - Reuse `BaseColumnChart`, `BaseSegmentedControl`, `BaseFormStrip` where they fit.
-- [ ] Feature components in `components/solo/`: `SoloClimbCard.vue`, `SoloFocusCard.vue`, `SoloStatTrends.vue`, `SoloDeathZones.vue`, `SoloWinFactors.vue`, `SoloChampionLp.vue`, `SoloPatterns.vue`.
-- [ ] Copy and small rules: `client/src/utils/soloSummary.js` (headline, titles, verdict words, fixes, number formats with a real minus).
-- [ ] API: `getSoloClimb`, `getSoloStatTrends`, `getSoloWinFactors`, `getSoloDeathZones` in `client/src/services/authApi.js`. Rewrite `composables/useSoloDashboardData.js` to load the four in parallel with their own loading and error state, and refetch on queue, range or account change and after sync (`useSyncWebSocket`).
-- [ ] Retire: `SummaryStatsCard`, `TrendChartCard`, `TrendLineChart`, `WinrateChart`, `DeathsChart`, `DragonParticipationChart`, `VisionChart`, `GoldAt15Chart`, `CsPerMinuteChart`, `RadarChart`, `DangerZonesMap`, and `useChartDisplayMode` if unused elsewhere, with their unit tests. `MatchActivityHeatmap` leaves this page only.
+- [x] Feature components in `components/solo/`: `SoloClimbCard.vue`, `SoloFocusCard.vue`, `SoloStatTrends.vue`, `SoloDeathZones.vue`, `SoloWinFactors.vue`, `SoloChampionLp.vue`, `SoloPatterns.vue`.
+- [x] Copy and small rules: `client/src/utils/soloSummary.js` (headline, titles, verdict words, fixes, number formats with a real minus).
+- [x] API: `getSoloClimb`, `getSoloStatTrends`, `getSoloWinFactors`, `getSoloDeathZones` in `client/src/services/soloApi.js`. Rewrite `composables/useSoloDashboardData.js` to load the four in parallel with their own loading and error state, and refetch on queue, range or account change and after sync (`useSyncWebSocket`).
+- [x] Retire: `SummaryStatsCard`, `TrendChartCard`, `TrendLineChart`, `WinrateChart`, `DeathsChart`, `DragonParticipationChart`, `VisionChart`, `GoldAt15Chart`, `CsPerMinuteChart`, `RadarChart`, `DangerZonesMap`, and `useChartDisplayMode` if unused elsewhere, with their unit tests. `MatchActivityHeatmap` leaves this page only.
 - [ ] Styles: port the needed `mp-*` classes to `client/src/style.css` when they are added to the design system (Step 5). No hard-coded colours.
 
 ### Database Changes
@@ -523,8 +523,8 @@ All views follow the Mongoose.gg design system ([UI/UX Spec §2](../ui-ux.spec.m
 - [x] `SoloFocusPicker`: Slipping preferred, the lowest-hit fallback, ties, no candidate, under 20 matches.
 - [x] `WinFactorCalculator`: role marks (support vision, jungle CS), the 5-per-side minimum, sorting, negative gaps.
 - [x] `SessionGrouper` / `PatternCalculator`: the 30-minute gap using end time, same-session pairs, weak-spot rule, minimums.
-- [ ] `MapRegions`: each region's rule and precedence (pits before river, bases before lanes), red-side mirroring.
-- [ ] `DeathClassifier`: the order of classes, lane opponent vs ganker, allies thresholds, cost window at 60s exactly, first objective only, grubs and inhibitors ignored.
+- [x] `MapRegions`: each region's rule and precedence (pits before river, bases before lanes), red-side mirroring.
+- [x] `DeathClassifier`: the order of classes, lane opponent vs ganker, allies thresholds, cost window at 60s exactly, first objective only, grubs and inhibitors ignored.
 - [x] `RiotTimelineMapper`: new death fields and objective events from a fixture timeline.
 - [x] `DeathDetailBackfillJob`:
   - order (newest first, most recently active account first, the Solo page bump);
@@ -535,17 +535,17 @@ All views follow the Mongoose.gg design system ([UI/UX Spec §2](../ui-ux.spec.m
   - `death_detail_backfilled_at` set at the end;
   - progress messages throttled to every 5 matches, plus every status change.
 - [x] `IRiotThrottleState`: reports waiting after 2 seconds with the next refill time, and clears when a token is granted.
-- [ ] Frontend: the death-zones card's running / waiting / queued states, WebSocket updates and the 30-second polling fallback; the SyncProgress "Waiting on Riot's servers" line replaces `isRateLimited`'s temporary copy.
-- [ ] Frontend:
+- [x] Frontend: the death-zones card's running / waiting / queued states, WebSocket updates and the 30-second polling fallback; the SyncProgress "Waiting on Riot's servers" line replaces `isRateLimited`'s temporary copy.
+- [x] Frontend:
   - `soloSummary.js` copy (headline modes, titles, verdict words, fixes, formats with a real minus);
   - each base component (rendering, `aria-label`, `aria-pressed`, the `v` flip in `BaseDeathMap`);
   - each card's four states;
   - `SoloStatsPage` wiring (parallel loads, a per-card retry, filter changes).
 
 ### Integration Tests
-- [ ] Each endpoint: ownership (another user's `userId` → 403), `accountId` scopes, invalid `queueType` / `range` → 400, `matches: 0` → 200.
+- [x] Each endpoint: ownership (another user's `userId` → 403), `accountId` scopes, invalid `queueType` / `range` → 400, `matches: 0` → 200.
 - [ ] Range counting across a season boundary (`last20` spans seasons, `season` doesn't).
-- [ ] Death zones with pre-migration events (nulls excluded, `ready` false).
+- [x] Death zones with pre-migration events (nulls excluded, `ready` false).
 - [ ] Repository queries run as parameterized SQL (opt-in DB tests, as the existing ones).
 
 ### Manual Testing Scenarios
@@ -588,11 +588,11 @@ Feature is considered complete when:
 | Six stats × Season range is heavy | Low | Low | One query per endpoint, server-side sampling, index on death events |
 
 ## Timeline and Milestones
-- [ ] **5b**: page shell, ranges, stat trends, win factors, patterns.
-- [ ] **5c**: climb and LP per champion (LP / win-rate modes).
-- [ ] **5d**: focus card.
-- [ ] **5e**: death detail and objective events at sync (migration 004), `DeathDetailBackfillJob` and the throttle signal.
-- [ ] **5f**: death zones card; the heatmap is retired.
+- [x] **5b**: page shell, ranges, stat trends, win factors, patterns.
+- [x] **5c**: climb and LP per champion (LP / win-rate modes).
+- [x] **5d**: focus card.
+- [x] **5e**: death detail and objective events at sync (migration 004), `DeathDetailBackfillJob` and the throttle signal.
+- [x] **5f**: death zones card; the heatmap is retired.
 - [ ] **5g**: rank-average benchmark (optional).
 
 ## Open Questions

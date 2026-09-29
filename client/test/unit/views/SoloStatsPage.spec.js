@@ -2,12 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { reactive, ref } from 'vue'
 import SoloPage from '@/views/SoloStatsPage.vue'
-import { climbResponse, focusFixture, statTrendsResponse, winFactorsResponse, winRateClimbResponse } from '@test/helpers/soloFixtures'
+import { climbResponse, deathZonesResponse, focusFixture, statTrendsResponse, winFactorsResponse, winRateClimbResponse } from '@test/helpers/soloFixtures'
 
 const mockGetSoloClimb = vi.fn()
 const mockGetSoloStatTrends = vi.fn()
 const mockGetSoloWinFactors = vi.fn()
-const mockGetDeathPositions = vi.fn()
+const mockGetSoloDeathZones = vi.fn()
+
+vi.mock('@/composables/useSyncWebSocket', () => ({
+  useSyncWebSocket: () => ({ detailBackfill: ref(null), isConnected: ref(true) })
+}))
 const mockStartSync = vi.fn()
 const syncState = ref(null)
 
@@ -35,7 +39,7 @@ vi.mock('@/services/soloApi', () => ({
   getSoloClimb: (...args) => mockGetSoloClimb(...args),
   getSoloStatTrends: (...args) => mockGetSoloStatTrends(...args),
   getSoloWinFactors: (...args) => mockGetSoloWinFactors(...args),
-  getDeathPositions: (...args) => mockGetDeathPositions(...args)
+  getSoloDeathZones: (...args) => mockGetSoloDeathZones(...args)
 }))
 
 vi.mock('@/composables/useSyncMatches', () => ({
@@ -54,7 +58,7 @@ let mounted = null
 function mountPage() {
   mounted = mount(SoloPage, {
     global: {
-      stubs: { DangerZonesMap: true, LinkRiotAccountModal: true, SyncProgress: true }
+      stubs: { LinkRiotAccountModal: true, SyncProgress: true }
     }
   })
   return mounted
@@ -73,7 +77,7 @@ describe('SoloStatsPage', () => {
     mockGetSoloClimb.mockResolvedValue(climbResponse())
     mockGetSoloStatTrends.mockResolvedValue(statTrendsResponse())
     mockGetSoloWinFactors.mockResolvedValue(winFactorsResponse())
-    mockGetDeathPositions.mockResolvedValue(null)
+    mockGetSoloDeathZones.mockResolvedValue(deathZonesResponse())
   })
 
   it('opens with the rank line, the LP headline and the stat that moved most', async () => {
@@ -116,8 +120,8 @@ describe('SoloStatsPage', () => {
 
     expect(wrapper.find('[data-testid="solo-climb"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-stat-trends"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="solo-death-zones"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-champion-lp"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="danger-zones-card"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-win-factors"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-patterns"]').exists()).toBe(true)
   })

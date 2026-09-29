@@ -290,18 +290,18 @@ Order (design system: summary → list → evidence):
 States: skeleton rows and a skeleton match after 300ms, inline error with "Try again" for the list, the match and the lanes separately, EmptyState "No matches yet" with "Sync matches" (or "Show all queues" when filtered), "We couldn't find this match" for an unknown match ID, and "Link Riot account" without a linked account. Your team is purple and the enemy orange; good stats purple ▲, needs-work orange ▼.
 
 ### Solo (`/app/solo`)
-**Role**: "Am I improving?": the player's matches against their own past. Free tier. Rules and copy in [features/solo-trends.spec.md](features/solo-trends.spec.md); built so far through 5d of the design migration.
+**Role**: "Am I improving?": the player's matches against their own past. Free tier. Rules and copy in [features/solo-trends.spec.md](features/solo-trends.spec.md); built so far through 5f of the design migration.
 
 1. Header: the rank line for one ranked queue of one account (Riot ID · tier-colour dot, "Emerald II · 58 LP · Solo/Duo"), one `h1` from the climb ("+148 LP over your last 50 matches" in LP mode, "28 wins in your last 50" otherwise; the match count until the climb answers) and the second line from `stat-trends` (the Improving stat with the largest normalised change, else the Slipping one). Right: two `BaseSegmentedControl`s, Queue (Solo/Duo, Flex, All queues; the server picks the default and the control shows it) and Range (Last 20, Last 50, Season; ranges count matches).
 2. `SoloClimbCard` beside `SoloFocusCard` (2:1; the climb takes the full width when there is no focus). The focus is the page's one highlight card: "Your focus" eyebrow, "Vision is the one stat slipping" / "… is your biggest lever", the evidence, a `BaseGoalStrip` of the last 20 matches against the mark, and the "Next match" fix; no goal button yet. The climb: "From Emerald III to Emerald II" / "Holding Emerald II" with win rate, LP per match and wins–losses beside it, and a `BaseLineChart` of the LP ladder (division guides, promotion labels, the biggest drop as one orange point). In win-rate mode, "Win rate up from 52% to 58%" over the 10-match win rate (needs 20 matches), with "LP appears here as your ranked matches sync." for one ranked queue of one account.
 3. `SoloStatTrends`: "n of 6 match-deciding stats improved" with six `BaseTrendTile`s (3 columns; rows below 900px) and a key (Your average, One match, Your season average).
-4. "Where you die most": the legacy `DangerZonesMap` (this season) until the death-zones card replaces it (5f).
+4. `SoloDeathZones`: "Deaths in {zone} cost you the most objectives" (3+ lost) or "You die most in {zone}", with a `BaseDeathMap` (zone circles at fixed anchors, your base bottom left, warn when 30% or more cost an objective), a zone list whose buttons (`aria-pressed`) filter the When / How / What it cost bars, and "All zones" as the default filter. Needs 30 counted deaths; while older matches get their death detail, the card shows the backfill's progress instead ("Adding detail to your older matches · 12 of 50", indeterminate while the total is unknown, "Waiting on Riot's servers. We'll continue automatically."), updated over the sync WebSocket or every 30 seconds without it.
 5. `SoloWinFactors`: "Your {factor} decides your matches most" with a `BaseWinFactorRow` per mark (needs 20 matches and 2 rows), beside `SoloChampionLp`: "Ahri earned most of your climb" with up to five champions (36px icon, matches and win rate, a `BaseDivergingBar`, signed LP or net wins) and the champions left out for having under 3 matches. One column below 900px.
 6. `SoloPatterns`: "Your patterns", up to three InsightCard-style cards with a chip and a `BaseColumnChart` (session, after a loss, match length); hidden when none qualify.
 
 Each card loads on its own (skeleton after 300ms, inline error with "Try again" for that card only, EmptyState, content) and keeps its old content while a filter change loads. EmptyStates: "Link your Riot account to see your trends"; "No {queue} matches yet" with "Show all queues" (or "Sync matches"); "Play {n} more matches to see what decides your matches". A finished sync reloads every card. Sections fade in once (`vRevealOnView`).
 
-Data sources: `getSoloClimb()`, `getSoloStatTrends()`, `getSoloWinFactors()`, `getDeathPositions()` from `soloApi`, through `useSoloDashboardData`.
+Data sources: `getSoloClimb()`, `getSoloStatTrends()`, `getSoloWinFactors()`, `getSoloDeathZones()` from `soloApi`, through `useSoloDashboardData`.
 
 > **Advanced** (planned, not implemented): Team and Goals below will be combined into one page called Advanced (working name).
 
@@ -420,6 +420,7 @@ Built from `.claude/skills/mongoose-design/reference/components.md`; imported di
 | `BaseLineChart` | `points` (`{ x, y }`, x = match index), `length`, `yMin`, `yMax`, `guides` (`{ y, label }`), `markers` (`{ x, y, label, tone }`), `ariaLabel`, `height` | One primary line with the last point highlighted, divider guides labelled in ink-faint, moments as dots with labels (warn for a drop; an empty label draws only the dot); `role="img"` (Solo climb) |
 | `BaseDivergingBar` | `value`, `max`, `description` | LaneBar shape without icons: primary right for a gain, warn left for a loss, scaled to `max`; `role="img"` (Solo LP per champion) |
 | `BaseGoalStrip` | `results` (`hit` / `miss` / null, oldest first), `markLabel` | 20 cells: hit filled primary, missed a warn ring, not applicable a track stub; ends labelled; `role="img"` listing every match (Solo focus) |
+| `BaseDeathMap` | `zones` (`{ key, deaths, costly, anchor: { u, v } }`), `selectedKey`, `description` | SVG map outline (bases, lanes, dashed river) with a circle per zone sized by deaths (area), warn when costly, the selected one outlined; `v` is flipped for SVG; `role="img"` with every zone in words (Solo death zones) |
 | `SyncProgress` | `state` (`running`, `waiting`, `done`, `failed`), `current`, `total`, `syncedCount` | Emits `retry`; indeterminate while `total` is 0 |
 | `ScoreRing` | `value`, `label`, `size` | `role="meter"` |
 
@@ -495,7 +496,7 @@ Located in `client/src/components/solo/`. Copy and number formats in `utils/solo
 | `SoloChampionLp` | `data` (climb response), `loading`, `error`, `queue`, `syncing` | Up to five `BaseDivergingBar` rows and the left-out note; emits `retry`, `sync` |
 | `SoloFocusCard` | `focus` (from stat-trends), `verdict`, `loading` | `mp-card--highlight`: finding, evidence, `BaseGoalStrip`, "Next match" fix; renders nothing without a focus |
 | `SoloPatterns` | `data` (win-factors response), `loading`, `error` | Session, after-a-loss and match-length cards; the section is hidden when none qualify; emits `retry` |
-| `DangerZonesMap` | `deaths`, `totalDeaths`, `matchesAnalyzed`, `phaseSummary`, `loading`, `error`, `queueType`, `timeRange` | Legacy death heatmap, emits `update:side`; replaced by the death-zones card (5f) |
+| `SoloDeathZones` | `data` (death-zones response), `loading`, `error`, `queue`, `syncing` | `BaseDeathMap`, the zone list (toggles the breakdown filter) and the When / How / What it cost bars; the backfill's progress in the card's slot while `ready` is false; emits `retry`, `show-all-queues`, `sync` |
 
 ---
 

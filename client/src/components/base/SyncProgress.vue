@@ -101,7 +101,8 @@ const title = computed(() => {
 
 const detail = computed(() => {
   if (props.state === 'done') return null
-  if (props.state === 'waiting') return 'Riot limits how fast we can sync. It carries on by itself in a moment.'
+  // FR 39: reads the same as the death-zones card's backfill line
+  if (props.state === 'waiting') return 'We’ll continue automatically.'
   return 'You can keep using the app. Your Overview updates when the sync is done.'
 })
 

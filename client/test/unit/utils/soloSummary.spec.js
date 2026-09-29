@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
+  buildBackfillProgress,
+  buildDeathZonesCaption,
+  buildDeathZonesTitle,
+  describeDeathMap,
+  zoneLabel,
+  zoneTimingNote,
   buildFocusEvidence,
   buildFocusFinding,
   buildFocusFix,
@@ -358,5 +364,47 @@ describe('soloSummary focus (FR 19–20, FR 29)', () => {
   it('names the mark in sentence case', () => {
     expect(focusMarkLabel(focusFixture({ factor: 'aheadAt15' }))).toBe('Ahead at 15 minutes')
     expect(focusMarkLabel(focusFixture({ factor: 'cs', mark: 5.5 }))).toBe('5.5+ CS per minute')
+  })
+})
+
+describe('soloSummary death zones (FR 33, 37, 39)', () => {
+  it('names zones and says where deaths cost the most', () => {
+    expect(zoneLabel('riverBot')).toBe('Bot river')
+    expect(buildDeathZonesTitle([{ key: 'baronPit', deaths: 9, lostObjectives: 3 }])).toBe('Deaths in the Baron pit cost you the most objectives')
+    expect(buildDeathZonesTitle([
+      { key: 'riverBot', deaths: 9, lostObjectives: 2 },
+      { key: 'topLaneEnemy', deaths: 20, lostObjectives: 1 }
+    ])).toBe('You die most in their half of top lane')
+    expect(buildDeathZonesTitle([])).toBeNull()
+  })
+
+  it('captions the range and the mirroring', () => {
+    expect(buildDeathZonesCaption({ deaths: 40, matches: 64, range: 'season' }))
+      .toBe('40 deaths over 64 matches this season. Red-side matches are mirrored, so your base is always bottom left.')
+  })
+
+  it('writes the timing note by phase', () => {
+    expect(zoneTimingNote({ phase: 'late', count: 27 })).toBe('27 of them after 25 minutes')
+    expect(zoneTimingNote({ phase: 'early', count: 9 })).toBe('Mostly before 14 minutes')
+    expect(zoneTimingNote({ phase: 'mid', count: 9 })).toBe('Mostly between 14 and 25 minutes')
+    expect(zoneTimingNote({ phase: null, count: 4 })).toBe('Spread over the match')
+  })
+
+  it('describes the map in words', () => {
+    expect(describeDeathMap({ range: 'last20', matches: 20, zones: [{ key: 'riverBot', deaths: 6, lostObjectives: 1 }] }))
+      .toBe('Death map, last 20 matches: Bot river, 6 deaths, 1 objective lost.')
+  })
+
+  it('writes the backfill progress for each status', () => {
+    expect(buildBackfillProgress({ status: 'running', done: 12, total: 50 })).toMatchObject({
+      title: 'Adding detail to your older matches · 12 of 50',
+      line: 'Your death map appears when this finishes. You can keep using the rest of the page.',
+      determinate: true
+    })
+    expect(buildBackfillProgress({ status: 'waiting', done: 12, total: 50 }).line).toBe("Waiting on Riot's servers. We'll continue automatically.")
+    expect(buildBackfillProgress({ status: 'queued', done: 0, total: 0 })).toMatchObject({
+      title: 'Adding detail to your older matches', line: 'Queued behind your match sync.', determinate: false
+    })
+    expect(buildBackfillProgress(null)).toBeNull()
   })
 })

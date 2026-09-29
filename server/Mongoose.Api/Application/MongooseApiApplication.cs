@@ -98,7 +98,7 @@ public sealed class MongooseApiApplication
 
         // Match real endpoint naming patterns (e.g., SoloPerformance, MatchDetails)
         if (withoutEndpoint.StartsWith("Solo", StringComparison.Ordinal)
-            || withoutEndpoint is "DeathPositions" or "MatchActivity")
+            || withoutEndpoint is "MatchActivity")
             return "Solo Dashboard";
 
         if (withoutEndpoint.StartsWith("Match", StringComparison.Ordinal))

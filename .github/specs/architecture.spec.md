@@ -298,6 +298,7 @@ Credentials: allowed. Methods & Headers: any.
 | `GET` | `/api/v2/solo/stat-trends/{userId}` | Yes | No | `Solo/SoloStatTrendsEndpoint.cs` | `StatTrendsResponse` |
 | `GET` | `/api/v2/solo/win-factors/{userId}` | Yes | No | `Solo/SoloWinFactorsEndpoint.cs` | `WinFactorsResponse` |
 | `GET` | `/api/v2/solo/climb/{userId}` | Yes | No | `Solo/SoloClimbEndpoint.cs` | `ClimbResponse` |
+| `GET` | `/api/v2/solo/death-zones/{userId}` | Yes | No | `Solo/SoloDeathZonesEndpoint.cs` | `DeathZonesResponse` |
 | `GET` | `/api/v2/matches/{userId}` | Yes | No | `Matches/MatchListEndpoint.cs` | `MatchListResponse` |
 | `GET` | `/api/v2/matches/{matchId}/details` | Yes | No | `Matches/MatchDetailsEndpoint.cs` | `MatchDetailsResponse` |
 | `GET` | `/api/v2/matches/{matchId}/narrative` | Yes | No | `Matches/MatchNarrativeEndpoint.cs` | `MatchNarrativeResponse` |
@@ -452,6 +453,15 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Response**: `ClimbResponse(matches, queueType, range, mode, wins, losses, lp?, winRate?, champions[], championsLeftOut[], rank?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#climb).  
 **Logic**: `LpCoverageRule` picks LP mode (one ranked queue, one account, 80% and at least 10 matches with a known LP change) or win-rate mode. LP mode: the ladder per match (`LpLadder`), net LP, promotions and demotions, the biggest drop over 2+ losses (40 LP or more). Win-rate mode: the 10-match rolling win rate (needs 20 matches). LP or net wins per champion with 3+ matches (top 5), and the latest rank for the rank line (`ClimbCalculator`). LP changes use the same previous-rank window as the match list (`PreviousRankSql`).  
 **Tables**: as 6.12a  
+**Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
+
+### 6.12d Solo Death Zones
+**Route**: `GET /api/v2/solo/death-zones/{userId}`  
+**Auth**: Yes  
+**Query params**: same as 6.12a  
+**Response**: `DeathZonesResponse(matches, queueType, range, deaths, ready, zones[], breakdowns, backfill?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#death-zones). `ready` needs 30 counted deaths; `backfill` (`status`, `done`, `total`, `retryAt?`) is set only while matches in range still lack death detail.  
+**Logic**: Deaths with a time and an allies count are counted (executes, with no killer, count too). Positions are mirrored for the red side and classified into 16 regions (`MapRegions`); each death gets a phase, a how (teamfight, ganked, alone, other) and a cost (first enemy dragon, tower, baron or herald within 60 s) (`DeathClassifier`). Zones with 5+ deaths, most objectives lost first, top 5, costly at 30% (`DeathZonesCalculator`). Matches missing detail are moved to the front of the backfill queue (`DeathDetailBackfillJob`).  
+**Tables**: `matches`, `participants`, `participant_death_events`, `match_objective_events`  
 **Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
 
 ### 6.13 Match List

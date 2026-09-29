@@ -164,34 +164,20 @@ export async function getSoloClimb(userId, queueType = null, range = 'last20') {
 }
 
 /**
- * Get death position data for the danger zone heatmap
+ * Get death zones: where deaths cost objectives, the breakdowns, and the death detail backfill's progress
  * @param {number} userId - User ID
- * @param {string} [queueType] - Optional queue filter
- * @param {string} [timeRange] - Optional time range
- * @param {string} [side] - Optional side filter (all, blue, red)
- * @returns {Promise<Object|null>} Death positions data or null if no data found
+ * @param {string|null} [queueType] - ranked_solo, ranked_flex or all; null for the server's default
+ * @param {string} [range] - last20, last50 or season
+ * @returns {Promise<Object|null>} null when no Riot account is linked
  */
-export async function getDeathPositions(userId, queueType = 'all', timeRange, side = 'all') {
-  const params = new URLSearchParams()
-  if (queueType && queueType !== 'all') {
-    params.append('queueType', queueType)
-  }
-  if (timeRange) {
-    params.append('timeRange', timeRange)
-  }
-  if (side && side !== 'all') {
-    params.append('side', side)
-  }
-  appendAccountParam(params)
-
-  const endpoint = `/solo/death-positions/${userId}${params.toString() ? '?' + params.toString() : ''}`
-  const response = await apiRequest(endpoint, { method: 'GET' })
+export async function getSoloDeathZones(userId, queueType = null, range = 'last20') {
+  const response = await apiRequest(`/solo/death-zones/${userId}?${soloTrendsQuery(queueType, range)}`, { method: 'GET' })
 
   if (response.status === 404) {
     return null
   }
 
-  return parseResponse(response, 'Failed to get death positions')
+  return parseResponse(response, 'Failed to get death zones')
 }
 
 /**

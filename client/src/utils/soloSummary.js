@@ -571,3 +571,98 @@ export function focusMarkLabel(focus) {
   const text = FOCUS_MARKS[focus?.factor]?.at(focus.mark) ?? ''
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
+
+// ───────────────────────── Death zones (FR 31–39) ─────────────────────────
+
+/** FR 33 labels, and the phrase used inside a sentence ("Deaths in their bot-side jungle …"). */
+const ZONES = {
+  dragonPit: { label: 'Dragon pit', phrase: 'the dragon pit' },
+  baronPit: { label: 'Baron pit', phrase: 'the Baron pit' },
+  yourBase: { label: 'Your base', phrase: 'your base' },
+  enemyBase: { label: 'Enemy base', phrase: 'their base' },
+  topLaneYours: { label: 'Top lane, your half', phrase: 'your half of top lane' },
+  topLaneEnemy: { label: 'Top lane, enemy half', phrase: 'their half of top lane' },
+  botLaneYours: { label: 'Bot lane, your half', phrase: 'your half of bot lane' },
+  botLaneEnemy: { label: 'Bot lane, enemy half', phrase: 'their half of bot lane' },
+  midLaneYours: { label: 'Mid lane, your half', phrase: 'your half of mid lane' },
+  midLaneEnemy: { label: 'Mid lane, enemy half', phrase: 'their half of mid lane' },
+  riverTop: { label: 'Top river', phrase: 'the top river' },
+  riverBot: { label: 'Bot river', phrase: 'the bot river' },
+  jungleYoursTop: { label: 'Your jungle, top side', phrase: 'your top-side jungle' },
+  jungleYoursBot: { label: 'Your jungle, bot side', phrase: 'your bot-side jungle' },
+  jungleEnemyTop: { label: 'Enemy jungle, top side', phrase: 'their top-side jungle' },
+  jungleEnemyBot: { label: 'Enemy jungle, bot side', phrase: 'their bot-side jungle' }
+}
+
+/** FR 37: an objective lost on 3 deaths makes the zone the title's subject. */
+const TITLE_MIN_LOST = 3
+
+export const PHASE_LABELS = { early: 'Before 14 min', mid: '14–25 min', late: 'After 25 min' }
+export const HOW_LABELS = { ganked: 'Ganked in lane', alone: 'Caught alone', teamfight: 'In a teamfight', other: 'Lane fights and skirmishes' }
+export const COST_LABELS = { dragon: 'Dragon', tower: 'Tower', baron: 'Baron', herald: 'Herald' }
+
+export function zoneLabel(key) {
+  return ZONES[key]?.label ?? key
+}
+
+/**
+ * FR 37: "Deaths in their bot-side jungle cost you the most objectives" when the top zone lost 3
+ * or more, else "You die most in …" (the zone with most deaths). Null without zones.
+ */
+export function buildDeathZonesTitle(zones) {
+  if (!zones?.length) return null
+  if (zones[0].lostObjectives >= TITLE_MIN_LOST) return `Deaths in ${ZONES[zones[0].key]?.phrase} cost you the most objectives`
+  const most = [...zones].sort((a, b) => b.deaths - a.deaths)[0]
+  return `You die most in ${ZONES[most.key]?.phrase}`
+}
+
+export function buildDeathZonesCaption(data) {
+  const over = data.range === 'season'
+    ? `over ${data.matches} ${matchWord(data.matches)} this season`
+    : `over your last ${data.matches} ${matchWord(data.matches)}`
+  return `${data.deaths} ${data.deaths === 1 ? 'death' : 'deaths'} ${over}. Red-side matches are mirrored, so your base is always bottom left.`
+}
+
+/** FR 37 timing note: "27 of them after 25 minutes", "Mostly before 14 minutes", "Spread over the match". */
+export function zoneTimingNote(timing) {
+  switch (timing?.phase) {
+    case 'late': return `${timing.count} of them after 25 minutes`
+    case 'early': return 'Mostly before 14 minutes'
+    case 'mid': return 'Mostly between 14 and 25 minutes'
+    default: return 'Spread over the match'
+  }
+}
+
+export function zoneSummary(zone) {
+  const lost = zone.lostObjectives === 1 ? '1 objective lost' : `${zone.lostObjectives} objectives lost`
+  return `${zone.deaths} deaths · ${lost}`
+}
+
+/** The map's text alternative: the range and every zone in words. */
+export function describeDeathMap(data) {
+  const zones = data.zones.map((z) => `${zoneLabel(z.key)}, ${zoneSummary(z).replace(' · ', ', ')}`)
+  return `Death map, ${rangeText(data.range, data.matches)}: ${zones.join('; ')}.`
+}
+
+/** FR 39: the backfill's progress line in the card's slot; null without a backfill. */
+export function buildBackfillProgress(backfill) {
+  if (!backfill) return null
+  const counted = backfill.total > 0
+  const title = counted
+    ? `Adding detail to your older matches · ${backfill.done} of ${backfill.total}`
+    : 'Adding detail to your older matches'
+  const line = {
+    running: 'Your death map appears when this finishes. You can keep using the rest of the page.',
+    waiting: "Waiting on Riot's servers. We'll continue automatically.",
+    queued: 'Queued behind your match sync.'
+  }[backfill.status] ?? null
+  return { title, line, determinate: counted, done: backfill.done, total: backfill.total }
+}
+
+/** FR 31: the card below 30 counted deaths, when no backfill will add more. */
+export function buildDeathZonesEmpty(data) {
+  return {
+    title: 'Play a few more matches to see where your deaths cost you',
+    description: `Death zones need 30 deaths with full detail in this range; you have ${data.deaths}.`
+  }
+}

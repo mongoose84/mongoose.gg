@@ -89,29 +89,18 @@
         />
       </div>
 
-      <!-- Until the death-zones card (5f): where deaths happen this season -->
-      <section
-        v-reveal-on-view
-        class="mp-card solo-deaths"
-        aria-labelledby="solo-deaths-title"
-        data-testid="danger-zones-card"
-      >
-        <header class="solo-deaths__header">
-          <h2 id="solo-deaths-title" class="mp-card-title">Where you die most</h2>
-          <p class="solo-deaths__caption">Deaths on the map, this season</p>
-        </header>
-        <DangerZonesMap
-          :deaths="deathPositions?.deaths ?? []"
-          :total-deaths="deathPositions?.totalDeaths ?? 0"
-          :matches-analyzed="deathPositions?.matchesAnalyzed ?? 0"
-          :phase-summary="deathPositions?.phaseSummary ?? { early: 0, mid: 0, late: 0, veryLate: 0 }"
-          :loading="deathPositionsLoading"
-          :error="deathPositionsError"
-          :queue-type="selectedQueue ?? 'all'"
-          time-range="current_season"
-          @update:side="setSide"
+      <div v-reveal-on-view>
+        <SoloDeathZones
+          :data="deathZones"
+          :loading="deathZonesLoading"
+          :error="deathZonesError"
+          :queue="selectedQueue"
+          :syncing="isSyncing"
+          @retry="fetchDeathZones"
+          @show-all-queues="setQueue('all')"
+          @sync="startSync"
         />
-      </section>
+      </div>
 
       <div v-reveal-on-view class="solo-pair">
         <SoloWinFactors
@@ -182,7 +171,7 @@ import SoloFocusCard from '../components/solo/SoloFocusCard.vue'
 import SoloStatTrends from '../components/solo/SoloStatTrends.vue'
 import SoloWinFactors from '../components/solo/SoloWinFactors.vue'
 import SoloPatterns from '../components/solo/SoloPatterns.vue'
-import DangerZonesMap from '../components/solo/DangerZonesMap.vue'
+import SoloDeathZones from '../components/solo/SoloDeathZones.vue'
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
 
 const authStore = useAuthStore()
@@ -201,14 +190,14 @@ const {
   winFactors,
   winFactorsError,
   winFactorsLoading,
-  deathPositions,
-  deathPositionsError,
-  deathPositionsLoading,
+  deathZones,
+  deathZonesError,
+  deathZonesLoading,
   setQueue,
   setRange,
-  setSide,
   fetchAll,
   fetchClimb,
+  fetchDeathZones,
   fetchStatTrends,
   fetchWinFactors
 } = useSoloDashboardData()
@@ -335,25 +324,6 @@ watch(syncState, (state, previous) => {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.5rem;
-}
-
-.solo-deaths {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.solo-deaths__header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.solo-deaths__caption {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--color-text-secondary);
 }
 
 @media (max-width: 899px) {
