@@ -5,6 +5,8 @@ public class Participant : EntityBase
     public long Id { get; set; }
     public string MatchId { get; set; } = string.Empty;
     public string Puuid { get; set; } = string.Empty;
+    /// <summary>Riot's participantId (1-10); maps timeline participant IDs to this row.</summary>
+    public int? RiotParticipantId { get; set; }
     public int TeamId { get; set; }
     public string? Role { get; set; }
     public string? Lane { get; set; }

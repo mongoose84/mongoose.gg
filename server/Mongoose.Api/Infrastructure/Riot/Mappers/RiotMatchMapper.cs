@@ -39,12 +39,16 @@ public static class RiotMatchMapper
         var matchId = metadata.GetProperty("matchId").GetString() ?? string.Empty;
         var participants = new List<Participant>();
 
+        var index = 0;
         foreach (var p in info.GetProperty("participants").EnumerateArray())
         {
+            index++;
             participants.Add(new Participant
             {
                 MatchId = matchId,
                 Puuid = p.GetProperty("puuid").GetString() ?? string.Empty,
+                // Riot lists participants 1-10 in order; participantId says so explicitly when present
+                RiotParticipantId = p.TryGetProperty("participantId", out var pid) ? pid.GetInt32() : index,
                 TeamId = p.GetProperty("teamId").GetInt32(),
                 Role = GetStringOrNull(p, "teamPosition"), // TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY
                 Lane = GetStringOrNull(p, "lane"),

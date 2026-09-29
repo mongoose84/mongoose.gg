@@ -11,9 +11,10 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
     public Task<long> InsertAsync(Participant p)
     {
         const string sql = @"INSERT INTO participants
-            (match_id, puuid, team_id, role, lane, champion_id, champion_name, win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec, lp_after, tier_after, rank_after, created_at)
-            VALUES (@match_id, @puuid, @team_id, @role, @lane, @champion_id, @champion_name, @win, @kills, @deaths, @assists, @creep_score, @gold_earned, @time_dead_sec, @lp_after, @tier_after, @rank_after, @created_at) AS new
+            (match_id, puuid, riot_participant_id, team_id, role, lane, champion_id, champion_name, win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec, lp_after, tier_after, rank_after, created_at)
+            VALUES (@match_id, @puuid, @riot_participant_id, @team_id, @role, @lane, @champion_id, @champion_name, @win, @kills, @deaths, @assists, @creep_score, @gold_earned, @time_dead_sec, @lp_after, @tier_after, @rank_after, @created_at) AS new
             ON DUPLICATE KEY UPDATE
+                riot_participant_id = COALESCE(new.riot_participant_id, participants.riot_participant_id),
                 team_id = new.team_id,
                 role = new.role,
                 lane = new.lane,
@@ -35,6 +36,7 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
             await using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@match_id", p.MatchId);
             cmd.Parameters.AddWithValue("@puuid", p.Puuid);
+            cmd.Parameters.AddWithValue("@riot_participant_id", p.RiotParticipantId ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@team_id", p.TeamId);
             cmd.Parameters.AddWithValue("@role", p.Role ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@lane", p.Lane ?? (object)DBNull.Value);
@@ -72,7 +74,7 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
 
     public Task<IList<Participant>> GetByMatchAsync(string matchId)
     {
-        const string sql = "SELECT * FROM participants WHERE match_id = @match_id";
+        const string sql = $"SELECT {Columns} FROM participants p WHERE p.match_id = @match_id";
         return ExecuteListAsync(sql, Map, ("@match_id", matchId));
     }
 
@@ -114,7 +116,7 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
 
     public Task<IList<Participant>> GetRecentByPuuidAsync(string puuid, int? queueId, int limit)
     {
-        var sql = @"SELECT p.* FROM participants p
+        var sql = $@"SELECT {Columns} FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             WHERE p.puuid = @puuid";
         if (queueId.HasValue)
@@ -130,6 +132,27 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
         }
         return ExecuteListAsync(sql, Map, parameters.ToArray());
     }
+
+    /// <summary>
+    /// Sets Riot's participantId (1-10) on a match's rows, keyed by PUUID. Used when a timeline is
+    /// read again for rows synced before the column existed.
+    /// </summary>
+    public async Task SetRiotParticipantIdsAsync(string matchId, IReadOnlyDictionary<string, int> participantIds)
+    {
+        foreach (var (puuid, participantId) in participantIds)
+        {
+            await ExecuteNonQueryAsync(
+                "UPDATE participants SET riot_participant_id = @riot_participant_id WHERE match_id = @match_id AND puuid = @puuid",
+                ("@riot_participant_id", participantId),
+                ("@match_id", matchId),
+                ("@puuid", puuid));
+        }
+    }
+
+    // Explicit columns in Map's order, so a column added to the table never shifts the reads
+    private const string Columns = @"p.id, p.match_id, p.puuid, p.team_id, p.role, p.lane, p.champion_id, p.champion_name,
+        p.win, p.kills, p.deaths, p.assists, p.creep_score, p.gold_earned, p.time_dead_sec,
+        p.lp_after, p.tier_after, p.rank_after, p.created_at, p.riot_participant_id";
 
     private static Participant Map(MySqlDataReader r) => new()
     {
@@ -151,6 +174,7 @@ public class ParticipantsRepository : RepositoryBase, IParticipantsRepository
         LpAfter = r.IsDBNull(15) ? null : r.GetInt32(15),
         TierAfter = r.IsDBNull(16) ? null : r.GetString(16),
         RankAfter = r.IsDBNull(17) ? null : r.GetString(17),
-        CreatedAt = r.GetDateTimeUtc(18)
+        CreatedAt = r.GetDateTimeUtc(18),
+        RiotParticipantId = r.IsDBNull(19) ? null : r.GetInt32(19)
     };
 }

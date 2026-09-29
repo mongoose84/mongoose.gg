@@ -81,6 +81,7 @@ Stores Riot account identity information. Linked to users via the `user_riot_acc
 | `flex_lp` | INT | NULL | Flex queue LP |
 | `last_sync_at` | TIMESTAMP | NULL | Last successful match sync time |
 | `rank_checked_at` | DATETIME(3) | NULL | Last rank read (poll, sync or login), UTC; `RankSnapshotJob` polls by it |
+| `death_detail_backfilled_at` | DATETIME(3) | NULL | When `DeathDetailBackfillJob` finished the account's last 50 Summoner's Rift matches, UTC (migration 004) |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update time |
 
@@ -290,6 +291,7 @@ Per-player, per-match base statistics.
 | `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique participant record ID |
 | `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
 | `puuid` | VARCHAR(78) | NOT NULL | Foreign key to riot_accounts |
+| `riot_participant_id` | TINYINT | NULL | Riot's participantId (1–10), so timeline participant IDs map to rows; filled at sync and by the backfill (migration 004) |
 | `team_id` | INT | NOT NULL | Team identifier (100 or 200) |
 | `role` | VARCHAR(20) | NULL | Team position (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY) |
 | `lane` | VARCHAR(20) | NULL | Lane assignment (may differ from role) |
@@ -489,6 +491,58 @@ Individual player participation in objectives.
 - Derived from Timeline API `ELITE_MONSTER_KILL` and `BUILDING_KILL` events
 - Participation = killer + assistingParticipantIds
 - Optional: include nearby teammates within proximity threshold
+
+### `participant_death_events`
+
+One row per death of a participant, from the timeline's `CHAMPION_KILL` events (Solo death zones).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique death event ID |
+| `participant_id` | BIGINT UNSIGNED | NOT NULL | Foreign key to participants (the victim) |
+| `minute_mark` | INT | NOT NULL | Minute of the death |
+| `timestamp_sec` | INT | NULL | Seconds into the match (migration 004) |
+| `position_x` | INT | NOT NULL | Map x (0–14870) |
+| `position_y` | INT | NOT NULL | Map y (0–14870) |
+| `killer_champion_id` | INT | NULL | Killer's champion; null for an execute |
+| `killer_participant_id` | TINYINT | NULL | Killer's Riot participantId 1–10 (migration 004) |
+| `assisting_participant_ids` | VARCHAR(40) | NULL | Comma-separated Riot participantIds of the assisters (migration 004) |
+| `allies_nearby` | TINYINT | NULL | Victim's allies within 2,000 units in the participant frame closest in time; frames are per minute, so approximate (migration 004) |
+| `assist_count` | INT | NOT NULL DEFAULT 0 | Number of assisters |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+
+**Indexes:** `idx_participant_id` (`participant_id`), `idx_minute_mark` (`minute_mark`), `idx_death_events_participant_time` (`participant_id`, `timestamp_sec`).
+
+**Foreign Keys:** `participant_id` → `participants(id)` ON DELETE CASCADE
+
+**Notes:** The migration-004 columns are null for deaths synced before it until `DeathDetailBackfillJob` re-fetches the timeline and rewrites the match's death rows.
+
+### `match_objective_events`
+
+Objectives each team took, with their time, from the timeline's `ELITE_MONSTER_KILL` and `BUILDING_KILL` events (migration 004). Used by Solo death zones ("cost an objective") and shared with the Matches gold-over-time markers.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | BIGINT UNSIGNED | PRIMARY KEY AUTO_INCREMENT | Unique event ID |
+| `match_id` | VARCHAR(50) | NOT NULL | Foreign key to matches |
+| `team_id` | INT | NOT NULL | The team that took it (100 or 200) |
+| `type` | ENUM('dragon','baron','herald','grubs','tower','inhibitor') | NOT NULL | Objective type |
+| `subtype` | VARCHAR(30) | NULL | Dragon kind (`FIRE_DRAGON`, `ELDER_DRAGON`, …) or tower lane (`TOP_LANE`, …) |
+| `timestamp_sec` | INT | NOT NULL | Seconds into the match |
+| `killer_participant_id` | TINYINT | NULL | Riot participantId 1–10 of the killer, when a champion |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+
+**Indexes:** `idx_objective_events_match_time` (`match_id`, `timestamp_sec`). **Foreign Keys:** `match_id` → `matches(match_id)` ON DELETE CASCADE.
+
+### `death_detail_backfill_skips`
+
+Matches whose timeline Riot no longer serves (`404`), so `DeathDetailBackfillJob` doesn't retry them (migration 004).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `match_id` | VARCHAR(50) | PRIMARY KEY | Foreign key to matches (ON DELETE CASCADE) |
+| `reason` | VARCHAR(30) | NOT NULL | Why it was skipped (`not_found`) |
+| `skipped_at` | DATETIME(3) | NOT NULL | UTC |
 
 ---
 
@@ -914,6 +968,7 @@ The Timeline API is **critical** for:
 - `participant_checkpoints` (gold/CS/XP at minute marks)
 - `participant_metrics` (death timing, first kill participation)
 - `participant_objectives` (objective participation)
+- `participant_death_events` and `match_objective_events` (death detail and objective times)
 - `duo_metrics` (assist synergy, shared objectives)
 - `team_match_metrics` (gold leads, swings)
 

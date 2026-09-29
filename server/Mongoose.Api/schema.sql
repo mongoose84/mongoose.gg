@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS riot_accounts (
     flex_lp INT NULL,
     last_sync_at TIMESTAMP NULL,
     rank_checked_at DATETIME(3) NULL COMMENT 'UTC; last rank read (rank snapshots)',
+    death_detail_backfilled_at DATETIME(3) NULL COMMENT 'UTC; death detail backfill done',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     KEY idx_game_name_tag (game_name, tag_line),
@@ -178,6 +179,7 @@ CREATE TABLE IF NOT EXISTS participants (
     tier_after VARCHAR(20) NULL,
     rank_after VARCHAR(10) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    riot_participant_id TINYINT NULL COMMENT 'Riot participantId 1-10',
     UNIQUE KEY idx_match_puuid (match_id, puuid),
     KEY idx_puuid (puuid),
     KEY idx_match_id (match_id),
@@ -278,14 +280,41 @@ CREATE TABLE IF NOT EXISTS participant_death_events (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     participant_id BIGINT UNSIGNED NOT NULL,
     minute_mark INT NOT NULL,
+    timestamp_sec INT NULL COMMENT 'Seconds into the match',
     position_x INT NOT NULL,
     position_y INT NOT NULL,
     killer_champion_id INT NULL,
+    killer_participant_id TINYINT NULL COMMENT 'Riot participantId 1-10; null for an execute',
+    assisting_participant_ids VARCHAR(40) NULL COMMENT 'Comma-separated Riot participantIds',
+    allies_nearby TINYINT NULL COMMENT 'Allies within 2,000 units in the closest participant frame',
     assist_count INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     KEY idx_participant_id (participant_id),
     KEY idx_minute_mark (minute_mark),
+    KEY idx_death_events_participant_time (participant_id, timestamp_sec),
     CONSTRAINT fk_death_events_participant FOREIGN KEY (participant_id) REFERENCES participants(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- OBJECTIVE EVENTS (timeline): what each team took and when
+CREATE TABLE IF NOT EXISTS match_objective_events (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    match_id VARCHAR(50) NOT NULL,
+    team_id INT NOT NULL COMMENT 'The team that took the objective',
+    type ENUM('dragon', 'baron', 'herald', 'grubs', 'tower', 'inhibitor') NOT NULL,
+    subtype VARCHAR(30) NULL COMMENT 'Dragon kind or tower lane',
+    timestamp_sec INT NOT NULL,
+    killer_participant_id TINYINT NULL COMMENT 'Riot participantId 1-10',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_objective_events_match_time (match_id, timestamp_sec),
+    CONSTRAINT fk_objective_events_match FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Matches Riot no longer serves a timeline for (death detail backfill)
+CREATE TABLE IF NOT EXISTS death_detail_backfill_skips (
+    match_id VARCHAR(50) NOT NULL PRIMARY KEY,
+    reason VARCHAR(30) NOT NULL,
+    skipped_at DATETIME(3) NOT NULL COMMENT 'UTC',
+    CONSTRAINT fk_backfill_skips_match FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- DUO ANALYTICS

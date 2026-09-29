@@ -79,6 +79,7 @@ builder.Services.AddScoped<IParticipantMetricsRepository, ParticipantMetricsRepo
 builder.Services.AddScoped<ITeamObjectivesRepository, TeamObjectivesRepository>();
 builder.Services.AddScoped<IParticipantObjectivesRepository, ParticipantObjectivesRepository>();
 builder.Services.AddScoped<IParticipantDeathEventsRepository, ParticipantDeathEventsRepository>();
+builder.Services.AddScoped<IMatchObjectiveEventsRepository, MatchObjectiveEventsRepository>();
 builder.Services.AddScoped<IDeathPositionsRepository, DeathPositionsRepository>();
 builder.Services.AddScoped<ISoloTrendsRepository, SoloTrendsRepository>();
 builder.Services.AddScoped<ITeamMatchMetricsRepository, TeamMatchMetricsRepository>();
@@ -105,6 +106,7 @@ builder.Services.AddScoped<DimensionExtractionService>();
 builder.Services.AddScoped<RankSnapshotService>();
 builder.Services.AddScoped<LoginSyncService>();
 builder.Services.AddScoped<PuuidResolutionService>();
+builder.Services.AddScoped<IDeathDetailWriter, DeathDetailWriter>();
 builder.Services.AddScoped<IMatchDataPersistenceService, MatchDataPersistenceService>();
 
 // Query filter builder for centralized SQL filter generation

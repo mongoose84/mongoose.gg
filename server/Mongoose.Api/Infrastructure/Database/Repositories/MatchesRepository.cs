@@ -685,6 +685,8 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
     /// - team_match_metrics
     /// - team_role_responsibilities
     /// - duo_metrics
+    /// - match_objective_events
+    /// - death_detail_backfill_skips
     /// </summary>
     public async Task<int> DeleteOldMatchesAsync(long cutoffTimestamp, int batchSize)
     {

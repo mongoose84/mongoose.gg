@@ -228,15 +228,20 @@ public static class RiotTimelineMapper
         public int Towers { get; set; }
     }
 
+    // Allies closer than this to a death, in the participant frame closest in time, count as nearby (FR 35)
+    public const int AlliesNearbyRange = 2000;
+
     /// <summary>
-    /// Extracts death position data from timeline events for danger zone heatmap.
-    /// Returns a dictionary mapping participantId to a list of death position events.
-    /// Each event includes x/y coordinates, minute mark, killer champion ID, and assist count.
+    /// Extracts each death from the timeline's CHAMPION_KILL events: position, time, killer and
+    /// assisters, and how many of the victim's allies were within <see cref="AlliesNearbyRange"/>
+    /// units in the participant frame closest in time (frames are per minute, so approximate).
+    /// Returns the deaths per victim's Riot participantId (1-10).
     /// </summary>
     public static Dictionary<int, List<DeathPositionData>> ExtractDeathPositions(JsonElement timelineRoot)
     {
         var result = new Dictionary<int, List<DeathPositionData>>();
         var info = timelineRoot.GetProperty("info");
+        var framePositions = ReadFramePositions(info);
 
         foreach (var frame in info.GetProperty("frames").EnumerateArray())
         {
@@ -249,9 +254,7 @@ public static class RiotTimelineMapper
 
                 var victimId = evt.GetProperty("victimId").GetInt32();
                 var timestamp = evt.GetProperty("timestamp").GetInt64();
-                var minute = (int)(timestamp / 60000);
 
-                // Extract position
                 var position = evt.TryGetProperty("position", out var pos) ? pos : default;
                 if (position.ValueKind == JsonValueKind.Undefined || position.ValueKind == JsonValueKind.Null)
                     continue;
@@ -259,25 +262,15 @@ public static class RiotTimelineMapper
                 var posX = position.GetProperty("x").GetInt32();
                 var posY = position.GetProperty("y").GetInt32();
 
-                // Extract killer champion ID (may be null for execute deaths)
-                int? killerChampionId = null;
-                if (evt.TryGetProperty("killerId", out var killer))
-                {
-                    var killerId = killer.GetInt32();
-                    if (killerId > 0)
-                    {
-                        // killerId is the Riot participantId (1-10), we need the champion ID
-                        // This will be resolved by looking up the killer's champion in the match data
-                        // For now, store the killerId as placeholder - caller will resolve to championId
-                        killerChampionId = killerId;
-                    }
-                }
+                // killerId 0 is an execute (tower, minion or monster): no champion killer
+                int? killerId = evt.TryGetProperty("killerId", out var killer) && killer.GetInt32() > 0
+                    ? killer.GetInt32()
+                    : null;
 
-                // Count assists
-                int assistCount = 0;
-                if (evt.TryGetProperty("assistingParticipantIds", out var assists))
+                var assisters = new List<int>();
+                if (evt.TryGetProperty("assistingParticipantIds", out var assists) && assists.ValueKind == JsonValueKind.Array)
                 {
-                    assistCount = assists.GetArrayLength();
+                    assisters.AddRange(assists.EnumerateArray().Select(a => a.GetInt32()));
                 }
 
                 if (!result.ContainsKey(victimId))
@@ -285,11 +278,14 @@ public static class RiotTimelineMapper
 
                 result[victimId].Add(new DeathPositionData
                 {
-                    MinuteMark = minute,
+                    MinuteMark = (int)(timestamp / 60000),
+                    TimestampSec = (int)(timestamp / 1000),
                     PositionX = posX,
                     PositionY = posY,
-                    KillerParticipantId = killerChampionId,
-                    AssistCount = assistCount
+                    KillerParticipantId = killerId,
+                    AssistingParticipantIds = assisters,
+                    AssistCount = assisters.Count,
+                    AlliesNearby = AlliesNearby(framePositions, timestamp, victimId, posX, posY)
                 });
             }
         }
@@ -300,10 +296,155 @@ public static class RiotTimelineMapper
     public class DeathPositionData
     {
         public int MinuteMark { get; set; }
+        public int TimestampSec { get; set; }
         public int PositionX { get; set; }
         public int PositionY { get; set; }
-        public int? KillerParticipantId { get; set; }  // Riot participantId (1-10), needs resolution to championId
+        /// <summary>Riot participantId (1-10) of the killer; null for an execute. Resolved to a champion by the caller.</summary>
+        public int? KillerParticipantId { get; set; }
+        public IReadOnlyList<int> AssistingParticipantIds { get; set; } = [];
         public int AssistCount { get; set; }
+        /// <summary>Null when the timeline has no participant positions to compare with.</summary>
+        public int? AlliesNearby { get; set; }
+    }
+
+    /// <summary>Riot's convention: participants 1-5 are team 100, 6-10 team 200.</summary>
+    public static int TeamOf(int participantId) => participantId <= 5 ? 100 : 200;
+
+    /// <summary>Each frame's timestamp and every participant's position in it.</summary>
+    private static List<(long Timestamp, Dictionary<int, (int X, int Y)> Positions)> ReadFramePositions(JsonElement info)
+    {
+        var frames = new List<(long, Dictionary<int, (int, int)>)>();
+        foreach (var frame in info.GetProperty("frames").EnumerateArray())
+        {
+            if (!frame.TryGetProperty("participantFrames", out var participantFrames)
+                || participantFrames.ValueKind != JsonValueKind.Object) continue;
+
+            var positions = new Dictionary<int, (int, int)>();
+            foreach (var pf in participantFrames.EnumerateObject())
+            {
+                if (!int.TryParse(pf.Name, out var participantId)) continue;
+                if (!pf.Value.TryGetProperty("position", out var position) || position.ValueKind != JsonValueKind.Object) continue;
+                positions[participantId] = (position.GetProperty("x").GetInt32(), position.GetProperty("y").GetInt32());
+            }
+
+            if (positions.Count > 0) frames.Add((frame.GetProperty("timestamp").GetInt64(), positions));
+        }
+        return frames;
+    }
+
+    private static int? AlliesNearby(
+        List<(long Timestamp, Dictionary<int, (int X, int Y)> Positions)> frames, long timestamp, int victimId, int x, int y)
+    {
+        if (frames.Count == 0) return null;
+
+        var closest = frames.MinBy(f => Math.Abs(f.Timestamp - timestamp)).Positions;
+        var team = TeamOf(victimId);
+        const long rangeSquared = (long)AlliesNearbyRange * AlliesNearbyRange;
+
+        return closest.Count(p =>
+            p.Key != victimId
+            && TeamOf(p.Key) == team
+            && (long)(p.Value.X - x) * (p.Value.X - x) + (long)(p.Value.Y - y) * (p.Value.Y - y) <= rangeSquared);
+    }
+
+    /// <summary>
+    /// Extracts the objectives each team took, with their time: dragons, Barons, Heralds and Void
+    /// Grubs (ELITE_MONSTER_KILL), towers and inhibitors (BUILDING_KILL). Other monsters are ignored.
+    /// </summary>
+    public static List<ObjectiveEventData> ExtractObjectiveEvents(JsonElement timelineRoot)
+    {
+        var result = new List<ObjectiveEventData>();
+        var info = timelineRoot.GetProperty("info");
+
+        foreach (var frame in info.GetProperty("frames").EnumerateArray())
+        {
+            if (!frame.TryGetProperty("events", out var events)) continue;
+            if (events.ValueKind == JsonValueKind.Null) continue;
+
+            foreach (var evt in events.EnumerateArray())
+            {
+                var eventType = evt.GetProperty("type").GetString();
+                var timestampSec = (int)(evt.GetProperty("timestamp").GetInt64() / 1000);
+                int? killerId = evt.TryGetProperty("killerId", out var kid) && kid.GetInt32() > 0 ? kid.GetInt32() : null;
+
+                if (eventType == "ELITE_MONSTER_KILL")
+                {
+                    var type = (evt.TryGetProperty("monsterType", out var mt) ? mt.GetString() : null) switch
+                    {
+                        "DRAGON" => "dragon",
+                        "BARON_NASHOR" => "baron",
+                        "RIFTHERALD" => "herald",
+                        "HORDE" => "grubs",
+                        _ => null
+                    };
+                    if (type is null) continue;
+
+                    // killerTeamId is the team that took it; fall back to the killer's team
+                    int? team = evt.TryGetProperty("killerTeamId", out var kt) && kt.GetInt32() is 100 or 200
+                        ? kt.GetInt32()
+                        : killerId.HasValue ? TeamOf(killerId.Value) : null;
+                    if (team is null) continue;
+
+                    result.Add(new ObjectiveEventData
+                    {
+                        TeamId = team.Value,
+                        Type = type,
+                        Subtype = evt.TryGetProperty("monsterSubType", out var st) ? st.GetString() : null,
+                        TimestampSec = timestampSec,
+                        KillerParticipantId = killerId
+                    });
+                }
+                else if (eventType == "BUILDING_KILL")
+                {
+                    var type = (evt.TryGetProperty("buildingType", out var bt) ? bt.GetString() : null) switch
+                    {
+                        "TOWER_BUILDING" => "tower",
+                        "INHIBITOR_BUILDING" => "inhibitor",
+                        _ => null
+                    };
+                    // teamId is the team that owned the building, so the other team took it
+                    if (type is null || !evt.TryGetProperty("teamId", out var owner) || owner.GetInt32() is not (100 or 200)) continue;
+
+                    result.Add(new ObjectiveEventData
+                    {
+                        TeamId = owner.GetInt32() == 100 ? 200 : 100,
+                        Type = type,
+                        Subtype = evt.TryGetProperty("laneType", out var lane) ? lane.GetString() : null,
+                        TimestampSec = timestampSec,
+                        KillerParticipantId = killerId
+                    });
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public class ObjectiveEventData
+    {
+        public int TeamId { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public string? Subtype { get; set; }
+        public int TimestampSec { get; set; }
+        public int? KillerParticipantId { get; set; }
+    }
+
+    /// <summary>The timeline's own participant list: PUUID to Riot participantId (1-10).</summary>
+    public static Dictionary<string, int> ExtractParticipantIds(JsonElement timelineRoot)
+    {
+        var result = new Dictionary<string, int>();
+        if (!timelineRoot.GetProperty("info").TryGetProperty("participants", out var participants)
+            || participants.ValueKind != JsonValueKind.Array) return result;
+
+        foreach (var p in participants.EnumerateArray())
+        {
+            if (p.TryGetProperty("puuid", out var puuid) && puuid.GetString() is { } id
+                && p.TryGetProperty("participantId", out var pid))
+            {
+                result[id] = pid.GetInt32();
+            }
+        }
+        return result;
     }
 
     /// <summary>

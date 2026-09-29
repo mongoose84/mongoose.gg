@@ -315,15 +315,15 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
 **Database**: MySQL
 
 **Schema Changes** (migration `004_SoloTrendsDeathDetail.sql`):
-- [ ] Modified `participants`: `riot_participant_id TINYINT NULL` (Riot's 1–10), filled at sync, so timeline participant IDs map to rows.
-- [ ] Modified `participant_death_events`:
+- [x] Modified `participants`: `riot_participant_id TINYINT NULL` (Riot's 1–10), filled at sync, so timeline participant IDs map to rows.
+- [x] Modified `participant_death_events`:
   - `timestamp_sec INT NULL`
   - `killer_participant_id TINYINT NULL`
   - `assisting_participant_ids VARCHAR(40) NULL` (comma-separated 1–10)
   - `allies_nearby TINYINT NULL`
 
   All null for events synced before the migration.
-- [ ] New `match_objective_events`:
+- [x] New `match_objective_events`:
   - `id` BIGINT UNSIGNED PK
   - `match_id` VARCHAR(50) FK → `matches` ON DELETE CASCADE
   - `team_id` INT
@@ -334,11 +334,11 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
   - index `(match_id, timestamp_sec)`
 
   Shared with 4d's moment markers.
-- [ ] New index: `participant_death_events (participant_id, timestamp_sec)`.
-- [ ] Modified `riot_accounts`: `death_detail_backfilled_at DATETIME NULL` (UTC).
-- [ ] New `death_detail_backfill_skips`: `match_id` VARCHAR(50) PK, `reason` VARCHAR(30), `skipped_at` DATETIME (UTC). Matches Riot no longer serves, so they aren't retried.
-- [ ] Data migrations: none in SQL. Raw timelines are not stored; `DeathDetailBackfillJob` (FR 38) re-fetches them for the last 50 Summoner's Rift matches of active accounts.
-- [ ] Update `database-schema.spec.md`: add `participant_death_events` (currently missing), the new columns, and `match_objective_events`.
+- [x] New index: `participant_death_events (participant_id, timestamp_sec)`.
+- [x] Modified `riot_accounts`: `death_detail_backfilled_at DATETIME NULL` (UTC).
+- [x] New `death_detail_backfill_skips`: `match_id` VARCHAR(50) PK, `reason` VARCHAR(30), `skipped_at` DATETIME (UTC). Matches Riot no longer serves, so they aren't retried.
+- [x] Data migrations: none in SQL. Raw timelines are not stored; `DeathDetailBackfillJob` (FR 38) re-fetches them for the last 50 Summoner's Rift matches of active accounts.
+- [x] Update `database-schema.spec.md`: add `participant_death_events` (currently missing), the new columns, and `match_objective_events`.
 
 ### API Contracts
 All four take `?queueType=ranked_solo|ranked_flex|all&range=last20|last50|season&accountId=` and return `200` with a `matches` count, even when it is 0, so the page can show EmptyStates.
