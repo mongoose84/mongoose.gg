@@ -114,7 +114,6 @@ One stat of a match against the player's own usual: a bar for this match and a t
 - Don't: use it for a 0–100 score (ScoreRing) or the readiness verdict (ReadinessMeter), show more than three in one card, or leave out the usual tick.
 
 ## LaneBar
-
 One lane of a match as a picture: your side's gold difference at 10 minutes, growing right when ahead and left when behind.
 
 - Provide: both champions' square icons (36px, `radius-md`), the signed gold difference at 10 ("+1,240", "−650" with a real minus), which lane is the player's, and the lane name for the label.
@@ -122,6 +121,7 @@ One lane of a match as a picture: your side's gold difference at 10 minutes, gro
 - The player's own icon gets a 2px `primary` ring (`is-you`). The enemy icon sits on the right.
 - Each row is a `<button class="mp-lane-bar">` that opens the lane's details (like LaneRow), with an `aria-label` that says it in words ("Mid (you): won lane by 1,240 gold at 10 minutes"); the icons are `alt=""` inside it.
 - Rows sit in a card titled with the count ("3 of 5 lanes won") and a "Gold at 10 min" caption. It replaces LaneRow where the layout is visual first; LaneRow stays for text-first lists.
+- Reused without icons for LP per champion on the Solo page: one row per champion (36px icon, matches and win rate on the left), the bar for the signed LP (or net wins), gains right in `primary` and losses left in `warn`, scaled to the largest value in the list. The row is not a button there, and the bar is `role="img"` with the value in words.
 - Don't: use it for anything but a two-sided difference around zero, or drop the number.
 
 ## ColumnChart
@@ -133,6 +133,50 @@ A small chart that compares two to four groups on one measure, such as win rate 
 - The chart is `role="img"` with an `aria-label` that lists every group and value ("Win rate by start time: afternoon 67 percent, evening 64 percent, after 11pm 25 percent").
 - Groups need enough matches to mean something: leave a group out under 3 matches rather than show a 0% or 100% from one match.
 - Don't: use it for trends over time (that is a line chart), show more than four columns, or colour every column differently.
+
+## TrendTile
+
+One stat's trend over a range of matches: the current average, a verdict, and a sparkline of every match with the rolling average.
+
+- Provide: a label in sentence case ("Vision per minute"), the current 10-match average and its unit, the verdict word ("Improving", "Slipping", "Steady", or "Needs 20 matches"), the earlier average for "was …", the per-match values, the rolling average points and, when there is one, a benchmark ("Your season average").
+- It is a StatTile (`mp-stat mp-trend`) with an SVG sparkline under the text: one `track-strong` dot per match (`mp-trend__dot`), the rolling average as a 2.5px `primary` line with a highlighted last point (`mp-trend__line`, `mp-trend__last`), and the benchmark as a dashed `ink-muted` line (`mp-trend__benchmark`). The y scale covers all three so nothing is clipped.
+- The note follows StatTile: a good verdict is `positive-text`, a needs-work verdict `warn-text`. The arrow shows the direction of the number, the colour and the word show whether that is good: fewer deaths is ▼ in purple, "Improving". "Lower is better" stats flip the verdict, never the chart.
+- Six tiles sit in `mp-stat-grid` inside a card titled with the count ("4 of 6 match-deciding stats improved"), with a one-line key under the grid (`mp-trend-key`: Your average, One match, Your season average). Below 900px each tile becomes a row, text left and the sparkline right.
+- The tile is `role="group"` with an `aria-label` that says the range, the change and the benchmark ("Vision per minute, last 50 matches: up from 0.7 to 0.9, your season average 0.8"); the SVG is `aria-hidden`.
+- Don't: draw fewer than two points as a line, add axes or grid lines, or colour the dots by result.
+
+## WinFactorRow
+
+What decides the player's matches: their win rate when they hit a mark against when they missed it, as two dots on one 0–100% track.
+
+- Provide: the mark in words ("Ahead in gold at 15", "0.9+ vision per minute"), the win rate in matches that hit it, the win rate in matches that missed it, and the match counts for the text alternative.
+- The hit rate is a filled `primary` dot (`mp-win-factor__dot is-hit`), the missed rate a `warn` ring on `surface` (`is-miss`), on a 2px `track` line; the stretch between them is `track-strong` (`mp-win-factor__span`). Both rates sit above the track in Clash Display, hit in `positive-text`, missed in `warn-text`, with "vs" between. Shape and position carry the meaning too: filled vs ring, right vs left.
+- A negative gap draws the same way, with the hit dot left of the missed one: the row still tells the truth.
+- Rows sit in a card titled with the takeaway ("Your gold lead at 15 decides your matches most"), sorted by gap, largest first. Each side needs 5 matches; show a row only when both have them.
+- The track is `role="img"` with an `aria-label` that says both rates and counts ("Ahead in gold at 15: you won 68% of 22 matches, and 38% of 28 matches when you weren't"); the rates above it are `aria-hidden`.
+- Don't: make the rows clickable, draw bars instead of dots, or show a row with under 5 matches on a side.
+
+## GoalStrip
+
+Whether the player hit one mark in each of their last matches: one cell per match, oldest on the left.
+
+- Provide: the results of the last 20 matches as hit, missed or not counted (the mark doesn't apply, such as a support's CS), and the mark in words for the text alternative ("0.9+ vision per minute").
+- Hit is a filled `primary` cell (`is-hit`), missed a 2px `warn` ring (`is-miss`), not counted a 6px `track-strong` stub (`is-none`). Filled, ring and stub differ in shape, so colour is never the only signal. It is the FormStrip's shape with the WinFactorRow's dot language.
+- Label the ends under it with `mp-form-scale` ("20 matches ago", "Latest"). The strip is `role="img"` with an `aria-label` that lists every match and the total ("… Hit in 9 of 18").
+- It sits in the focus card (`mp-card--highlight`) between the evidence and the "Next match" fix.
+- Don't: make the cells clickable, show more than 20, or use it for a win/loss record (that is a FormStrip).
+
+## DeathMap
+
+Where the player's deaths cost them: an outline of Summoner's Rift with one circle per zone, a zone list that filters the breakdowns, and three breakdown bars.
+
+- Provide: up to five zones (key, label, deaths, objectives lost after them, a fixed anchor on the map, and a timing note such as "27 of them after 25 minutes" or "Mostly before 14 minutes"), plus counts per phase ("When"), per kind of death ("How") and per objective lost ("What it cost"), for all zones and for each one.
+- The map (`mp-death-map`, an SVG on a 0–100 grid) draws the ground in `surface-raised`, both bases in `track`, the three lanes in `track-strong` and the river as a dashed `divider` line. The player's base is always bottom left: deaths on the red side are mirrored. Zones are named regions, not clusters, so they stay put between visits.
+- Each zone is a circle at its anchor (`mp-death-map__zone`), its area following the deaths (radius 4 to 8 on the grid), `primary` at 55% opacity, `warn` when 30% or more of its deaths cost an objective (`is-costly`); the selected zone is filled more and outlined in `ink` (`is-selected`). The map is `role="img"` with every zone in its `aria-label`; the list is the interactive part.
+- The zone list (`mp-zone-list`) is one `<button class="mp-zone">` per zone with `aria-pressed`: a dot matching the circle, the zone name, "12 deaths · 5 objectives lost" and the timing note. Pressing one filters the breakdowns; pressing it again returns to all zones. The breakdowns' heading names the filter ("All zones", "Top river") and is `aria-live`.
+- The breakdowns (`mp-breakdown`) are three short groups of labelled bars on a `track`: When (Before 14 min, 14–25 min, After 25 min), How (Ganked in lane, Caught alone, In a teamfight, Lane fights and skirmishes) in `primary`, and What it cost (Dragon, Tower, Baron, Herald) in `warn` (`is-warn`). Each bar is scaled to the group's largest.
+- The card is titled with the takeaway ("Deaths in the top river cost you the most objectives" when the top zone lost 3 or more, else "You die most in your top-side jungle") and needs 30 deaths with detail; until then it shows the SyncProgress-style bar while older matches are read, or an EmptyState. Layout: map, list and breakdowns in three columns; the breakdowns go below at 1100px and everything stacks below 900px.
+- Don't: draw a heatmap or individual death dots, add more than five zones, or colour zones by anything but cost.
 
 ## InsightCard
 

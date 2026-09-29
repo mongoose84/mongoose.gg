@@ -562,7 +562,7 @@ Feature is considered complete when:
 - [ ] All functional requirements are implemented across 5b–5f.
 - [ ] Unit and integration tests pass; the frontend build is green.
 - [ ] `architecture.spec.md`, `database-schema.spec.md` and `ui-ux.spec.md` (Solo section and §10 component list) are updated.
-- [ ] The new patterns are in the design system, `reference/` and the canvas "Current" row (Step 5).
+- [x] The new patterns are in the design system, `reference/` and the canvas "Current" row (Step 5).
 - [ ] Code review and a security review of the new endpoints are done.
 - [ ] A visual pass at 1440 / 1024 / 390px is done with a real account.
 
@@ -570,7 +570,7 @@ Feature is considered complete when:
 ### Internal Dependencies
 - [ ] Phase 4b LP change (`lpChange`, `lp_after`) and the rank-snapshot job (coverage decides how often LP mode shows).
 - [ ] Phase 4d's objective events: built here once and reused there.
-- [ ] Design-system additions: TrendTile, win-factor row, goal strip, DeathMap, zone list.
+- [x] Design-system additions: TrendTile, win-factor row, goal strip, DeathMap, zone list.
 
 ### External Dependencies
 - [ ] Riot match-v5 timeline (already fetched at sync). The backfill spends up to 20 of the 50 requests per 2 minutes, only while nothing else needs them.

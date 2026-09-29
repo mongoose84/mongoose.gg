@@ -285,7 +285,8 @@ Proposed 2026-09-29 through `/mongoose-design`: Solo becomes the "am I improving
 - [ ] Source the "Emerald average" benchmark: aggregate Mongoose.gg matches per tier and role once there are enough (minimum sample in 5a), else keep "Your season average". No third-party stats sites without checking their terms.
 
 ### Design system (Step 5, alongside the PRs that first use each piece)
-- [ ] Add TrendTile, the win-factor row (two dots, hit vs missed), the goal strip, DeathMap and the zone list to the live system, `reference/`, and the canvas "Current" row. Record LaneBar's reuse for LP per champion.
+- [x] Add TrendTile, the win-factor row (two dots, hit vs missed), the goal strip, DeathMap and the zone list to the live system, `reference/`, and the canvas "Current" row. Record LaneBar's reuse for LP per champion.
+- Design system (Step 5, done 2026-09-29): new TrendTile (`mp-trend`), WinFactorRow (`mp-win-factor`), GoalStrip (`mp-goal`) and DeathMap (`mp-death-map` with the zone list `mp-zone` and breakdown bars `mp-breakdown`); LaneBar's reuse for LP per champion recorded; "Solo order" in the brand book; `reference/` refreshed; "Current · Solo" artboard added to the mockup canvas. As with Matches, the app's components keep their own scoped styles rather than these `mp-*` classes.
 
 ### Decisions (2026-09-29)
 1. **Climb fallback:** the climb card always shows. When fewer than 80% of the ranked matches in the range have a known LP change (or fewer than 10 have one), it draws the 10-match rolling win rate instead, titled with the takeaway ("Win rate up from 52% to 58%"), with one caption line saying LP appears as matches sync. The headline falls back to wins ("28 wins in your last 50"). LP per champion falls back to net wins per champion (wins minus losses, same bars around zero). Same threshold everywhere, one Core rule.
