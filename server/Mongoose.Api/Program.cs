@@ -80,6 +80,7 @@ builder.Services.AddScoped<ITeamObjectivesRepository, TeamObjectivesRepository>(
 builder.Services.AddScoped<IParticipantObjectivesRepository, ParticipantObjectivesRepository>();
 builder.Services.AddScoped<IParticipantDeathEventsRepository, ParticipantDeathEventsRepository>();
 builder.Services.AddScoped<IDeathPositionsRepository, DeathPositionsRepository>();
+builder.Services.AddScoped<ISoloTrendsRepository, SoloTrendsRepository>();
 builder.Services.AddScoped<ITeamMatchMetricsRepository, TeamMatchMetricsRepository>();
 builder.Services.AddScoped<ITeamRoleResponsibilitiesRepository, TeamRoleResponsibilitiesRepository>();
 builder.Services.AddScoped<IDuoMetricsRepository, DuoMetricsRepository>();
