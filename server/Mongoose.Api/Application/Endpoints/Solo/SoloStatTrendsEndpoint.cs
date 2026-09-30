@@ -31,6 +31,7 @@ public sealed class SoloStatTrendsEndpoint : IEndpoint
             [FromQuery] string? accountId,
             [FromServices] PuuidResolutionService puuidResolutionService,
             [FromServices] ISoloTrendsRepository soloTrendsRepo,
+            [FromServices] RankBenchmarkService rankBenchmarkService,
             [FromServices] ILogger<SoloStatTrendsEndpoint> logger
         ) =>
         {
@@ -46,12 +47,16 @@ public sealed class SoloStatTrendsEndpoint : IEndpoint
 
                 var rows = await soloTrendsRepo.GetMatchRowsAsync(scope.Puuids, scope.QueueType, scope.Range);
 
-                // FR16: the benchmark is the season average in the same queue scope.
+                // FR16: the benchmark is the season average in the same queue scope, or the rank
+                // average of the player's tier and role when that pool is large enough (5g).
                 var seasonRows = scope.Range == SoloRange.Season
                     ? rows
                     : await soloTrendsRepo.GetMatchRowsAsync(scope.Puuids, scope.QueueType, SoloRange.Season);
 
-                var trends = StatTrendCalculator.Calculate(rows, seasonRows);
+                var target = RankBenchmarkRule.Target(scope.QueueType, scope.SingleAccount, rows, seasonRows);
+                var rankPool = target == null ? null : await rankBenchmarkService.GetPoolAsync(target, scope.Puuids);
+
+                var trends = StatTrendCalculator.Calculate(rows, seasonRows, rankPool);
                 var factors = WinFactorCalculator.Calculate(rows);
                 var focus = SoloFocusPicker.Pick(rows, trends, factors);
 

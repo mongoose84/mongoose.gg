@@ -162,9 +162,17 @@ export function statVerdict(stat) {
   return { ...verdict, arrow }
 }
 
+/** FR 16: the dashed line's label: "Your season average", or "Emerald average" for a rank average (5g). */
 export function benchmarkLabel(benchmark) {
   if (!benchmark) return null
-  return benchmark.kind === 'season' ? 'Your season average' : 'Rank average'
+  if (benchmark.kind === 'rank') return benchmark.tier ? `${rankName(benchmark.tier)} average` : 'Rank average'
+  return 'Your season average'
+}
+
+/** The label inside a sentence: "your season average", "the Emerald average". */
+function benchmarkPhrase(benchmark) {
+  const label = benchmarkLabel(benchmark)
+  return benchmark.kind === 'rank' ? `the ${label}` : label.toLowerCase()
 }
 
 /** FR 17: the card title from the stats that have a verdict; null when none has one. */
@@ -209,8 +217,7 @@ export function describeStatTrend(stat, range, matches) {
   const parts = [`${label}, ${rangeText(range, matches)}: ${now}`]
   if (stat.was !== null && stat.was !== undefined) parts.push(`was ${formatStatNumber(stat.key, stat.was)}`)
   parts.push(statVerdict(stat).word.toLowerCase())
-  const benchmark = benchmarkLabel(stat.benchmark)
-  if (benchmark) parts.push(`${benchmark.toLowerCase()} ${formatStatNumber(stat.key, stat.benchmark.value)}`)
+  if (stat.benchmark) parts.push(`${benchmarkPhrase(stat.benchmark)} ${formatStatNumber(stat.key, stat.benchmark.value)}`)
   return `${parts.join(', ')}.`
 }
 

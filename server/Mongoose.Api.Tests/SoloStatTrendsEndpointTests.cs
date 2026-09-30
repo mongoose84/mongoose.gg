@@ -209,6 +209,68 @@ public class SoloStatTrendsEndpointTests
             .Should().Equal(SoloRange.Last50, SoloRange.Season, SoloRange.Season);
     }
 
+    // ───────────────────────── 5g: rank average ─────────────────────────
+
+    /// <summary>Emerald mid matches from <paramref name="players"/> other players, 4 or 6 deaths each.</summary>
+    private static void SeedRankPool(TestWebApplicationFactory factory, int matches, int players, string role = "MIDDLE")
+    {
+        factory.SoloTrendsRepository.RankPool.AddRange(Enumerable.Range(0, matches).Select(i => new SoloRankPoolRow(
+            $"other-{i % players}",
+            SoloRows.Make(1000 + i, role: role, tierAfter: "EMERALD", deaths: i % 2 == 0 ? 4 : 6))));
+    }
+
+    [Fact]
+    public async Task GetStatTrends_UsesTheRankAverage_WhenThePoolIsLargeEnough()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        LinkPrimaryAccount(factory);
+        factory.SoloTrendsRepository.AddRange(Puuid, SoloRows.Many(20, i => SoloRows.Make(i, tierAfter: "EMERALD", deaths: 9)));
+        SeedRankPool(factory, matches: 200, players: 20);
+        // The player's own pool rows are left out of their average
+        factory.SoloTrendsRepository.RankPool.AddRange(SoloRows.Many(50, i => SoloRows.Make(2000 + i, tierAfter: "EMERALD", deaths: 20))
+            .Select(r => new SoloRankPoolRow(Puuid, r)));
+
+        var root = await ReadJsonAsync(await GetAsync(factory, authCookie, $"{Route}/1?queueType=ranked_solo&range=last20"));
+
+        var deaths = root.GetProperty("stats").EnumerateArray().Single(s => s.GetProperty("key").GetString() == "deaths");
+        var benchmark = deaths.GetProperty("benchmark");
+        benchmark.GetProperty("kind").GetString().Should().Be("rank");
+        benchmark.GetProperty("tier").GetString().Should().Be("EMERALD");
+        benchmark.GetProperty("value").GetDouble().Should().Be(5);
+        factory.SoloTrendsRepository.RankPoolQueries.Should().Equal((420, "EMERALD", "MIDDLE"));
+    }
+
+    [Fact]
+    public async Task GetStatTrends_KeepsTheSeasonAverage_WhenThePoolIsTooSmall()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        LinkPrimaryAccount(factory);
+        factory.SoloTrendsRepository.AddRange(Puuid, SoloRows.Many(20, i => SoloRows.Make(i, tierAfter: "EMERALD")));
+        SeedRankPool(factory, matches: 400, players: 19);
+
+        var root = await ReadJsonAsync(await GetAsync(factory, authCookie, $"{Route}/1?queueType=ranked_solo&range=last20"));
+
+        var benchmark = root.GetProperty("stats")[0].GetProperty("benchmark");
+        benchmark.GetProperty("kind").GetString().Should().Be("season");
+        benchmark.GetProperty("tier").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task GetStatTrends_DoesNotReadARankPool_ForAllQueues()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        LinkPrimaryAccount(factory);
+        factory.SoloTrendsRepository.AddRange(Puuid, SoloRows.Many(20, i => SoloRows.Make(i, tierAfter: "EMERALD")));
+        SeedRankPool(factory, matches: 200, players: 20);
+
+        await GetAsync(factory, authCookie, $"{Route}/1?queueType=all&range=last20");
+
+        factory.SoloTrendsRepository.RankPoolQueries.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task GetStatTrends_ReadsEveryLinkedAccount_WhenAccountIdIsAll()
     {

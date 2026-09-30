@@ -42,39 +42,15 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
         var limit = SoloScope.RangeLimit(range);
         var limitClause = limit.HasValue ? "LIMIT @limit" : string.Empty;
 
-        // Team kills come from a correlated subquery on idx_match_id; a grouped derived table would scan
-        // every participant row.
         var sql = $@"
-            SELECT
-                p.match_id,
-                m.game_start_time,
-                m.game_duration_sec,
-                m.queue_id,
-                COALESCE(p.role, 'UNKNOWN') AS role,
-                p.champion_id,
-                p.champion_name,
-                p.win,
-                p.deaths,
-                p.creep_score,
-                pc15.gold_diff_vs_lane,
-                po.dragons_participated,
-                tobj.dragons_taken,
-                pm.vision_per_min,
-                pm.kill_participation_pct,
-                (SELECT COALESCE(SUM(t.kills), 0) FROM participants t
-                 WHERE t.match_id = p.match_id AND t.team_id = p.team_id) AS team_kills,
+            SELECT {StatColumns},
                 p.lp_after,
                 p.tier_after,
                 p.rank_after,
                 prev_rank.prev_lp_after,
                 prev_rank.prev_tier_after,
                 prev_rank.prev_rank_after
-            FROM participants p
-            INNER JOIN matches m ON m.match_id = p.match_id
-            LEFT JOIN participant_checkpoints pc15 ON pc15.participant_id = p.id AND pc15.minute_mark = 15
-            LEFT JOIN participant_objectives po ON po.participant_id = p.id
-            LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
-            LEFT JOIN participant_metrics pm ON pm.participant_id = p.id
+            {StatJoins}
             LEFT JOIN ({PreviousRankSql.For(previousRankPuuidPredicate)}) prev_rank ON prev_rank.participant_id = p.id
             WHERE {puuidPredicate}
             AND m.game_duration_sec >= {MinValidGameDurationSec}
@@ -97,29 +73,15 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                var win = reader.GetBoolean(7);
                 var rankAfter = ReadRank(reader, 16);
-                rows.Add(new SoloMatchRow(
-                    MatchId: reader.GetString(0),
-                    GameStartTime: reader.GetInt64(1),
-                    DurationSec: reader.GetInt32(2),
-                    QueueId: reader.GetInt32(3),
-                    Role: reader.GetString(4),
-                    ChampionId: reader.GetInt32(5),
-                    ChampionName: reader.GetString(6),
-                    Win: win,
-                    Deaths: reader.GetInt32(8),
-                    CreepScore: reader.GetInt32(9),
-                    GoldDiffAt15: reader.IsDBNull(10) ? null : reader.GetInt32(10),
-                    DragonsParticipated: reader.IsDBNull(11) ? null : reader.GetInt32(11),
-                    TeamDragons: reader.IsDBNull(12) ? null : reader.GetInt32(12),
-                    VisionPerMin: reader.IsDBNull(13) ? null : (double)reader.GetDecimal(13),
-                    KillParticipationPct: reader.IsDBNull(14) ? null : (double)reader.GetDecimal(14),
-                    TeamKills: Convert.ToInt32(reader.GetValue(15)),
-                    LpAfter: rankAfter.Lp,
-                    TierAfter: rankAfter.Tier,
-                    RankAfter: rankAfter.Division,
-                    LpChange: LpChangeCalculator.Compute(ReadRank(reader, 19), rankAfter, win)));
+                var row = ReadStatRow(reader);
+                rows.Add(row with
+                {
+                    LpAfter = rankAfter.Lp,
+                    TierAfter = rankAfter.Tier,
+                    RankAfter = rankAfter.Division,
+                    LpChange = LpChangeCalculator.Compute(ReadRank(reader, 19), rankAfter, row.Win)
+                });
             }
             return 0;
         });
@@ -186,6 +148,94 @@ public class SoloTrendsRepository : RepositoryBase, ISoloTrendsRepository
             ? []
             : csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(int.Parse).ToList();
+
+    // The columns every Solo stat reads, in ReadStatRow's order (0-15). Team kills come from a
+    // correlated subquery on idx_match_id; a grouped derived table would scan every participant row.
+    private const string StatColumns = @"
+                p.match_id,
+                m.game_start_time,
+                m.game_duration_sec,
+                m.queue_id,
+                COALESCE(p.role, 'UNKNOWN') AS role,
+                p.champion_id,
+                p.champion_name,
+                p.win,
+                p.deaths,
+                p.creep_score,
+                pc15.gold_diff_vs_lane,
+                po.dragons_participated,
+                tobj.dragons_taken,
+                pm.vision_per_min,
+                pm.kill_participation_pct,
+                (SELECT COALESCE(SUM(t.kills), 0) FROM participants t
+                 WHERE t.match_id = p.match_id AND t.team_id = p.team_id) AS team_kills";
+
+    private const string StatJoins = @"
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            LEFT JOIN participant_checkpoints pc15 ON pc15.participant_id = p.id AND pc15.minute_mark = 15
+            LEFT JOIN participant_objectives po ON po.participant_id = p.id
+            LEFT JOIN team_objectives tobj ON tobj.match_id = p.match_id AND tobj.team_id = p.team_id
+            LEFT JOIN participant_metrics pm ON pm.participant_id = p.id";
+
+    private static SoloMatchRow ReadStatRow(MySqlDataReader reader) => new(
+        MatchId: reader.GetString(0),
+        GameStartTime: reader.GetInt64(1),
+        DurationSec: reader.GetInt32(2),
+        QueueId: reader.GetInt32(3),
+        Role: reader.GetString(4),
+        ChampionId: reader.GetInt32(5),
+        ChampionName: reader.GetString(6),
+        Win: reader.GetBoolean(7),
+        Deaths: reader.GetInt32(8),
+        CreepScore: reader.GetInt32(9),
+        GoldDiffAt15: reader.IsDBNull(10) ? null : reader.GetInt32(10),
+        DragonsParticipated: reader.IsDBNull(11) ? null : reader.GetInt32(11),
+        TeamDragons: reader.IsDBNull(12) ? null : reader.GetInt32(12),
+        VisionPerMin: reader.IsDBNull(13) ? null : (double)reader.GetDecimal(13),
+        KillParticipationPct: reader.IsDBNull(14) ? null : (double)reader.GetDecimal(14),
+        TeamKills: Convert.ToInt32(reader.GetValue(15)));
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<SoloRankPoolRow>> GetRankPoolRowsAsync(int queueId, string tier, string role, int limit)
+    {
+        var season = await _filterBuilder.ResolveTimeRangeAsync("current_season");
+        var seasonFilter = _filterBuilder.BuildTimeRangeFilter(season);
+
+        // Only linked accounts carry a rank (tier_after comes from their rank snapshots); the EXISTS
+        // keeps the scan on idx_puuid.
+        var sql = $@"
+            SELECT {StatColumns},
+                p.puuid
+            {StatJoins}
+            WHERE EXISTS (SELECT 1 FROM user_riot_accounts ura WHERE ura.puuid = p.puuid)
+            AND p.tier_after = @tier
+            AND p.role = @role
+            AND m.queue_id = @queue_id
+            AND m.game_duration_sec >= {MinValidGameDurationSec}
+            {seasonFilter}
+            ORDER BY m.game_start_time DESC
+            LIMIT @limit";
+
+        var rows = new List<SoloRankPoolRow>();
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@tier", tier);
+            cmd.Parameters.AddWithValue("@role", role);
+            cmd.Parameters.AddWithValue("@queue_id", queueId);
+            cmd.Parameters.AddWithValue("@limit", limit);
+            _filterBuilder.AddTimeRangeParameters(cmd, season);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                rows.Add(new SoloRankPoolRow(reader.GetString(16), ReadStatRow(reader)));
+            }
+            return 0;
+        });
+        return rows;
+    }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<string>> GetDeathDetailPendingAccountsAsync(IReadOnlyList<string> puuids)

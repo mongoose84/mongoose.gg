@@ -5,8 +5,14 @@ namespace Mongoose.Api.Core.Services.Solo;
 /// <summary>A point of the rolling average; <see cref="Index"/> is the match's position in the range.</summary>
 public sealed record RollingPoint(int Index, double Value);
 
-/// <summary>The dashed line on a trend tile (FR16). Kind "season" until rank averages exist (5g).</summary>
-public sealed record StatBenchmark(string Kind, double Value);
+/// <summary>
+/// The dashed line on a trend tile (FR16): "season" (the player's own season average) or "rank"
+/// (Mongoose.gg players of <see cref="Tier"/> in the same role and queue, 5g).
+/// </summary>
+public sealed record StatBenchmark(string Kind, double Value, string? Tier = null);
+
+/// <summary>A qualifying rank-average pool (<see cref="RankBenchmarkRule.Qualifies"/>) and its tier.</summary>
+public sealed record RankBenchmarkPool(string Tier, IReadOnlyList<SoloMatchRow> Rows);
 
 /// <summary>One stat's trend over the range (FR14–FR16).</summary>
 public sealed record StatTrend(
@@ -42,10 +48,13 @@ public static class StatTrendCalculator
     // FR16: the season average needs 20 values to be a fair benchmark.
     public const int MinValuesForBenchmark = 20;
 
-    public static IReadOnlyList<StatTrend> Calculate(IReadOnlyList<SoloMatchRow> rows, IReadOnlyList<SoloMatchRow> seasonRows)
-        => SoloStats.All.Select(stat => Calculate(stat, rows, seasonRows)).ToList();
+    /// <param name="rank">A qualifying rank pool; every stat's benchmark then comes from it (one kind per card).</param>
+    public static IReadOnlyList<StatTrend> Calculate(
+        IReadOnlyList<SoloMatchRow> rows, IReadOnlyList<SoloMatchRow> seasonRows, RankBenchmarkPool? rank = null)
+        => SoloStats.All.Select(stat => Calculate(stat, rows, seasonRows, rank)).ToList();
 
-    public static StatTrend Calculate(SoloStatDefinition stat, IReadOnlyList<SoloMatchRow> rows, IReadOnlyList<SoloMatchRow> seasonRows)
+    public static StatTrend Calculate(
+        SoloStatDefinition stat, IReadOnlyList<SoloMatchRow> rows, IReadOnlyList<SoloMatchRow> seasonRows, RankBenchmarkPool? rank = null)
     {
         var values = rows.Select(stat.Value).ToList();
         var present = values
@@ -85,7 +94,7 @@ public static class StatTrendCalculator
             present.Count,
             verdict,
             normalizedChange,
-            Benchmark(stat, seasonRows));
+            rank == null ? Benchmark(stat, seasonRows) : RankBenchmark(stat, rank));
     }
 
     private static StatBenchmark? Benchmark(SoloStatDefinition stat, IReadOnlyList<SoloMatchRow> seasonRows)
@@ -93,6 +102,16 @@ public static class StatTrendCalculator
         var seasonValues = seasonRows.Select(stat.Value).Where(v => v.HasValue).Select(v => v!.Value).ToList();
         return seasonValues.Count >= MinValuesForBenchmark
             ? new StatBenchmark("season", Round(seasonValues.Average()))
+            : null;
+    }
+
+    // The pool qualifies on matches as a whole; a stat most pool rows lack (no checkpoint at 15)
+    // gets no line rather than an average of a few players.
+    private static StatBenchmark? RankBenchmark(SoloStatDefinition stat, RankBenchmarkPool rank)
+    {
+        var values = rank.Rows.Select(stat.Value).Where(v => v.HasValue).Select(v => v!.Value).ToList();
+        return values.Count >= RankBenchmarkRule.MinMatches / 2
+            ? new StatBenchmark("rank", Round(values.Average()), rank.Tier)
             : null;
     }
 

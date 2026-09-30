@@ -38,6 +38,12 @@ public sealed record SoloMatchRow(
     int? LpChange = null);
 
 /// <summary>
+/// One match of another Mongoose.gg player in a rank-average pool (5g): their row and whose it is,
+/// so the pool can leave out the player's own matches and count its players.
+/// </summary>
+public sealed record SoloRankPoolRow(string Puuid, SoloMatchRow Row);
+
+/// <summary>
 /// Matches this season per ranked queue, used to pick the page's default queue (FR2).
 /// </summary>
 public sealed record SoloQueueCounts(int RankedSolo, int RankedFlex);

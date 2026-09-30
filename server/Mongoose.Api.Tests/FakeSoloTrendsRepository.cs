@@ -60,6 +60,22 @@ public sealed class FakeSoloTrendsRepository : ISoloTrendsRepository
             Objectives.Where(o => matches.Contains(o.MatchId)).ToList()));
     }
 
+    /// <summary>Rank-pool rows (5g): other players' matches, filtered like the real query.</summary>
+    public List<SoloRankPoolRow> RankPool { get; } = new();
+
+    /// <summary>Every <see cref="GetRankPoolRowsAsync"/> call, in order.</summary>
+    public List<(int QueueId, string Tier, string Role)> RankPoolQueries { get; } = new();
+
+    public Task<IReadOnlyList<SoloRankPoolRow>> GetRankPoolRowsAsync(int queueId, string tier, string role, int limit)
+    {
+        RankPoolQueries.Add((queueId, tier, role));
+        return Task.FromResult<IReadOnlyList<SoloRankPoolRow>>(RankPool
+            .Where(p => p.Row.QueueId == queueId && p.Row.TierAfter == tier && p.Row.Role == role)
+            .OrderByDescending(p => p.Row.GameStartTime)
+            .Take(limit)
+            .ToList());
+    }
+
     /// <summary>Accounts whose death detail backfill is done; every other account is pending.</summary>
     public HashSet<string> BackfilledAccounts { get; } = new();
 

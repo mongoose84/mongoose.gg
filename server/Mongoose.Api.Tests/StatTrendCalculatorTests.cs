@@ -224,4 +224,25 @@ public class StatTrendCalculatorTests
 
         Trend(SoloStats.VisionPerMin, SoloRows.Many(5), season).Benchmark.Should().BeNull();
     }
+
+    [Fact]
+    public void Calculate_Benchmark_IsTheRankAverage_WhenARankPoolIsGiven()
+    {
+        var season = SoloRows.Many(20, i => SoloRows.Make(i, deaths: 9));
+        var pool = new RankBenchmarkPool("EMERALD", SoloRows.Many(200, i => SoloRows.Make(i, deaths: i % 2 == 0 ? 4 : 6)));
+
+        var trend = StatTrendCalculator.Calculate(SoloStats.Get(SoloStats.Deaths), SoloRows.Many(5), season, pool);
+
+        trend.Benchmark.Should().Be(new StatBenchmark("rank", 5, "EMERALD"));
+    }
+
+    [Fact]
+    public void Calculate_RankBenchmark_IsNull_WhenMostPoolRowsLackTheStat()
+    {
+        // 99 of 200 rows have a gold lead at 15: under half the pool's minimum
+        var pool = new RankBenchmarkPool("EMERALD", SoloRows.Many(200, i => SoloRows.Make(i, goldDiffAt15: i < 99 ? 300 : null)));
+
+        StatTrendCalculator.Calculate(SoloStats.Get(SoloStats.GoldLeadAt15), SoloRows.Many(5), NoSeason, pool)
+            .Benchmark.Should().BeNull();
+    }
 }

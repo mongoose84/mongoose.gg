@@ -24,6 +24,13 @@ public interface ISoloTrendsRepository
     Task<SoloQueueCounts> GetSeasonQueueCountsAsync(IReadOnlyList<string> puuids);
 
     /// <summary>
+    /// The newest <paramref name="limit"/> matches this season of Mongoose.gg players (linked accounts)
+    /// at <paramref name="tier"/> after the match, in <paramref name="role"/> and queue
+    /// <paramref name="queueId"/>: the rank-average pool (5g). LP fields are left empty.
+    /// </summary>
+    Task<IReadOnlyList<SoloRankPoolRow>> GetRankPoolRowsAsync(int queueId, string tier, string role, int limit);
+
+    /// <summary>
     /// The accounts among <paramref name="puuids"/> whose death detail backfill isn't done yet
     /// (<c>riot_accounts.death_detail_backfilled_at</c> is null).
     /// </summary>

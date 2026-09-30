@@ -111,6 +111,7 @@ builder.Services.AddScoped<DimensionExtractionService>();
 builder.Services.AddScoped<RankSnapshotService>();
 builder.Services.AddScoped<LoginSyncService>();
 builder.Services.AddScoped<PuuidResolutionService>();
+builder.Services.AddScoped<RankBenchmarkService>();
 builder.Services.AddScoped<IDeathDetailWriter, DeathDetailWriter>();
 builder.Services.AddScoped<IMatchDataPersistenceService, MatchDataPersistenceService>();
 

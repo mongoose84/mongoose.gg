@@ -282,7 +282,12 @@ Proposed 2026-09-29 through `/mongoose-design`: Solo becomes the "am I improving
   - Checked with unit and endpoint tests and visually with a mocked API. Still not run against MySQL or Riot (migration 004, the backfill, real death positions) or in the E2E smoke.
 
 ### 5g. Rank averages (optional, later)
-- [ ] Source the "Emerald average" benchmark: aggregate Mongoose.gg matches per tier and role once there are enough (minimum sample in 5a), else keep "Your season average". No third-party stats sites without checking their terms.
+- [x] Source the "Emerald average" benchmark: aggregate Mongoose.gg matches per tier and role once there are enough (minimum sample in 5a), else keep "Your season average". No third-party stats sites without checking their terms.
+- 5g notes (2026-09-30):
+  - Only linked accounts carry a rank (`tier_after` comes from their rank snapshots), so the pool is Mongoose.gg players only. Minimum sample: 200 matches from 20 players after leaving out the player's own; a stat needs 100 of them to draw a line. The rank average replaces the season average for the whole card, so the key names one benchmark.
+  - Only for one ranked queue of one account with a known tier and a role in 70% of the range; otherwise "Your season average" stays. Divisions aren't split (all of Emerald together); Master, Grandmaster and Challenger are separate pools.
+  - `RankBenchmarkService` caches each pool (newest 2,000 matches) for an hour per queue, tier and role; the query stays on `idx_puuid` through an `EXISTS` on `user_riot_accounts`.
+  - Before 5g was built, migration 004 was applied on dev and the page checked there (2026-09-30). 5g itself has only run against the test doubles; how often the pool qualifies depends on how many players share a tier and role.
 
 ### Design system (Step 5, alongside the PRs that first use each piece)
 - [x] Add TrendTile, the win-factor row (two dots, hit vs missed), the goal strip, DeathMap and the zone list to the live system, `reference/`, and the canvas "Current" row. Record LaneBar's reuse for LP per champion.

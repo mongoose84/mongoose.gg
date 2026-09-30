@@ -433,7 +433,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Auth**: Yes  
 **Query params**: `?queueType=` (ranked_solo|ranked_flex|all; missing = Solo/Duo if played this season, else Flex, else all), `?range=` (last20|last50|season; default last20), `?accountId=`  
 **Response**: `StatTrendsResponse(matches, queueType, range, stats[], focus?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#stat-trends). `200` with `matches: 0` when nothing is in scope; `400` `INVALID_QUEUE` / `INVALID_RANGE`.  
-**Logic**: Per-match rows oldest first (ranges count matches); six stats with 10-match rolling averages, was/now and verdicts, season-average benchmark (a second read in Season scope unless `range=season`), and the "Your focus" pick. Rules in `Core/Services/Solo/` (`StatTrendCalculator`, `WinFactorCalculator`, `SoloFocusPicker`, `SoloScope`).  
+**Logic**: Per-match rows oldest first (ranges count matches); six stats with 10-match rolling averages, was/now and verdicts, season-average benchmark (a second read in Season scope unless `range=season`), and the "Your focus" pick. The benchmark becomes the rank average (`kind: "rank"`, `tier`) of other Mongoose.gg players at the player's tier, role and queue when that pool has 200 matches from 20 players (`RankBenchmarkService`, cached for an hour per queue, tier and role). Rules in `Core/Services/Solo/` (`StatTrendCalculator`, `WinFactorCalculator`, `SoloFocusPicker`, `SoloScope`, `RankBenchmarkRule`).  
 **Tables**: `matches`, `participants`, `participant_checkpoints`, `participant_objectives`, `team_objectives`, `participant_metrics`  
 **Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
 

@@ -12,9 +12,11 @@ public static class SoloTrendsDto
         [property: JsonPropertyName("index")] int Index,
         [property: JsonPropertyName("value")] double Value);
 
+    /// <summary>"season" or "rank"; <c>tier</c> ("EMERALD") is set for "rank".</summary>
     public record BenchmarkDto(
         [property: JsonPropertyName("kind")] string Kind,
-        [property: JsonPropertyName("value")] double Value);
+        [property: JsonPropertyName("value")] double Value,
+        [property: JsonPropertyName("tier")] string? Tier = null);
 
     public record StatTrendDto(
         [property: JsonPropertyName("key")] string Key,
@@ -232,7 +234,7 @@ public static class SoloTrendsDto
         t.Count,
         t.Verdict,
         t.NormalizedChange,
-        t.Benchmark == null ? null : new BenchmarkDto(t.Benchmark.Kind, t.Benchmark.Value));
+        t.Benchmark == null ? null : new BenchmarkDto(t.Benchmark.Kind, t.Benchmark.Value, t.Benchmark.Tier));
 
     public static FocusDto? ToDto(SoloFocus? f) => f == null ? null : new(
         f.Stat, f.Factor, f.Mark, f.Was, f.Now, f.HitWinRate, f.MissWinRate, f.Last20, f.Hits);

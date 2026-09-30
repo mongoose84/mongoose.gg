@@ -29,6 +29,16 @@ describe('SoloStatTrends', () => {
     expect(mountCard().text()).toContain('Your season average')
   })
 
+  it('names a rank average by its tier in the key and the tiles (5g)', () => {
+    const data = statTrendsResponse()
+    data.stats = data.stats.map((s) => (s.benchmark ? { ...s, benchmark: { ...s.benchmark, kind: 'rank', tier: 'EMERALD' } } : s))
+    const wrapper = mountCard({ data })
+
+    expect(wrapper.text()).toContain('Emerald average')
+    expect(wrapper.text()).not.toContain('Your season average')
+    expect(wrapper.get('[data-testid="trend-tile-deaths"]').attributes('aria-label')).toContain('the Emerald average 4.9')
+  })
+
   it('uses the caption as the title when no stat has a verdict', () => {
     const data = statTrendsResponse({ matches: 12 })
     data.stats = data.stats.map((s) => ({ ...s, verdict: null, was: null }))

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  benchmarkLabel,
   buildBackfillProgress,
   buildDeathZonesCaption,
   buildDeathZonesTitle,
@@ -136,6 +137,18 @@ describe('soloSummary', () => {
     const deaths = statTrendsResponse().stats[0]
     expect(describeStatTrend(deaths, 'last20', 20))
       .toBe('Deaths, last 20 matches: 4.1 per match, was 5.6, improving, your season average 4.9.')
+  })
+
+  it('names a rank average by its tier (5g)', () => {
+    const rank = { kind: 'rank', value: 5, tier: 'EMERALD' }
+    expect(benchmarkLabel(rank)).toBe('Emerald average')
+    expect(benchmarkLabel({ kind: 'rank', value: 5, tier: 'GRANDMASTER' })).toBe('Grandmaster average')
+    expect(benchmarkLabel({ kind: 'season', value: 5 })).toBe('Your season average')
+    expect(benchmarkLabel(null)).toBeNull()
+
+    const deaths = { ...statTrendsResponse().stats[0], benchmark: rank }
+    expect(describeStatTrend(deaths, 'last20', 20))
+      .toBe('Deaths, last 20 matches: 4.1 per match, was 5.6, improving, the Emerald average 5.0.')
   })
 
   describe('win factors (FR 21–23)', () => {

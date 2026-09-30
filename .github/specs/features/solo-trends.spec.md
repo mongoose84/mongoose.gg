@@ -105,7 +105,11 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
     - **No verdict:** fewer than 20 non-null values. The tile shows the current average and "Needs 20 matches".
 
     The arrow shows the direction of the number and the colour and word show the meaning (decision 4). For example, fewer deaths shows ▼ in purple with "Improving".
-16. **Benchmark.** Each stat carries a benchmark, labelled on the dashed line: the player's own season average in the same queue scope (`benchmark.kind = "season"`, label "Your season average"). A rank average (`kind = "rank"`, "Emerald average") replaces it in 5g once there is enough data. The benchmark is `null` when the season has fewer than 20 non-null values for that stat.
+16. **Benchmark.** Each stat carries a benchmark, labelled on the dashed line: the player's own season average in the same queue scope (`benchmark.kind = "season"`, label "Your season average"). A rank average (`kind = "rank"`, `tier`, label "Emerald average") replaces it for the whole card (5g) when:
+    - the scope is one ranked queue of one account, the player's latest match this season carries a tier, and one role holds at least 70% of the range's matches (`RankBenchmarkRule.Target`);
+    - the pool, other Mongoose.gg players' (linked accounts) matches this season at that tier after the match, in that role and queue, without the player's own, has at least 200 matches from at least 20 players (`RankBenchmarkRule.Qualifies`; the newest 2,000 are read, cached for an hour per queue, tier and role).
+
+    The season benchmark is `null` when the season has fewer than 20 non-null values for that stat; a rank benchmark is `null` when fewer than 100 pool matches have the stat.
 17. **Card title.** Uses the stats that have a verdict:
     - `{i} of {m} match-deciding stats improved` when at least one improved;
     - `{s} of {m} match-deciding stats slipped` when none improved and some slipped;
@@ -394,7 +398,7 @@ GET /api/v2/solo/stat-trends/{userId}
       "now": 4.1,
       "count": 50,
       "verdict": "improving",
-      "benchmark": { "kind": "season", "value": 4.9 }
+      "benchmark": { "kind": "season", "value": 4.9, "tier": null }
     }
   ],
   "focus": {
@@ -564,7 +568,7 @@ Feature is considered complete when:
 - [ ] `architecture.spec.md`, `database-schema.spec.md` and `ui-ux.spec.md` (Solo section and §10 component list) are updated.
 - [x] The new patterns are in the design system, `reference/` and the canvas "Current" row (Step 5).
 - [x] Code review and a security review of the new endpoints are done (2026-09-29: ownership, account resolution and parameterized SQL shared by all four endpoints; backfill progress only reaches the account's linked users; fixed a `backfill` that stayed "queued" after the job had finished the account).
-- [ ] A visual pass at 1440 / 1024 / 390px is done with a real account.
+- [ ] A visual pass at 1440 / 1024 / 390px is done with a real account. (2026-09-30: migration 004 applied on dev and the page checked there by the user; the three widths not confirmed separately.)
 
 ## Dependencies
 ### Internal Dependencies
@@ -593,7 +597,7 @@ Feature is considered complete when:
 - [x] **5d**: focus card.
 - [x] **5e**: death detail and objective events at sync (migration 004), `DeathDetailBackfillJob` and the throttle signal.
 - [x] **5f**: death zones card; the heatmap is retired.
-- [ ] **5g**: rank-average benchmark (optional).
+- [x] **5g**: rank-average benchmark (optional).
 
 ## Open Questions
 - [x] Backfill older matches? Yes (2026-09-29): through the existing limiter, with the progress and "waiting on Riot" state shown in the card (FR 38–40).
