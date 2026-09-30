@@ -206,7 +206,16 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.AddDataProtection().UseEphemeralDataProtectionProvider();
         });
 
-        return base.CreateHost(builder);
+        // Program re-initializes Secrets while the host is built; wait for tests that hold them
+        SecretsTestGate.Gate.Wait();
+        try
+        {
+            return base.CreateHost(builder);
+        }
+        finally
+        {
+            SecretsTestGate.Gate.Release();
+        }
     }
 
     internal sealed class FakeUsersRepository : UsersRepository
