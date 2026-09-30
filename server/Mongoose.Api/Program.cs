@@ -14,6 +14,7 @@ using Mongoose.Api.Infrastructure.Jobs;
 using Mongoose.Api.Infrastructure.Jobs.Analytics;
 using Mongoose.Api.Infrastructure.Middleware;
 using Mongoose.Api.Infrastructure.Riot;
+using Mongoose.Api.Infrastructure.Riot.LimitHandler;
 using Mongoose.Api.Infrastructure.Security;
 using Mongoose.Api.Infrastructure.Serialization;
 using Mongoose.Api.Infrastructure.RateLimiting;
@@ -47,6 +48,10 @@ builder.Services.AddDataProtection()
     .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
 
 
+// One rate limiter for every Riot call; the jobs read its state (IRiotThrottleState)
+builder.Services.AddSingleton<RiotLimitHandler>();
+builder.Services.AddSingleton<IRiotLimitHandler>(sp => sp.GetRequiredService<RiotLimitHandler>());
+builder.Services.AddSingleton<IRiotThrottleState>(sp => sp.GetRequiredService<RiotLimitHandler>());
 builder.Services.AddSingleton<IRiotApiClient, RiotApiClient>();
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 
@@ -79,14 +84,15 @@ builder.Services.AddScoped<IParticipantMetricsRepository, ParticipantMetricsRepo
 builder.Services.AddScoped<ITeamObjectivesRepository, TeamObjectivesRepository>();
 builder.Services.AddScoped<IParticipantObjectivesRepository, ParticipantObjectivesRepository>();
 builder.Services.AddScoped<IParticipantDeathEventsRepository, ParticipantDeathEventsRepository>();
-builder.Services.AddScoped<IDeathPositionsRepository, DeathPositionsRepository>();
+builder.Services.AddScoped<IMatchObjectiveEventsRepository, MatchObjectiveEventsRepository>();
+builder.Services.AddScoped<IDeathDetailBackfillRepository, DeathDetailBackfillRepository>();
+builder.Services.AddScoped<ISoloTrendsRepository, SoloTrendsRepository>();
 builder.Services.AddScoped<ITeamMatchMetricsRepository, TeamMatchMetricsRepository>();
 builder.Services.AddScoped<ITeamRoleResponsibilitiesRepository, TeamRoleResponsibilitiesRepository>();
 builder.Services.AddScoped<IDuoMetricsRepository, DuoMetricsRepository>();
 builder.Services.AddScoped<ISoloPerformanceRepository, SoloPerformanceRepository>();
 builder.Services.AddScoped<IChampionSelectRepository, ChampionSelectRepository>();
 builder.Services.AddScoped<ITrendRepository, TrendRepository>();
-builder.Services.AddScoped<IRadarChartRepository, RadarChartRepository>();
 builder.Services.AddScoped<IMatchupRepository, MatchupRepository>();
 builder.Services.AddScoped<IOverviewStatsRepository, OverviewStatsRepository>();
 builder.Services.AddScoped<ISeasonsRepository, SeasonsRepository>();
@@ -105,6 +111,8 @@ builder.Services.AddScoped<DimensionExtractionService>();
 builder.Services.AddScoped<RankSnapshotService>();
 builder.Services.AddScoped<LoginSyncService>();
 builder.Services.AddScoped<PuuidResolutionService>();
+builder.Services.AddScoped<RankBenchmarkService>();
+builder.Services.AddScoped<IDeathDetailWriter, DeathDetailWriter>();
 builder.Services.AddScoped<IMatchDataPersistenceService, MatchDataPersistenceService>();
 
 // Query filter builder for centralized SQL filter generation
@@ -161,6 +169,17 @@ var enableRankSnapshots = builder.Configuration.GetValue<bool>("Jobs:EnableRankS
 if (enableRankSnapshots)
 {
     builder.Services.AddHostedService<RankSnapshotJob>();
+}
+
+// Death detail backfill: re-reads older timelines for the Solo death zones, at the lowest priority.
+// The state and activity flags are shared with the endpoints and the rank snapshot job.
+builder.Services.AddSingleton<DeathDetailBackfillState>();
+builder.Services.AddSingleton<IDeathDetailBackfillState>(sp => sp.GetRequiredService<DeathDetailBackfillState>());
+builder.Services.AddSingleton<RiotBackgroundActivity>();
+var enableDeathDetailBackfill = builder.Configuration.GetValue<bool>("Jobs:EnableDeathDetailBackfill", true);
+if (enableDeathDetailBackfill)
+{
+    builder.Services.AddHostedService<DeathDetailBackfillJob>();
 }
 
 // Match Cleanup Job (deletes matches older than retention period)

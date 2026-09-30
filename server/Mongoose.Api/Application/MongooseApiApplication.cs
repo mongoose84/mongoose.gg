@@ -96,12 +96,9 @@ public sealed class MongooseApiApplication
         // Remove "Endpoint" suffix
         var withoutEndpoint = className.Replace("Endpoint", string.Empty);
 
-        // Match real endpoint naming patterns (e.g., SoloPerformance, MatchDetails, WinrateTrend)
-        if (withoutEndpoint.EndsWith("Trend", StringComparison.Ordinal))
-            return "Trends";
-
+        // Match real endpoint naming patterns (e.g., SoloPerformance, MatchDetails)
         if (withoutEndpoint.StartsWith("Solo", StringComparison.Ordinal)
-            || withoutEndpoint is "RadarChart" or "DeathPositions" or "MatchActivity")
+            || withoutEndpoint is "MatchActivity")
             return "Solo Dashboard";
 
         if (withoutEndpoint.StartsWith("Match", StringComparison.Ordinal))

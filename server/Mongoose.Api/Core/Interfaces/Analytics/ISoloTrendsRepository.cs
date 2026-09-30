@@ -1,0 +1,38 @@
+using Mongoose.Api.Core.QueryModels;
+
+namespace Mongoose.Api.Core.Interfaces;
+
+/// <summary>
+/// Reads the per-match rows behind the Solo page (features/solo-trends.spec.md). The rules that turn
+/// them into trends, factors and patterns live in <c>Core/Services/Solo</c>.
+/// </summary>
+public interface ISoloTrendsRepository
+{
+    /// <summary>
+    /// The player's Summoner's Rift matches in scope, oldest first. <paramref name="queueType"/> is a
+    /// validated Solo queue (<c>ranked_solo</c>, <c>ranked_flex</c> or <c>all</c> = the Summoner's Rift set).
+    /// </summary>
+    Task<IReadOnlyList<SoloMatchRow>> GetMatchRowsAsync(IReadOnlyList<string> puuids, string queueType, SoloRange range);
+
+    /// <summary>
+    /// The players' deaths in <paramref name="matchIds"/> (FR 31-36), those matches' participants by
+    /// Riot participantId, and the objectives each team took.
+    /// </summary>
+    Task<SoloDeathData> GetDeathDataAsync(IReadOnlyList<string> puuids, IReadOnlyList<string> matchIds);
+
+    /// <summary>Ranked Solo/Duo and Flex match counts in the current season.</summary>
+    Task<SoloQueueCounts> GetSeasonQueueCountsAsync(IReadOnlyList<string> puuids);
+
+    /// <summary>
+    /// The newest <paramref name="limit"/> matches this season of Mongoose.gg players (linked accounts)
+    /// at <paramref name="tier"/> after the match, in <paramref name="role"/> and queue
+    /// <paramref name="queueId"/>: the rank-average pool (5g). LP fields are left empty.
+    /// </summary>
+    Task<IReadOnlyList<SoloRankPoolRow>> GetRankPoolRowsAsync(int queueId, string tier, string role, int limit);
+
+    /// <summary>
+    /// The accounts among <paramref name="puuids"/> whose death detail backfill isn't done yet
+    /// (<c>riot_accounts.death_detail_backfilled_at</c> is null).
+    /// </summary>
+    Task<IReadOnlyList<string>> GetDeathDetailPendingAccountsAsync(IReadOnlyList<string> puuids);
+}

@@ -20,6 +20,7 @@ internal sealed class RecordingParticipantsRepository : IParticipantsRepository
     public Task<IList<Participant>> GetByMatchAsync(string matchId) => Task.FromResult<IList<Participant>>(new List<Participant>());
     public Task<ISet<string>> GetMatchIdsForPuuidAsync(string puuid) => Task.FromResult<ISet<string>>(new HashSet<string>());
     public Task<IList<Participant>> GetRecentByPuuidAsync(string puuid, int? queueId, int limit) => Task.FromResult<IList<Participant>>(new List<Participant>());
+    public Task SetRiotParticipantIdsAsync(string matchId, IReadOnlyDictionary<string, int> participantIds) => Task.CompletedTask;
 }
 
 /// <summary>Riot accounts in memory with the sync-status and rank writes the snapshot code makes.</summary>

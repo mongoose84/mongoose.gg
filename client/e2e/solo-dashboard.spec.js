@@ -88,5 +88,15 @@ test.describe('Solo Dashboard Content', () => {
   test('should have solo dashboard section visible', async ({ page }) => {
     await expect(page.locator('[data-testid="solo-dashboard"]')).toBeVisible({ timeout: 15_000 });
   });
+
+  test('should show the headline with the queue and range controls', async ({ page }) => {
+    await expect(page.getByTestId('solo-headline')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('group', { name: 'Queue' })).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Range' })).toBeVisible();
+
+    // Switching the range keeps the page usable and marks the new range
+    await page.getByTestId('range-last50').click();
+    await expect(page.getByTestId('range-last50')).toHaveAttribute('aria-pressed', 'true');
+  });
 });
 

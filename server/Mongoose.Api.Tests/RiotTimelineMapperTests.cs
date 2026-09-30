@@ -538,6 +538,126 @@ public class RiotTimelineMapperTests
 
     #endregion
 
+    #region Death detail and objective events (Solo death zones)
+
+    // Two frames with positions. At 5:00 participant 1 (team 100) dies at (5000, 5000) to 7 with 8
+    // and 9 assisting; allies 2 (1,000 away) and 3 (1,414 away) are near, 4 (3,000 away) is not,
+    // and enemy 6 is right there. At 10:30 participant 6 (team 200) is executed (killerId 0); the
+    // 11:00 frame is the closest, with ally 7 next to it. Objectives: team 100's fire dragon, team 200's grubs and Baron, team 100
+    // destroying team 200's mid tower and inhibitor, and a Scuttle kill that is ignored.
+    private const string DeathDetailTimeline = """
+        {
+          "info": {
+            "participants": [ { "participantId": 1, "puuid": "puuid-one" }, { "participantId": 6, "puuid": "puuid-six" } ],
+            "frames": [
+              {
+                "timestamp": 300000,
+                "participantFrames": {
+                  "1": { "position": { "x": 5000, "y": 5000 } },
+                  "2": { "position": { "x": 6000, "y": 5000 } },
+                  "3": { "position": { "x": 6000, "y": 6000 } },
+                  "4": { "position": { "x": 8000, "y": 5000 } },
+                  "6": { "position": { "x": 5100, "y": 5100 } }
+                },
+                "events": [
+                  { "type": "CHAMPION_KILL", "timestamp": 301500, "victimId": 1, "killerId": 7,
+                    "assistingParticipantIds": [8, 9], "position": { "x": 5000, "y": 5000 } },
+                  { "type": "ELITE_MONSTER_KILL", "timestamp": 320000, "killerId": 2, "killerTeamId": 100,
+                    "monsterType": "DRAGON", "monsterSubType": "FIRE_DRAGON" },
+                  { "type": "ELITE_MONSTER_KILL", "timestamp": 330000, "killerId": 7, "killerTeamId": 200, "monsterType": "HORDE" },
+                  { "type": "ELITE_MONSTER_KILL", "timestamp": 335000, "killerId": 2, "monsterType": "SCUTTLE_CRAB" }
+                ]
+              },
+              {
+                "timestamp": 660000,
+                "participantFrames": {
+                  "6": { "position": { "x": 9000, "y": 9000 } },
+                  "7": { "position": { "x": 9500, "y": 9000 } }
+                },
+                "events": [
+                  { "type": "CHAMPION_KILL", "timestamp": 630000, "victimId": 6, "killerId": 0, "position": { "x": 9000, "y": 9000 } },
+                  { "type": "BUILDING_KILL", "timestamp": 640000, "killerId": 3, "teamId": 200,
+                    "buildingType": "TOWER_BUILDING", "laneType": "MID_LANE" },
+                  { "type": "BUILDING_KILL", "timestamp": 650000, "killerId": 3, "teamId": 200,
+                    "buildingType": "INHIBITOR_BUILDING", "laneType": "MID_LANE" },
+                  { "type": "ELITE_MONSTER_KILL", "timestamp": 1500000, "killerId": 8, "monsterType": "BARON_NASHOR" }
+                ]
+              }
+            ]
+          }
+        }
+        """;
+
+    private static JsonElement DeathDetail() => JsonDocument.Parse(DeathDetailTimeline).RootElement;
+
+    [Fact]
+    public void ExtractDeathPositions_ReadsTimeKillerAndAssisters()
+    {
+        var death = RiotTimelineMapper.ExtractDeathPositions(DeathDetail())[1].Single();
+
+        death.TimestampSec.Should().Be(301);
+        death.MinuteMark.Should().Be(5);
+        death.KillerParticipantId.Should().Be(7);
+        death.AssistingParticipantIds.Should().Equal(8, 9);
+        death.AssistCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void ExtractDeathPositions_CountsAlliesWithin2000Units_NotEnemiesOrTheVictim()
+    {
+        RiotTimelineMapper.ExtractDeathPositions(DeathDetail())[1].Single().AlliesNearby.Should().Be(2);
+    }
+
+    [Fact]
+    public void ExtractDeathPositions_UsesTheFrameClosestInTime_AndNoKillerForAnExecute()
+    {
+        var death = RiotTimelineMapper.ExtractDeathPositions(DeathDetail())[6].Single();
+
+        death.KillerParticipantId.Should().BeNull();
+        death.AssistingParticipantIds.Should().BeEmpty();
+        // The 11:00 frame is closer to 10:30 than 5:00 is; there, ally 7 is 500 units away (none in the 5:00 frame)
+        death.AlliesNearby.Should().Be(1);
+    }
+
+    [Fact]
+    public void ExtractDeathPositions_LeavesAlliesUnknown_WithoutPositions()
+    {
+        var timeline = BuildTimelineWithPositionedKill(victimId: 1, timestampMs: 60_000, x: 100, y: 100, killerId: 6, assistCount: 0);
+
+        RiotTimelineMapper.ExtractDeathPositions(timeline)[1].Single().AlliesNearby.Should().BeNull();
+    }
+
+    [Fact]
+    public void ExtractObjectiveEvents_ReadsEachObjectiveWithTheTeamThatTookIt()
+    {
+        var events = RiotTimelineMapper.ExtractObjectiveEvents(DeathDetail());
+
+        events.Select(e => (e.Type, e.TeamId, e.Subtype, e.TimestampSec)).Should().Equal(
+            ("dragon", 100, "FIRE_DRAGON", 320),
+            ("grubs", 200, null, 330),
+            ("tower", 100, "MID_LANE", 640),
+            ("inhibitor", 100, "MID_LANE", 650),
+            ("baron", 200, null, 1500));
+    }
+
+    [Fact]
+    public void ExtractObjectiveEvents_TakesTheKillersTeam_WithoutKillerTeamId()
+    {
+        var baron = RiotTimelineMapper.ExtractObjectiveEvents(DeathDetail()).Single(e => e.Type == "baron");
+
+        baron.TeamId.Should().Be(200);
+        baron.KillerParticipantId.Should().Be(8);
+    }
+
+    [Fact]
+    public void ExtractParticipantIds_MapsPuuidToParticipantId()
+    {
+        RiotTimelineMapper.ExtractParticipantIds(DeathDetail())
+            .Should().BeEquivalentTo(new Dictionary<string, int> { ["puuid-one"] = 1, ["puuid-six"] = 6 });
+    }
+
+    #endregion
+
     // ---- JSON builder helpers ----
 
     private record JsonObject(string Json);

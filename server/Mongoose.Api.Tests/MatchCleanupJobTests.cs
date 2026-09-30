@@ -234,6 +234,8 @@ internal sealed class FakeParticipantsRepositoryForCleanup : IParticipantsReposi
         return Task.FromResult<IList<Participant>>(new List<Participant>());
     }
 
+    public Task SetRiotParticipantIdsAsync(string matchId, IReadOnlyDictionary<string, int> participantIds) => Task.CompletedTask;
+
     public Task DeleteByMatchIdAsync(string matchId)
     {
         _participantsByMatch.TryRemove(matchId, out _);

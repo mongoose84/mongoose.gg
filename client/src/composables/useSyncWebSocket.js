@@ -28,6 +28,10 @@ const aggregateProgress = reactive({
   error: null
 })
 
+// The death detail backfill for the user's accounts (FR 39): { status, done, total, retryAt } or null.
+// Sent by the server as detail_backfill_progress; status 'done' when an account finishes.
+const detailBackfill = ref(null)
+
 function resetAggregateProgress() {
   aggregateProgress.status = null
   aggregateProgress.progress = null
@@ -286,6 +290,15 @@ export function useSyncWebSocket() {
         aggregateProgress.status = 'failed'
         aggregateProgress.error = message.error || 'Analysis failed'
         return
+
+      case 'detail_backfill_progress':
+        detailBackfill.value = {
+          status: message.status,
+          done: message.done ?? 0,
+          total: message.total ?? 0,
+          retryAt: message.retryAt ?? null
+        }
+        return
     }
 
     const { puuid } = message
@@ -419,6 +432,7 @@ export function useSyncWebSocket() {
     connectionError,
     syncProgress,
     aggregateProgress,
+    detailBackfill,
 
     // Methods
     connect,

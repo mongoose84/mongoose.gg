@@ -21,7 +21,7 @@ public class MatchDataPersistenceService : IMatchDataPersistenceService
     private readonly IParticipantMetricsRepository _partMetricsRepo;
     private readonly IParticipantCheckpointsRepository _checkpointsRepo;
     private readonly IParticipantObjectivesRepository _partObjectivesRepo;
-    private readonly IParticipantDeathEventsRepository _deathEventsRepo;
+    private readonly IDeathDetailWriter _deathDetailWriter;
     private readonly ITeamMatchMetricsRepository _teamMetricsRepo;
     private readonly ITeamRoleResponsibilitiesRepository _teamRoleRepo;
     private readonly ISeasonsRepository _seasonsRepo;
@@ -34,7 +34,7 @@ public class MatchDataPersistenceService : IMatchDataPersistenceService
         IParticipantMetricsRepository partMetricsRepo,
         IParticipantCheckpointsRepository checkpointsRepo,
         IParticipantObjectivesRepository partObjectivesRepo,
-        IParticipantDeathEventsRepository deathEventsRepo,
+        IDeathDetailWriter deathDetailWriter,
         ITeamMatchMetricsRepository teamMetricsRepo,
         ITeamRoleResponsibilitiesRepository teamRoleRepo,
         ISeasonsRepository seasonsRepo,
@@ -46,7 +46,7 @@ public class MatchDataPersistenceService : IMatchDataPersistenceService
         _partMetricsRepo = partMetricsRepo;
         _checkpointsRepo = checkpointsRepo;
         _partObjectivesRepo = partObjectivesRepo;
-        _deathEventsRepo = deathEventsRepo;
+        _deathDetailWriter = deathDetailWriter;
         _teamMetricsRepo = teamMetricsRepo;
         _teamRoleRepo = teamRoleRepo;
         _seasonsRepo = seasonsRepo;
@@ -187,40 +187,11 @@ public class MatchDataPersistenceService : IMatchDataPersistenceService
                 });
             }
 
-            // Death position events (for danger zone heatmap)
-            var deathPositions = RiotTimelineMapper.ExtractDeathPositions(timelineRoot.Value);
-            foreach (var (riotPid, positions) in deathPositions)
-            {
-                if (!participantIdMap.TryGetValue(riotPid, out var dbPid)) continue;
-
-                var deathEvents = new List<ParticipantDeathEvent>();
-                foreach (var pos in positions)
-                {
-                    // Resolve killer championId from killer participantId
-                    int? killerChampionId = null;
-                    if (pos.KillerParticipantId.HasValue &&
-                        participantChampions.TryGetValue(pos.KillerParticipantId.Value, out var killerChampId))
-                    {
-                        killerChampionId = killerChampId;
-                    }
-
-                    deathEvents.Add(new ParticipantDeathEvent
-                    {
-                        ParticipantId = dbPid,
-                        MinuteMark = pos.MinuteMark,
-                        PositionX = pos.PositionX,
-                        PositionY = pos.PositionY,
-                        KillerChampionId = killerChampionId,
-                        AssistCount = pos.AssistCount,
-                        CreatedAt = DateTime.UtcNow
-                    });
-                }
-
-                if (deathEvents.Count > 0)
-                {
-                    await _deathEventsRepo.InsertBatchAsync(deathEvents);
-                }
-            }
+            // Deaths with their detail, and the objectives each team took (Solo death zones)
+            var timelineParticipants = participantIdMap.ToDictionary(
+                kv => kv.Key,
+                kv => new TimelineParticipant(kv.Value, participantChampions[kv.Key]));
+            await _deathDetailWriter.WriteAsync(match.MatchId, timelineRoot.Value, timelineParticipants);
 
             // Team match metrics (gold leads)
             var matchId = matchRoot.GetProperty("metadata").GetProperty("matchId").GetString()!;

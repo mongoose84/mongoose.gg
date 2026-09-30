@@ -76,6 +76,8 @@ public class RankSnapshotJob : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var services = scope.ServiceProvider;
+        // The death detail backfill waits while rank readings run
+        using var activity = services.GetService<RiotBackgroundActivity>()?.RankSnapshotsTick();
         var rankSnapshots = services.GetRequiredService<RankSnapshotService>();
         var snapshotsRepo = services.GetRequiredService<IRankSnapshotsRepository>();
         var riotAccountsRepo = services.GetRequiredService<IRiotAccountsRepository>();

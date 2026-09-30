@@ -137,7 +137,9 @@ server/
 │   │   │   ├── Solo/SoloPerformanceEndpoint.cs
 │   │   │   ├── Solo/SoloMatchupsEndpoint.cs
 │   │   │   ├── Solo/MatchActivityEndpoint.cs
-│   │   │   └── Trends/WinrateTrendEndpoint.cs
+│   │   │   ├── Solo/SoloStatTrendsEndpoint.cs
+│   │   │   ├── Solo/SoloWinFactorsEndpoint.cs
+│   │   │   └── Solo/SoloClimbEndpoint.cs
 │   │   └── Services/
 │   │       ├── LoginSyncService.cs         # Post-login Riot data refresh
 │   │       └── MainChampionRecommender.cs  # Champion scoring algorithm (MScore)
@@ -156,6 +158,7 @@ server/
 │       ├── Jobs/
 │       │   ├── MatchHistorySyncJob.cs      # Background: syncs match history; captures a rank snapshot at the end
 │       │   ├── RankSnapshotJob.cs          # Background: reads ranks of active accounts every 20 min, attributes LP to matches
+│       │   ├── DeathDetailBackfillJob.cs   # Background, lowest priority: re-reads timelines of older matches for death detail (Solo death zones)
 │       │   └── MatchCleanupJob.cs          # Background: deletes old matches
 │       ├── WebSocket/
 │       │   ├── SyncProgressHub.cs          # Raw WebSocket hub for real-time sync updates
@@ -292,10 +295,13 @@ Credentials: allowed. Methods & Headers: any.
 | `GET` | `/api/v2/solo/dashboard/{userId}` | Yes | No | `Solo/SoloPerformanceEndpoint.cs` | `SoloPerformanceResponse` |
 | `GET` | `/api/v2/solo/matchups/{userId}` | Yes | No | `Solo/SoloMatchupsEndpoint.cs` | `ChampionMatchupsResponse` |
 | `GET` | `/api/v2/solo/activity/{userId}` | Yes | No | `Solo/MatchActivityEndpoint.cs` | `MatchActivityResponse` |
+| `GET` | `/api/v2/solo/stat-trends/{userId}` | Yes | No | `Solo/SoloStatTrendsEndpoint.cs` | `StatTrendsResponse` |
+| `GET` | `/api/v2/solo/win-factors/{userId}` | Yes | No | `Solo/SoloWinFactorsEndpoint.cs` | `WinFactorsResponse` |
+| `GET` | `/api/v2/solo/climb/{userId}` | Yes | No | `Solo/SoloClimbEndpoint.cs` | `ClimbResponse` |
+| `GET` | `/api/v2/solo/death-zones/{userId}` | Yes | No | `Solo/SoloDeathZonesEndpoint.cs` | `DeathZonesResponse` |
 | `GET` | `/api/v2/matches/{userId}` | Yes | No | `Matches/MatchListEndpoint.cs` | `MatchListResponse` |
 | `GET` | `/api/v2/matches/{matchId}/details` | Yes | No | `Matches/MatchDetailsEndpoint.cs` | `MatchDetailsResponse` |
 | `GET` | `/api/v2/matches/{matchId}/narrative` | Yes | No | `Matches/MatchNarrativeEndpoint.cs` | `MatchNarrativeResponse` |
-| `GET` | `/api/v2/trends/winrate/{userId}` | Yes | No | `Trends/WinrateTrendEndpoint.cs` | `WinrateTrendResponse` |
 | `GET` | `/api/v2/champion-select/{userId}` | Yes | No | `ChampionSelect/ChampionSelectEndpoint.cs` | `ChampionSelectResponse` |
 | `POST` | `/api/v2/analytics` | No | No | `Analytics/AnalyticsEndpoint.cs` | `TrackEventResponse` |
 | `POST` | `/api/v2/analytics/batch` | No | No | `Analytics/AnalyticsEndpoint.cs` | `TrackBatchResponse` |
@@ -422,6 +428,42 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Tables**: `matches`, `participants`  
 **Repos**: `ITrendRepository`
 
+### 6.12a Solo Stat Trends
+**Route**: `GET /api/v2/solo/stat-trends/{userId}`  
+**Auth**: Yes  
+**Query params**: `?queueType=` (ranked_solo|ranked_flex|all; missing = Solo/Duo if played this season, else Flex, else all), `?range=` (last20|last50|season; default last20), `?accountId=`  
+**Response**: `StatTrendsResponse(matches, queueType, range, stats[], focus?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#stat-trends). `200` with `matches: 0` when nothing is in scope; `400` `INVALID_QUEUE` / `INVALID_RANGE`.  
+**Logic**: Per-match rows oldest first (ranges count matches); six stats with 10-match rolling averages, was/now and verdicts, season-average benchmark (a second read in Season scope unless `range=season`), and the "Your focus" pick. The benchmark becomes the rank average (`kind: "rank"`, `tier`) of other Mongoose.gg players at the player's tier, role and queue when that pool has 200 matches from 20 players (`RankBenchmarkService`, cached for an hour per queue, tier and role). Rules in `Core/Services/Solo/` (`StatTrendCalculator`, `WinFactorCalculator`, `SoloFocusPicker`, `SoloScope`, `RankBenchmarkRule`).  
+**Tables**: `matches`, `participants`, `participant_checkpoints`, `participant_objectives`, `team_objectives`, `participant_metrics`  
+**Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
+
+### 6.12b Solo Win Factors
+**Route**: `GET /api/v2/solo/win-factors/{userId}`  
+**Auth**: Yes  
+**Query params**: same as 6.12a  
+**Response**: `WinFactorsResponse(matches, queueType, range, factors[], patterns)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#win-factors). Factor `mark` is set only when every match in range is one role.  
+**Logic**: Win rate when the player hits each mark vs misses it (5 matches per side, sorted by gap), and the session, after-a-loss and match-length patterns (`WinFactorCalculator`, `PatternCalculator`).  
+**Tables**: as 6.12a  
+**Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
+
+### 6.12c Solo Climb
+**Route**: `GET /api/v2/solo/climb/{userId}`  
+**Auth**: Yes  
+**Query params**: same as 6.12a  
+**Response**: `ClimbResponse(matches, queueType, range, mode, wins, losses, lp?, winRate?, champions[], championsLeftOut[], rank?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#climb).  
+**Logic**: `LpCoverageRule` picks LP mode (one ranked queue, one account, 80% and at least 10 matches with a known LP change) or win-rate mode. LP mode: the ladder per match (`LpLadder`), net LP, promotions and demotions, the biggest drop over 2+ losses (40 LP or more). Win-rate mode: the 10-match rolling win rate (needs 20 matches). LP or net wins per champion with 3+ matches (top 5), and the latest rank for the rank line (`ClimbCalculator`). LP changes use the same previous-rank window as the match list (`PreviousRankSql`).  
+**Tables**: as 6.12a  
+**Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
+
+### 6.12d Solo Death Zones
+**Route**: `GET /api/v2/solo/death-zones/{userId}`  
+**Auth**: Yes  
+**Query params**: same as 6.12a  
+**Response**: `DeathZonesResponse(matches, queueType, range, deaths, ready, zones[], breakdowns, backfill?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#death-zones). `ready` needs 30 counted deaths; `backfill` (`status`, `done`, `total`, `retryAt?`) is set only while deaths in range lack their detail and an account in scope still has backfill work (`riot_accounts.death_detail_backfilled_at` null); deaths older than the job's last 50 matches can stay without detail for good.  
+**Logic**: Deaths with a time and an allies count are counted (executes, with no killer, count too). Positions are mirrored for the red side and classified into 16 regions (`MapRegions`); each death gets a phase, a how (teamfight, ganked, alone, other) and a cost (first enemy dragon, tower, baron or herald within 60 s) (`DeathClassifier`). Zones with 5+ deaths, most objectives lost first, top 5, costly at 30% (`DeathZonesCalculator`). Matches missing detail are moved to the front of the backfill queue (`DeathDetailBackfillJob`).  
+**Tables**: `matches`, `participants`, `participant_death_events`, `match_objective_events`  
+**Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
+
 ### 6.13 Match List
 **Route**: `GET /api/v2/matches/{userId}`  
 **Auth**: Yes  
@@ -449,13 +491,6 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Logic**: Gets all 10 participants, creates 5 lane matchups (by role). Lane winner determined by gold diff at 10 min (±300g threshold). ARAM: pairs by damage share rank.  
 **Tables**: `matches`, `participants`, `participant_metrics`, `participant_checkpoints`  
 **Repos**: `IMatchesRepository`
-
-### 6.16 Winrate Trend
-**Route**: `GET /api/v2/trends/winrate/{userId}`  
-**Auth**: Yes  
-**Query params**: `?queueType=`, `?timeRange=`, `?limit=` (max 500)  
-**Response**: `WinrateTrendResponse(winrateTrend[])`  
-**Repos**: `ITrendRepository`
 
 ### 6.18 Champion Select
 **Route**: `GET /api/v2/champion-select/{userId}`  
@@ -633,14 +668,6 @@ public record MatchActivityResponse(Dictionary<string, int> DailyMatchCounts, st
 ```csharp
 // ChampionSelectDto.cs
 public record ChampionSelectResponse(MainChampionRoleGroup[] MainChampions, int GamesPlayed, double WinRate);
-```
-
-### Trend DTOs
-
-```csharp
-// TrendDto.cs
-public record WinrateTrendPoint(int GameIndex, double WinRate, DateTime Timestamp);
-public record WinrateTrendResponse(WinrateTrendPoint[] WinrateTrend);
 ```
 
 > **Note**: All DTOs use `[JsonPropertyName("camelCase")]` attributes. Shown without for readability.
@@ -929,10 +956,9 @@ public interface IMatchupRepository
     Task<ChampionMatchupsResponse> GetChampionMatchupsAsync(string puuid, string? queueType = null, string? timeRange = null);
 }
 
-// Trend data
+// Match activity (heatmap)
 public interface ITrendRepository
 {
-    Task<WinrateTrendPoint[]> GetWinrateTrendAsync(string puuid, string? queueType = null, string? timeRange = null, int? limit = null);
     Task<Dictionary<string, int>> GetDailyMatchCountsAsync(string puuid, int daysBack = 91);
 }
 

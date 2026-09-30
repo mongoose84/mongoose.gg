@@ -98,61 +98,86 @@ export async function getMatchActivity(userId) {
 }
 
 /**
- * Get radar chart performance profile data
- * @param {number} userId - User ID
- * @param {string} [queueType] - Optional queue filter
- * @param {string} [timeRange] - Optional time range
- * @returns {Promise<Object|null>} Radar profile data or null if no data found
+ * Query string shared by the Solo trend endpoints (features/solo-trends.spec.md).
+ * A missing queue lets the server pick the default (Solo/Duo, else Flex, else all queues).
  */
-export async function getRadarChart(userId, queueType = 'all', timeRange) {
+function soloTrendsQuery(queueType, range) {
   const params = new URLSearchParams()
-  if (queueType && queueType !== 'all') {
-    params.append('queueType', queueType)
-  }
-  if (timeRange) {
-    params.append('timeRange', timeRange)
-  }
+  if (queueType) params.append('queueType', queueType)
+  if (range) params.append('range', range)
   appendAccountParam(params)
-
-  const endpoint = `/solo/radar-chart/${userId}${params.toString() ? '?' + params.toString() : ''}`
-  const response = await apiRequest(endpoint, { method: 'GET' })
-
-  if (response.status === 404) {
-    return null
-  }
-
-  return parseResponse(response, 'Failed to get radar chart')
+  return params.toString()
 }
 
 /**
- * Get death position data for the danger zone heatmap
+ * Get the six match-deciding stat trends and the "Your focus" pick
  * @param {number} userId - User ID
- * @param {string} [queueType] - Optional queue filter
- * @param {string} [timeRange] - Optional time range
- * @param {string} [side] - Optional side filter (all, blue, red)
- * @returns {Promise<Object|null>} Death positions data or null if no data found
+ * @param {string|null} [queueType] - ranked_solo, ranked_flex or all; null for the server's default
+ * @param {string} [range] - last20, last50 or season
+ * @returns {Promise<{ matches: number, queueType: string, range: string, stats: Array, focus: Object|null }|null>}
+ *   null when no Riot account is linked
  */
-export async function getDeathPositions(userId, queueType = 'all', timeRange, side = 'all') {
-  const params = new URLSearchParams()
-  if (queueType && queueType !== 'all') {
-    params.append('queueType', queueType)
-  }
-  if (timeRange) {
-    params.append('timeRange', timeRange)
-  }
-  if (side && side !== 'all') {
-    params.append('side', side)
-  }
-  appendAccountParam(params)
-
-  const endpoint = `/solo/death-positions/${userId}${params.toString() ? '?' + params.toString() : ''}`
-  const response = await apiRequest(endpoint, { method: 'GET' })
+export async function getSoloStatTrends(userId, queueType = null, range = 'last20') {
+  const response = await apiRequest(`/solo/stat-trends/${userId}?${soloTrendsQuery(queueType, range)}`, { method: 'GET' })
 
   if (response.status === 404) {
     return null
   }
 
-  return parseResponse(response, 'Failed to get death positions')
+  return parseResponse(response, 'Failed to get stat trends')
+}
+
+/**
+ * Get win factors (hit vs missed win rates) and the session, after-a-loss and match-length patterns
+ * @param {number} userId - User ID
+ * @param {string|null} [queueType] - ranked_solo, ranked_flex or all; null for the server's default
+ * @param {string} [range] - last20, last50 or season
+ * @returns {Promise<{ matches: number, queueType: string, range: string, factors: Array, patterns: Object }|null>}
+ *   null when no Riot account is linked
+ */
+export async function getSoloWinFactors(userId, queueType = null, range = 'last20') {
+  const response = await apiRequest(`/solo/win-factors/${userId}?${soloTrendsQuery(queueType, range)}`, { method: 'GET' })
+
+  if (response.status === 404) {
+    return null
+  }
+
+  return parseResponse(response, 'Failed to get win factors')
+}
+
+/**
+ * Get the climb: LP or win-rate mode, the ladder or rolling win rate, promotions, the biggest drop,
+ * LP per champion and the current rank
+ * @param {number} userId - User ID
+ * @param {string|null} [queueType] - ranked_solo, ranked_flex or all; null for the server's default
+ * @param {string} [range] - last20, last50 or season
+ * @returns {Promise<Object|null>} null when no Riot account is linked
+ */
+export async function getSoloClimb(userId, queueType = null, range = 'last20') {
+  const response = await apiRequest(`/solo/climb/${userId}?${soloTrendsQuery(queueType, range)}`, { method: 'GET' })
+
+  if (response.status === 404) {
+    return null
+  }
+
+  return parseResponse(response, 'Failed to get climb')
+}
+
+/**
+ * Get death zones: where deaths cost objectives, the breakdowns, and the death detail backfill's progress
+ * @param {number} userId - User ID
+ * @param {string|null} [queueType] - ranked_solo, ranked_flex or all; null for the server's default
+ * @param {string} [range] - last20, last50 or season
+ * @returns {Promise<Object|null>} null when no Riot account is linked
+ */
+export async function getSoloDeathZones(userId, queueType = null, range = 'last20') {
+  const response = await apiRequest(`/solo/death-zones/${userId}?${soloTrendsQuery(queueType, range)}`, { method: 'GET' })
+
+  if (response.status === 404) {
+    return null
+  }
+
+  return parseResponse(response, 'Failed to get death zones')
 }
 
 /**

@@ -1,364 +1,144 @@
-import { ref, watch } from 'vue'
+import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
-import { useSyncWebSocket } from './useSyncWebSocket'
 import { useAsyncData } from './useAsyncData'
+import { useSyncWebSocket } from './useSyncWebSocket'
 import { trackFilterChange } from '../services/analyticsApi'
-import { getSoloDashboard, getDeathPositions, getRadarChart, getMatchActivity } from '../services/soloApi'
-import {
-  getWinrateTrend,
-  getGoldAt15Trend,
-  getCsPerMinuteTrend,
-  getDeathsTrend,
-  getDragonParticipationTrend,
-  getVisionScoreTrend
-} from '../services/trendsApi'
+import { getSoloClimb, getSoloStatTrends, getSoloWinFactors, getSoloDeathZones } from '../services/soloApi'
 
+// FR 39: without a socket, the death-zones card refetches this often while the backfill runs
+const BACKFILL_POLL_MS = 30_000
+
+/**
+ * Data for the Solo page (features/solo-trends.spec.md): each card loads on its own, in
+ * parallel, and reloads on a queue, range or account change. Old content stays until the new
+ * data arrives, so a filter change never flashes a skeleton.
+ *
+ * The queue starts unset: the server picks the default (Solo/Duo when played this season,
+ * else Flex, else all queues) and the control shows the queue it answered with.
+ */
 export function useSoloDashboardData() {
   const authStore = useAuthStore()
-  const { syncProgress, resetProgress } = useSyncWebSocket()
 
-  // Filter state
-  const queueFilter = ref('all')
-  const timeRange = ref('current_season')
-  const sideFilter = ref('all')
+  const queue = ref(null)
+  const range = ref('last20')
+  const { detailBackfill, isConnected } = useSyncWebSocket()
 
-  // Expand state for trend charts (collapsed = last 20 games)
-  const winrateExpanded = ref(false)
-  const goldAt15Expanded = ref(false)
-  const csPerMinuteExpanded = ref(false)
-  const deathsExpanded = ref(false)
-  const dragonParticipationExpanded = ref(false)
-  const visionScoreExpanded = ref(false)
-
-  // Dashboard summary data
-  const {
-    data: dashboardData,
-    isLoading,
-    error,
-    execute: executeDashboardFetch
-  } = useAsyncData(async () => {
-    return await getSoloDashboard(authStore.userId, queueFilter.value, timeRange.value)
-  }, { immediate: false, errorMessage: 'Failed to load solo dashboard' })
-
-  // Winrate trend
-  const winrateTrendData = ref([])
-  const { isLoading: winrateLoading, execute: executeWinrateTrendFetch } = useAsyncData(
-    async (limit) => await getWinrateTrend(authStore.userId, queueFilter.value, timeRange.value, limit),
-    { immediate: false, errorMessage: 'Failed to load winrate trend' }
+  const climb = useAsyncData(
+    () => getSoloClimb(authStore.userId, queue.value, range.value),
+    { errorMessage: 'Failed to load climb' }
+  )
+  const statTrends = useAsyncData(
+    () => getSoloStatTrends(authStore.userId, queue.value, range.value),
+    { errorMessage: 'Failed to load stat trends' }
+  )
+  const winFactors = useAsyncData(
+    () => getSoloWinFactors(authStore.userId, queue.value, range.value),
+    { errorMessage: 'Failed to load win factors' }
+  )
+  const deathZones = useAsyncData(
+    () => getSoloDeathZones(authStore.userId, queue.value, range.value),
+    { errorMessage: 'Failed to load death zones' }
   )
 
-  // Gold at 15 trend
-  const goldAt15TrendData = ref([])
-  const { isLoading: goldAt15Loading, execute: executeGoldAt15TrendFetch } = useAsyncData(
-    async (limit) => await getGoldAt15Trend(authStore.userId, queueFilter.value, timeRange.value, limit),
-    { immediate: false, errorMessage: 'Failed to load gold at 15 trend' }
+  const hasNoLinkedAccount = computed(() => authStore.isInitialized && authStore.hasLinkedAccount === false)
+
+  /** The queue the page shows: the player's choice, else the server's default */
+  const selectedQueue = computed(() =>
+    queue.value ?? statTrends.data.value?.queueType ?? winFactors.data.value?.queueType ?? climb.data.value?.queueType ?? null
   )
 
-  // CS per minute trend
-  const csPerMinuteTrendData = ref([])
-  const { isLoading: csPerMinuteLoading, execute: executeCsPerMinuteTrendFetch } = useAsyncData(
-    async (limit) => await getCsPerMinuteTrend(authStore.userId, queueFilter.value, timeRange.value, limit),
-    { immediate: false, errorMessage: 'Failed to load CS per minute trend' }
+  // Skeletons only before a card has anything to show
+  const statTrendsLoading = computed(() => statTrends.isLoading.value && !statTrends.data.value)
+  const winFactorsLoading = computed(() => winFactors.isLoading.value && !winFactors.data.value)
+  const climbLoading = computed(() => climb.isLoading.value && !climb.data.value)
+  const deathZonesLoading = computed(() => deathZones.isLoading.value && !deathZones.data.value)
+
+  function run(resource) {
+    // useAsyncData keeps the error for the card; nothing to do here
+    return resource.execute().catch(() => {})
+  }
+
+  const fetchStatTrends = () => run(statTrends)
+  const fetchWinFactors = () => run(winFactors)
+  const fetchClimb = () => run(climb)
+  const fetchDeathZones = () => run(deathZones)
+
+  function fetchAll() {
+    if (!authStore.userId || hasNoLinkedAccount.value) return Promise.resolve()
+    return Promise.all([fetchClimb(), fetchStatTrends(), fetchWinFactors(), fetchDeathZones()])
+  }
+
+  function setQueue(value) {
+    if (value === selectedQueue.value) return
+    queue.value = value
+    trackFilterChange('queue', value)
+  }
+
+  function setRange(value) {
+    if (value === range.value) return
+    range.value = value
+    trackFilterChange('range', value)
+  }
+
+  watch([queue, range], fetchAll)
+
+  // FR 39: backfill progress over the socket; a finished account refetches the zones once
+  watch(detailBackfill, (message) => {
+    const current = deathZones.data.value
+    if (!message || !current?.backfill) return
+    if (message.status === 'done') {
+      fetchDeathZones()
+      return
+    }
+    deathZones.data.value = { ...current, backfill: { ...message } }
+  })
+
+  // Without a socket, refetch every 30 seconds while the backfill runs
+  let pollTimer = null
+  function stopPolling() {
+    if (pollTimer !== null) clearInterval(pollTimer)
+    pollTimer = null
+  }
+  watch(
+    () => Boolean(deathZones.data.value?.backfill) && !isConnected.value,
+    (poll) => {
+      stopPolling()
+      if (poll) pollTimer = setInterval(fetchDeathZones, BACKFILL_POLL_MS)
+    }
   )
+  onScopeDispose(stopPolling)
 
-  // Deaths trend
-  const deathsTrendData = ref([])
-  const deathsSummary = ref({ averageDeaths: 0, overallAverage: 0, trend: 'neutral' })
-  const { isLoading: deathsLoading, execute: executeDeathsTrendFetch } = useAsyncData(
-    async (limit) => await getDeathsTrend(authStore.userId, queueFilter.value, timeRange.value, limit),
-    { immediate: false, errorMessage: 'Failed to load deaths trend' }
-  )
+  watch(() => authStore.activeAccountPuuid, () => {
+    if (authStore.isInitialized) fetchAll()
+  })
 
-  // Dragon participation trend
-  const dragonParticipationTrendData = ref([])
-  const dragonParticipationSummary = ref({ averageParticipation: 0, overallAverage: 0, trend: 'neutral' })
-  const { isLoading: dragonParticipationLoading, execute: executeDragonParticipationTrendFetch } = useAsyncData(
-    async (limit) => await getDragonParticipationTrend(authStore.userId, queueFilter.value, timeRange.value, limit),
-    { immediate: false, errorMessage: 'Failed to load dragon participation trend' }
-  )
-
-  // Vision score trend
-  const visionScoreTrendData = ref([])
-  const visionScoreSummary = ref({ averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' })
-  const { isLoading: visionScoreLoading, execute: executeVisionScoreTrendFetch } = useAsyncData(
-    async (limit) => await getVisionScoreTrend(authStore.userId, queueFilter.value, timeRange.value, limit),
-    { immediate: false, errorMessage: 'Failed to load vision score trend' }
-  )
-
-  // Radar chart
-  const {
-    data: radarChartData,
-    isLoading: radarChartLoading,
-    execute: executeRadarChartFetch
-  } = useAsyncData(
-    async () => await getRadarChart(authStore.userId, queueFilter.value, timeRange.value),
-    { immediate: false, errorMessage: 'Failed to load radar chart' }
-  )
-
-  // Death positions
-  const {
-    data: deathPositionsData,
-    isLoading: deathPositionsLoading,
-    error: deathPositionsError,
-    execute: executeDeathPositionsFetch
-  } = useAsyncData(
-    async () => await getDeathPositions(authStore.userId, queueFilter.value, timeRange.value, sideFilter.value),
-    { immediate: false, errorMessage: 'Failed to load death positions' }
-  )
-
-  // Match activity heatmap
-  const {
-    data: matchActivityData,
-    isLoading: matchActivityLoading,
-    execute: executeMatchActivityFetch
-  } = useAsyncData(
-    async () => await getMatchActivity(authStore.userId),
-    { immediate: false, errorMessage: 'Failed to load match activity' }
-  )
-
-  // Individual fetch functions
-  async function fetchData() {
-    if (!authStore.userId) return
-    try {
-      await executeDashboardFetch()
-    } catch {
-      dashboardData.value = null
-    }
-  }
-
-  async function fetchWinrateTrend() {
-    if (!authStore.userId) return
-    try {
-      const limit = winrateExpanded.value ? null : 20
-      const result = await executeWinrateTrendFetch(limit)
-      winrateTrendData.value = result?.winrateTrend ?? []
-    } catch {
-      winrateTrendData.value = []
-    }
-  }
-
-  async function fetchGoldAt15Trend() {
-    if (!authStore.userId) return
-    try {
-      const limit = goldAt15Expanded.value ? null : 20
-      const result = await executeGoldAt15TrendFetch(limit)
-      goldAt15TrendData.value = result?.goldAt15Trend ?? []
-    } catch {
-      goldAt15TrendData.value = []
-    }
-  }
-
-  async function fetchCsPerMinuteTrend() {
-    if (!authStore.userId) return
-    try {
-      const limit = csPerMinuteExpanded.value ? null : 20
-      const result = await executeCsPerMinuteTrendFetch(limit)
-      csPerMinuteTrendData.value = result?.csPerMinuteTrend ?? []
-    } catch {
-      csPerMinuteTrendData.value = []
-    }
-  }
-
-  async function fetchDeathsTrend() {
-    if (!authStore.userId) return
-    try {
-      const limit = deathsExpanded.value ? null : 20
-      const result = await executeDeathsTrendFetch(limit)
-      deathsTrendData.value = result?.deathsTrend ?? []
-      deathsSummary.value = {
-        averageDeaths: result?.averageDeaths ?? 0,
-        overallAverage: result?.overallAverage ?? 0,
-        trend: result?.trend ?? 'neutral'
-      }
-    } catch {
-      deathsTrendData.value = []
-      deathsSummary.value = { averageDeaths: 0, overallAverage: 0, trend: 'neutral' }
-    }
-  }
-
-  async function fetchDragonParticipationTrend() {
-    if (!authStore.userId) return
-    try {
-      const limit = dragonParticipationExpanded.value ? null : 20
-      const result = await executeDragonParticipationTrendFetch(limit)
-      dragonParticipationTrendData.value = result?.dragonParticipationTrend ?? []
-      dragonParticipationSummary.value = {
-        averageParticipation: result?.averageParticipation ?? 0,
-        overallAverage: result?.overallAverage ?? 0,
-        trend: result?.trend ?? 'neutral'
-      }
-    } catch {
-      dragonParticipationTrendData.value = []
-      dragonParticipationSummary.value = { averageParticipation: 0, overallAverage: 0, trend: 'neutral' }
-    }
-  }
-
-  async function fetchVisionScoreTrend() {
-    if (!authStore.userId) return
-    try {
-      const limit = visionScoreExpanded.value ? null : 20
-      const result = await executeVisionScoreTrendFetch(limit)
-      visionScoreTrendData.value = result?.visionScoreTrend ?? []
-      visionScoreSummary.value = {
-        averageVisionPerMinute: result?.averageVisionPerMinute ?? 0,
-        overallAverage: result?.overallAverage ?? 0,
-        roleTarget: result?.roleTarget ?? 1.0,
-        trend: result?.trend ?? 'neutral'
-      }
-    } catch {
-      visionScoreTrendData.value = []
-      visionScoreSummary.value = { averageVisionPerMinute: 0, overallAverage: 0, roleTarget: 1.0, trend: 'neutral' }
-    }
-  }
-
-  async function fetchRadarChart() {
-    if (!authStore.userId) return
-    try {
-      await executeRadarChartFetch()
-    } catch {
-      radarChartData.value = null
-    }
-  }
-
-  async function fetchDeathPositions() {
-    if (!authStore.userId) return
-    try {
-      await executeDeathPositionsFetch()
-    } catch {
-      deathPositionsData.value = null
-    }
-  }
-
-  async function fetchMatchActivity() {
-    if (!authStore.userId) return
-    try {
-      await executeMatchActivityFetch()
-    } catch {
-      matchActivityData.value = null
-    }
-  }
-
-  // Fetch all data in parallel
-  async function fetchAllData() {
-    await Promise.all([
-      fetchData(),
-      fetchWinrateTrend(),
-      fetchGoldAt15Trend(),
-      fetchCsPerMinuteTrend(),
-      fetchDeathsTrend(),
-      fetchDragonParticipationTrend(),
-      fetchVisionScoreTrend(),
-      fetchRadarChart(),
-      fetchDeathPositions(),
-      fetchMatchActivity()
-    ])
-  }
-
-  // Expand/collapse handlers
-  function handleWinrateExpand(expanded) {
-    winrateExpanded.value = expanded
-    fetchWinrateTrend()
-  }
-
-  function handleGoldAt15Expand(expanded) {
-    goldAt15Expanded.value = expanded
-    fetchGoldAt15Trend()
-  }
-
-  function handleCsPerMinuteExpand(expanded) {
-    csPerMinuteExpanded.value = expanded
-    fetchCsPerMinuteTrend()
-  }
-
-  function handleDeathsExpand(expanded) {
-    deathsExpanded.value = expanded
-    fetchDeathsTrend()
-  }
-
-  function handleDragonParticipationExpand(expanded) {
-    dragonParticipationExpanded.value = expanded
-    fetchDragonParticipationTrend()
-  }
-
-  function handleVisionScoreExpand(expanded) {
-    visionScoreExpanded.value = expanded
-    fetchVisionScoreTrend()
-  }
-
-  // Side filter change triggers server re-fetch
-  function onSideFilterChange(newSide) {
-    sideFilter.value = newSide
-    fetchDeathPositions()
-  }
-
-  // Re-fetch on filter or active account change
-  watch([queueFilter, timeRange], () => { fetchAllData() })
-  watch(() => authStore.activeAccountPuuid, () => { fetchAllData() })
-
-  // Track filter analytics
-  watch(queueFilter, (newValue) => { trackFilterChange('queue', newValue) })
-  watch(timeRange, (newValue) => { trackFilterChange('time', newValue) })
-
-  // Re-fetch on sync completion
-  watch(syncProgress, (progress) => {
-    for (const [puuid, data] of progress.entries()) {
-      if (data.status === 'completed') {
-        authStore.refreshUser()
-        fetchAllData()
-        resetProgress(puuid)
-        break
-      }
-    }
-  }, { deep: true })
+  // Wait for auth so the active account is settled before the first request
+  watch(() => authStore.isInitialized, (initialized) => {
+    if (initialized) fetchAll()
+  }, { immediate: true })
 
   return {
-    // Filters
-    queueFilter,
-    timeRange,
-    sideFilter,
-    // Dashboard summary
-    dashboardData,
-    isLoading,
-    error,
-    // Winrate trend
-    winrateTrendData,
-    winrateLoading,
-    // Gold at 15 trend
-    goldAt15TrendData,
-    goldAt15Loading,
-    // CS per minute trend
-    csPerMinuteTrendData,
-    csPerMinuteLoading,
-    // Deaths trend
-    deathsTrendData,
-    deathsLoading,
-    deathsSummary,
-    // Dragon participation trend
-    dragonParticipationTrendData,
-    dragonParticipationLoading,
-    dragonParticipationSummary,
-    // Vision score trend
-    visionScoreTrendData,
-    visionScoreLoading,
-    visionScoreSummary,
-    // Radar chart
-    radarChartData,
-    radarChartLoading,
-    // Death positions
-    deathPositionsData,
-    deathPositionsLoading,
-    deathPositionsError,
-    // Match activity
-    matchActivityData,
-    matchActivityLoading,
-    // Handlers
-    handleWinrateExpand,
-    handleGoldAt15Expand,
-    handleCsPerMinuteExpand,
-    handleDeathsExpand,
-    handleDragonParticipationExpand,
-    handleVisionScoreExpand,
-    onSideFilterChange,
-    fetchAllData
+    selectedQueue,
+    range,
+    hasNoLinkedAccount,
+    climb: climb.data,
+    climbError: climb.hasError,
+    climbLoading,
+    statTrends: statTrends.data,
+    statTrendsError: statTrends.hasError,
+    statTrendsLoading,
+    winFactors: winFactors.data,
+    winFactorsError: winFactors.hasError,
+    winFactorsLoading,
+    deathZones: deathZones.data,
+    deathZonesError: deathZones.hasError,
+    deathZonesLoading,
+    setQueue,
+    setRange,
+    fetchAll,
+    fetchClimb,
+    fetchDeathZones,
+    fetchStatTrends,
+    fetchWinFactors
   }
 }

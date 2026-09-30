@@ -189,6 +189,13 @@ public class RiotMatchMapperTests
     }
 
     [Fact]
+    public void MapParticipants_NumbersParticipantsOneToTenInOrder()
+    {
+        var result = RiotMatchMapper.MapParticipants(CreateMatchJson());
+        result.Select(p => p.RiotParticipantId).Should().Equal(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    }
+
+    [Fact]
     public void MapParticipants_ExtractsMatchIdForEachParticipant()
     {
         var json = CreateMatchJson(matchId: "EUW1_1234567890");

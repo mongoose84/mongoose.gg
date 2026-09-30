@@ -26,7 +26,7 @@ public class MatchDataPersistenceServiceTests
         new StubParticipantMetricsRepository(),
         new StubParticipantCheckpointsRepository(),
         new StubParticipantObjectivesRepository(),
-        new StubParticipantDeathEventsRepository(),
+        new DeathDetailWriter(new StubParticipantDeathEventsRepository(), new StubMatchObjectiveEventsRepository()),
         new StubTeamMatchMetricsRepository(),
         new StubTeamRoleResponsibilitiesRepository(),
         _seasonsRepo,
@@ -256,6 +256,7 @@ internal sealed class StubParticipantsRepository : IParticipantsRepository
     public Task UpdateLpDataAsync(string matchId, string puuid, int? lp, string? tier, string? rank) => Task.CompletedTask;
     public Task<ISet<string>> GetMatchIdsForPuuidAsync(string puuid) => Task.FromResult<ISet<string>>(new HashSet<string>());
     public Task<IList<Participant>> GetRecentByPuuidAsync(string puuid, int? queueId, int limit) => Task.FromResult<IList<Participant>>(new List<Participant>());
+    public Task SetRiotParticipantIdsAsync(string matchId, IReadOnlyDictionary<string, int> participantIds) => Task.CompletedTask;
 }
 
 internal sealed class StubTeamObjectivesRepository : ITeamObjectivesRepository
@@ -288,6 +289,12 @@ internal sealed class StubParticipantDeathEventsRepository : IParticipantDeathEv
 {
     public Task InsertAsync(ParticipantDeathEvent deathEvent) => Task.CompletedTask;
     public Task InsertBatchAsync(IEnumerable<ParticipantDeathEvent> deathEvents) => Task.CompletedTask;
+    public Task ReplaceForMatchAsync(string matchId, IReadOnlyList<ParticipantDeathEvent> deathEvents) => Task.CompletedTask;
+}
+
+internal sealed class StubMatchObjectiveEventsRepository : IMatchObjectiveEventsRepository
+{
+    public Task ReplaceForMatchAsync(string matchId, IReadOnlyList<MatchObjectiveEvent> events) => Task.CompletedTask;
 }
 
 internal sealed class StubTeamMatchMetricsRepository : ITeamMatchMetricsRepository

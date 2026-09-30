@@ -187,8 +187,9 @@ client/test/unit/
 │   ├── OverviewChampionPool.spec.js        # ✅ Exists
 │   ├── SyncProgress.spec.js                # ✅ Exists
 │   ├── SessionExpiredBanner.spec.js        # ✅ Complete (9 tests)
-│   ├── SummaryStatsCard.spec.js            # ✅ Complete (38 tests)
-│   ├── TrendChartCard.spec.js              # ✅ Complete (40 tests)
+│   ├── BaseTrendTile.spec.js               # ✅ Exists
+│   ├── BaseWinFactorRow.spec.js            # ✅ Exists
+│   ├── solo/                               # ✅ SoloStatTrends, SoloWinFactors, SoloPatterns
 │   ├── VersionBadge.spec.js                # ✅ Exists
 │   ├── BaseButton.spec.js                  # ✅ Complete (27 tests)
 │   ├── BaseCard.spec.js                    # ✅ Complete (17 tests)

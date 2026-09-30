@@ -248,7 +248,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             FROM participants p
             INNER JOIN matches m ON m.match_id = p.match_id
             LEFT JOIN riot_accounts ra ON ra.puuid = p.puuid
-            LEFT JOIN ({PreviousRankSql(previousRankPuuidPredicate)}) prev_rank ON prev_rank.participant_id = p.id
+            LEFT JOIN ({PreviousRankSql.For(previousRankPuuidPredicate)}) prev_rank ON prev_rank.participant_id = p.id
             WHERE {puuidPredicate}
             AND m.game_duration_sec >= {MinValidGameDurationSec}
             {queueFilter}
@@ -328,7 +328,7 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
                 WHERE p.match_id = @matchId
                 GROUP BY p.match_id, p.team_id
             ),
-            PreviousRank AS (" + PreviousRankSql("p2.puuid = @puuid") + @")
+            PreviousRank AS (" + PreviousRankSql.For("p2.puuid = @puuid") + @")
             SELECT
                 m.match_id,
                 m.queue_id,
@@ -445,27 +445,6 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
             RankAfter: rawData.RankAfter?.Division
         );
     }
-
-    /// <summary>
-    /// Each ranked participant row (Solo/Duo and Flex) with the rank recorded after the same
-    /// player's previous match in the same queue. LAG takes the match right before, never the last
-    /// one that happens to have LP, so a gap in the recorded LP gives no change instead of a wrong one.
-    /// The predicate filters <c>p2.puuid</c> with parameters the caller supplies.
-    /// </summary>
-    private static string PreviousRankSql(string puuidPredicate) => $@"
-                SELECT
-                    p2.id AS participant_id,
-                    LAG(p2.lp_after) OVER previous_match AS prev_lp_after,
-                    LAG(p2.tier_after) OVER previous_match AS prev_tier_after,
-                    LAG(p2.rank_after) OVER previous_match AS prev_rank_after
-                FROM participants p2
-                INNER JOIN matches m2 ON m2.match_id = p2.match_id
-                WHERE {puuidPredicate}
-                AND m2.queue_id IN ({RankedQueueIds})
-                WINDOW previous_match AS (PARTITION BY p2.puuid, m2.queue_id ORDER BY m2.game_start_time, m2.match_id)";
-
-    // Ranked Solo/Duo and Ranked Flex: the queues that record LP
-    private const string RankedQueueIds = "420, 440";
 
     /// <summary>
     /// Gets baseline averages per role from the last 10 games in each role.
@@ -706,6 +685,8 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
     /// - team_match_metrics
     /// - team_role_responsibilities
     /// - duo_metrics
+    /// - match_objective_events
+    /// - death_detail_backfill_skips
     /// </summary>
     public async Task<int> DeleteOldMatchesAsync(long cutoffTimestamp, int batchSize)
     {

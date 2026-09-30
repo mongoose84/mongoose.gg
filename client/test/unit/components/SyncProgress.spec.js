@@ -36,7 +36,7 @@ describe('SyncProgress', () => {
   it('explains a rate-limit wait', () => {
     const wrapper = mount(SyncProgress, { props: { state: 'waiting' } })
     expect(wrapper.get('[data-testid="sync-progress-title"]').text()).toBe('Waiting on Riot’s servers…')
-    expect(wrapper.get('[data-testid="sync-progress-detail"]').text()).toContain('Riot limits how fast we can sync')
+    expect(wrapper.get('[data-testid="sync-progress-detail"]').text()).toBe('We’ll continue automatically.')
   })
 
   it('shows the finished count without a bar', () => {

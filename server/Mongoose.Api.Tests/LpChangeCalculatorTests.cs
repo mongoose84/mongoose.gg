@@ -62,28 +62,4 @@ public sealed class LpChangeCalculatorTests
         LpChangeCalculator.Compute(Rank("GOLD", "II", 20), null, win: true).Should().BeNull();
         LpChangeCalculator.Compute(Rank("GOLD", "II", null), Rank("GOLD", "II", 40), win: true).Should().BeNull();
     }
-
-    [Theory]
-    [InlineData("IRON", "IV", 0, 0)]
-    [InlineData("IRON", "I", 50, 350)]
-    [InlineData("EMERALD", "II", 64, 2264)]
-    [InlineData("DIAMOND", "I", 99, 2799)]
-    [InlineData("MASTER", "I", 0, 2800)]
-    [InlineData("CHALLENGER", null, 1200, 4000)]
-    [InlineData("emerald", "ii", 64, 2264)]
-    public void LadderScore_PlacesEveryRankOnOneLadder(string tier, string? division, int lp, int expected)
-    {
-        LpChangeCalculator.LadderScore(Rank(tier, division, lp)).Should().Be(expected);
-    }
-
-    [Theory]
-    [InlineData("UNRANKED", "I", 10)]
-    [InlineData("GOLD", null, 10)]
-    [InlineData("GOLD", "V", 10)]
-    [InlineData(null, "I", 10)]
-    [InlineData("GOLD", "I", -5)]
-    public void LadderScore_ReturnsNull_ForAnUnknownOrIncompleteRank(string? tier, string? division, int lp)
-    {
-        LpChangeCalculator.LadderScore(Rank(tier, division, lp)).Should().BeNull();
-    }
 }

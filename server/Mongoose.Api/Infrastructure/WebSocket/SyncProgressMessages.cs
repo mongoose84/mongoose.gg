@@ -149,3 +149,23 @@ public sealed record UnsubscribeMessage : SyncClientMessage
     public required string Puuid { get; init; }
 }
 
+
+/// <summary>
+/// Progress of the death detail backfill for one of the user's accounts (features/solo-trends.spec.md
+/// FR 39): status running, waiting (on Riot's rate limit, with <see cref="RetryAt"/>), queued, or done.
+/// Sent at most every 5 matches and on every status change.
+/// </summary>
+public sealed record DetailBackfillProgressMessage : SyncAggregateMessage
+{
+    public override string Type => "detail_backfill_progress";
+
+    [JsonPropertyName("done")]
+    public int Done { get; init; }
+
+    [JsonPropertyName("total")]
+    public int Total { get; init; }
+
+    /// <summary>When waiting: when Riot's limit refills (UTC).</summary>
+    [JsonPropertyName("retryAt")]
+    public DateTime? RetryAt { get; init; }
+}

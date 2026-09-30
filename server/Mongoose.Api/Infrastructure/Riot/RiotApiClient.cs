@@ -19,10 +19,18 @@ public class RiotApiClient : IRiotApiClient
     /// </summary>
     public event EventHandler<RateLimitWaitEventArgs>? RateLimitWaitStarted;
 
-    public RiotApiClient(IHttpClientFactory httpClientFactory)
+    public RiotApiClient(IHttpClientFactory httpClientFactory) : this(httpClientFactory, new RiotLimitHandler())
+    {
+    }
+
+    /// <summary>
+    /// Uses the app's one limit handler, so every Riot call (sync, rank snapshots, the death detail
+    /// backfill) shares its buckets and <see cref="IRiotThrottleState"/> sees them all.
+    /// </summary>
+    public RiotApiClient(IHttpClientFactory httpClientFactory, IRiotLimitHandler riotLimitHandler)
     {
         _http = httpClientFactory.CreateClient("RiotApi");
-        _riotLimitHandler = new RiotLimitHandler();
+        _riotLimitHandler = riotLimitHandler;
 
         // TEMPORARY: Forward rate limit events from the limit handler
         // TODO: Remove this once we have a more sophisticated rate limiting UX.
