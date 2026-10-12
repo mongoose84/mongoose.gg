@@ -353,7 +353,7 @@ One League-v4 reading of a player's rank in one ranked queue, stored to attribut
 
 **Notes:**
 - A row is only stored when the reading differs from the previous one in the queue (`Unchanged` readings only update `riot_accounts.rank_checked_at`).
-- A `pending` row is attributed to the one stored match in the queue whose end (`game_start_time + game_duration_sec`) falls between `window_start_at` and `captured_at` (±`Jobs:RankSnapshotClockSkewSeconds`); two candidates → `skipped`; none after `Jobs:RankSnapshotPendingTimeoutMinutes` → `skipped`.
+- A `pending` row is attributed to the one stored match in the queue whose end (`game_start_time + game_duration_sec`) falls between `window_start_at` and `captured_at`, both shifted later by `Jobs:RankSnapshotClockSkewSeconds`, and which has no `lp_after` yet; two candidates → `skipped`; none after `Jobs:RankSnapshotPendingTimeoutMinutes` → `skipped`.
 - `RankSnapshotJob` deletes rows older than `Jobs:RankSnapshotRetentionDays` (30) once a day, keeping the newest row per account and queue.
 - Migration: `Infrastructure/Database/Migrations/003_AddRankSnapshots.sql` (also adds `riot_accounts.rank_checked_at`).
 

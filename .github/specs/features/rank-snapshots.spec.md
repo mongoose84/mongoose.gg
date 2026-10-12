@@ -52,7 +52,7 @@ As a ranked player, I want every ranked match on the Matches page to show how mu
 8. A new pending snapshot always (whether or not the user has the app open) sets the account's `sync_status` to `pending` and wakes `MatchHistorySyncJob` through the existing queue signal (skip when it is already `pending` or `syncing`).
 
 **Attribution** (a domain rule in Core, orchestration in Application)
-9. A pending snapshot for queue Q with window `(previous.captured_at, snapshot.captured_at]` is attributed to the account's stored match in queue Q whose **end time** (`game_start_time + game_duration_sec`) falls in the window, widened by `Jobs:RankSnapshotClockSkewSeconds` (default 120) on both sides for clock differences.
+9. A pending snapshot for queue Q with window `(previous.captured_at, snapshot.captured_at]` is attributed to the account's stored match in queue Q whose **end time** (`game_start_time + game_duration_sec`) falls in the window, shifted later by `Jobs:RankSnapshotClockSkewSeconds` (default 120) for clock differences: the start is narrowed (a match that ended within the skew of the previous reading may be the one that reading counted, e.g. a sync right after a match) and the end is widened. Matches that already have `lp_after` are never candidates.
    - Exactly one candidate → write the snapshot's tier, division and LP onto that participant row (`lp_after`, `tier_after`, `rank_after`) and mark the snapshot `attributed` with the `match_id`.
    - No candidate → stay `pending` (the match isn't synced yet, or match-v5 doesn't list it yet).
    - More than one candidate → mark `skipped` (can't tell which; never guess).
@@ -130,7 +130,7 @@ CREATE TABLE rank_snapshots (
 | `RankSnapshotIntervalMinutes` | 20 | Minimum time between reads of one account |
 | `RankSnapshotActiveDays` | 7 | Poll accounts of users who logged in within this many days |
 | `RankSnapshotMaxCallsPerMinute` | 10 | League-v4 calls the job may spend per minute |
-| `RankSnapshotClockSkewSeconds` | 120 | Widening of the attribution window on both sides |
+| `RankSnapshotClockSkewSeconds` | 120 | Shift of the attribution window: start narrowed, end widened |
 | `RankSnapshotPendingTimeoutMinutes` | 60 | Pending snapshots older than this become `skipped` |
 | `RankSnapshotRetentionDays` | 30 | Snapshot retention (newest per account and queue always kept) |
 
@@ -189,7 +189,7 @@ Feature is considered complete when:
 | A dodge or apex decay between two matches | Low (change includes the dodge penalty or decay) | Low | 4b compares consecutive `lp_after`; the ±100 and sign guards in `LpChangeCalculator` catch large cases. Documented as a known limit |
 | Riot rate limits with many active users | Medium (slower snapshots, slower user syncs) | Medium with the dev key | Per-minute cap, round-robin, 429 back-off, production key |
 | Auto-syncs increase match-v5 calls | Medium | Medium | Only on a pending snapshot (one per match played); same cost as the user pressing "Sync matches" once per match |
-| Clock differences between Riot and the server | Medium (a match falls outside its window) | Low | `RankSnapshotClockSkewSeconds` widening; ambiguity leads to `skipped`, not a guess |
+| Clock differences between Riot and the server | Medium (a match falls outside its window) | Low | `RankSnapshotClockSkewSeconds` shift (start narrowed, end widened); ambiguity leads to `skipped`, not a guess |
 | Table growth | Low | Medium | Rows only on a change (FR 7), 30-day retention |
 
 ## Timeline and Milestones

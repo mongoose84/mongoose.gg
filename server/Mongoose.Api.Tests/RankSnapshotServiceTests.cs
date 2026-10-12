@@ -118,6 +118,51 @@ public sealed class RankSnapshotServiceTests
     }
 
     [Fact]
+    public async Task AttributePendingAsync_AttributesEachMatch_WhenTheUserSyncsRightAfterEveryMatch()
+    {
+        // Real case (2026-10-05): each reading came from a sync started a minute after the match ended
+        await _sut.RecordAsync(Puuid, new[] { Solo(40, 10, 10) }, RankSnapshotSource.Poll, T0);
+        _snapshots.MatchEnds.Add((Puuid, 420, "EUW1_FIRST", EndMs(T0.AddMinutes(34))));
+        await _sut.RecordAsync(Puuid, new[] { Solo(59, 11, 10) }, RankSnapshotSource.Sync, T0.AddMinutes(35));
+        await _sut.AttributePendingAsync(Puuid, T0.AddMinutes(35), queueSyncWhenMissing: false);
+
+        _snapshots.MatchEnds.Add((Puuid, 420, "EUW1_SECOND", EndMs(T0.AddMinutes(69))));
+        await _sut.RecordAsync(Puuid, new[] { Solo(38, 11, 11) }, RankSnapshotSource.Sync, T0.AddMinutes(70));
+        await _sut.AttributePendingAsync(Puuid, T0.AddMinutes(70), queueSyncWhenMissing: false);
+
+        _snapshots.Snapshots.Select(s => (s.Status, s.MatchId)).Should().Equal(
+            (RankSnapshotStatus.Baseline, (string?)null),
+            (RankSnapshotStatus.Attributed, "EUW1_FIRST"),
+            (RankSnapshotStatus.Attributed, "EUW1_SECOND"));
+        _participants.LpData.Keys.Should().BeEquivalentTo(new[] { ("EUW1_FIRST", Puuid), ("EUW1_SECOND", Puuid) });
+    }
+
+    [Fact]
+    public async Task AttributePendingAsync_NeverOffersAnAlreadyAttributedMatchAgain()
+    {
+        // A pending row whose window overlaps an attributed one (e.g. written under the older, wider window)
+        _snapshots.MatchEnds.Add((Puuid, 420, "EUW1_FIRST", EndMs(T0.AddMinutes(10))));
+        _snapshots.MatchEnds.Add((Puuid, 420, "EUW1_SECOND", EndMs(T0.AddMinutes(35))));
+        await _snapshots.InsertAsync(new RankSnapshotRecord
+        {
+            Puuid = Puuid, QueueId = 420, Tier = "EMERALD", Division = "II", Lp = 59, Wins = 11, Losses = 10,
+            CapturedAt = T0.AddMinutes(12), WindowStartAt = T0.AddMinutes(-20), Source = RankSnapshotSource.Sync,
+            Status = RankSnapshotStatus.Attributed, MatchId = "EUW1_FIRST"
+        });
+        await _snapshots.InsertAsync(new RankSnapshotRecord
+        {
+            Puuid = Puuid, QueueId = 420, Tier = "EMERALD", Division = "II", Lp = 38, Wins = 11, Losses = 11,
+            CapturedAt = T0.AddMinutes(40), WindowStartAt = T0, Source = RankSnapshotSource.Poll,
+            Status = RankSnapshotStatus.Pending
+        });
+
+        await _sut.AttributePendingAsync(Puuid, T0.AddMinutes(41), queueSyncWhenMissing: false);
+
+        _snapshots.Snapshots[1].Status.Should().Be(RankSnapshotStatus.Attributed);
+        _snapshots.Snapshots[1].MatchId.Should().Be("EUW1_SECOND");
+    }
+
+    [Fact]
     public async Task AttributePendingAsync_WaitsForAMatchNotStoredYet_AndQueuesASyncOnce()
     {
         _accounts.Accounts[Puuid].LastSyncAt = T0;

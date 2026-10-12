@@ -14,7 +14,8 @@ public interface IRankSnapshotsRepository
 
     /// <summary>
     /// Stored matches of the account in the queue whose end (start + duration) lies in the window,
-    /// in epoch milliseconds. Only matches long enough to count (no remakes).
+    /// in epoch milliseconds. Only matches long enough to count (no remakes) and without an
+    /// <c>lp_after</c> yet, so a match an earlier reading was attributed to is never a candidate again.
     /// </summary>
     Task<IList<string>> GetMatchIdsEndedBetweenAsync(string puuid, int queueId, long fromMs, long toMs);
 
