@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import BaseLineChart from '@/components/base/BaseLineChart.vue'
 
@@ -91,5 +92,41 @@ describe('BaseLineChart', () => {
     expect(tops[1]).toContain('top: 1.5rem')
     expect(tops[2]).toContain('top: 0rem')
     expect(wrapper.get('[data-testid="line-chart-moments"]').attributes('style')).toContain('height: 3rem')
+  })
+
+  it('leaves out moments that find no room in four rows', () => {
+    const moments = Array.from({ length: 6 }, () => ({ x: 4, letter: 'T', tone: 'warn' }))
+    const wrapper = mountChart({ moments })
+
+    expect(wrapper.findAll('[data-testid="line-chart-moment"]')).toHaveLength(4)
+    expect(wrapper.get('[data-testid="line-chart-moments"]').attributes('style')).toContain('height: 6rem')
+  })
+
+  it('widens the gap between moments as the chart narrows, so the circles never touch', async () => {
+    let notify
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback) { notify = callback }
+      observe() {}
+      disconnect() {}
+    })
+    const wrapper = mountChart({
+      moments: [
+        { x: 2, letter: 'D', tone: 'positive' },
+        { x: 2.2, letter: 'T', tone: 'warn' }
+      ]
+    })
+    const tops = () => wrapper.findAll('[data-testid="line-chart-moment"]').map((m) => m.attributes('style'))
+
+    // 1000px wide: the moments are 50px apart and share a row
+    notify([{ contentRect: { width: 1000 } }])
+    await nextTick()
+    expect(tops()[1]).toContain('top: 0rem')
+
+    // 300px wide: the same moments are 15px apart and stack
+    notify([{ contentRect: { width: 300 } }])
+    await nextTick()
+    expect(tops()[1]).toContain('top: 1.5rem')
+
+    vi.unstubAllGlobals()
   })
 })

@@ -18,6 +18,10 @@ public static class GoldTimelineBuilder
     // Smaller changes are ordinary trading, not a moment worth an orange point.
     public const int MinSwing = 1500;
 
+    // The last minutes are the winning push (towers, inhibitors and an ace at once): the result
+    // of the match, not what decided it, so no swing ends inside them.
+    public const int EndPushMinutes = 3;
+
     // The design system's moment letters: D, B, H, T. Grubs and inhibitors stay off the axis.
     private static readonly HashSet<string> MomentTypes = ["dragon", "baron", "herald", "tower"];
 
@@ -48,14 +52,15 @@ public static class GoldTimelineBuilder
     /// <summary>
     /// The largest change in lead between a point and an earlier one at most
     /// <see cref="SwingWindowMinutes"/> before it (always including the point right before, so
-    /// 5-minute checkpoints still compare neighbours). The earliest wins a tie; null under
-    /// <see cref="MinSwing"/>.
+    /// 5-minute checkpoints still compare neighbours), ending before the last
+    /// <see cref="EndPushMinutes"/>. The earliest wins a tie; null under <see cref="MinSwing"/>.
     /// </summary>
     private static GoldTimelineSwing? BiggestSwing(IReadOnlyList<GoldTimelinePoint> points)
     {
         GoldTimelineSwing? best = null;
+        var lastSwingMinute = points[^1].Minute - EndPushMinutes;
 
-        for (var i = 1; i < points.Count; i++)
+        for (var i = 1; i < points.Count && points[i].Minute <= lastSwingMinute; i++)
         {
             for (var j = i - 1; j >= 0; j--)
             {

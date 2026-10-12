@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="root"
     class="line-chart"
     role="img"
     :aria-label="ariaLabel"
@@ -101,16 +102,18 @@
  * place. Optional moments sit under the plot on the time axis as small lettered circles.
  * role="img" with the text alternative in ariaLabel; the numbers belong in the card around it.
  */
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const WIDTH = 1000
 const HEIGHT = 200
 const PAD_Y = 14
 
-// Moment circles closer than this share a row only if they don't overlap; past MAX_MOMENT_ROWS
-// they overlap on the last row rather than push the card taller
+// Moment circles share a row only when their centres are a circle plus a hair apart on screen;
+// one that finds no room in MAX_MOMENT_ROWS is left out (the card's text alternative lists them all).
+// MOMENT_GAP (viewBox units) is the fallback until the chart's width is known.
+const MOMENT_CIRCLE_PX = 22
 const MOMENT_GAP = 30
-const MAX_MOMENT_ROWS = 3
+const MAX_MOMENT_ROWS = 4
 const MOMENT_ROW_REM = 1.5
 
 const props = defineProps({
@@ -174,6 +177,23 @@ const placedGuides = computed(() =>
 const placedMarkers = computed(() => props.markers.map((m) => ({ ...m, px: round(px(m.x)), py: round(py(m.y)) })))
 const labelledMarkers = computed(() => placedMarkers.value.filter((m) => m.label))
 
+// The circles are a fixed pixel size, so the gap they need in viewBox units grows as the chart narrows
+const root = ref(null)
+const widthPx = ref(0)
+let resizeObserver = null
+
+onMounted(() => {
+  if (typeof ResizeObserver === 'undefined' || !root.value) return
+  resizeObserver = new ResizeObserver(([entry]) => {
+    widthPx.value = entry.contentRect.width
+  })
+  resizeObserver.observe(root.value)
+})
+
+onBeforeUnmount(() => resizeObserver?.disconnect())
+
+const momentGap = computed(() => (widthPx.value > 0 ? (MOMENT_CIRCLE_PX / widthPx.value) * WIDTH : MOMENT_GAP))
+
 // Each moment takes the first row whose last circle is far enough to its left
 const placedMoments = computed(() => {
   const rowEnds = []
@@ -181,11 +201,13 @@ const placedMoments = computed(() => {
     .sort((a, b) => a.x - b.x)
     .map((m) => {
       const momentPx = round(px(m.x))
-      let row = rowEnds.findIndex((end) => momentPx - end >= MOMENT_GAP)
-      if (row === -1) row = Math.min(rowEnds.length, MAX_MOMENT_ROWS - 1)
+      let row = rowEnds.findIndex((end) => momentPx - end >= momentGap.value)
+      if (row === -1) row = rowEnds.length
+      if (row >= MAX_MOMENT_ROWS) return null
       rowEnds[row] = momentPx
       return { ...m, px: momentPx, row }
     })
+    .filter(Boolean)
 })
 
 const momentRows = computed(() => Math.max(0, ...placedMoments.value.map((m) => m.row + 1)))

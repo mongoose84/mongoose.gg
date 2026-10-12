@@ -21,29 +21,47 @@ function timeline(leads, extra = {}) {
 
 describe('goldTimeline', () => {
   describe('buildGoldTitle', () => {
+    // The last 3 minutes are the end push and don't shape the title; hold the lead through them
+    const withPush = (leads) => [...leads, ...Array(3).fill(leads[leads.length - 1])]
+
     it('names a comeback from a decisive deficit', () => {
-      expect(buildGoldTitle(timeline([0, -1200, -2600, -900, 1500]), true)).toBe('Came back from −2,600 at 2 min')
+      expect(buildGoldTitle(timeline(withPush([0, -1200, -2600, -900, 1500])), true)).toBe('Came back from −2,600 at 2 min')
     })
 
     it('names a decisive lead that slipped away', () => {
-      expect(buildGoldTitle(timeline([0, 1400, 3100, 200, -1800]), false)).toBe('Lost a +3,100 lead from 2 min')
+      expect(buildGoldTitle(timeline(withPush([0, 1400, 3100, 200, -1800])), false)).toBe('Lost a +3,100 lead from 2 min')
     })
 
     it('says the team was ahead all match, with the peak', () => {
-      expect(buildGoldTitle(timeline([0, 300, -400, 1800, 4200]), true)).toBe('Ahead all match, up to +4,200')
+      expect(buildGoldTitle(timeline(withPush([0, 300, 800, 1800, 4200])), true)).toBe('Ahead all match, up to +4,200')
     })
 
     it('says the team was behind all match, with the low', () => {
-      expect(buildGoldTitle(timeline([0, -300, 400, -1800, -5200]), false)).toBe('Behind all match, down to −5,200')
+      expect(buildGoldTitle(timeline(withPush([0, -300, -800, -1800, -5200])), false)).toBe('Behind all match, down to −5,200')
+    })
+
+    it('says from when the lead held once it crossed Even', () => {
+      expect(buildGoldTitle(timeline(withPush([0, 1800, -200, 2500, 3000])), true)).toBe('Ahead from 3 min, up to +3,000')
+      expect(buildGoldTitle(timeline(withPush([0, -1800, 200, -1500, -1200])), false)).toBe('Behind from 3 min, down to −1,500')
+    })
+
+    it('counts a few gold under Even in the first minutes as crossing it', () => {
+      expect(buildGoldTitle(timeline(withPush([0, -5, 300, -50, 1200, 2500])), true)).toBe('Ahead from 4 min, up to +2,500')
+    })
+
+    it('leaves the end push out of the shape', () => {
+      // Lost the last fights by 11,500; the match itself was a slow 1,500 deficit
+      expect(buildGoldTitle(timeline([0, -800, -1500, -1200, -1400, -2000, -6000, -13000]), false))
+        .toBe('Behind all match, down to −1,500')
     })
 
     it('calls a match that never left the even band even', () => {
-      expect(buildGoldTitle(timeline([0, 400, -600, 900, -300]), true)).toBe('Even gold all match')
+      expect(buildGoldTitle(timeline(withPush([0, 400, -600, 900, -300])), true)).toBe('Even gold all match')
     })
 
     it('falls back to where the lead ended', () => {
-      // Swung both ways past 1k without a decisive lead changing hands
-      expect(buildGoldTitle(timeline([0, 1500, -1500, 1200, 1600]), false)).toBe('Ended +1,600 gold')
+      // Swung both ways past 1k, then held a deficit too small to name
+      expect(buildGoldTitle(timeline(withPush([0, 1500, -1500, 1200, -400])), false)).toBe('Ended −400 gold')
     })
   })
 
@@ -76,7 +94,16 @@ describe('goldTimeline', () => {
       expect(up.markers).toEqual([{ x: 1, y: 2000, label: '▲ +2,000', tone: 'warn' }])
     })
 
-    it('turns objectives into lettered moments, ours positive and theirs warn, within the line', () => {
+    it('runs the axis to the last objective when the line stops short of it', () => {
+      const chart = buildGoldChart(timeline([0, 0, 0], {
+        moments: [{ timestampSec: 210, type: 'tower', ours: true }]
+      }))
+
+      expect(chart.moments[0].x).toBe(3.5)
+      expect(chart.length).toBe(4.5)
+    })
+
+    it('turns objectives into lettered moments, ours positive and theirs warn', () => {
       const chart = buildGoldChart(timeline([0, 0, 0], {
         moments: [
           { timestampSec: 90, type: 'dragon', ours: true },
@@ -89,7 +116,7 @@ describe('goldTimeline', () => {
       expect(chart.moments).toEqual([
         { x: 1.5, letter: 'D', tone: 'positive' },
         { x: 100 / 60, letter: 'T', tone: 'warn' },
-        { x: 2, letter: 'B', tone: 'positive' }
+        { x: 2.5, letter: 'B', tone: 'positive' }
       ])
     })
   })

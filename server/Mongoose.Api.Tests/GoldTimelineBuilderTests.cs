@@ -71,9 +71,18 @@ public class GoldTimelineBuilderTests
     public void Build_FindsTheBiggestSwing_WithinThreeMinutes()
     {
         // A slow climb to +2,000 over 8 minutes isn't a swing; the drop from +2,000 to −500 is
-        var timeline = GoldTimelineBuilder.Build(Data(100, Leads(0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000, 1800, 300, -500)))!;
+        var timeline = GoldTimelineBuilder.Build(Data(100, Leads(0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000, 1800, 300, -500, -500, -500, -500)))!;
 
         timeline.Swing.Should().Be(new GoldTimelineSwing(FromMinute: 8, Minute: 11, Change: -2500));
+    }
+
+    [Fact]
+    public void Build_LeavesOutTheEndPush_FromTheSwing()
+    {
+        // The ace and the towers in the last 3 minutes (+8,500) are the result; the drop at 6 decided it
+        var timeline = GoldTimelineBuilder.Build(Data(100, Leads(0, 0, 0, 0, 0, 0, -2500, -2500, -2500, -2500, 1000, 6000)))!;
+
+        timeline.Swing.Should().Be(new GoldTimelineSwing(FromMinute: 5, Minute: 6, Change: -2500));
     }
 
     [Fact]
@@ -87,7 +96,7 @@ public class GoldTimelineBuilderTests
     [Fact]
     public void Build_ComparesNeighbouringCheckpoints_FiveMinutesApart()
     {
-        var frames = new[] { (0, 2500, 2500), (5, 8000, 8200), (10, 15000, 17000) };
+        var frames = new[] { (0, 2500, 2500), (5, 8000, 8200), (10, 15000, 17000), (15, 22000, 24000) };
 
         var timeline = GoldTimelineBuilder.Build(Data(100, frames, fromCheckpoints: true))!;
 

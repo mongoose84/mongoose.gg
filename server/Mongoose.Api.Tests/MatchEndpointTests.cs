@@ -737,7 +737,7 @@ public class MatchEndpointTests
 
     private static readonly GoldTimelineData SeededGoldTimeline = new(
         TeamId: 200,
-        Frames: [new(0, 2500, 2500), new(1, 3000, 2900), new(2, 4000, 3200), new(3, 6400, 3400)],
+        Frames: [new(0, 2500, 2500), new(1, 3000, 2900), new(2, 4000, 3200), new(3, 6400, 3400), new(4, 7400, 4400), new(5, 8400, 5400), new(6, 9400, 6400)],
         FromCheckpoints: false,
         Objectives: [new(100, "dragon", 95), new(200, "grubs", 100), new(200, "tower", 170)]);
 
@@ -775,7 +775,7 @@ public class MatchEndpointTests
         timeline.GetProperty("source").GetString().Should().Be("minute");
         timeline.GetProperty("points").EnumerateArray()
             .Select(p => (p.GetProperty("minute").GetInt32(), p.GetProperty("lead").GetInt32()))
-            .Should().Equal((0, 0), (1, -100), (2, -800), (3, -3000));
+            .Should().Equal((0, 0), (1, -100), (2, -800), (3, -3000), (4, -3000), (5, -3000), (6, -3000));
         timeline.GetProperty("moments").EnumerateArray()
             .Select(m => (m.GetProperty("type").GetString(), m.GetProperty("ours").GetBoolean()))
             .Should().Equal(("dragon", false), ("tower", true));

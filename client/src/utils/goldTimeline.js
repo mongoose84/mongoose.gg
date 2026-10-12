@@ -32,18 +32,47 @@ function extremes(points) {
   return { max, min, last: points[points.length - 1] }
 }
 
+// The last minutes are the winning push: the result of the match, not its shape (as the swing on the server)
+const END_PUSH_MINUTES = 3
+
 /**
- * The takeaway title, from the shape of the lead and the result:
- * a comeback, a lead that slipped, a game led (or trailed) throughout, else where it ended.
+ * The stretch at the end of `points` where every lead holds (minute 0, always even, doesn't count):
+ * its first minute, its points, and whether it is the whole match. Null if the last point doesn't hold.
+ */
+function heldFrom(points, holds) {
+  const played = points.filter((p) => p.minute > 0)
+  let start = played.length
+  while (start > 0 && holds(played[start - 1].lead)) start--
+  if (start === played.length) return null
+  return { minute: played[start].minute, points: played.slice(start), allMatch: start === 0 }
+}
+
+/**
+ * The takeaway title, from the shape of the lead before the end push and the result:
+ * a comeback, a lead that slipped, a lead (or deficit) held without crossing Even all match or
+ * from a minute on, else where it ended.
  */
 export function buildGoldTitle(timeline, win) {
-  const { max, min, last } = extremes(timeline.points)
+  const endPush = timeline.points[timeline.points.length - 1].minute - END_PUSH_MINUTES
+  const beforePush = timeline.points.filter((p) => p.minute <= endPush)
+  const { max, min } = extremes(beforePush.length ? beforePush : timeline.points)
+  const { last } = extremes(timeline.points)
 
   if (win && min.lead <= -DECISIVE) return `Came back from ${formatLead(min.lead)} at ${min.minute} min`
   if (!win && max.lead >= DECISIVE) return `Lost a ${formatLead(max.lead)} lead from ${max.minute} min`
-  if (min.lead > -CLOSE && max.lead >= CLOSE) return `Ahead all match, up to ${formatLead(max.lead)}`
-  if (max.lead < CLOSE && min.lead <= -CLOSE) return `Behind all match, down to ${formatLead(min.lead)}`
-  if (Math.abs(last.lead) < CLOSE) return 'Even gold all match'
+
+  const shape = beforePush.length ? beforePush : timeline.points
+  const ahead = heldFrom(shape, (lead) => lead > 0)
+  const aheadPeak = ahead && extremes(ahead.points).max
+  if (aheadPeak?.lead >= CLOSE) {
+    return `Ahead ${ahead.allMatch ? 'all match' : `from ${ahead.minute} min`}, up to ${formatLead(aheadPeak.lead)}`
+  }
+  const behind = heldFrom(shape, (lead) => lead < 0)
+  const behindLow = behind && extremes(behind.points).min
+  if (behindLow?.lead <= -CLOSE) {
+    return `Behind ${behind.allMatch ? 'all match' : `from ${behind.minute} min`}, down to ${formatLead(behindLow.lead)}`
+  }
+  if (max.lead < CLOSE && min.lead > -CLOSE) return 'Even gold all match'
   return `Ended ${formatLead(last.lead)} gold`
 }
 
@@ -77,14 +106,17 @@ export function buildGoldChart(timeline) {
   const moments = (timeline.moments ?? [])
     .filter((m) => MOMENTS[m.type])
     .map((m) => ({
-      x: Math.min(m.timestampSec / 60, lastMinute),
+      x: m.timestampSec / 60,
       letter: MOMENTS[m.type].letter,
       tone: m.ours ? 'positive' : 'warn'
     }))
 
+  // The axis runs to the last objective too: 5-minute checkpoints stop short of the end of the game
+  const axisEnd = Math.max(lastMinute, ...moments.map((m) => m.x))
+
   return {
     points,
-    length: lastMinute + 1,
+    length: axisEnd + 1,
     guides: [{ y: 0, label: 'Even' }],
     markers,
     moments

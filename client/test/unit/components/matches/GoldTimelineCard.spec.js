@@ -9,7 +9,10 @@ const timeline = {
     { minute: 5, lead: 1200 },
     { minute: 10, lead: 3100 },
     { minute: 11, lead: 400 },
-    { minute: 12, lead: -1800 }
+    { minute: 12, lead: -1800 },
+    { minute: 13, lead: -1800 },
+    { minute: 14, lead: -1800 },
+    { minute: 15, lead: -1800 }
   ],
   moments: [
     { timestampSec: 400, type: 'dragon', ours: true },
@@ -36,7 +39,7 @@ describe('GoldTimelineCard.vue', () => {
     const chart = wrapper.get('[data-testid="line-chart"]')
 
     expect(chart.attributes('aria-label')).toBe(
-      'Your team\'s gold lead over 12 minutes: ended −1,800, highest +3,100 at 10 min, lowest −1,800 at 12 min.'
+      'Your team\'s gold lead over 15 minutes: ended −1,800, highest +3,100 at 10 min, lowest −1,800 at 12 min.'
     )
     expect(wrapper.findAll('[data-testid="line-chart-marker"]')).toHaveLength(1)
     expect(wrapper.get('[data-testid="line-chart-marker-label"]').text()).toBe('▼ −4,900')
@@ -54,7 +57,7 @@ describe('GoldTimelineCard.vue', () => {
     const text = mountCard().get('.visually-hidden').text()
 
     expect(text).toContain('5 min: +1,200')
-    expect(text).toContain('12 min: −1,800')
+    expect(text).toContain('15 min: −1,800')
     expect(text).toContain('6:40 Your team took a dragon')
     expect(text).toContain('10:50 The enemy took a Baron')
   })
