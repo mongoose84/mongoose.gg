@@ -17,7 +17,7 @@ public class DeathDetailWriterTests
             "frames": [
               {
                 "timestamp": 300000,
-                "participantFrames": { "1": { "position": { "x": 5000, "y": 5000 } }, "2": { "position": { "x": 5500, "y": 5000 } } },
+                "participantFrames": { "1": { "totalGold": 1500, "position": { "x": 5000, "y": 5000 } }, "2": { "totalGold": 1200, "position": { "x": 5500, "y": 5000 } }, "6": { "totalGold": 1100 } },
                 "events": [
                   { "type": "CHAMPION_KILL", "timestamp": 301000, "victimId": 1, "killerId": 7,
                     "assistingParticipantIds": [8, 9], "position": { "x": 5000, "y": 5000 } },
@@ -55,24 +55,35 @@ public class DeathDetailWriterTests
         }
     }
 
+    private sealed class RecordingGoldFrames : IMatchGoldFramesRepository
+    {
+        public List<(string MatchId, IReadOnlyList<MatchGoldFrame> Frames)> Replaced { get; } = new();
+        public Task ReplaceForMatchAsync(string matchId, IReadOnlyList<MatchGoldFrame> frames)
+        {
+            Replaced.Add((matchId, frames));
+            return Task.CompletedTask;
+        }
+    }
+
     private static readonly Dictionary<int, TimelineParticipant> Participants = Enumerable.Range(1, 10)
         .ToDictionary(id => id, id => new TimelineParticipant(ParticipantId: 1000 + id, ChampionId: 100 + id));
 
-    private static async Task<(RecordingDeathEvents Deaths, RecordingObjectiveEvents Objectives)> WriteAsync(
+    private static async Task<(RecordingDeathEvents Deaths, RecordingObjectiveEvents Objectives, RecordingGoldFrames GoldFrames)> WriteAsync(
         IReadOnlyDictionary<int, TimelineParticipant>? participants = null)
     {
         var deaths = new RecordingDeathEvents();
         var objectives = new RecordingObjectiveEvents();
-        var writer = new DeathDetailWriter(deaths, objectives);
+        var goldFrames = new RecordingGoldFrames();
+        var writer = new DeathDetailWriter(deaths, objectives, goldFrames);
 
         await writer.WriteAsync("EUW1_1", JsonDocument.Parse(Timeline).RootElement, participants ?? Participants);
-        return (deaths, objectives);
+        return (deaths, objectives, goldFrames);
     }
 
     [Fact]
     public async Task WriteAsync_ReplacesTheMatchsDeaths_WithTheirDetail()
     {
-        var (deaths, _) = await WriteAsync();
+        var (deaths, _, _) = await WriteAsync();
 
         var (matchId, events) = deaths.Replaced.Single();
         matchId.Should().Be("EUW1_1");
@@ -88,7 +99,7 @@ public class DeathDetailWriterTests
     [Fact]
     public async Task WriteAsync_StoresAnExecute_WithoutKiller()
     {
-        var (deaths, _) = await WriteAsync();
+        var (deaths, _, _) = await WriteAsync();
 
         var execute = deaths.Replaced.Single().Events.Single(e => e.ParticipantId == 1006);
         execute.KillerParticipantId.Should().BeNull();
@@ -99,7 +110,7 @@ public class DeathDetailWriterTests
     [Fact]
     public async Task WriteAsync_SkipsDeathsOfParticipantsItDoesNotKnow()
     {
-        var (deaths, _) = await WriteAsync(Participants.Where(p => p.Key != 6).ToDictionary());
+        var (deaths, _, _) = await WriteAsync(Participants.Where(p => p.Key != 6).ToDictionary());
 
         deaths.Replaced.Single().Events.Should().ContainSingle().Which.ParticipantId.Should().Be(1001);
     }
@@ -107,12 +118,23 @@ public class DeathDetailWriterTests
     [Fact]
     public async Task WriteAsync_ReplacesTheMatchsObjectives()
     {
-        var (_, objectives) = await WriteAsync();
+        var (_, objectives, _) = await WriteAsync();
 
         var (matchId, events) = objectives.Replaced.Single();
         matchId.Should().Be("EUW1_1");
         events.Select(e => (e.Type, e.TeamId, e.Subtype, e.TimestampSec)).Should().Equal(
             ("dragon", 100, "WATER_DRAGON", 320),
             ("tower", 200, "BOT_LANE", 640));
+    }
+
+    [Fact]
+    public async Task WriteAsync_ReplacesTheMatchsGoldFrames_WithEachTeamsTotal()
+    {
+        var (_, _, goldFrames) = await WriteAsync();
+
+        var (matchId, frames) = goldFrames.Replaced.Single();
+        matchId.Should().Be("EUW1_1");
+        frames.Select(f => (f.MatchId, f.Minute, f.Team100Gold, f.Team200Gold)).Should().Equal(
+            ("EUW1_1", 5, 2700, 1100));
     }
 }

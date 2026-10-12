@@ -82,7 +82,7 @@ vi.mock('@/stores/authStore', () => ({
 // ── Component stubs ────────────────────────────────────────────────────────────
 const MatchDetailsStub = {
   name: 'MatchDetails',
-  props: ['match', 'baseline', 'decidingStat', 'accountId', 'loading', 'error'],
+  props: ['match', 'baseline', 'decidingStat', 'goldTimeline', 'accountId', 'loading', 'error'],
   emits: ['retry'],
   template: '<div data-testid="match-details-stub" />'
 }
@@ -338,11 +338,12 @@ describe('MatchesPage', () => {
       expect(wrapper.get('[data-testid="matches-page"]').classes()).not.toContain('matches-page--open')
     })
 
-    it('loads the match in the URL and passes its baseline and deciding stat', async () => {
+    it('loads the match in the URL and passes its baseline, deciding stat and gold timeline', async () => {
       const decidingStat = { outcome: 'strength', stat: 'goldLeadAt10', meters: [], fix: null, usualMatches: 20 }
       mockGetMatchList.mockResolvedValue(listResponse([makeMatch('MATCH_1')]))
       mockRoute.params = { matchId: 'MATCH_1' }
-      mockGetMatchDetails.mockResolvedValue({ match: { matchId: 'MATCH_1' }, baseline: { role: 'MIDDLE' }, decidingStat })
+      const goldTimeline = { source: 'minute', points: [{ minute: 0, lead: 0 }], moments: [], swing: null }
+      mockGetMatchDetails.mockResolvedValue({ match: { matchId: 'MATCH_1' }, baseline: { role: 'MIDDLE' }, decidingStat, goldTimeline })
       const wrapper = mountPage()
       await flushPromises()
 
@@ -351,6 +352,7 @@ describe('MatchesPage', () => {
       expect(details.props('match')).toEqual({ matchId: 'MATCH_1' })
       expect(details.props('baseline')).toEqual({ role: 'MIDDLE' })
       expect(details.props('decidingStat')).toEqual(decidingStat)
+      expect(details.props('goldTimeline')).toEqual(goldTimeline)
       expect(wrapper.get('[data-testid="matches-page"]').classes()).toContain('matches-page--open')
       expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(true)
       expect(wrapper.find('[data-testid="matches-back"]').exists()).toBe(true)

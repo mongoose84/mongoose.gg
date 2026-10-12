@@ -534,6 +534,21 @@ Objectives each team took, with their time, from the timeline's `ELITE_MONSTER_K
 
 **Indexes:** `idx_objective_events_match_time` (`match_id`, `timestamp_sec`). **Foreign Keys:** `match_id` → `matches(match_id)` ON DELETE CASCADE.
 
+### `match_gold_frames`
+
+Each team's total gold at every timeline frame (migration 005), for the Matches gold-lead chart. Written by `DeathDetailWriter` from the same timeline as the death detail, so sync and `DeathDetailBackfillJob` both fill it, replacing the match's rows.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `match_id` | VARCHAR(50) | PRIMARY KEY (with `minute`) | Foreign key to matches |
+| `minute` | SMALLINT | PRIMARY KEY (with `match_id`) | Frame minute, 0 = game start; the end-of-game frame keeps its minute and replaces an earlier frame in it |
+| `team100_gold` | INT | NOT NULL | Sum of `totalGold` of participants 1–5 |
+| `team200_gold` | INT | NOT NULL | Sum of `totalGold` of participants 6–10 |
+
+**Foreign Keys:** `match_id` → `matches(match_id)` ON DELETE CASCADE.
+
+**Notes:** Matches synced before migration 005 have no rows; `MatchesRepository.GetGoldTimelineDataAsync` then sums `participant_checkpoints` per team at each minute mark where all ten participants have a checkpoint (every 5 minutes, up to 30).
+
 ### `death_detail_backfill_skips`
 
 Matches whose timeline Riot no longer serves (`404`), so `DeathDetailBackfillJob` doesn't retry them (migration 004).
@@ -968,7 +983,7 @@ The Timeline API is **critical** for:
 - `participant_checkpoints` (gold/CS/XP at minute marks)
 - `participant_metrics` (death timing, first kill participation)
 - `participant_objectives` (objective participation)
-- `participant_death_events` and `match_objective_events` (death detail and objective times)
+- `participant_death_events`, `match_objective_events` and `match_gold_frames` (death detail, objective times and team gold per minute)
 - `duo_metrics` (assist synergy, shared objectives)
 - `team_match_metrics` (gold leads, swings)
 

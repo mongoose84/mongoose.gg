@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import BaseLineChart from '@/components/base/BaseLineChart.vue'
 
@@ -55,5 +56,77 @@ describe('BaseLineChart', () => {
 
   it('draws no line from a single point', () => {
     expect(mountChart({ points: [{ x: 0, y: 50 }] }).find('[data-testid="line-chart-line"]').exists()).toBe(false)
+  })
+
+  it('has no moments row without moments', () => {
+    expect(mountChart().find('[data-testid="line-chart-moments"]').exists()).toBe(false)
+  })
+
+  it('places moments on the time axis in time order, in warn for the enemy', () => {
+    const wrapper = mountChart({
+      moments: [
+        { x: 4, letter: 'T', tone: 'warn' },
+        { x: 2, letter: 'D', tone: 'positive' }
+      ]
+    })
+
+    const moments = wrapper.findAll('[data-testid="line-chart-moment"]')
+    expect(moments.map((m) => m.text())).toEqual(['D', 'T'])
+    expect(moments[0].attributes('style')).toContain('left: 50%')
+    expect(moments[1].attributes('style')).toContain('left: 100%')
+    expect(moments[1].classes()).toContain('line-chart__moment--warn')
+    expect(moments[0].classes()).not.toContain('line-chart__moment--warn')
+  })
+
+  it('stacks moments that would overlap onto a second row', () => {
+    const wrapper = mountChart({
+      moments: [
+        { x: 2, letter: 'D', tone: 'positive' },
+        { x: 2.05, letter: 'T', tone: 'warn' },
+        { x: 4, letter: 'B', tone: 'positive' }
+      ]
+    })
+
+    const tops = wrapper.findAll('[data-testid="line-chart-moment"]').map((m) => m.attributes('style'))
+    expect(tops[0]).toContain('top: 0rem')
+    expect(tops[1]).toContain('top: 1.5rem')
+    expect(tops[2]).toContain('top: 0rem')
+    expect(wrapper.get('[data-testid="line-chart-moments"]').attributes('style')).toContain('height: 3rem')
+  })
+
+  it('leaves out moments that find no room in four rows', () => {
+    const moments = Array.from({ length: 6 }, () => ({ x: 4, letter: 'T', tone: 'warn' }))
+    const wrapper = mountChart({ moments })
+
+    expect(wrapper.findAll('[data-testid="line-chart-moment"]')).toHaveLength(4)
+    expect(wrapper.get('[data-testid="line-chart-moments"]').attributes('style')).toContain('height: 6rem')
+  })
+
+  it('widens the gap between moments as the chart narrows, so the circles never touch', async () => {
+    let notify
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback) { notify = callback }
+      observe() {}
+      disconnect() {}
+    })
+    const wrapper = mountChart({
+      moments: [
+        { x: 2, letter: 'D', tone: 'positive' },
+        { x: 2.2, letter: 'T', tone: 'warn' }
+      ]
+    })
+    const tops = () => wrapper.findAll('[data-testid="line-chart-moment"]').map((m) => m.attributes('style'))
+
+    // 1000px wide: the moments are 50px apart and share a row
+    notify([{ contentRect: { width: 1000 } }])
+    await nextTick()
+    expect(tops()[1]).toContain('top: 0rem')
+
+    // 300px wide: the same moments are 15px apart and stack
+    notify([{ contentRect: { width: 300 } }])
+    await nextTick()
+    expect(tops()[1]).toContain('top: 1.5rem')
+
+    vi.unstubAllGlobals()
   })
 })

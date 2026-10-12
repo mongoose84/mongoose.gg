@@ -26,7 +26,7 @@ public class MatchDataPersistenceServiceTests
         new StubParticipantMetricsRepository(),
         new StubParticipantCheckpointsRepository(),
         new StubParticipantObjectivesRepository(),
-        new DeathDetailWriter(new StubParticipantDeathEventsRepository(), new StubMatchObjectiveEventsRepository()),
+        new DeathDetailWriter(new StubParticipantDeathEventsRepository(), new StubMatchObjectiveEventsRepository(), new StubMatchGoldFramesRepository()),
         new StubTeamMatchMetricsRepository(),
         new StubTeamRoleResponsibilitiesRepository(),
         _seasonsRepo,
@@ -234,6 +234,7 @@ internal sealed class FakeMatchesRepoForPersistence : IMatchesRepository
     public Task<Dictionary<string, RoleBaseline>> GetRoleBaselinesAsync(IReadOnlyList<string> puuids, string queueFilter) => Task.FromResult(new Dictionary<string, RoleBaseline>());
     public Task<IList<MatchupParticipantRaw>> GetMatchParticipantsAsync(string matchId) => Task.FromResult<IList<MatchupParticipantRaw>>(new List<MatchupParticipantRaw>());
     public Task<Dictionary<string, StatUsual>> GetStatUsualsAsync(string puuid, string role, long beforeGameStartTime) => Task.FromResult(new Dictionary<string, StatUsual>());
+    public Task<GoldTimelineData?> GetGoldTimelineDataAsync(string matchId, string puuid) => Task.FromResult<GoldTimelineData?>(null);
     public Task<int> DeleteOldMatchesAsync(long cutoffTimestamp, int batchSize) => Task.FromResult(0);
 }
 
@@ -295,6 +296,11 @@ internal sealed class StubParticipantDeathEventsRepository : IParticipantDeathEv
 internal sealed class StubMatchObjectiveEventsRepository : IMatchObjectiveEventsRepository
 {
     public Task ReplaceForMatchAsync(string matchId, IReadOnlyList<MatchObjectiveEvent> events) => Task.CompletedTask;
+}
+
+internal sealed class StubMatchGoldFramesRepository : IMatchGoldFramesRepository
+{
+    public Task ReplaceForMatchAsync(string matchId, IReadOnlyList<MatchGoldFrame> frames) => Task.CompletedTask;
 }
 
 internal sealed class StubTeamMatchMetricsRepository : ITeamMatchMetricsRepository

@@ -7,12 +7,14 @@
 
 import { vi } from 'vitest';
 
-// Mock ResizeObserver which is required by HeadlessUI Dialog
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+// Mock ResizeObserver (HeadlessUI Dialog, BaseLineChart). A regular function so `new` works.
+global.ResizeObserver = vi.fn().mockImplementation(function () {
+  return {
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  };
+});
 
 // Mock IntersectionObserver (used by some components). A regular function so `new` works.
 global.IntersectionObserver = vi.fn().mockImplementation(function () {

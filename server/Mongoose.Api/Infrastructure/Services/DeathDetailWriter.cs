@@ -11,25 +11,31 @@ public sealed record TimelineParticipant(long ParticipantId, int ChampionId);
 public interface IDeathDetailWriter
 {
     /// <summary>
-    /// Writes the match's deaths (with time, killer, assisters and allies nearby) and the objectives
-    /// each team took, replacing what the match had, so sync and the backfill can both call it.
+    /// Writes the match's deaths (with time, killer, assisters and allies nearby), the objectives
+    /// each team took and each team's gold per minute, replacing what the match had, so sync and
+    /// the backfill can both call it.
     /// </summary>
     Task WriteAsync(string matchId, JsonElement timelineRoot, IReadOnlyDictionary<int, TimelineParticipant> participants);
 }
 
 /// <summary>
-/// Turns a match-v5 timeline into participant_death_events and match_objective_events rows
-/// (features/solo-trends.spec.md, 5e).
+/// Turns a match-v5 timeline into participant_death_events, match_objective_events
+/// (features/solo-trends.spec.md, 5e) and match_gold_frames rows (the Matches gold-lead chart, 4d).
 /// </summary>
 public sealed class DeathDetailWriter : IDeathDetailWriter
 {
     private readonly IParticipantDeathEventsRepository _deathEventsRepo;
     private readonly IMatchObjectiveEventsRepository _objectiveEventsRepo;
+    private readonly IMatchGoldFramesRepository _goldFramesRepo;
 
-    public DeathDetailWriter(IParticipantDeathEventsRepository deathEventsRepo, IMatchObjectiveEventsRepository objectiveEventsRepo)
+    public DeathDetailWriter(
+        IParticipantDeathEventsRepository deathEventsRepo,
+        IMatchObjectiveEventsRepository objectiveEventsRepo,
+        IMatchGoldFramesRepository goldFramesRepo)
     {
         _deathEventsRepo = deathEventsRepo;
         _objectiveEventsRepo = objectiveEventsRepo;
+        _goldFramesRepo = goldFramesRepo;
     }
 
     public async Task WriteAsync(string matchId, JsonElement timelineRoot, IReadOnlyDictionary<int, TimelineParticipant> participants)
@@ -77,7 +83,18 @@ public sealed class DeathDetailWriter : IDeathDetailWriter
             })
             .ToList();
 
+        var goldFrames = RiotTimelineMapper.ExtractGoldFrames(timelineRoot)
+            .Select(f => new MatchGoldFrame
+            {
+                MatchId = matchId,
+                Minute = f.Minute,
+                Team100Gold = f.Team100Gold,
+                Team200Gold = f.Team200Gold
+            })
+            .ToList();
+
         await _deathEventsRepo.ReplaceForMatchAsync(matchId, deaths);
         await _objectiveEventsRepo.ReplaceForMatchAsync(matchId, objectives);
+        await _goldFramesRepo.ReplaceForMatchAsync(matchId, goldFrames);
     }
 }

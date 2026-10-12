@@ -629,6 +629,57 @@ public class MatchesRepository : RepositoryBase, IMatchesRepository
         usuals[stat] = new StatUsual(average, stdDev, matches);
     }
 
+    /// <inheritdoc />
+    public async Task<GoldTimelineData?> GetGoldTimelineDataAsync(string matchId, string puuid)
+    {
+        var teamId = await ExecuteScalarAsync<int>(
+            "SELECT team_id FROM participants WHERE match_id = @match_id AND puuid = @puuid LIMIT 1",
+            ("@match_id", matchId),
+            ("@puuid", puuid));
+        if (teamId == 0) return null;
+
+        static TeamGoldFrame MapFrame(MySqlConnector.MySqlDataReader r) =>
+            new(Convert.ToInt32(r.GetValue(0)), Convert.ToInt32(r.GetValue(1)), Convert.ToInt32(r.GetValue(2)));
+
+        var frames = await ExecuteListAsync(@"
+            SELECT minute, team100_gold, team200_gold
+            FROM match_gold_frames
+            WHERE match_id = @match_id
+            ORDER BY minute",
+            MapFrame,
+            ("@match_id", matchId));
+
+        // Matches synced before match_gold_frames: sum the 5-minute checkpoints, only where all
+        // ten participants have one, so a missing row can't fake a lead
+        var fromCheckpoints = frames.Count == 0;
+        if (fromCheckpoints)
+        {
+            frames = await ExecuteListAsync(@"
+                SELECT
+                    pc.minute_mark,
+                    SUM(CASE WHEN p.team_id = 100 THEN pc.gold ELSE 0 END),
+                    SUM(CASE WHEN p.team_id = 200 THEN pc.gold ELSE 0 END)
+                FROM participant_checkpoints pc
+                INNER JOIN participants p ON p.id = pc.participant_id
+                WHERE p.match_id = @match_id
+                GROUP BY pc.minute_mark
+                HAVING COUNT(*) = 10
+                ORDER BY pc.minute_mark",
+                MapFrame,
+                ("@match_id", matchId));
+        }
+
+        var objectives = await ExecuteListAsync(@"
+            SELECT team_id, type, timestamp_sec
+            FROM match_objective_events
+            WHERE match_id = @match_id
+            ORDER BY timestamp_sec",
+            r => new ObjectiveTaken(r.GetInt32(0), r.GetString(1), r.GetInt32(2)),
+            ("@match_id", matchId));
+
+        return new GoldTimelineData(teamId, frames.ToList(), fromCheckpoints, objectives.ToList());
+    }
+
     /// <summary>
     /// Gets all 10 participants for a match with their metrics and 10-minute checkpoints.
     /// Used for the Match Narrative feature to show lane matchups.

@@ -26,6 +26,14 @@ vi.mock('@/components/matches/DecidingStatCard.vue', () => ({
   }
 }))
 
+vi.mock('@/components/matches/GoldTimelineCard.vue', () => ({
+  default: {
+    name: 'GoldTimelineCard',
+    props: ['timeline', 'win'],
+    template: '<div data-testid="gold-timeline-card" />'
+  }
+}))
+
 vi.mock('@/components/matches/StatSnapshot.vue', () => ({
   default: {
     name: 'StatSnapshot',
@@ -172,6 +180,25 @@ describe('MatchDetails.vue', () => {
       expect(cardIndex).toBeGreaterThanOrEqual(0)
       expect(tcIndex).toBeGreaterThanOrEqual(0)
       expect(cardIndex).toBeLessThan(tcIndex)
+    })
+
+    it('renders GoldTimelineCard after DecidingStatCard and before the lanes, with the result', () => {
+      const decidingStat = { outcome: 'none', stat: null, meters: [], fix: null, usualMatches: 20 }
+      const goldTimeline = { source: 'minute', points: [{ minute: 0, lead: 0 }, { minute: 1, lead: 200 }], moments: [], swing: null }
+      const wrapper = createWrapper({ match: baseMatch, decidingStat, goldTimeline })
+
+      const card = wrapper.findComponent({ name: 'GoldTimelineCard' })
+      expect(card.props('timeline')).toEqual(goldTimeline)
+      expect(card.props('win')).toBe(baseMatch.win)
+
+      const testIds = wrapper.findAll('[data-testid]').map(el => el.attributes('data-testid'))
+      expect(testIds.indexOf('deciding-stat-card')).toBeLessThan(testIds.indexOf('gold-timeline-card'))
+      expect(testIds.indexOf('gold-timeline-card')).toBeLessThan(testIds.indexOf('team-comparison'))
+    })
+
+    it('leaves out GoldTimelineCard without a gold timeline', () => {
+      const wrapper = createWrapper({ match: baseMatch, goldTimeline: null })
+      expect(wrapper.find('[data-testid="gold-timeline-card"]').exists()).toBe(false)
     })
 
     it('passes decidingStat and the match role to DecidingStatCard', () => {

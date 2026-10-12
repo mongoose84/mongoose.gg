@@ -4,6 +4,43 @@ Moves the authenticated app (`/app/*`) to the Mongoose.gg design system, one pha
 
 Tick items off as they land so work can resume from any machine.
 
+## What's missing (2026-10-13)
+
+A summary of what is still open across the phases below; the details stay in each phase.
+
+**Next time**
+- [ ] **Browser check of every Solo chart against its intent.** Open `/app/solo` on real data at 1440 / 1024 / 390px and check each chart does what its spec says: the numbers match the data, the title states the takeaway, nothing overlaps or clips, the text alternative matches what's drawn. The 4d pass showed unit tests miss this (overlapping circles, clamped moments, end-of-game numbers dominating the takeaway). Charts:
+  - Climb card: the LP line (promotions, the biggest drop) and its rolling win-rate fallback
+  - The six stat trend tiles, against the season or rank average
+  - "Your focus": the goal strip of the last 20 matches
+  - Win factors (hit vs missed win rate)
+  - LP per champion, and its net-wins fallback
+  - The three pattern column charts (session length, after a loss, match length)
+  - Death zones: the map, the zone list filter and the three breakdowns (5f has never run against real death data)
+
+**4d. Gold over time**
+- [ ] Commit the browser-pass fixes and the end-push rule (uncommitted on `migration_4d` after `50696c8e`).
+- [ ] Minute-by-minute gold exists only for matches synced after migration 005; older matches use 5-minute checkpoints. Decide whether to re-fetch timelines for them.
+- [ ] The time axis has no minute labels, so the moments show order, not time. Decide whether to add them.
+- [ ] Add the time-axis moments to the live design system and `reference/` (Step 5).
+
+**Data and checks**
+- [ ] Rank-snapshot coverage week (due 2026-10-06, overdue): measure coverage per the spec's manual scenario 4.
+- [ ] 5b tests item: the Solo E2E smoke ran green on 2026-10-13, but the E2E user has no matches, so only empty states are covered. The same goes for Matches: no E2E opens a match.
+- [ ] Vue warning during E2E: `BaseEmptyState` gets `heading-level=1` on the Overview ("Link your Riot account…") and fails the prop validator.
+
+**Features not built**
+- [ ] Phase 3 Overview data: Insights, Score rings, Queue readiness.
+- [ ] Overview and Champion Select visual passes ("Afterwards" under Phase 4).
+- [ ] Settings and Feedback pages.
+- [ ] Advanced page (Team + Goals) back into the navigation.
+
+**Smaller leftovers**
+- [ ] Champion names show Riot's internal ID app-wide ("Chogath", "MonkeyKing"); add a Data Dragon display-name mapping.
+- [ ] The champion strength-tag baseline mixes roles; revisit with per-role baselines (Score rings).
+- [ ] Design system Step 5 still open for Phase 2 patterns and the Champion Select matchup rows.
+- [ ] `AccountDropdownList` listbox roles; `test-strategy.spec.md` still lists `uiStore.spec.js` as missing.
+
 ## Starting point (2026-09-27)
 
 - **Foundation done**: Clash Display + Satoshi in `client/public/fonts/`, tokens in `client/src/style.css`, Tailwind mapping, Lucide icons via `BaseIcon`, `ScoreRing`, `mp-btn`, `useRevealOnView`.
@@ -194,8 +231,17 @@ Four PRs, in order; each is shippable alone. **Status: 4a built on branch `imple
 - [x] Built (2026-09-29): `DecidingStatCalculator` (Core, replaces `TrendBadgeCalculator`) scores five stats (gold lead, CS, deaths before 10, kill participation, vision per minute) against `IMatchesRepository.GetStatUsualsAsync` (up to 20 prior Summoner's Rift matches in the same role, strictly before the opened match). `MatchDetailsResponse.decidingStat` carries the outcome, up to three meters and an optional fix. Frontend: `BaseUsualMeter`, `DecidingStatCard` (`mp-card mp-card--highlight`), copy and scale rules in `utils/decidingStat.js`; wired into `MatchDetails` in `WinPredictionStats`'s old slot. Retired `TrendBadgeCalculator`, `TrendBadge`, `trendBadge` on list items, and the `MatchHeader` badge chip. Backend tests 682 green (24 new `DecidingStatCalculatorTests`); frontend unit tests 1563 green.
 
 ### 4d. Gold over time (data first)
-- [ ] Sync already downloads the match-v5 timeline for `participant_checkpoints`; persist per-minute team gold and the objective events (dragon, Baron, Herald, towers) from the same payload. Schema change + `database-schema.spec.md`; backfill is optional (older matches fall back to the 10/15/20/25 checkpoints or hide the chart).
-- [ ] Endpoint field + the line chart per the design system (takeaway title, `primary` line, moment markers on the axis, orange point for the biggest swing, text alternative).
+- [x] Sync already downloads the match-v5 timeline for `participant_checkpoints`; persist per-minute team gold and the objective events (dragon, Baron, Herald, towers) from the same payload. Schema change + `database-schema.spec.md`; backfill is optional (older matches fall back to the 10/15/20/25 checkpoints or hide the chart).
+- [x] Endpoint field + the line chart per the design system (takeaway title, `primary` line, moment markers on the axis, orange point for the biggest swing, text alternative).
+- [x] Apply migration `005_MatchGoldFrames.sql` to the dev database, then run the opt-in repository integration test (`RUN_DB_INTEGRATION_TESTS=true`) and check a few matches at 1440 / 1024 / 390px.
+
+#### 4d outcome notes (2026-10-12)
+- Objective events were already stored by 5e (`match_objective_events`). New: `match_gold_frames` (migration 005), one row per match and minute with each team's total gold, written by `DeathDetailWriter` beside the death detail, so sync and `DeathDetailBackfillJob` both fill it. No new backfill: accounts already marked done by the death detail backfill keep the checkpoint fallback for their older matches.
+- Fallback: matches without gold frames sum `participant_checkpoints` per team at every minute mark where all ten participants have one (0, 5, … 30), shown as "every 5 minutes" in the subtitle. Under 3 points, no chart.
+- `GoldTimelineBuilder` (Core): the lead from the player's team, the objectives the design system letters (D, B, H, T; grubs and inhibitors stay off the axis), and the biggest swing: the largest change within 3 minutes (or between neighbouring checkpoints), at least 1,500, ending before the last 3 minutes (the end push of towers, inhibitors and an ace is the result, not what decided it). Summoner's Rift only, never for a remake. `MatchDetailsResponse.goldTimeline`.
+- Frontend: `GoldTimelineCard` between "What decided it" and the lanes; `BaseLineChart` gained `moments` (lettered `surface-selected` circles on the time axis, stacked up to four rows at the rendered width, left out past that; the axis runs to the last objective). Title rules in `utils/goldTimeline.js`: comeback from −2,000 or worse, a +2,000 lead lost, ahead or behind all match or "from N min" (the lead held without crossing Even, peak 1,000+), even all match (inside ±1,000), else where it ended; the shape leaves out the last 3 minutes.
+- Tests: backend 892 green, including new `GoldTimelineBuilderTests` and mapper, writer and endpoint cases; the opt-in integration tests (11) green against the test database after migration 005; frontend unit tests 1466 green; E2E 70/70 green; build green. Browser pass 2026-10-13 on real matches at 1440/1024/390: fixed moment circles overlapping (gap now from the rendered width) and late objectives clamped onto the last checkpoint; the end push dominated every swing and title, so both now leave it out.
+- Design system (Step 5): the time-axis moments are now a real component; add them to the live system and the `reference/` snapshot with the next design pass.
 
 ### Afterwards
 - Overview and Champion Select visual passes (artboards `OverviewVisual`, `ChampionSelectVisual` on the same canvas; desktop only for now, phone versions deferred). Champion Select works with existing data. The Overview needs per-match results for its week and today strips, LP from 4b, and a high-deaths win rate next to `winRateLowDeaths` for its deaths chart.

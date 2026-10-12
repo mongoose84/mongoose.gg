@@ -22,6 +22,7 @@ public record MatchListResponse(
 public record MatchDetailsResponse(
     [property: JsonPropertyName("match")] MatchDetailsItem Match,
     [property: JsonPropertyName("baseline")] RoleBaseline? Baseline,
-    [property: JsonPropertyName("decidingStat")] DecidingStat? DecidingStat = null
+    [property: JsonPropertyName("decidingStat")] DecidingStat? DecidingStat = null,
+    [property: JsonPropertyName("goldTimeline")] GoldTimeline? GoldTimeline = null
 );
 

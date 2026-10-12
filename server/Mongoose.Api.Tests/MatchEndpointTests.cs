@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 using static Mongoose.Api.Tests.TestWebApplicationFactory;
+using GoldTimelineData = Mongoose.Api.Core.QueryModels.GoldTimelineData;
 
 namespace Mongoose.Api.Tests;
 
@@ -728,6 +729,73 @@ public class MatchEndpointTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         json.RootElement.GetProperty("decidingStat").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    // ============================================================================
+    // MatchDetailsEndpoint Tests — gold-lead chart (goldTimeline)
+    // ============================================================================
+
+    private static readonly GoldTimelineData SeededGoldTimeline = new(
+        TeamId: 200,
+        Frames: [new(0, 2500, 2500), new(1, 3000, 2900), new(2, 4000, 3200), new(3, 6400, 3400), new(4, 7400, 4400), new(5, 8400, 5400), new(6, 9400, 6400)],
+        FromCheckpoints: false,
+        Objectives: [new(100, "dragon", 95), new(200, "grubs", 100), new(200, "tower", 170)]);
+
+    private static async Task<HttpResponseMessage> GetDetailsWithGoldTimelineAsync(
+        TestWebApplicationFactory factory, string matchId, int queueId, int gameDurationSec = 1800)
+    {
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-gold", "Gold", "NA1", "Gold#NA1", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-gold", isPrimary: true);
+        var accountId = BuildAccountId(1, "puuid-gold");
+
+        factory.MatchesRepository.AddMatch(matchId, queueId: queueId, gameDurationSec: gameDurationSec);
+        factory.MatchesRepository.AddParticipant(new FakeParticipantData(
+            MatchId: matchId, Puuid: "puuid-gold", ChampionId: 1, ChampionName: "Annie",
+            Role: "MIDDLE", Lane: "MIDDLE", Win: false, Kills: 2, Deaths: 6, Assists: 3,
+            CreepScore: 150, GoldEarned: 9000, TeamId: 200));
+        factory.MatchesRepository.SetGoldTimeline(matchId, SeededGoldTimeline);
+
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/matches/{matchId}/details?accountId={accountId}");
+        req.Headers.Add("Cookie", authCookie);
+        return await client.SendAsync(req);
+    }
+
+    [Fact]
+    public async Task MatchDetails_returns_goldTimeline_fromThePlayersSide()
+    {
+        using var factory = new TestWebApplicationFactory();
+
+        var response = await GetDetailsWithGoldTimelineAsync(factory, "NA1_GOLD", queueId: 420);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var timeline = json.RootElement.GetProperty("goldTimeline");
+        timeline.GetProperty("source").GetString().Should().Be("minute");
+        timeline.GetProperty("points").EnumerateArray()
+            .Select(p => (p.GetProperty("minute").GetInt32(), p.GetProperty("lead").GetInt32()))
+            .Should().Equal((0, 0), (1, -100), (2, -800), (3, -3000), (4, -3000), (5, -3000), (6, -3000));
+        timeline.GetProperty("moments").EnumerateArray()
+            .Select(m => (m.GetProperty("type").GetString(), m.GetProperty("ours").GetBoolean()))
+            .Should().Equal(("dragon", false), ("tower", true));
+        var swing = timeline.GetProperty("swing");
+        swing.GetProperty("minute").GetInt32().Should().Be(3);
+        swing.GetProperty("change").GetInt32().Should().Be(-3000);
+    }
+
+    [Theory]
+    [InlineData(450, 1800)] // ARAM
+    [InlineData(420, 200)]  // remake
+    public async Task MatchDetails_goldTimeline_isNull_forAramAndRemakes(int queueId, int gameDurationSec)
+    {
+        using var factory = new TestWebApplicationFactory();
+
+        var response = await GetDetailsWithGoldTimelineAsync(factory, "NA1_NOGOLD", queueId, gameDurationSec);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("goldTimeline").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]

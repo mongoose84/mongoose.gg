@@ -352,3 +352,52 @@ public record DecidingStat(
     [property: JsonPropertyName("usualMatches")] int UsualMatches
 );
 
+
+/// <summary>Each team's total gold at one minute: a match_gold_frames row, or summed checkpoints.</summary>
+public record TeamGoldFrame(int Minute, int Team100Gold, int Team200Gold);
+
+/// <summary>An objective a team took (match_objective_events), as the gold chart needs it.</summary>
+public record ObjectiveTaken(int TeamId, string Type, int TimestampSec);
+
+/// <summary>
+/// What the gold-lead chart is built from: the player's team, the gold frames (per minute, or the
+/// 5-minute checkpoints for matches synced before match_gold_frames existed) and the objectives.
+/// </summary>
+public record GoldTimelineData(
+    int TeamId,
+    IReadOnlyList<TeamGoldFrame> Frames,
+    bool FromCheckpoints,
+    IReadOnlyList<ObjectiveTaken> Objectives
+);
+
+/// <summary>The player's team gold lead at one minute (negative when behind).</summary>
+public record GoldTimelinePoint(
+    [property: JsonPropertyName("minute")] int Minute,
+    [property: JsonPropertyName("lead")] int Lead
+);
+
+/// <summary>An objective on the chart's time axis, taken by the player's team or the enemy.</summary>
+public record GoldTimelineMoment(
+    [property: JsonPropertyName("timestampSec")] int TimestampSec,
+    [property: JsonPropertyName("type")] string Type, // "dragon" | "baron" | "herald" | "tower"
+    [property: JsonPropertyName("ours")] bool Ours
+);
+
+/// <summary>The biggest change in the lead over a short window, ending at <see cref="Minute"/>.</summary>
+public record GoldTimelineSwing(
+    [property: JsonPropertyName("fromMinute")] int FromMinute,
+    [property: JsonPropertyName("minute")] int Minute,
+    [property: JsonPropertyName("change")] int Change
+);
+
+/// <summary>
+/// The match-details gold-lead chart: the lead per minute from the player's side, the objectives
+/// as moments, and the one swing worth pointing at. Null on the response for a remake, a queue
+/// other than Summoner's Rift, or a match without enough gold data.
+/// </summary>
+public record GoldTimeline(
+    [property: JsonPropertyName("source")] string Source, // "minute" | "checkpoints"
+    [property: JsonPropertyName("points")] IReadOnlyList<GoldTimelinePoint> Points,
+    [property: JsonPropertyName("moments")] IReadOnlyList<GoldTimelineMoment> Moments,
+    [property: JsonPropertyName("swing")] GoldTimelineSwing? Swing
+);

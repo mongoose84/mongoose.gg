@@ -46,6 +46,7 @@
     <div v-else class="details-content">
       <MatchHeader :match="match" />
       <DecidingStatCard v-if="decidingStat" :deciding-stat="decidingStat" :role="match.role" />
+      <GoldTimelineCard v-if="goldTimeline?.points?.length" :timeline="goldTimeline" :win="match.win" />
       <!-- Lanes beside the team summary when the column is wide enough -->
       <div class="match-details__pair">
         <MatchNarrative :match-id="match?.matchId" :account-id="accountId" />
@@ -60,7 +61,7 @@
 <script setup>
 /**
  * The open match, in the design-system order: the match banner → the stats that decide matches →
- * lane by lane beside the team summary → every stat (with the data download) → next step.
+ * the gold lead over time → lane by lane beside the team summary → every stat (with the data download) → next step.
  * Owns loading, error and empty states.
  */
 import { computed, watch } from 'vue'
@@ -70,6 +71,7 @@ import BaseEmptyState from '../base/BaseEmptyState.vue'
 import MatchHeader from './MatchHeader.vue'
 import TeamComparison from './TeamComparison.vue'
 import DecidingStatCard from './DecidingStatCard.vue'
+import GoldTimelineCard from './GoldTimelineCard.vue'
 import StatSnapshot from './StatSnapshot.vue'
 import MatchNarrative from './MatchNarrative.vue'
 import MatchActions from './MatchActions.vue'
@@ -100,6 +102,11 @@ const props = defineProps({
   },
   /** "What decided it": the deciding stat, meters and fix from the details response */
   decidingStat: {
+    type: Object,
+    default: null
+  },
+  /** The gold lead per minute, objectives and biggest swing from the details response */
+  goldTimeline: {
     type: Object,
     default: null
   }

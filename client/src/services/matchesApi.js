@@ -32,7 +32,7 @@ export async function getMatchList(userId, queueType = 'all') {
  * Get full match details for a single match (on-demand)
  * @param {string} matchId - The match ID
  * @param {string} [accountId] - Opaque account identifier (acc_...). Defaults to active account context.
- * @returns {Promise<{ match: Object, baseline: Object | null, decidingStat: Object | null } | null>}
+ * @returns {Promise<{ match: Object, baseline: Object | null, decidingStat: Object | null, goldTimeline: Object | null } | null>}
  */
 export async function getMatchDetails(matchId, accountId = getAccountParam()) {
   const params = new URLSearchParams()
