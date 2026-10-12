@@ -45,9 +45,11 @@ public sealed class FakeRankSnapshotsRepository : IRankSnapshotsRepository
             .Take(limit)
             .ToList());
 
+    // A match an attributed snapshot points at has lp_after in the real repository, so it's left out
     public Task<IList<string>> GetMatchIdsEndedBetweenAsync(string puuid, int queueId, long fromMs, long toMs) =>
         Task.FromResult<IList<string>>(MatchEnds
             .Where(m => m.Puuid == puuid && m.QueueId == queueId && m.EndMs >= fromMs && m.EndMs <= toMs)
+            .Where(m => !Snapshots.Any(s => s.Puuid == puuid && s.Status == RankSnapshotStatus.Attributed && s.MatchId == m.MatchId))
             .Select(m => m.MatchId)
             .ToList());
 

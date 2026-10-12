@@ -70,6 +70,7 @@ public class RankSnapshotsRepository : RepositoryBase, IRankSnapshotsRepository
             WHERE p.puuid = @puuid
             AND m.queue_id = @queue_id
             AND m.game_duration_sec >= @min_duration
+            AND p.lp_after IS NULL
             AND m.game_start_time + m.game_duration_sec * 1000 BETWEEN @from_ms AND @to_ms
             ORDER BY m.game_start_time";
 

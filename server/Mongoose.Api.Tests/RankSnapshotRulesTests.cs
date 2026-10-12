@@ -52,14 +52,15 @@ public sealed class RankSnapshotRulesTests
     }
 
     [Fact]
-    public void AttributionWindow_SpansBothReadings_WidenedByTheClockSkew()
+    public void AttributionWindow_SpansBothReadings_ShiftedLaterByTheClockSkew()
     {
         var previous = new DateTime(2026, 9, 28, 20, 0, 0, DateTimeKind.Utc);
         var current = previous.AddMinutes(20);
 
         var (fromMs, toMs) = RankSnapshotRules.AttributionWindow(previous, current, TimeSpan.FromMinutes(2));
 
-        fromMs.Should().Be(new DateTimeOffset(previous.AddMinutes(-2)).ToUnixTimeMilliseconds());
+        // Narrowed at the start: a match that ended around the previous reading may be the one it counted
+        fromMs.Should().Be(new DateTimeOffset(previous.AddMinutes(2)).ToUnixTimeMilliseconds());
         toMs.Should().Be(new DateTimeOffset(current.AddMinutes(2)).ToUnixTimeMilliseconds());
     }
 

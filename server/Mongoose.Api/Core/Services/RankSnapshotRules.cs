@@ -49,11 +49,14 @@ public static class RankSnapshotRules
 
     /// <summary>
     /// The window a pending snapshot's match must have ended in, in epoch milliseconds: from the
-    /// previous reading to this one, widened by the clock skew on both sides.
+    /// previous reading to this one, shifted later by the clock skew. A match that ended within the
+    /// skew of the previous reading may be the one that reading already counted (a sync right after
+    /// a match), so the start is narrowed rather than widened; the end is widened for a match our
+    /// clock puts slightly after the reading that counted it.
     /// </summary>
     public static (long FromMs, long ToMs) AttributionWindow(DateTime previousCapturedAtUtc, DateTime capturedAtUtc, TimeSpan clockSkew)
     {
-        var from = new DateTimeOffset(DateTime.SpecifyKind(previousCapturedAtUtc, DateTimeKind.Utc)) - clockSkew;
+        var from = new DateTimeOffset(DateTime.SpecifyKind(previousCapturedAtUtc, DateTimeKind.Utc)) + clockSkew;
         var to = new DateTimeOffset(DateTime.SpecifyKind(capturedAtUtc, DateTimeKind.Utc)) + clockSkew;
         return (from.ToUnixTimeMilliseconds(), to.ToUnixTimeMilliseconds());
     }
