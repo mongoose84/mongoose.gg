@@ -40,6 +40,13 @@ public interface IMatchesRepository
     Task<Dictionary<string, StatUsual>> GetStatUsualsAsync(string puuid, string role, long beforeGameStartTime);
 
     /// <summary>
+    /// Gets what the gold-lead chart needs for the player's match: their team, each team's gold per
+    /// minute (or summed from the 5-minute checkpoints when the match has no gold frames) and the
+    /// objectives each team took. Null when the player has no row in the match.
+    /// </summary>
+    Task<GoldTimelineData?> GetGoldTimelineDataAsync(string matchId, string puuid);
+
+    /// <summary>
     /// Deletes matches older than the specified cutoff date in batches.
     /// Uses CASCADE DELETE to automatically remove related records from all child tables.
     /// </summary>

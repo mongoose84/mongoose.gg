@@ -1574,6 +1574,18 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             return Task.FromResult<IList<MatchupParticipantRaw>>(result);
         }
 
+        private readonly ConcurrentDictionary<string, GoldTimelineData> _goldTimelines = new();
+
+        /// <summary>Sets the gold frames and objectives a match's gold-lead chart is built from.</summary>
+        public void SetGoldTimeline(string matchId, GoldTimelineData data) => _goldTimelines[matchId] = data;
+
+        /// <summary>Null unless the puuid played the match and its gold timeline was set.</summary>
+        public Task<GoldTimelineData?> GetGoldTimelineDataAsync(string matchId, string puuid)
+        {
+            var played = _participants.TryGetValue(matchId, out var participants) && participants.Any(p => p.Puuid == puuid);
+            return Task.FromResult(played && _goldTimelines.TryGetValue(matchId, out var data) ? data : null);
+        }
+
         /// <summary>
         /// Mirrors <see cref="MatchesRepository.GetStatUsualsAsync"/>: up to 20 most recent matches
         /// strictly before <paramref name="beforeGameStartTime"/>, same puuid + role, Summoner's

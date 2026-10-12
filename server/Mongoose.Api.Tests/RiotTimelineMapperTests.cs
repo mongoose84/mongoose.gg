@@ -650,6 +650,37 @@ public class RiotTimelineMapperTests
     }
 
     [Fact]
+    public void ExtractGoldFrames_SumsEachTeamsGold_PerMinute()
+    {
+        var timeline = BuildTimeline(new[]
+        {
+            BuildFrame(0, new[] { (1, 500, 0, 0, 0), (2, 500, 0, 0, 0), (6, 500, 0, 0, 0) }),
+            BuildFrame(1, new[] { (1, 800, 0, 0, 0), (2, 700, 0, 0, 0), (6, 1100, 0, 0, 0), (10, 600, 0, 0, 0) }),
+        });
+
+        RiotTimelineMapper.ExtractGoldFrames(timeline)
+            .Select(f => (f.Minute, f.Team100Gold, f.Team200Gold))
+            .Should().Equal((0, 1000, 500), (1, 1500, 1700));
+    }
+
+    [Fact]
+    public void ExtractGoldFrames_KeepsTheEndFrame_WhenItSharesAMinute()
+    {
+        // The game ends at 1:40, so the last frame falls in minute 1 next to the 1:00 frame
+        var endFrame = new JsonObject("{\"timestamp\":100000,\"participantFrames\":{\"1\":{\"totalGold\":900},\"6\":{\"totalGold\":1300}}}");
+        var timeline = BuildTimeline(new[]
+        {
+            BuildFrame(0, new[] { (1, 500, 0, 0, 0), (6, 500, 0, 0, 0) }),
+            BuildFrame(1, new[] { (1, 800, 0, 0, 0), (6, 1100, 0, 0, 0) }),
+            endFrame
+        });
+
+        RiotTimelineMapper.ExtractGoldFrames(timeline)
+            .Select(f => (f.Minute, f.Team100Gold, f.Team200Gold))
+            .Should().Equal((0, 500, 500), (1, 900, 1300));
+    }
+
+    [Fact]
     public void ExtractParticipantIds_MapsPuuidToParticipantId()
     {
         RiotTimelineMapper.ExtractParticipantIds(DeathDetail())

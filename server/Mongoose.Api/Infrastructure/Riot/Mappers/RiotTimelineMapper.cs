@@ -429,6 +429,44 @@ public static class RiotTimelineMapper
         public int? KillerParticipantId { get; set; }
     }
 
+    /// <summary>
+    /// Each team's total gold at every timeline frame, by minute (participants 1-5 are team 100).
+    /// The last frame sits at the game's end, mid-minute; when it shares a minute with the frame
+    /// before it, the later one wins so the series ends on the final gold.
+    /// </summary>
+    public static List<GoldFrameData> ExtractGoldFrames(JsonElement timelineRoot)
+    {
+        var byMinute = new SortedDictionary<int, GoldFrameData>();
+        var info = timelineRoot.GetProperty("info");
+
+        foreach (var frame in info.GetProperty("frames").EnumerateArray())
+        {
+            if (!frame.TryGetProperty("participantFrames", out var participantFrames)
+                || participantFrames.ValueKind != JsonValueKind.Object) continue;
+
+            int team100 = 0, team200 = 0;
+            foreach (var pf in participantFrames.EnumerateObject())
+            {
+                if (!int.TryParse(pf.Name, out var participantId)) continue;
+                if (!pf.Value.TryGetProperty("totalGold", out var gold)) continue;
+                if (TeamOf(participantId) == 100) team100 += gold.GetInt32();
+                else team200 += gold.GetInt32();
+            }
+
+            var minute = (int)(frame.GetProperty("timestamp").GetInt64() / 60000);
+            byMinute[minute] = new GoldFrameData { Minute = minute, Team100Gold = team100, Team200Gold = team200 };
+        }
+
+        return byMinute.Values.ToList();
+    }
+
+    public class GoldFrameData
+    {
+        public int Minute { get; set; }
+        public int Team100Gold { get; set; }
+        public int Team200Gold { get; set; }
+    }
+
     /// <summary>The timeline's own participant list: PUUID to Riot participantId (1-10).</summary>
     public static Dictionary<string, int> ExtractParticipantIds(JsonElement timelineRoot)
     {

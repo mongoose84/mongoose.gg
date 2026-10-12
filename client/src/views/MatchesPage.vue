@@ -174,6 +174,7 @@
             :match="matchDetails"
             :baseline="matchDetailsBaseline"
             :deciding-stat="matchDetailsDecidingStat"
+            :gold-timeline="matchDetailsGoldTimeline"
             :account-id="matchDetailsAccountId"
             :loading="detailsLoading || (listIsLoading && !matchDetails)"
             :error="detailsError"
@@ -274,6 +275,7 @@ const {
 const matchDetails = ref(null)
 const matchDetailsBaseline = ref(null)
 const matchDetailsDecidingStat = ref(null)
+const matchDetailsGoldTimeline = ref(null)
 const matchDetailsAccountId = ref(null)
 const detailsLoading = ref(false)
 const detailsError = ref(null)
@@ -385,6 +387,7 @@ function clearDetails() {
   matchDetails.value = null
   matchDetailsBaseline.value = null
   matchDetailsDecidingStat.value = null
+  matchDetailsGoldTimeline.value = null
   matchDetailsAccountId.value = null
   detailsError.value = null
   detailsLoading.value = false
@@ -451,6 +454,7 @@ async function fetchMatchDetails(matchId) {
     matchDetails.value = result.match ?? null
     matchDetailsBaseline.value = result.baseline ?? null
     matchDetailsDecidingStat.value = result.decidingStat ?? null
+    matchDetailsGoldTimeline.value = result.goldTimeline ?? null
   } catch (err) {
     if (!isCurrent()) return
 

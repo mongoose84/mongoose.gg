@@ -83,10 +83,13 @@ public sealed class MatchDetailsEndpoint : IEndpoint
                 // "What decided it": skip the extra usual query for the cases FR9 always excludes
                 var decidingStat = await ComputeDecidingStatAsync(matchesRepo, selectedPuuid, matchDetails);
 
+                var goldTimeline = await ComputeGoldTimelineAsync(matchesRepo, selectedPuuid, matchDetails);
+
                 var response = new MatchDetailsResponse(
                     Match: matchDetails,
                     Baseline: baseline,
-                    DecidingStat: decidingStat
+                    DecidingStat: decidingStat,
+                    GoldTimeline: goldTimeline
                 );
 
                 return Results.Ok(response);
@@ -99,6 +102,25 @@ public sealed class MatchDetailsEndpoint : IEndpoint
         });
 
         endpoint.RequireAuthorization();
+    }
+
+    /// <summary>
+    /// The gold-lead chart is Summoner's Rift only (two teams and the objectives the chart marks),
+    /// and a remake has nothing to draw, so those skip the timeline queries.
+    /// </summary>
+    private static async Task<GoldTimeline?> ComputeGoldTimelineAsync(
+        IMatchesRepository matchesRepo,
+        string puuid,
+        MatchDetailsItem matchDetails)
+    {
+        var isRemake = matchDetails.GameDurationSec < GameConstants.MinValidGameDurationSec;
+        if (isRemake || !GameConstants.SummonersRiftQueueIds.Contains(matchDetails.QueueId))
+        {
+            return null;
+        }
+
+        var data = await matchesRepo.GetGoldTimelineDataAsync(matchDetails.MatchId, puuid);
+        return data is null ? null : GoldTimelineBuilder.Build(data);
     }
 
     /// <summary>

@@ -85,6 +85,7 @@ builder.Services.AddScoped<ITeamObjectivesRepository, TeamObjectivesRepository>(
 builder.Services.AddScoped<IParticipantObjectivesRepository, ParticipantObjectivesRepository>();
 builder.Services.AddScoped<IParticipantDeathEventsRepository, ParticipantDeathEventsRepository>();
 builder.Services.AddScoped<IMatchObjectiveEventsRepository, MatchObjectiveEventsRepository>();
+builder.Services.AddScoped<IMatchGoldFramesRepository, MatchGoldFramesRepository>();
 builder.Services.AddScoped<IDeathDetailBackfillRepository, DeathDetailBackfillRepository>();
 builder.Services.AddScoped<ISoloTrendsRepository, SoloTrendsRepository>();
 builder.Services.AddScoped<ITeamMatchMetricsRepository, TeamMatchMetricsRepository>();

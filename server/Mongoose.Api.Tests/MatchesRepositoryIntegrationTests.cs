@@ -707,6 +707,94 @@ public sealed class MatchesRepositoryIntegrationTests
         await checkpointCmd.ExecuteNonQueryAsync();
     }
 
+    [Fact]
+    public async Task GetGoldTimelineDataAsync_FallsBackToFullCheckpoints_ThenPrefersGoldFrames()
+    {
+        if (!IsIntegrationDbOptInEnabled()) return;
+        var connectionString = GetTestConnectionString();
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var factory = new DirectDbConnectionFactory(connectionString);
+        await EnsureSchemaAsync(factory);
+        var repository = new MatchesRepository(factory);
+
+        var testKey = Guid.NewGuid().ToString("N")[..12];
+        var puuid = $"integration-puuid-{testKey}";
+        var matchId = $"GOLD_{testKey}";
+
+        try
+        {
+            await InsertMatchAsync(factory, matchId);
+            await using var connection = await factory.CreateOpenConnectionAsync();
+
+            // Ten participants, the player on team 200; every one has checkpoints at 0 and 5, but
+            // one is missing minute 10, so minute 10 can't be summed
+            for (var i = 0; i < 10; i++)
+            {
+                await using var participantCmd = new MySqlCommand(@"
+                    INSERT INTO participants (
+                        match_id, puuid, team_id, role, lane, champion_id, champion_name,
+                        win, kills, deaths, assists, creep_score, gold_earned, time_dead_sec
+                    ) VALUES (@matchId, @puuid, @teamId, 'TOP', 'TOP', 266, 'Aatrox', TRUE, 0, 0, 0, 0, 0, 0);
+                    SELECT LAST_INSERT_ID();", connection);
+                participantCmd.Parameters.AddWithValue("@matchId", matchId);
+                participantCmd.Parameters.AddWithValue("@puuid", i == 5 ? puuid : $"{puuid}-{i}");
+                participantCmd.Parameters.AddWithValue("@teamId", i < 5 ? 100 : 200);
+                var participantId = Convert.ToInt64(await participantCmd.ExecuteScalarAsync());
+
+                foreach (var minute in i == 9 ? new[] { 0, 5 } : new[] { 0, 5, 10 })
+                {
+                    await using var checkpointCmd = new MySqlCommand(@"
+                        INSERT INTO participant_checkpoints (participant_id, minute_mark, gold, cs, xp)
+                        VALUES (@participantId, @minute, @gold, 0, 0);", connection);
+                    checkpointCmd.Parameters.AddWithValue("@participantId", participantId);
+                    checkpointCmd.Parameters.AddWithValue("@minute", minute);
+                    checkpointCmd.Parameters.AddWithValue("@gold", 500 + minute * (i < 5 ? 100 : 120));
+                    await checkpointCmd.ExecuteNonQueryAsync();
+                }
+            }
+
+            await using (var objectiveCmd = new MySqlCommand(@"
+                INSERT INTO match_objective_events (match_id, team_id, type, timestamp_sec)
+                VALUES (@matchId, 200, 'dragon', 400);", connection))
+            {
+                objectiveCmd.Parameters.AddWithValue("@matchId", matchId);
+                await objectiveCmd.ExecuteNonQueryAsync();
+            }
+
+            var fromCheckpoints = await repository.GetGoldTimelineDataAsync(matchId, puuid);
+
+            fromCheckpoints.Should().NotBeNull();
+            fromCheckpoints!.TeamId.Should().Be(200);
+            fromCheckpoints.FromCheckpoints.Should().BeTrue();
+            fromCheckpoints.Frames.Select(f => (f.Minute, f.Team100Gold, f.Team200Gold))
+                .Should().Equal((0, 2500, 2500), (5, 5000, 5500));
+            fromCheckpoints.Objectives.Should().ContainSingle()
+                .Which.Should().Be(new Mongoose.Api.Core.QueryModels.ObjectiveTaken(200, "dragon", 400));
+
+            await using (var framesCmd = new MySqlCommand(@"
+                INSERT INTO match_gold_frames (match_id, minute, team100_gold, team200_gold)
+                VALUES (@matchId, 1, 2600, 2700), (@matchId, 0, 2500, 2500);", connection))
+            {
+                framesCmd.Parameters.AddWithValue("@matchId", matchId);
+                await framesCmd.ExecuteNonQueryAsync();
+            }
+
+            var fromFrames = await repository.GetGoldTimelineDataAsync(matchId, puuid);
+
+            fromFrames!.FromCheckpoints.Should().BeFalse();
+            fromFrames.Frames.Select(f => (f.Minute, f.Team100Gold, f.Team200Gold))
+                .Should().Equal((0, 2500, 2500), (1, 2600, 2700));
+
+            (await repository.GetGoldTimelineDataAsync(matchId, $"{puuid}-missing")).Should().BeNull();
+        }
+        finally
+        {
+            // Deleting the match cascades to every participant, checkpoint, frame and objective
+            await CleanupAsync(factory, matchId, puuid);
+        }
+    }
+
     private static async Task CleanupAsync(IDbConnectionFactory factory, string matchId, string puuid)    {
         await using var connection = await factory.CreateOpenConnectionAsync();
 
