@@ -20,14 +20,26 @@ vi.mock('@/services/analyticsApi', () => ({
 }))
 
 // ── Router mock: the open match lives in route.params.matchId ──────────────────
-const mockRoute = reactive({ params: {} })
+const mockRoute = reactive({ name: 'app-matches', params: {} })
 const mockReplace = vi.fn((location) => {
+  mockRoute.name = location.name
   mockRoute.params = { ...(location.params || {}) }
 })
 
+// The page's leave guard and afterEach hook, so tests can start or cancel a navigation away
+let routeLeaveGuard = null
+let afterEachHook = null
+
 vi.mock('vue-router', () => ({
   useRoute: () => mockRoute,
-  useRouter: () => ({ replace: mockReplace })
+  useRouter: () => ({
+    replace: mockReplace,
+    afterEach: (hook) => {
+      afterEachHook = hook
+      return () => { afterEachHook = null }
+    }
+  }),
+  onBeforeRouteLeave: (guard) => { routeLeaveGuard = guard }
 }))
 
 // ── Sync composable mock ───────────────────────────────────────────────────────
@@ -131,6 +143,7 @@ async function openMatch(matchId) {
 describe('MatchesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockRoute.name = 'app-matches'
     mockRoute.params = {}
     mockSyncState.value = null
     mockHasLinkedAccount.value = true
@@ -443,6 +456,52 @@ describe('MatchesPage', () => {
 
       mockRoute.params = {}
       await flushPromises()
+      expect(mockReplace).not.toHaveBeenCalled()
+    })
+
+    it('does not cancel a navigation away that is still loading when the list answers', async () => {
+      setDesktop(true)
+      let resolveList
+      mockGetMatchList.mockReturnValueOnce(new Promise((resolve) => { resolveList = resolve }))
+      mountPage()
+      await flushPromises()
+
+      // The user opens another page from the header; its route is still resolving
+      routeLeaveGuard()
+      resolveList(listResponse([makeMatch('MATCH_1')]))
+      await flushPromises()
+
+      expect(mockReplace).not.toHaveBeenCalled()
+    })
+
+    it('opens the newest match again when the navigation away was cancelled', async () => {
+      setDesktop(true)
+      let resolveList
+      mockGetMatchList.mockReturnValueOnce(new Promise((resolve) => { resolveList = resolve }))
+      mountPage()
+      await flushPromises()
+
+      routeLeaveGuard()
+      afterEachHook({}, {}, new Error('navigation cancelled'))
+      resolveList(listResponse([makeMatch('MATCH_1')]))
+      await flushPromises()
+
+      expect(mockReplace).toHaveBeenCalledWith({ name: 'app-matches', params: { matchId: 'MATCH_1' } })
+    })
+
+    it('does not pull the user back when leaving from an open match', async () => {
+      setDesktop(true)
+      mockGetMatchList.mockResolvedValue(listResponse([makeMatch('MATCH_1'), makeMatch('MATCH_2')]))
+      mountPage()
+      await flushPromises()
+      await openMatch('MATCH_2')
+      mockReplace.mockClear()
+
+      // Leaving the page drops the match from the URL too
+      mockRoute.name = 'app-champion-select'
+      mockRoute.params = {}
+      await flushPromises()
+
       expect(mockReplace).not.toHaveBeenCalled()
     })
   })

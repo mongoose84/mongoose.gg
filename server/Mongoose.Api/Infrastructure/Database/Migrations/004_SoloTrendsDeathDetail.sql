@@ -44,3 +44,4 @@ CREATE TABLE IF NOT EXISTS death_detail_backfill_skips (
     skipped_at DATETIME(3) NOT NULL COMMENT 'UTC',
     CONSTRAINT fk_backfill_skips_match FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

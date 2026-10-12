@@ -192,8 +192,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useAsyncData } from '../composables/useAsyncData'
 import { useSyncMatches } from '../composables/useSyncMatches'
@@ -251,6 +251,14 @@ const showLinkModal = ref(false)
 const hasFetched = ref(false)
 let listRequest = 0
 let detailsRequest = 0
+
+let isLeaving = false
+onBeforeRouteLeave(() => { isLeaving = true })
+// A cancelled leave (e.g. superseded by a click back to Matches) keeps the user here
+const removeAfterEach = router.afterEach((to, from, failure) => {
+  if (failure) isLeaving = false
+})
+onBeforeUnmount(removeAfterEach)
 
 const {
   data,
@@ -323,6 +331,14 @@ const emptyDescription = computed(() =>
     : `Your ${queueLabel.value} matches show up here after you play one and sync.`
 )
 
+/**
+ * False from the moment the user starts leaving: the next page may still be loading, and
+ * opening a match then would cancel that navigation and pull them back here.
+ */
+function isOnMatchesPage() {
+  return !isLeaving && route.name === 'app-matches'
+}
+
 function isDesktop() {
   return typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
@@ -389,8 +405,8 @@ async function fetchMatches() {
   hasFetched.value = true
 
   const first = result?.matches?.[0]?.matchId
-  if (!selectedMatchId.value && first && isDesktop()) {
-    // Desktop opens the newest match beside the list
+  if (!selectedMatchId.value && first && isOnMatchesPage() && isDesktop()) {
+    // Desktop opens the newest match beside the list, unless the user left the page meanwhile
     router.replace({ name: 'app-matches', params: { matchId: first } })
   } else if (selectedMatchId.value && authStore.isOverallMode && !matchDetails.value && !detailsLoading.value) {
     // Overall mode waited for the list to know which account played the match. If the list
@@ -473,7 +489,7 @@ watch(selectedMatchId, (matchId) => {
   // Back on the plain list URL (e.g. the Matches tab) with the list loaded: desktop opens the
   // newest match again. While the list reloads, fetchMatches opens it when the answer arrives.
   const first = matches.value[0]?.matchId
-  if (first && hasFetched.value && !isLoading.value && isDesktop()) {
+  if (first && hasFetched.value && !isLoading.value && isOnMatchesPage() && isDesktop()) {
     router.replace({ name: 'app-matches', params: { matchId: first } })
   }
 }, { immediate: true })

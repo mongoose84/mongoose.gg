@@ -19,12 +19,12 @@
   },
   "dependencies": {
     "@tanstack/vue-query": "^5.28.0",
-    "axios": "^1.18.0",
+    "axios": "^1.20.0",
     "pinia": "^2.1.7",
     "playwright": "^1.57.0",
     "simpleheat": "^0.4.0",
     "test": "^3.3.0",
-    "vue": "^3.4.21",
+    "vue": "^3.5.43",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
@@ -40,7 +40,7 @@
     "happy-dom": "^20.1.0",
     "jsdom": "^27.4.0",
     "postcss": "^8.5.25",
-    "tailwindcss": "^3.4.1",
+    "tailwindcss": "^3.4.19",
     "vite": "^8.2.0",
     "vitest": "^5.0.2"
   }
