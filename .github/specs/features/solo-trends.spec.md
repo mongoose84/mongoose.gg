@@ -203,7 +203,7 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
 31. **Data readiness.** A death counts when its event has `timestamp_sec` and `allies_nearby` (changed in 5f: `killer_participant_id` is not required, because executions by towers and minions have no killer and still are deaths). The card needs 30 such deaths in range.
     - While the backfill (FR 38) is running for the account, the card shows the backfill progress in its slot (FR 39).
     - When the backfill is done or not needed and there are still fewer than 30 deaths, it shows the EmptyState "Play a few more matches to see where your deaths cost you" with "Sync matches".
-32. **Mirroring.** Positions are normalised to `u = x / 14870` and `v = y / 14870`. For deaths on the red team (`participants.team_id = 200`), `(u, v)` becomes `(1 − u, 1 − v)`, so the player's base is always bottom left.
+32. **Mirroring.** Positions are normalised to `u = x / 14870` and `v = y / 14870`. For deaths on the red team (`participants.team_id = 200`), `(u, v)` becomes `(1 − v, 1 − u)` (a mirror across the top-left to bottom-right diagonal), so the player's base is always bottom left and each lane stays itself; a point reflection `(1 − u, 1 − v)` would swap top and bot lane.
 33. **Regions.** Each death falls into exactly one region, tested in this order (`d_mid = |u − v|`, `d_river = |u + v − 1|`, "your half" = `u + v < 1`):
 
     | Region key | Label | Rule |

@@ -25,6 +25,16 @@ describe('SoloDeathZones', () => {
     expect(zone.attributes('aria-pressed')).toBe('false')
   })
 
+  it('draws each zone\'s deaths against the most, with the share that lost an objective inside', () => {
+    const bar = mountCard().get('[data-testid="death-zone-bar-jungleEnemyBot"]')
+    const deaths = bar.get('.death-zones__zone-bar-deaths')
+    const lost = bar.get('.death-zones__zone-bar-lost')
+
+    // 38 of the most (44) deaths, and 14 of those 38 lost an objective
+    expect(parseFloat(deaths.attributes('style').match(/width:\s*([\d.]+)%/)[1])).toBeCloseTo((38 / 44) * 100, 1)
+    expect(parseFloat(lost.attributes('style').match(/width:\s*([\d.]+)%/)[1])).toBeCloseTo((14 / 38) * 100, 1)
+  })
+
   it('shows every zone on the map', () => {
     const wrapper = mountCard()
     expect(wrapper.find('[data-testid="death-map-zone-jungleEnemyBot"]').exists()).toBe(true)
