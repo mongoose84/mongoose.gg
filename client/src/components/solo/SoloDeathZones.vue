@@ -67,6 +67,11 @@
             <span class="death-zones__dot" :class="{ 'death-zones__dot--costly': zone.costly }" aria-hidden="true" />
             <span class="death-zones__zone-text">
               <span class="death-zones__zone-name">{{ zoneLabel(zone.key) }}</span>
+              <span class="death-zones__zone-bar" aria-hidden="true" :data-testid="`death-zone-bar-${zone.key}`">
+                <span class="death-zones__zone-bar-deaths" :style="{ width: zoneBar(zone).deaths }">
+                  <span class="death-zones__zone-bar-lost" :style="{ width: zoneBar(zone).lost }" />
+                </span>
+              </span>
               <span class="death-zones__zone-meta">{{ zoneSummary(zone) }}</span>
               <span class="death-zones__zone-meta">{{ zoneTimingNote(zone.timing) }}</span>
             </span>
@@ -161,6 +166,13 @@ function toggle(key) {
 
 const filterLabel = computed(() => (selectedKey.value ? zoneLabel(selectedKey.value) : 'All zones'))
 
+/** Deaths scaled to the zone with most, and the share of them that lost an objective inside that. */
+function zoneBar(zone) {
+  const most = Math.max(1, ...props.data.zones.map((z) => z.deaths))
+  const lostShare = zone.deaths ? Math.min(1, zone.lostObjectives / zone.deaths) : 0
+  return { deaths: `${(zone.deaths / most) * 100}%`, lost: `${lostShare * 100}%` }
+}
+
 function rows(counts, labels) {
   const most = Math.max(1, ...Object.values(counts))
   return Object.entries(labels).map(([key, label]) => ({
@@ -178,7 +190,7 @@ const groups = computed(() => {
   return [
     { key: 'phase', title: 'When', rows: rows(shown.phase, PHASE_LABELS) },
     { key: 'how', title: 'How', rows: rows(shown.how, HOW_LABELS) },
-    { key: 'cost', title: 'What it cost', rows: rows(shown.cost, COST_LABELS) }
+    { key: 'cost', title: 'Objectives lost after', rows: rows(shown.cost, COST_LABELS) }
   ]
 })
 </script>
@@ -240,17 +252,44 @@ const groups = computed(() => {
   width: 0.75rem;
   height: 0.75rem;
   margin-top: 0.25rem;
+  border: 1px solid var(--color-text);
   border-radius: 999px;
-  background: var(--color-primary-accent);
+  background: var(--color-ink-faint);
 }
 
 .death-zones__dot--costly {
+  border-color: var(--color-warn);
+  background: var(--color-warn);
+}
+
+.death-zones__zone-bar {
+  display: block;
+  width: 100%;
+  min-width: 8rem;
+  height: 0.375rem;
+  margin: 0.25rem 0 0.125rem;
+  border-radius: 999px;
+  background: var(--color-track);
+}
+
+.death-zones__zone-bar-deaths {
+  display: block;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-ink-faint);
+}
+
+.death-zones__zone-bar-lost {
+  display: block;
+  height: 100%;
   background: var(--color-warn);
 }
 
 .death-zones__zone-text {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 0.125rem;
   min-width: 0;
 }
@@ -315,7 +354,7 @@ const groups = computed(() => {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--color-primary-accent);
+  background: var(--color-ink-faint);
 }
 
 .death-zones__row-track > span.death-zones__row-bar--warn {

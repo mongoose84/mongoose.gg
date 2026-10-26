@@ -36,6 +36,20 @@ describe('BaseDeathMap', () => {
     expect(wrapper.get('[data-testid="death-map-zone-midLaneYours"]').classes()).toContain('death-map__zone--selected')
   })
 
+  it('draws the zones over the minimap with each zone\'s death count', () => {
+    const wrapper = mountMap()
+
+    expect(wrapper.get('[data-testid="death-map-image"]').attributes('href')).toBe('/assets/images/summoners-rift-minimap.png')
+    expect(wrapper.get('[data-testid="death-map-count-jungleEnemyBot"]').text()).toBe('38')
+  })
+
+  it('has a key that says what the colours mean', () => {
+    const key = mountMap().get('[data-testid="death-map-key"]')
+
+    expect(key.text()).toContain('Deaths')
+    expect(key.text()).toContain('Often cost an objective')
+  })
+
   it('is an image with every zone in its text alternative', () => {
     const map = mountMap().get('[data-testid="death-map"]')
     expect(map.attributes('role')).toBe('img')

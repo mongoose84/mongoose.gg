@@ -148,6 +148,26 @@ Make sure to also use the web.config file in the publish folder for IIS hosting.
 
 This will create all the files needed in the folder /bin/Release/publish
 
+##### Run locally without email (debug mode)
+No SMTP setup needed. Start the server with email sending disabled and new registrations auto-verified:
+```powershell
+# PowerShell, from server/Mongoose.Api
+$env:Auth__AutoVerifyEmail = "true"
+$env:Email__DevMode = "true"
+dotnet run
+```
+```bash
+# bash, from server/Mongoose.Api
+Auth__AutoVerifyEmail=true Email__DevMode=true dotnet run
+```
+- `Email__DevMode=true`: emails are not sent. The server logs a warning with hashed recipient and code values instead, so you can't read verification or reset codes from the log.
+- `Auth__AutoVerifyEmail=true`: new accounts are marked verified when they register, so you can log in right away without a code.
+- Optional: `RateLimiting__Enabled=false` turns off auth rate limits if you register or log in many times in a row.
+
+**⚠️ Never enable `Auth:AutoVerifyEmail` in production.**
+
+Password reset can't be completed in this mode, because the reset code is never delivered.
+
 ###### SMPTP Settings
 Set the SMTP settings in appsettings.json or via user-secrets:
 ```bash 

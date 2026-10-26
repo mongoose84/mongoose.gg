@@ -272,21 +272,19 @@
 .mp-goal > .is-miss { border: 2px solid var(--warn); }
 .mp-goal > .is-none { height: 6px; background: var(--track-strong); }
 
-/* DeathMap: map outline with zone circles, the zone list and the breakdown bars */
+/* DeathMap: minimap with zone circles and a key, the zone list and the breakdown bars */
 .mp-death-map { display: block; width: 100%; max-width: 340px; aspect-ratio: 1; }
-.mp-death-map__ground { fill: var(--surface-raised); }
-.mp-death-map__base { fill: var(--track); }
-.mp-death-map__lane { fill: none; stroke: var(--track-strong); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.mp-death-map__river { stroke: var(--divider); stroke-width: 3; stroke-dasharray: 2 2; }
-.mp-death-map__zone { fill: var(--primary); fill-opacity: 0.55; stroke: var(--primary); stroke-width: 0.6; }
-.mp-death-map__zone.is-costly { fill: var(--warn); stroke: var(--warn); }
-.mp-death-map__zone.is-selected { fill-opacity: 0.9; stroke: var(--ink); stroke-width: 1; }
+.mp-death-map__zone { fill: var(--on-primary); fill-opacity: 0.3; stroke: var(--on-primary); stroke-width: 0.6; }
+.mp-death-map__zone.is-costly { fill: var(--warn); fill-opacity: 0.7; stroke: var(--warn); }
+.mp-death-map__zone.is-selected { fill-opacity: 0.85; stroke: var(--on-primary); stroke-width: 1.2; }
+.mp-death-map__count { fill: var(--on-primary); stroke: var(--bg); stroke-width: 0.8; paint-order: stroke; font: 700 4.5px/1 var(--font-display); text-anchor: middle; dominant-baseline: central; }
+.mp-death-map__key { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 400 13px/1.4 var(--font-body); color: var(--ink-muted); }
 .mp-zone-list { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
 .mp-zone { display: flex; align-items: flex-start; gap: var(--space-3); width: 100%; min-height: 44px; padding: 10px 12px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .mp-zone:hover { background: var(--surface-raised); }
 .mp-zone[aria-pressed="true"] { background: var(--surface-selected); }
 .mp-zone:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
-.mp-zone__dot { flex-shrink: 0; width: 12px; height: 12px; margin-top: 4px; border-radius: var(--radius-pill); background: var(--primary); }
+.mp-zone__dot { flex-shrink: 0; width: 12px; height: 12px; margin-top: 4px; border: 1px solid var(--ink); border-radius: var(--radius-pill); background: var(--ink-faint); }
 .mp-zone__dot.is-costly { background: var(--warn); }
 .mp-zone__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mp-zone__name { font: 700 15px/1.3 var(--font-body); }
@@ -295,6 +293,6 @@
 .mp-breakdown ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .mp-breakdown li { display: grid; grid-template-columns: minmax(0, 160px) minmax(0, 1fr) 32px; align-items: center; gap: var(--space-3); font: 400 13px/1.4 var(--font-body); color: var(--ink-soft); }
 .mp-breakdown__track { height: 8px; border-radius: var(--radius-pill); background: var(--track); }
-.mp-breakdown__track > span { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--primary); }
+.mp-breakdown__track > span { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--ink-faint); }
 .mp-breakdown__track > span.is-warn { background: var(--warn); }
 .mp-breakdown__value { font: 600 13px/1 var(--font-display); text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
