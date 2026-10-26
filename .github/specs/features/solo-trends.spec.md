@@ -230,7 +230,7 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
 37. **Zones, title and breakdowns.**
     - **Zones:** the regions with at least 5 deaths, at most 5, sorted by lost objectives (then deaths). Each carries deaths, lost objectives, `costly = lostObjectives ÷ deaths ≥ 0.30`, its anchor, and a timing note: the phase holding the most of its deaths when that is 60% or more, as "{n} of them after 25 minutes" / "Mostly before 14 minutes" / "Mostly between 14 and 25 minutes"; otherwise "Spread over the match".
     - **Title:** `Deaths in {zone} cost you the most objectives` when the top zone lost 3 or more; otherwise `You die most in {zone with most deaths}`. Caption: `{n} deaths over your last {n} matches. Red-side matches are mirrored, so your base is always bottom left.`
-    - **Breakdowns:** phase, how and cost (by objective type), for all deaths in range and for each listed zone, so the zone list can filter them without another request. Pressing a zone row filters and marks it `aria-pressed`; pressing it again returns to all zones. The default is all zones.
+    - **Breakdowns:** phase, how and cost (by objective type), for all deaths in range and for each listed zone, so the zone list can switch zones without another request. The focus panel shows the zone to fix first (the title's subject) until a zone row is pressed; the pressed row is marked `aria-pressed`. The client shows only the per-zone breakdowns, behind "Show all numbers".
 
 **Death detail backfill** (decided 2026-09-29: backfill)
 

@@ -3,8 +3,8 @@ import { mount } from '@vue/test-utils'
 import BaseDeathMap from '@/components/base/BaseDeathMap.vue'
 
 const zones = [
-  { key: 'jungleEnemyBot', deaths: 38, costly: true, anchor: { u: 0.74, v: 0.39 } },
-  { key: 'midLaneYours', deaths: 10, costly: false, anchor: { u: 0.4, v: 0.4 } }
+  { key: 'jungleEnemyBot', deaths: 38, anchor: { u: 0.74, v: 0.39 } },
+  { key: 'midLaneYours', deaths: 10, anchor: { u: 0.4, v: 0.4 } }
 ]
 
 function mountMap(props = {}) {
@@ -29,11 +29,14 @@ describe('BaseDeathMap', () => {
     expect(small).toBeLessThan(big)
   })
 
-  it('draws costly zones in warn and marks the selected one', () => {
-    const wrapper = mountMap({ selectedKey: 'midLaneYours' })
+  it('draws only the zone to fix first in warn and marks the selected one', () => {
+    const wrapper = mountMap({ selectedKey: 'midLaneYours', focusKey: 'jungleEnemyBot' })
+    const focus = wrapper.get('[data-testid="death-map-zone-jungleEnemyBot"]')
+    const selected = wrapper.get('[data-testid="death-map-zone-midLaneYours"]')
 
-    expect(wrapper.get('[data-testid="death-map-zone-jungleEnemyBot"]').classes()).toContain('death-map__zone--costly')
-    expect(wrapper.get('[data-testid="death-map-zone-midLaneYours"]').classes()).toContain('death-map__zone--selected')
+    expect(focus.classes()).toContain('death-map__zone--focus')
+    expect(selected.classes()).not.toContain('death-map__zone--focus')
+    expect(selected.classes()).toContain('death-map__zone--selected')
   })
 
   it('draws the zones over the minimap with each zone\'s death count', () => {
@@ -47,7 +50,7 @@ describe('BaseDeathMap', () => {
     const key = mountMap().get('[data-testid="death-map-key"]')
 
     expect(key.text()).toContain('Deaths')
-    expect(key.text()).toContain('Often cost an objective')
+    expect(key.text()).toContain('Fix first')
   })
 
   it('is an image with every zone in its text alternative', () => {

@@ -28,7 +28,7 @@
       <g v-for="zone in placed" :key="zone.key">
         <circle
           class="death-map__zone"
-          :class="{ 'death-map__zone--costly': zone.costly, 'death-map__zone--selected': zone.key === selectedKey }"
+          :class="{ 'death-map__zone--focus': zone.key === focusKey, 'death-map__zone--selected': zone.key === selectedKey }"
           :cx="zone.x"
           :cy="zone.y"
           :r="zone.r"
@@ -49,8 +49,8 @@
         Deaths
       </span>
       <span class="death-map__key-item">
-        <span class="death-map__swatch death-map__swatch--costly" aria-hidden="true" />
-        Often cost an objective
+        <span class="death-map__swatch death-map__swatch--focus" aria-hidden="true" />
+        Fix first
       </span>
     </figcaption>
   </figure>
@@ -59,9 +59,8 @@
 <script setup>
 /**
  * DeathMap (design-system pattern, Solo death zones): the Summoner's Rift minimap with one circle
- * per zone at its fixed anchor, sized by deaths and labelled with the count. Circles are neutral,
- * and warn only when 30% or more of the zone's deaths cost an objective; the key under the map says
- * so. Anchors come with v up, so v is flipped for SVG. role="img" with every zone in the text
+ * per zone at its fixed anchor, sized by deaths and labelled with the count. Circles are neutral;
+ * only the zone to fix first is warn, and the key under the map says so. Anchors come with v up, so v is flipped for SVG. role="img" with every zone in the text
  * alternative; the zone list next to it is the interactive part.
  */
 import { computed } from 'vue'
@@ -72,10 +71,12 @@ const MIN_RADIUS = 4
 const MAX_RADIUS = 8
 
 const props = defineProps({
-  /** [{ key, deaths, costly, anchor: { u, v } }] */
+  /** [{ key, deaths, anchor: { u, v } }] */
   zones: { type: Array, required: true },
-  /** Key of the zone the breakdowns are filtered to */
+  /** Key of the zone shown in the focus panel */
   selectedKey: { type: String, default: null },
+  /** Key of the zone to fix first, the only one drawn in warn */
+  focusKey: { type: String, default: null },
   /** Every zone said in words */
   description: { type: String, required: true }
 })
@@ -85,7 +86,6 @@ const placed = computed(() => {
   return props.zones.map((z) => ({
     key: z.key,
     deaths: z.deaths,
-    costly: z.costly,
     x: Math.round(z.anchor.u * 1000) / 10,
     y: Math.round((1 - z.anchor.v) * 1000) / 10,
     // Area, not radius, follows deaths
@@ -118,7 +118,7 @@ const placed = computed(() => {
   stroke-width: 0.6;
 }
 
-.death-map__zone--costly {
+.death-map__zone--focus {
   fill: var(--color-warn);
   fill-opacity: 0.7;
   stroke: var(--color-warn);
@@ -165,7 +165,7 @@ const placed = computed(() => {
   background: var(--color-ink-faint);
 }
 
-.death-map__swatch--costly {
+.death-map__swatch--focus {
   border-color: var(--color-warn);
   background: var(--color-warn);
 }

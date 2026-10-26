@@ -6,7 +6,8 @@ import {
   buildDeathZonesTitle,
   describeDeathMap,
   zoneLabel,
-  zoneTimingNote,
+  buildZoneFocus,
+  focusZoneKey,
   buildFocusEvidence,
   buildFocusFinding,
   buildFocusFix,
@@ -396,11 +397,41 @@ describe('soloSummary death zones (FR 33, 37, 39)', () => {
       .toBe('40 deaths over 64 matches this season. Red-side matches are mirrored, so your base is always bottom left.')
   })
 
-  it('writes the timing note by phase', () => {
-    expect(zoneTimingNote({ phase: 'late', count: 27 })).toBe('27 of them after 25 minutes')
-    expect(zoneTimingNote({ phase: 'early', count: 9 })).toBe('Mostly before 14 minutes')
-    expect(zoneTimingNote({ phase: 'mid', count: 9 })).toBe('Mostly between 14 and 25 minutes')
-    expect(zoneTimingNote({ phase: null, count: 4 })).toBe('Spread over the match')
+  it('picks the zone to fix first: the top zone at 3+ objectives lost, else most deaths', () => {
+    expect(focusZoneKey([{ key: 'riverBot', deaths: 9, lostObjectives: 3 }, { key: 'midLaneYours', deaths: 20, lostObjectives: 1 }])).toBe('riverBot')
+    expect(focusZoneKey([{ key: 'riverBot', deaths: 9, lostObjectives: 2 }, { key: 'midLaneYours', deaths: 20, lostObjectives: 1 }])).toBe('midLaneYours')
+    expect(focusZoneKey([])).toBeNull()
+  })
+
+  it('names a zone\'s main cause and phase, its facts and a tip for that kind of zone', () => {
+    const focus = buildZoneFocus(
+      { key: 'botLaneYours', deaths: 29, lostObjectives: 10 },
+      { phase: { early: 18, mid: 7, late: 4 }, how: { ganked: 12, alone: 6, teamfight: 3, other: 8 }, cost: { dragon: 2, tower: 8, baron: 0, herald: 0 } }
+    )
+
+    expect(focus.pattern).toBe('Mostly ganked, before 14 min')
+    expect(focus.facts).toEqual([
+      { key: 'deaths', value: 29, label: 'deaths here', share: null },
+      { key: 'how', value: 12, label: 'Ganked in lane', share: 12 / 29 },
+      { key: 'cost', value: 10, label: 'lost an objective after · mostly towers', share: 10 / 29 }
+    ])
+    expect(focus.tip).toEqual({ icon: 'eye', text: 'Ward the river brush by your lane before you trade.' })
+  })
+
+  it('says when no cause or phase stands out, and prefers the late tip after 25 minutes', () => {
+    const mixed = buildZoneFocus(
+      { key: 'riverTop', deaths: 10, lostObjectives: 0 },
+      { phase: { early: 4, mid: 3, late: 3 }, how: { ganked: 3, alone: 3, teamfight: 2, other: 2 }, cost: { dragon: 0, tower: 0, baron: 0, herald: 0 } }
+    )
+    expect(mixed.pattern).toBe('No single cause, spread over the match')
+    expect(mixed.facts.at(-1).label).toBe('lost an objective after')
+
+    const late = buildZoneFocus(
+      { key: 'jungleEnemyBot', deaths: 38, lostObjectives: 14 },
+      { phase: { early: 4, mid: 7, late: 27 }, how: { ganked: 0, alone: 22, teamfight: 14, other: 2 }, cost: { dragon: 9, tower: 2, baron: 3, herald: 0 } }
+    )
+    expect(late.pattern).toBe('Mostly caught alone, after 25 min')
+    expect(late.tip.text).toBe('After 25 minutes, stay with your team instead of farming here alone.')
   })
 
   it('describes the map in words', () => {
