@@ -142,6 +142,15 @@
           </div>
         </section>
 
+        <ChampionSelectRecord
+          v-reveal-on-view
+          :records="activeGroup?.records ?? []"
+          :left-out="activeGroup?.recordsLeftOut ?? []"
+          :role="activeRole"
+          :queue-label="queueLabel"
+          :time-label="timeLabel"
+        />
+
         <div v-reveal-on-view class="cs-grid cs-grid--details">
           <ChampionSelectMatchups
             :champion-name="selectedChampion.championName"
@@ -191,6 +200,7 @@ import BaseSegmentedControl from '../components/base/BaseSegmentedControl.vue'
 import ChampionCard from '../components/base/ChampionCard.vue'
 import ChampionHero from '../components/base/ChampionHero.vue'
 import ChampionSelectMatchups from '../components/championSelect/ChampionSelectMatchups.vue'
+import ChampionSelectRecord from '../components/championSelect/ChampionSelectRecord.vue'
 import ChampionSelectSearch from '../components/championSelect/ChampionSelectSearch.vue'
 import LinkRiotAccountModal from '../components/LinkRiotAccountModal.vue'
 
@@ -249,10 +259,9 @@ const activeRole = computed(() => {
   return roles.includes(selectedRole.value) ? selectedRole.value : pickDefaultRole(roleGroups.value)
 })
 
-const picks = computed(() => {
-  const group = roleGroups.value.find((g) => g.role === activeRole.value)
-  return (group?.champions || []).slice(0, MAX_PICKS)
-})
+const activeGroup = computed(() => roleGroups.value.find((g) => g.role === activeRole.value) ?? null)
+
+const picks = computed(() => (activeGroup.value?.champions || []).slice(0, MAX_PICKS))
 
 const selectedIndex = computed(() => {
   const index = picks.value.findIndex((c) => c.championId === selectedChampionId.value)

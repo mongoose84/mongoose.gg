@@ -148,6 +148,43 @@ public class ChampionSelectEndpointTests
     }
 
     [Fact]
+    public async Task ChampionSelect_returns_records_left_out_names_and_recent_form()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+
+        factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
+        factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
+        var recent = new RecentForm(13, 5);
+        factory.ChampionSelectRepository.SetChampionSelectData("puuid123", CreateTestChampionSelectData() with
+        {
+            MainChampions =
+            [
+                new MainChampionRoleGroup(
+                    "BOTTOM",
+                    [new MainChampionEntry("Tristana", 18, "BOTTOM", 50.0, 32, 46.5, 3.1, 7.4, recent)],
+                    [new ChampionRecord(18, "Tristana", 32, 16, 0, recent)],
+                    ["Ezreal"])
+            ]
+        });
+
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1");
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var json = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var role = json.RootElement.GetProperty("mainChampions")[0];
+        role.GetProperty("champions")[0].GetProperty("recent").GetProperty("matches").GetInt32().Should().Be(13);
+        var record = role.GetProperty("records")[0];
+        record.GetProperty("net").GetInt32().Should().Be(0);
+        record.GetProperty("recent").GetProperty("wins").GetInt32().Should().Be(5);
+        role.GetProperty("recordsLeftOut")[0].GetString().Should().Be("Ezreal");
+    }
+
+    [Fact]
     public async Task ChampionSelect_accepts_queue_type_filter()
     {
         using var factory = new TestWebApplicationFactory();

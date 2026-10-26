@@ -462,46 +462,6 @@ export function describeClimb(climb) {
   return `Win rate over 10 matches, ${range}: from ${was}% to ${now}%.`
 }
 
-// ───────────────────────── LP per champion (FR 24–25) ─────────────────────────
-
-/** FR 25: "{Champion} earned most of your climb" and its variants; null without rows. */
-export function buildChampionLpTitle(climb) {
-  const champions = climb?.champions ?? []
-  if (!champions.length) return null
-  const top = champions[0]
-  const lowest = champions[champions.length - 1]
-  if (climb.mode === LP_MODE) {
-    return top.value > 0 ? `${top.championName} earned most of your climb` : `${lowest.championName} cost you the most LP`
-  }
-  return top.value > 0 ? `${top.championName} won you the most matches` : `${lowest.championName} cost you the most matches`
-}
-
-export function buildChampionLpCaption(climb) {
-  return climb.mode === LP_MODE ? 'LP won or lost per champion' : 'Wins minus losses per champion'
-}
-
-/** A row's value: "+134 LP" in LP mode, "+5" net wins otherwise. */
-export function formatChampionValue(value, mode) {
-  return mode === LP_MODE ? formatLp(value) : (Math.round(value) === 0 ? '±0' : formatSigned(value))
-}
-
-/** FR 24 footnote: up to three names left out for having under 3 matches, then "and n more". */
-export function buildLeftOutNote(names) {
-  if (!names?.length) return null
-  const shown = names.slice(0, 3)
-  const more = names.length - shown.length
-  const list = more > 0
-    ? `${shown.join(', ')} and ${more} more`
-    : shown.length > 1 ? `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}` : shown[0]
-  return `Left out with fewer than 3 matches: ${list}.`
-}
-
-export function describeChampionLp(champion, mode) {
-  const value = formatChampionValue(champion.value, mode)
-  const what = mode === LP_MODE ? value : `${value} net wins`
-  return `${champion.championName}: ${champion.matches} ${matchWord(champion.matches)}, ${champion.wins} ${champion.wins === 1 ? 'win' : 'wins'}, ${what}.`
-}
-
 // ───────────────────────── Your focus (FR 19–20, FR 29) ─────────────────────────
 
 /**

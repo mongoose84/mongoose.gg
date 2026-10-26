@@ -122,13 +122,6 @@ public static class SoloTrendsDto
         [property: JsonPropertyName("now")] int Now,
         [property: JsonPropertyName("points")] IReadOnlyList<WinRatePointDto> Points);
 
-    public record ChampionClimbDto(
-        [property: JsonPropertyName("championId")] int ChampionId,
-        [property: JsonPropertyName("championName")] string ChampionName,
-        [property: JsonPropertyName("matches")] int Matches,
-        [property: JsonPropertyName("wins")] int Wins,
-        [property: JsonPropertyName("value")] int Value);
-
     public record ClimbResponse(
         [property: JsonPropertyName("matches")] int Matches,
         [property: JsonPropertyName("queueType")] string QueueType,
@@ -138,8 +131,6 @@ public static class SoloTrendsDto
         [property: JsonPropertyName("losses")] int Losses,
         [property: JsonPropertyName("lp")] LpClimbDto? Lp,
         [property: JsonPropertyName("winRate")] WinRateClimbDto? WinRate,
-        [property: JsonPropertyName("champions")] IReadOnlyList<ChampionClimbDto> Champions,
-        [property: JsonPropertyName("championsLeftOut")] IReadOnlyList<string> ChampionsLeftOut,
         [property: JsonPropertyName("rank")] RankDto? Rank);
 
     public static ClimbResponse ToDto(SoloClimb c, int matches, string queueType, string range) => new(
@@ -160,8 +151,6 @@ public static class SoloTrendsDto
             c.WinRate.Was,
             c.WinRate.Now,
             c.WinRate.Points.Select(p => new WinRatePointDto(p.Index, p.Rate)).ToList()),
-        c.Champions.Select(ch => new ChampionClimbDto(ch.ChampionId, ch.ChampionName, ch.Matches, ch.Wins, ch.Value)).ToList(),
-        c.ChampionsLeftOut,
         c.Rank == null ? null : ToDto(c.Rank));
 
     private static RankDto ToDto(LadderRank r) => new(r.Tier, r.Division, r.Lp);

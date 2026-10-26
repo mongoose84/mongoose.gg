@@ -154,7 +154,7 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
     - Negative gaps are shown as they are, never hidden.
 23. **Card title.** `Your {factor phrase} decides your matches most`, using the top row. Phrases: "gold at 15", "deaths", "dragon presence", "vision", "farming". Needs 20 matches and at least 2 rows, otherwise the card shows its EmptyState.
 
-**LP per champion (in the `climb` response)**
+**LP per champion (in the `climb` response)** — *Retired 2026-10-26: replaced by champion records in Champion Select ([champion-records.spec.md](champion-records.spec.md)). FR 24–25 are kept for history only; the climb response no longer carries `champions` or `championsLeftOut`.*
 
 24. **Rows.** One row per champion with at least 3 matches in range, showing matches, win rate and the value. At most 5 rows, sorted by value, largest first.
     - **LP mode:** the value is the sum of known `lpChange`.
@@ -373,14 +373,10 @@ GET /api/v2/solo/climb/{userId}
     "biggestDrop": { "index": 17, "lp": -80, "losses": 4 }
   },
   "winRate": null,
-  "champions": [
-    { "championId": 103, "championName": "Ahri", "matches": 22, "wins": 14, "value": 134 }
-  ],
-  "championsLeftOut": ["Orianna"],
   "rank": { "tier": "EMERALD", "division": "II", "lp": 58 }
 }
 ```
-In win-rate mode `lp` is null and `winRate` is `{ "was": 52, "now": 58, "points": [ { "index": 9, "rate": 50 } ] }` (null under 20 matches); `champions[].value` is net wins. `rank` is the rank after the latest match that has one, for the rank line (FR 8); null unless the scope is one ranked queue of one account. `division` is null from Master up. `championsLeftOut` lists every name, most played first; the page shows three.
+In win-rate mode `lp` is null and `winRate` is `{ "was": 52, "now": 58, "points": [ { "index": 9, "rate": 50 } ] }` (null under 20 matches). `rank` is the rank after the latest match that has one, for the rank line (FR 8); null unless the scope is one ranked queue of one account. `division` is null from Master up.
 
 #### Stat trends
 ```

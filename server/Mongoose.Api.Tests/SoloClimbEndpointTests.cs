@@ -111,7 +111,8 @@ public class SoloClimbEndpointTests
         root.GetProperty("mode").GetString().Should().Be("winRate");
         root.GetProperty("lp").ValueKind.Should().Be(JsonValueKind.Null);
         root.GetProperty("winRate").ValueKind.Should().Be(JsonValueKind.Null);
-        root.GetProperty("champions").GetArrayLength().Should().Be(0);
+        // Champion records moved to Champion Select (features/champion-records.spec.md)
+        root.TryGetProperty("champions", out _).Should().BeFalse();
         root.GetProperty("rank").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
@@ -147,9 +148,6 @@ public class SoloClimbEndpointTests
         lp.GetProperty("events")[0].GetProperty("kind").GetString().Should().Be("promotion");
         lp.GetProperty("biggestDrop").ValueKind.Should().Be(JsonValueKind.Null);
 
-        var champion = root.GetProperty("champions")[0];
-        champion.GetProperty("championName").GetString().Should().Be("Ahri");
-        champion.GetProperty("value").GetInt32().Should().Be(240);
         root.GetProperty("rank").GetProperty("lp").GetInt32().Should().Be(10);
     }
 
@@ -167,7 +165,6 @@ public class SoloClimbEndpointTests
         root.GetProperty("lp").ValueKind.Should().Be(JsonValueKind.Null);
         root.GetProperty("winRate").GetProperty("was").GetInt32().Should().Be(50);
         root.GetProperty("winRate").GetProperty("points").GetArrayLength().Should().Be(11);
-        root.GetProperty("champions")[0].GetProperty("value").GetInt32().Should().Be(0);
         root.GetProperty("rank").ValueKind.Should().Be(JsonValueKind.Null);
     }
 }

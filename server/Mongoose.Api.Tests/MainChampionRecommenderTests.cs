@@ -1,5 +1,6 @@
 using System.Linq;
 using FluentAssertions;
+using Mongoose.Api.Core.QueryModels;
 using Mongoose.Api.Core.Services;
 using Xunit;
 
@@ -210,5 +211,63 @@ public class MainChampionRecommenderTests
         // Zed's MScore should still be positive (not zero)
         zed.MScore.Should().BeGreaterThan(0, "Single game champion should still have positive MScore");
     }
-}
 
+    // ───────────────────────── champion-records FR 1–3 ─────────────────────────
+
+    [Fact]
+    public void Records_cover_every_champion_with_three_matches_by_net_wins_and_name_the_rest()
+    {
+        var stats = new[]
+        {
+            CreateStats("BOTTOM", 18, "Tristana", gamesPlayed: 32, wins: 16),
+            CreateStats("BOTTOM", 222, "Jinx", gamesPlayed: 29, wins: 15),
+            CreateStats("BOTTOM", 523, "Aphelios", gamesPlayed: 27, wins: 11),
+            CreateStats("BOTTOM", 81, "Ezreal", gamesPlayed: 2, wins: 2),
+            CreateStats("BOTTOM", 51, "Caitlyn", gamesPlayed: 1, wins: 0),
+            CreateStats("MIDDLE", 18, "Tristana", gamesPlayed: 2, wins: 0)
+        };
+
+        var bot = MainChampionRecommender.BuildMainChampionsByRole(stats).Single(g => g.Role == "BOTTOM");
+
+        bot.Records.Select(r => (r.ChampionName, r.Net)).Should().Equal(("Jinx", 1), ("Tristana", 0), ("Aphelios", -5));
+        bot.RecordsLeftOut.Should().Equal("Ezreal", "Caitlyn");
+    }
+
+    [Fact]
+    public void Recent_form_counts_the_last_matches_per_champion_in_that_role_only()
+    {
+        var stats = new[]
+        {
+            CreateStats("BOTTOM", 18, "Tristana", gamesPlayed: 32, wins: 16),
+            CreateStats("BOTTOM", 222, "Jinx", gamesPlayed: 29, wins: 15),
+            CreateStats("MIDDLE", 18, "Tristana", gamesPlayed: 3, wins: 1)
+        };
+        var recent = new[]
+        {
+            new MainChampionRecommender.RecentMatch("BOTTOM", 18, true),
+            new MainChampionRecommender.RecentMatch("BOTTOM", 18, false),
+            new MainChampionRecommender.RecentMatch("BOTTOM", 18, false),
+            new MainChampionRecommender.RecentMatch("MIDDLE", 18, false)
+        };
+
+        var result = MainChampionRecommender.BuildMainChampionsByRole(stats, recentMatches: recent);
+        var bot = result.Single(g => g.Role == "BOTTOM");
+        var mid = result.Single(g => g.Role == "MIDDLE");
+
+        bot.Records.Single(r => r.ChampionName == "Tristana").Recent.Should().Be(new RecentForm(3, 1));
+        bot.Champions.Single(c => c.ChampionName == "Tristana").Recent.Should().Be(new RecentForm(3, 1));
+        bot.Records.Single(r => r.ChampionName == "Jinx").Recent.Should().BeNull();
+        mid.Records.Single().Recent.Should().Be(new RecentForm(1, 0));
+    }
+
+    [Fact]
+    public void Recent_form_is_left_out_without_recent_matches()
+    {
+        var stats = new[] { CreateStats("TOP", 1, "Garen", gamesPlayed: 5, wins: 3) };
+
+        var top = MainChampionRecommender.BuildMainChampionsByRole(stats).Single();
+
+        top.Champions.Single().Recent.Should().BeNull();
+        top.Records.Single().Recent.Should().BeNull();
+    }
+}

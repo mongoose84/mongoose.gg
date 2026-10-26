@@ -13,17 +13,12 @@ import {
   buildFocusFix,
   buildFocusStripCaption,
   focusMarkLabel,
-  buildChampionLpCaption,
-  buildChampionLpTitle,
   buildClimbEmpty,
   buildClimbHeadline,
   buildClimbStats,
   buildClimbTitle,
-  buildLeftOutNote,
   buildRankLine,
-  describeChampionLp,
   describeClimb,
-  formatChampionValue,
   formatLp,
   ladderDivision,
   rankName,
@@ -310,36 +305,6 @@ describe('soloSummary climb', () => {
     expect(describeClimb(winRateClimbResponse())).toBe('Win rate over 10 matches, last 20 matches: from 50% to 70%.')
   })
 
-  describe('LP per champion (FR 24–25)', () => {
-    it('titles the card after the top champion, or the lowest when none gained', () => {
-      expect(buildChampionLpTitle(climbResponse())).toBe('Ahri earned most of your climb')
-      const losing = climbResponse({ champions: [{ championName: 'Ahri', value: -5 }, { championName: 'Zed', value: -30 }] })
-      expect(buildChampionLpTitle(losing)).toBe('Zed cost you the most LP')
-      expect(buildChampionLpTitle(winRateClimbResponse())).toBe('Ahri won you the most matches')
-      const losingWins = winRateClimbResponse({ champions: [{ championName: 'Ahri', value: 0 }, { championName: 'Zed', value: -2 }] })
-      expect(buildChampionLpTitle(losingWins)).toBe('Zed cost you the most matches')
-    })
-
-    it('captions and formats by mode', () => {
-      expect(buildChampionLpCaption(climbResponse())).toBe('LP won or lost per champion')
-      expect(buildChampionLpCaption(winRateClimbResponse())).toBe('Wins minus losses per champion')
-      expect(formatChampionValue(58, 'lp')).toBe('+58 LP')
-      expect(formatChampionValue(-3, 'winRate')).toBe(`${MINUS}3`)
-      expect(formatChampionValue(0, 'winRate')).toBe('±0')
-    })
-
-    it('names up to three champions left out', () => {
-      expect(buildLeftOutNote(['Orianna'])).toBe('Left out with fewer than 3 matches: Orianna.')
-      expect(buildLeftOutNote(['Orianna', 'Zed', 'Lux'])).toBe('Left out with fewer than 3 matches: Orianna, Zed and Lux.')
-      expect(buildLeftOutNote(['Orianna', 'Zed', 'Lux', 'Akali', 'Viktor'])).toBe('Left out with fewer than 3 matches: Orianna, Zed, Lux and 2 more.')
-      expect(buildLeftOutNote([])).toBeNull()
-    })
-
-    it('describes a row in words', () => {
-      expect(describeChampionLp(climbResponse().champions[0], 'lp')).toBe('Ahri: 9 matches, 6 wins, +58 LP.')
-      expect(describeChampionLp(winRateClimbResponse().champions[1], 'winRate')).toBe(`Syndra: 5 matches, 1 win, ${MINUS}3 net wins.`)
-    })
-  })
 })
 
 describe('soloSummary focus (FR 19–20, FR 29)', () => {

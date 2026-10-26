@@ -24,7 +24,13 @@ public static class MainChampionRecommender
         double? AvgVisionPerMin     // Average vision score per minute (important for support)
     );
 
+    /// <summary>One of the player's latest matches in the queue, for recent form (champion-records FR 3).</summary>
+    public record RecentMatch(string Role, int ChampionId, bool Win);
+
     private const int MaxChampionsPerRole = 3;
+
+    // champion-records FR 1–2: a record needs 3 matches in the role; fewer goes in the footnote
+    public const int MinRecordMatches = 3;
 
     /// <summary>
     /// Builds main champion recommendations grouped by role.
@@ -33,14 +39,21 @@ public static class MainChampionRecommender
     /// </summary>
     /// <param name="stats">Champion statistics to process</param>
     /// <param name="queueType">Queue type filter (e.g., "aram", "ranked_solo", "all")</param>
+    /// <param name="recentMatches">The player's last 20 matches in the queue, for recent form; null leaves it out</param>
     public static IReadOnlyList<MainChampionRoleGroup> BuildMainChampionsByRole(
         IEnumerable<ChampionRoleStats> stats,
-        string? queueType = null)
+        string? queueType = null,
+        IReadOnlyList<RecentMatch>? recentMatches = null)
     {
         if (stats == null) throw new ArgumentNullException(nameof(stats));
 
         var isAram = string.Equals(queueType, "aram", StringComparison.OrdinalIgnoreCase);
         var roleGroups = new List<MainChampionRoleGroup>();
+        var recentByRoleAndChampion = (recentMatches ?? [])
+            .GroupBy(m => (Role: NormalizeRole(m.Role, isAram), m.ChampionId))
+            .ToDictionary(g => g.Key, g => new RecentForm(g.Count(), g.Count(m => m.Win)));
+        RecentForm? RecentOf(string role, int championId)
+            => recentByRoleAndChampion.GetValueOrDefault((role, championId));
 
         foreach (var group in stats.GroupBy(s => NormalizeRole(s.Role, isAram)))
         {
@@ -53,12 +66,13 @@ public static class MainChampionRecommender
                 .Select(s => BuildEntryForChampion(group.Key, s))
                 .OrderByDescending(x => x.score)
                 .Take(MaxChampionsPerRole)
-                .Select(x => x.entry)
+                .Select(x => x.entry with { Recent = RecentOf(group.Key, x.entry.ChampionId) })
                 .ToArray();
 
             if (champions.Length > 0)
             {
-                roleGroups.Add(new MainChampionRoleGroup(group.Key, champions));
+                var (records, leftOut) = BuildRecords(group.ToList(), id => RecentOf(group.Key, id));
+                roleGroups.Add(new MainChampionRoleGroup(group.Key, champions, records, leftOut));
             }
         }
 
@@ -66,6 +80,33 @@ public static class MainChampionRecommender
         return roleGroups
             .OrderByDescending(g => g.Champions.Sum(c => c.GamesPlayed))
             .ToArray();
+    }
+
+    /// <summary>
+    /// champion-records FR 1–2: every champion with 3 or more matches in the role, by net wins then
+    /// matches, and the names of those with fewer, most played first.
+    /// </summary>
+    private static (ChampionRecord[] Records, string[] LeftOut) BuildRecords(
+        IReadOnlyList<ChampionRoleStats> stats, Func<int, RecentForm?> recentOf)
+    {
+        var records = stats
+            .Where(s => s.GamesPlayed >= MinRecordMatches)
+            .Select(s => new ChampionRecord(
+                s.ChampionId, s.ChampionName, s.GamesPlayed, s.Wins,
+                s.Wins - (s.GamesPlayed - s.Wins), recentOf(s.ChampionId)))
+            .OrderByDescending(r => r.Net)
+            .ThenByDescending(r => r.Matches)
+            .ThenBy(r => r.ChampionName, StringComparer.Ordinal)
+            .ToArray();
+
+        var leftOut = stats
+            .Where(s => s.GamesPlayed > 0 && s.GamesPlayed < MinRecordMatches)
+            .OrderByDescending(s => s.GamesPlayed)
+            .ThenBy(s => s.ChampionName, StringComparer.Ordinal)
+            .Select(s => s.ChampionName)
+            .ToArray();
+
+        return (records, leftOut);
     }
 
     private static (MainChampionEntry entry, double score) BuildEntryForChampion(

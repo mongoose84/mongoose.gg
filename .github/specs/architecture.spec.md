@@ -450,7 +450,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Route**: `GET /api/v2/solo/climb/{userId}`  
 **Auth**: Yes  
 **Query params**: same as 6.12a  
-**Response**: `ClimbResponse(matches, queueType, range, mode, wins, losses, lp?, winRate?, champions[], championsLeftOut[], rank?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#climb).  
+**Response**: `ClimbResponse(matches, queueType, range, mode, wins, losses, lp?, winRate?, rank?)`, shape in [solo-trends.spec.md](features/solo-trends.spec.md#climb).  
 **Logic**: `LpCoverageRule` picks LP mode (one ranked queue, one account, 80% and at least 10 matches with a known LP change) or win-rate mode. LP mode: the ladder per match (`LpLadder`), net LP, promotions and demotions, the biggest drop over 2+ losses (40 LP or more). Win-rate mode: the 10-match rolling win rate (needs 20 matches). LP or net wins per champion with 3+ matches (top 5), and the latest rank for the rank line (`ClimbCalculator`). LP changes use the same previous-rank window as the match list (`PreviousRankSql`).  
 **Tables**: as 6.12a  
 **Repos**: `ISoloTrendsRepository`, `IUserRiotAccountsRepository`
@@ -496,7 +496,7 @@ See [Section 14](#14-planned-endpoints-not-yet-implemented).
 **Route**: `GET /api/v2/champion-select/{userId}`  
 **Auth**: Yes  
 **Query params**: `?queueType=`, `?timeRange=`  
-**Response**: `ChampionSelectResponse(mainChampions[], gamesPlayed, winRate)`  
+**Response**: `ChampionSelectResponse(mainChampions[], gamesPlayed, winRate)`. Each role group is `(role, champions[], records[], recordsLeftOut[])`; picks and records carry `recent: { matches, wins }` over the last 20 matches in the queue (null without any). Shape in [champion-records.spec.md](features/champion-records.spec.md#api-contract-additions-to-get-apiv2champion-selectuserid).  
 **Repos**: `IChampionSelectRepository`
 
 ### 6.19 Analytics

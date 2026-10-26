@@ -102,7 +102,7 @@
         />
       </div>
 
-      <div v-reveal-on-view class="solo-pair">
+      <div v-reveal-on-view class="solo-stack">
         <SoloWinFactors
           :data="winFactors"
           :loading="winFactorsLoading"
@@ -113,15 +113,15 @@
           @show-all-queues="setQueue('all')"
           @sync="startSync"
         />
-        <SoloChampionLp
-          :data="climb"
-          :loading="climbLoading"
-          :error="climbError"
-          :queue="selectedQueue"
-          :syncing="isSyncing"
-          @retry="fetchClimb"
-          @sync="startSync"
-        />
+        <!-- Champion records live in Champion Select (features/champion-records.spec.md FR 9) -->
+        <RouterLink
+          :to="{ name: 'app-champion-select' }"
+          class="solo-champions-link"
+          data-testid="solo-champion-records-link"
+        >
+          Your champion records are in Champion Select
+          <BaseIcon name="arrow-right" :size="16" />
+        </RouterLink>
       </div>
 
       <div v-reveal-on-view>
@@ -166,7 +166,6 @@ import BaseEmptyState from '../components/base/BaseEmptyState.vue'
 import BaseSegmentedControl from '../components/base/BaseSegmentedControl.vue'
 import SyncProgress from '../components/base/SyncProgress.vue'
 import SoloClimbCard from '../components/solo/SoloClimbCard.vue'
-import SoloChampionLp from '../components/solo/SoloChampionLp.vue'
 import SoloFocusCard from '../components/solo/SoloFocusCard.vue'
 import SoloStatTrends from '../components/solo/SoloStatTrends.vue'
 import SoloWinFactors from '../components/solo/SoloWinFactors.vue'
@@ -304,11 +303,33 @@ watch(syncState, (state, previous) => {
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
 }
 
-.solo-pair {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1.25rem;
-  align-items: start;
+.solo-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.solo-champions-link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding: 0 0.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.solo-champions-link:hover {
+  color: var(--color-text);
+}
+
+.solo-champions-link:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
 }
 
 .solo-header__subline {
@@ -328,10 +349,6 @@ watch(syncState, (state, previous) => {
 
 @media (max-width: 899px) {
   .solo-top--with-focus,
-  .solo-pair {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .solo-header__title {
     font-size: 1.75rem;
   }
