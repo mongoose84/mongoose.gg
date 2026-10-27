@@ -154,7 +154,7 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
     - Negative gaps are shown as they are, never hidden.
 23. **Card title.** `Your {factor phrase} decides your matches most`, using the top row. Phrases: "gold at 15", "deaths", "dragon presence", "vision", "farming". Needs 20 matches and at least 2 rows, otherwise the card shows its EmptyState.
 
-**LP per champion (in the `climb` response)**
+**LP per champion (in the `climb` response)** — *Retired 2026-10-26: replaced by champion records in Champion Select ([champion-records.spec.md](champion-records.spec.md)). FR 24–25 are kept for history only; the climb response no longer carries `champions` or `championsLeftOut`.*
 
 24. **Rows.** One row per champion with at least 3 matches in range, showing matches, win rate and the value. At most 5 rows, sorted by value, largest first.
     - **LP mode:** the value is the sum of known `lpChange`.
@@ -203,7 +203,7 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
 31. **Data readiness.** A death counts when its event has `timestamp_sec` and `allies_nearby` (changed in 5f: `killer_participant_id` is not required, because executions by towers and minions have no killer and still are deaths). The card needs 30 such deaths in range.
     - While the backfill (FR 38) is running for the account, the card shows the backfill progress in its slot (FR 39).
     - When the backfill is done or not needed and there are still fewer than 30 deaths, it shows the EmptyState "Play a few more matches to see where your deaths cost you" with "Sync matches".
-32. **Mirroring.** Positions are normalised to `u = x / 14870` and `v = y / 14870`. For deaths on the red team (`participants.team_id = 200`), `(u, v)` becomes `(1 − u, 1 − v)`, so the player's base is always bottom left.
+32. **Mirroring.** Positions are normalised to `u = x / 14870` and `v = y / 14870`. For deaths on the red team (`participants.team_id = 200`), `(u, v)` becomes `(1 − v, 1 − u)` (a mirror across the top-left to bottom-right diagonal), so the player's base is always bottom left and each lane stays itself; a point reflection `(1 − u, 1 − v)` would swap top and bot lane.
 33. **Regions.** Each death falls into exactly one region, tested in this order (`d_mid = |u − v|`, `d_river = |u + v − 1|`, "your half" = `u + v < 1`):
 
     | Region key | Label | Rule |
@@ -230,7 +230,7 @@ As a ranked player, I want to see whether I'm climbing and which of my habits ar
 37. **Zones, title and breakdowns.**
     - **Zones:** the regions with at least 5 deaths, at most 5, sorted by lost objectives (then deaths). Each carries deaths, lost objectives, `costly = lostObjectives ÷ deaths ≥ 0.30`, its anchor, and a timing note: the phase holding the most of its deaths when that is 60% or more, as "{n} of them after 25 minutes" / "Mostly before 14 minutes" / "Mostly between 14 and 25 minutes"; otherwise "Spread over the match".
     - **Title:** `Deaths in {zone} cost you the most objectives` when the top zone lost 3 or more; otherwise `You die most in {zone with most deaths}`. Caption: `{n} deaths over your last {n} matches. Red-side matches are mirrored, so your base is always bottom left.`
-    - **Breakdowns:** phase, how and cost (by objective type), for all deaths in range and for each listed zone, so the zone list can filter them without another request. Pressing a zone row filters and marks it `aria-pressed`; pressing it again returns to all zones. The default is all zones.
+    - **Breakdowns:** phase, how and cost (by objective type), for all deaths in range and for each listed zone, so the zone list can switch zones without another request. The focus panel shows the zone to fix first (the title's subject) until a zone row is pressed; the pressed row is marked `aria-pressed`. The client shows only the per-zone breakdowns, behind "Show all numbers".
 
 **Death detail backfill** (decided 2026-09-29: backfill)
 
@@ -373,14 +373,10 @@ GET /api/v2/solo/climb/{userId}
     "biggestDrop": { "index": 17, "lp": -80, "losses": 4 }
   },
   "winRate": null,
-  "champions": [
-    { "championId": 103, "championName": "Ahri", "matches": 22, "wins": 14, "value": 134 }
-  ],
-  "championsLeftOut": ["Orianna"],
   "rank": { "tier": "EMERALD", "division": "II", "lp": 58 }
 }
 ```
-In win-rate mode `lp` is null and `winRate` is `{ "was": 52, "now": 58, "points": [ { "index": 9, "rate": 50 } ] }` (null under 20 matches); `champions[].value` is net wins. `rank` is the rank after the latest match that has one, for the rank line (FR 8); null unless the scope is one ranked queue of one account. `division` is null from Master up. `championsLeftOut` lists every name, most played first; the page shows three.
+In win-rate mode `lp` is null and `winRate` is `{ "was": 52, "now": 58, "points": [ { "index": 9, "rate": 50 } ] }` (null under 20 matches). `rank` is the rank after the latest match that has one, for the rank line (FR 8); null unless the scope is one ranked queue of one account. `division` is null from Master up.
 
 #### Stat trends
 ```

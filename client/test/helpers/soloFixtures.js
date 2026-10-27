@@ -82,11 +82,6 @@ export function climbResponse(overrides = {}) {
       biggestDrop: { index: 3, lp: -60, losses: 3 }
     },
     winRate: null,
-    champions: [
-      { championId: 103, championName: 'Ahri', matches: 9, wins: 6, value: 58 },
-      { championId: 134, championName: 'Syndra', matches: 5, wins: 2, value: -18 }
-    ],
-    championsLeftOut: ['Orianna'],
     rank: { tier: 'EMERALD', division: 'II', lp: 34 },
     ...overrides
   }
@@ -98,10 +93,6 @@ export function winRateClimbResponse(overrides = {}) {
     mode: 'winRate',
     lp: null,
     winRate: { was: 50, now: 70, points: [{ index: 9, rate: 50 }, { index: 19, rate: 70 }] },
-    champions: [
-      { championId: 103, championName: 'Ahri', matches: 9, wins: 6, value: 3 },
-      { championId: 134, championName: 'Syndra', matches: 5, wins: 1, value: -3 }
-    ],
     rank: null,
     ...overrides
   })

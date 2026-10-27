@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount, flushPromises, RouterLinkStub } from '@vue/test-utils'
 import { reactive, ref } from 'vue'
 import SoloPage from '@/views/SoloStatsPage.vue'
 import { climbResponse, deathZonesResponse, focusFixture, statTrendsResponse, winFactorsResponse, winRateClimbResponse } from '@test/helpers/soloFixtures'
@@ -58,7 +58,7 @@ let mounted = null
 function mountPage() {
   mounted = mount(SoloPage, {
     global: {
-      stubs: { LinkRiotAccountModal: true, SyncProgress: true }
+      stubs: { LinkRiotAccountModal: true, SyncProgress: true, RouterLink: RouterLinkStub }
     }
   })
   return mounted
@@ -121,7 +121,8 @@ describe('SoloStatsPage', () => {
     expect(wrapper.find('[data-testid="solo-climb"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-stat-trends"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-death-zones"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="solo-champion-lp"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="solo-champion-lp"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="solo-champion-records-link"]').text()).toContain('Your champion records are in Champion Select')
     expect(wrapper.find('[data-testid="solo-win-factors"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="solo-patterns"]').exists()).toBe(true)
   })

@@ -53,42 +53,87 @@
     </div>
 
     <div v-else class="death-zones__layout">
-      <BaseDeathMap :zones="data.zones" :selected-key="selectedKey" :description="mapDescription" />
+      <BaseDeathMap :zones="data.zones" :selected-key="shownKey" :focus-key="focusKey" :description="mapDescription" />
 
       <ul class="death-zones__list" aria-label="Zones" data-testid="solo-death-zones-list">
         <li v-for="zone in data.zones" :key="zone.key">
           <button
             type="button"
             class="death-zones__zone"
-            :aria-pressed="zone.key === selectedKey"
+            :aria-pressed="zone.key === shownKey"
+            :aria-label="`${zoneLabel(zone.key)}, ${zone.deaths} deaths${zone.key === focusKey ? ', fix first' : ''}`"
             :data-testid="`death-zone-${zone.key}`"
-            @click="toggle(zone.key)"
+            @click="select(zone.key)"
           >
-            <span class="death-zones__dot" :class="{ 'death-zones__dot--costly': zone.costly }" aria-hidden="true" />
-            <span class="death-zones__zone-text">
-              <span class="death-zones__zone-name">{{ zoneLabel(zone.key) }}</span>
-              <span class="death-zones__zone-meta">{{ zoneSummary(zone) }}</span>
-              <span class="death-zones__zone-meta">{{ zoneTimingNote(zone.timing) }}</span>
+            <span class="death-zones__dot" :class="{ 'death-zones__dot--focus': zone.key === focusKey }" aria-hidden="true" />
+            <span class="death-zones__zone-text" aria-hidden="true">
+              <span class="death-zones__zone-head">
+                <span class="death-zones__zone-name">{{ zoneLabel(zone.key) }}</span>
+                <span v-if="zone.key === focusKey" class="mp-chip mp-chip--pattern" data-testid="death-zone-fix-first">Fix first</span>
+                <span class="death-zones__zone-count">{{ zone.deaths }}</span>
+              </span>
+              <span class="death-zones__zone-bar" :data-testid="`death-zone-bar-${zone.key}`">
+                <span :style="{ width: zoneBarWidth(zone) }" />
+              </span>
             </span>
           </button>
         </li>
       </ul>
 
-      <div class="death-zones__breakdowns">
-        <h3 class="death-zones__filter" aria-live="polite" data-testid="solo-death-zones-filter">{{ filterLabel }}</h3>
-        <section v-for="group in groups" :key="group.key" class="death-zones__group" :aria-label="group.title">
-          <h4>{{ group.title }}</h4>
-          <ul>
-            <li v-for="row in group.rows" :key="row.key" class="death-zones__row" :data-testid="`death-zones-${group.key}-${row.key}`">
-              <span class="death-zones__row-label">{{ row.label }}</span>
-              <span class="death-zones__row-track" aria-hidden="true">
-                <span :class="{ 'death-zones__row-bar--warn': group.key === 'cost' }" :style="{ width: row.width }" />
-              </span>
-              <span class="death-zones__row-value">{{ row.value }}</span>
-            </li>
-          </ul>
-        </section>
-      </div>
+      <section
+        v-if="shownZone && focus"
+        class="death-zones__focus"
+        aria-live="polite"
+        aria-labelledby="solo-death-zones-focus-zone"
+        data-testid="solo-death-zones-focus"
+      >
+        <p class="death-zones__focus-zone">
+          <span id="solo-death-zones-focus-zone" class="mp-eyebrow" data-testid="solo-death-zones-filter">{{ zoneLabel(shownKey) }}</span>
+        </p>
+        <h3 class="death-zones__pattern" data-testid="solo-death-zones-pattern">{{ focus.pattern }}</h3>
+
+        <ul class="death-zones__facts">
+          <li v-for="fact in focus.facts" :key="fact.key" class="death-zones__fact" :data-testid="`death-zones-fact-${fact.key}`">
+            <span class="death-zones__fact-value">{{ fact.value }}</span>
+            <span class="death-zones__fact-label">{{ fact.label }}</span>
+            <span v-if="fact.share !== null" class="death-zones__fact-track" aria-hidden="true">
+              <span :style="{ width: `${fact.share * 100}%` }" />
+            </span>
+          </li>
+        </ul>
+
+        <div class="death-zones__tip" data-testid="solo-death-zones-tip">
+          <BaseIcon :name="focus.tip.icon" :size="20" class="death-zones__tip-icon" />
+          <p><strong>Next match:</strong> {{ focus.tip.text }}</p>
+        </div>
+
+        <button
+          type="button"
+          class="death-zones__more"
+          :aria-expanded="showNumbers"
+          aria-controls="solo-death-zones-numbers"
+          data-testid="solo-death-zones-more"
+          @click="showNumbers = !showNumbers"
+        >
+          {{ showNumbers ? 'Hide numbers' : 'Show all numbers' }}
+          <BaseIcon name="chevron-down" :size="16" :class="{ 'death-zones__more-icon--open': showNumbers }" />
+        </button>
+
+        <div v-if="showNumbers" id="solo-death-zones-numbers" class="death-zones__breakdowns">
+          <section v-for="group in groups" :key="group.key" class="death-zones__group" :aria-label="group.title">
+            <h4>{{ group.title }}</h4>
+            <ul>
+              <li v-for="row in group.rows" :key="row.key" class="death-zones__row" :data-testid="`death-zones-${group.key}-${row.key}`">
+                <span class="death-zones__row-label">{{ row.label }}</span>
+                <span class="death-zones__row-track" aria-hidden="true">
+                  <span :style="{ width: row.width }" />
+                </span>
+                <span class="death-zones__row-value">{{ row.value }}</span>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </section>
     </div>
   </SoloCard>
 </template>
@@ -96,8 +141,9 @@
 <script setup>
 /**
  * "Where your deaths cost you" (features/solo-trends.spec.md FR 31–39): the map with zone circles,
- * the zone list that filters the breakdowns (phase, how, what it cost), and the death detail
- * backfill's progress while older matches are still being read.
+ * the zone list, and one zone at a time in the focus panel (the zone to fix first until another is
+ * pressed): what its deaths have in common, three facts, a "Next match" tip and, on request, all
+ * its numbers. Also the death detail backfill's progress while older matches are still being read.
  */
 import { computed, ref, watch } from 'vue'
 import SoloCard from './SoloCard.vue'
@@ -114,10 +160,10 @@ import {
   buildDeathZonesEmpty,
   buildDeathZonesTitle,
   buildNoMatchesEmpty,
+  buildZoneFocus,
   describeDeathMap,
-  zoneLabel,
-  zoneSummary,
-  zoneTimingNote
+  focusZoneKey,
+  zoneLabel
 } from '@/utils/soloSummary'
 
 const props = defineProps({
@@ -132,8 +178,9 @@ const props = defineProps({
 defineEmits(['retry', 'show-all-queues', 'sync'])
 
 const selectedKey = ref(null)
+const showNumbers = ref(false)
 
-// A zone that is no longer listed (new range or queue) returns the filter to all zones
+// A zone that is no longer listed (new range or queue) returns the panel to the zone to fix first
 watch(() => props.data?.zones, (zones) => {
   if (selectedKey.value && !zones?.some((z) => z.key === selectedKey.value)) selectedKey.value = null
 })
@@ -155,11 +202,22 @@ const title = computed(() => {
 const caption = computed(() => (props.data && !progress.value ? buildDeathZonesCaption(props.data) : null))
 const mapDescription = computed(() => (props.data?.zones ? describeDeathMap(props.data) : ''))
 
-function toggle(key) {
-  selectedKey.value = selectedKey.value === key ? null : key
+const focusKey = computed(() => focusZoneKey(props.data?.zones))
+// The panel shows the pressed zone, else the zone to fix first
+const shownKey = computed(() => selectedKey.value ?? focusKey.value)
+const shownZone = computed(() => props.data?.zones?.find((z) => z.key === shownKey.value) ?? null)
+const shownBreakdown = computed(() => props.data?.breakdowns?.byZone?.[shownKey.value] ?? null)
+const focus = computed(() => (shownZone.value ? buildZoneFocus(shownZone.value, shownBreakdown.value) : null))
+
+function select(key) {
+  selectedKey.value = key
 }
 
-const filterLabel = computed(() => (selectedKey.value ? zoneLabel(selectedKey.value) : 'All zones'))
+/** Deaths scaled to the zone with most. */
+function zoneBarWidth(zone) {
+  const most = Math.max(1, ...props.data.zones.map((z) => z.deaths))
+  return `${(zone.deaths / most) * 100}%`
+}
 
 function rows(counts, labels) {
   const most = Math.max(1, ...Object.values(counts))
@@ -172,13 +230,12 @@ function rows(counts, labels) {
 }
 
 const groups = computed(() => {
-  const breakdowns = props.data?.breakdowns
-  if (!breakdowns) return []
-  const shown = (selectedKey.value && breakdowns.byZone[selectedKey.value]) || breakdowns.all
+  const shown = shownBreakdown.value
+  if (!shown) return []
   return [
-    { key: 'phase', title: 'When', rows: rows(shown.phase, PHASE_LABELS) },
-    { key: 'how', title: 'How', rows: rows(shown.how, HOW_LABELS) },
-    { key: 'cost', title: 'What it cost', rows: rows(shown.cost, COST_LABELS) }
+    { key: 'phase', title: 'Deaths when', rows: rows(shown.phase, PHASE_LABELS) },
+    { key: 'how', title: 'Deaths how', rows: rows(shown.how, HOW_LABELS) },
+    { key: 'cost', title: 'Objectives lost after your death', rows: rows(shown.cost, COST_LABELS) }
   ]
 })
 </script>
@@ -186,7 +243,7 @@ const groups = computed(() => {
 <style scoped>
 .death-zones__layout {
   display: grid;
-  grid-template-columns: minmax(0, 21.25rem) minmax(0, 21.25rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 21.25rem) minmax(0, 18rem) minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
 }
@@ -240,17 +297,169 @@ const groups = computed(() => {
   width: 0.75rem;
   height: 0.75rem;
   margin-top: 0.25rem;
+  border: 1px solid var(--color-text);
   border-radius: 999px;
-  background: var(--color-primary-accent);
+  background: var(--color-ink-faint);
 }
 
-.death-zones__dot--costly {
+.death-zones__dot--focus {
+  border-color: var(--color-warn);
   background: var(--color-warn);
+}
+
+.death-zones__zone-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.death-zones__zone-count {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.death-zones__zone-bar {
+  display: block;
+  width: 100%;
+  height: 0.375rem;
+  margin-top: 0.375rem;
+  border-radius: 999px;
+  background: var(--color-track);
+}
+
+.death-zones__zone-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-ink-faint);
+}
+
+.death-zones__focus {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: var(--color-elevated);
+}
+
+.death-zones__focus-zone {
+  margin: 0;
+}
+
+.death-zones__pattern {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.death-zones__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.death-zones__fact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.death-zones__fact-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.death-zones__fact-label {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+
+.death-zones__fact-track {
+  height: 0.375rem;
+  margin-top: auto;
+  border-radius: 999px;
+  background: var(--color-track);
+}
+
+.death-zones__fact-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-ink-faint);
+}
+
+.death-zones__tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: var(--color-surface);
+}
+
+.death-zones__tip p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.death-zones__tip-icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  color: var(--color-text-secondary);
+}
+
+.death-zones__more {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.25rem;
+  min-height: 2.75rem;
+  padding: 0 0.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.death-zones__more:hover {
+  color: var(--color-text);
+}
+
+.death-zones__more:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.death-zones__more-icon--open {
+  transform: rotate(180deg);
 }
 
 .death-zones__zone-text {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 0.125rem;
   min-width: 0;
 }
@@ -270,14 +479,6 @@ const groups = computed(() => {
   flex-direction: column;
   gap: 1rem;
   min-width: 0;
-}
-
-.death-zones__filter {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-text);
 }
 
 .death-zones__group h4 {
@@ -315,11 +516,7 @@ const groups = computed(() => {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--color-primary-accent);
-}
-
-.death-zones__row-track > span.death-zones__row-bar--warn {
-  background: var(--color-warn);
+  background: var(--color-ink-faint);
 }
 
 .death-zones__row-value {
@@ -385,7 +582,7 @@ const groups = computed(() => {
     grid-template-columns: minmax(0, 21.25rem) minmax(0, 1fr);
   }
 
-  .death-zones__breakdowns {
+  .death-zones__focus {
     grid-column: 1 / -1;
   }
 }

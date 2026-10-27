@@ -173,39 +173,6 @@ public class ClimbCalculatorTests
         ClimbCalculator.WinRate(SoloRows.Many(19)).Should().BeNull();
     }
 
-    // ───────────────────────── FR 24: champions ─────────────────────────
-
-    [Fact]
-    public void Champions_InLpMode_SumsKnownLp_AndLeavesOutChampionsUnderThreeMatches()
-    {
-        SoloMatchRow Match(int i, int id, string name, int? lp, bool win = true)
-            => SoloRows.Make(i, win: win, championId: id, championName: name, lpChange: lp);
-
-        var (champions, leftOut) = ClimbCalculator.Champions([
-            Match(0, 1, "Ahri", 20), Match(1, 1, "Ahri", 22), Match(2, 1, "Ahri", null),
-            Match(3, 2, "Syndra", -18, win: false), Match(4, 2, "Syndra", 20), Match(5, 2, "Syndra", -17, win: false),
-            Match(6, 3, "Orianna", 20), Match(7, 3, "Orianna", 21),
-            Match(8, 4, "Zed", 20)], LpCoverageRule.LpMode);
-
-        champions.Should().Equal(
-            new ChampionClimb(1, "Ahri", 3, 3, 42),
-            new ChampionClimb(2, "Syndra", 3, 1, -15));
-        leftOut.Should().Equal("Orianna", "Zed");
-    }
-
-    [Fact]
-    public void Champions_InWinRateMode_IsNetWins_AtMostFive()
-    {
-        var rows = SoloRows.Many(21, i => SoloRows.Make(i, win: i % 3 != 0, championId: i % 7, championName: $"Champ{i % 7}"));
-
-        var (champions, leftOut) = ClimbCalculator.Champions(rows, LpCoverageRule.WinRateMode);
-
-        champions.Should().HaveCount(5);
-        champions.Should().BeInDescendingOrder(c => c.Value);
-        champions.Should().OnlyContain(c => c.Value == c.Wins - (c.Matches - c.Wins));
-        leftOut.Should().BeEmpty();
-    }
-
     // ───────────────────────── Mode and rank ─────────────────────────
 
     [Fact]

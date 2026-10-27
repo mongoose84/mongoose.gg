@@ -38,7 +38,9 @@ const pageData = {
   mainChampions: [
     {
       role: 'TOP',
-      champions: [champion(86, 'Garen', 'TOP', 58, 6)]
+      champions: [champion(86, 'Garen', 'TOP', 58, 6)],
+      records: [{ championId: 86, championName: 'Garen', matches: 6, wins: 4, net: 2, recent: null }],
+      recordsLeftOut: []
     },
     {
       role: 'MIDDLE',
@@ -47,7 +49,12 @@ const pageData = {
         champion(134, 'Syndra', 'MIDDLE', 55.6, 18),
         champion(112, 'Viktor', 'MIDDLE', 50, 10),
         champion(61, 'Orianna', 'MIDDLE', 48, 4)
-      ]
+      ],
+      records: [
+        { championId: 103, championName: 'Ahri', matches: 22, wins: 14, net: 6, recent: null },
+        { championId: 134, championName: 'Syndra', matches: 18, wins: 10, net: 2, recent: null }
+      ],
+      recordsLeftOut: ['Zed']
     }
   ]
 }
@@ -131,6 +138,21 @@ describe('ChampionSelectPage', () => {
     expect(cards.map((c) => c.get('[data-testid="champion-card-name"]').text())).toEqual(['Ahri', 'Syndra', 'Viktor'])
     expect(cards.map((c) => c.attributes('aria-pressed'))).toEqual(['true', 'false', 'false'])
     expect(cards[0].get('[data-testid="champion-card-tag"]').text()).toBe('Best pick')
+  })
+
+  it('shows the record of the role shown, and follows the role control', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const record = () => wrapper.get('[data-testid="champion-select-record"]')
+    expect(record().get('[data-testid="champion-select-record-title"]').text()).toBe('Ahri wins you the most Mid matches')
+    expect(record().text()).toContain('Wins minus losses, All queues · This season')
+    expect(record().find('[data-testid="champion-record-103"]').exists()).toBe(true)
+    expect(record().find('[data-testid="champion-record-134"]').exists()).toBe(true)
+    expect(record().get('[data-testid="champion-select-record-left-out"]').text()).toContain('Zed')
+
+    await wrapper.get('[data-testid="role-TOP"]').trigger('click')
+    expect(record().get('[data-testid="champion-select-record-title"]').text()).toBe('No Top champion clearly stands out')
   })
 
   it('swaps the hero and matchups when you pick another card', async () => {

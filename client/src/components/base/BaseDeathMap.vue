@@ -1,51 +1,82 @@
 <template>
-  <svg
-    class="death-map"
-    viewBox="-8 -8 116 116"
-    role="img"
-    :aria-label="description"
-    data-testid="death-map"
-  >
-    <rect class="death-map__ground" x="0" y="0" width="100" height="100" rx="6" />
-    <!-- Bases, lanes and river, the player's base bottom left -->
-    <path class="death-map__base" d="M0 82 L0 100 L18 100 L18 82 Z" />
-    <path class="death-map__base" d="M82 0 L100 0 L100 18 L82 18 Z" />
-    <polyline class="death-map__lane" points="7,92 7,7 92,7" />
-    <polyline class="death-map__lane" points="8,93 93,93 93,8" />
-    <line class="death-map__lane" x1="10" y1="90" x2="90" y2="10" />
-    <line class="death-map__river" x1="4" y1="4" x2="96" y2="96" />
+  <figure class="death-map-figure">
+    <svg
+      class="death-map"
+      viewBox="-8 -8 116 116"
+      role="img"
+      :aria-label="description"
+      data-testid="death-map"
+    >
+      <defs>
+        <clipPath id="death-map-clip">
+          <rect x="0" y="0" width="100" height="100" rx="6" />
+        </clipPath>
+      </defs>
+      <!-- Summoner's Rift minimap, the player's base bottom left -->
+      <image
+        class="death-map__ground"
+        :href="MAP_IMAGE"
+        x="0"
+        y="0"
+        width="100"
+        height="100"
+        preserveAspectRatio="none"
+        clip-path="url(#death-map-clip)"
+        data-testid="death-map-image"
+      />
 
-    <circle
-      v-for="zone in placed"
-      :key="zone.key"
-      class="death-map__zone"
-      :class="{ 'death-map__zone--costly': zone.costly, 'death-map__zone--selected': zone.key === selectedKey }"
-      :cx="zone.x"
-      :cy="zone.y"
-      :r="zone.r"
-      :data-testid="`death-map-zone-${zone.key}`"
-    />
-  </svg>
+      <g v-for="zone in placed" :key="zone.key">
+        <circle
+          class="death-map__zone"
+          :class="{ 'death-map__zone--focus': zone.key === focusKey, 'death-map__zone--selected': zone.key === selectedKey }"
+          :cx="zone.x"
+          :cy="zone.y"
+          :r="zone.r"
+          :data-testid="`death-map-zone-${zone.key}`"
+        />
+        <text
+          class="death-map__count"
+          :x="zone.x"
+          :y="zone.y"
+          :data-testid="`death-map-count-${zone.key}`"
+        >{{ zone.deaths }}</text>
+      </g>
+    </svg>
+
+    <figcaption class="death-map__key" data-testid="death-map-key">
+      <span class="death-map__key-item">
+        <span class="death-map__swatch" aria-hidden="true" />
+        Deaths
+      </span>
+      <span class="death-map__key-item">
+        <span class="death-map__swatch death-map__swatch--focus" aria-hidden="true" />
+        Fix first
+      </span>
+    </figcaption>
+  </figure>
 </template>
 
 <script setup>
 /**
- * DeathMap (design-system pattern, Solo death zones): an outline of the map with one circle per
- * zone at its fixed anchor, sized by deaths, in warn when 30% or more cost an objective. Anchors
- * come with v up, so v is flipped for SVG. role="img" with every zone in the text alternative;
- * the zone list next to it is the interactive part.
+ * DeathMap (design-system pattern, Solo death zones): the Summoner's Rift minimap with one circle
+ * per zone at its fixed anchor, sized by deaths and labelled with the count. Circles are neutral;
+ * only the zone to fix first is warn, and the key under the map says so. Anchors come with v up, so v is flipped for SVG. role="img" with every zone in the text
+ * alternative; the zone list next to it is the interactive part.
  */
 import { computed } from 'vue'
 
+const MAP_IMAGE = '/assets/images/summoners-rift-minimap.png'
 const MIN_RADIUS = 4
 // The view box leaves 8 units around the map, so an edge circle is never clipped
 const MAX_RADIUS = 8
 
 const props = defineProps({
-  /** [{ key, deaths, costly, anchor: { u, v } }] */
+  /** [{ key, deaths, anchor: { u, v } }] */
   zones: { type: Array, required: true },
-  /** Key of the zone the breakdowns are filtered to */
+  /** Key of the zone shown in the focus panel */
   selectedKey: { type: String, default: null },
+  /** Key of the zone to fix first, the only one drawn in warn */
+  focusKey: { type: String, default: null },
   /** Every zone said in words */
   description: { type: String, required: true }
 })
@@ -54,7 +85,7 @@ const placed = computed(() => {
   const most = Math.max(1, ...props.zones.map((z) => z.deaths))
   return props.zones.map((z) => ({
     key: z.key,
-    costly: z.costly,
+    deaths: z.deaths,
     x: Math.round(z.anchor.u * 1000) / 10,
     y: Math.round((1 - z.anchor.v) * 1000) / 10,
     // Area, not radius, follows deaths
@@ -64,50 +95,78 @@ const placed = computed(() => {
 </script>
 
 <style scoped>
+.death-map-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 21.25rem;
+  margin: 0;
+}
+
 .death-map {
   display: block;
   width: 100%;
-  max-width: 21.25rem;
   aspect-ratio: 1;
 }
 
-.death-map__ground {
-  fill: var(--color-elevated);
-}
-
-.death-map__base {
-  fill: var(--color-track);
-}
-
-.death-map__lane {
-  fill: none;
-  stroke: var(--color-track-strong);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.death-map__river {
-  stroke: var(--color-border);
-  stroke-width: 3;
-  stroke-dasharray: 2 2;
-}
-
+/* The minimap is always dark, so circles and counts use fixed light ink, not the theme's */
 .death-map__zone {
-  fill: var(--color-primary-accent);
-  fill-opacity: 0.55;
-  stroke: var(--color-primary-accent);
+  fill: var(--color-on-primary);
+  fill-opacity: 0.3;
+  stroke: var(--color-on-primary);
   stroke-width: 0.6;
 }
 
-.death-map__zone--costly {
+.death-map__zone--focus {
   fill: var(--color-warn);
+  fill-opacity: 0.7;
   stroke: var(--color-warn);
 }
 
 .death-map__zone--selected {
-  fill-opacity: 0.9;
-  stroke: var(--color-text);
-  stroke-width: 1;
+  fill-opacity: 0.85;
+  stroke: var(--color-on-primary);
+  stroke-width: 1.2;
+}
+
+.death-map__count {
+  fill: var(--color-on-primary);
+  stroke: var(--color-bg);
+  stroke-width: 0.8;
+  paint-order: stroke;
+  font-family: var(--font-display);
+  font-size: 4.5px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.death-map__key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.death-map__key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.death-map__swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1px solid var(--color-text);
+  border-radius: 999px;
+  background: var(--color-ink-faint);
+}
+
+.death-map__swatch--focus {
+  border-color: var(--color-warn);
+  background: var(--color-warn);
 }
 </style>

@@ -8,7 +8,12 @@ import {
   buildPickText,
   buildPickChips,
   formatRecord,
-  roleLabel
+  roleLabel,
+  recentForm,
+  formatNet,
+  buildRecordTitle,
+  buildRecordCaption,
+  buildRecordLeftOut
 } from '@/utils/championSelectSummary'
 
 const ahri = { championId: 103, championName: 'Ahri', role: 'MIDDLE', winRate: 63.6, gamesPlayed: 22, mScore: 71, avgKda: 4.12, avgCsPerMin: 7.84 }
@@ -123,11 +128,50 @@ describe('championSelectSummary', () => {
       expect(buildPickChips(ahri)).toEqual(['64% win rate', '7.8 CS per minute'])
       expect(buildPickChips({ ...ahri, avgCsPerMin: 0 })).toEqual(['64% win rate'])
     })
+
+    it('shows recent form as the second chip from 3 recent matches (champion-records FR 7)', () => {
+      expect(buildPickChips({ ...ahri, recent: { matches: 13, wins: 5 } })).toEqual(['64% win rate', '5–8 in your last 20'])
+      expect(buildPickChips({ ...ahri, recent: { matches: 2, wins: 2 } })).toEqual(['64% win rate', '7.8 CS per minute'])
+    })
+
+    it('says so when the pick is cold lately, without changing the pick (FR 8)', () => {
+      const text = buildPickText({ ...ahri, recent: { matches: 13, wins: 5 } }, { strong: [], weak: [] })
+      expect(text).toBe("You win 64% over 22 matches with a 4.1 KDA. Lately you're 5–8 on Ahri in your last 20, so watch this pick.")
+      expect(buildPickText({ ...ahri, recent: { matches: 10, wins: 6 } }, { strong: [], weak: [] })).not.toContain('Lately')
+    })
   })
 
   it('formats records with an en dash and roles as players say them', () => {
     expect(formatRecord(4, 1)).toBe('4–1')
     expect(roleLabel('UTILITY')).toBe('Support')
     expect(roleLabel(null)).toBe('Fill')
+  })
+
+  describe('champion records (champion-records FR 3–5)', () => {
+    it('calls form cold or hot at 10 points over 5+ recent matches', () => {
+      expect(recentForm({ matches: 13, wins: 5 }, 50)).toBe('cold')
+      expect(recentForm({ matches: 10, wins: 6 }, 55)).toBe('steady')
+      expect(recentForm({ matches: 10, wins: 7 }, 60)).toBe('hot')
+      expect(recentForm({ matches: 4, wins: 0 }, 60)).toBe('steady')
+      expect(recentForm(null, 50)).toBeNull()
+    })
+
+    it('names a champion in the title only at a margin of 3', () => {
+      const row = (championName, net) => ({ championName, net })
+      expect(buildRecordTitle([row('Jinx', 3), row('Tristana', -1)], 'BOTTOM')).toBe('Jinx wins you the most ADC matches')
+      expect(buildRecordTitle([row('Jinx', 1), row('Tristana', -3)], 'BOTTOM')).toBe('Tristana costs you the most ADC matches')
+      expect(buildRecordTitle([row('Jinx', 1), row('Tristana', -2)], 'BOTTOM')).toBe('No ADC champion clearly stands out')
+      expect(buildRecordTitle([], 'BOTTOM')).toBe('Your ADC record')
+    })
+
+    it('formats net wins, the caption and the left-out names', () => {
+      expect(formatNet(3)).toBe('+3')
+      expect(formatNet(-3)).toBe('−3')
+      expect(formatNet(0)).toBe('±0')
+      expect(buildRecordCaption('Flex', 'This season')).toBe('Wins minus losses, Flex · This season')
+      expect(buildRecordLeftOut(['Ezreal'])).toBe('Left out with fewer than 3 matches: Ezreal.')
+      expect(buildRecordLeftOut(['A', 'B', 'C', 'D', 'E'])).toBe('Left out with fewer than 3 matches: A, B, C and 2 more.')
+      expect(buildRecordLeftOut([])).toBeNull()
+    })
   })
 })

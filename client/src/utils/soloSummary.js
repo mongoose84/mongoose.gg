@@ -462,46 +462,6 @@ export function describeClimb(climb) {
   return `Win rate over 10 matches, ${range}: from ${was}% to ${now}%.`
 }
 
-// ───────────────────────── LP per champion (FR 24–25) ─────────────────────────
-
-/** FR 25: "{Champion} earned most of your climb" and its variants; null without rows. */
-export function buildChampionLpTitle(climb) {
-  const champions = climb?.champions ?? []
-  if (!champions.length) return null
-  const top = champions[0]
-  const lowest = champions[champions.length - 1]
-  if (climb.mode === LP_MODE) {
-    return top.value > 0 ? `${top.championName} earned most of your climb` : `${lowest.championName} cost you the most LP`
-  }
-  return top.value > 0 ? `${top.championName} won you the most matches` : `${lowest.championName} cost you the most matches`
-}
-
-export function buildChampionLpCaption(climb) {
-  return climb.mode === LP_MODE ? 'LP won or lost per champion' : 'Wins minus losses per champion'
-}
-
-/** A row's value: "+134 LP" in LP mode, "+5" net wins otherwise. */
-export function formatChampionValue(value, mode) {
-  return mode === LP_MODE ? formatLp(value) : (Math.round(value) === 0 ? '±0' : formatSigned(value))
-}
-
-/** FR 24 footnote: up to three names left out for having under 3 matches, then "and n more". */
-export function buildLeftOutNote(names) {
-  if (!names?.length) return null
-  const shown = names.slice(0, 3)
-  const more = names.length - shown.length
-  const list = more > 0
-    ? `${shown.join(', ')} and ${more} more`
-    : shown.length > 1 ? `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}` : shown[0]
-  return `Left out with fewer than 3 matches: ${list}.`
-}
-
-export function describeChampionLp(champion, mode) {
-  const value = formatChampionValue(champion.value, mode)
-  const what = mode === LP_MODE ? value : `${value} net wins`
-  return `${champion.championName}: ${champion.matches} ${matchWord(champion.matches)}, ${champion.wins} ${champion.wins === 1 ? 'win' : 'wins'}, ${what}.`
-}
-
 // ───────────────────────── Your focus (FR 19–20, FR 29) ─────────────────────────
 
 /**
@@ -617,10 +577,104 @@ export function zoneLabel(key) {
  * or more, else "You die most in …" (the zone with most deaths). Null without zones.
  */
 export function buildDeathZonesTitle(zones) {
+  const key = focusZoneKey(zones)
+  if (!key) return null
+  const phrase = ZONES[key]?.phrase
+  return zones[0].key === key && zones[0].lostObjectives >= TITLE_MIN_LOST
+    ? `Deaths in ${phrase} cost you the most objectives`
+    : `You die most in ${phrase}`
+}
+
+/**
+ * The zone to fix first, the title's subject: the top zone when it lost 3 or more objectives,
+ * else the zone with most deaths. The only zone drawn in warn. Null without zones.
+ */
+export function focusZoneKey(zones) {
   if (!zones?.length) return null
-  if (zones[0].lostObjectives >= TITLE_MIN_LOST) return `Deaths in ${ZONES[zones[0].key]?.phrase} cost you the most objectives`
-  const most = [...zones].sort((a, b) => b.deaths - a.deaths)[0]
-  return `You die most in ${ZONES[most.key]?.phrase}`
+  if (zones[0].lostObjectives >= TITLE_MIN_LOST) return zones[0].key
+  return [...zones].sort((a, b) => b.deaths - a.deaths)[0].key
+}
+
+const HOW_PATTERNS = { ganked: 'ganked', alone: 'caught alone', teamfight: 'in teamfights', other: 'in lane fights and skirmishes' }
+const PHASE_PHRASES = { early: 'before 14 min', mid: 'between 14 and 25 min', late: 'after 25 min' }
+const OBJECTIVE_PLURALS = { dragon: 'dragons', tower: 'towers', baron: 'Barons', herald: 'Heralds' }
+
+// A cause or phase names the pattern only when it holds this share of the zone's deaths
+const HOW_DOMINANT = 0.4
+const PHASE_DOMINANT = 0.5
+
+/** One "Next match" tip per kind of death, narrowed by the kind of zone and, for some, the phase. */
+const ZONE_TIPS = {
+  ganked: {
+    icon: 'eye',
+    laneYours: 'Ward the river brush by your lane before you trade.',
+    laneEnemy: 'Stop at the middle of the lane unless you can see their jungler.',
+    default: 'Check where their jungler was last seen before you walk in here.'
+  },
+  alone: {
+    icon: 'users',
+    late: 'After 25 minutes, stay with your team instead of farming here alone.',
+    jungleEnemy: 'Only go into their jungle with a teammate, or after you ward it.',
+    jungleYours: 'Ward your jungle entrances before you walk through alone.',
+    river: 'Ward the river before you walk through it alone.',
+    laneEnemy: 'Push this far only when you can see most of their team on the map.',
+    laneYours: 'When three of them are missing from the map, back off toward your tower.',
+    default: 'Move here with a teammate, or once you have vision.'
+  },
+  teamfight: {
+    icon: 'shield',
+    pit: 'Ward the pit a minute before it spawns, then fight here together.',
+    default: 'Stay behind your frontline here and walk into fights after they do.'
+  },
+  other: {
+    icon: 'swords',
+    laneYours: 'Trade when your wave is pushing into them, not after.',
+    laneEnemy: 'Trade when your wave is pushing into them, not after.',
+    default: 'Fight here only when your team can follow you in.'
+  }
+}
+
+function zoneKind(key) {
+  if (key.endsWith('LaneYours')) return 'laneYours'
+  if (key.endsWith('LaneEnemy')) return 'laneEnemy'
+  if (key.startsWith('river')) return 'river'
+  if (key.startsWith('jungleYours')) return 'jungleYours'
+  if (key.startsWith('jungleEnemy')) return 'jungleEnemy'
+  if (key.endsWith('Pit')) return 'pit'
+  return 'base'
+}
+
+function largest(counts) {
+  return Object.entries(counts ?? {}).reduce((best, entry) => (entry[1] > best[1] ? entry : best), [null, 0])
+}
+
+/**
+ * What a zone's deaths have in common and what to try: "Mostly caught alone, before 14 min", three
+ * facts (deaths, the main cause, objectives lost after) and one "Next match" tip.
+ */
+export function buildZoneFocus(zone, breakdown) {
+  const total = Math.max(1, zone.deaths)
+  const [how, howCount] = largest(breakdown?.how)
+  const [phase, phaseCount] = largest(breakdown?.phase)
+  const [objective, objectiveCount] = largest(breakdown?.cost)
+
+  const howPart = how && howCount / total >= HOW_DOMINANT ? `Mostly ${HOW_PATTERNS[how]}` : 'No single cause'
+  const phasePart = phase && phaseCount / total >= PHASE_DOMINANT ? PHASE_PHRASES[phase] : 'spread over the match'
+
+  const facts = [{ key: 'deaths', value: zone.deaths, label: zone.deaths === 1 ? 'death here' : 'deaths here', share: null }]
+  if (how && howCount > 0) facts.push({ key: 'how', value: howCount, label: HOW_LABELS[how], share: howCount / total })
+  facts.push({
+    key: 'cost',
+    value: zone.lostObjectives,
+    label: objectiveCount > 0 ? `lost an objective after · mostly ${OBJECTIVE_PLURALS[objective]}` : 'lost an objective after',
+    share: Math.min(1, zone.lostObjectives / total)
+  })
+
+  const tips = ZONE_TIPS[how] ?? ZONE_TIPS.other
+  const kind = zoneKind(zone.key)
+  const text = (phasePart === PHASE_PHRASES.late && tips.late) || tips[kind] || tips.default
+
+  return { pattern: `${howPart}, ${phasePart}`, facts, tip: { icon: tips.icon, text } }
 }
 
 export function buildDeathZonesCaption(data) {
@@ -628,16 +682,6 @@ export function buildDeathZonesCaption(data) {
     ? `over ${data.matches} ${matchWord(data.matches)} this season`
     : `over your last ${data.matches} ${matchWord(data.matches)}`
   return `${data.deaths} ${data.deaths === 1 ? 'death' : 'deaths'} ${over}. Red-side matches are mirrored, so your base is always bottom left.`
-}
-
-/** FR 37 timing note: "27 of them after 25 minutes", "Mostly before 14 minutes", "Spread over the match". */
-export function zoneTimingNote(timing) {
-  switch (timing?.phase) {
-    case 'late': return `${timing.count} of them after 25 minutes`
-    case 'early': return 'Mostly before 14 minutes'
-    case 'mid': return 'Mostly between 14 and 25 minutes'
-    default: return 'Spread over the match'
-  }
 }
 
 export function zoneSummary(zone) {

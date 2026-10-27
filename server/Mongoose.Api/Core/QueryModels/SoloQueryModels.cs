@@ -7,7 +7,28 @@ namespace Mongoose.Api.Core.QueryModels;
 /// </summary>
 public record MainChampionRoleGroup(
     [property: JsonPropertyName("role")] string Role,
-    [property: JsonPropertyName("champions")] MainChampionEntry[] Champions
+    [property: JsonPropertyName("champions")] MainChampionEntry[] Champions,
+    [property: JsonPropertyName("records")] ChampionRecord[] Records,
+    [property: JsonPropertyName("recordsLeftOut")] string[] RecordsLeftOut
+);
+
+/// <summary>
+/// One champion's record in a role (features/champion-records.spec.md FR 1): matches, wins and
+/// net = wins − losses over the range, plus its recent form.
+/// </summary>
+public record ChampionRecord(
+    [property: JsonPropertyName("championId")] int ChampionId,
+    [property: JsonPropertyName("championName")] string ChampionName,
+    [property: JsonPropertyName("matches")] int Matches,
+    [property: JsonPropertyName("wins")] int Wins,
+    [property: JsonPropertyName("net")] int Net,
+    [property: JsonPropertyName("recent")] RecentForm? Recent
+);
+
+/// <summary>A champion's matches and wins in a role over the player's last 20 matches in the queue (FR 3).</summary>
+public record RecentForm(
+    [property: JsonPropertyName("matches")] int Matches,
+    [property: JsonPropertyName("wins")] int Wins
 );
 
 /// <summary>
@@ -21,7 +42,8 @@ public record MainChampionEntry(
     [property: JsonPropertyName("gamesPlayed")] int GamesPlayed,
     [property: JsonPropertyName("mScore")] double MScore,
     [property: JsonPropertyName("avgKda")] double AvgKda,
-    [property: JsonPropertyName("avgCsPerMin")] double AvgCsPerMin
+    [property: JsonPropertyName("avgCsPerMin")] double AvgCsPerMin,
+    [property: JsonPropertyName("recent")] RecentForm? Recent = null
 );
 
 /// <summary>

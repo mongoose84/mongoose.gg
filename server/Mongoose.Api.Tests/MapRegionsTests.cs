@@ -57,12 +57,28 @@ public class MapRegionsTests
 
         blue.U.Should().BeApproximately(0.1, 1e-9);
         blue.V.Should().BeApproximately(0.2, 1e-9);
-        red.U.Should().BeApproximately(0.9, 1e-9);
-        red.V.Should().BeApproximately(0.8, 1e-9);
+        red.U.Should().BeApproximately(0.8, 1e-9);
+        red.V.Should().BeApproximately(0.9, 1e-9);
 
         // A red player's death in their own base lands in "your base" once mirrored
         var home = MapRegions.Normalize(14000, 14000, teamId: 200);
         MapRegions.Classify(home.U, home.V).Should().Be(MapRegions.YourBase);
+    }
+
+    [Theory]
+    // Red's bot outer tower (right edge) is their own half of bot lane, never top lane
+    [InlineData(13866, 4505, MapRegions.BotLaneYours)]
+    // Red's top outer tower (top edge) stays top lane
+    [InlineData(4318, 13875, MapRegions.TopLaneYours)]
+    // Blue's bot outer tower is the enemy half of bot lane for a red player
+    [InlineData(10504, 1029, MapRegions.BotLaneEnemy)]
+    // Dragon stays dragon and Baron stays Baron
+    [InlineData(9866, 4414, MapRegions.DragonPit)]
+    [InlineData(5007, 10471, MapRegions.BaronPit)]
+    public void Normalize_RedSide_KeepsEachLaneAndPit(int x, int y, string expected)
+    {
+        var (u, v) = MapRegions.Normalize(x, y, teamId: 200);
+        MapRegions.Classify(u, v).Should().Be(expected);
     }
 
     [Theory]

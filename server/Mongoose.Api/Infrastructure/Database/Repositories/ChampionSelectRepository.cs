@@ -164,7 +164,48 @@ public class ChampionSelectRepository : RepositoryBase, IChampionSelectRepositor
         if (rows.Count == 0)
             return Array.Empty<MainChampionRoleGroup>();
 
-        return MainChampionRecommender.BuildMainChampionsByRole(rows, queueType);
+        var recentMatches = await GetRecentMatchesAsync(puuids, queueFilter);
+        return MainChampionRecommender.BuildMainChampionsByRole(rows, queueType, recentMatches);
+    }
+
+    // champion-records FR 3: recent form counts the last 20 matches in the queue, whatever the time range
+    private const int RecentMatchCount = 20;
+
+    private async Task<IReadOnlyList<MainChampionRecommender.RecentMatch>> GetRecentMatchesAsync(
+        IReadOnlyList<string> puuids, string queueFilter)
+    {
+        var (puuidPredicate, puuidParams) = BuildStringInClause("p.puuid", puuids, "puuid");
+        var sql = $@"
+            SELECT
+                COALESCE(NULLIF(p.role, ''), 'UNKNOWN') as Role,
+                p.champion_id,
+                p.win
+            FROM participants p
+            INNER JOIN matches m ON m.match_id = p.match_id
+            WHERE {puuidPredicate}
+            AND m.game_duration_sec >= {MinValidGameDurationSec} {queueFilter}
+            ORDER BY m.game_start_time DESC
+            LIMIT {RecentMatchCount}";
+
+        var matches = new List<MainChampionRecommender.RecentMatch>();
+        await ExecuteWithConnectionAsync(async conn =>
+        {
+            await using var cmd = new MySqlCommand(sql, conn);
+            foreach (var (name, value) in puuidParams)
+            {
+                cmd.Parameters.AddWithValue(name, value);
+            }
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                matches.Add(new MainChampionRecommender.RecentMatch(
+                    reader.GetString(0),
+                    reader.GetInt32(1),
+                    !reader.IsDBNull(2) && reader.GetBoolean(2)));
+            }
+            return 0;
+        });
+        return matches;
     }
 }
 

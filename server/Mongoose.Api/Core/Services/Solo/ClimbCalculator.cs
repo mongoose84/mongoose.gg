@@ -22,22 +22,17 @@ public sealed record WinRatePoint(int Index, int Rate);
 
 public sealed record WinRateClimb(int Was, int Now, IReadOnlyList<WinRatePoint> Points);
 
-/// <summary>One champion's row: <see cref="Value"/> is LP won or lost (LP mode) or net wins (win-rate mode).</summary>
-public sealed record ChampionClimb(int ChampionId, string ChampionName, int Matches, int Wins, int Value);
-
 public sealed record SoloClimb(
     string Mode,
     int Wins,
     int Losses,
     LpClimb? Lp,
     WinRateClimb? WinRate,
-    IReadOnlyList<ChampionClimb> Champions,
-    IReadOnlyList<string> ChampionsLeftOut,
     LadderRank? Rank);
 
 /// <summary>
-/// The climb card, the headline numbers and LP per champion (features/solo-trends.spec.md
-/// FR 5–12, FR 24). Rows are one queue's matches in range, oldest first. Pure and static.
+/// The climb card and the headline numbers (features/solo-trends.spec.md FR 5–12). Champion
+/// records live in Champion Select (features/champion-records.spec.md). Rows are one queue's matches in range, oldest first. Pure and static.
 /// </summary>
 public static class ClimbCalculator
 {
@@ -52,15 +47,10 @@ public static class ClimbCalculator
     public const int Window = 10;
     public const int MinMatchesForWinRate = 20;
 
-    // FR 24: champions need 3 matches; the card shows 5.
-    public const int MinChampionMatches = 3;
-    public const int MaxChampions = 5;
-
     public static SoloClimb Calculate(IReadOnlyList<SoloMatchRow> rows, string queueType, bool singleAccount)
     {
         var mode = LpCoverageRule.Mode(queueType, singleAccount, rows);
         var wins = rows.Count(r => r.Win);
-        var (champions, leftOut) = Champions(rows, mode);
 
         return new SoloClimb(
             mode,
@@ -68,8 +58,6 @@ public static class ClimbCalculator
             rows.Count - wins,
             mode == LpCoverageRule.LpMode ? LpClimb(rows) : null,
             mode == LpCoverageRule.WinRateMode ? WinRate(rows) : null,
-            champions,
-            leftOut,
             CurrentRank(rows, queueType, singleAccount));
     }
 
@@ -156,43 +144,6 @@ public static class ClimbCalculator
             SoloMath.WinRate(rows.Take(Window).ToList()),
             SoloMath.WinRate(rows.TakeLast(Window).ToList()),
             points);
-    }
-
-    /// <summary>
-    /// FR 24: champions with 3 or more matches, largest value first (5 at most), and the names
-    /// of those left out, most played first.
-    /// </summary>
-    public static (IReadOnlyList<ChampionClimb> Champions, IReadOnlyList<string> LeftOut) Champions(
-        IReadOnlyList<SoloMatchRow> rows, string mode)
-    {
-        var groups = rows
-            .GroupBy(r => r.ChampionId)
-            .Select(g =>
-            {
-                var wins = g.Count(r => r.Win);
-                var value = mode == LpCoverageRule.LpMode
-                    ? g.Sum(r => r.LpChange ?? 0)
-                    : wins - (g.Count() - wins);
-                return new ChampionClimb(g.Key, g.First().ChampionName, g.Count(), wins, value);
-            })
-            .ToList();
-
-        var shown = groups
-            .Where(c => c.Matches >= MinChampionMatches)
-            .OrderByDescending(c => c.Value)
-            .ThenByDescending(c => c.Matches)
-            .ThenBy(c => c.ChampionName, StringComparer.Ordinal)
-            .Take(MaxChampions)
-            .ToList();
-
-        var leftOut = groups
-            .Where(c => c.Matches < MinChampionMatches)
-            .OrderByDescending(c => c.Matches)
-            .ThenBy(c => c.ChampionName, StringComparer.Ordinal)
-            .Select(c => c.ChampionName)
-            .ToList();
-
-        return (shown, leftOut);
     }
 
     /// <summary>FR 8: the rank after the latest match with one, for one ranked queue of one account.</summary>

@@ -59,12 +59,16 @@ public static class MapRegions
 
     public static MapRegion Get(string key) => All.First(r => r.Key == key);
 
-    /// <summary>FR 32: the position normalised to 0-1, mirrored for the red team.</summary>
+    /// <summary>
+    /// FR 32: the position normalised to 0-1, mirrored for the red team across the diagonal from
+    /// top left to bottom right. That swaps the bases but keeps each lane itself: a point reflection
+    /// through the centre would turn red's bot lane into top lane.
+    /// </summary>
     public static (double U, double V) Normalize(int x, int y, int teamId)
     {
         var u = Math.Clamp(x / MapSize, 0, 1);
         var v = Math.Clamp(y / MapSize, 0, 1);
-        return teamId == RedTeamId ? (1 - u, 1 - v) : (u, v);
+        return teamId == RedTeamId ? (1 - v, 1 - u) : (u, v);
     }
 
     /// <summary>FR 33: the one region a (mirrored) position falls into, tested in order.</summary>
