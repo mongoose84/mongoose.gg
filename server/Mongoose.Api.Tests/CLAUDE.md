@@ -20,7 +20,7 @@ dotnet test Mongoose.Api.Tests/ --filter "FullyQualifiedName~LoginEndpoint"     
 
 - Use xUnit with FluentAssertions.
 - Use `TestWebApplicationFactory` for HTTP-level tests.
-- Match nearby naming, setup, and assertion style in `server/Mongoose.Api.Tests/`.
+- Match nearby naming, setup, and assertion style in the same folder.
 
 ## Endpoint Coverage
 
@@ -32,14 +32,26 @@ dotnet test Mongoose.Api.Tests/ --filter "FullyQualifiedName~LoginEndpoint"     
 
 Key shared files — read these before adding new tests:
 
-- `TestWebApplicationFactory.cs` — spins up an in-process server with fake repositories and configurable services. Entry point for all HTTP-level tests.
-- `AuthCookieTestHelper.cs` — helpers for creating authenticated HTTP clients (`CreateAuthenticatedClient(userId)`).
-- `EnvironmentVariableScope.cs` — scoped env var overrides that restore original values on dispose. Use for tests that depend on configuration.
-- `EnvIsolationCollection.cs` — xUnit collection fixture that prevents parallel execution of env-var-sensitive tests.
+- `TestSupport/TestWebApplicationFactory.cs` — spins up an in-process server with fake repositories and configurable services. Entry point for all HTTP-level tests.
+- `TestSupport/AuthCookieTestHelper.cs` — helpers for creating authenticated HTTP clients (`CreateAuthenticatedClient(userId)`).
+- `TestSupport/EnvironmentVariableScope.cs` — scoped env var overrides that restore original values on dispose. Use for tests that depend on configuration.
+- `TestSupport/EnvIsolationCollection.cs` — xUnit collection fixture that prevents parallel execution of env-var-sensitive tests.
+- `TestSupport/Fakes/` — shared fake repositories and test doubles.
 
 ## Structure
 
-All test files live flat in `server/Mongoose.Api.Tests/` — no subdirectories. File naming mirrors the class under test: `LoginEndpointTests.cs`, `AesEncryptorTests.cs`, etc.
+Test folders mirror the source tree in `server/Mongoose.Api/`: a test lives at the same relative path as the class it covers, named `<ClassUnderTest>Tests.cs` (e.g. `Infrastructure/Security/AesEncryptor.cs` → `Infrastructure/Security/AesEncryptorTests.cs`).
+
+```
+Application/Endpoints/<Area>/          HTTP-level endpoint tests (TestWebApplicationFactory)
+Application/Services/, Extensions/     application orchestration
+Core/Services[/Solo]/, Core/Entities/  pure domain-rule unit tests
+Infrastructure/<Area>/                 jobs, Riot client/mappers, DB, email, security, WebSocket
+TestSupport/                           factory, auth helper, env isolation, secrets gate
+TestSupport/Fakes/                     shared fakes
+```
+
+All files keep the single `Mongoose.Api.Tests` namespace regardless of folder, so shared helpers need no extra `using` and `--filter "FullyQualifiedName~<Class>"` keeps working.
 
 ## Test Quality
 
