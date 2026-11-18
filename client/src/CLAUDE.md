@@ -25,6 +25,10 @@ Load [component.spec.md](../../.github/specs/component.spec.md) only when you ne
 ## Styling And Accessibility
 
 - Use Tailwind for layout and sizing and CSS custom properties for themed values.
+- Tailwind is v4: there is no `tailwind.config.js`. Theme keys live in the `@theme` block of `src/style.css` and map to the design tokens in its `:root`. Add new theme names there.
+- Keep design-system classes (`mp-*`, `winrate-*`) as plain CSS in `@layer components`, not `@utility`. `@utility` classes are only emitted when Tailwind finds them in source, and `winrate-*` is applied dynamically.
+- In v4, utilities sit in a native cascade layer, so unlayered CSS (including SFC `<style>` blocks) beats any utility on the same element. Don't set the same property in both places. Put global element rules (`*`, `body`, `h1`, …) in `@layer base`: an unlayered `* { padding: 0 }` wipes out every spacing utility.
+- Custom `text-*` sizes bundle a line height, tracking and weight (`text-display`, `text-headline`, `text-title`, …). An explicit `leading-*`, `tracking-*` or `font-*` always beats those bundled values, even when the size has a variant (`desk:text-display`). To change them at a breakpoint, add the variant explicitly too, e.g. `leading-[1.08] desk:text-display desk:leading-[1.06]`.
 - All visual decisions follow the Mongoose.gg design system (`.claude/skills/mongoose-design/reference/`, summarized in ui-ux.spec.md §2). Use design-system tokens only — no ad hoc colors, spacing, radii or shadows. Old-theme styling in existing files is legacy, never a pattern to copy.
 - Prefer semantic HTML, label form controls correctly, and add `aria-label` for icon-only buttons.
 - Add `data-testid` to interactive or assertion-critical elements.

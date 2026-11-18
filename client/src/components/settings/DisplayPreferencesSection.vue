@@ -12,7 +12,7 @@
           id="default-view-select"
           :value="defaultView"
           aria-describedby="default-view-description"
-          class="w-full bg-background border border-border rounded-md px-md py-sm text-sm text-text cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+          class="w-full bg-background border border-border rounded-md px-md py-sm text-sm text-text cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-primary"
           data-testid="default-view-select"
           @change="handleDefaultViewChange"
         >

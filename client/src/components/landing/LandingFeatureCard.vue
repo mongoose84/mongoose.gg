@@ -9,7 +9,7 @@
     </div>
     <div class="flex flex-col gap-2">
       <h3 class="font-display font-semibold text-title desk:text-xl desk:leading-tight text-text">{{ title }}</h3>
-      <p class="text-body text-text-soft max-w-[32.5rem]">{{ description }}</p>
+      <p class="text-body text-text-soft max-w-130">{{ description }}</p>
     </div>
     <slot />
   </article>

@@ -104,9 +104,9 @@ All visual rules (colour, type, spacing, radius, depth, motion, iconography, cha
 - Lucide icons only, through `BaseIcon`; champion art from `client/src/utils/leagueAssets.js`.
 - Summary sentence before scores before detail; "you" voice; glossary words (match, Riot ID, sync, score, readiness, insight, goal).
 
-**Code mapping**: tokens live as CSS variables in `client/src/style.css` (existing `--color-*` names mapped to design-system values) and are exposed to Tailwind in `client/tailwind.config.js`. Use Tailwind for layout and sizing, CSS variables for themed values. Never hard-code a colour, radius, shadow or duration that is not a design-system token.
+**Code mapping**: tokens live as CSS variables in `client/src/style.css` (existing `--color-*` names mapped to design-system values) and are exposed to Tailwind (v4) in the `@theme` block of the same file. Use Tailwind for layout and sizing, CSS variables for themed values. Never hard-code a colour, radius, shadow or duration that is not a design-system token.
 
-**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in `client/tailwind.config.js`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password), the shared `BaseButton` / `BaseInput`, the app header (`AppHeader` / `AppTabBar`, replacing the legacy sidebar), the Overview (with the data the API has today) and Champion Select are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
+**Migration status**: the foundation is in the app (Clash Display + Satoshi in `client/public/fonts/`, design tokens in `client/src/style.css`, Tailwind mapping in the `@theme` block of `client/src/style.css`, Lucide icons through `BaseIcon`). The public header (`NavBar`), the Landing page, the cookie banner, the auth page (log in, sign up, forgot password), the shared `BaseButton` / `BaseInput`, the app header (`AppHeader` / `AppTabBar`, replacing the legacy sidebar), the Overview (with the data the API has today) and Champion Select are migrated; other screens are migrated one by one. Any old-theme styling still in the code (Inter, `hero-bg.svg`, glow shadows, hover lifts, Heroicons, red/green win-rate colours) is legacy to replace when a file is touched — never a pattern to copy.
 
 ---
 
@@ -732,7 +732,7 @@ When creating new UI components:
 | Category | Path |
 |----------|------|
 | CSS Variables / Design Tokens | `client/src/style.css` |
-| Tailwind Config | `client/tailwind.config.js` |
+| Tailwind theme (v4 `@theme`) | `client/src/style.css` |
 | Base Components | `client/src/components/base/` |
 | Overview Components | `client/src/components/overview/` |
 | Match Components | `client/src/components/matches/` |

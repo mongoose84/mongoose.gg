@@ -144,7 +144,7 @@ These rules come from the sites that lead this niche (OP.GG, U.GG, Mobalytics, B
 ## Building with this system
 
 - CSS variables come from this system's `tokens.css`; component classes (`mp-*`) come from `components/bundle.css`.
-- In the Vue app, map these tokens onto the existing `--color-*` variables in `client/src/style.css` and Tailwind names in `client/tailwind.config.js` rather than adding a second set.
+- In the Vue app, map these tokens onto the existing `--color-*` variables in `client/src/style.css` and Tailwind theme variables in the `@theme` block of `client/src/style.css` rather than adding a second set.
 
 ## Third-party components
 
