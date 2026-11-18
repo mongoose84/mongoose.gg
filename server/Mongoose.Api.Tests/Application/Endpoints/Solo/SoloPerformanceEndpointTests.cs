@@ -11,14 +11,6 @@ namespace Mongoose.Api.Tests;
 
 public class SoloPerformanceEndpointTests
 {
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var loginClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await loginClient.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.EnsureSuccessStatusCode();
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     [Fact]
     public async Task Solo_performance_requires_authentication()
     {
@@ -34,7 +26,7 @@ public class SoloPerformanceEndpointTests
     public async Task Solo_performance_returns_403_when_accessing_another_users_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/dashboard/2");
@@ -49,7 +41,7 @@ public class SoloPerformanceEndpointTests
     public async Task Solo_performance_returns_404_when_no_riot_account_linked()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/dashboard/1");
@@ -64,7 +56,7 @@ public class SoloPerformanceEndpointTests
     public async Task Solo_performance_returns_rank_info_with_solo_and_flex_ranks()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         // Add a Riot account with both solo and flex ranks
         factory.RiotAccountsRepository.AddRiotAccountWithRank(
@@ -144,7 +136,7 @@ public class SoloPerformanceEndpointTests
     public async Task Solo_performance_returns_rank_info_with_unranked_player()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         // Add a Riot account without ranks
         factory.RiotAccountsRepository.AddRiotAccount(
@@ -212,7 +204,7 @@ public class SoloPerformanceEndpointTests
     public async Task Solo_performance_falls_back_to_first_linked_account_when_no_primary_is_set()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         // Add two linked accounts where neither is marked as primary
         factory.RiotAccountsRepository.AddRiotAccount(
@@ -283,7 +275,7 @@ public class SoloPerformanceEndpointTests
     public async Task Solo_performance_single_account_returns_accountCount_1_and_allAccountRanks()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccountWithRank(
             userId: 1,
@@ -344,7 +336,7 @@ public class SoloPerformanceEndpointTests
     public async Task Solo_performance_overall_mode_returns_accountCount_and_all_ranks_for_each_account()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         // Set up two linked Riot accounts
         factory.RiotAccountsRepository.AddRiotAccountWithRank(

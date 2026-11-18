@@ -19,14 +19,6 @@ public class SoloDeathZonesEndpointTests
 
     // ───────────────────────── Helpers ─────────────────────────
 
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var loginClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await loginClient.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.EnsureSuccessStatusCode();
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     private static void LinkPrimaryAccount(TestWebApplicationFactory factory)
     {
         factory.RiotAccountsRepository.AddRiotAccount(1, Puuid, "MainPlayer", "EUW1", "MainPlayer#EUW", 100, 42);
@@ -86,7 +78,7 @@ public class SoloDeathZonesEndpointTests
     public async Task GetDeathZones_Returns403_WhenAccessingOtherUsersData()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/2");
 
@@ -97,7 +89,7 @@ public class SoloDeathZonesEndpointTests
     public async Task GetDeathZones_Returns404_WhenNoRiotAccountLinked()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1");
 
@@ -110,7 +102,7 @@ public class SoloDeathZonesEndpointTests
     public async Task GetDeathZones_Returns400_ForInvalidParameters(string query, string code)
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1{query}");
@@ -125,7 +117,7 @@ public class SoloDeathZonesEndpointTests
     public async Task GetDeathZones_Returns200WithZeroMatches_NotReady()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1?queueType=ranked_solo");
@@ -143,7 +135,7 @@ public class SoloDeathZonesEndpointTests
     public async Task GetDeathZones_ReturnsZonesAndBreakdowns_WhenReady()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         Seed(factory, matches: 20, deathsPerMatch: 2);
 
@@ -173,7 +165,7 @@ public class SoloDeathZonesEndpointTests
     public async Task GetDeathZones_SaysQueued_AndMovesTheAccountForward_WhileDetailIsMissing()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         Seed(factory, matches: 10, deathsPerMatch: 3, detailed: false);
 
@@ -189,7 +181,7 @@ public class SoloDeathZonesEndpointTests
     {
         // Older matches than the job's last 50, or timelines Riot no longer serves, stay without detail
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         Seed(factory, matches: 10, deathsPerMatch: 3, detailed: false);
         factory.SoloTrendsRepository.BackfilledAccounts.Add(Puuid);
@@ -205,7 +197,7 @@ public class SoloDeathZonesEndpointTests
     public async Task GetDeathZones_ReportsTheJobsProgress()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         Seed(factory, matches: 10, deathsPerMatch: 3, detailed: false);
         var retryAt = new DateTime(2026, 10, 1, 18, 4, 0, DateTimeKind.Utc);

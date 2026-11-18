@@ -15,14 +15,6 @@ public class SoloClimbEndpointTests
 
     // ───────────────────────── Helpers ─────────────────────────
 
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var loginClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await loginClient.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.EnsureSuccessStatusCode();
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     private static void LinkPrimaryAccount(TestWebApplicationFactory factory)
     {
         factory.RiotAccountsRepository.AddRiotAccount(1, Puuid, "MainPlayer", "EUW1", "MainPlayer#EUW", 100, 42);
@@ -60,7 +52,7 @@ public class SoloClimbEndpointTests
     public async Task GetClimb_Returns403_WhenAccessingOtherUsersData()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/2");
 
@@ -71,7 +63,7 @@ public class SoloClimbEndpointTests
     public async Task GetClimb_Returns404_WhenNoRiotAccountLinked()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1");
 
@@ -85,7 +77,7 @@ public class SoloClimbEndpointTests
     public async Task GetClimb_Returns400_ForInvalidParameters(string query, string code)
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1{query}");
@@ -100,7 +92,7 @@ public class SoloClimbEndpointTests
     public async Task GetClimb_Returns200WithZeroMatches_InWinRateMode()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1?queueType=ranked_solo");
@@ -120,7 +112,7 @@ public class SoloClimbEndpointTests
     public async Task GetClimb_ReturnsTheLadder_InLpMode()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         // 12 ranked wins of +20 from Emerald III 70: promoted at the 2nd, 7th and 12th match
@@ -155,7 +147,7 @@ public class SoloClimbEndpointTests
     public async Task GetClimb_FallsBackToWinRate_ForAllQueues()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         factory.SoloTrendsRepository.AddRange(Puuid, SoloRows.Many(20, i => SoloRows.Make(i, win: i % 2 == 0, lpChange: i % 2 == 0 ? 20 : -20)));
 

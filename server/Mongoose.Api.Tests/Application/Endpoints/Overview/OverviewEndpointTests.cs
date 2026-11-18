@@ -8,14 +8,6 @@ namespace Mongoose.Api.Tests;
 
 public class OverviewEndpointTests
 {
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var loginClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await loginClient.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.EnsureSuccessStatusCode();
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     [Fact]
     public async Task Overview_requires_authentication()
     {
@@ -31,7 +23,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_not_found_when_no_riot_accounts()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/1");
@@ -46,7 +38,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_403_when_accessing_another_users_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/2");
@@ -61,7 +53,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_bad_request_for_invalid_userId()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/overview/invalid");
@@ -76,7 +68,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_player_header_with_linked_account()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         // Add a Riot account for the tester user (userId = 1)
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
@@ -102,7 +94,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_player_header_rank_with_default_queue()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         // Add a Riot account with solo rank
         factory.RiotAccountsRepository.AddRiotAccountWithRank(
@@ -137,7 +129,7 @@ public class OverviewEndpointTests
     public async Task Overview_omits_retired_fields()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         // Link the account to the user (M:M relationship)
@@ -161,7 +153,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_most_played_champion_when_available()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -186,7 +178,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_null_most_played_champion_when_unavailable()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -207,7 +199,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_session_stats_non_null()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -230,7 +222,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_session_stats_with_configured_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -260,7 +252,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_survival_stats_non_null()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -283,7 +275,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_survival_stats_with_configured_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -318,7 +310,7 @@ public class OverviewEndpointTests
     public async Task Overview_all_mode_returns_account_summaries_with_game_counts()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-a", "PlayerA", "EUW1", "PlayerA#EUW", 150, 10);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-a", isPrimary: true);
@@ -347,7 +339,7 @@ public class OverviewEndpointTests
     public async Task Overview_survival_stats_uses_gold_thresholds_for_gold_rank()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccountWithRank(
             userId: 1, puuid: "test-puuid-123", gameName: "TestPlayer", region: "NA1",
@@ -372,7 +364,7 @@ public class OverviewEndpointTests
     public async Task Overview_survival_stats_uses_default_thresholds_for_unranked_player()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -394,7 +386,7 @@ public class OverviewEndpointTests
     public async Task Overview_survival_stats_response_does_not_contain_removed_fields()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -423,7 +415,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_empty_champion_pool_without_ranked_matches()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -445,7 +437,7 @@ public class OverviewEndpointTests
     public async Task Overview_returns_champion_pool_cards_and_also_played()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);

@@ -10,14 +10,6 @@ namespace Mongoose.Api.Tests;
 
 public class AccountSecurityEndpointsTests
 {
-    private static async Task<string> LoginAndGetCookieAsync(TestWebApplicationFactory factory, string username = "tester", string password = "test-password")
-    {
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var loginResponse = await client.PostAsJsonAsync("/api/v2/auth/login", new { username, password });
-        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        return AuthCookieTestHelper.GetAuthCookie(loginResponse);
-    }
-
     [Fact]
     public async Task ForgotPassword_returns_200_for_unknown_email_to_prevent_enumeration()
     {
@@ -121,7 +113,7 @@ public class AccountSecurityEndpointsTests
     public async Task ChangePassword_rejects_invalid_current_password()
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/change-password")
@@ -145,7 +137,7 @@ public class AccountSecurityEndpointsTests
     public async Task ChangePassword_updates_password_and_invalidates_old_credentials()
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/change-password")
@@ -183,7 +175,7 @@ public class AccountSecurityEndpointsTests
     public async Task DeleteAccount_rejects_invalid_password()
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Delete, "/api/v2/auth/account")
@@ -203,7 +195,7 @@ public class AccountSecurityEndpointsTests
     public async Task DeleteAccount_removes_user_and_prevents_future_login()
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, "/api/v2/auth/account")

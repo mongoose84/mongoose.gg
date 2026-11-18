@@ -11,21 +11,6 @@ namespace Mongoose.Api.Tests;
 
 public class VerifyEndpointTests
 {
-    private static async Task<(string cookie, long userId)> LoginUnverifiedUserAsync(TestWebApplicationFactory factory)
-    {
-        // Add an unverified user
-        factory.UsersRepository.AddUnverifiedUser("unverified", "unverified@test.com", "test-password");
-        
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "unverified", password = "test-password" });
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var cookie = AuthCookieTestHelper.GetAuthCookie(response);
-        
-        // Get the user ID for adding tokens
-        var user = await factory.UsersRepository.GetByUsernameAsync("unverified");
-        return (cookie, user!.UserId);
-    }
-
     [Fact]
     public async Task Verify_requires_authentication()
     {
@@ -41,7 +26,7 @@ public class VerifyEndpointTests
     public async Task Verify_rejects_invalid_code_format()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/verify")
@@ -60,7 +45,7 @@ public class VerifyEndpointTests
     public async Task Verify_rejects_when_no_token_exists()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         // No token added for this user
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -80,7 +65,7 @@ public class VerifyEndpointTests
     public async Task Verify_rejects_wrong_code()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -100,7 +85,7 @@ public class VerifyEndpointTests
     public async Task Verify_succeeds_with_correct_code()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -124,7 +109,7 @@ public class VerifyEndpointTests
     public async Task Verify_reissues_persistent_sliding_cookie_with_security_stamp()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -155,7 +140,7 @@ public class VerifyEndpointTests
     public async Task Verify_marks_token_as_used_on_success()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -175,7 +160,7 @@ public class VerifyEndpointTests
     public async Task Verify_increments_attempts_on_wrong_code()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
         var tokenId = factory.TokensRepository.GetAllTokensForUser(userId).First().Id;
 
@@ -196,7 +181,7 @@ public class VerifyEndpointTests
     public async Task Verify_rejects_when_max_attempts_exceeded()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
         var tokenId = factory.TokensRepository.GetAllTokensForUser(userId).First().Id;
 
@@ -224,7 +209,7 @@ public class VerifyEndpointTests
     public async Task Verify_invalidates_token_after_max_attempts_even_with_correct_code()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
         var tokenId = factory.TokensRepository.GetAllTokensForUser(userId).First().Id;
 
@@ -253,7 +238,7 @@ public class VerifyEndpointTests
     public async Task Verify_allows_attempts_below_max()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
         var tokenId = factory.TokensRepository.GetAllTokensForUser(userId).First().Id;
 
@@ -282,7 +267,7 @@ public class VerifyEndpointTests
             ["Auth:VerificationMaxAttempts"] = "3"
         };
         using var factory = new TestWebApplicationFactory(overrides);
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
         var tokenId = factory.TokensRepository.GetAllTokensForUser(userId).First().Id;
 
@@ -306,7 +291,7 @@ public class VerifyEndpointTests
     public async Task Verify_updates_user_before_marking_token_as_used()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "123456", DateTime.UtcNow.AddMinutes(15));
         var tokenId = factory.TokensRepository.GetAllTokensForUser(userId).First().Id;
 

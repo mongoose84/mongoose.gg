@@ -10,15 +10,6 @@ namespace Mongoose.Api.Tests;
 [Collection("EnvIsolation")]
 public class DiagnosticsEndpointTests
 {
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        // Use the password that matches the BCrypt hash in FakeUsersRepository
-        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     [Fact]
     public async Task Diagnostics_returns_unauthorized_when_not_authenticated()
     {
@@ -40,7 +31,7 @@ public class DiagnosticsEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req.Headers.Add("Cookie", authCookie);
         var response = await client.SendAsync(req);
@@ -64,7 +55,7 @@ public class DiagnosticsEndpointTests
         });
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req.Headers.Add("Cookie", authCookie);
         var response = await client.SendAsync(req);
@@ -84,7 +75,7 @@ public class DiagnosticsEndpointTests
         });
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req.Headers.Add("Cookie", authCookie);
         var response = await client.SendAsync(req);
@@ -100,7 +91,7 @@ public class DiagnosticsEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         var req1 = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req1.Headers.Add("Cookie", authCookie);
@@ -122,7 +113,7 @@ public class DiagnosticsEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/diagnostics");
         req.Headers.Add("Cookie", authCookie);

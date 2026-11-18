@@ -14,14 +14,6 @@ public class SoloWinFactorsEndpointTests
 
     // ───────────────────────── Helpers ─────────────────────────
 
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var loginClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await loginClient.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.EnsureSuccessStatusCode();
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     private static void LinkPrimaryAccount(TestWebApplicationFactory factory)
     {
         factory.RiotAccountsRepository.AddRiotAccount(1, Puuid, "MainPlayer", "EUW1", "MainPlayer#EUW", 100, 42);
@@ -70,7 +62,7 @@ public class SoloWinFactorsEndpointTests
     public async Task GetWinFactors_Returns403_WhenAccessingOtherUsersData()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/2");
 
@@ -81,7 +73,7 @@ public class SoloWinFactorsEndpointTests
     public async Task GetWinFactors_Returns404_WhenNoRiotAccountLinked()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1");
 
@@ -95,7 +87,7 @@ public class SoloWinFactorsEndpointTests
     public async Task GetWinFactors_Returns400_ForInvalidParameters(string query, string code)
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1{query}");
@@ -110,7 +102,7 @@ public class SoloWinFactorsEndpointTests
     public async Task GetWinFactors_Returns200WithZeroMatches_WhenNoMatchesInScope()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1?queueType=ranked_solo");
@@ -130,7 +122,7 @@ public class SoloWinFactorsEndpointTests
     public async Task GetWinFactors_ReturnsFactorsSortedByGap_WithRoleMark()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         factory.SoloTrendsRepository.AddRange(Puuid, FactorRows());
 
@@ -159,7 +151,7 @@ public class SoloWinFactorsEndpointTests
     public async Task GetWinFactors_LeavesOutRoleMark_WhenRangeHasMoreThanOneRole()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         factory.SoloTrendsRepository.AddRange(Puuid, FactorRows(secondRole: "TOP"));
 
@@ -173,7 +165,7 @@ public class SoloWinFactorsEndpointTests
     public async Task GetWinFactors_ReturnsPatterns()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         // Three sessions of four back-to-back matches; the fourth match of each is lost.

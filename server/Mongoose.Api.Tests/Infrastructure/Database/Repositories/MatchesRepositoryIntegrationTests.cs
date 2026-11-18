@@ -8,19 +8,10 @@ namespace Mongoose.Api.Tests;
 
 public sealed class MatchesRepositoryIntegrationTests
 {
-    [Fact]
+    [DbFact]
     public async Task GetMatchListSummaryAsync_MapsAccountFields_FromRealSqlPath()
     {
-        if (!IsIntegrationDbOptInEnabled())
-        {
-            return;
-        }
-
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            return;
-        }
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);
@@ -57,12 +48,10 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
-    [Fact]
+    [DbFact]
     public async Task GetMatchListSummaryAsync_ExcludesShortGames_BelowMinDuration()
     {
-        if (!IsIntegrationDbOptInEnabled()) return;
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);
@@ -88,12 +77,10 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
-    [Fact]
+    [DbFact]
     public async Task GetMatchListSummaryAsync_IncludesGames_AtExactMinDuration()
     {
-        if (!IsIntegrationDbOptInEnabled()) return;
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);
@@ -120,12 +107,10 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
-    [Fact]
+    [DbFact]
     public async Task GetRoleBaselinesAsync_ExcludesShortGames_BelowMinDuration()
     {
-        if (!IsIntegrationDbOptInEnabled()) return;
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);
@@ -150,12 +135,10 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
-    [Fact]
+    [DbFact]
     public async Task GetRoleBaselinesAsync_IncludesGames_AtExactMinDuration()
     {
-        if (!IsIntegrationDbOptInEnabled()) return;
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);
@@ -180,12 +163,10 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
-    [Fact]
+    [DbFact]
     public async Task GetMatchListSummaryAsync_ComputesLpChange_FromThePreviousMatchInTheSameQueue()
     {
-        if (!IsIntegrationDbOptInEnabled()) return;
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);
@@ -245,12 +226,10 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
-    [Fact]
+    [DbFact]
     public async Task GetMatchDetailsAsync_ReturnsLpChangeAndRankAfter()
     {
-        if (!IsIntegrationDbOptInEnabled()) return;
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);
@@ -284,12 +263,10 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
-    [Fact]
+    [DbFact]
     public async Task GetStatUsualsAsync_ComputesAverageAndCount_FromRecentMatchesInRole()
     {
-        if (!IsIntegrationDbOptInEnabled()) return;
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);
@@ -327,12 +304,10 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
-    [Fact]
+    [DbFact]
     public async Task GetStatUsualsAsync_ExcludesTheOpenedMatch_AndEveryLaterMatch()
     {
-        if (!IsIntegrationDbOptInEnabled()) return;
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);
@@ -382,12 +357,10 @@ public sealed class MatchesRepositoryIntegrationTests
         }
     }
 
-    [Fact]
+    [DbFact]
     public async Task GetStatUsualsAsync_ExcludesOtherRoles_AndAram()
     {
-        if (!IsIntegrationDbOptInEnabled()) return;
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);
@@ -473,20 +446,6 @@ public sealed class MatchesRepositoryIntegrationTests
         cmd.Parameters.AddWithValue("@tierAfter", lpAfter.HasValue ? tierAfter : DBNull.Value);
         cmd.Parameters.AddWithValue("@rankAfter", lpAfter.HasValue ? rankAfter : DBNull.Value);
         await cmd.ExecuteNonQueryAsync();
-    }
-
-    private static string? GetTestConnectionString()
-    {
-        return Environment.GetEnvironmentVariable("Database_test")
-            ?? Environment.GetEnvironmentVariable("ConnectionStrings__Database_test");
-    }
-
-    private static bool IsIntegrationDbOptInEnabled()
-    {
-        var value = Environment.GetEnvironmentVariable("RUN_DB_INTEGRATION_TESTS");
-        return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task EnsureSchemaAsync(IDbConnectionFactory factory)
@@ -707,12 +666,10 @@ public sealed class MatchesRepositoryIntegrationTests
         await checkpointCmd.ExecuteNonQueryAsync();
     }
 
-    [Fact]
+    [DbFact]
     public async Task GetGoldTimelineDataAsync_FallsBackToFullCheckpoints_ThenPrefersGoldFrames()
     {
-        if (!IsIntegrationDbOptInEnabled()) return;
-        var connectionString = GetTestConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        var connectionString = IntegrationDb.ConnectionString;
 
         var factory = new DirectDbConnectionFactory(connectionString);
         await EnsureSchemaAsync(factory);

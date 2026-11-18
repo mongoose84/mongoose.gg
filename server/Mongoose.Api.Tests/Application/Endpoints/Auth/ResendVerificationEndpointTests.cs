@@ -9,28 +9,6 @@ namespace Mongoose.Api.Tests;
 
 public class ResendVerificationEndpointTests
 {
-    private static async Task<(string cookie, long userId)> LoginUnverifiedUserAsync(TestWebApplicationFactory factory)
-    {
-        factory.UsersRepository.AddUnverifiedUser("unverified", "unverified@test.com", "test-password");
-        
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "unverified", password = "test-password" });
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var cookie = AuthCookieTestHelper.GetAuthCookie(response);
-        
-        var user = await factory.UsersRepository.GetByUsernameAsync("unverified");
-        return (cookie, user!.UserId);
-    }
-
-    private static async Task<string> LoginVerifiedUserAsync(TestWebApplicationFactory factory)
-    {
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        // Use the pre-populated verified user "tester"
-        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     [Fact]
     public async Task ResendVerification_requires_authentication()
     {
@@ -46,7 +24,7 @@ public class ResendVerificationEndpointTests
     public async Task ResendVerification_rejects_already_verified_user()
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginVerifiedUserAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/auth/resend-verification");
@@ -62,7 +40,7 @@ public class ResendVerificationEndpointTests
     public async Task ResendVerification_creates_new_token_and_sends_email()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         factory.EmailService.Clear();
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -87,7 +65,7 @@ public class ResendVerificationEndpointTests
     public async Task ResendVerification_rate_limits_requests()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         
         // Add a recent token (simulating a recent resend)
         factory.TokensRepository.AddToken(userId, TokenTypes.EmailVerification, "111111", DateTime.UtcNow.AddMinutes(15));
@@ -107,7 +85,7 @@ public class ResendVerificationEndpointTests
     public async Task ResendVerification_invalidates_previous_tokens()
     {
         using var factory = new TestWebApplicationFactory();
-        var (cookie, userId) = await LoginUnverifiedUserAsync(factory);
+        var (cookie, userId) = await AuthCookieTestHelper.LoginUnverifiedUserAsync(factory);
         
         // First resend
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });

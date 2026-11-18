@@ -225,7 +225,9 @@ public sealed class DeathDetailBackfillJobTests
         _throttle.WaitingUntilUtc = retryAt;
 
         var run = _sut.RunOnceAsync(Now, CancellationToken.None);
-        await Task.Delay(TimeSpan.FromSeconds(1.5));
+        await Eventually.UntilAsync(
+            () => _state.Get("a")?.Status == DeathDetailBackfillProgress.Waiting,
+            "the job reports Waiting while the rate limiter holds the request");
 
         _state.Get("a").Should().Be(new DeathDetailBackfillProgress(DeathDetailBackfillProgress.Waiting, 1, 2, retryAt));
 

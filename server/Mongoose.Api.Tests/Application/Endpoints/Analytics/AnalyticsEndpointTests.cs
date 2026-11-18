@@ -9,14 +9,6 @@ namespace Mongoose.Api.Tests;
 [Collection("EnvIsolation")]
 public class AnalyticsEndpointTests
 {
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     // Response DTOs for deserialization
     private record TrackEventResponse(bool success);
     private record TrackBatchResponse(bool success, int count);
@@ -28,7 +20,7 @@ public class AnalyticsEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics")
         {
             Content = JsonContent.Create(new
@@ -54,7 +46,7 @@ public class AnalyticsEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics")
         {
             Content = JsonContent.Create(new
@@ -78,7 +70,7 @@ public class AnalyticsEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var longEventName = new string('x', 101);
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics")
         {
@@ -103,7 +95,7 @@ public class AnalyticsEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var events = new List<object>
         {
             new { eventName = "match:select", payload = new Dictionary<string, object> { ["matchId"] = "EUW1_1" }, sessionId = "sess1" },
@@ -131,7 +123,7 @@ public class AnalyticsEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/batch")
         {
             Content = JsonContent.Create(new { events = Array.Empty<object>() })

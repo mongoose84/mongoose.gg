@@ -10,17 +10,6 @@ namespace Mongoose.Api.Tests;
 
 public class RiotAccountsEndpointTests
 {
-    private static async Task<string> LoginAndGetCookieAsync(
-        TestWebApplicationFactory factory,
-        string username = "tester",
-        string password = "test-password")
-    {
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var loginResponse = await client.PostAsJsonAsync("/api/v2/auth/login", new { username, password });
-        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        return AuthCookieTestHelper.GetAuthCookie(loginResponse);
-    }
-
     [Fact]
     public async Task SetPrimary_Returns200_AndUpdatesPrimary_WhenAccountIsLinked()
     {
@@ -30,7 +19,7 @@ public class RiotAccountsEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-primary-old", isPrimary: true);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-target", isPrimary: false);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/riot-accounts/puuid-target/primary");
@@ -51,7 +40,7 @@ public class RiotAccountsEndpointTests
     public async Task SetPrimary_Returns404_WhenAccountIsNotLinked()
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/riot-accounts/not-linked/primary");
@@ -84,7 +73,7 @@ public class RiotAccountsEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-primary", isPrimary: true);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-second", isPrimary: false);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Delete, "/api/v2/users/me/riot-accounts/puuid-primary");
@@ -107,7 +96,7 @@ public class RiotAccountsEndpointTests
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-existing", "Main", "na1", "Main#NA1", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-existing", isPrimary: true);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts")
@@ -132,7 +121,7 @@ public class RiotAccountsEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-existing", isPrimary: true);
         factory.RiotApiClient.MapRiotIdToPuuid("Main", "NA1", "puuid-existing");
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts")
@@ -159,7 +148,7 @@ public class RiotAccountsEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-primary", isPrimary: true);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-second", isPrimary: false);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/users/me");
         request.Headers.Add("Cookie", cookie);
@@ -183,7 +172,7 @@ public class RiotAccountsEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-primary", isPrimary: true);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-second", isPrimary: false);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/users/me");
         request.Headers.Add("Cookie", cookie);
@@ -202,7 +191,7 @@ public class RiotAccountsEndpointTests
         using var factory = new TestWebApplicationFactory();
         factory.UsersRepository.SetUserIconId("tester", 503);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/users/me");
         request.Headers.Add("Cookie", cookie);
@@ -219,7 +208,7 @@ public class RiotAccountsEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/icon")
@@ -246,7 +235,7 @@ public class RiotAccountsEndpointTests
         using var factory = new TestWebApplicationFactory();
         factory.UsersRepository.SetUserIconId("tester", 4025);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/icon")
@@ -283,7 +272,7 @@ public class RiotAccountsEndpointTests
     public async Task UpdateUserIcon_Returns400_WhenIconIdIsInvalid(int invalidIconId)
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Put, "/api/v2/users/me/icon")
@@ -306,7 +295,7 @@ public class RiotAccountsEndpointTests
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-linked", "Main", "na1", "Main#NA1", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-linked", isPrimary: true);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/puuid-linked/sync");
@@ -330,7 +319,7 @@ public class RiotAccountsEndpointTests
         await factory.RiotAccountsRepository.UpdateSyncStatusAsync("puuid-syncing", "syncing");
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-syncing", isPrimary: true);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/puuid-syncing/sync");
@@ -358,7 +347,7 @@ public class RiotAccountsEndpointTests
     public async Task Sync_Returns404_WhenAccountNotLinked()
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/not-linked/sync");
@@ -378,7 +367,7 @@ public class RiotAccountsEndpointTests
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-status", "Main", "na1", "Main#NA1", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-status", isPrimary: true);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/users/me/riot-accounts/puuid-status/sync-status");
@@ -407,7 +396,7 @@ public class RiotAccountsEndpointTests
     public async Task SyncStatus_Returns404_WhenAccountNotLinked()
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/v2/users/me/riot-accounts/not-linked/sync-status");
@@ -424,7 +413,7 @@ public class RiotAccountsEndpointTests
     public async Task LinkAccount_Returns400_WhenRegionIsInvalid()
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts")
@@ -446,7 +435,7 @@ public class RiotAccountsEndpointTests
         using var factory = new TestWebApplicationFactory();
         factory.RiotApiClient.SimulateRiotNotFound("Unknown", "NA1");
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts")
@@ -472,7 +461,7 @@ public class RiotAccountsEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-a", isPrimary: true);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-b", isPrimary: false);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/sync");
@@ -500,7 +489,7 @@ public class RiotAccountsEndpointTests
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-idle", isPrimary: true);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-syncing", isPrimary: false);
 
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/sync");
@@ -521,7 +510,7 @@ public class RiotAccountsEndpointTests
     public async Task SyncAll_Returns400_WhenNoLinkedAccounts()
     {
         using var factory = new TestWebApplicationFactory();
-        var cookie = await LoginAndGetCookieAsync(factory);
+        var cookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/users/me/riot-accounts/sync");

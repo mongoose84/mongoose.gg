@@ -9,14 +9,6 @@ namespace Mongoose.Api.Tests;
 [Collection("EnvIsolation")]
 public class FeedbackEndpointTests
 {
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     // Response DTOs for deserialization
     private record FeedbackResponse(bool success, string message);
     private record ErrorResponse(string error);
@@ -27,7 +19,7 @@ public class FeedbackEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
@@ -254,7 +246,7 @@ public class FeedbackEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feedback")
         {
             Content = JsonContent.Create(new
@@ -375,7 +367,7 @@ public class FeedbackEndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         // Make 5 successful requests (at rate limit)
         for (int i = 0; i < 5; i++)

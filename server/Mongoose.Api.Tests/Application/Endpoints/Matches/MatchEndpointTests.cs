@@ -17,14 +17,6 @@ public class MatchEndpointTests
     private static string BuildAccountId(long userId, string puuid) =>
         Mongoose.Api.Application.Services.PuuidResolutionService.BuildAccountId(userId, puuid);
 
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var loginClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await loginClient.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.EnsureSuccessStatusCode();
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     // ============================================================================
     // MatchListEndpoint Tests
     // ============================================================================
@@ -44,7 +36,7 @@ public class MatchEndpointTests
     public async Task MatchList_returns_bad_request_for_invalid_userId()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/invalid");
@@ -59,7 +51,7 @@ public class MatchEndpointTests
     public async Task MatchList_returns_forbidden_when_accessing_other_users_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         // User 1 is logged in, trying to access user 999's data
@@ -75,7 +67,7 @@ public class MatchEndpointTests
     public async Task MatchList_returns_not_found_when_no_riot_accounts()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/1");
@@ -90,7 +82,7 @@ public class MatchEndpointTests
     public async Task MatchList_returns_empty_matches_with_linked_account_but_no_matches()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         // Add a Riot account and link it
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
@@ -114,7 +106,7 @@ public class MatchEndpointTests
     public async Task MatchList_accepts_queue_type_filter()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -135,7 +127,7 @@ public class MatchEndpointTests
     public async Task MatchList_returns_matches_with_correct_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -182,7 +174,7 @@ public class MatchEndpointTests
     public async Task MatchList_returns_lp_change_and_rank_after_each_match()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -212,7 +204,7 @@ public class MatchEndpointTests
     public async Task MatchList_returns_null_lp_change_when_unknown()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -237,7 +229,7 @@ public class MatchEndpointTests
     public async Task MatchList_no_longer_returns_trendBadge()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -277,7 +269,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_returns_not_found_when_no_riot_accounts()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/details");
@@ -292,7 +284,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_returns_forbidden_when_account_not_owned()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -312,7 +304,7 @@ public class MatchEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         factory.UsersRepository.SetTier("tester", "free");
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-primary", "Main", "NA1", "Main#NA1", 100, 42);
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-secondary", "Alt", "NA1", "Alt#NA1", 100, 42);
@@ -334,7 +326,7 @@ public class MatchEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         factory.UsersRepository.SetTier("tester", "pro");
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-primary", "Main", "NA1", "Main#NA1", 100, 42);
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-secondary", "Alt", "NA1", "Alt#NA1", 100, 42);
@@ -380,7 +372,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_returns_not_found_when_match_not_found()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -399,7 +391,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_returns_match_with_details()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -446,7 +438,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_returns_lp_change_and_rank_after()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -478,7 +470,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_returns_dragonsParticipated_field_in_response()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -518,7 +510,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_returns_dragonsParticipated_as_zero_when_no_participant_objectives()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -575,7 +567,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_returns_decidingStat_for_seeded_match_with_enough_usual_history()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-decide", "Decider", "NA1", "Decider#NA1", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-decide", isPrimary: true);
@@ -619,7 +611,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_decidingStat_excludes_laterMatches_and_the_openedMatch_itself()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-decide", "Decider", "NA1", "Decider#NA1", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-decide", isPrimary: true);
@@ -666,7 +658,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_decidingStat_excludes_otherRoles_and_aram()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-decide", "Decider", "NA1", "Decider#NA1", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-decide", isPrimary: true);
@@ -708,7 +700,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_decidingStat_isNull_forAramMatch()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-aram", "Aram", "NA1", "Aram#NA1", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-aram", isPrimary: true);
@@ -744,7 +736,7 @@ public class MatchEndpointTests
     private static async Task<HttpResponseMessage> GetDetailsWithGoldTimelineAsync(
         TestWebApplicationFactory factory, string matchId, int queueId, int gameDurationSec = 1800)
     {
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-gold", "Gold", "NA1", "Gold#NA1", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-gold", isPrimary: true);
         var accountId = BuildAccountId(1, "puuid-gold");
@@ -802,7 +794,7 @@ public class MatchEndpointTests
     public async Task MatchDetails_decidingStat_isNull_whenFewerThanFiveEarlierMatches()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-new", "Newer", "NA1", "Newer#NA1", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-new", isPrimary: true);
@@ -851,7 +843,7 @@ public class MatchEndpointTests
     public async Task MatchNarrative_returns_not_found_when_no_riot_accounts()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/matches/NA1_12345/narrative");
@@ -866,7 +858,7 @@ public class MatchEndpointTests
     public async Task MatchNarrative_returns_forbidden_when_account_not_owned()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -884,7 +876,7 @@ public class MatchEndpointTests
     public async Task MatchNarrative_returns_not_found_when_match_not_found()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -903,7 +895,7 @@ public class MatchEndpointTests
     public async Task MatchNarrative_returns_not_found_when_user_not_in_match()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -940,7 +932,7 @@ public class MatchEndpointTests
     public async Task MatchNarrative_returns_lane_matchups_for_standard_game()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -995,7 +987,7 @@ public class MatchEndpointTests
     public async Task MatchNarrative_detects_aram_games()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-123", "TestPlayer", "NA1", "TestPlayer#NA1", 100, 42);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-123", isPrimary: true);
@@ -1036,7 +1028,7 @@ public class MatchEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         factory.UsersRepository.SetTier("tester", "pro");
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-main", "MainAcc", "NA1", "MainAcc#NA1", 100, 1);
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-alt", "AltAcc", "EUW", "AltAcc#EUW", 50, 2);
@@ -1074,7 +1066,7 @@ public class MatchEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         factory.UsersRepository.SetTier("tester", "pro");
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-main", "MainAcc", "NA1", "MainAcc#NA1", 100, 1);
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-alt", "AltAcc", "EUW", "AltAcc#EUW", 50, 2);
@@ -1113,7 +1105,7 @@ public class MatchEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         factory.UsersRepository.SetTier("tester", "pro");
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-main", "FakerMain", "EUW", "FakerMain#EUW", 200, 1);
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-alt", "SmurfAcc", "NA1", "SmurfAcc#NA1", 80, 2);
@@ -1145,7 +1137,7 @@ public class MatchEndpointTests
     public async Task MatchList_single_account_does_not_include_account_tag()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-main", "MainAcc", "NA1", "MainAcc#NA1", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid-main", isPrimary: true);
@@ -1175,7 +1167,7 @@ public class MatchEndpointTests
     {
         using var factory = new TestWebApplicationFactory();
         factory.UsersRepository.SetTier("tester", "pro");
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-main", "MainAcc", "NA1", "MainAcc#NA1", 100, 1);
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid-alt", "AltAcc", "EUW", "AltAcc#EUW", 50, 2);

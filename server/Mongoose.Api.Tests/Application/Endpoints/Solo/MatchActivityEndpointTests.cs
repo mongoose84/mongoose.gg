@@ -9,14 +9,6 @@ namespace Mongoose.Api.Tests;
 
 public class MatchActivityEndpointTests
 {
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var loginClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await loginClient.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.EnsureSuccessStatusCode();
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     [Fact]
     public async Task MatchActivity_returns_401_when_unauthenticated()
     {
@@ -32,7 +24,7 @@ public class MatchActivityEndpointTests
     public async Task MatchActivity_returns_403_when_accessing_another_users_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/activity/999");
@@ -47,7 +39,7 @@ public class MatchActivityEndpointTests
     public async Task MatchActivity_returns_404_when_no_riot_account_linked()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/activity/1");
@@ -62,7 +54,7 @@ public class MatchActivityEndpointTests
     public async Task MatchActivity_returns_daily_match_counts_for_linked_account()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-activity", "ActivityPlayer", "NA1", "ActivityPlayer#NA1", 80, 10);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-activity", isPrimary: true);
@@ -98,7 +90,7 @@ public class MatchActivityEndpointTests
     public async Task MatchActivity_returns_empty_counts_when_no_matches_played()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-empty", "EmptyPlayer", "NA1", "EmptyPlayer#NA1", 10, 5);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-empty", isPrimary: true);
@@ -120,7 +112,7 @@ public class MatchActivityEndpointTests
     public async Task MatchActivity_date_range_spans_approximately_182_days()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "test-puuid-dates", "DatePlayer", "NA1", "DatePlayer#NA1", 20, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "test-puuid-dates", isPrimary: true);

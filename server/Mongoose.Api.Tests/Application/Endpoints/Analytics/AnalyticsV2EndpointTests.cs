@@ -10,14 +10,6 @@ namespace Mongoose.Api.Tests;
 [Collection("EnvIsolation")]
 public class AnalyticsV2EndpointTests
 {
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await client.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     // ============ V2 Single Event Tests ============
 
     [Fact]
@@ -26,7 +18,7 @@ public class AnalyticsV2EndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/v2")
         {
             Content = JsonContent.Create(new
@@ -55,7 +47,7 @@ public class AnalyticsV2EndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/v2")
         {
             Content = JsonContent.Create(new
@@ -82,7 +74,7 @@ public class AnalyticsV2EndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/v2")
         {
             Content = JsonContent.Create(new
@@ -108,7 +100,7 @@ public class AnalyticsV2EndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var largePayload = new Dictionary<string, object>
         {
             { "path", "/app/overview" }, // Required field, so the payload is otherwise valid
@@ -140,7 +132,7 @@ public class AnalyticsV2EndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/v2")
         {
             Content = JsonContent.Create(new
@@ -197,7 +189,7 @@ public class AnalyticsV2EndpointTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var events = new object[]
         {
             new { eventName = "nav:page_view", eventVersion = 1, payload = new { path = "/app" } },

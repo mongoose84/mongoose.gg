@@ -16,14 +16,6 @@ public class SoloStatTrendsEndpointTests
 
     // ───────────────────────── Helpers ─────────────────────────
 
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var loginClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await loginClient.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.EnsureSuccessStatusCode();
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     private static void LinkPrimaryAccount(TestWebApplicationFactory factory)
     {
         factory.RiotAccountsRepository.AddRiotAccount(1, Puuid, "MainPlayer", "EUW1", "MainPlayer#EUW", 100, 42);
@@ -61,7 +53,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_Returns403_WhenAccessingOtherUsersData()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/2");
 
@@ -72,7 +64,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_Returns404_WhenNoRiotAccountLinked()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1");
 
@@ -86,7 +78,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_Returns400_ForInvalidParameters(string query, string code)
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1{query}");
@@ -102,7 +94,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_Returns200WithZeroMatches_WhenNoMatchesInScope()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         var response = await GetAsync(factory, authCookie, $"{Route}/1");
@@ -121,7 +113,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_ReturnsTrendsAndFocus()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         // Vision drops from 1.2 to 0.6 and wins follow it; deaths drop from 6 to 4.
@@ -164,7 +156,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_OmitsValues_WhenSeasonHasMoreThan100Matches()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         factory.SoloTrendsRepository.AddRange(Puuid, SoloRows.Many(120));
 
@@ -183,7 +175,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_DefaultsToFlex_WhenNoSoloMatchThisSeason()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         factory.SoloTrendsRepository.Add(Puuid, SoloRows.Make(0, queueId: 420), inSeason: false);
         factory.SoloTrendsRepository.AddRange(Puuid, SoloRows.Many(3, i => SoloRows.Make(i + 1, queueId: 440)));
@@ -199,7 +191,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_ReadsSeasonForBenchmark_OnlyWhenRangeIsNotSeason()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
 
         await GetAsync(factory, authCookie, $"{Route}/1?queueType=ranked_solo&range=last50");
@@ -223,7 +215,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_UsesTheRankAverage_WhenThePoolIsLargeEnough()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         factory.SoloTrendsRepository.AddRange(Puuid, SoloRows.Many(20, i => SoloRows.Make(i, tierAfter: "EMERALD", deaths: 9)));
         SeedRankPool(factory, matches: 200, players: 20);
@@ -245,7 +237,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_KeepsTheSeasonAverage_WhenThePoolIsTooSmall()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         factory.SoloTrendsRepository.AddRange(Puuid, SoloRows.Many(20, i => SoloRows.Make(i, tierAfter: "EMERALD")));
         SeedRankPool(factory, matches: 400, players: 19);
@@ -261,7 +253,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_DoesNotReadARankPool_ForAllQueues()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         LinkPrimaryAccount(factory);
         factory.SoloTrendsRepository.AddRange(Puuid, SoloRows.Many(20, i => SoloRows.Make(i, tierAfter: "EMERALD")));
         SeedRankPool(factory, matches: 200, players: 20);
@@ -275,7 +267,7 @@ public class SoloStatTrendsEndpointTests
     public async Task GetStatTrends_ReadsEveryLinkedAccount_WhenAccountIdIsAll()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
         var user = await factory.UsersRepository.GetByIdAsync(1);
         user!.Tier = "pro";
         await factory.UsersRepository.UpsertAsync(user);

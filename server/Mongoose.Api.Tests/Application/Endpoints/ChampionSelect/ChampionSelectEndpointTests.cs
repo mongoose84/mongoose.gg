@@ -12,14 +12,6 @@ namespace Mongoose.Api.Tests;
 /// </summary>
 public class ChampionSelectEndpointTests
 {
-    private static async Task<string> LoginAndGetAuthCookieAsync(TestWebApplicationFactory factory)
-    {
-        using var loginClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await loginClient.PostAsJsonAsync("/api/v2/auth/login", new { username = "tester", password = "test-password" });
-        response.EnsureSuccessStatusCode();
-        return AuthCookieTestHelper.GetAuthCookie(response);
-    }
-
     private static ChampionSelectResponse CreateTestChampionSelectData()
     {
         return new ChampionSelectResponse(
@@ -68,7 +60,7 @@ public class ChampionSelectEndpointTests
     public async Task ChampionSelect_returns_bad_request_for_invalid_userId()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/invalid");
@@ -82,7 +74,7 @@ public class ChampionSelectEndpointTests
     public async Task ChampionSelect_returns_forbidden_when_accessing_other_users_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/999");
@@ -96,7 +88,7 @@ public class ChampionSelectEndpointTests
     public async Task ChampionSelect_returns_not_found_when_no_riot_accounts()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/champion-select/1");
@@ -110,7 +102,7 @@ public class ChampionSelectEndpointTests
     public async Task ChampionSelect_returns_not_found_when_no_match_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
@@ -127,7 +119,7 @@ public class ChampionSelectEndpointTests
     public async Task ChampionSelect_returns_champion_select_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
@@ -151,7 +143,7 @@ public class ChampionSelectEndpointTests
     public async Task ChampionSelect_returns_records_left_out_names_and_recent_form()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
@@ -188,7 +180,7 @@ public class ChampionSelectEndpointTests
     public async Task ChampionSelect_accepts_queue_type_filter()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
@@ -206,7 +198,7 @@ public class ChampionSelectEndpointTests
     public async Task ChampionSelect_accepts_time_range_filter()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
@@ -238,7 +230,7 @@ public class ChampionSelectEndpointTests
     public async Task SoloMatchups_returns_bad_request_for_invalid_userId()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/invalid");
@@ -252,7 +244,7 @@ public class ChampionSelectEndpointTests
     public async Task SoloMatchups_returns_forbidden_when_accessing_other_users_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/999");
@@ -266,7 +258,7 @@ public class ChampionSelectEndpointTests
     public async Task SoloMatchups_returns_not_found_when_no_riot_accounts()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v2/solo/matchups/1");
@@ -280,7 +272,7 @@ public class ChampionSelectEndpointTests
     public async Task SoloMatchups_returns_empty_matchups_when_no_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
@@ -301,7 +293,7 @@ public class ChampionSelectEndpointTests
     public async Task SoloMatchups_returns_matchup_data()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
@@ -326,7 +318,7 @@ public class ChampionSelectEndpointTests
     public async Task SoloMatchups_accepts_queue_type_filter()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
@@ -344,7 +336,7 @@ public class ChampionSelectEndpointTests
     public async Task SoloMatchups_accepts_time_range_filter()
     {
         using var factory = new TestWebApplicationFactory();
-        var authCookie = await LoginAndGetAuthCookieAsync(factory);
+        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
 
         factory.RiotAccountsRepository.AddRiotAccount(1, "puuid123", "Tester", "EUW", "TesterSum", 100, 1);
         factory.UserRiotAccountsRepository.LinkAccount(1, "puuid123", isPrimary: true);
