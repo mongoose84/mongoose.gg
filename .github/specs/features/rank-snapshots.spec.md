@@ -152,7 +152,7 @@ No UI changes. One behaviour users will notice: new ranked matches appear on the
 - [ ] `MatchCleanupJobTests`: deletes old snapshots but keeps the newest per account and queue.
 
 ### Integration Tests
-- [ ] `RankSnapshotsRepositoryIntegrationTests` (opt-in `RUN_DB_INTEGRATION_TESTS` + `Database_test`, like `MatchesRepositoryIntegrationTests`): insert and read snapshots, the due-accounts query, the candidate query by end time and queue, retention.
+- [ ] `RankSnapshotsRepositoryIntegrationTests` (`[DbFact]`, opt-in `RUN_DB_INTEGRATION_TESTS` + `Database_test`, like `MatchesRepositoryIntegrationTests`): insert and read snapshots, the due-accounts query, the candidate query by end time and queue, retention.
 - [ ] End to end on the 4b query: two matches attributed from consecutive pending snapshots → `GetMatchListSummaryAsync` returns their `lpChange`.
 - [ ] `LoginSyncService` and `RiotAccountsEndpoint` tests: they store a snapshot through the service instead of writing ranks themselves.
 

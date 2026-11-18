@@ -20,26 +20,40 @@ dotnet test Mongoose.Api.Tests/ --filter "FullyQualifiedName~LoginEndpoint"     
 
 - Use xUnit with FluentAssertions.
 - Use `TestWebApplicationFactory` for HTTP-level tests.
-- Match nearby naming, setup, and assertion style in `server/Mongoose.Api.Tests/`.
+- Match nearby naming, setup, and assertion style in the same folder.
 
 ## Endpoint Coverage
 
 - Protected endpoint suites should cover happy path, 401 unauthenticated, 403 forbidden, and 404 not found when those outcomes are part of the contract.
-- Use `CreateClient()` for unauthenticated requests and `CreateAuthenticatedClient(userId)` for authenticated requests.
+- Use `CreateClient()` for unauthenticated requests. For authenticated ones, get a cookie with `AuthCookieTestHelper.LoginAsync(factory)` (seeded verified user `tester`; pass `username`/`password` for others) or `AuthCookieTestHelper.LoginUnverifiedUserAsync(factory)`, and send it in the `Cookie` header. Never write a per-class login helper.
 - Reuse seeded fake repositories and shared helpers instead of rebuilding fixtures.
 
 ## Test Infrastructure
 
 Key shared files — read these before adding new tests:
 
-- `TestWebApplicationFactory.cs` — spins up an in-process server with fake repositories and configurable services. Entry point for all HTTP-level tests.
-- `AuthCookieTestHelper.cs` — helpers for creating authenticated HTTP clients (`CreateAuthenticatedClient(userId)`).
-- `EnvironmentVariableScope.cs` — scoped env var overrides that restore original values on dispose. Use for tests that depend on configuration.
-- `EnvIsolationCollection.cs` — xUnit collection fixture that prevents parallel execution of env-var-sensitive tests.
+- `TestSupport/TestWebApplicationFactory.cs` — spins up an in-process server with fake repositories and configurable services. Entry point for all HTTP-level tests.
+- `TestSupport/AuthCookieTestHelper.cs` — `LoginAsync` / `LoginUnverifiedUserAsync` return a real auth cookie via the login endpoint; `GetAuthCookie` / `GetAuthenticationTicket` read one from a response.
+- `TestSupport/EnvironmentVariableScope.cs` — scoped env var overrides that restore original values on dispose. Use for tests that depend on configuration.
+- `TestSupport/EnvIsolationCollection.cs` — xUnit collection fixture that prevents parallel execution of env-var-sensitive tests.
+- `TestSupport/DbFactAttribute.cs` — `[DbFact]` for tests against a real MySQL DB; reports **Skipped** unless `RUN_DB_INTEGRATION_TESTS=true` and `Database_test` are set. Read the connection string from `IntegrationDb.ConnectionString`. Never gate a test with an early `return` — it reports as passed.
+- `TestSupport/Eventually.cs` — `Eventually.UntilAsync(condition, because)` waits for background work to reach a state; use it instead of a fixed `Task.Delay`.
+- `TestSupport/Fakes/` — shared fake repositories and test doubles.
 
 ## Structure
 
-All test files live flat in `server/Mongoose.Api.Tests/` — no subdirectories. File naming mirrors the class under test: `LoginEndpointTests.cs`, `AesEncryptorTests.cs`, etc.
+Test folders mirror the source tree in `server/Mongoose.Api/`: a test lives at the same relative path as the class it covers, named `<ClassUnderTest>Tests.cs` (e.g. `Infrastructure/Security/AesEncryptor.cs` → `Infrastructure/Security/AesEncryptorTests.cs`).
+
+```
+Application/Endpoints/<Area>/          HTTP-level endpoint tests (TestWebApplicationFactory)
+Application/Services/, Extensions/     application orchestration
+Core/Services[/Solo]/, Core/Entities/  pure domain-rule unit tests
+Infrastructure/<Area>/                 jobs, Riot client/mappers, DB, email, security, WebSocket
+TestSupport/                           factory, auth helper, env isolation, secrets gate
+TestSupport/Fakes/                     shared fakes
+```
+
+All files keep the single `Mongoose.Api.Tests` namespace regardless of folder, so shared helpers need no extra `using` and `--filter "FullyQualifiedName~<Class>"` keeps working.
 
 ## Test Quality
 

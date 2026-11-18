@@ -514,9 +514,9 @@ cd client && npm run test:e2e
 
 | Purpose | Path |
 |---------|------|
-| Backend test factory | `server/Mongoose.Api.Tests/TestWebApplicationFactory.cs` |
-| Riot Match Mapper tests | `server/Mongoose.Api.Tests/RiotMatchMapperTests.cs` |
-| Match Endpoint tests | `server/Mongoose.Api.Tests/MatchEndpointTests.cs` |
+| Backend test factory | `server/Mongoose.Api.Tests/TestSupport/TestWebApplicationFactory.cs` |
+| Riot Match Mapper tests | `server/Mongoose.Api.Tests/Infrastructure/Riot/Mappers/RiotMatchMapperTests.cs` |
+| Match Endpoint tests | `server/Mongoose.Api.Tests/Application/Endpoints/Matches/MatchEndpointTests.cs` |
 | Auth Store tests | `client/test/unit/authStore.spec.js` |
 | API Client tests | `client/test/unit/apiClient.spec.js` |
 | Formatters tests | `client/test/unit/formatters.spec.js` |
