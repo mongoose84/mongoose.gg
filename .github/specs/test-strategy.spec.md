@@ -85,46 +85,39 @@
 
 ### 3.1 Test Infrastructure
 
-- `TestWebApplicationFactory` provides dependency injection mocking for integration tests
-- Fake repositories for Users, RiotAccounts, Tokens, Analytics
-- Integration tests use real HTTP client against test server
-- FluentAssertions for readable assertions
+All shared helpers live in `server/Mongoose.Api.Tests/TestSupport/`:
+
+- `TestWebApplicationFactory` — in-process test server with fake repositories. It is a `partial` class; each nested fake lives in its own `Fakes/TestWebApplicationFactory.<Fake>.cs` file.
+- `AuthCookieTestHelper.LoginAsync` / `LoginUnverifiedUserAsync` — real auth cookies via the login endpoint
+- `[DbFact]` — opt-in real-MySQL tests; reported as Skipped unless `RUN_DB_INTEGRATION_TESTS` and `Database_test` are set
+- `Eventually.UntilAsync` — waits for background work instead of a fixed `Task.Delay`; background jobs take an optional `TimeProvider` so tests can use `FakeTimeProvider`
+- `EnvironmentVariableScope` / `EnvIsolationCollection` — env-var isolation
+- Integration tests use a real HTTP client against the test server; FluentAssertions for assertions
 
 ### 3.2 Test File Map
 
+Test folders mirror `server/Mongoose.Api/`. A test lives at the same relative path as the class it covers and is named `<ClassUnderTest>Tests.cs`. All files share the `Mongoose.Api.Tests` namespace.
+
 ```
 server/Mongoose.Api.Tests/
-├── Endpoints/
-│   ├── AnalyticsEndpointTests.cs           # ✅ Exists
-│   ├── Auth/ (Login, Verify, Resend, etc.) # ✅ Exists
-│   ├── ChampionSelectEndpointTests.cs      # ✅ Complete (16 tests)
-│   ├── DiagnosticsEndpointTests.cs         # ✅ Exists
-│   ├── FeedbackEndpointTests.cs            # ✅ Exists
-│   ├── MatchEndpointTests.cs               # ✅ Complete (19 tests)
-│   ├── OverviewEndpointTests.cs            # ✅ Exists
-│   ├── SoloDashboardEndpointTests.cs       # ✅ Exists (needs expansion)
-
-├── Services/
-│   ├── MainChampionRecommenderTests.cs     # ✅ Exists
-│   ├── LoginSyncServiceTests.cs            # Missing
-│   └── SeasonHelperTests.cs                # Missing
-├── Mappers/
-│   ├── RiotMatchMapperTests.cs             # ✅ Complete (28 tests)
-│   └── RiotTimelineMapperTests.cs          # Missing
+├── Application/
+│   ├── Endpoints/{Analytics,Auth,ChampionSelect,Diagnostics,Feedback,Matches,Overview,Shared,Solo}/
+│   ├── Extensions/
+│   └── Services/                 # LoginSyncService, PuuidResolution, RankSnapshot, AuthorizationHelper
+├── Core/
+│   ├── Entities/
+│   └── Services/ (+ Solo/)       # pure domain-rule unit tests
 ├── Infrastructure/
-│   ├── AesEncryptorTests.cs                # ✅ Exists
-│   ├── VerificationCodeGeneratorTests.cs   # ✅ Exists
-│   └── SyncProgressHubTests.cs             # ✅ Exists
-└── Jobs/
-    ├── MatchHistorySyncJobTests.cs         # ✅ Exists
-    └── MatchCleanupJobTests.cs             # ✅ Exists
+│   ├── Database/ (+ Repositories/ — [DbFact] integration tests)
+│   ├── Email/  Helpers/  Jobs/  Security/  Serialization/  Services/  WebSocket/
+│   └── Riot/ (+ LimitHandler/, Mappers/)
+└── TestSupport/ (+ Fakes/)
 ```
 
 ### 3.3 Gaps to Fill
 
-1. **LoginSyncService Tests** — Triggers on login, important for data freshness
-2. **Riot API Client Mocking** — Enable testing sync flows without real API
-3. **RiotTimelineMapper Tests** — Timeline data transformation
+1. **Repository integration tests** — only `MatchesRepository` has `[DbFact]` coverage; `RankSnapshotsRepository` is planned (see `features/rank-snapshots.spec.md`).
+2. **Real-DB runs in CI** — `[DbFact]` tests are skipped unless a test database is configured.
 
 ### 3.4 Backend Test Pattern
 
