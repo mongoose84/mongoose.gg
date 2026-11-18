@@ -148,7 +148,7 @@
 - `DeleteOlderThanAsync()` — Retention purge support
 
 ### 8. ✅ Integration Tests
-**File:** [`server/Mongoose.Api.Tests/AnalyticsV2EndpointTests.cs`](../server/Mongoose.Api.Tests/AnalyticsV2EndpointTests.cs)
+**File:** [`server/Mongoose.Api.Tests/Application/Endpoints/Analytics/AnalyticsEndpointV2Tests.cs`](../server/Mongoose.Api.Tests/Application/Endpoints/Analytics/AnalyticsEndpointV2Tests.cs)
 
 **Test Coverage (16 tests):**
 - ✅ V2 single event with valid payload → accepted
@@ -259,7 +259,7 @@
 ✅ [`server/Mongoose.Api/Infrastructure/Database/Migrations/001_AddAnalyticsEventsV2Schema.sql`](../server/Mongoose.Api/Infrastructure/Database/Migrations/001_AddAnalyticsEventsV2Schema.sql) — Schema + procedures  
 
 ### Testing
-✅ [`server/Mongoose.Api.Tests/AnalyticsV2EndpointTests.cs`](../server/Mongoose.Api.Tests/AnalyticsV2EndpointTests.cs) — Integration tests (16 test cases)  
+✅ [`server/Mongoose.Api.Tests/Application/Endpoints/Analytics/AnalyticsEndpointV2Tests.cs`](../server/Mongoose.Api.Tests/Application/Endpoints/Analytics/AnalyticsEndpointV2Tests.cs) — Integration tests (16 test cases)  
 
 ### Documentation
 ✅ [`docs/telemetry-phase-0-design.md`](../docs/telemetry-phase-0-design.md) — Phase 0: Baseline & taxonomy  

@@ -209,7 +209,7 @@ Do not change anything else in the file.
 
 ---
 
-### 9. Backend tests — `server/Mongoose.Api.Tests/LoginEndpointTests.cs`
+### 9. Backend tests — `server/Mongoose.Api.Tests/Application/Endpoints/Auth/LoginEndpointTests.cs`
 
 **9a.** **Delete** the test method `Login_sets_allow_refresh_false_for_non_remember_me_sessions` in its entirety (it asserts the old short-session behavior, which no longer exists).
 

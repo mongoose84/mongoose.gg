@@ -127,7 +127,7 @@ Phase 2 focuses on **client-side queueing and backend async processing** to deco
 - Fire-and-forget semantics
 - Error handling (4xx vs 5xx)
 
-✅ **[AnalyticsAsyncEndpointTests.cs](../server/Mongoose.Api.Tests/AnalyticsAsyncEndpointTests.cs)** (300 lines)
+✅ **[AnalyticsAsyncEndpointTests.cs](../server/Mongoose.Api.Tests/Application/Endpoints/Analytics/AnalyticsAsyncEndpointTests.cs)** (300 lines)
 - 202 Accepted responses
 - Fire-and-forget timing
 - Batch size limits

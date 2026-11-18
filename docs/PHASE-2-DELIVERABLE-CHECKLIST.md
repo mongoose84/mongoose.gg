@@ -33,7 +33,7 @@ Phase 2 implements **client-side event queuing and backend async processing** to
 
 **Testing (2 files)**
 - ✅ [analyticsQueue.spec.js](../client/test/unit/services/analyticsQueue.spec.js) — Client tests (20+ cases)
-- ✅ [AnalyticsAsyncEndpointTests.cs](../server/Mongoose.Api.Tests/AnalyticsAsyncEndpointTests.cs) — Backend tests (15+ cases)
+- ✅ [AnalyticsAsyncEndpointTests.cs](../server/Mongoose.Api.Tests/Application/Endpoints/Analytics/AnalyticsAsyncEndpointTests.cs) — Backend tests (15+ cases)
 
 **Configuration & Documentation (3 files)**
 - ✅ [AnalyticsPhase2ServiceCollectionExtensions.cs](../server/Mongoose.Api/AnalyticsPhase2ServiceCollectionExtensions.cs) — DI setup

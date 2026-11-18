@@ -27,7 +27,7 @@
 
 | File | Status | Purpose |
 |------|--------|---------|
-| ✅ `AnalyticsV2EndpointTests.cs` | Complete | 16 integration tests, full coverage |
+| ✅ `AnalyticsEndpointV2Tests.cs` | Complete | 16 integration tests, full coverage |
 
 ### Documentation (4 files)
 
@@ -235,7 +235,7 @@
 ### For Developers
 - [Analytics V2 Quick Start](./analytics-v2-quick-start.md) — How to add events, test, debug
 - [AnalyticsV2Dto.cs](../server/Mongoose.Api/Application/DTOs/Analytics/AnalyticsV2Dto.cs) — Contracts reference
-- [AnalyticsV2EndpointTests.cs](../server/Mongoose.Api.Tests/AnalyticsV2EndpointTests.cs) — Code examples
+- [AnalyticsEndpointV2Tests.cs](../server/Mongoose.Api.Tests/Application/Endpoints/Analytics/AnalyticsEndpointV2Tests.cs) — Code examples
 
 ### For Operations
 - [Migration Strategy](./telemetry-phase-1-migration-strategy.md) — Runbooks, troubleshooting, alerts

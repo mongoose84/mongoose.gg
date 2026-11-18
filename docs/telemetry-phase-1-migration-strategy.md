@@ -26,7 +26,7 @@ This document outlines the three-phase migration strategy for rolling out the v2
 - [ ] V2 DTOs compiled and integrated
 - [ ] V2 Repository and Validator services registered in DI
 - [ ] V2 Endpoint configured and tested locally
-- [ ] Integration tests passing (AnalyticsV2EndpointTests.cs)
+- [ ] Integration tests passing (AnalyticsEndpointV2Tests.cs)
 - [ ] Staging environment tested with v1 + v2 endpoints active
 - [ ] Rollback procedure documented and tested
 - [ ] On-call engineer briefed and available for monitoring
@@ -519,7 +519,7 @@ await schemaRegistry.ReloadAsync(); // Manual reload
 | V2 Repository | `server/Mongoose.Api/Infrastructure/Database/Repositories/AnalyticsEventsV2Repository.cs` | Data access layer |
 | Validator Service | `server/Mongoose.Api/Infrastructure/Telemetry/EventValidator.cs` | Validation logic |
 | Compatibility Helper | `server/Mongoose.Api/Application/Endpoints/Analytics/AnalyticsCompatibilityHelper.cs` | V1 → V2 transform |
-| Tests | `server/Mongoose.Api.Tests/AnalyticsV2EndpointTests.cs` | Integration tests |
+| Tests | `server/Mongoose.Api.Tests/Application/Endpoints/Analytics/AnalyticsEndpointV2Tests.cs` | Integration tests |
 | DB Migration | `server/Mongoose.Api/Infrastructure/Database/Migrations/001_AddAnalyticsEventsV2Schema.sql` | Schema deployment |
 
 ---

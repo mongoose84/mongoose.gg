@@ -79,8 +79,8 @@ server/
 │   └── AnalyticsV2ServiceCollectionExtensions.cs
 │
 └── Mongoose.Api.Tests/
-    ├── AnalyticsEndpointTests.cs          ← V1 tests
-    └── AnalyticsV2EndpointTests.cs        ← V2 tests
+    └── Application/Endpoints/Analytics/
+        └── AnalyticsEndpointV2Tests.cs    ← V1 + V2 endpoint tests
 ```
 
 ---
@@ -393,7 +393,7 @@ LIMIT 5;
 - **Schema Registry:** [`event-schema.yml`](../server/Mongoose.Api/Application/Telemetry/event-schema.yml)
 - **V2 DTOs:** [`AnalyticsV2Dto.cs`](../server/Mongoose.Api/Application/DTOs/Analytics/AnalyticsV2Dto.cs)
 - **Endpoint:** [`AnalyticsEndpointV2.cs`](../server/Mongoose.Api/Application/Endpoints/Analytics/AnalyticsEndpointV2.cs)
-- **Tests:** [`AnalyticsV2EndpointTests.cs`](../server/Mongoose.Api.Tests/AnalyticsV2EndpointTests.cs)
+- **Tests:** [`AnalyticsEndpointV2Tests.cs`](../server/Mongoose.Api.Tests/Application/Endpoints/Analytics/AnalyticsEndpointV2Tests.cs)
 - **Migration:** [`telemetry-phase-1-migration-strategy.md`](./telemetry-phase-1-migration-strategy.md)
 
 ---

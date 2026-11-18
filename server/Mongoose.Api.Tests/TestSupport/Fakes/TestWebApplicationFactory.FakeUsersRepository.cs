@@ -13,6 +13,10 @@ internal sealed partial class TestWebApplicationFactory
         private readonly ConcurrentDictionary<long, User> _usersById = new();
         private long _nextId = 1;
 
+        // BCrypt stores its cost in the hash, so seeding at the minimum cost (4) makes both this hash and
+        // the login endpoint's Verify near-instant. Production keeps its default cost; only fakes use this.
+        private const int TestBcryptWorkFactor = 4;
+
         public FakeUsersRepository() : base(null!, new FakeEncryptor())
         {
             // Pre-populate with a test user (password: "test-password")
@@ -21,7 +25,7 @@ internal sealed partial class TestWebApplicationFactory
                 UserId = _nextId++,
                 Username = "tester",
                 Email = "tester@test.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("test-password"),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("test-password", TestBcryptWorkFactor),
                 SecurityStamp = Guid.NewGuid().ToString(),
                 EmailVerified = true,
                 IsActive = true,
@@ -118,7 +122,7 @@ internal sealed partial class TestWebApplicationFactory
                 UserId = _nextId++,
                 Username = username,
                 Email = email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, TestBcryptWorkFactor),
                 SecurityStamp = Guid.NewGuid().ToString(),
                 EmailVerified = false,
                 IsActive = true,
@@ -138,7 +142,7 @@ internal sealed partial class TestWebApplicationFactory
                 UserId = _nextId++,
                 Username = username,
                 Email = email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, TestBcryptWorkFactor),
                 SecurityStamp = Guid.NewGuid().ToString(),
                 EmailVerified = true,
                 IsActive = false,

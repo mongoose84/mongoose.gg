@@ -39,6 +39,8 @@ Key shared files — read these before adding new tests:
 - `TestSupport/DbFactAttribute.cs` — `[DbFact]` for tests against a real MySQL DB; reports **Skipped** unless `RUN_DB_INTEGRATION_TESTS=true` and `Database_test` are set. Read the connection string from `IntegrationDb.ConnectionString`. Never gate a test with an early `return` — it reports as passed.
 - `TestSupport/Eventually.cs` — `Eventually.UntilAsync(condition, because)` waits for background work to reach a state; use it instead of a fixed `Task.Delay`. When the code under test waits on a timer, give it an optional `TimeProvider? timeProvider = null` (defaulting to `TimeProvider.System`) and drive it with `FakeTimeProvider.Advance` (`Microsoft.Extensions.TimeProvider.Testing`) — see `DeathDetailBackfillJobTests`.
 - `TestSupport/Fakes/` — the factory's partial fake files plus standalone fakes and test doubles.
+- `TestSupport/SharedFactoryFixture.cs` — `IClassFixture<SharedFactoryFixture>` shares one host across a class. Use it ONLY when no test seeds, overrides, or reads back fake state (see `AnalyticsEndpointV2Tests`), and log in once via `fixture.GetAuthCookieAsync()`: the shared host keeps login rate-limit state, so per-test logins hit 429. Most suites seed per test and must keep `new TestWebApplicationFactory()`.
+- Seeded/added fake users are hashed at BCrypt cost 4 (`TestBcryptWorkFactor` in `FakeUsersRepository`), which keeps factory boot and login fast. Don't hash test passwords at the default cost.
 
 ## Structure
 
