@@ -8,7 +8,7 @@
         aria-label="Mongoose.gg home"
         data-testid="app-header-logo"
       >
-        <img src="/mongoose.png" alt="" class="h-[1.875rem] w-[4.625rem] desk:h-10 desk:w-[6.1875rem] object-contain" />
+        <img src="/mongoose.png" alt="" class="h-7.5 w-18.5 desk:h-10 desk:w-24.75 object-contain" />
         Mongoose.gg
       </router-link>
 
@@ -31,7 +31,7 @@
         </router-link>
       </nav>
 
-      <div class="flex-grow desk:hidden" />
+      <div class="grow desk:hidden" />
 
       <!-- Avatar menu -->
       <div class="relative ml-auto desk:ml-0" ref="menuRootRef">

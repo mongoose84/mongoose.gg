@@ -8,7 +8,7 @@
         aria-label="Mongoose.gg home"
         data-testid="navbar-logo"
       >
-        <img src="/mongoose.png" alt="" class="h-[1.875rem] w-[4.625rem] desk:h-10 desk:w-[6.1875rem] object-contain" />
+        <img src="/mongoose.png" alt="" class="h-7.5 w-18.5 desk:h-10 desk:w-24.75 object-contain" />
         Mongoose.gg
       </router-link>
 
@@ -23,7 +23,7 @@
         >{{ link.label }}</a>
       </nav>
 
-      <div class="flex-grow" />
+      <div class="grow" />
 
       <router-link
         to="/auth?mode=login"

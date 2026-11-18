@@ -1,11 +1,11 @@
 <template>
   <section id="features" class="scroll-mt-14 desk:scroll-mt-20 px-4 desk:px-14 pb-16 desk:pb-28 flex flex-col gap-5 desk:gap-10" data-testid="landing-features">
     <div class="flex flex-col desk:flex-row desk:items-end desk:justify-between gap-3 desk:gap-10">
-      <div class="flex flex-col gap-2.5 desk:gap-3 max-w-[40rem]">
+      <div class="flex flex-col gap-2.5 desk:gap-3 max-w-160">
         <span class="text-eyebrow text-text-secondary">WHAT YOU GET</span>
         <h2 class="font-display font-semibold text-[1.875rem] leading-[1.15] desk:text-headline text-text">Everything comes from your own matches</h2>
       </div>
-      <p class="hidden desk:block max-w-[25rem] text-body-lg text-text-soft">
+      <p class="hidden desk:block max-w-100 text-body-lg text-text-soft">
         Not the meta, not someone else's build. Each part of the app answers one question about how you play.
       </p>
     </div>
@@ -27,7 +27,7 @@
               <span class="text-body font-bold text-positive">{{ readiness.verdict }}</span>
             </div>
             <div
-              class="grid grid-cols-[repeat(20,minmax(0,1fr))] gap-[3px]"
+              class="grid grid-cols-20 gap-[3px]"
               role="meter"
               aria-label="Queue readiness"
               aria-valuemin="0"
@@ -39,7 +39,7 @@
               <span
                 v-for="(on, i) in readinessSegments"
                 :key="i"
-                class="h-[1.125rem] rounded-[3px]"
+                class="h-4.5 rounded-[3px]"
                 :class="on ? 'bg-primary-accent' : 'bg-track-strong'"
               />
             </div>
@@ -53,7 +53,7 @@
               :class="{ 'border-b border-border': i < example.scores.length - 1 }"
             >
               <div class="flex items-baseline gap-2">
-                <span class="flex-grow text-body-sm font-medium text-text-soft">{{ score.label }}</span>
+                <span class="grow text-body-sm font-medium text-text-soft">{{ score.label }}</span>
                 <span class="font-display text-title font-bold text-text">{{ score.value }}</span>
                 <span class="w-11 text-right text-chip" :class="score.delta >= 0 ? 'text-positive' : 'text-warn-text'">
                   {{ score.delta >= 0 ? '▲' : '▼' }} {{ Math.abs(score.delta) }}
@@ -80,9 +80,9 @@
             <img :src="iconUrl(pick.opponent)" alt="" class="w-8 h-8 rounded-pill" />
             Facing {{ pick.opponent }} mid
           </div>
-          <div class="p-3.5 desk:p-[1.125rem] rounded-card-sm bg-background border border-border flex items-center gap-3 desk:gap-4">
+          <div class="p-3.5 desk:p-4.5 rounded-card-sm bg-background border border-border flex items-center gap-3 desk:gap-4">
             <img :src="iconUrl(pick.champion)" alt="" class="w-12 h-12 desk:w-14 desk:h-14 rounded-[12px] border-2 border-primary-accent" />
-            <div class="flex flex-col gap-1 flex-grow min-w-0">
+            <div class="flex flex-col gap-1 grow min-w-0">
               <span class="font-display font-semibold text-[1.0625rem] desk:text-title text-text">Pick {{ pick.champion }}</span>
               <span class="text-caption text-text-soft">You won {{ pick.wins }} of {{ pick.matches }} into {{ pick.opponent }}</span>
             </div>
@@ -94,7 +94,7 @@
           <ul class="hidden desk:grid grid-cols-2 gap-3">
             <li v-for="alt in pick.alternatives" :key="alt.name" class="py-3 px-3.5 rounded-[1rem] bg-background flex items-center gap-2.5">
               <img :src="iconUrl(alt.name)" alt="" class="w-9 h-9 rounded-[10px]" />
-              <span class="flex-grow text-body-sm font-bold text-text">{{ alt.name }}</span>
+              <span class="grow text-body-sm font-bold text-text">{{ alt.name }}</span>
               <span class="font-display text-body font-bold" :class="alt.winRate >= 50 ? 'text-text-soft' : 'text-warn-text'">{{ alt.winRate }}%</span>
             </li>
           </ul>
@@ -113,7 +113,7 @@
           <li
             v-for="(match, i) in example.matches"
             :key="match.champion"
-            class="flex-col gap-3 py-3.5 px-3.5 desk:px-[1.125rem]"
+            class="flex-col gap-3 py-3.5 px-3.5 desk:px-4.5"
             :class="[i < example.matches.length - 1 ? 'hidden desk:flex border-b border-border' : 'flex']"
           >
             <div class="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] desk:grid-cols-[3rem_minmax(0,1fr)_auto] gap-3 desk:gap-3.5 items-center">
@@ -148,7 +148,7 @@
         title="See your trends, match by match"
         description="Win rate, deaths and gold at 15 over your last 20 or 50 matches, or the whole season."
       >
-        <div class="p-4 desk:py-[1.375rem] desk:px-6 rounded-card-sm bg-background flex flex-col gap-4">
+        <div class="p-4 desk:py-5.5 desk:px-6 rounded-card-sm bg-background flex flex-col gap-4">
           <div class="flex flex-col desk:flex-row desk:justify-between desk:items-center gap-3 desk:gap-4">
             <div class="flex flex-col gap-0.5">
               <span class="font-display font-semibold text-base desk:text-lg text-text" data-testid="trend-title">{{ trendTitle }}</span>

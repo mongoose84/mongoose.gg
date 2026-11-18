@@ -29,7 +29,7 @@
             aria-hidden="true"
           >
             <span class="text-text-secondary">Game name</span>
-            <span class="flex-grow" />
+            <span class="grow" />
             <span class="h-7 inline-flex items-center px-2.5 rounded-pill bg-background-selected text-chip text-text">#EUW</span>
           </div>
 

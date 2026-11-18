@@ -21,7 +21,7 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'text',
-    validator: (value) => ['text', 'title', 'ring', 'portrait', 'block'].includes(value)
+    validator: (value) => ['text', 'title', 'ring-3', 'portrait', 'block'].includes(value)
   },
   /** CSS width, e.g. "60%" or "12rem" */
   width: {

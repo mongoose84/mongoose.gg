@@ -58,13 +58,13 @@
               <div class="flex gap-md flex-wrap sm:flex-nowrap">
                 <router-link
                   to="/cookies"
-                  class="flex-shrink-0 py-md px-lg bg-background-secondary border border-border rounded-md text-text-secondary text-sm font-semibold cursor-pointer transition-all duration-200 hover:text-text hover:border-border no-underline text-center"
+                  class="shrink-0 py-md px-lg bg-background-secondary border border-border rounded-md text-text-secondary text-sm font-semibold cursor-pointer transition-all duration-200 hover:text-text hover:border-border no-underline text-center"
                 >
                   Learn More
                 </router-link>
                 <button
                   @click="resetCookiePreferences"
-                  class="flex-shrink-0 py-md px-lg bg-primary rounded-md text-white text-sm font-semibold cursor-pointer transition-all duration-200 hover:opacity-90"
+                  class="shrink-0 py-md px-lg bg-primary rounded-md text-white text-sm font-semibold cursor-pointer transition-all duration-200 hover:opacity-90"
                 >
                   Update Preferences
                 </button>
@@ -154,7 +154,7 @@
               </div>
               <button
                 @click="showDeleteModal = true"
-                class="flex-shrink-0 py-md px-lg bg-error rounded-md text-white text-sm font-semibold cursor-pointer transition-all duration-200 hover:opacity-90"
+                class="shrink-0 py-md px-lg bg-error rounded-md text-white text-sm font-semibold cursor-pointer transition-all duration-200 hover:opacity-90"
               >
                 Delete Account
               </button>

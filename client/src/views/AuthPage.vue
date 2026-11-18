@@ -3,12 +3,12 @@
     <NavBar />
 
     <main class="min-h-[calc(100vh-3.5rem)] desk:min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-10 desk:py-14">
-      <div class="w-full max-w-[28rem] p-5 desk:p-7 bg-background-surface border border-border rounded-xl flex flex-col gap-7" data-testid="auth-card">
+      <div class="w-full max-w-112 p-5 desk:p-7 bg-background-surface border border-border rounded-xl flex flex-col gap-7" data-testid="auth-card">
 
         <!-- ── Forgot Password State ── -->
         <template v-if="isForgotPassword">
           <div class="flex flex-col items-center text-center gap-3">
-            <img src="/mongoose.png" alt="" class="h-10 w-[6.1875rem] object-contain" data-testid="auth-logo" />
+            <img src="/mongoose.png" alt="" class="h-10 w-24.75 object-contain" data-testid="auth-logo" />
             <h1 class="font-display font-semibold text-[1.75rem] leading-[1.15] text-text">Reset your password</h1>
             <p class="text-body text-text-soft">Enter your email and we'll send you a reset code.</p>
           </div>
@@ -52,7 +52,7 @@
         <!-- ── Login / Register State ── -->
         <template v-else>
           <div class="flex flex-col items-center text-center gap-3">
-            <img src="/mongoose.png" alt="" class="h-10 w-[6.1875rem] object-contain" data-testid="auth-logo" />
+            <img src="/mongoose.png" alt="" class="h-10 w-24.75 object-contain" data-testid="auth-logo" />
             <h1 class="font-display font-semibold text-[1.75rem] leading-[1.15] text-text" data-testid="auth-title">
               {{ isLogin ? 'Log in to Mongoose.gg' : 'Create your free account' }}
             </h1>

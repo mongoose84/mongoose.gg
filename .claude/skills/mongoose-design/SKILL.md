@@ -57,7 +57,7 @@ Check `client/src/style.css` for `--font-display` and `--color-surface-selected`
 3. Semantic colour rule: game and performance meaning (win/loss, good/bad stat, deltas) uses purple (`primary`, `positive-text`) and orange (`warn`, `warn-text`), never green/red. The existing `--color-error` / `--color-success` stay only for system states: form validation, failed requests, destructive confirmations.
    Add the High contrast values from `reference/tokens.json` (the `contrast` theme) inside `@media (prefers-contrast: more) { :root { … } }`.
    Define the type scale and spacing in `rem` (1rem = 16px), not px, so browser text size and 200% zoom work.
-4. In `client/tailwind.config.js`, expose the new variables under the existing colour groups, and add `fontFamily: { display: 'var(--font-display)', body: 'var(--font-body)' }`, radii `xl: 24px`, `2xl: 28px` and `pill: 999px` if missing.
+4. In the `@theme` block of `client/src/style.css` (Tailwind v4), expose the new variables under the existing colour groups (`--color-*`), and add `--font-display: var(--font-display)` / `--font-body: var(--font-body)` style mappings, radii `--radius-xl: 24px`, `--radius-2xl: 28px` and `--radius-pill: 999px` if missing.
 5. In `.github/specs/ui-ux.spec.md` §2 (Visual Design System), update the "Migration status" line to say the foundation (fonts, tokens, Tailwind mapping) is in the app. Never add visual values to that spec; it only points here.
 6. Run `npm run build` in `client/` and fix anything that breaks.
 

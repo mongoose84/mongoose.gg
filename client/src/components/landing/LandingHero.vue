@@ -5,18 +5,18 @@
         <span class="w-2 h-2 rounded-pill bg-primary-accent" aria-hidden="true" />
         A coach built from your own matches
       </span>
-      <h1 class="font-display text-[2.375rem] leading-[1.08] tracking-[-0.01em] font-semibold desk:text-display text-text max-w-[37.5rem]" data-testid="landing-headline">
+      <h1 class="font-display text-[2.375rem] leading-[1.08] tracking-[-0.01em] font-semibold desk:text-display text-text max-w-150" data-testid="landing-headline">
         Climb faster with coaching from your own match history
       </h1>
-      <p class="text-body-lg desk:text-lg text-text-soft max-w-[33.75rem]">
+      <p class="text-body-lg desk:text-lg text-text-soft max-w-135">
         Champion picks for your pool, a readiness score before you queue, and one fix after every match.
       </p>
       <div class="flex flex-col desk:flex-row desk:items-center gap-3">
-        <router-link to="/auth?mode=signup" class="mp-btn mp-btn--primary h-[3.25rem] text-base" data-testid="hero-signup">
+        <router-link to="/auth?mode=signup" class="mp-btn mp-btn--primary h-13 text-base" data-testid="hero-signup">
           Create free account
           <BaseIcon name="arrow-right" :size="20" />
         </router-link>
-        <router-link to="/auth?mode=login" class="mp-btn mp-btn--secondary h-[3.25rem] text-base hidden desk:inline-flex" data-testid="hero-login">
+        <router-link to="/auth?mode=login" class="mp-btn mp-btn--secondary h-13 text-base hidden desk:inline-flex" data-testid="hero-login">
           Log in
         </router-link>
       </div>
@@ -30,7 +30,7 @@
 
     <!-- Product preview: real components filled with the example account -->
     <div class="flex flex-col gap-5" aria-label="Example of your Overview" data-testid="hero-preview">
-      <div class="hero-card relative h-[21.25rem] desk:h-[23.75rem] rounded-xl desk:rounded-2xl overflow-hidden bg-background">
+      <div class="hero-card relative h-85 desk:h-95 rounded-xl desk:rounded-2xl overflow-hidden bg-background">
         <img
           :src="splashUrl"
           :alt="`${example.main.name} splash art`"
@@ -38,7 +38,7 @@
         />
         <div class="hero-card__scrim absolute inset-0" aria-hidden="true" />
         <span class="absolute top-4 right-4 desk:top-5 desk:right-5 h-7 inline-flex items-center px-3 rounded-pill bg-glass text-chip text-text" data-testid="example-label">Example</span>
-        <div class="absolute left-5 right-5 bottom-5 desk:left-9 desk:right-auto desk:top-9 desk:bottom-auto desk:w-[22.5rem] flex flex-col gap-2.5 desk:gap-3.5">
+        <div class="absolute left-5 right-5 bottom-5 desk:left-9 desk:right-auto desk:top-9 desk:bottom-auto desk:w-90 flex flex-col gap-2.5 desk:gap-3.5">
           <span class="text-caption text-text-secondary">{{ example.riotId }} · {{ example.main.name }} · {{ example.rank }} · {{ example.lp }} LP</span>
           <span class="font-display font-semibold text-[1.375rem] desk:text-[1.875rem] leading-[1.15] text-text">{{ example.main.headline }}</span>
           <span class="hidden desk:block text-body-sm text-text-soft">{{ example.main.sub }}</span>
@@ -64,8 +64,8 @@
             </span>
           </div>
         </div>
-        <div class="hidden desk:flex p-[1.375rem] rounded-card-sm bg-background-surface flex-col gap-2.5">
-          <span class="self-start inline-flex items-center gap-1.5 h-[1.625rem] px-2.5 rounded-pill bg-warn-soft text-warn-text text-chip">
+        <div class="hidden desk:flex p-5.5 rounded-card-sm bg-background-surface flex-col gap-2.5">
+          <span class="self-start inline-flex items-center gap-1.5 h-6.5 px-2.5 rounded-pill bg-warn-soft text-warn-text text-chip">
             <BaseIcon name="repeat" :size="16" />
             Pattern
           </span>

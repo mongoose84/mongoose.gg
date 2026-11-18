@@ -3,7 +3,7 @@
     <div v-if="authStore.sessionExpired" class="session-expired-banner">
       <div class="flex items-center justify-center gap-4 max-w-[1400px] mx-auto px-6 py-3">
         <!-- Lock icon -->
-        <LockClosedIcon class="w-5 h-5 text-primary flex-shrink-0" />
+        <LockClosedIcon class="w-5 h-5 text-primary shrink-0" />
 
         <!-- Message -->
         <span class="text-sm font-medium text-white">

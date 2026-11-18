@@ -36,7 +36,7 @@
               id="reset-code"
               v-model="code"
               type="text"
-              class="p-lg bg-background border border-border rounded-md text-2xl font-bold text-text text-center tracking-[0.5em] transition-all duration-200 focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary-soft disabled:opacity-60 disabled:cursor-not-allowed"
+              class="p-lg bg-background border border-border rounded-md text-2xl font-bold text-text text-center tracking-[0.5em] transition-all duration-200 focus:outline-hidden focus:border-primary focus:ring-[3px] focus:ring-primary-soft disabled:opacity-60 disabled:cursor-not-allowed"
               placeholder="000000"
               maxlength="6"
               pattern="[0-9]{6}"
