@@ -2,7 +2,7 @@
   <section class="px-4 desk:px-14 pb-14 desk:pb-24" data-testid="landing-cta">
     <div class="py-7 px-5 desk:p-16 rounded-xl desk:rounded-2xl bg-background-surface grid grid-cols-1 desk:grid-cols-[minmax(0,1fr)_auto] gap-4 desk:gap-10 items-center">
       <div class="flex flex-col gap-3.5">
-        <h2 class="font-display font-semibold text-[1.75rem] leading-[1.15] desk:text-headline text-text max-w-180">Find the one fix in your next match</h2>
+        <h2 class="font-display font-semibold text-[1.75rem] leading-[1.15] desk:text-headline desk:leading-[1.12] text-text max-w-180">Find the one fix in your next match</h2>
         <p class="text-body desk:text-body-lg text-text-soft max-w-140">
           Create a free account, link your Riot ID, and your Overview is ready in a few minutes.
         </p>

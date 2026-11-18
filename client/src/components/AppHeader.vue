@@ -4,7 +4,7 @@
       <!-- Logo - always returns to the Overview -->
       <router-link
         to="/app/overview"
-        class="mp-focusable flex items-center gap-2.5 rounded-pill no-underline font-display font-bold text-[1.0625rem] desk:text-title text-text shrink-0"
+        class="mp-focusable flex items-center gap-2.5 rounded-pill no-underline font-display font-bold text-[1.0625rem] desk:text-title desk:font-semibold text-text shrink-0"
         aria-label="Mongoose.gg home"
         data-testid="app-header-logo"
       >

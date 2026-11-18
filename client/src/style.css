@@ -189,6 +189,16 @@
   textarea::placeholder {
     color: #9ca3af; /* v3 gray-400 */
   }
+
+  /* v4's preflight uses `font: inherit` on form controls, so they now inherit numeric variants
+     (e.g. the layout's tabular-nums). v3 left the browser's own reset in place: keep that. */
+  button,
+  input,
+  select,
+  optgroup,
+  textarea {
+    font-variant-numeric: normal;
+  }
 }
 
 /* Mongoose.gg design system tokens (.claude/skills/mongoose-design/reference/tokens.json) */
@@ -316,22 +326,26 @@
   --bg-overlay: linear-gradient(135deg, rgba(74, 27, 148, 0.1), transparent);
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* Element defaults go in the base layer: in Tailwind v4 unlayered CSS beats every utility, so an
+   unlayered `*` reset would wipe out all padding/margin utilities. */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-body {
-  font-family: var(--font-body);
-  color: var(--color-text);
-  line-height: 1.6;
-  font-weight: 500;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  position: relative;
-  min-height: 100vh;
-  background: var(--color-bg);
+  body {
+    font-family: var(--font-body);
+    color: var(--color-text);
+    line-height: 1.6;
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    min-height: 100vh;
+    background: var(--color-bg);
+  }
 }
 
 #app {

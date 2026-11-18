@@ -2,7 +2,7 @@
   <section class="px-4 desk:px-14 pb-16 desk:pb-28 grid grid-cols-1 desk:grid-cols-[minmax(0,1fr)_50rem] gap-7 desk:gap-16 items-center" data-testid="landing-champion-pool">
     <div class="flex flex-col gap-3 desk:gap-5">
       <span class="text-eyebrow text-text-secondary">YOUR CHAMPION POOL</span>
-      <h2 class="font-display font-semibold text-[1.875rem] leading-[1.15] desk:text-headline text-text">Your champions, not a tier list</h2>
+      <h2 class="font-display font-semibold text-[1.875rem] leading-[1.15] desk:text-headline desk:leading-[1.12] text-text">Your champions, not a tier list</h2>
       <p class="text-body desk:text-body-lg text-text-soft max-w-110">
         See which champions win you LP and which cost it. Each one gets its own scores, matchups and fixes, and your Overview follows the champion you pick.
       </p>

@@ -5,7 +5,7 @@
         <span class="w-2 h-2 rounded-pill bg-primary-accent" aria-hidden="true" />
         A coach built from your own matches
       </span>
-      <h1 class="font-display text-[2.375rem] leading-[1.08] tracking-[-0.01em] font-semibold desk:text-display text-text max-w-150" data-testid="landing-headline">
+      <h1 class="font-display text-[2.375rem] leading-[1.08] tracking-[-0.01em] font-semibold desk:text-display desk:leading-[1.06] desk:tracking-[-0.015em] text-text max-w-150" data-testid="landing-headline">
         Climb faster with coaching from your own match history
       </h1>
       <p class="text-body-lg desk:text-lg text-text-soft max-w-135">

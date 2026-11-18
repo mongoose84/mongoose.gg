@@ -4,7 +4,7 @@
       <!-- Logo - navigates to /app/user if logged in, / if not -->
       <router-link
         :to="logoDestination"
-        class="mp-focusable flex items-center gap-2.5 rounded-pill no-underline font-display font-bold text-[1.0625rem] desk:text-title text-text"
+        class="mp-focusable flex items-center gap-2.5 rounded-pill no-underline font-display font-bold text-[1.0625rem] desk:text-title desk:font-semibold text-text"
         aria-label="Mongoose.gg home"
         data-testid="navbar-logo"
       >

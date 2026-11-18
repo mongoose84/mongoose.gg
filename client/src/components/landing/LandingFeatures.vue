@@ -3,7 +3,7 @@
     <div class="flex flex-col desk:flex-row desk:items-end desk:justify-between gap-3 desk:gap-10">
       <div class="flex flex-col gap-2.5 desk:gap-3 max-w-160">
         <span class="text-eyebrow text-text-secondary">WHAT YOU GET</span>
-        <h2 class="font-display font-semibold text-[1.875rem] leading-[1.15] desk:text-headline text-text">Everything comes from your own matches</h2>
+        <h2 class="font-display font-semibold text-[1.875rem] leading-[1.15] desk:text-headline desk:leading-[1.12] text-text">Everything comes from your own matches</h2>
       </div>
       <p class="hidden desk:block max-w-100 text-body-lg text-text-soft">
         Not the meta, not someone else's build. Each part of the app answers one question about how you play.
@@ -126,7 +126,7 @@
               <span class="flex flex-col gap-0.5 min-w-0">
                 <span class="text-body desk:text-base font-bold text-text">
                   {{ match.champion }}
-                  <span class="text-caption desk:text-body-sm font-bold" :class="match.win ? 'text-positive' : 'text-warn-text'">{{ match.win ? 'Victory' : 'Defeat' }}</span>
+                  <span class="text-caption desk:text-body-sm desk:font-normal font-bold" :class="match.win ? 'text-positive' : 'text-warn-text'">{{ match.win ? 'Victory' : 'Defeat' }}</span>
                 </span>
                 <span class="text-caption text-text-secondary">{{ match.meta }}</span>
               </span>

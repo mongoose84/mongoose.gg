@@ -2,7 +2,7 @@
   <section id="how-it-works" class="scroll-mt-14 desk:scroll-mt-20 px-4 desk:px-14 pb-16 desk:pb-28 flex flex-col gap-5 desk:gap-10" data-testid="landing-steps">
     <div class="flex flex-col gap-2.5 desk:gap-3">
       <span class="text-eyebrow text-text-secondary">HOW IT WORKS</span>
-      <h2 class="font-display font-semibold text-[1.875rem] leading-[1.15] desk:text-headline text-text">Your Overview in three steps</h2>
+      <h2 class="font-display font-semibold text-[1.875rem] leading-[1.15] desk:text-headline desk:leading-[1.12] text-text">Your Overview in three steps</h2>
     </div>
     <ol class="grid grid-cols-1 desk:grid-cols-3 gap-3 desk:gap-5">
       <li
