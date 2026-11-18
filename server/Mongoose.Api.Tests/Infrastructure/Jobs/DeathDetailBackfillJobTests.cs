@@ -3,6 +3,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Mongoose.Api.Core.Entities;
 using Mongoose.Api.Core.Interfaces;
 using Mongoose.Api.Infrastructure.Jobs;
@@ -24,6 +25,7 @@ public sealed class DeathDetailBackfillJobTests
     private readonly FakeThrottle _throttle = new();
     private readonly DeathDetailBackfillState _state = new();
     private readonly RiotBackgroundActivity _activity = new();
+    private readonly FakeTimeProvider _clock = new();
     private readonly DeathDetailBackfillJob _sut;
 
     public DeathDetailBackfillJobTests()
@@ -50,7 +52,7 @@ public sealed class DeathDetailBackfillJobTests
         }).Build();
 
         _sut = new DeathDetailBackfillJob(services.BuildServiceProvider(), _state, _activity, _throttle,
-            new RecordingLogger<DeathDetailBackfillJob>(), config);
+            new RecordingLogger<DeathDetailBackfillJob>(), config, _clock);
     }
 
     /// <summary>An account with <paramref name="done"/> matches done and <paramref name="pending"/> to do, newest first.</summary>
@@ -225,8 +227,13 @@ public sealed class DeathDetailBackfillJobTests
         _throttle.WaitingUntilUtc = retryAt;
 
         var run = _sut.RunOnceAsync(Now, CancellationToken.None);
+        // Each check moves the fake clock past the job's 1 s throttle poll, so the poll fires at once
         await Eventually.UntilAsync(
-            () => _state.Get("a")?.Status == DeathDetailBackfillProgress.Waiting,
+            () =>
+            {
+                _clock.Advance(TimeSpan.FromSeconds(1));
+                return _state.Get("a")?.Status == DeathDetailBackfillProgress.Waiting;
+            },
             "the job reports Waiting while the rate limiter holds the request");
 
         _state.Get("a").Should().Be(new DeathDetailBackfillProgress(DeathDetailBackfillProgress.Waiting, 1, 2, retryAt));

@@ -32,13 +32,15 @@ dotnet test Mongoose.Api.Tests/ --filter "FullyQualifiedName~LoginEndpoint"     
 
 Key shared files — read these before adding new tests:
 
-- `TestSupport/TestWebApplicationFactory.cs` — spins up an in-process server with fake repositories and configurable services. Entry point for all HTTP-level tests.
+- `TestSupport/TestWebApplicationFactory.cs` — spins up an in-process server with fake repositories and configurable services. Entry point for all HTTP-level tests. It is a `partial` class: each nested fake (`FakeUsersRepository`, `FakeMatchesRepository`, …) lives in `TestSupport/Fakes/TestWebApplicationFactory.<Fake>.cs`. Add a new factory fake as another partial file there, not inline.
 - `TestSupport/AuthCookieTestHelper.cs` — `LoginAsync` / `LoginUnverifiedUserAsync` return a real auth cookie via the login endpoint; `GetAuthCookie` / `GetAuthenticationTicket` read one from a response.
 - `TestSupport/EnvironmentVariableScope.cs` — scoped env var overrides that restore original values on dispose. Use for tests that depend on configuration.
 - `TestSupport/EnvIsolationCollection.cs` — xUnit collection fixture that prevents parallel execution of env-var-sensitive tests.
 - `TestSupport/DbFactAttribute.cs` — `[DbFact]` for tests against a real MySQL DB; reports **Skipped** unless `RUN_DB_INTEGRATION_TESTS=true` and `Database_test` are set. Read the connection string from `IntegrationDb.ConnectionString`. Never gate a test with an early `return` — it reports as passed.
-- `TestSupport/Eventually.cs` — `Eventually.UntilAsync(condition, because)` waits for background work to reach a state; use it instead of a fixed `Task.Delay`.
-- `TestSupport/Fakes/` — shared fake repositories and test doubles.
+- `TestSupport/Eventually.cs` — `Eventually.UntilAsync(condition, because)` waits for background work to reach a state; use it instead of a fixed `Task.Delay`. When the code under test waits on a timer, give it an optional `TimeProvider? timeProvider = null` (defaulting to `TimeProvider.System`) and drive it with `FakeTimeProvider.Advance` (`Microsoft.Extensions.TimeProvider.Testing`) — see `DeathDetailBackfillJobTests`.
+- `TestSupport/Fakes/` — the factory's partial fake files plus standalone fakes and test doubles.
+- `TestSupport/SharedFactoryFixture.cs` — `IClassFixture<SharedFactoryFixture>` shares one host across a class. Use it ONLY when no test seeds, overrides, or reads back fake state (see `AnalyticsEndpointV2Tests`), and log in once via `fixture.GetAuthCookieAsync()`: the shared host keeps login rate-limit state, so per-test logins hit 429. Most suites seed per test and must keep `new TestWebApplicationFactory()`.
+- Seeded/added fake users are hashed at BCrypt cost 4 (`TestBcryptWorkFactor` in `FakeUsersRepository`), which keeps factory boot and login fast. Don't hash test passwords at the default cost.
 
 ## Structure
 

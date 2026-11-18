@@ -41,6 +41,7 @@ public class DeathDetailBackfillJob : BackgroundService
     private readonly RiotBackgroundActivity _activity;
     private readonly IRiotThrottleState _throttle;
     private readonly ILogger<DeathDetailBackfillJob> _logger;
+    private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _activeWindow;
     private readonly Queue<DateTime> _recentRequests = new();
 
@@ -50,13 +51,15 @@ public class DeathDetailBackfillJob : BackgroundService
         RiotBackgroundActivity activity,
         IRiotThrottleState throttle,
         ILogger<DeathDetailBackfillJob> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        TimeProvider? timeProvider = null)
     {
         _serviceProvider = serviceProvider;
         _state = state;
         _activity = activity;
         _throttle = throttle;
         _logger = logger;
+        _timeProvider = timeProvider ?? TimeProvider.System;
         // Same "active" window as RankSnapshotJob
         _activeWindow = TimeSpan.FromDays(Math.Max(1, configuration.GetValue("Jobs:RankSnapshotActiveDays", 7)));
     }
@@ -194,7 +197,7 @@ public class DeathDetailBackfillJob : BackgroundService
         var waited = false;
         while (!fetch.IsCompleted)
         {
-            await Task.WhenAny(fetch, Task.Delay(ThrottlePoll, ct));
+            await Task.WhenAny(fetch, Task.Delay(ThrottlePoll, _timeProvider, ct));
             if (!fetch.IsCompleted && _throttle.WaitingUntilUtc is { } until)
             {
                 waited = true;

@@ -8,17 +8,158 @@ using static Mongoose.Api.Application.DTOs.AnalyticsV2Dto;
 namespace Mongoose.Api.Tests;
 
 [Collection("EnvIsolation")]
-public class AnalyticsV2EndpointTests
+public class AnalyticsEndpointV2Tests : IClassFixture<SharedFactoryFixture>
 {
+    // Every test here only logs in and posts or reads analytics; none seeds or inspects fake state,
+    // so one host is shared across the class.
+    private readonly SharedFactoryFixture _fixture;
+    private readonly TestWebApplicationFactory _factory;
+
+    public AnalyticsEndpointV2Tests(SharedFactoryFixture fixture)
+    {
+        _fixture = fixture;
+        _factory = fixture.Factory;
+    }
+
+    // ============ V1 Track / Batch Tests ============
+
+    // Response DTOs for deserialization
+    private record TrackEventResponse(bool success);
+    private record TrackBatchResponse(bool success, int count);
+    private record ErrorResponse(string error);
+
+    [Fact]
+    public async Task Analytics_track_returns_success_when_authenticated()
+    {
+        var factory = _factory;
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var authCookie = await _fixture.GetAuthCookieAsync();
+        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics")
+        {
+            Content = JsonContent.Create(new
+            {
+                eventName = "match:select",
+                payload = new { matchId = "EUW1_12345", matchIndex = 0 },
+                sessionId = "test-session-123"
+            })
+        };
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TrackEventResponse>();
+        result.Should().NotBeNull();
+        result!.success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Analytics_track_returns_bad_request_when_eventName_missing()
+    {
+        var factory = _factory;
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var authCookie = await _fixture.GetAuthCookieAsync();
+        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics")
+        {
+            Content = JsonContent.Create(new
+            {
+                eventName = "",
+                sessionId = "test-session"
+            })
+        };
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var result = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        result!.error.Should().Contain("eventName");
+    }
+
+    [Fact]
+    public async Task Analytics_track_returns_bad_request_when_eventName_too_long()
+    {
+        var factory = _factory;
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var authCookie = await _fixture.GetAuthCookieAsync();
+        var longEventName = new string('x', 101);
+        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics")
+        {
+            Content = JsonContent.Create(new
+            {
+                eventName = longEventName,
+                sessionId = "test-session"
+            })
+        };
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var result = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        result!.error.Should().Contain("100 characters");
+    }
+
+    [Fact]
+    public async Task Analytics_batch_returns_success_with_count()
+    {
+        var factory = _factory;
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var authCookie = await _fixture.GetAuthCookieAsync();
+        var events = new List<object>
+        {
+            new { eventName = "match:select", payload = new Dictionary<string, object> { ["matchId"] = "EUW1_1" }, sessionId = "sess1" },
+            new { eventName = "match:details_view", payload = new Dictionary<string, object> { ["matchId"] = "EUW1_1" }, sessionId = "sess1" },
+            new { eventName = "match:section_toggle", payload = new Dictionary<string, object> { ["section"] = "personal_stats" }, sessionId = "sess1" }
+        };
+        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/batch")
+        {
+            Content = JsonContent.Create(new { events })
+        };
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TrackBatchResponse>();
+        result.Should().NotBeNull();
+        result!.success.Should().BeTrue();
+        result.count.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Analytics_batch_returns_bad_request_when_events_empty()
+    {
+        var factory = _factory;
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var authCookie = await _fixture.GetAuthCookieAsync();
+        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/batch")
+        {
+            Content = JsonContent.Create(new { events = Array.Empty<object>() })
+        };
+        req.Headers.Add("Cookie", authCookie);
+
+        var response = await client.SendAsync(req);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var result = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        result!.error.Should().Contain("events");
+    }
+
     // ============ V2 Single Event Tests ============
 
     [Fact]
     public async Task Analytics_v2_track_returns_success_with_valid_event()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
+        var authCookie = await _fixture.GetAuthCookieAsync();
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/v2")
         {
             Content = JsonContent.Create(new
@@ -44,10 +185,10 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_v2_track_rejects_unknown_event()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
+        var authCookie = await _fixture.GetAuthCookieAsync();
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/v2")
         {
             Content = JsonContent.Create(new
@@ -71,10 +212,10 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_v2_track_rejects_missing_required_fields()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
+        var authCookie = await _fixture.GetAuthCookieAsync();
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/v2")
         {
             Content = JsonContent.Create(new
@@ -97,10 +238,10 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_v2_track_rejects_payload_too_large()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
+        var authCookie = await _fixture.GetAuthCookieAsync();
         var largePayload = new Dictionary<string, object>
         {
             { "path", "/app/overview" }, // Required field, so the payload is otherwise valid
@@ -129,10 +270,10 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_v2_track_sanitizes_unknown_payload_keys()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
+        var authCookie = await _fixture.GetAuthCookieAsync();
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/v2")
         {
             Content = JsonContent.Create(new
@@ -160,7 +301,7 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_v2_track_accepts_anonymous_event()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v2/analytics/v2")
@@ -186,10 +327,10 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_v2_batch_returns_accepted_and_rejected_counts()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var authCookie = await AuthCookieTestHelper.LoginAsync(factory);
+        var authCookie = await _fixture.GetAuthCookieAsync();
         var events = new object[]
         {
             new { eventName = "nav:page_view", eventVersion = 1, payload = new { path = "/app" } },
@@ -217,7 +358,7 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_v2_batch_respects_max_50_events()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var events = Enumerable.Range(0, 51)
@@ -237,7 +378,7 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_v2_batch_partial_acceptance_on_mixed_validity()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var events = new object[]
@@ -265,7 +406,7 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_hybrid_endpoint_accepts_v1_and_converts_to_v2()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         // Send v1 format to hybrid endpoint
@@ -291,7 +432,7 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_health_endpoint_returns_metrics()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var response = await client.GetAsync("/api/v2/analytics/health");
@@ -306,7 +447,7 @@ public class AnalyticsV2EndpointTests
     [Fact]
     public async Task Analytics_schema_endpoint_returns_registered_events()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = _factory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var response = await client.GetAsync("/api/v2/analytics/schema");
